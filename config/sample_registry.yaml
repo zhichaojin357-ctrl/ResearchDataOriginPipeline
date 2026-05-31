@@ -1,0 +1,29 @@
+registry_status: planning_placeholder
+raw_data_scan:
+  last_scan_report: docs/agent_reports/data_mapper_report.md
+  observed_raw_child_count: 0
+  note: "input/raw_data was empty during the planning checkpoint scan on 2026-05-30."
+samples: []
+required_folder_placeholders:
+  supported:
+    - "20260109 光电流"
+    - BET
+    - EPR
+    - PL
+    - XPS
+    - XRD
+    - 固体紫外
+    - 光电流响应
+    - 光反应的条件筛选
+    - 红外
+    - 拉曼
+    - 莫特肖特基
+    - 液相
+    - 阻抗EIS
+  deferred:
+    - SEM
+    - TEM
+    - 核磁
+    - 质谱
+  reference:
+    - 动力学

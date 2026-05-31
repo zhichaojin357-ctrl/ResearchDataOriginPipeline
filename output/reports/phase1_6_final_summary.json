@@ -1,0 +1,182 @@
+{
+  "created_at": "2026-05-31 04:37:52",
+  "instruction_archive_path": "D:\\Codex Project\\科研数据处理\\指令归档\\GroupMeetingAutoPPT_phase1_6_origin_production_and_second_wave_instruction.md",
+  "instruction_sha256": "993AF1806AA5DB86FCA8E25FDE2DADC3806D3F74429EF9A8B6160109A5C356DF",
+  "baseline_report": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\docs\\agent_reports\\phase1_6_baseline.md",
+  "workspace_copy_exists": true,
+  "f_drive_backup_exists": true,
+  "phase1_5_audit": {
+    "total_items": 167,
+    "status_counts": {
+      "ACCEPT_FOR_ORIGIN": 158,
+      "BLOCKED": 9
+    },
+    "type_counts": {
+      "EIS": 22,
+      "EPR": 13,
+      "Mott-Schottky": 90,
+      "photocurrent": 3,
+      "Raman": 30,
+      "XPS": 9
+    },
+    "origin_accept_by_type": {
+      "EIS": 22,
+      "EPR": 13,
+      "Mott-Schottky": 90,
+      "photocurrent": 3,
+      "Raman": 30
+    },
+    "blocked_by_type": {
+      "XPS": 9
+    },
+    "issue_count": 9
+  },
+  "origin_candidate_queue_total": 158,
+  "origin_by_type": {
+    "eis": {
+      "type": "eis",
+      "queue_count": 22,
+      "success_count": 22,
+      "failure_count": 0
+    },
+    "photocurrent": {
+      "type": "photocurrent",
+      "queue_count": 3,
+      "success_count": 3,
+      "failure_count": 0
+    },
+    "raman": {
+      "type": "raman",
+      "queue_count": 30,
+      "success_count": 30,
+      "failure_count": 0
+    },
+    "mott_schottky": {
+      "type": "mott_schottky",
+      "queue_count": 90,
+      "success_count": 90,
+      "failure_count": 0
+    },
+    "epr": {
+      "type": "epr",
+      "queue_count": 13,
+      "success_count": 13,
+      "failure_count": 0
+    },
+    "xps": {
+      "type": "xps",
+      "queue_count": 0,
+      "success_count": 0,
+      "failure_count": 0
+    }
+  },
+  "origin_visual_qc": {
+    "QC_PASS": 158
+  },
+  "origin_package": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\phase1_6_origin_results_20260531_041538",
+  "manual_review_second_wave": {
+    "remaining_manual_review_total": 737,
+    "already_processed_manual_review": 149,
+    "unprocessed_manual_review": 588,
+    "data_type_candidate_counts": {
+      "XRD": 66,
+      "PL": 23,
+      "XPS": 166,
+      "photocurrent": 15,
+      "photocurrent_response": 11,
+      "Mott-Schottky": 252,
+      "EIS": 54,
+      "FTIR": 30,
+      "Raman": 32,
+      "UV-vis DRS": 7,
+      "BET": 23,
+      "EPR": 58
+    },
+    "cluster_count": 283,
+    "top_50_cluster_ids": [
+      "03a77ebb05db",
+      "9e5b955025b7",
+      "9143cdf7c4e7",
+      "965994d38ed1",
+      "935f5cdd63ff",
+      "cb12a559618e",
+      "c49f8c80938a",
+      "1fb15d0f41b4",
+      "016c88398b3f",
+      "57f0ae097468",
+      "93acc93a5850",
+      "327cc26b6866",
+      "c15c29670bd7",
+      "687d32cb8442",
+      "bb14bf045bd5",
+      "760c9af79b1b",
+      "30234ef2c47c",
+      "bc198b6b8c5d",
+      "248335f86c71",
+      "8fa54af2788d",
+      "f90f21647aef",
+      "fcb92b8e7471",
+      "6c21aed08178",
+      "fa78890a4e4a",
+      "8233ae3240f3",
+      "c4a7ebcd2cf9",
+      "ab3b2560e370",
+      "128966e07373",
+      "486654028318",
+      "7c8a6a0df2c3",
+      "8d622607ece6",
+      "ef9363ab3429",
+      "48551d35ae1a",
+      "6148d5aa0c78",
+      "1effc8b9845c",
+      "fd1619613a6e",
+      "102a8910e9f0",
+      "46909692a4a8",
+      "aad138eba7ec",
+      "54fb82bdc08a",
+      "6e85eb600bfc",
+      "6f790d507ce3",
+      "b87e5ea2ad5a",
+      "4c377f892cc8",
+      "a8109170e7cc",
+      "238b653e0f97",
+      "29a93c5a2946",
+      "e365f084d107",
+      "aea6621fd532",
+      "f845162d0f91"
+    ]
+  },
+  "manual_override_proposals": {
+    "proposal_count": 16,
+    "auto_apply_count": 0,
+    "safe_promotion_count": 0
+  },
+  "safe_promotions": {
+    "safe_promotion_count": 0,
+    "per_type": {},
+    "max_total": 180,
+    "max_per_type": 30
+  },
+  "final_validation": {
+    "pytest": 0,
+    "deps-audit": 0,
+    "validate": 0,
+    "scan": 0,
+    "triage": 0
+  },
+  "triage_counts": {
+    "AUTO_PROCESS": 18,
+    "MANUAL_REVIEW": 737,
+    "EXCLUDE_INVALID": 121,
+    "DUPLICATE_SUPPRESSED": 58,
+    "AUXILIARY_ONLY": 113,
+    "DEFERRED_TYPE": 525,
+    "REFERENCE_ONLY": 17
+  },
+  "material_color_verification": "PASS",
+  "origin_process_count_after_validation": 0,
+  "git_commit_status": "failed_not_git_repository",
+  "git_commit_attempt_report": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\reports\\phase1_6_git_commit_attempt.json",
+  "git_commit_exit_code": 128,
+  "git_commit_output": "Skipped: current directory is not inside a git repository. No git init was performed."
+}

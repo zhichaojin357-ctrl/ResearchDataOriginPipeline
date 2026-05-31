@@ -1,0 +1,2993 @@
+{
+  "groups": [
+    {
+      "traceability_group_id": "3e272e8f045cb350",
+      "traceability_group_path": "00_索引与说明",
+      "file_count": 7,
+      "data_type_counts": {
+        "unknown": 7
+      },
+      "decision_counts": {
+        "EXCLUDE_INVALID": 7
+      },
+      "role_counts": {
+        "raw_or_exported_numeric_table": 6,
+        "auxiliary_file": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "00_索引与说明/duplicate_opju_sha256.csv",
+        "00_索引与说明/file_snapshot_after.csv",
+        "00_索引与说明/file_snapshot_before.csv",
+        "00_索引与说明/move_log.csv",
+        "00_索引与说明/opju_数据对应索引.csv",
+        "00_索引与说明/opju_精细对应关系.csv"
+      ],
+      "representative_files": [
+        "00_索引与说明/duplicate_opju_sha256.csv",
+        "00_索引与说明/file_snapshot_after.csv",
+        "00_索引与说明/file_snapshot_before.csv",
+        "00_索引与说明/move_log.csv",
+        "00_索引与说明/opju_数据对应索引.csv"
+      ]
+    },
+    {
+      "traceability_group_id": "54b1a57d6bcc81db",
+      "traceability_group_path": "01_XRD/20251110",
+      "file_count": 10,
+      "data_type_counts": {
+        "XRD": 10
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 5,
+        "EXCLUDE_INVALID": 5
+      },
+      "role_counts": {
+        "auxiliary_file": 5,
+        "raw_or_exported_numeric_table": 5
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "01_XRD/20251110/bobc shuirei.txt",
+        "01_XRD/20251110/bobc shuirei2.txt",
+        "01_XRD/20251110/bobcshuirei+cwo15%.txt",
+        "01_XRD/20251110/kit-6-1.txt",
+        "01_XRD/20251110/kit-6-2.txt"
+      ],
+      "representative_files": [
+        "01_XRD/20251110/bobc shuirei.raw",
+        "01_XRD/20251110/bobc shuirei.txt",
+        "01_XRD/20251110/bobc shuirei2.raw",
+        "01_XRD/20251110/bobc shuirei2.txt",
+        "01_XRD/20251110/bobcshuirei+cwo15%.raw"
+      ]
+    },
+    {
+      "traceability_group_id": "2ec4019a96a2e8e0",
+      "traceability_group_path": "01_XRD/20260326LL BOB BOC BCN",
+      "file_count": 6,
+      "data_type_counts": {
+        "XRD": 6
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 6
+      },
+      "role_counts": {
+        "auxiliary_file": 6
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "01_XRD/20260326LL BOB BOC BCN/BICSNH4.dql",
+        "01_XRD/20260326LL BOB BOC BCN/BICSNH4.raw",
+        "01_XRD/20260326LL BOB BOC BCN/CL.dql",
+        "01_XRD/20260326LL BOB BOC BCN/CL.raw",
+        "01_XRD/20260326LL BOB BOC BCN/NH4.dql"
+      ]
+    },
+    {
+      "traceability_group_id": "f97f1e8e44205de5",
+      "traceability_group_path": "01_XRD/BOBC+MS",
+      "file_count": 1,
+      "data_type_counts": {
+        "XRD": 1
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "exported_figure": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "01_XRD/BOBC+MS/MS+BOBC.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "b98926fc811f9097",
+      "traceability_group_path": "01_XRD/BOBC+MS/250530",
+      "file_count": 4,
+      "data_type_counts": {
+        "XRD": 4
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 3,
+        "EXCLUDE_INVALID": 1
+      },
+      "role_counts": {
+        "auxiliary_file": 2,
+        "raw_or_exported_numeric_table": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "01_XRD/BOBC+MS/250530/bm.txt",
+        "01_XRD/BOBC+MS/250530/BOBC.TXT"
+      ],
+      "representative_files": [
+        "01_XRD/BOBC+MS/250530/bm.raw",
+        "01_XRD/BOBC+MS/250530/bm.txt",
+        "01_XRD/BOBC+MS/250530/BOBC.raw",
+        "01_XRD/BOBC+MS/250530/BOBC.TXT"
+      ]
+    },
+    {
+      "traceability_group_id": "8dccb9c68e88a965",
+      "traceability_group_path": "01_XRD/BOBC+MS/251024",
+      "file_count": 12,
+      "data_type_counts": {
+        "XRD": 12
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 7,
+        "EXCLUDE_INVALID": 4
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "processed_table": 1,
+        "raw_data": 10
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "01_XRD/BOBC+MS/251024/origin_project/20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "01_XRD/BOBC+MS/251024/origin_project/20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju",
+        "01_XRD/BOBC+MS/251024/processed_tables/mb9.jip",
+        "01_XRD/BOBC+MS/251024/raw_data/bobc.raw",
+        "01_XRD/BOBC+MS/251024/raw_data/bobc.txt",
+        "01_XRD/BOBC+MS/251024/raw_data/mb9.raw"
+      ]
+    },
+    {
+      "traceability_group_id": "bc373c2ba7a1d3af",
+      "traceability_group_path": "01_XRD/BPO",
+      "file_count": 4,
+      "data_type_counts": {
+        "XRD": 4
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 4
+      },
+      "role_counts": {
+        "auxiliary_file": 2,
+        "raw_or_exported_numeric_table": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "01_XRD/BPO/BPO+MS.TXT",
+        "01_XRD/BPO/BPO.TXT"
+      ],
+      "representative_files": [
+        "01_XRD/BPO/BPO+MS.raw",
+        "01_XRD/BPO/BPO+MS.TXT",
+        "01_XRD/BPO/BPO.raw",
+        "01_XRD/BPO/BPO.TXT"
+      ]
+    },
+    {
+      "traceability_group_id": "c02e2dc54707443a",
+      "traceability_group_path": "01_XRD/BWO",
+      "file_count": 5,
+      "data_type_counts": {
+        "XRD": 5
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 2,
+        "EXCLUDE_INVALID": 2
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "raw_data": 4
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "01_XRD/BWO/origin_project/BWO.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "01_XRD/BWO/origin_project/BWO.opju",
+        "01_XRD/BWO/raw_data/A BWO.raw",
+        "01_XRD/BWO/raw_data/A BWO.TXT",
+        "01_XRD/BWO/raw_data/M BWO.RAW",
+        "01_XRD/BWO/raw_data/M BWO.TXT"
+      ]
+    },
+    {
+      "traceability_group_id": "4a603f2efeefcbbc",
+      "traceability_group_path": "01_XRD/CWO+BOBC",
+      "file_count": 28,
+      "data_type_counts": {
+        "XRD": 28
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "MANUAL_REVIEW": 15,
+        "EXCLUDE_INVALID": 11
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "raw_data": 27
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "01_XRD/CWO+BOBC/origin_project/CWO+BOBC+标卡.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "01_XRD/CWO+BOBC/origin_project/CWO+BOBC+标卡.opju",
+        "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC.dql",
+        "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC.raw",
+        "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/BOBC600.dql",
+        "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/BOBC600.raw"
+      ]
+    },
+    {
+      "traceability_group_id": "7b7cf99e6f6116ce",
+      "traceability_group_path": "01_XRD/KIT-6",
+      "file_count": 9,
+      "data_type_counts": {
+        "XRD": 9
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 3,
+        "MANUAL_REVIEW": 3,
+        "EXCLUDE_INVALID": 3
+      },
+      "role_counts": {
+        "exported_figure": 1,
+        "origin_project_reference": 2,
+        "raw_data": 6
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "01_XRD/KIT-6/origin_project/kit-6.opju",
+        "01_XRD/KIT-6/origin_project/KIT-6第二批.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "01_XRD/KIT-6/exported_figures/kit-6.tif",
+        "01_XRD/KIT-6/origin_project/kit-6.opju",
+        "01_XRD/KIT-6/origin_project/KIT-6第二批.opju",
+        "01_XRD/KIT-6/raw_data/kit-6bo.raw",
+        "01_XRD/KIT-6/raw_data/kit-6bo.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "9f85f8079724c4de",
+      "traceability_group_path": "01_XRD/MS",
+      "file_count": 1,
+      "data_type_counts": {
+        "XRD": 1
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "origin_project_reference": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "01_XRD/MS/origin_project/BPO+MS.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "01_XRD/MS/origin_project/BPO+MS.opju"
+      ]
+    },
+    {
+      "traceability_group_id": "03106a4f072ae4a8",
+      "traceability_group_path": "01_XRD/MS/MSXRD",
+      "file_count": 41,
+      "data_type_counts": {
+        "XRD": 41
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 6,
+        "MANUAL_REVIEW": 18,
+        "EXCLUDE_INVALID": 17
+      },
+      "role_counts": {
+        "exported_figure": 1,
+        "origin_project_reference": 3,
+        "raw_data": 37
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "01_XRD/MS/MSXRD/origin_project/MOSE2.opju",
+        "01_XRD/MS/MSXRD/origin_project/MS.opju",
+        "01_XRD/MS/MSXRD/origin_project/球磨第二批XRD.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "01_XRD/MS/MSXRD/exported_figures/1mmolmose2的XRD.tif",
+        "01_XRD/MS/MSXRD/origin_project/MOSE2.opju",
+        "01_XRD/MS/MSXRD/origin_project/MS.opju",
+        "01_XRD/MS/MSXRD/origin_project/球磨第二批XRD.opju",
+        "01_XRD/MS/MSXRD/raw_data/4种方法/mose3.1.raw"
+      ]
+    },
+    {
+      "traceability_group_id": "d86d0541a54f4def",
+      "traceability_group_path": "01_XRD/研一上xrd数据及图片",
+      "file_count": 12,
+      "data_type_counts": {
+        "XRD": 12
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 6,
+        "EXCLUDE_INVALID": 5
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "raw_data": 11
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "01_XRD/研一上xrd数据及图片/origin_project/20241125XRD.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "01_XRD/研一上xrd数据及图片/origin_project/20241125XRD.opju",
+        "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2 2.raw",
+        "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2 2.txt",
+        "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.bc",
+        "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.raw"
+      ]
+    },
+    {
+      "traceability_group_id": "6cececbf9a7e2913",
+      "traceability_group_path": "02_XPS",
+      "file_count": 81,
+      "data_type_counts": {
+        "XPS": 81
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 5,
+        "MANUAL_REVIEW": 76
+      },
+      "role_counts": {
+        "origin_project_reference": 5,
+        "raw_data": 76
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "02_XPS/origin_project/BC-OW.opju",
+        "02_XPS/origin_project/bc-XPS.opju",
+        "02_XPS/origin_project/bobc xps.opju",
+        "02_XPS/origin_project/cwo xps.opju",
+        "02_XPS/origin_project/CWO+BOBC VBXPS谱图.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "02_XPS/origin_project/BC-OW.opju",
+        "02_XPS/origin_project/bc-XPS.opju",
+        "02_XPS/origin_project/bobc xps.opju",
+        "02_XPS/origin_project/cwo xps.opju",
+        "02_XPS/origin_project/CWO+BOBC VBXPS谱图.opju"
+      ]
+    },
+    {
+      "traceability_group_id": "327d848ca00dbaf3",
+      "traceability_group_path": "02_XPS/raw_data",
+      "file_count": 51,
+      "data_type_counts": {
+        "XPS": 51
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 51
+      },
+      "role_counts": {
+        "processed_table": 51
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Bi4f Scan.VGD",
+        "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Bi4f Scan_0.VGD",
+        "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Br3d Scan.VGD",
+        "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Br3d Scan_0.VGD",
+        "02_XPS/raw_data/BC拟合后/Data Grid.DATA/C1s Scan.VGD"
+      ]
+    },
+    {
+      "traceability_group_id": "870e87729fab9b57",
+      "traceability_group_path": "02_XPS/raw_data/原位XPS",
+      "file_count": 16,
+      "data_type_counts": {
+        "XPS": 16
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 16
+      },
+      "role_counts": {
+        "processed_table": 16
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Bi4f Scan.VGD",
+        "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Bi4f Scan_0.VGD",
+        "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Br3d Scan.VGD",
+        "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Br3d Scan_0.VGD",
+        "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/C1s Scan.VGD"
+      ]
+    },
+    {
+      "traceability_group_id": "2367677b2a89b798",
+      "traceability_group_path": "02_XPS/电荷未矫正第一次",
+      "file_count": 7,
+      "data_type_counts": {
+        "XPS": 7
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 3,
+        "MANUAL_REVIEW": 4
+      },
+      "role_counts": {
+        "origin_project_reference": 3,
+        "processed_table": 4
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "02_XPS/电荷未矫正第一次/origin_project/xps 全数据BI.opju",
+        "02_XPS/电荷未矫正第一次/origin_project/xps全数据CU.opju",
+        "02_XPS/电荷未矫正第一次/origin_project/xps全数据版.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "02_XPS/电荷未矫正第一次/origin_project/xps 全数据BI.opju",
+        "02_XPS/电荷未矫正第一次/origin_project/xps全数据CU.opju",
+        "02_XPS/电荷未矫正第一次/origin_project/xps全数据版.opju",
+        "02_XPS/电荷未矫正第一次/processed_tables/dark拟合第一遍.vgp",
+        "02_XPS/电荷未矫正第一次/processed_tables/dark拟合第一遍.xls"
+      ]
+    },
+    {
+      "traceability_group_id": "596b58badaf99e07",
+      "traceability_group_path": "02_XPS/电荷未矫正第一次/raw_data",
+      "file_count": 18,
+      "data_type_counts": {
+        "XPS": 18
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 18
+      },
+      "role_counts": {
+        "processed_table": 18
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Bi4f Scan.VGD",
+        "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Br3d Scan.VGD",
+        "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/C1s Scan.VGD",
+        "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/C1s Scan_0.VGD",
+        "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Cl2p Scan.VGD"
+      ]
+    },
+    {
+      "traceability_group_id": "4c906a9094d1d8c1",
+      "traceability_group_path": "03_光电流/20260109_光电流/26010964564",
+      "file_count": 2,
+      "data_type_counts": {
+        "photocurrent": 2
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "EXCLUDE_INVALID": 1
+      },
+      "role_counts": {
+        "document_or_report": 1,
+        "raw_or_exported_numeric_table": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "03_光电流/20260109_光电流/26010964564/备注.txt"
+      ],
+      "representative_files": [
+        "03_光电流/20260109_光电流/26010964564/光电流基线处理教程.pdf",
+        "03_光电流/20260109_光电流/26010964564/备注.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "695f07eaa710a305",
+      "traceability_group_path": "03_光电流/20260109_光电流/26010964564/Photocurrent",
+      "file_count": 12,
+      "data_type_counts": {
+        "photocurrent": 12
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 12
+      },
+      "role_counts": {
+        "auxiliary_file": 6,
+        "raw_or_exported_numeric_table": 6
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/1-BOC-(OCP).txt",
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/2-MCS-(OCP).txt",
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/3-BM-10-(OCP).txt",
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/4-BOBC-(OCP).txt",
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/5-CWO-(OCP) .txt",
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/6-BC-11-(OCP).txt"
+      ],
+      "representative_files": [
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/1-BOC-(OCP).bin",
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/1-BOC-(OCP).txt",
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/2-MCS-(OCP).bin",
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/2-MCS-(OCP).txt",
+        "03_光电流/20260109_光电流/26010964564/Photocurrent/3-BM-10-(OCP).bin"
+      ]
+    },
+    {
+      "traceability_group_id": "01b3b9004b50bd41",
+      "traceability_group_path": "03_光电流/光电流响应",
+      "file_count": 21,
+      "data_type_counts": {
+        "photocurrent_response": 13,
+        "photocurrent": 8
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 4,
+        "MANUAL_REVIEW": 8,
+        "EXCLUDE_INVALID": 3,
+        "DUPLICATE_SUPPRESSED": 6
+      },
+      "role_counts": {
+        "origin_project_reference": 2,
+        "raw_data": 19
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "03_光电流/光电流响应/origin_project/SECOND.opju",
+        "03_光电流/光电流响应/origin_project/光电流相应CWO+BOBC.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "03_光电流/光电流响应/origin_project/SECOND.opju",
+        "03_光电流/光电流响应/origin_project/光电流相应CWO+BOBC.opju",
+        "03_光电流/光电流响应/raw_archives/2758_1774879987011_26032562524.zip",
+        "03_光电流/光电流响应/raw_archives/2758_1776699905862_26041550465.zip",
+        "03_光电流/光电流响应/raw_data/备注.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "36b86702ec752e7b",
+      "traceability_group_path": "03_光电流/光电流响应/1bobc+2cwo+3bicu-10",
+      "file_count": 7,
+      "data_type_counts": {
+        "photocurrent_response": 7
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 6
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "raw_data": 6
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/origin_project/I-T BOBC+CWO 4.22.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/origin_project/I-T BOBC+CWO 4.22.opju",
+        "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/bicu/1-（OCP）.bin",
+        "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/bicu/1-（OCP）.txt",
+        "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/BOBC/1-(OCP).bin",
+        "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/BOBC/1-(OCP).txt"
+      ]
+    },
+    {
+      "traceability_group_id": "04b107e6e5d66530",
+      "traceability_group_path": "03_光电流/光电流响应/reports_notes",
+      "file_count": 1,
+      "data_type_counts": {
+        "photocurrent_response": 1
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "document_or_report": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "03_光电流/光电流响应/reports_notes/光电流基线处理教程.pdf"
+      ]
+    },
+    {
+      "traceability_group_id": "0637c93b0dafadbb",
+      "traceability_group_path": "04_莫特肖特基",
+      "file_count": 4,
+      "data_type_counts": {
+        "Mott-Schottky": 4
+      },
+      "decision_counts": {
+        "DUPLICATE_SUPPRESSED": 4
+      },
+      "role_counts": {
+        "processed_table": 4
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO1000.xlsx",
+        "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO1500.xlsx",
+        "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO2000.xlsx",
+        "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO3000RE.xlsx"
+      ]
+    },
+    {
+      "traceability_group_id": "a9297b1df2d39c56",
+      "traceability_group_path": "04_莫特肖特基/20251126/BOBC",
+      "file_count": 24,
+      "data_type_counts": {
+        "Mott-Schottky": 24
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 24
+      },
+      "role_counts": {
+        "auxiliary_file": 12,
+        "raw_or_exported_numeric_table": 12
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-1000.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-1500.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-2000.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-2500.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-3000.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-3500.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC1000.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC1500.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC2000.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC2500.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC3000.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC3500.csv"
+      ],
+      "representative_files": [
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-1000.bin",
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-1000.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-1500.bin",
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-1500.csv",
+        "04_莫特肖特基/20251126/BOBC/BOBC-2-2000.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "cc8e4dc259dea133",
+      "traceability_group_path": "04_莫特肖特基/20251126/CWO",
+      "file_count": 27,
+      "data_type_counts": {
+        "Mott-Schottky": 27
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 27
+      },
+      "role_counts": {
+        "auxiliary_file": 13,
+        "raw_or_exported_numeric_table": 14
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "04_莫特肖特基/20251126/CWO/CWO-2-1500.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-2-2000.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-2-2500.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-2-3000.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-2-3500.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-2-4000.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-2-4500.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-2-5000.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-MT-YS1.xlsx",
+        "04_莫特肖特基/20251126/CWO/CWO1500.csv",
+        "04_莫特肖特基/20251126/CWO/CWO2000.csv",
+        "04_莫特肖特基/20251126/CWO/CWO2500.csv",
+        "04_莫特肖特基/20251126/CWO/CWO3000.csv",
+        "04_莫特肖特基/20251126/CWO/CWO3500.csv"
+      ],
+      "representative_files": [
+        "04_莫特肖特基/20251126/CWO/CWO-2-1500.bin",
+        "04_莫特肖特基/20251126/CWO/CWO-2-1500.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-2-2000.bin",
+        "04_莫特肖特基/20251126/CWO/CWO-2-2000.csv",
+        "04_莫特肖特基/20251126/CWO/CWO-2-2500.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "d2c33a41c2bf8485",
+      "traceability_group_path": "04_莫特肖特基/20260121CWO+BOBC",
+      "file_count": 53,
+      "data_type_counts": {
+        "Mott-Schottky": 53
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "MANUAL_REVIEW": 34,
+        "DUPLICATE_SUPPRESSED": 17
+      },
+      "role_counts": {
+        "origin_project_reference": 2,
+        "raw_data": 51
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "04_莫特肖特基/20260121CWO+BOBC/origin_project/BOBC.opju",
+        "04_莫特肖特基/20260121CWO+BOBC/origin_project/CWO新.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/20260121CWO+BOBC/origin_project/BOBC.opju",
+        "04_莫特肖特基/20260121CWO+BOBC/origin_project/CWO新.opju",
+        "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2000.bin",
+        "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2000.csv",
+        "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2500.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "21562d6bc9a50c77",
+      "traceability_group_path": "04_莫特肖特基/BOBC",
+      "file_count": 22,
+      "data_type_counts": {
+        "Mott-Schottky": 22
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 4,
+        "MANUAL_REVIEW": 18
+      },
+      "role_counts": {
+        "exported_figure": 3,
+        "origin_project_reference": 1,
+        "raw_data": 18
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "04_莫特肖特基/BOBC/origin_project/bobc.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/BOBC/exported_figures/BOBCMOSE能带.tif",
+        "04_莫特肖特基/BOBC/exported_figures/BOBC莫特肖特基.tif",
+        "04_莫特肖特基/BOBC/exported_figures/CWO+BOBC莫特.tif",
+        "04_莫特肖特基/BOBC/origin_project/bobc.opju",
+        "04_莫特肖特基/BOBC/raw_data/BOBC1000.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "3ea817b0be73b364",
+      "traceability_group_path": "04_莫特肖特基/CWO",
+      "file_count": 24,
+      "data_type_counts": {
+        "Mott-Schottky": 24
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "MANUAL_REVIEW": 22
+      },
+      "role_counts": {
+        "origin_project_reference": 2,
+        "raw_data": 22
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "04_莫特肖特基/CWO/origin_project/CWO MT-0.6.opju",
+        "04_莫特肖特基/CWO/origin_project/CWO MT-2 +0.3.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/CWO/origin_project/CWO MT-0.6.opju",
+        "04_莫特肖特基/CWO/origin_project/CWO MT-2 +0.3.opju",
+        "04_莫特肖特基/CWO/raw_data/MT1/CWO1000.bin",
+        "04_莫特肖特基/CWO/raw_data/MT1/CWO1000.csv",
+        "04_莫特肖特基/CWO/raw_data/MT1/CWO1500.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "8fe66ab045903e7b",
+      "traceability_group_path": "04_莫特肖特基/CWO/raw_data",
+      "file_count": 4,
+      "data_type_counts": {
+        "Mott-Schottky": 4
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 4
+      },
+      "role_counts": {
+        "processed_table": 4
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/CWO1000.xlsx",
+        "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/CWO1500.xlsx",
+        "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/CWO2000.xlsx",
+        "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/CWO3000RE.xlsx"
+      ]
+    },
+    {
+      "traceability_group_id": "0bcd523eff8a9162",
+      "traceability_group_path": "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版",
+      "file_count": 6,
+      "data_type_counts": {
+        "Mott-Schottky": 6
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 5,
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "processed_table": 6
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS1000.xlsx",
+        "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS1500.xlsx",
+        "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS2000.xlsx",
+        "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS2500.xlsx",
+        "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS3000.xlsx"
+      ]
+    },
+    {
+      "traceability_group_id": "582d5674c15c7883",
+      "traceability_group_path": "04_莫特肖特基/CWO莫特肖特基数据处理版",
+      "file_count": 5,
+      "data_type_counts": {
+        "Mott-Schottky": 5
+      },
+      "decision_counts": {
+        "DUPLICATE_SUPPRESSED": 5
+      },
+      "role_counts": {
+        "processed_table": 5
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS1000.xlsx",
+        "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS1500.xlsx",
+        "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS2000.xlsx",
+        "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS2500.xlsx",
+        "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS3000.xlsx"
+      ]
+    },
+    {
+      "traceability_group_id": "52681f27d56e2f07",
+      "traceability_group_path": "04_莫特肖特基/LL/BOBC",
+      "file_count": 14,
+      "data_type_counts": {
+        "Mott-Schottky": 14
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 14
+      },
+      "role_counts": {
+        "auxiliary_file": 7,
+        "raw_or_exported_numeric_table": 7
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "04_莫特肖特基/LL/BOBC/1000.csv",
+        "04_莫特肖特基/LL/BOBC/1500.csv",
+        "04_莫特肖特基/LL/BOBC/2000.csv",
+        "04_莫特肖特基/LL/BOBC/2500.csv",
+        "04_莫特肖特基/LL/BOBC/3000.csv",
+        "04_莫特肖特基/LL/BOBC/3500.csv",
+        "04_莫特肖特基/LL/BOBC/4000.csv"
+      ],
+      "representative_files": [
+        "04_莫特肖特基/LL/BOBC/1000.bin",
+        "04_莫特肖特基/LL/BOBC/1000.csv",
+        "04_莫特肖特基/LL/BOBC/1500.bin",
+        "04_莫特肖特基/LL/BOBC/1500.csv",
+        "04_莫特肖特基/LL/BOBC/2000.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "de822597e3903db1",
+      "traceability_group_path": "04_莫特肖特基/LL/BOBC20251023",
+      "file_count": 13,
+      "data_type_counts": {
+        "Mott-Schottky": 13
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 13
+      },
+      "role_counts": {
+        "raw_or_exported_numeric_table": 13
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "04_莫特肖特基/LL/BOBC20251023/BOBC1000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC1500.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC2000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC3000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC4000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC5000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC6000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/MS1000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/MS2000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/MS4000 re2.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/MS4000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/MS4000RE.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/MS5000.xlsx"
+      ],
+      "representative_files": [
+        "04_莫特肖特基/LL/BOBC20251023/BOBC1000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC1500.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC2000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC3000.xlsx",
+        "04_莫特肖特基/LL/BOBC20251023/BOBC4000.xlsx"
+      ]
+    },
+    {
+      "traceability_group_id": "b98e6d379132f2e6",
+      "traceability_group_path": "04_莫特肖特基/LL/bobc数据处理版本",
+      "file_count": 8,
+      "data_type_counts": {
+        "Mott-Schottky": 8
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 7
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "processed_table": 7
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "04_莫特肖特基/LL/bobc数据处理版本/origin_project/bobc.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/LL/bobc数据处理版本/origin_project/bobc.opju",
+        "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/1000.xlsx",
+        "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/1500.xlsx",
+        "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/2000.xlsx",
+        "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/2500.xlsx"
+      ]
+    },
+    {
+      "traceability_group_id": "746f24daf619cb4d",
+      "traceability_group_path": "04_莫特肖特基/LLKT ms",
+      "file_count": 1,
+      "data_type_counts": {
+        "Mott-Schottky": 1
+      },
+      "decision_counts": {
+        "EXCLUDE_INVALID": 1
+      },
+      "role_counts": {
+        "raw_or_exported_numeric_table": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "04_莫特肖特基/LLKT ms/MOSE.TXT"
+      ],
+      "representative_files": [
+        "04_莫特肖特基/LLKT ms/MOSE.TXT"
+      ]
+    },
+    {
+      "traceability_group_id": "550072a73d1b2962",
+      "traceability_group_path": "04_莫特肖特基/LLKT ms/20250905",
+      "file_count": 32,
+      "data_type_counts": {
+        "Mott-Schottky": 30,
+        "EIS": 2
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 32
+      },
+      "role_counts": {
+        "raw_or_exported_numeric_table": 19,
+        "auxiliary_file": 13
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "04_莫特肖特基/LLKT ms/20250905/11MB EIS.csv",
+        "04_莫特肖特基/LLKT ms/20250905/11MB EIS.xlsx",
+        "04_莫特肖特基/LLKT ms/20250905/13MBEIS.csv",
+        "04_莫特肖特基/LLKT ms/20250905/13MBEIS2.csv",
+        "04_莫特肖特基/LLKT ms/20250905/13MBEIS2.xlsx",
+        "04_莫特肖特基/LLKT ms/20250905/1mbMT1000.csv",
+        "04_莫特肖特基/LLKT ms/20250905/1mbMT1000.xlsx",
+        "04_莫特肖特基/LLKT ms/20250905/1msEIS.csv",
+        "04_莫特肖特基/LLKT ms/20250905/1msEIS.xlsx",
+        "04_莫特肖特基/LLKT ms/20250905/1MT1000-2.csv",
+        "04_莫特肖特基/LLKT ms/20250905/1MT2000-2.csv",
+        "04_莫特肖特基/LLKT ms/20250905/1MT2000-2.xlsx",
+        "04_莫特肖特基/LLKT ms/20250905/1MT3000-2.csv",
+        "04_莫特肖特基/LLKT ms/20250905/1MT3000-2.xlsx",
+        "04_莫特肖特基/LLKT ms/20250905/3mbEIS.csv",
+        "04_莫特肖特基/LLKT ms/20250905/3mbEIS.xlsx",
+        "04_莫特肖特基/LLKT ms/20250905/5MB EIS.csv",
+        "04_莫特肖特基/LLKT ms/20250905/5MB EIS.xlsx",
+        "04_莫特肖特基/LLKT ms/20250905/5MBEIS2.csv"
+      ],
+      "representative_files": [
+        "04_莫特肖特基/LLKT ms/20250905/11MB EIS.csv",
+        "04_莫特肖特基/LLKT ms/20250905/11MB EIS.xlsx",
+        "04_莫特肖特基/LLKT ms/20250905/13MBEIS.bin",
+        "04_莫特肖特基/LLKT ms/20250905/13MBEIS.csv",
+        "04_莫特肖特基/LLKT ms/20250905/13MBEIS2.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "bec8a0fe11745dba",
+      "traceability_group_path": "04_莫特肖特基/LLKT ms/20250905/LL",
+      "file_count": 13,
+      "data_type_counts": {
+        "Mott-Schottky": 13
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 13
+      },
+      "role_counts": {
+        "auxiliary_file": 7,
+        "raw_or_exported_numeric_table": 6
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bm.txt",
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bm2.txt",
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt2000.txt",
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt3000.txt",
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000-2.txt",
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000.txt"
+      ],
+      "representative_files": [
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bm.bin",
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bm.txt",
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bm2.bin",
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bm2.txt",
+        "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "539e026c31f5e581",
+      "traceability_group_path": "04_莫特肖特基/MoSe2MT",
+      "file_count": 30,
+      "data_type_counts": {
+        "Mott-Schottky": 30
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "MANUAL_REVIEW": 28
+      },
+      "role_counts": {
+        "exported_figure": 1,
+        "origin_project_reference": 1,
+        "raw_data": 28
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "04_莫特肖特基/MoSe2MT/origin_project/ms.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/MoSe2MT/exported_figures/MOSE模特肖特基.tif",
+        "04_莫特肖特基/MoSe2MT/origin_project/ms.opju",
+        "04_莫特肖特基/MoSe2MT/raw_data/MS1000.bin",
+        "04_莫特肖特基/MoSe2MT/raw_data/MS1000.csv",
+        "04_莫特肖特基/MoSe2MT/raw_data/MS1500.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "f46a8fdfbd6894e9",
+      "traceability_group_path": "04_莫特肖特基/第一体系确定版本/BOBC",
+      "file_count": 14,
+      "data_type_counts": {
+        "Mott-Schottky": 14
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 7,
+        "DUPLICATE_SUPPRESSED": 7
+      },
+      "role_counts": {
+        "auxiliary_file": 7,
+        "raw_or_exported_numeric_table": 7
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "04_莫特肖特基/第一体系确定版本/BOBC/1000.csv",
+        "04_莫特肖特基/第一体系确定版本/BOBC/1500.csv",
+        "04_莫特肖特基/第一体系确定版本/BOBC/2000.csv",
+        "04_莫特肖特基/第一体系确定版本/BOBC/2500.csv",
+        "04_莫特肖特基/第一体系确定版本/BOBC/3000.csv",
+        "04_莫特肖特基/第一体系确定版本/BOBC/3500.csv",
+        "04_莫特肖特基/第一体系确定版本/BOBC/4000.csv"
+      ],
+      "representative_files": [
+        "04_莫特肖特基/第一体系确定版本/BOBC/1000.bin",
+        "04_莫特肖特基/第一体系确定版本/BOBC/1000.csv",
+        "04_莫特肖特基/第一体系确定版本/BOBC/1500.bin",
+        "04_莫特肖特基/第一体系确定版本/BOBC/1500.csv",
+        "04_莫特肖特基/第一体系确定版本/BOBC/2000.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "45441ceca5c1dfd9",
+      "traceability_group_path": "04_莫特肖特基/第一体系确定版本/MT2",
+      "file_count": 14,
+      "data_type_counts": {
+        "Mott-Schottky": 14
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "MANUAL_REVIEW": 6,
+        "DUPLICATE_SUPPRESSED": 6
+      },
+      "role_counts": {
+        "origin_project_reference": 2,
+        "raw_data": 12
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "04_莫特肖特基/第一体系确定版本/MT2/origin_project/CWO MT-2 +0.3.opju",
+        "04_莫特肖特基/第一体系确定版本/MT2/origin_project/CWO MT-2 +0.3数据美化版本.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/第一体系确定版本/MT2/origin_project/CWO MT-2 +0.3.opju",
+        "04_莫特肖特基/第一体系确定版本/MT2/origin_project/CWO MT-2 +0.3数据美化版本.opju",
+        "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO1500 2.bin",
+        "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO1500 2.csv",
+        "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2000 2.bin"
+      ]
+    },
+    {
+      "traceability_group_id": "99756b4a8dbd4b21",
+      "traceability_group_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本",
+      "file_count": 9,
+      "data_type_counts": {
+        "Mott-Schottky": 9
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "DUPLICATE_SUPPRESSED": 7
+      },
+      "role_counts": {
+        "origin_project_reference": 2,
+        "processed_table": 7
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/origin_project/bobc.opju",
+        "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/origin_project/bobc格式美化版本.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/origin_project/bobc.opju",
+        "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/origin_project/bobc格式美化版本.opju",
+        "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/1000.xlsx",
+        "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/1500.xlsx",
+        "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/2000.xlsx"
+      ]
+    },
+    {
+      "traceability_group_id": "35c848c09073de8b",
+      "traceability_group_path": "05_阻抗EIS",
+      "file_count": 4,
+      "data_type_counts": {
+        "EIS": 4
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 3,
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "auxiliary_file": 3,
+        "exported_figure": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "05_阻抗EIS/20251106阻抗李永进.zip",
+        "05_阻抗EIS/20260202.zip",
+        "05_阻抗EIS/308阻抗.zip",
+        "05_阻抗EIS/阻抗图.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "69e445315983ede3",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/BOBC",
+      "file_count": 8,
+      "data_type_counts": {
+        "EIS": 8
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 2,
+        "AUTO_PROCESS": 4,
+        "EXCLUDE_INVALID": 2
+      },
+      "role_counts": {
+        "auxiliary_file": 2,
+        "raw_or_exported_numeric_table": 6
+      },
+      "queued_files": [
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.txt",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD.txt",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD.xlsx"
+      ],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.txt",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD.txt",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOODZVIEW.txt",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD拟合后.txt"
+      ],
+      "representative_files": [
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.txt",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD",
+        "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "aa8c8328cddce932",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/CWO",
+      "file_count": 6,
+      "data_type_counts": {
+        "EIS": 6
+      },
+      "decision_counts": {
+        "AUTO_PROCESS": 4,
+        "EXCLUDE_INVALID": 2
+      },
+      "role_counts": {
+        "raw_or_exported_numeric_table": 6
+      },
+      "queued_files": [
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.txt",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.txt",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.xlsx"
+      ],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.txt",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1ZVIEW.txt",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.txt",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2ZVIEW.txt"
+      ],
+      "representative_files": [
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.txt",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1ZVIEW.txt",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.txt",
+        "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.xlsx"
+      ]
+    },
+    {
+      "traceability_group_id": "50847ce0caf545d9",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/MOSE",
+      "file_count": 5,
+      "data_type_counts": {
+        "EIS": 5
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 1,
+        "AUTO_PROCESS": 2,
+        "EXCLUDE_INVALID": 2
+      },
+      "role_counts": {
+        "auxiliary_file": 1,
+        "raw_or_exported_numeric_table": 4
+      },
+      "queued_files": [
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.txt",
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.xlsx"
+      ],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.txt",
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EISZVIEW.txt",
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS拟合MS.txt"
+      ],
+      "representative_files": [
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS",
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.txt",
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.xlsx",
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EISZVIEW.txt",
+        "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS拟合MS.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "4b0e5cf787cc6534",
+      "traceability_group_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC",
+      "file_count": 36,
+      "data_type_counts": {
+        "EIS": 36
+      },
+      "decision_counts": {
+        "AUTO_PROCESS": 8,
+        "MANUAL_REVIEW": 20,
+        "EXCLUDE_INVALID": 8
+      },
+      "role_counts": {
+        "raw_or_exported_numeric_table": 16,
+        "auxiliary_file": 20
+      },
+      "queued_files": [
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-A.txt"
+      ],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-Z.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-Z.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3-Z.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-Z.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-Z.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-Z.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-Z.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-Z.txt"
+      ],
+      "representative_files": [
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-A.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-E.xlsm",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-Z",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-Z.txt",
+        "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-A.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "05b5ce8f8425ac4e",
+      "traceability_group_path": "05_阻抗EIS/20260202",
+      "file_count": 26,
+      "data_type_counts": {
+        "EIS": 26
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "MANUAL_REVIEW": 8,
+        "EXCLUDE_INVALID": 16
+      },
+      "role_counts": {
+        "origin_project_reference": 2,
+        "raw_data": 24
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "05_阻抗EIS/20260202/origin_project/eis图20260202.opju",
+        "05_阻抗EIS/20260202/origin_project/eis图BOBC+CWO.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "05_阻抗EIS/20260202/origin_project/eis图20260202.opju",
+        "05_阻抗EIS/20260202/origin_project/eis图BOBC+CWO.opju",
+        "05_阻抗EIS/20260202/raw_data/b11-2-z.lst",
+        "05_阻抗EIS/20260202/raw_data/b11-2-z.txt",
+        "05_阻抗EIS/20260202/raw_data/b11-2-z.z"
+      ]
+    },
+    {
+      "traceability_group_id": "e3d51a538b03fe6c",
+      "traceability_group_path": "05_阻抗EIS/20260203李永进CWO+BOBC",
+      "file_count": 11,
+      "data_type_counts": {
+        "EIS": 11
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 10
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "processed_table": 10
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "05_阻抗EIS/20260203李永进CWO+BOBC/origin_project/2eis图20260202.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "05_阻抗EIS/20260203李永进CWO+BOBC/origin_project/2eis图20260202.opju",
+        "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B11-2-E.xlsm",
+        "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B11-E.xlsm",
+        "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B7-E.xlsm",
+        "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B9-2-E.xlsm"
+      ]
+    },
+    {
+      "traceability_group_id": "5b1fc49ff9733057",
+      "traceability_group_path": "05_阻抗EIS/308阻抗/BOBC/EIS",
+      "file_count": 2,
+      "data_type_counts": {
+        "EIS": 2
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 2
+      },
+      "role_counts": {
+        "auxiliary_file": 1,
+        "raw_or_exported_numeric_table": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "05_阻抗EIS/308阻抗/BOBC/EIS/BOBC.csv"
+      ],
+      "representative_files": [
+        "05_阻抗EIS/308阻抗/BOBC/EIS/BOBC.bin",
+        "05_阻抗EIS/308阻抗/BOBC/EIS/BOBC.csv"
+      ]
+    },
+    {
+      "traceability_group_id": "9ea9dd5f1bbb9968",
+      "traceability_group_path": "05_阻抗EIS/308阻抗/CWO/EIS",
+      "file_count": 4,
+      "data_type_counts": {
+        "EIS": 4
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 4
+      },
+      "role_counts": {
+        "auxiliary_file": 2,
+        "raw_or_exported_numeric_table": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "05_阻抗EIS/308阻抗/CWO/EIS/CWO EIS.csv",
+        "05_阻抗EIS/308阻抗/CWO/EIS/CWOEIS2.csv"
+      ],
+      "representative_files": [
+        "05_阻抗EIS/308阻抗/CWO/EIS/CWO EIS.bin",
+        "05_阻抗EIS/308阻抗/CWO/EIS/CWO EIS.csv",
+        "05_阻抗EIS/308阻抗/CWO/EIS/CWOEIS2.bin",
+        "05_阻抗EIS/308阻抗/CWO/EIS/CWOEIS2.csv"
+      ]
+    },
+    {
+      "traceability_group_id": "4875d4f523298bf1",
+      "traceability_group_path": "05_阻抗EIS/308阻抗/MS",
+      "file_count": 2,
+      "data_type_counts": {
+        "EIS": 2
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 2
+      },
+      "role_counts": {
+        "auxiliary_file": 1,
+        "raw_or_exported_numeric_table": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "05_阻抗EIS/308阻抗/MS/MS EIS.csv"
+      ],
+      "representative_files": [
+        "05_阻抗EIS/308阻抗/MS/MS EIS.bin",
+        "05_阻抗EIS/308阻抗/MS/MS EIS.csv"
+      ]
+    },
+    {
+      "traceability_group_id": "81b9cb8a8ea5acbf",
+      "traceability_group_path": "05_阻抗EIS/BM重新拟合版本",
+      "file_count": 14,
+      "data_type_counts": {
+        "EIS": 14
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "EXCLUDE_INVALID": 12
+      },
+      "role_counts": {
+        "exported_figure": 1,
+        "origin_project_reference": 1,
+        "raw_data": 12
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "05_阻抗EIS/BM重新拟合版本/origin_project/BM.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "05_阻抗EIS/BM重新拟合版本/exported_figures/BM阻抗.tif",
+        "05_阻抗EIS/BM重新拟合版本/origin_project/BM.opju",
+        "05_阻抗EIS/BM重新拟合版本/raw_data/1.TXT",
+        "05_阻抗EIS/BM重新拟合版本/raw_data/3.TXT",
+        "05_阻抗EIS/BM重新拟合版本/raw_data/5.TXT"
+      ]
+    },
+    {
+      "traceability_group_id": "6d327cd3ba1d1153",
+      "traceability_group_path": "05_阻抗EIS/EIS-20251025拟合后师妹",
+      "file_count": 13,
+      "data_type_counts": {
+        "EIS": 13
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 3,
+        "EXCLUDE_INVALID": 10
+      },
+      "role_counts": {
+        "exported_figure": 1,
+        "origin_project_reference": 2,
+        "raw_data": 10
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "05_阻抗EIS/EIS-20251025拟合后师妹/origin_project/BM-X.opju",
+        "05_阻抗EIS/EIS-20251025拟合后师妹/origin_project/拟合后BM-X.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "05_阻抗EIS/EIS-20251025拟合后师妹/exported_figures/LL-EIS-BM-X.png",
+        "05_阻抗EIS/EIS-20251025拟合后师妹/origin_project/BM-X.opju",
+        "05_阻抗EIS/EIS-20251025拟合后师妹/origin_project/拟合后BM-X.opju",
+        "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/1.txt",
+        "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/3.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "8add9d0f68d0d71b",
+      "traceability_group_path": "06_红外/BOBC+MS 以前水热的Mose",
+      "file_count": 19,
+      "data_type_counts": {
+        "FTIR": 19
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "MANUAL_REVIEW": 17
+      },
+      "role_counts": {
+        "exported_figure": 1,
+        "origin_project_reference": 1,
+        "raw_data": 17
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "06_红外/BOBC+MS 以前水热的Mose/origin_project/BOBC+MS.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "06_红外/BOBC+MS 以前水热的Mose/exported_figures/BOBC+MS-FTRIR.tif",
+        "06_红外/BOBC+MS 以前水热的Mose/origin_project/BOBC+MS.opju",
+        "06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM1.0.dpt",
+        "06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM3.0.dpt",
+        "06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM5.0.dpt"
+      ]
+    },
+    {
+      "traceability_group_id": "53ca6bfc2a9cdf6a",
+      "traceability_group_path": "06_红外/BOBC+MS 以前水热的Mose/reports_notes",
+      "file_count": 5,
+      "data_type_counts": {
+        "FTIR": 5
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 5
+      },
+      "role_counts": {
+        "document_or_report": 5
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM1.pdf",
+        "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM3.pdf",
+        "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM5.pdf",
+        "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM7.pdf",
+        "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM9.pdf"
+      ]
+    },
+    {
+      "traceability_group_id": "d1e36fd5c2cb3fdc",
+      "traceability_group_path": "06_红外/cwo+bobc",
+      "file_count": 12,
+      "data_type_counts": {
+        "FTIR": 12
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 5,
+        "MANUAL_REVIEW": 7
+      },
+      "role_counts": {
+        "exported_figure": 4,
+        "origin_project_reference": 1,
+        "raw_data": 7
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "06_红外/cwo+bobc/origin_project/CWO+BOBC红外.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "06_红外/cwo+bobc/exported_figures/CWO+BOBC FTIR 2026018新制备.tif",
+        "06_红外/cwo+bobc/exported_figures/CWO+BOBC FTIR.tif",
+        "06_红外/cwo+bobc/exported_figures/FTIR2.tif",
+        "06_红外/cwo+bobc/exported_figures/hongwai.tif",
+        "06_红外/cwo+bobc/origin_project/CWO+BOBC红外.opju"
+      ]
+    },
+    {
+      "traceability_group_id": "fd8a417241ec6309",
+      "traceability_group_path": "06_红外/红外MS+BPO 暑期版本",
+      "file_count": 7,
+      "data_type_counts": {
+        "FTIR": 7
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 6
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "raw_data": 6
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "06_红外/红外MS+BPO 暑期版本/origin_project/红外.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "06_红外/红外MS+BPO 暑期版本/origin_project/红外.opju",
+        "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/3.bpo.0",
+        "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/3.bpo.0.dpt",
+        "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/4.ms-bpo.0.dpt",
+        "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/4.msF-bpo.0"
+      ]
+    },
+    {
+      "traceability_group_id": "35328f4bd9cad0bf",
+      "traceability_group_path": "07_拉曼",
+      "file_count": 16,
+      "data_type_counts": {
+        "Raman": 16
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 15
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "raw_data": 15
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "07_拉曼/origin_project/cwo+bobc raman.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "07_拉曼/origin_project/cwo+bobc raman.opju",
+        "07_拉曼/raw_data/20251027/BOBC2.txt",
+        "07_拉曼/raw_data/20251027/WYT/CWO+BOBC+2.txt",
+        "07_拉曼/raw_data/20251027/WYT/CWO+BOBC+3.txt",
+        "07_拉曼/raw_data/20251027/WYT/CWO+BOBC.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "62c7f4186487dac2",
+      "traceability_group_path": "07_拉曼/20251021",
+      "file_count": 5,
+      "data_type_counts": {
+        "Raman": 5
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2,
+        "MANUAL_REVIEW": 3
+      },
+      "role_counts": {
+        "exported_figure": 1,
+        "origin_project_reference": 1,
+        "raw_data": 3
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "07_拉曼/20251021/origin_project/bobc+ms.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "07_拉曼/20251021/exported_figures/ranman.tif",
+        "07_拉曼/20251021/origin_project/bobc+ms.opju",
+        "07_拉曼/20251021/raw_data/BOBC.txt",
+        "07_拉曼/20251021/raw_data/BOBCMS9.txt",
+        "07_拉曼/20251021/raw_data/MOSE2_6.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "a29a6c3b3368aaeb",
+      "traceability_group_path": "07_拉曼/老版本BOBC+MS+BPO",
+      "file_count": 18,
+      "data_type_counts": {
+        "Raman": 18
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 3,
+        "MANUAL_REVIEW": 14,
+        "DUPLICATE_SUPPRESSED": 1
+      },
+      "role_counts": {
+        "exported_figure": 1,
+        "origin_project_reference": 2,
+        "raw_data": 15
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "07_拉曼/老版本BOBC+MS+BPO/origin_project/BOBC+MS+BPO.opju",
+        "07_拉曼/老版本BOBC+MS+BPO/origin_project/BOBC+MS.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "07_拉曼/老版本BOBC+MS+BPO/exported_figures/BOBC+MS-RAMAN.tif",
+        "07_拉曼/老版本BOBC+MS+BPO/origin_project/BOBC+MS+BPO.opju",
+        "07_拉曼/老版本BOBC+MS+BPO/origin_project/BOBC+MS.opju",
+        "07_拉曼/老版本BOBC+MS+BPO/raw_data/BM1.txt",
+        "07_拉曼/老版本BOBC+MS+BPO/raw_data/BM2.txt"
+      ]
+    },
+    {
+      "traceability_group_id": "bcf4b50327b19773",
+      "traceability_group_path": "08_固体紫外",
+      "file_count": 20,
+      "data_type_counts": {
+        "UV-vis DRS": 20
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 6,
+        "MANUAL_REVIEW": 14
+      },
+      "role_counts": {
+        "exported_figure": 5,
+        "origin_project_reference": 1,
+        "raw_data": 14
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "08_固体紫外/origin_project/BOBC+MS.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "08_固体紫外/exported_figures/CWO+BOBC紫外.tif",
+        "08_固体紫外/exported_figures/CWO+BOBC紫外tacu.tif",
+        "08_固体紫外/exported_figures/MS+BOBC固体紫外200-800.tif",
+        "08_固体紫外/exported_figures/MS+BOBC固体紫外260-800.tif",
+        "08_固体紫外/exported_figures/MS+BOBC固体紫外tacu.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "3de17965f0c81ca1",
+      "traceability_group_path": "08_固体紫外/固体紫外CWO+BOBC",
+      "file_count": 1,
+      "data_type_counts": {
+        "UV-vis DRS": 1
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "origin_project_reference": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "08_固体紫外/固体紫外CWO+BOBC/origin_project/BOBC+CWO.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "08_固体紫外/固体紫外CWO+BOBC/origin_project/BOBC+CWO.opju"
+      ]
+    },
+    {
+      "traceability_group_id": "a4dfadb12879cc9b",
+      "traceability_group_path": "09_BET/XWM-LL-260428-1-BOBC-All Pore",
+      "file_count": 5,
+      "data_type_counts": {
+        "BET": 5
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 3,
+        "EXCLUDE_INVALID": 1
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "processed_table": 3,
+        "raw_data": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "09_BET/XWM-LL-260428-1-BOBC-All Pore/origin_project/BOBC.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "09_BET/XWM-LL-260428-1-BOBC-All Pore/origin_project/BOBC.opju",
+        "09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/MICDIR.DB3",
+        "09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/MICDIR.DB3-journal",
+        "09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/XWM-LL-260428-1-BOBC-All Pore.XLS",
+        "09_BET/XWM-LL-260428-1-BOBC-All Pore/raw_data/XWM-LL-260428-1-BOBC-All Pore.SMP"
+      ]
+    },
+    {
+      "traceability_group_id": "f51faaca89c82ab4",
+      "traceability_group_path": "09_BET/XWM-LL-260428-1-BOBC-All Pore/reports_notes",
+      "file_count": 1,
+      "data_type_counts": {
+        "BET": 1
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "document_or_report": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "09_BET/XWM-LL-260428-1-BOBC-All Pore/reports_notes/XWM-LL-260428-1-BOBC-All Pore.PDF"
+      ]
+    },
+    {
+      "traceability_group_id": "4c74fe24e1a76092",
+      "traceability_group_path": "09_BET/ZPF-LL-20260327-4-BOBC-BET",
+      "file_count": 5,
+      "data_type_counts": {
+        "BET": 5
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 3,
+        "EXCLUDE_INVALID": 1,
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "auxiliary_file": 3,
+        "document_or_report": 1,
+        "raw_or_exported_numeric_table": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.XLS"
+      ],
+      "representative_files": [
+        "09_BET/ZPF-LL-20260327-4-BOBC-BET/MICDIR.DB3",
+        "09_BET/ZPF-LL-20260327-4-BOBC-BET/MICDIR.DB3-journal",
+        "09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.PDF",
+        "09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.SMP",
+        "09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.XLS"
+      ]
+    },
+    {
+      "traceability_group_id": "504509e4d477b622",
+      "traceability_group_path": "09_BET/ZPF-LL-20260327-7-CWO-BET",
+      "file_count": 4,
+      "data_type_counts": {
+        "BET": 4
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 2,
+        "EXCLUDE_INVALID": 1,
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "auxiliary_file": 2,
+        "document_or_report": 1,
+        "raw_or_exported_numeric_table": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "09_BET/ZPF-LL-20260327-7-CWO-BET/ZPF-LL-20260327-7-CWO-BET.XLS"
+      ],
+      "representative_files": [
+        "09_BET/ZPF-LL-20260327-7-CWO-BET/MICDIR.DB3",
+        "09_BET/ZPF-LL-20260327-7-CWO-BET/MICDIR.DB3-journal",
+        "09_BET/ZPF-LL-20260327-7-CWO-BET/ZPF-LL-20260327-7-CWO-BET.PDF",
+        "09_BET/ZPF-LL-20260327-7-CWO-BET/ZPF-LL-20260327-7-CWO-BET.XLS"
+      ]
+    },
+    {
+      "traceability_group_id": "148a2b3f4ded0614",
+      "traceability_group_path": "09_BET/ZPF-LL-20260327-8-BC-BET",
+      "file_count": 4,
+      "data_type_counts": {
+        "BET": 4
+      },
+      "decision_counts": {
+        "MANUAL_REVIEW": 2,
+        "EXCLUDE_INVALID": 1,
+        "AUXILIARY_ONLY": 1
+      },
+      "role_counts": {
+        "auxiliary_file": 2,
+        "document_or_report": 1,
+        "raw_or_exported_numeric_table": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "09_BET/ZPF-LL-20260327-8-BC-BET/ZPF-LL-20260327-8-CWO-BET.XLS"
+      ],
+      "representative_files": [
+        "09_BET/ZPF-LL-20260327-8-BC-BET/MICDIR.DB3",
+        "09_BET/ZPF-LL-20260327-8-BC-BET/MICDIR.DB3-journal",
+        "09_BET/ZPF-LL-20260327-8-BC-BET/ZPF-LL-20260327-8-CWO-BET.PDF",
+        "09_BET/ZPF-LL-20260327-8-BC-BET/ZPF-LL-20260327-8-CWO-BET.XLS"
+      ]
+    },
+    {
+      "traceability_group_id": "66ae6fce534cc5f1",
+      "traceability_group_path": "09_BET/氮气吸附脱附等温曲线",
+      "file_count": 23,
+      "data_type_counts": {
+        "BET": 23
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 5,
+        "MANUAL_REVIEW": 13,
+        "EXCLUDE_INVALID": 5
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "raw_data": 22
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "09_BET/氮气吸附脱附等温曲线/origin_project/BET -BOBC为负数.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "09_BET/氮气吸附脱附等温曲线/origin_project/BET -BOBC为负数.opju",
+        "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/MICDIR.DB3",
+        "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/MICDIR.DB3-journal",
+        "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/MICDIR.DB3",
+        "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/MICDIR.DB3-journal"
+      ]
+    },
+    {
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "file_count": 59,
+      "data_type_counts": {
+        "EPR": 59
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 58
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "raw_data": 58
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "10_EPR_PL/EPR/origin_project/epr.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "10_EPR_PL/EPR/origin_project/epr.opju",
+        "10_EPR_PL/EPR/raw_archives/20260430-1.zip",
+        "10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-dark",
+        "10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light1",
+        "10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light2"
+      ]
+    },
+    {
+      "traceability_group_id": "d1a29b7b1a490c8e",
+      "traceability_group_path": "10_EPR_PL/PL",
+      "file_count": 20,
+      "data_type_counts": {
+        "PL": 20
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 1,
+        "MANUAL_REVIEW": 19
+      },
+      "role_counts": {
+        "origin_project_reference": 1,
+        "raw_data": 19
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "10_EPR_PL/PL/origin_project/激发谱发射谱.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "10_EPR_PL/PL/origin_project/激发谱发射谱.opju",
+        "10_EPR_PL/PL/raw_archives/3176_1775399174649_26032574877.zip",
+        "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.FS",
+        "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.txt",
+        "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.wmf"
+      ]
+    },
+    {
+      "traceability_group_id": "88fb6a6655900757",
+      "traceability_group_path": "11_光反应条件筛选",
+      "file_count": 2,
+      "data_type_counts": {
+        "unknown": 2
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2
+      },
+      "role_counts": {
+        "origin_project_reference": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "11_光反应条件筛选/origin_project/溶剂筛选.opju",
+        "11_光反应条件筛选/origin_project/自由基捕获.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "11_光反应条件筛选/origin_project/溶剂筛选.opju",
+        "11_光反应条件筛选/origin_project/自由基捕获.opju"
+      ]
+    },
+    {
+      "traceability_group_id": "b288f3c6407b83b8",
+      "traceability_group_path": "11_光反应条件筛选/CL",
+      "file_count": 4,
+      "data_type_counts": {
+        "unknown": 4
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 4
+      },
+      "role_counts": {
+        "origin_project_reference": 4
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "11_光反应条件筛选/CL/origin_project/催化剂筛选.opju",
+        "11_光反应条件筛选/CL/origin_project/循环实验.opju",
+        "11_光反应条件筛选/CL/origin_project/溶剂筛选.opju",
+        "11_光反应条件筛选/CL/origin_project/自由基猝灭.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "11_光反应条件筛选/CL/origin_project/催化剂筛选.opju",
+        "11_光反应条件筛选/CL/origin_project/循环实验.opju",
+        "11_光反应条件筛选/CL/origin_project/溶剂筛选.opju",
+        "11_光反应条件筛选/CL/origin_project/自由基猝灭.opju"
+      ]
+    },
+    {
+      "traceability_group_id": "685a84d43a789f87",
+      "traceability_group_path": "11_光反应条件筛选/标曲",
+      "file_count": 2,
+      "data_type_counts": {
+        "unknown": 2
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2
+      },
+      "role_counts": {
+        "origin_project_reference": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [
+        "11_光反应条件筛选/标曲/origin_project/BBAD1.opju",
+        "11_光反应条件筛选/标曲/origin_project/BZA2.opju"
+      ],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "11_光反应条件筛选/标曲/origin_project/BBAD1.opju",
+        "11_光反应条件筛选/标曲/origin_project/BZA2.opju"
+      ]
+    },
+    {
+      "traceability_group_id": "d5698f995e00e71f",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/BIOBRCL",
+      "file_count": 5,
+      "data_type_counts": {
+        "SEM_image_data": 5
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 5
+      },
+      "role_counts": {
+        "exported_figure": 5
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/BIOBRCL/3-1.tif",
+        "12_显微_SEM_TEM/SEM/BIOBRCL/3-2.tif",
+        "12_显微_SEM_TEM/SEM/BIOBRCL/3-3.tif",
+        "12_显微_SEM_TEM/SEM/BIOBRCL/3-4.tif",
+        "12_显微_SEM_TEM/SEM/BIOBRCL/3-5.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "8a95d199fd8b0661",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/CWO",
+      "file_count": 6,
+      "data_type_counts": {
+        "SEM_image_data": 6
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 6
+      },
+      "role_counts": {
+        "exported_figure": 6
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/CWO/1001.tif",
+        "12_显微_SEM_TEM/SEM/CWO/1002.tif",
+        "12_显微_SEM_TEM/SEM/CWO/1003.tif",
+        "12_显微_SEM_TEM/SEM/CWO/1004.tif",
+        "12_显微_SEM_TEM/SEM/CWO/1005.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "f1531d6ceea5dd8f",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/CWO-BOBC",
+      "file_count": 17,
+      "data_type_counts": {
+        "SEM_image_data": 17
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 17
+      },
+      "role_counts": {
+        "exported_figure": 17
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/CWO-BOBC/1001.tif",
+        "12_显微_SEM_TEM/SEM/CWO-BOBC/1002.tif",
+        "12_显微_SEM_TEM/SEM/CWO-BOBC/1003.tif",
+        "12_显微_SEM_TEM/SEM/CWO-BOBC/1004.tif",
+        "12_显微_SEM_TEM/SEM/CWO-BOBC/1005.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "3773a0f2d7c7893b",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/CWO-BOBC/EDS",
+      "file_count": 2,
+      "data_type_counts": {
+        "SEM_image_data": 2
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 2
+      },
+      "role_counts": {
+        "document_or_report": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/CWO-BOBC/EDS/LL-1.docx",
+        "12_显微_SEM_TEM/SEM/CWO-BOBC/EDS/LL.docx"
+      ]
+    },
+    {
+      "traceability_group_id": "7ff298cc2ca368dd",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/LL20250721SEN",
+      "file_count": 21,
+      "data_type_counts": {
+        "SEM_image_data": 21
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 21
+      },
+      "role_counts": {
+        "exported_figure": 21
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/LL20250721SEN/1001.tif",
+        "12_显微_SEM_TEM/SEM/LL20250721SEN/1002.tif",
+        "12_显微_SEM_TEM/SEM/LL20250721SEN/1003.tif",
+        "12_显微_SEM_TEM/SEM/LL20250721SEN/1004.tif",
+        "12_显微_SEM_TEM/SEM/LL20250721SEN/1005.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "3a8e688dd1c7f743",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/LL20260429SEM",
+      "file_count": 13,
+      "data_type_counts": {
+        "SEM_image_data": 13
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 13
+      },
+      "role_counts": {
+        "exported_figure": 13
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/LL20260429SEM/1001.tif",
+        "12_显微_SEM_TEM/SEM/LL20260429SEM/1002.tif",
+        "12_显微_SEM_TEM/SEM/LL20260429SEM/1003.tif",
+        "12_显微_SEM_TEM/SEM/LL20260429SEM/1004.tif",
+        "12_显微_SEM_TEM/SEM/LL20260429SEM/1005.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "8ed6119db907ed1a",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/MOSE2/MS方法3",
+      "file_count": 13,
+      "data_type_counts": {
+        "SEM_image_data": 13
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 13
+      },
+      "role_counts": {
+        "exported_figure": 13
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3001.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3002.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3003.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3004.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3005.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "2ffa21755f0b1468",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/MOSE2/MS方法4",
+      "file_count": 13,
+      "data_type_counts": {
+        "SEM_image_data": 13
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 13
+      },
+      "role_counts": {
+        "document_or_report": 2,
+        "exported_figure": 11
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/0416HOU.docx",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/0416HOU.pdf",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4001.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4002.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4003.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "394a98d52239492e",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/MOSE2/MS方法5",
+      "file_count": 16,
+      "data_type_counts": {
+        "SEM_image_data": 16
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 16
+      },
+      "role_counts": {
+        "exported_figure": 16
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5001.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5002.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5003.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5004.tif",
+        "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5005.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "d94be96b0479cb56",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/ll20260126-eds",
+      "file_count": 2,
+      "data_type_counts": {
+        "SEM_image_data": 2
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 2
+      },
+      "role_counts": {
+        "document_or_report": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/ll20260126-eds/~$ 1_区 1_2026-01-26_10-04-27.docx",
+        "12_显微_SEM_TEM/SEM/ll20260126-eds/项目 1_区 1_2026-01-26_10-04-27.docx"
+      ]
+    },
+    {
+      "traceability_group_id": "0ae58feb84f6a4c1",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/ll20260126/bobc",
+      "file_count": 14,
+      "data_type_counts": {
+        "SEM_image_data": 14
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 14
+      },
+      "role_counts": {
+        "exported_figure": 14
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun009.tif",
+        "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun010.tif",
+        "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun011.tif",
+        "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun012.tif",
+        "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun013.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "a4cc2bcbeaf5d915",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/ll20260126/fh",
+      "file_count": 14,
+      "data_type_counts": {
+        "SEM_image_data": 14
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 14
+      },
+      "role_counts": {
+        "exported_figure": 14
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun023.tif",
+        "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun024.tif",
+        "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun025.tif",
+        "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun026.tif",
+        "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun027.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "95cde494e462c1a9",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/师姐电镜/FUHE",
+      "file_count": 2,
+      "data_type_counts": {
+        "SEM_image_data": 2
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 2
+      },
+      "role_counts": {
+        "exported_figure": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/师姐电镜/FUHE/300.tif",
+        "12_显微_SEM_TEM/SEM/师姐电镜/FUHE/301.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "491106e19390694d",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM",
+      "file_count": 20,
+      "data_type_counts": {
+        "SEM_image_data": 20
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 20
+      },
+      "role_counts": {
+        "exported_figure": 20
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE001.tif",
+        "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE002.tif",
+        "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE003.tif",
+        "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE008.tif",
+        "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE009.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "699a16d1a3517353",
+      "traceability_group_path": "12_显微_SEM_TEM/SEM/师姐电镜/TIO2",
+      "file_count": 2,
+      "data_type_counts": {
+        "SEM_image_data": 2
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 2
+      },
+      "role_counts": {
+        "exported_figure": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/SEM/师姐电镜/TIO2/302.tif",
+        "12_显微_SEM_TEM/SEM/师姐电镜/TIO2/303.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "d1da21d1bc2d6a62",
+      "traceability_group_path": "12_显微_SEM_TEM/TEM",
+      "file_count": 1,
+      "data_type_counts": {
+        "TEM_image_data": 1
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 1
+      },
+      "role_counts": {
+        "exported_figure": 1
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/TEM/TEM文献晶格图/BOBC+TIO2.png"
+      ]
+    },
+    {
+      "traceability_group_id": "04bf9abd9f101f43",
+      "traceability_group_path": "12_显微_SEM_TEM/TEM/HRTEM",
+      "file_count": 69,
+      "data_type_counts": {
+        "TEM_image_data": 69
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 69
+      },
+      "role_counts": {
+        "exported_figure": 43,
+        "auxiliary_file": 26
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/TEM/HRTEM/0001 - BC Camera 36000 x Ceta Ceta.tif",
+        "12_显微_SEM_TEM/TEM/HRTEM/0001 - BC Camera 36000 x Ceta.emd",
+        "12_显微_SEM_TEM/TEM/HRTEM/0002 - BC Camera 630 kx Ceta Ceta.tif",
+        "12_显微_SEM_TEM/TEM/HRTEM/0002 - BC Camera 630 kx Ceta.emd",
+        "12_显微_SEM_TEM/TEM/HRTEM/0003 - BC Camera 630 kx Ceta B DCFI(Ceta).tif"
+      ]
+    },
+    {
+      "traceability_group_id": "cfbcf1fdcff2e13a",
+      "traceability_group_path": "12_显微_SEM_TEM/TEM/TEM",
+      "file_count": 6,
+      "data_type_counts": {
+        "TEM_image_data": 6
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 6
+      },
+      "role_counts": {
+        "auxiliary_file": 1,
+        "exported_figure": 5
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "12_显微_SEM_TEM/TEM/TEM/#20260326.mdb",
+        "12_显微_SEM_TEM/TEM/TEM/Img8713.tif",
+        "12_显微_SEM_TEM/TEM/TEM/Img8714.tif",
+        "12_显微_SEM_TEM/TEM/TEM/Img8715.tif",
+        "12_显微_SEM_TEM/TEM/TEM/Img8716.tif"
+      ]
+    },
+    {
+      "traceability_group_id": "0f98af9eded17731",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10",
+      "file_count": 25,
+      "data_type_counts": {
+        "NMR": 25
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 25
+      },
+      "role_counts": {
+        "auxiliary_file": 12,
+        "raw_or_exported_numeric_table": 1,
+        "processed_table": 12
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/audita.txt"
+      ],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/acqu",
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/acqus",
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/audita.txt",
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/fid",
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/format.temp"
+      ]
+    },
+    {
+      "traceability_group_id": "9bc8312769b4b6d7",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10",
+      "file_count": 25,
+      "data_type_counts": {
+        "NMR": 25
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 25
+      },
+      "role_counts": {
+        "auxiliary_file": 12,
+        "raw_or_exported_numeric_table": 1,
+        "processed_table": 12
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/audita.txt"
+      ],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/acqu",
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/acqus",
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/audita.txt",
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/fid",
+        "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/format.temp"
+      ]
+    },
+    {
+      "traceability_group_id": "9d9e7b6beeda65c3",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/液相",
+      "file_count": 4,
+      "data_type_counts": {
+        "HPLC/LC exported data": 4
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 4
+      },
+      "role_counts": {
+        "document_or_report": 4
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/液相/11%.pdf",
+        "13_反应产物分析_液相_质谱_核磁/液相/5%.pdf",
+        "13_反应产物分析_液相_质谱_核磁/液相/7%.pdf",
+        "13_反应产物分析_液相_质谱_核磁/液相/9%.pdf"
+      ]
+    },
+    {
+      "traceability_group_id": "1b94083290ac3cfe",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹",
+      "file_count": 5,
+      "data_type_counts": {
+        "HPLC/LC exported data": 5
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 5
+      },
+      "role_counts": {
+        "document_or_report": 5
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/15%.pdf",
+        "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/20%.pdf",
+        "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/3%.pdf",
+        "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/5%.pdf",
+        "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/80%.pdf"
+      ]
+    },
+    {
+      "traceability_group_id": "2ea5c707fddb6b21",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/质谱",
+      "file_count": 43,
+      "data_type_counts": {
+        "MS": 43
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 43
+      },
+      "role_counts": {
+        "raw_or_exported_numeric_table": 14,
+        "auxiliary_file": 11,
+        "raw_data": 18
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/1.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/2.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/2CH3.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/3CH3.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/4BR.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/4CH3.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/4CL.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/4OCH3.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/KANG1.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/KANG2.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/LM405.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/N8h.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/S8h.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/SHUDINGJI.xls"
+      ],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/1.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/2.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/2CH3.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/2CH3.xps",
+        "13_反应产物分析_液相_质谱_核磁/质谱/3CH3.xls"
+      ]
+    },
+    {
+      "traceability_group_id": "9abdab8c5b2a8d61",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d",
+      "file_count": 32,
+      "data_type_counts": {
+        "MS": 32
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 32
+      },
+      "role_counts": {
+        "raw_data": 32
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/AcqMethod.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/BinPump1.cd",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/BinPump1.cg",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/Contents.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/DefaultMassCal.xml"
+      ]
+    },
+    {
+      "traceability_group_id": "4ae2dbe053fdeb60",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d",
+      "file_count": 32,
+      "data_type_counts": {
+        "MS": 32
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 32
+      },
+      "role_counts": {
+        "raw_data": 32
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/AcqMethod.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/BinPump1.cd",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/BinPump1.cg",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/Contents.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/DefaultMassCal.xml"
+      ]
+    },
+    {
+      "traceability_group_id": "4368fd48699110ca",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d",
+      "file_count": 32,
+      "data_type_counts": {
+        "MS": 32
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 32
+      },
+      "role_counts": {
+        "raw_data": 32
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/AcqMethod.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/BinPump1.cd",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/BinPump1.cg",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/Contents.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/DefaultMassCal.xml"
+      ]
+    },
+    {
+      "traceability_group_id": "3a07b4b70c4f982c",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d",
+      "file_count": 32,
+      "data_type_counts": {
+        "MS": 32
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 32
+      },
+      "role_counts": {
+        "raw_data": 32
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/AcqMethod.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/BinPump1.cd",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/BinPump1.cg",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/Contents.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/DefaultMassCal.xml"
+      ]
+    },
+    {
+      "traceability_group_id": "bae9d2ad946948af",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d",
+      "file_count": 32,
+      "data_type_counts": {
+        "MS": 32
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 32
+      },
+      "role_counts": {
+        "raw_data": 32
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/AcqMethod.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/BinPump1.cd",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/BinPump1.cg",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/Contents.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/DefaultMassCal.xml"
+      ]
+    },
+    {
+      "traceability_group_id": "fddef7b2afec6835",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d",
+      "file_count": 32,
+      "data_type_counts": {
+        "MS": 32
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 32
+      },
+      "role_counts": {
+        "raw_data": 32
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/AcqMethod.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/BinPump1.cd",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/BinPump1.cg",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/Contents.xml",
+        "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/DefaultMassCal.xml"
+      ]
+    },
+    {
+      "traceability_group_id": "5118259041ac2c36",
+      "traceability_group_path": "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基",
+      "file_count": 4,
+      "data_type_counts": {
+        "MS": 4
+      },
+      "decision_counts": {
+        "DEFERRED_TYPE": 4
+      },
+      "role_counts": {
+        "auxiliary_file": 2,
+        "raw_or_exported_numeric_table": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/KANG1.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/SHUDINGJI.xls"
+      ],
+      "representative_files": [
+        "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/KANG.xps",
+        "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/KANG1.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/SHUDINGJI.xls",
+        "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/SHUDINGJI.xps"
+      ]
+    },
+    {
+      "traceability_group_id": "0835895f6f608d34",
+      "traceability_group_path": "14_动力学/动力学",
+      "file_count": 11,
+      "data_type_counts": {
+        "reference_literature": 11
+      },
+      "decision_counts": {
+        "REFERENCE_ONLY": 11
+      },
+      "role_counts": {
+        "document_or_report": 11
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "14_动力学/动力学/COFIn2S3 S 型光催化剂具有增强的光吸收和 H2O2 生成活性以及 fs-TA 研究.pdf",
+        "14_动力学/动力学/S 型 g-C3N4CdS 异质结构接枝单个 Pd 原子以实现超快电荷传输和高效可见光驱动的 H2 演化.pdf",
+        "14_动力学/动力学/S型量子点异质结光催化剂：组装类型、机理见解和设计策略.pdf",
+        "14_动力学/动力学/从CdS量子点到原子分散Pt的超快电子转移用于增强H2演化和增值化学合成.pdf",
+        "14_动力学/动力学/双功能 g-C3N4 纳米球CdZnS QDs S 型光催化剂，具有增强的 H2 析出和糠醛合成机制.pdf"
+      ]
+    },
+    {
+      "traceability_group_id": "faae627650715f1d",
+      "traceability_group_path": "14_动力学/动力学/yue",
+      "file_count": 2,
+      "data_type_counts": {
+        "reference_literature": 2
+      },
+      "decision_counts": {
+        "REFERENCE_ONLY": 2
+      },
+      "role_counts": {
+        "document_or_report": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "14_动力学/动力学/yue/Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf",
+        "14_动力学/动力学/yue/S 型光催化剂中的电荷转移动力学.pdf"
+      ]
+    },
+    {
+      "traceability_group_id": "d99e196a89bdebac",
+      "traceability_group_path": "14_动力学/动力学/yue/EPR",
+      "file_count": 2,
+      "data_type_counts": {
+        "EPR": 2
+      },
+      "decision_counts": {
+        "AUXILIARY_ONLY": 2
+      },
+      "role_counts": {
+        "document_or_report": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "14_动力学/动力学/yue/EPR/SI Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf",
+        "14_动力学/动力学/yue/EPR/使用高级 EPR 探索 S 型异质结界面的电荷转移动力学.pdf"
+      ]
+    },
+    {
+      "traceability_group_id": "40b30e9e302d78dd",
+      "traceability_group_path": "14_动力学/动力学/yue/KPFM",
+      "file_count": 2,
+      "data_type_counts": {
+        "reference_literature": 2
+      },
+      "decision_counts": {
+        "REFERENCE_ONLY": 2
+      },
+      "role_counts": {
+        "document_or_report": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "14_动力学/动力学/yue/KPFM/SI K.docx",
+        "14_动力学/动力学/yue/KPFM/开尔文探针力显微镜揭示了 CdSBiOBr S 型异质结光催化剂中的空间分辨电荷转移机制.pdf"
+      ]
+    },
+    {
+      "traceability_group_id": "fb31e4b9fc32ca93",
+      "traceability_group_path": "14_动力学/动力学/新建文件夹",
+      "file_count": 2,
+      "data_type_counts": {
+        "reference_literature": 2
+      },
+      "decision_counts": {
+        "REFERENCE_ONLY": 2
+      },
+      "role_counts": {
+        "document_or_report": 2
+      },
+      "queued_files": [],
+      "origin_project_files": [],
+      "raw_numeric_files": [],
+      "representative_files": [
+        "14_动力学/动力学/新建文件夹/ZnOCOF S-Scheme 光催化剂中通过 Zn─N 键的界面电荷转移.pdf",
+        "14_动力学/动力学/新建文件夹/用于光催化 H2 析出中超快电荷分离和转移的超晶格界面和 S 型异质结.pdf"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+# Optional dependency candidates only.
+# Missing optional dependencies must warn, not fail.
+# Do not install without user confirmation.
+# Do not use these to expand Phase 1 scope.
+impedance
+pyimpspec
+ixdat
+galvani
+eclabfiles
+pyGAPS
+lmfitxps
+ramanspy
+rampy
+spectrochempy
+hplc-py
+rainbow-api
+mocca
+pymzML
+pyteomics
+matchms
+nmrglue
+hyperspy
+exspy
+scikit-image
+
+# Additional optional candidates from the Phase 1 goal need package-name
+# and license verification before they become installable requirement lines:
+# DearEIS
+# EPyR Tools
+# cwepr
+# eprpy
+# CustomXepr
+# absorption_tauc_plot
+# xrdfit

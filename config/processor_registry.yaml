@@ -1,0 +1,735 @@
+{
+  "registry_status": "planning_draft_json_compatible_yaml",
+  "generated_from": [
+    "docs/CODEX_GOAL_PHASE1.md",
+    "docs/agent_reports/data_mapper_report.md",
+    "docs/agent_reports/method_researcher_report.md",
+    "docs/agent_reports/reuse_auditor_report.md"
+  ],
+  "rules": {
+    "output_root": "output",
+    "raw_data_read_only": true,
+    "no_ppt": true,
+    "no_kinetics_processor": true,
+    "require_metadata_json": true,
+    "high_risk_requires_manual_check": true,
+    "deferred_and_reference_are_scan_only": true
+  },
+  "required_fields": [
+    "folder_keywords",
+    "filename_keywords",
+    "extensions",
+    "header_keywords",
+    "column_keywords",
+    "numeric_range_hints",
+    "selected_processor",
+    "supported_in_phase_1",
+    "confidence_rules",
+    "deferred_reason",
+    "special_handling"
+  ],
+  "phase1_supported_count": 14,
+  "phase1_supported": [
+    "photocurrent",
+    "BET",
+    "EPR",
+    "PL",
+    "XPS",
+    "XRD",
+    "UV-vis DRS",
+    "photocurrent_response",
+    "reaction_condition_screening",
+    "FTIR",
+    "Raman",
+    "Mott-Schottky",
+    "HPLC/LC exported data",
+    "EIS"
+  ],
+  "entries": [
+    {
+      "id": "photocurrent_20260109",
+      "folder_name": "20260109 \u5149\u7535\u6d41",
+      "folder_keywords": [
+        "20260109 \u5149\u7535\u6d41",
+        "\u5149\u7535\u6d41",
+        "photocurrent",
+        "chronoamperometry"
+      ],
+      "filename_keywords": [
+        "20260109 \u5149\u7535\u6d41",
+        "\u5149\u7535\u6d41",
+        "photocurrent",
+        "chronoamperometry"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "photocurrent",
+      "supported_in_phase_1": true,
+      "selected_processor": "photocurrent_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/photocurrent.md"
+    },
+    {
+      "id": "bet",
+      "folder_name": "BET",
+      "folder_keywords": [
+        "BET",
+        "BET surface area",
+        "adsorption",
+        "desorption"
+      ],
+      "filename_keywords": [
+        "BET",
+        "BET surface area",
+        "adsorption",
+        "desorption"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".pdf",
+        ".docx"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "BET",
+      "supported_in_phase_1": true,
+      "selected_processor": "bet_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/bet.md"
+    },
+    {
+      "id": "epr",
+      "folder_name": "EPR",
+      "folder_keywords": [
+        "EPR",
+        "ESR"
+      ],
+      "filename_keywords": [
+        "EPR",
+        "ESR"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat",
+        ".dta",
+        ".spc"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "EPR",
+      "supported_in_phase_1": true,
+      "selected_processor": "epr_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/epr.md"
+    },
+    {
+      "id": "pl",
+      "folder_name": "PL",
+      "folder_keywords": [
+        "PL",
+        "photoluminescence"
+      ],
+      "filename_keywords": [
+        "PL",
+        "photoluminescence"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "PL",
+      "supported_in_phase_1": true,
+      "selected_processor": "pl_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/pl.md"
+    },
+    {
+      "id": "xps",
+      "folder_name": "XPS",
+      "folder_keywords": [
+        "XPS"
+      ],
+      "filename_keywords": [
+        "XPS"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "XPS",
+      "supported_in_phase_1": true,
+      "selected_processor": "xps_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/xps.md"
+    },
+    {
+      "id": "xrd",
+      "folder_name": "XRD",
+      "folder_keywords": [
+        "XRD",
+        "x-ray diffraction",
+        "diffraction"
+      ],
+      "filename_keywords": [
+        "XRD",
+        "x-ray diffraction",
+        "diffraction"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat",
+        ".xy"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "XRD",
+      "supported_in_phase_1": true,
+      "selected_processor": "xrd_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/xrd.md"
+    },
+    {
+      "id": "uvvis_drs",
+      "folder_name": "\u56fa\u4f53\u7d2b\u5916",
+      "folder_keywords": [
+        "\u56fa\u4f53\u7d2b\u5916",
+        "UV",
+        "UV-vis",
+        "DRS",
+        "diffuse reflectance"
+      ],
+      "filename_keywords": [
+        "\u56fa\u4f53\u7d2b\u5916",
+        "UV",
+        "UV-vis",
+        "DRS",
+        "diffuse reflectance"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "UV-vis DRS",
+      "supported_in_phase_1": true,
+      "selected_processor": "uvvis_drs_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/uvvis_drs.md"
+    },
+    {
+      "id": "photocurrent_response",
+      "folder_name": "\u5149\u7535\u6d41\u54cd\u5e94",
+      "folder_keywords": [
+        "\u5149\u7535\u6d41\u54cd\u5e94",
+        "photocurrent response",
+        "photoresponse"
+      ],
+      "filename_keywords": [
+        "\u5149\u7535\u6d41\u54cd\u5e94",
+        "photocurrent response",
+        "photoresponse"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "photocurrent_response",
+      "supported_in_phase_1": true,
+      "selected_processor": "photocurrent_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/photocurrent_response.md"
+    },
+    {
+      "id": "reaction_condition_screening",
+      "folder_name": "\u5149\u53cd\u5e94\u7684\u6761\u4ef6\u7b5b\u9009",
+      "folder_keywords": [
+        "\u5149\u53cd\u5e94\u7684\u6761\u4ef6\u7b5b\u9009",
+        "condition screening",
+        "screening"
+      ],
+      "filename_keywords": [
+        "\u5149\u53cd\u5e94\u7684\u6761\u4ef6\u7b5b\u9009",
+        "condition screening",
+        "screening"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "reaction_condition_screening",
+      "supported_in_phase_1": true,
+      "selected_processor": "condition_screening_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/reaction_condition_screening.md"
+    },
+    {
+      "id": "ftir",
+      "folder_name": "\u7ea2\u5916",
+      "folder_keywords": [
+        "\u7ea2\u5916",
+        "FTIR",
+        "IR",
+        "infrared"
+      ],
+      "filename_keywords": [
+        "\u7ea2\u5916",
+        "FTIR",
+        "IR",
+        "infrared"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat",
+        ".spc"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "FTIR",
+      "supported_in_phase_1": true,
+      "selected_processor": "ftir_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/ftir.md"
+    },
+    {
+      "id": "raman",
+      "folder_name": "\u62c9\u66fc",
+      "folder_keywords": [
+        "\u62c9\u66fc",
+        "Raman"
+      ],
+      "filename_keywords": [
+        "\u62c9\u66fc",
+        "Raman"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat",
+        ".spc"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "Raman",
+      "supported_in_phase_1": true,
+      "selected_processor": "raman_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/raman.md"
+    },
+    {
+      "id": "mott_schottky",
+      "folder_name": "\u83ab\u7279\u8096\u7279\u57fa",
+      "folder_keywords": [
+        "\u83ab\u7279\u8096\u7279\u57fa",
+        "Mott",
+        "Schottky",
+        "Mott-Schottky"
+      ],
+      "filename_keywords": [
+        "\u83ab\u7279\u8096\u7279\u57fa",
+        "Mott",
+        "Schottky",
+        "Mott-Schottky"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "Mott-Schottky",
+      "supported_in_phase_1": true,
+      "selected_processor": "mott_schottky_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/mott_schottky.md"
+    },
+    {
+      "id": "lc_exported_data",
+      "folder_name": "\u6db2\u76f8",
+      "folder_keywords": [
+        "\u6db2\u76f8",
+        "HPLC",
+        "LC",
+        "chromatography"
+      ],
+      "filename_keywords": [
+        "\u6db2\u76f8",
+        "HPLC",
+        "LC",
+        "chromatography"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "HPLC/LC exported data",
+      "supported_in_phase_1": true,
+      "selected_processor": "lc_exported_data_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/hplc_lc_exported_data.md"
+    },
+    {
+      "id": "eis",
+      "folder_name": "\u963b\u6297EIS",
+      "folder_keywords": [
+        "\u963b\u6297EIS",
+        "EIS",
+        "impedance"
+      ],
+      "filename_keywords": [
+        "\u963b\u6297EIS",
+        "EIS",
+        "impedance"
+      ],
+      "extensions": [
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".dat",
+        ".z",
+        ".mpt"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "EIS",
+      "supported_in_phase_1": true,
+      "selected_processor": "eis_processor",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "process_when_present_manual_check",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/eis.md"
+    },
+    {
+      "id": "sem",
+      "folder_name": "SEM",
+      "folder_keywords": [
+        "SEM",
+        "SEM_image_data"
+      ],
+      "filename_keywords": [
+        "SEM",
+        "SEM_image_data"
+      ],
+      "extensions": [
+        ".tif",
+        ".tiff",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".bmp",
+        ".dm3",
+        ".dm4"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "SEM_image_data",
+      "supported_in_phase_1": false,
+      "selected_processor": "none",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "scan_only",
+      "deferred_reason": "image_data_deferred",
+      "data_format_note": "docs/data_format_notes/sem_scan_only.md"
+    },
+    {
+      "id": "tem",
+      "folder_name": "TEM",
+      "folder_keywords": [
+        "TEM",
+        "TEM_image_data"
+      ],
+      "filename_keywords": [
+        "TEM",
+        "TEM_image_data"
+      ],
+      "extensions": [
+        ".tif",
+        ".tiff",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".bmp",
+        ".dm3",
+        ".dm4"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "TEM_image_data",
+      "supported_in_phase_1": false,
+      "selected_processor": "none",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "scan_only",
+      "deferred_reason": "image_data_deferred",
+      "data_format_note": "docs/data_format_notes/tem_scan_only.md"
+    },
+    {
+      "id": "nmr",
+      "folder_name": "\u6838\u78c1",
+      "folder_keywords": [
+        "\u6838\u78c1",
+        "NMR"
+      ],
+      "filename_keywords": [
+        "\u6838\u78c1",
+        "NMR"
+      ],
+      "extensions": [
+        ".fid",
+        ".1r",
+        ".1i",
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls",
+        ".jdx",
+        ".dx"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "NMR",
+      "supported_in_phase_1": false,
+      "selected_processor": "none",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "scan_only",
+      "deferred_reason": "nmr_deferred",
+      "data_format_note": "docs/data_format_notes/nmr_scan_only.md"
+    },
+    {
+      "id": "ms",
+      "folder_name": "\u8d28\u8c31",
+      "folder_keywords": [
+        "\u8d28\u8c31",
+        "MS"
+      ],
+      "filename_keywords": [
+        "\u8d28\u8c31",
+        "MS"
+      ],
+      "extensions": [
+        ".mzml",
+        ".mzxml",
+        ".raw",
+        ".cdf",
+        ".csv",
+        ".txt",
+        ".xlsx",
+        ".xls"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "MS",
+      "supported_in_phase_1": false,
+      "selected_processor": "none",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "scan_only",
+      "deferred_reason": "ms_deferred",
+      "data_format_note": "docs/data_format_notes/ms_scan_only.md"
+    },
+    {
+      "id": "kinetics_reference_literature",
+      "folder_name": "\u52a8\u529b\u5b66",
+      "folder_keywords": [
+        "\u52a8\u529b\u5b66",
+        "kinetics",
+        "reference literature",
+        "literature"
+      ],
+      "filename_keywords": [
+        "\u52a8\u529b\u5b66",
+        "kinetics",
+        "reference literature",
+        "literature"
+      ],
+      "extensions": [
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".caj",
+        ".ris",
+        ".bib",
+        ".enl",
+        ".txt"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "reference_literature",
+      "supported_in_phase_1": false,
+      "selected_processor": "none",
+      "confidence_rules": {
+        "high": "folder keyword plus expected exported columns",
+        "medium": "folder keyword with table-like files",
+        "low": "ambiguous exported data"
+      },
+      "special_handling": "scan_only",
+      "deferred_reason": "\u6587\u732e\u8d44\u6599\u6587\u4ef6\u5939\uff0c\u4e0d\u662f\u5b9e\u9a8c\u52a8\u529b\u5b66\u6570\u636e",
+      "data_format_note": "docs/data_format_notes/kinetics_reference_literature.md"
+    }
+  ]
+}

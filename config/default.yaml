@@ -1,0 +1,33 @@
+project:
+  name: GroupMeetingAutoPPT
+  phase: phase1
+paths:
+  raw_data: input/raw_data
+  workspace_data: workspace_data
+  phase1_2_source_copy: workspace_data/LL_detection_copy_20260530
+  output: output
+  processed_data: output/processed_data
+  origin_files: output/origin_files
+  figures_tif: output/figures_tif
+  figures_preview: output/figures_preview
+  origin_jobs: output/origin_jobs
+  metadata: output/metadata
+  reports: output/reports
+  triage_manifest: output/reports/data_triage_manifest.json
+  processing_queue: output/reports/processing_queue.json
+triage:
+  enabled: true
+  min_confidence: 0.75
+  auto_process_decision: AUTO_PROCESS
+  duplicate_policy: exact_hash_suppress_after_representative
+  manual_review_policy: never_process_without_include_ambiguous
+processing_queue:
+  no_origin_default: true
+  include_ambiguous_default: false
+  stale_hash_policy: skip
+safety:
+  modify_raw_data: false
+  generate_ppt: false
+  create_kinetics_processor: false
+  require_metadata: true
+  require_manual_check_for_high_risk: true

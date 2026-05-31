@@ -1,0 +1,39 @@
+font_family: "Arial"
+axis_label_size: 36
+tick_label_size: 36
+legend_font_size: 26
+line_width: 3
+marker_size: 6
+curve_palette:
+  policy: "Okabe-Ito inspired, colorblind-accessible, journal-friendly qualitative palette; do not rely only on red/green differences."
+  origin_ocolor_values:
+    - 28471808  # color(0,114,178), blue
+    - 16818150  # color(230,159,0), orange
+    - 24354304  # color(0,158,115), bluish green
+    - 16801493  # color(213,94,0), vermillion
+    - 32093270  # color(86,180,233), sky blue
+    - 27752908  # color(204,121,167), reddish purple
+    - 21161200  # color(240,228,66), yellow
+    - 16777216  # color(0,0,0), black
+graph_width_cm: 16.34
+graph_height_cm: 12.5
+axis_line_width: 3
+export:
+  format: "tif"
+  dpi: 600
+  compression: "lzw"
+origin_template:
+  rules_skill_path: "D:\\CodexData\\.codex\\skills\\origin-plotting"
+  default_reference_project: "D:\\OriginFlies\\Manual Save\\CWO+BOBC+*.opju"
+  default_graph_page: "Graph4"
+  reference_search_pattern: "D:\\OriginFlies\\Manual Save\\CWO+BOBC+*.opju"
+  use_cached_graph4: true
+  refresh_reference_style: false
+  reuse_rule: "Follow D:\\CodexData\\.codex\\skills\\origin-plotting. Use the cached Graph4 snapshot by default; only pass a reference OPJU when explicitly refreshing the cached style."
+  automation_entrypoint: "Origin.Application"
+  avoid_entrypoint: "Origin.ApplicationSI"
+  validation_required:
+    - "Clean old template residue before final output."
+    - "Apply Arial bold text, explicit legend rows, reference tick directions, and sample curve line width 3."
+    - "Save .opju and export .tif for final outputs."
+    - "Export PNG preview and visually inspect it before claiming the Origin graph is correct."

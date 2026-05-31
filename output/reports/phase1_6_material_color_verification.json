@@ -1,0 +1,215 @@
+{
+  "created_at": "2026-05-31 09:27:48",
+  "policy": "Same inferred material/sample key uses the same Origin curve color across Phase 1.6 exports; uncertain sample-code assignments are marked for user review.",
+  "material_color_count": 15,
+  "assignment_count": 210,
+  "keys_with_assignments": 20,
+  "consistency_status": "PASS",
+  "inconsistent_keys": {},
+  "material_colors": [
+    {
+      "material_key": "CWO",
+      "material_role": "material",
+      "color_name": "blue",
+      "rgb": [
+        0,
+        114,
+        178
+      ],
+      "hex": "#0072B2",
+      "origin_ocolor": 28471808
+    },
+    {
+      "material_key": "BOBC",
+      "material_role": "material",
+      "color_name": "orange",
+      "rgb": [
+        230,
+        159,
+        0
+      ],
+      "hex": "#E69F00",
+      "origin_ocolor": 16818150
+    },
+    {
+      "material_key": "CWO+BOBC",
+      "material_role": "material_composite",
+      "color_name": "bluish_green",
+      "rgb": [
+        0,
+        158,
+        115
+      ],
+      "hex": "#009E73",
+      "origin_ocolor": 24354304
+    },
+    {
+      "material_key": "BOC",
+      "material_role": "material",
+      "color_name": "sky_blue",
+      "rgb": [
+        86,
+        180,
+        233
+      ],
+      "hex": "#56B4E9",
+      "origin_ocolor": 32093270
+    },
+    {
+      "material_key": "MCS",
+      "material_role": "material",
+      "color_name": "vermillion",
+      "rgb": [
+        213,
+        94,
+        0
+      ],
+      "hex": "#D55E00",
+      "origin_ocolor": 16801493
+    },
+    {
+      "material_key": "BM",
+      "material_role": "material_or_sample_code",
+      "color_name": "reddish_purple",
+      "rgb": [
+        204,
+        121,
+        167
+      ],
+      "hex": "#CC79A7",
+      "origin_ocolor": 27752908
+    },
+    {
+      "material_key": "BPO",
+      "material_role": "material_or_sample_code",
+      "color_name": "black",
+      "rgb": [
+        0,
+        0,
+        0
+      ],
+      "hex": "#000000",
+      "origin_ocolor": 16777216
+    },
+    {
+      "material_key": "BPOM",
+      "material_role": "material_or_sample_code",
+      "color_name": "dark_teal",
+      "rgb": [
+        17,
+        119,
+        51
+      ],
+      "hex": "#117733",
+      "origin_ocolor": 20150033
+    },
+    {
+      "material_key": "BOBCMS",
+      "material_role": "material_or_sample_code",
+      "color_name": "wine",
+      "rgb": [
+        136,
+        34,
+        85
+      ],
+      "hex": "#882255",
+      "origin_ocolor": 22356616
+    },
+    {
+      "material_key": "BC",
+      "material_role": "material_or_sample_code",
+      "color_name": "teal",
+      "rgb": [
+        68,
+        170,
+        153
+      ],
+      "hex": "#44AA99",
+      "origin_ocolor": 26847812
+    },
+    {
+      "material_key": "MS",
+      "material_role": "material_or_sample_code",
+      "color_name": "dark_blue",
+      "rgb": [
+        51,
+        34,
+        136
+      ],
+      "hex": "#332288",
+      "origin_ocolor": 25698867
+    },
+    {
+      "material_key": "MOSE2",
+      "material_role": "material_or_sample_code",
+      "color_name": "purple",
+      "rgb": [
+        170,
+        68,
+        153
+      ],
+      "hex": "#AA4499",
+      "origin_ocolor": 26821802
+    },
+    {
+      "material_key": "MOTE2",
+      "material_role": "material_or_sample_code",
+      "color_name": "sand",
+      "rgb": [
+        221,
+        204,
+        119
+      ],
+      "hex": "#DDCC77",
+      "origin_ocolor": 24628445
+    },
+    {
+      "material_key": "MB",
+      "material_role": "sample_series",
+      "color_name": "olive",
+      "rgb": [
+        153,
+        153,
+        51
+      ],
+      "hex": "#999933",
+      "origin_ocolor": 20158873
+    },
+    {
+      "material_key": "MT",
+      "material_role": "sample_series",
+      "color_name": "brown",
+      "rgb": [
+        102,
+        17,
+        0
+      ],
+      "hex": "#661100",
+      "origin_ocolor": 16781670
+    }
+  ],
+  "assignment_counts_by_key": {
+    "BC": 23,
+    "BM": 13,
+    "BOBC": 49,
+    "BOBCMS": 2,
+    "BOC": 1,
+    "BPO": 6,
+    "BPOM": 8,
+    "CWO": 38,
+    "CWO+BOBC": 11,
+    "MB": 11,
+    "MCS": 1,
+    "MOSE2": 3,
+    "MOTE2": 8,
+    "MS": 27,
+    "MT": 4,
+    "SAMPLE:DARK-20260506": 1,
+    "SAMPLE:LIGHT": 1,
+    "SAMPLE:LINGT-20260506": 1,
+    "SAMPLE:Microsoft_Excel": 1,
+    "SAMPLE:light": 1
+  },
+  "manual_review_counts_by_key": {},
+  "note": "Regenerated after XPS repair Origin exports; did not launch Origin."
+}

@@ -1,0 +1,24 @@
+# Validation Report
+
+- Dependency audit: pass
+- Origin callability: pass (originpro and win32com are importable)
+- Required output directories: pass
+- Required config files: pass
+- Processor registry entries: 19
+- Phase 1 supported entries: 14
+- Processor registry required fields: pass
+- 动力学: reference_literature scan_only selected_processor none
+- SEM/TEM/核磁/质谱: deferred scan_only
+- PPT forbidden paths: pass
+- Forbidden presentation artifacts: pass
+- Kinetics processor paths: pass
+- TIF export config: pass
+- Origin contract Graph4 reference page: pass
+- Origin contract Origin.Application automation: pass
+- Origin contract avoid Origin.ApplicationSI: pass
+- Origin contract PNG preview inspection: pass
+- Origin contract explicit bold legend rows: pass
+- Origin contract line width 3: pass
+- max_threads = 5
+- max_depth = 1
+- Claim policy forbidden claims: 14

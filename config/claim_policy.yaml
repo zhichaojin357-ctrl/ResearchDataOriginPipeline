@@ -1,0 +1,130 @@
+{
+  "policy_status": "planning_draft_json_compatible_yaml",
+  "global_rules": {
+    "no_auto_mechanism_claims": true,
+    "require_manual_check_for_high_risk": true,
+    "output_candidates_not_final_interpretations": true
+  },
+  "allowed_claims": [
+    "describe plotted trends",
+    "describe candidate peaks",
+    "describe candidate current response values",
+    "describe EIS semicircle size changes",
+    "describe Tauc fit candidates",
+    "describe existing LC peak-table values",
+    "describe XPS raw spectra and exported fit curves",
+    "describe BET values already present in reports",
+    "describe Mott-Schottky candidate linear intervals"
+  ],
+  "forbidden_claims": [
+    "do not automatically prove S-scheme heterojunction",
+    "do not automatically prove Z-scheme heterojunction",
+    "do not automatically prove electron transfer direction",
+    "do not automatically assign XPS valence states",
+    "do not automatically assign EPR radical species",
+    "do not automatically assign HRTEM lattice planes",
+    "do not automatically confirm LC-MS products",
+    "do not automatically decide reaction mechanism",
+    "do not automatically decide final band structure",
+    "do not equate higher photocurrent with better carrier separation",
+    "do not equate PL decrease with lower recombination",
+    "do not equate flat-band potential with CB/VB",
+    "do not treat kinetics folder as experimental kinetics data",
+    "do not create kinetics processor"
+  ],
+  "manual_check_required_for": [
+    "XPS",
+    "EPR",
+    "XRD peak assignment",
+    "UV-vis DRS Eg candidate",
+    "EIS equivalent-circuit interpretation",
+    "LC/HPLC conversion or selectivity calculation",
+    "LC-MS or MS",
+    "HRTEM lattice",
+    "Mott-Schottky band-edge interpretation",
+    "heterojunction mechanism",
+    "reaction mechanism"
+  ],
+  "type_specific": {
+    "photocurrent": {
+      "forbidden": [
+        "do not claim higher photocurrent proves better carrier separation"
+      ],
+      "allowed": [
+        "output peak current, steady current, and on/off ratio candidates"
+      ]
+    },
+    "PL": {
+      "forbidden": [
+        "do not claim PL decrease proves lower recombination"
+      ],
+      "allowed": [
+        "output peak intensity, integrated area, and peak position candidates"
+      ]
+    },
+    "XPS": {
+      "forbidden": [
+        "do not assign valence states",
+        "do not infer oxygen vacancies",
+        "do not infer electron transfer direction",
+        "do not infer S-scheme or Z-scheme mechanism from shifts"
+      ],
+      "allowed": [
+        "plot raw spectrum, background, fit envelope, and component peaks"
+      ]
+    },
+    "EPR": {
+      "forbidden": [
+        "do not assign radical species automatically"
+      ],
+      "allowed": [
+        "output peak-to-peak intensity and g_candidate"
+      ]
+    },
+    "XRD": {
+      "forbidden": [
+        "do not assign phase automatically",
+        "do not label crystal planes automatically",
+        "do not claim impurity-free automatically"
+      ],
+      "allowed": [
+        "output candidate peak positions"
+      ]
+    },
+    "EIS": {
+      "forbidden": [
+        "do not choose equivalent circuit automatically",
+        "do not infer final mechanism from Rct"
+      ],
+      "allowed": [
+        "plot Nyquist and Bode figures"
+      ]
+    },
+    "UV-vis DRS": {
+      "forbidden": [
+        "do not finalize Eg automatically",
+        "do not generate band mechanism automatically"
+      ],
+      "allowed": [
+        "output Eg_candidate and candidate linear intervals"
+      ]
+    },
+    "Mott-Schottky": {
+      "forbidden": [
+        "do not equate flat-band potential with CB/VB",
+        "do not generate band diagram automatically"
+      ],
+      "allowed": [
+        "output flat_band_potential_candidate"
+      ]
+    },
+    "kinetics_reference_literature": {
+      "folder_name": "\u52a8\u529b\u5b66",
+      "required_handling": "reference_literature",
+      "forbidden": [
+        "create kinetics processor",
+        "process, fit, or plot as experimental kinetics data"
+      ]
+    }
+  }
+}

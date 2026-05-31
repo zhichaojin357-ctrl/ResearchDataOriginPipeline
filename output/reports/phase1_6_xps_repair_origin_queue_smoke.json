@@ -1,0 +1,35 @@
+{
+  "queue_version": "phase1_6_xps_repair_origin_smoke_v1",
+  "source_root": "workspace_data/LL_detection_copy_20260530",
+  "items": [
+    {
+      "queue_id": "64d751af",
+      "relative_path": "02_XPS/raw_data/26010989730/BC-11/BI.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\26010989730\\BC-11\\BI.xlsx",
+      "source_hash": "a2763da75b7c9e147e3e5755e2b767e6acd435f8c9cb3152984135538e5f5a46",
+      "data_type": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "AUTO_PROCESS",
+      "current_decision": "AUTO_PROCESS_REPAIR_RETRY",
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_6_xps_repair",
+      "promoted_confidence": 0.9,
+      "promoted_validity": 0.9,
+      "promotion_reason": "Repair retry for Phase 1.6 XPS items that previously produced header-only processed CSV because XPS exports used unnamed numeric columns with metadata rows.",
+      "promotion_evidence": [
+        "source hash verified",
+        "finite numeric binding/intensity pairs extracted",
+        "XPS numeric fallback avoids valence assignment"
+      ],
+      "manual_check_required": true,
+      "forbidden_claims": [
+        "do not automatically assign XPS valence states"
+      ],
+      "origin_export_allowed": true,
+      "origin_export_risk_level": "medium",
+      "origin_export_notes": "XPS repaired processed CSV has finite data rows; draw raw binding-energy/intensity only. Do not assign valence states.",
+      "sample_id": "BI"
+    }
+  ]
+}

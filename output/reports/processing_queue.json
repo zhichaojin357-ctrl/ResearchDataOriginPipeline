@@ -1,0 +1,754 @@
+{
+  "queue_version": "1.0",
+  "created_at": "2026-05-31T03:47:43.806576+00:00",
+  "config_hash": "phase1_2_rules_v1",
+  "min_confidence": 0.75,
+  "source_root": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530",
+  "items": [
+    {
+      "queue_id": "c56761c575caa41f",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\BOBC\\EIS-1.txt",
+      "source_hash": "cb84b72b0202c9bd9bac775c894ce37eecfef1b5af8a6c8ea02637ef75735365",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "EIS-1",
+      "traceability_group_id": "69e445315983ede3",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6841",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "9af033ca8e7f32d9",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\BOBC\\EIS-1.xlsx",
+      "source_hash": "f892b2af6749fbd85633801fa82341418feaec06add8e1f84354bf698812e6c4",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": "Sheet1",
+      "sample_id": "EIS-1",
+      "traceability_group_id": "69e445315983ede3",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=14133",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "13d173c952ca5d6e",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\BOBC\\EIS-2GOOD.txt",
+      "source_hash": "59edba1edde9b8291725b14c2263fccc1ace195e1b6598f60f33ff5217db0169",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "EIS-2GOOD",
+      "traceability_group_id": "69e445315983ede3",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6835",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "c8ad68bd05cc905e",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\BOBC\\EIS-2GOOD.xlsx",
+      "source_hash": "4d6bd364a810cbc4417214c421df91bb8b320b3be137e0e343e1fdc0fc599012",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": "Sheet1",
+      "sample_id": "EIS-2GOOD",
+      "traceability_group_id": "69e445315983ede3",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=14134",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "2a1c260444be8441",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\CWO\\EIS-1.txt",
+      "source_hash": "200a531ca9e9dc959d0760ab4039a4026d9b1c95bccb84057a9d2fbd6ed781c5",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "EIS-1",
+      "traceability_group_id": "aa8c8328cddce932",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/CWO",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6821",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "62008ff958e7b1e8",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\CWO\\EIS-1.xlsx",
+      "source_hash": "2a2740bc21da70885018f289102e81ede891f255f2c9be45c668c9ce3ba59ebd",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": "Sheet1",
+      "sample_id": "EIS-1",
+      "traceability_group_id": "aa8c8328cddce932",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/CWO",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=14132",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "ad49695d48360f22",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\CWO\\EIS-2.txt",
+      "source_hash": "d3e55a7f07004f8c97919d6d34ff5336d1f989197800f99bdb8b44a7bdc046b5",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "EIS-2",
+      "traceability_group_id": "aa8c8328cddce932",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/CWO",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6835",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "50475090f8113342",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\CWO\\EIS-2.xlsx",
+      "source_hash": "6fb4e4012893c0599ed1da735ecdcac20d9d121a9f747e1afac047b7be53c7d2",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": "Sheet1",
+      "sample_id": "EIS-2",
+      "traceability_group_id": "aa8c8328cddce932",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/CWO",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=14151",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "6625ff3161c66e82",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\MOSE\\EIS.txt",
+      "source_hash": "3257b94fc230cce504ab9532a41a9f27c8a54b8697e96cacb4a55c224582a59c",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "EIS",
+      "traceability_group_id": "50847ce0caf545d9",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/MOSE",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6833",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "7cbc05bc1d8ee8d5",
+      "relative_path": "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\MOSE\\EIS.xlsx",
+      "source_hash": "440c04242d224a24c62ae1b6330216ac88a26f5ed54d599ca9db01cb64e47dec",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 1.0,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": "Sheet1",
+      "sample_id": "EIS",
+      "traceability_group_id": "50847ce0caf545d9",
+      "traceability_group_path": "05_阻抗EIS/20251106阻抗李永进/MOSE",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=14151",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "filename_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "4fa41d00781e55a9",
+      "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-A.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B11-2-A.txt",
+      "source_hash": "c2a2e42956937608d3d065b1c8c77e2bf1ebabcfec4bda44677699f02cd5f52f",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 0.85,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "B11-2-A",
+      "traceability_group_id": "4b0e5cf787cc6534",
+      "traceability_group_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6820",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "7cbd96395c8e3ccb",
+      "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-A.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B11-A.txt",
+      "source_hash": "d1126ca644c66aa98d7cfbabe0771a66f12c03a4c921ea27517d777a9d22a6d9",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 0.85,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "B11-A",
+      "traceability_group_id": "4b0e5cf787cc6534",
+      "traceability_group_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6832",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "c46588327e0fe17a",
+      "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B3.txt",
+      "source_hash": "06eac913e15fb12b8386d19bcfc27a8d3b8c3e6c49f9fa66ad5d1baeffc8f4b0",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 0.85,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "B3",
+      "traceability_group_id": "4b0e5cf787cc6534",
+      "traceability_group_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6837",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "5b78b593ec5fb175",
+      "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-A.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B9-2-A.txt",
+      "source_hash": "eaa40974df2a2922ce2ab38564db04080812a1ebd7dce7a2cc666448343b4037",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 0.85,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "B9-2-A",
+      "traceability_group_id": "4b0e5cf787cc6534",
+      "traceability_group_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6840",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "957f54e4dc584d2c",
+      "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-A.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B9-A.txt",
+      "source_hash": "accefea29056099b6d3401a6f39f944e75d26aade63dfda1179de7feb6ae1358",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 0.85,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "B9-A",
+      "traceability_group_id": "4b0e5cf787cc6534",
+      "traceability_group_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6843",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "5198492f7d2502bf",
+      "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-A.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\BOBC-2-A.txt",
+      "source_hash": "8c50623fd4b83d86141d7de6b8f013b49c26fcbb4e552f0cc097a800093e1049",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 0.85,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "BOBC-2-A",
+      "traceability_group_id": "4b0e5cf787cc6534",
+      "traceability_group_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6849",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "bbba27914afd576f",
+      "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-A.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\BOBC-A.txt",
+      "source_hash": "514f3895c4f15bfa037cb9ccf1663348c8b203be1c180df09d19f57a65cd79f6",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 0.85,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "BOBC-A",
+      "traceability_group_id": "4b0e5cf787cc6534",
+      "traceability_group_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6835",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    },
+    {
+      "queue_id": "81003f42684b8cde",
+      "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-A.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\CWO-A.txt",
+      "source_hash": "d091f3e348f61f7b2a4faed5b78b1bf185ac19d6b7c3c7904122c58a3d4d4e5d",
+      "data_type": "EIS",
+      "subtype": "EIS",
+      "selected_processor": "eis_processor",
+      "decision": "AUTO_PROCESS",
+      "confidence_score": 0.85,
+      "validity_score": 1.0,
+      "manual_check_required": true,
+      "column_mapping": {
+        "x": [
+          "Frequency (Hz)",
+          "Time (s)"
+        ]
+      },
+      "sheet_name": null,
+      "sample_id": "CWO-A",
+      "traceability_group_id": "4b0e5cf787cc6534",
+      "traceability_group_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC",
+      "traceability_role": "raw_or_exported_numeric_table",
+      "reasons": [
+        "high_confidence_valid_numeric_data"
+      ],
+      "warnings": [],
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=6830",
+        "parser_probe_status=success",
+        "folder_type_hint=EIS",
+        "header_type_hint=EIS",
+        "numeric_rows=71",
+        "numeric_columns=7"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    }
+  ],
+  "excluded_counts": {
+    "count": 121
+  },
+  "ambiguous_counts": {
+    "count": 742
+  },
+  "duplicate_counts": {
+    "count": 53
+  },
+  "deferred_counts": {
+    "count": 525
+  },
+  "reference_counts": {
+    "count": 17
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "result_folder": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\phase1_5_processed_results_20260531_005613",
+  "exists": true,
+  "required_entries": {
+    "index.md": true,
+    "index.csv": true,
+    "result_summary.json": true,
+    "selected_source_data": true,
+    "processed_tables": true,
+    "metadata": true,
+    "previews": true,
+    "contact_sheets": true,
+    "reports": true
+  },
+  "file_counts": {
+    "selected_source_data_files": 167,
+    "processed_tables_files": 167,
+    "metadata_files": 167,
+    "preview_png_files": 167,
+    "contact_sheet_files": 6,
+    "reports_files": 32
+  },
+  "index_records": 167,
+  "result_summary": {
+    "result_root": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\phase1_5_processed_results_20260531_005613",
+    "total_records": 167,
+    "count_by_batch": {
+      "A": 4,
+      "AUTO": 18,
+      "B": 33,
+      "C": 90,
+      "D": 22
+    },
+    "count_by_type": {
+      "EIS": 22,
+      "EPR": 13,
+      "Mott-Schottky": 90,
+      "Raman": 30,
+      "XPS": 9,
+      "photocurrent": 3
+    },
+    "preview_count": 167,
+    "preview_error_count": 0,
+    "contact_sheet_count": 6,
+    "font": "C:\\Windows\\Fonts\\msyh.ttc"
+  },
+  "empty_files": [],
+  "duplicate_result_ids": [],
+  "duplicate_queue_ids": [],
+  "duplicate_source_hashes": {},
+  "issue_count": 9
+}

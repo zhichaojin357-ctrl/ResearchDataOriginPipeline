@@ -1,0 +1,835 @@
+from __future__ import annotations
+
+import re
+from math import isfinite
+from math import sqrt
+
+
+def type_specific_results(
+    data_type: str,
+    numeric: list[tuple[float, float]],
+    rows: list[dict[str, str]],
+) -> dict:
+    y_values = [y for _, y in numeric]
+    if data_type == "XRD":
+        return {"peak_position_candidates": local_peak_positions(numeric)}
+    if data_type == "UV-vis DRS":
+        return uvvis_results(numeric, rows)
+    if data_type == "EIS":
+        return eis_results(numeric, rows)
+    if data_type in {"PL", "FTIR", "Raman"}:
+        result = {
+            "peak_position_candidates": local_peak_positions(numeric),
+            "peak_intensity_candidate": max(y_values) if y_values else None,
+            "integral_area_candidate": trapezoid_area(numeric),
+            **spectral_auxiliary_results(rows),
+        }
+        if data_type == "FTIR":
+            result["valley_position_candidates"] = local_valley_positions(numeric)
+        return result
+    if data_type in {"photocurrent", "photocurrent_response"}:
+        tail = y_values[-3:] if len(y_values) >= 3 else y_values
+        return {
+            "peak_current_candidate": max(y_values) if y_values else None,
+            "steady_current_candidate": sum(tail) / len(tail) if tail else None,
+            **photocurrent_results(rows, y_values),
+        }
+    if data_type == "XPS":
+        return {
+            "peak_position_candidates": local_peak_positions(numeric),
+            "area_candidate": trapezoid_area(numeric),
+            "binding_energy_display": "descending",
+            **xps_export_results(rows),
+        }
+    if data_type == "HPLC/LC exported data":
+        return lc_results(numeric, rows)
+    if data_type == "reaction_condition_screening":
+        records = condition_screening_records(rows)
+        values = [record[1] for record in records] if records else y_values
+        return {"best_condition_value_candidate": max(values) if values else None}
+    if data_type == "BET":
+        return {"isotherm_points": len(numeric), **bet_summary_results(rows)}
+    if data_type == "EPR":
+        return {
+            "peak_position_candidates": local_peak_positions(numeric),
+            "peak_intensity_candidate": max(y_values) if y_values else None,
+            "peak_to_peak_intensity_candidate": (max(y_values) - min(y_values)) if y_values else None,
+            **epr_extrema_results(numeric, rows),
+        }
+    if data_type == "Mott-Schottky":
+        mott_numeric = mott_schottky_numeric(rows, numeric)
+        linear = mott_schottky_linear_results(mott_numeric)
+        flat_band = linear.get("linear_x_intercept_candidate", x_at_min_abs_y(mott_numeric))
+        result = {
+            "flat_band_potential_candidate": flat_band,
+            **linear,
+        }
+        frequency_groups = mott_schottky_frequency_groups(rows)
+        if frequency_groups:
+            result["mott_schottky_frequency_groups"] = frequency_groups
+        return result
+    return {}
+
+
+def build_processed_table(
+    data_type: str,
+    numeric: list[tuple[float, float]],
+    rows: list[dict[str, str]],
+) -> tuple[list[str], list[list[float | str | None]]]:
+    if data_type == "XRD":
+        peaks = set(local_peak_positions(numeric))
+        max_y = max((y for _, y in numeric), default=None)
+        output = []
+        for two_theta, intensity in numeric:
+            normalized = intensity / max_y if max_y else None
+            output.append([two_theta, intensity, normalized, 1 if two_theta in peaks else 0])
+        return ["two_theta_deg", "intensity", "normalized_intensity", "peak_candidate_flag"], output
+
+    if data_type == "UV-vis DRS":
+        return uvvis_processed_table(numeric, rows)
+
+    if data_type == "EIS":
+        output = []
+        for row in rows:
+            frequency = first_numeric(row, ["frequency", "freq", "hz"])
+            real = first_numeric(row, ["re(z)", "real", "zreal"])
+            neg_imag = first_numeric(row, ["-im", "-im(z)", "negative imaginary", "zimag"])
+            if neg_imag is None:
+                imag = first_numeric(row, ["im(z)", "imaginary", "zimag"])
+                neg_imag = abs(imag) if imag is not None else None
+            magnitude = first_numeric(row, ["|z|", "zmod", "modulus", "magnitude"])
+            phase = first_numeric(row, ["phase"])
+            if frequency is not None and real is not None and neg_imag is not None:
+                if magnitude is None:
+                    magnitude = sqrt(real * real + neg_imag * neg_imag)
+                output.append([frequency, real, neg_imag, magnitude, phase])
+        if output:
+            return ["frequency", "real_impedance", "neg_imag_impedance", "impedance_magnitude", "phase"], output
+
+    if data_type in {"PL", "FTIR", "Raman"}:
+        max_y = max((y for _, y in numeric), default=None)
+        valleys = set(local_valley_positions(numeric))
+        auxiliary_columns = spectral_auxiliary_columns(rows)
+        auxiliary_headers = [f"{safe_column_name(key)}_optional" for key in auxiliary_columns]
+        output = []
+        for index, (x_value, y_value) in enumerate(numeric):
+            normalized = y_value / max_y if max_y else None
+            optional_values = spectral_auxiliary_values(rows, auxiliary_columns, index)
+            if data_type == "FTIR":
+                output.append([x_value, y_value, normalized, 1 if x_value in valleys else 0, *optional_values])
+            else:
+                output.append([x_value, y_value, normalized, *optional_values])
+        if data_type == "FTIR":
+            return ["x", "intensity", "normalized_intensity", "valley_candidate_flag", *auxiliary_headers], output
+        return ["x", "intensity", "normalized_intensity", *auxiliary_headers], output
+
+    if data_type in {"photocurrent", "photocurrent_response"}:
+        return photocurrent_processed_table(numeric, rows)
+
+    if data_type == "XPS":
+        return xps_processed_table(numeric, rows)
+
+    if data_type == "reaction_condition_screening":
+        records = condition_screening_records(rows)
+        if records:
+            best = max((value for _, value in records), default=None)
+            return (
+                ["condition", "response_value", "best_condition_candidate_flag"],
+                [[condition, value, 1 if best is not None and value == best else 0] for condition, value in records],
+            )
+        best = max((y for _, y in numeric), default=None)
+        return (
+            ["condition", "response_value", "best_condition_candidate_flag"],
+            [[condition, value, 1 if best is not None and value == best else 0] for condition, value in numeric],
+        )
+
+    if data_type == "HPLC/LC exported data":
+        return lc_processed_table(rows)
+
+    if data_type == "BET":
+        return bet_processed_table(rows)
+
+    if data_type == "EPR":
+        max_abs = max((abs(y) for _, y in numeric), default=None)
+        output = []
+        for field, intensity in numeric:
+            normalized = intensity / max_abs if max_abs else None
+            frequency = epr_frequency_for_field(rows, field)
+            output.append([field, intensity, normalized, epr_g_candidate(field, frequency)])
+        if any(row[3] is not None for row in output):
+            return ["magnetic_field", "intensity", "normalized_intensity", "g_candidate_optional"], output
+        return ["magnetic_field", "intensity", "normalized_intensity"], [row[:3] for row in output]
+
+    if data_type == "Mott-Schottky":
+        row_output = mott_schottky_processed_rows(rows)
+        if row_output:
+            if any(record[2] is not None for record in row_output):
+                return ["potential", "one_over_c_squared", "frequency_optional"], row_output
+            return ["potential", "one_over_c_squared"], [record[:2] for record in row_output]
+        output = [[potential, one_over_c2] for potential, one_over_c2 in mott_schottky_numeric(rows, numeric)]
+        return ["potential", "one_over_c_squared"], output
+
+    return ["x", "y"], [[x_value, y_value] for x_value, y_value in numeric]
+
+
+def uvvis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
+    signal = uvvis_signal_type(rows)
+    converted = []
+    photon_energies = []
+    for wavelength_nm, reflectance in numeric:
+        if wavelength_nm <= 0:
+            continue
+        photon_energy = 1239.7 / wavelength_nm
+        value = reflectance
+        if signal == "absorbance":
+            tauc_y = (value * photon_energy) ** 2
+            if isfinite(tauc_y):
+                converted.append((wavelength_nm, value))
+                photon_energies.append(photon_energy)
+            continue
+        reflectance_fraction = value / 100.0 if value > 1 else value
+        if reflectance_fraction <= 0:
+            continue
+        kubelka_munk = ((1 - reflectance_fraction) ** 2) / (2 * reflectance_fraction)
+        if isfinite(kubelka_munk):
+            converted.append((wavelength_nm, kubelka_munk))
+            photon_energies.append(photon_energy)
+    return {
+        "uvvis_input_signal": signal,
+        "kubelka_munk_points": len(converted),
+        "photon_energy_range_eV": [min(photon_energies), max(photon_energies)] if photon_energies else [],
+        "tauc_interval_candidate_eV": [min(photon_energies), max(photon_energies)] if len(photon_energies) >= 2 else [],
+        "Eg_candidate": None,
+    }
+
+
+def eis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
+    neg_imaginary = column_values(rows, ["-im", "-im(z)", "negative imaginary", "zimag", "im(z)"])
+    frequency = column_values(rows, ["frequency", "freq", "hz"])
+    return {
+        "nyquist_points": len(numeric),
+        "bode_points": len(frequency) if frequency else len(numeric),
+        "max_negative_imaginary_impedance": max(neg_imaginary) if neg_imaginary else None,
+    }
+
+
+def lc_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
+    areas = column_values(rows, ["area", "peak area"])
+    mode = lc_export_mode(rows)
+    result = {
+        "lc_export_mode": mode,
+        "retention_time_range": [numeric[0][0], numeric[-1][0]] if numeric else [],
+        "peak_area_total_candidate": sum(areas) if areas else None,
+    }
+    blocked_reason = lc_quantification_blocked_reason(rows)
+    if blocked_reason:
+        result["lc_quantification_blocked_reason"] = blocked_reason
+    return result
+
+
+def uvvis_processed_table(
+    numeric: list[tuple[float, float]],
+    rows: list[dict[str, str]],
+) -> tuple[list[str], list[list[float | str | None]]]:
+    signal = uvvis_signal_type(rows)
+    output = []
+    if signal == "absorbance":
+        for wavelength_nm, absorbance in numeric:
+            photon_energy = 1239.7 / wavelength_nm if wavelength_nm > 0 else None
+            tauc_y = (absorbance * photon_energy) ** 2 if photon_energy is not None else None
+            output.append([wavelength_nm, absorbance, photon_energy, tauc_y])
+        return ["wavelength_nm", "absorbance", "photon_energy_eV", "tauc_y_absorbance_direct_candidate"], output
+
+    for wavelength_nm, reflectance in numeric:
+        reflectance_fraction = reflectance / 100.0 if reflectance > 1 else reflectance
+        photon_energy = 1239.7 / wavelength_nm if wavelength_nm > 0 else None
+        kubelka_munk = None
+        tauc_y = None
+        if reflectance_fraction > 0:
+            kubelka_munk = ((1 - reflectance_fraction) ** 2) / (2 * reflectance_fraction)
+            if photon_energy is not None:
+                tauc_y = (kubelka_munk * photon_energy) ** 2
+        output.append([wavelength_nm, reflectance, reflectance_fraction, kubelka_munk, photon_energy, tauc_y])
+    return ["wavelength_nm", "reflectance", "reflectance_fraction", "kubelka_munk", "photon_energy_eV", "tauc_y_direct_candidate"], output
+
+
+def uvvis_signal_type(rows: list[dict[str, str]]) -> str:
+    if rows and matching_key(rows[0], ["absorbance", "abs"]):
+        return "absorbance"
+    return "reflectance"
+
+
+def photocurrent_results(rows: list[dict[str, str]], values: list[float]) -> dict:
+    states = light_states(rows)
+    result = {"on_off_ratio_candidate": on_off_ratio_candidate(values)}
+    if states:
+        on_values = [first_numeric(row, ["current"]) for row, state in zip(rows, states) if state == "on"]
+        off_values = [first_numeric(row, ["current"]) for row, state in zip(rows, states) if state == "off"]
+        on_values = [value for value in on_values if value is not None]
+        off_values = [value for value in off_values if value is not None]
+        result["light_on_points"] = len(on_values)
+        result["light_off_points"] = len(off_values)
+        if on_values and off_values:
+            off_mean = sum(off_values) / len(off_values)
+            result["on_off_ratio_candidate"] = (sum(on_values) / len(on_values)) / off_mean if off_mean > 0 else None
+    return result
+
+
+def photocurrent_processed_table(
+    numeric: list[tuple[float, float]],
+    rows: list[dict[str, str]],
+) -> tuple[list[str], list[list[float | str | None]]]:
+    states = light_states(rows)
+    if not states:
+        output = []
+        for index, (time_value, current) in enumerate(numeric):
+            output.append([time_value, current, index // 2 + 1])
+        return ["time_s", "current", "cycle_candidate_id"], output
+
+    output = []
+    cycle = 1
+    previous = states[0]
+    for index, (time_value, current) in enumerate(numeric):
+        state = states[index] if index < len(states) else ""
+        if index and state != previous:
+            cycle += 1
+            previous = state
+        area = first_numeric(rows[index], ["area_cm2", "area"]) if index < len(rows) else None
+        density = current / area if area and area != 0 else None
+        output.append([time_value, current, state, cycle, density])
+    return ["time_s", "current", "light_state", "cycle_candidate_id", "current_density_optional"], output
+
+
+def xps_export_results(rows: list[dict[str, str]]) -> dict:
+    components = xps_component_columns(rows)
+    result = {
+        "xps_background_preserved": bool(rows and matching_key(rows[0], ["background"])),
+        "xps_envelope_preserved": bool(rows and matching_key(rows[0], ["envelope", "fit"])),
+    }
+    if components:
+        result["xps_component_columns"] = components
+        component_areas = xps_component_area_candidates(rows, components)
+        if component_areas:
+            result["xps_component_area_candidates"] = component_areas
+    return result
+
+
+def xps_processed_table(
+    numeric: list[tuple[float, float]],
+    rows: list[dict[str, str]],
+) -> tuple[list[str], list[list[float | str | None]]]:
+    peaks = set(local_peak_positions(numeric))
+    if not rows:
+        return (
+            ["binding_energy_eV", "raw_intensity", "peak_candidate_flag"],
+            [[binding_energy, intensity, 1 if binding_energy in peaks else 0] for binding_energy, intensity in numeric],
+        )
+    binding_key = matching_key(rows[0], ["binding energy", "bindingenergy"])
+    raw_key = matching_key(rows[0], ["raw intensity", "intensity", "counts"])
+    background_key = matching_key(rows[0], ["background"])
+    envelope_key = matching_key(rows[0], ["envelope", "fit"])
+    components = xps_component_columns(rows)
+    headers = ["binding_energy_eV", "raw_intensity", "peak_candidate_flag"]
+    if background_key:
+        headers.append("background_optional")
+    if envelope_key:
+        headers.append("envelope_optional")
+    headers.extend(f"{safe_column_name(column)}_optional" for column in components)
+
+    output = []
+    for row in rows:
+        binding = first_numeric(row, [binding_key]) if binding_key else None
+        raw = first_numeric(row, [raw_key]) if raw_key else None
+        if binding is None or raw is None:
+            continue
+        record: list[float | str | None] = [binding, raw, 1 if binding in peaks else 0]
+        if background_key:
+            record.append(first_numeric(row, [background_key]))
+        if envelope_key:
+            record.append(first_numeric(row, [envelope_key]))
+        for component in components:
+            record.append(first_numeric(row, [component]))
+        output.append(record)
+    if not output and numeric:
+        return (
+            ["binding_energy_eV", "raw_intensity", "peak_candidate_flag"],
+            [[binding_energy, intensity, 1 if binding_energy in peaks else 0] for binding_energy, intensity in numeric],
+        )
+    return headers, output
+
+
+def lc_processed_table(rows: list[dict[str, str]]) -> tuple[list[str], list[list[float | str | None]]]:
+    mode = lc_export_mode(rows)
+    output = []
+    for row in rows:
+        retention_time = first_numeric(row, ["retention", "rt", "time"])
+        signal = first_numeric(row, ["intensity", "absorbance", "signal", "mau"])
+        area = first_numeric(row, ["area", "peak area"])
+        height = first_numeric(row, ["height", "peak height"])
+        if retention_time is None:
+            continue
+        if mode == "peak_table":
+            output.append([retention_time, signal, area, height])
+        else:
+            output.append([retention_time, signal])
+    if mode == "peak_table":
+        return ["retention_time_min", "signal", "peak_area_optional", "peak_height_optional"], output
+    return ["retention_time_min", "signal"], output
+
+
+def lc_export_mode(rows: list[dict[str, str]]) -> str:
+    if rows and matching_key(rows[0], ["area", "peak area", "height", "peak height"]):
+        return "peak_table"
+    return "chromatogram"
+
+
+def lc_quantification_blocked_reason(rows: list[dict[str, str]]) -> str | None:
+    if not rows:
+        return None
+    has_quantification_or_identity = matching_key(
+        rows[0],
+        ["concentration", "amount", "conversion", "selectivity", "product", "identity"],
+    )
+    has_calibration_evidence = matching_key(
+        rows[0],
+        ["calibration", "standard curve", "response factor", "external standard", "internal standard"],
+    )
+    if has_quantification_or_identity and not has_calibration_evidence:
+        return "LC quantification/product-identity fields require calibration evidence and manual confirmation; no conversion/selectivity/product candidates were computed."
+    return None
+
+
+def bet_numeric(rows: list[dict[str, str]], fallback: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    summary = bet_summary_results(rows)
+    if summary and not fallback:
+        return [(float(index + 1), value) for index, value in enumerate(summary.values())]
+    return fallback
+
+
+def bet_summary_results(rows: list[dict[str, str]]) -> dict:
+    if not rows:
+        return {}
+    metric_key = matching_key(rows[0], ["metric", "parameter", "item"])
+    value_key = matching_key(rows[0], ["value", "reported"])
+    if metric_key and value_key:
+        return bet_metric_summary_results(rows, metric_key, value_key)
+    first = rows[0]
+    result = {}
+    surface = first_numeric(first, ["bet surface area", "surface area"])
+    pore_volume = first_numeric(first, ["total pore volume", "pore volume"])
+    pore_diameter = first_numeric(first, ["average pore diameter", "pore diameter"])
+    if surface is not None:
+        result["bet_surface_area_m2_g_candidate"] = surface
+    if pore_volume is not None:
+        result["pore_volume_cm3_g_candidate"] = pore_volume
+    if pore_diameter is not None:
+        result["average_pore_diameter_nm_candidate"] = pore_diameter
+    return result
+
+
+def bet_metric_summary_results(rows: list[dict[str, str]], metric_key: str, value_key: str) -> dict:
+    result = {}
+    for row in rows:
+        metric = str(row.get(metric_key, "")).lower()
+        value = to_float(row.get(value_key, ""))
+        if value is None:
+            continue
+        if "surface" in metric and "area" in metric:
+            result["bet_surface_area_m2_g_candidate"] = value
+        elif "pore" in metric and "volume" in metric:
+            result["pore_volume_cm3_g_candidate"] = value
+        elif "pore" in metric and ("diameter" in metric or "size" in metric):
+            result["average_pore_diameter_nm_candidate"] = value
+    return result
+
+
+def bet_processed_table(rows: list[dict[str, str]]) -> tuple[list[str], list[list[float | str | None]]]:
+    summary = bet_summary_results(rows)
+    if summary and not any(matching_key(row, ["relative pressure", "p/p0", "p/p"]) for row in rows):
+        headers = [
+            "bet_surface_area_m2_g_candidate",
+            "pore_volume_cm3_g_candidate",
+            "average_pore_diameter_nm_candidate",
+        ]
+        return headers, [[summary.get(header) for header in headers]]
+
+    output = []
+    for row in rows:
+        pressure = first_numeric(row, ["relative pressure", "p/p0", "p/p"])
+        adsorbed = first_numeric(row, ["quantity adsorbed", "adsorbed", "adsorption"])
+        desorption = first_numeric(row, ["desorption"])
+        if pressure is not None and adsorbed is not None:
+            output.append([pressure, adsorbed, desorption])
+    if output:
+        return ["relative_pressure_p_p0", "adsorbed_volume", "desorption_volume_optional"], output
+    return ["bet_surface_area_m2_g_candidate", "pore_volume_cm3_g_candidate", "average_pore_diameter_nm_candidate"], []
+
+
+def epr_extrema_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
+    if not numeric:
+        return {}
+    min_field, _ = min(numeric, key=lambda item: item[1])
+    max_field, _ = max(numeric, key=lambda item: item[1])
+    frequency = epr_frequency_for_field(rows, max_field)
+    result = {
+        "minimum_intensity_field": float(min_field),
+        "maximum_intensity_field": float(max_field),
+    }
+    g_value = epr_g_candidate(max_field, frequency)
+    if g_value is not None:
+        result["g_candidate_at_max_intensity"] = g_value
+    return result
+
+
+def epr_numeric(rows: list[dict[str, str]], fallback: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    output = []
+    for row in rows:
+        field = first_numeric(row, ["magnetic field", "field"])
+        intensity = first_numeric(row, ["intensity"])
+        if field is not None and intensity is not None:
+            output.append((field, intensity))
+    return output or fallback
+
+
+def epr_frequency_for_field(rows: list[dict[str, str]], field: float) -> float | None:
+    for row in rows:
+        row_field = first_numeric(row, ["magnetic field", "field"])
+        if row_field is None or abs(row_field - field) > 1e-9:
+            continue
+        frequency = first_numeric(row, ["microwave frequency", "frequency ghz", "ghz"])
+        if frequency is not None:
+            return frequency
+    return None
+
+
+def epr_g_candidate(field_value: float, frequency_ghz: float | None) -> float | None:
+    if frequency_ghz is None or field_value <= 0:
+        return None
+    # g = h * nu / (mu_B * B). For fields exported in gauss, B_mT = G / 10.
+    field_mt = field_value / 10.0 if field_value > 1000 else field_value
+    return 71.4477 * frequency_ghz / field_mt
+
+
+def mott_schottky_linear_results(numeric: list[tuple[float, float]]) -> dict:
+    if len(numeric) < 2:
+        return {}
+    slope, intercept = linear_regression(numeric)
+    result = {
+        "linear_interval_candidate": [numeric[0][0], numeric[-1][0]],
+        "linear_slope_candidate": slope,
+        "linear_intercept_candidate": intercept,
+        "linear_region_candidates": [
+            {
+                "potential_interval": [numeric[0][0], numeric[-1][0]],
+                "slope": slope,
+                "intercept": intercept,
+                "r_squared": linear_r_squared(numeric, slope, intercept),
+            }
+        ],
+    }
+    if slope:
+        result["linear_x_intercept_candidate"] = -intercept / slope
+    return result
+
+
+def mott_schottky_frequency_groups(rows: list[dict[str, str]]) -> list[dict]:
+    groups: dict[float, list[tuple[float, float]]] = {}
+    for row in rows:
+        potential, one_over_c2 = mott_schottky_row_values(row)
+        frequency = first_numeric(row, ["frequency", "freq", "hz"])
+        if potential is None or one_over_c2 is None or frequency is None:
+            continue
+        groups.setdefault(frequency, []).append((potential, one_over_c2))
+
+    output = []
+    for frequency in sorted(groups):
+        numeric = sorted(groups[frequency], key=lambda item: item[0])
+        group = {
+            "frequency": frequency,
+            "point_count": len(numeric),
+            "potential_interval": [numeric[0][0], numeric[-1][0]] if numeric else [],
+        }
+        if len(numeric) >= 2:
+            slope, intercept = linear_regression(numeric)
+            group.update(
+                {
+                    "linear_slope_candidate": slope,
+                    "linear_intercept_candidate": intercept,
+                    "r_squared": linear_r_squared(numeric, slope, intercept),
+                }
+            )
+            if slope:
+                group["linear_x_intercept_candidate"] = -intercept / slope
+        output.append(group)
+    return output
+
+
+def linear_regression(numeric: list[tuple[float, float]]) -> tuple[float, float]:
+    n = len(numeric)
+    mean_x = sum(x for x, _ in numeric) / n
+    mean_y = sum(y for _, y in numeric) / n
+    denominator = sum((x - mean_x) ** 2 for x, _ in numeric)
+    if denominator == 0:
+        return 0.0, mean_y
+    slope = sum((x - mean_x) * (y - mean_y) for x, y in numeric) / denominator
+    intercept = mean_y - slope * mean_x
+    return float(slope), float(intercept)
+
+
+def linear_r_squared(numeric: list[tuple[float, float]], slope: float, intercept: float) -> float:
+    if len(numeric) < 2:
+        return 1.0
+    mean_y = sum(y for _, y in numeric) / len(numeric)
+    total = sum((y - mean_y) ** 2 for _, y in numeric)
+    if total == 0:
+        return 1.0
+    residual = sum((y - (slope * x + intercept)) ** 2 for x, y in numeric)
+    return float(1 - residual / total)
+
+
+def condition_screening_numeric(rows: list[dict[str, str]]) -> list[tuple[float, float]]:
+    return [(float(index + 1), response) for index, (_, response) in enumerate(condition_screening_records(rows))]
+
+
+def condition_screening_records(rows: list[dict[str, str]]) -> list[tuple[str, float]]:
+    records = []
+    for row in rows:
+        response_key = matching_key(row, ["yield", "conversion", "selectivity", "response", "value", "rate"])
+        if response_key is None:
+            continue
+        response = to_float(row.get(response_key, ""))
+        if response is None:
+            continue
+        labels = []
+        for key, value in row.items():
+            if key == response_key or not str(value).strip():
+                continue
+            if to_float(value) is None:
+                labels.append(str(value).strip())
+        condition = " | ".join(labels) if labels else str(len(records) + 1)
+        records.append((condition, response))
+    return records
+
+
+def local_peak_positions(numeric: list[tuple[float, float]]) -> list[float]:
+    if len(numeric) < 3:
+        return []
+    peaks = []
+    for index in range(1, len(numeric) - 1):
+        previous_y = numeric[index - 1][1]
+        x_value, y_value = numeric[index]
+        next_y = numeric[index + 1][1]
+        if y_value >= previous_y and y_value >= next_y and (y_value > previous_y or y_value > next_y):
+            peaks.append(float(x_value))
+    return peaks
+
+
+def local_valley_positions(numeric: list[tuple[float, float]]) -> list[float]:
+    if len(numeric) < 3:
+        return []
+    valleys = []
+    for index in range(1, len(numeric) - 1):
+        previous_y = numeric[index - 1][1]
+        x_value, y_value = numeric[index]
+        next_y = numeric[index + 1][1]
+        if y_value <= previous_y and y_value <= next_y and (y_value < previous_y or y_value < next_y):
+            valleys.append(float(x_value))
+    return valleys
+
+
+def x_at_min_abs_y(numeric: list[tuple[float, float]]) -> float | None:
+    if not numeric:
+        return None
+    return float(min(numeric, key=lambda item: abs(item[1]))[0])
+
+
+def trapezoid_area(numeric: list[tuple[float, float]]) -> float | None:
+    if len(numeric) < 2:
+        return None
+    area = 0.0
+    ordered = sorted(numeric, key=lambda item: item[0])
+    for (x0, y0), (x1, y1) in zip(ordered, ordered[1:]):
+        area += (x1 - x0) * (y0 + y1) / 2.0
+    return float(area)
+
+
+def on_off_ratio_candidate(values: list[float]) -> float | None:
+    if not values:
+        return None
+    low = min(values)
+    high = max(values)
+    if low <= 0:
+        return None
+    return float(high / low)
+
+
+def mott_schottky_numeric(rows: list[dict[str, str]], fallback: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    output = []
+    for row in rows:
+        potential, one_over_c2 = mott_schottky_row_values(row)
+        if potential is not None and one_over_c2 is not None:
+            output.append((potential, one_over_c2))
+    return output or fallback
+
+
+def mott_schottky_processed_rows(rows: list[dict[str, str]]) -> list[list[float | None]]:
+    output = []
+    for row in rows:
+        potential, one_over_c2 = mott_schottky_row_values(row)
+        if potential is not None and one_over_c2 is not None:
+            output.append([potential, one_over_c2, first_numeric(row, ["frequency", "freq", "hz"])])
+    return output
+
+
+def mott_schottky_row_values(row: dict[str, str]) -> tuple[float | None, float | None]:
+    potential = first_numeric(row, ["potential", "voltage", "ewe", "v"])
+    one_over_c2 = first_numeric(row, ["1/c2", "1/c^2", "one_over_c"])
+    if one_over_c2 is None:
+        capacitance = first_numeric(row, ["capacitance", " c", "c/f"])
+        if capacitance and capacitance != 0:
+            one_over_c2 = 1.0 / (capacitance * capacitance)
+    return potential, one_over_c2
+
+
+def column_values(rows: list[dict[str, str]], needles: list[str]) -> list[float]:
+    values = []
+    for row in rows:
+        key = matching_key(row, needles)
+        if key is None:
+            continue
+        value = to_float(row.get(key, ""))
+        if value is not None:
+            values.append(abs(value) if key.lower().replace(" ", "") == "im(z)" else value)
+    return values
+
+
+def spectral_auxiliary_results(rows: list[dict[str, str]]) -> dict[str, bool]:
+    columns = spectral_auxiliary_columns(rows)
+    if not columns:
+        return {}
+    result = {}
+    if any(spectral_auxiliary_kind(key) in {"baseline", "background"} for key in columns):
+        result["baseline_column_preserved"] = True
+    if any(spectral_auxiliary_kind(key) == "corrected" for key in columns):
+        result["baseline_corrected_signal_present"] = True
+    if any(spectral_auxiliary_kind(key) == "raw" for key in columns):
+        result["raw_signal_present"] = True
+    return result
+
+
+def spectral_auxiliary_columns(rows: list[dict[str, str]]) -> list[str]:
+    if not rows:
+        return []
+    columns = []
+    for key in rows[0]:
+        if spectral_auxiliary_kind(key) and any(first_numeric(row, [key]) is not None for row in rows):
+            columns.append(key)
+    return columns
+
+
+def spectral_auxiliary_kind(key: str) -> str | None:
+    normalized = key.lower().replace(" ", "")
+    if "corrected" in normalized and ("intensity" in normalized or "signal" in normalized or "counts" in normalized):
+        return "corrected"
+    if "raw" in normalized and ("intensity" in normalized or "signal" in normalized or "counts" in normalized):
+        return "raw"
+    if "baseline" in normalized:
+        return "baseline"
+    if "background" in normalized:
+        return "background"
+    return None
+
+
+def spectral_auxiliary_values(
+    rows: list[dict[str, str]],
+    columns: list[str],
+    index: int,
+) -> list[float | str | None]:
+    if not columns:
+        return []
+    if index >= len(rows):
+        return [None for _ in columns]
+    return [first_numeric(rows[index], [key]) for key in columns]
+
+
+def first_numeric(row: dict[str, str], needles: list[str]) -> float | None:
+    key = matching_key(row, needles)
+    if key is None:
+        return None
+    return to_float(row.get(key, ""))
+
+
+def matching_key(row: dict[str, str], needles: list[str]) -> str | None:
+    for key in row:
+        normalized = key.lower().replace(" ", "")
+        for needle in needles:
+            if needle.lower().replace(" ", "") in normalized:
+                return key
+    return None
+
+
+def light_states(rows: list[dict[str, str]]) -> list[str]:
+    if not rows:
+        return []
+    key = matching_key(rows[0], ["light", "on/off", "illumination"])
+    if key is None:
+        return []
+    states = []
+    for row in rows:
+        value = str(row.get(key, "")).strip().lower()
+        if value in {"on", "1", "true", "light"}:
+            states.append("on")
+        elif value in {"off", "0", "false", "dark"}:
+            states.append("off")
+        else:
+            states.append(value or "")
+    return states
+
+
+def xps_component_columns(rows: list[dict[str, str]]) -> list[str]:
+    if not rows:
+        return []
+    excluded = {"binding", "energy", "raw", "intensity", "counts", "background", "envelope", "fit"}
+    components = []
+    for key in rows[0]:
+        normalized = key.lower().replace(" ", "")
+        if "component" in normalized and any(first_numeric(row, [key]) is not None for row in rows):
+            components.append(key)
+            continue
+        if any(token in normalized for token in excluded):
+            continue
+        if any(first_numeric(row, [key]) is not None for row in rows):
+            components.append(key)
+    return components
+
+
+def xps_component_area_candidates(rows: list[dict[str, str]], components: list[str]) -> dict[str, float]:
+    if not rows or not components:
+        return {}
+    binding_key = matching_key(rows[0], ["binding energy", "bindingenergy"])
+    if binding_key is None:
+        return {}
+    result = {}
+    for component in components:
+        numeric = []
+        for row in rows:
+            binding = first_numeric(row, [binding_key])
+            intensity = first_numeric(row, [component])
+            if binding is not None and intensity is not None:
+                numeric.append((binding, intensity))
+        area = trapezoid_area(numeric)
+        if area is not None:
+            result[component] = abs(area)
+    return result
+
+
+def safe_column_name(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_]+", "_", value.strip()).strip("_") or "component"
+
+
+def to_float(value: str) -> float | None:
+    try:
+        parsed = float(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return parsed if isfinite(parsed) else None

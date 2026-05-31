@@ -1,0 +1,459 @@
+{
+  "summary": {
+    "proposal_count": 16,
+    "auto_apply_count": 0,
+    "safe_promotion_count": 0
+  },
+  "proposals": [
+    {
+      "target_files": [
+        "01_XRD/BOBC+MS/250530/BOBC.TXT"
+      ],
+      "source_hash": "777f198d6a14cd023a68da1e15a3262e44e2232f55247d6c26fd89e25bb44a74",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "BOBC",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=9822",
+        "parser_probe_status=success",
+        "folder_type_hint=XRD",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=751",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "01_XRD/BPO/BPO+MS.TXT"
+      ],
+      "source_hash": "3e4de504ea5aeaa9381424b970941e15ccaf8a93e4956f1caff0cdfa2a9045bf",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "BPO+MS",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=9888",
+        "parser_probe_status=success",
+        "folder_type_hint=XRD",
+        "filename_type_hint=MS",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=751",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "01_XRD/BPO/BPO.TXT"
+      ],
+      "source_hash": "93d300c3638a59c7dd195962228029ed2860e8e3ceaf2304e86422332775fce2",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "BPO",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=9830",
+        "parser_probe_status=success",
+        "folder_type_hint=XRD",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=751",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "08_固体紫外/raw_data/20251017-LL/20251017/bobc.TXT"
+      ],
+      "source_hash": "7f2b16a700d23061d4922d32354435a2b7beeb94d0710ccb9f99e321589d1418",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "bobc",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=25319",
+        "parser_probe_status=success",
+        "folder_type_hint=UV-vis DRS",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=1647",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "08_固体紫外/raw_data/20251017-LL/20251017/bobcms.TXT"
+      ],
+      "source_hash": "112797b08c1c4499df9e869daf2a9a578fd7b6da32bad5789d1ed496f1442c74",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "bobcms",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=24046",
+        "parser_probe_status=success",
+        "folder_type_hint=UV-vis DRS",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=1618",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "08_固体紫外/raw_data/20251017-LL/20251017/cwo.TXT"
+      ],
+      "source_hash": "09cc61e72298fb674335cdf192cfed83cd6fb053afbe8f2d4c0a89ffa92a3851",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "cwo",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=24797",
+        "parser_probe_status=success",
+        "folder_type_hint=UV-vis DRS",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=1622",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "08_固体紫外/raw_data/20251017-LL/20251017/cwobobc.TXT"
+      ],
+      "source_hash": "820028584afcab184c9cfad1de57758cd4bcbf617e39d95e6e2316871dff5791",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "cwobobc",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=24515",
+        "parser_probe_status=success",
+        "folder_type_hint=UV-vis DRS",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=1623",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "08_固体紫外/raw_data/20251017-LL/20251017/ms.TXT"
+      ],
+      "source_hash": "5dd34c0bc8b973add196ee474541bd31108fb2efa33a21a474cdcd3f95566df5",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "ms",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=26822",
+        "parser_probe_status=success",
+        "folder_type_hint=UV-vis DRS",
+        "filename_type_hint=MS",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=1643",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10-2.TXT"
+      ],
+      "source_hash": "ef3bb5116e6e767a9b1c4f30ddce975e4c81e85d84d905a7667283bffda67a88",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "bc10-2",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=18547",
+        "parser_probe_status=success",
+        "folder_type_hint=UV-vis DRS",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=1207",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10.TXT"
+      ],
+      "source_hash": "1a9c30705ea78b222fbb25de226427bb1c8a2beed8cf2115019dfc72dcd9d6a3",
+      "proposed_data_type": "PL",
+      "proposed_processor": "pl_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "bc10",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=18538",
+        "parser_probe_status=success",
+        "folder_type_hint=UV-vis DRS",
+        "header_type_hint=PL",
+        "folder_type_conflict=true",
+        "numeric_rows=1207",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.txt"
+      ],
+      "source_hash": "de128f0172d8ed8d73d874cc761097c8a56cb6d36b87206cf518998755e3e7f7",
+      "proposed_data_type": "XPS",
+      "proposed_processor": "xps_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "1-EM-ex340nm",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=12174",
+        "parser_probe_status=success",
+        "folder_type_hint=PL",
+        "header_type_hint=XPS",
+        "folder_type_conflict=true",
+        "numeric_rows=511",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.txt"
+      ],
+      "source_hash": "1c74954b08484eb76188fcca248125f56513f3c7f5bb25709f48193e118969c8",
+      "proposed_data_type": "XPS",
+      "proposed_processor": "xps_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "1-EX-em640nm",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=8493",
+        "parser_probe_status=success",
+        "folder_type_hint=PL",
+        "header_type_hint=XPS",
+        "folder_type_conflict=true",
+        "numeric_rows=351",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.txt"
+      ],
+      "source_hash": "60179545f37d49d476b0a79fec005635771b20f1e4baa02a9cf52c3da9f34b5a",
+      "proposed_data_type": "XPS",
+      "proposed_processor": "xps_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "2-EM-ex340nm",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=12171",
+        "parser_probe_status=success",
+        "folder_type_hint=PL",
+        "header_type_hint=XPS",
+        "folder_type_conflict=true",
+        "numeric_rows=511",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.txt"
+      ],
+      "source_hash": "77420e3c638780cffe1fa7209604cd64232aacaf92b63be2550a1bc6b89baaaf",
+      "proposed_data_type": "XPS",
+      "proposed_processor": "xps_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "2-EX-em445nm",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=4468",
+        "parser_probe_status=success",
+        "folder_type_hint=PL",
+        "header_type_hint=XPS",
+        "folder_type_conflict=true",
+        "numeric_rows=176",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.txt"
+      ],
+      "source_hash": "6eaa62ca2abbe0e04214d2c6b01fce462eab267975ae01d62c9ee231da4660ba",
+      "proposed_data_type": "XPS",
+      "proposed_processor": "xps_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "3-EM-ex340nm",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=12177",
+        "parser_probe_status=success",
+        "folder_type_hint=PL",
+        "header_type_hint=XPS",
+        "folder_type_conflict=true",
+        "numeric_rows=511",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    },
+    {
+      "target_files": [
+        "10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.txt"
+      ],
+      "source_hash": "228a78be925100d913affbd38752800c3f8fb0366fa746de4c475150a0eeead0",
+      "proposed_data_type": "XPS",
+      "proposed_processor": "xps_processor",
+      "proposed_sheet_name": null,
+      "proposed_column_mapping": {},
+      "proposed_sample_id": "3-EX-em630nm",
+      "reason": "parser succeeded and type/processor candidate exists, but Phase 1.6 strict auto-promotion thresholds were not fully met",
+      "evidence": [
+        "extension=.txt",
+        "file_size_bytes=8493",
+        "parser_probe_status=success",
+        "folder_type_hint=PL",
+        "header_type_hint=XPS",
+        "folder_type_conflict=true",
+        "numeric_rows=351",
+        "numeric_columns=2"
+      ],
+      "risk_level": "medium",
+      "should_apply_automatically": false,
+      "requires_user_review": true,
+      "whether_already_processed": false,
+      "whether_origin_exported": false,
+      "recommended_action": "user_review_before_override"
+    }
+  ]
+}

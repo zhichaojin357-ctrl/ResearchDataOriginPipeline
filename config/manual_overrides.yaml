@@ -1,0 +1,16 @@
+force_include_files: []
+force_exclude_files: []
+force_data_type: {}
+force_processor: {}
+force_sheet_name: {}
+force_column_mapping: {}
+force_sample_id: {}
+force_duplicate_representative: {}
+allow_ambiguous_files: false
+overrides: []
+notes:
+  - Manual overrides must be explicit and traceable.
+  - Do not use overrides to bypass forbidden claims or raw-data safety rules.
+  - Do not use overrides to convert kinetics/reference folders into experimental kinetics data.
+  - Do not use overrides to enable SEM/TEM/NMR/MS processing during Phase 1.
+  - Phase 1.2 queue processing only runs AUTO_PROCESS items unless include_ambiguous is explicitly set.

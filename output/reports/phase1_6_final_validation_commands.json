@@ -1,0 +1,52 @@
+﻿[
+    {
+        "name":  "pytest",
+        "command":  "D:\\Python\\python.exe -m pytest",
+        "exit_code":  0,
+        "started":  "2026-05-31T04:30:31",
+        "finished":  "2026-05-31T04:30:38",
+        "duration_seconds":  6.552,
+        "log":  "output/reports/phase1_6_final_pytest.log",
+        "tail":  "collected 90 items\n\ntests\\test_origin_adapter.py ...................                         [ 21%]\ntests\\test_phase1_1_process_cli.py ..........                            [ 32%]\ntests\\test_phase1_2_mixed_triage.py ...............                      [ 48%]\ntests\\test_phase1_contracts.py .............                             [ 63%]\ntests\\test_processor_behaviors.py ...........................            [ 93%]\ntests\\test_processor_profiles.py ......                                  [100%]\n\n============================== warnings summary ===============================\ntests/test_phase1_1_process_cli.py::Phase11ProcessCliTest::test_chinese_paths_headers_samples_and_encodings_are_read_without_origin\n  D:\\Python\\Lib\\site-packages\\openpyxl\\packaging\\core.py:89: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).\n    created=datetime.datetime.utcnow(),\n\ntests/test_phase1_1_process_cli.py::Phase11ProcessCliTest::test_chinese_paths_headers_samples_and_encodings_are_read_without_origin\n  D:\\Python\\Lib\\site-packages\\openpyxl\\packaging\\core.py:94: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).\n    modified=datetime.datetime.utcnow(),\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================= 90 passed, 2 warnings in 6.03s ========================"
+    },
+    {
+        "name":  "deps-audit",
+        "command":  "D:\\Python\\python.exe run.py deps-audit",
+        "exit_code":  0,
+        "started":  "2026-05-31T04:30:38",
+        "finished":  "2026-05-31T04:30:38",
+        "duration_seconds":  0.1,
+        "log":  "output/reports/phase1_6_final_deps_audit.log",
+        "tail":  ""
+    },
+    {
+        "name":  "validate",
+        "command":  "D:\\Python\\python.exe run.py validate",
+        "exit_code":  0,
+        "started":  "2026-05-31T04:30:38",
+        "finished":  "2026-05-31T04:30:40",
+        "duration_seconds":  2.236,
+        "log":  "output/reports/phase1_6_final_validate.log",
+        "tail":  ""
+    },
+    {
+        "name":  "scan",
+        "command":  "D:\\Python\\python.exe run.py scan --input workspace_data\\LL_detection_copy_20260530 --config config/default.yaml",
+        "exit_code":  0,
+        "started":  "2026-05-31T04:30:40",
+        "finished":  "2026-05-31T04:30:42",
+        "duration_seconds":  1.622,
+        "log":  "output/reports/phase1_6_final_scan.log",
+        "tail":  ""
+    },
+    {
+        "name":  "triage",
+        "command":  "D:\\Python\\python.exe run.py triage --input workspace_data\\LL_detection_copy_20260530 --config config/default.yaml --explain",
+        "exit_code":  0,
+        "started":  "2026-05-31T04:30:42",
+        "finished":  "2026-05-31T04:30:50",
+        "duration_seconds":  7.611,
+        "log":  "output/reports/phase1_6_final_triage.log",
+        "tail":  ""
+    }
+]

@@ -1,0 +1,67 @@
+{
+  "phase": "1.6+xps_repair",
+  "updated_at": "2026-05-31 09:27:11",
+  "triage_counts": {
+    "AUTO_PROCESS": 18,
+    "MANUAL_REVIEW": 737,
+    "EXCLUDE_INVALID": 121,
+    "DUPLICATE_SUPPRESSED": 58,
+    "AUXILIARY_ONLY": 113,
+    "DEFERRED_TYPE": 525,
+    "REFERENCE_ONLY": 17
+  },
+  "phase1_5_no_origin_total": 167,
+  "origin_totals": {
+    "queue": 167,
+    "success": 167,
+    "failure": 0
+  },
+  "origin_by_type": {
+    "eis": {
+      "type": "eis",
+      "queue_count": 22,
+      "success_count": 22,
+      "failure_count": 0
+    },
+    "photocurrent": {
+      "type": "photocurrent",
+      "queue_count": 3,
+      "success_count": 3,
+      "failure_count": 0
+    },
+    "raman": {
+      "type": "raman",
+      "queue_count": 30,
+      "success_count": 30,
+      "failure_count": 0
+    },
+    "mott_schottky": {
+      "type": "mott_schottky",
+      "queue_count": 90,
+      "success_count": 90,
+      "failure_count": 0
+    },
+    "epr": {
+      "type": "epr",
+      "queue_count": 13,
+      "success_count": 13,
+      "failure_count": 0
+    },
+    "xps": {
+      "type": "xps",
+      "queue_count": 9,
+      "success_count": 9,
+      "failure_count": 0,
+      "note": "Added by Phase 1.6 XPS repair after fixing header-only processed CSV bug."
+    }
+  },
+  "visual_qc": {
+    "QC_PASS": 167
+  },
+  "origin_package": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\phase1_6_origin_results_20260531_041538",
+  "xps_repair": {
+    "no_origin_success": 9,
+    "origin_success": 9,
+    "origin_failure": 0
+  }
+}

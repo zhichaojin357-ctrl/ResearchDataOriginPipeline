@@ -1,0 +1,38 @@
+{
+  "total_dataset_count": 4,
+  "success_count": 4,
+  "failure_count": 0,
+  "deferred_count": 4,
+  "reference_literature_count": 1,
+  "processor_stats": {
+    "EIS": {
+      "success": 4,
+      "failure": 0
+    }
+  },
+  "missing_artifacts": [],
+  "manual_check_required": [
+    "EIS_BOBC_f493897e",
+    "EIS_CWO_EIS_d19d6b60",
+    "EIS_CWOEIS2_93ecb845",
+    "EIS_MS_EIS_507ec22e"
+  ],
+  "forbidden_claims": [
+    {
+      "dataset_id": "EIS_BOBC_f493897e",
+      "forbidden_claim_count": 17
+    },
+    {
+      "dataset_id": "EIS_CWO_EIS_d19d6b60",
+      "forbidden_claim_count": 17
+    },
+    {
+      "dataset_id": "EIS_CWOEIS2_93ecb845",
+      "forbidden_claim_count": 17
+    },
+    {
+      "dataset_id": "EIS_MS_EIS_507ec22e",
+      "forbidden_claim_count": 17
+    }
+  ]
+}

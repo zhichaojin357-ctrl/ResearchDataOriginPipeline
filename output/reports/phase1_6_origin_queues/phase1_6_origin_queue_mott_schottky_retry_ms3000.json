@@ -1,0 +1,63 @@
+{
+  "queue_version": "phase1_6_origin_queue_v1",
+  "source_consistency_report": "output/reports/phase1_6_no_origin_result_consistency.json",
+  "source_root": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530",
+  "data_type": "Mott-Schottky",
+  "origin_mode": "with_origin_explicit_only",
+  "items": [
+    {
+      "queue_id": "2d7575e12f069472_p15m",
+      "result_id": "Mott-Schottky_MS3000_2d7575e1",
+      "relative_path": "04_莫特肖特基/MoSe2MT/raw_data/MS3000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\MoSe2MT\\raw_data\\MS3000.csv",
+      "source_hash": "2701f9fb1ebb396587451fabfddebbabe9cb6cfa9b725b2dd62f100175a26b8b",
+      "data_type": "Mott-Schottky",
+      "subtype": "Mott-Schottky",
+      "selected_processor": "mott_schottky_processor",
+      "processed_csv": "output/phase1_5_processed_results_20260531_005613/processed_tables/C/Mott-Schottky/112_C_Mott-Schottky_Mott-Schottky_MS3000_2d7575e1.csv",
+      "metadata_path": "output/phase1_5_processed_results_20260531_005613/metadata/C/Mott-Schottky/112_C_Mott-Schottky_Mott-Schottky_MS3000_2d7575e1_metadata.json",
+      "preview_path": "output/phase1_5_processed_results_20260531_005613/previews/C/Mott-Schottky/112_C_Mott-Schottky_Mott-Schottky_MS3000_2d7575e1_preview.png",
+      "original_triage_decision": "MANUAL_REVIEW",
+      "triage_decision": "MANUAL_REVIEW",
+      "current_decision": "ORIGIN_EXPORT_CANDIDATE",
+      "decision": "AUTO_PROCESS",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "C",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "forbidden_claims": [
+        "do not equate flat-band potential with CB or VB automatically",
+        "do not automatically prove S-scheme heterojunction",
+        "do not automatically prove Z-scheme heterojunction",
+        "do not automatically prove electron transfer direction",
+        "do not automatically assign XPS valence states",
+        "do not automatically assign EPR radical species",
+        "do not automatically assign HRTEM lattice planes",
+        "do not automatically confirm LC-MS products",
+        "do not automatically decide reaction mechanism",
+        "do not automatically decide final band structure",
+        "do not equate higher photocurrent with better carrier separation",
+        "do not equate PL decrease with lower recombination",
+        "do not equate flat-band potential with CB/VB",
+        "do not treat kinetics folder as experimental kinetics data",
+        "do not create kinetics processor",
+        "do not generate band diagram automatically"
+      ],
+      "origin_export_allowed": true,
+      "origin_export_risk_level": "medium",
+      "origin_export_notes": "1/C^2-potential plotting only; no CB/VB conversion.",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null
+    }
+  ],
+  "blocked_items": [],
+  "summary": {
+    "queue_items": 1,
+    "retry_queue": "phase1_6_origin_queue_mott_schottky_retry_ms3000.json"
+  }
+}

@@ -1,0 +1,63 @@
+﻿{
+    "created_at":  "2026-05-31T04:31:42",
+    "project_root":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT",
+    "removed":  [
+                    {
+                        "relative_path":  ".pytest_cache",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\.pytest_cache",
+                        "reason":  "cache or diagnostic scratch artifact"
+                    },
+                    {
+                        "relative_path":  "output\\origin_debug",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\origin_debug",
+                        "reason":  "cache or diagnostic scratch artifact"
+                    },
+                    {
+                        "relative_path":  "src\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\__pycache__",
+                        "reason":  "Python bytecode cache"
+                    },
+                    {
+                        "relative_path":  "src\\core\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\core\\__pycache__",
+                        "reason":  "Python bytecode cache"
+                    },
+                    {
+                        "relative_path":  "src\\origin\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\origin\\__pycache__",
+                        "reason":  "Python bytecode cache"
+                    },
+                    {
+                        "relative_path":  "src\\processors\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\processors\\__pycache__",
+                        "reason":  "Python bytecode cache"
+                    },
+                    {
+                        "relative_path":  "src\\scanner\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\scanner\\__pycache__",
+                        "reason":  "Python bytecode cache"
+                    },
+                    {
+                        "relative_path":  "tests\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\tests\\__pycache__",
+                        "reason":  "Python bytecode cache"
+                    }
+                ],
+    "skipped":  [
+
+                ],
+    "preserved":  [
+                      "workspace_data source files",
+                      "F-drive backup",
+                      "OPJU",
+                      "TIF",
+                      "PNG previews",
+                      "processed CSV",
+                      "metadata",
+                      "output reports",
+                      "docs reports",
+                      "instruction archive",
+                      "Phase 1.5 package",
+                      "Phase 1.6 package"
+                  ]
+}

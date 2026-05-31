@@ -1,0 +1,24 @@
+﻿{
+    "created_at":  "2026-05-31T04:38:27",
+    "project_root":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT",
+    "results":  [
+                    {
+                        "name":  "rev-parse",
+                        "command":  "git rev-parse --show-toplevel",
+                        "exit_code":  128,
+                        "output":  "fatal: not a git repository (or any of the parent directories): .git"
+                    },
+                    {
+                        "name":  "status",
+                        "command":  "git status --short",
+                        "exit_code":  128,
+                        "output":  "fatal: not a git repository (or any of the parent directories): .git"
+                    },
+                    {
+                        "name":  "commit",
+                        "command":  "git commit",
+                        "exit_code":  128,
+                        "output":  "Skipped: current directory is not inside a git repository. No git init was performed."
+                    }
+                ]
+}

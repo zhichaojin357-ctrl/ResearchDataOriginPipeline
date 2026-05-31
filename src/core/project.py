@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+REQUIRED_OUTPUT_DIRS = (
+    "origin_files",
+    "figures_tif",
+    "figures_preview",
+    "processed_data",
+    "metadata",
+    "reports",
+    "origin_jobs",
+    "review_dashboard",
+    "unclassified",
+)
+
+
+def ensure_dir(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def ensure_write_path_allowed(project_root: Path, path: Path) -> Path:
+    resolved_project = project_root.resolve()
+    resolved_path = path.resolve()
+    allowed_roots = [
+        resolved_project / "output",
+        resolved_project / "docs",
+        resolved_project / "tests" / "fixtures",
+        resolved_project / "golden_examples",
+        resolved_project / "config",
+        resolved_project / ".codex",
+    ]
+    if not any(_is_under_or_equal(resolved_path, root) for root in allowed_roots):
+        raise ValueError(f"Refusing to write outside allowed project areas: {path}")
+    return path
+
+
+def output_dir(project_root: Path, *parts: str) -> Path:
+    return ensure_dir(ensure_write_path_allowed(project_root, project_root / "output" / Path(*parts)))
+
+
+def report_path(project_root: Path, name: str) -> Path:
+    return output_dir(project_root, "reports") / name
+
+
+def _is_under_or_equal(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return path == parent
+
+
+def load_json_compatible_yaml(path: Path):
+    import json
+
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def ensure_output_structure(project_root: Path) -> None:
+    for name in REQUIRED_OUTPUT_DIRS:
+        output_dir(project_root, name)
+
+
+def load_project_config(project_root: Path, config_path: Path | None) -> dict:
+    path = config_path or Path("config/default.yaml")
+    if not path.is_absolute():
+        path = project_root / path
+    if not path.exists():
+        return {}
+    return _parse_simple_yaml(path.read_text(encoding="utf-8"))
+
+
+def configured_path(project_root: Path, config: dict, section: str, key: str, default: str) -> Path:
+    value = config.get(section, {}).get(key, default)
+    path = Path(str(value))
+    return path if path.is_absolute() else project_root / path
+
+
+def _parse_simple_yaml(text: str) -> dict:
+    result: dict[str, object] = {}
+    current_section: str | None = None
+    for raw_line in text.splitlines():
+        line = raw_line.split("#", 1)[0].rstrip()
+        if not line.strip():
+            continue
+        if not line.startswith((" ", "\t")) and line.endswith(":"):
+            current_section = line[:-1].strip()
+            result[current_section] = {}
+            continue
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip()
+        parsed: object = value.strip().strip('"')
+        if parsed == "true":
+            parsed = True
+        elif parsed == "false":
+            parsed = False
+        if raw_line.startswith((" ", "\t")) and current_section:
+            section = result.setdefault(current_section, {})
+            if isinstance(section, dict):
+                section[key] = parsed
+        else:
+            result[key] = parsed
+    return result
+
+
+def registry_path(project_root: Path) -> Path:
+    local = project_root / "config" / "processor_registry.yaml"
+    if local.exists():
+        return local
+    return REPO_ROOT / "config" / "processor_registry.yaml"
+
+
+def claim_policy_path(project_root: Path) -> Path:
+    local = project_root / "config" / "claim_policy.yaml"
+    if local.exists():
+        return local
+    return REPO_ROOT / "config" / "claim_policy.yaml"

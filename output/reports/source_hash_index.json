@@ -1,0 +1,4231 @@
+{
+  "fb09636bac279c759493c850971828338bbdc36ccffc966ff77cc64ac6038491": [
+    "00_索引与说明/duplicate_opju_sha256.csv"
+  ],
+  "8c409027aa8d04f019ef0a1bf24aa0082d4b1351b3ec8fc48193510c89a99000": [
+    "00_索引与说明/file_snapshot_after.csv"
+  ],
+  "873e5265167aa98cb30babc6720ae75c8bd157185ffa39f451606e7c0779065d": [
+    "00_索引与说明/file_snapshot_before.csv"
+  ],
+  "dee1e4fb368868be126eb1ee6579a582bdd3085ecbe1b12004cba2542844ef19": [
+    "00_索引与说明/move_log.csv"
+  ],
+  "6a3de1aeb17001ae4e66649a7d10d51ce3216b19ad109b1c48ada98b5301fc07": [
+    "00_索引与说明/opju_数据对应索引.csv"
+  ],
+  "9fb750803e029d9fa99fd9dc9ac977ef1807152197dd87d0b0b9670ae1f6ee02": [
+    "00_索引与说明/opju_精细对应关系.csv"
+  ],
+  "908f50b5e6917a4aebf6d634110b0a305166742089342880586b868e157cc0d3": [
+    "00_索引与说明/整理说明.md"
+  ],
+  "74fa34e321f6693d7e29eb9bd591808f2f57b85d74d04ee73daf96a033380a7e": [
+    "01_XRD/20251110/bobc shuirei.raw"
+  ],
+  "bba033d45b8df3bc16fc121b483629b43b321fe112feec14647c848d3249f22f": [
+    "01_XRD/20251110/bobc shuirei.txt"
+  ],
+  "9c4192626b8e9bf817a0090c6b00450d2f6851575fbacb1022a41c4faeb6801d": [
+    "01_XRD/20251110/bobc shuirei2.raw"
+  ],
+  "1e376286b51e771a29daf9f3c5b9b50f1cfad566506703d3f4777a19bdd29c22": [
+    "01_XRD/20251110/bobc shuirei2.txt"
+  ],
+  "025591c317ef166ce318527203465ee0fdb29c223f526a216089f27346a173eb": [
+    "01_XRD/20251110/bobcshuirei+cwo15%.raw"
+  ],
+  "97d39fc2e6a670fc2315da8ed132678d1ed58704e1f778ee1c08308db7bec94c": [
+    "01_XRD/20251110/bobcshuirei+cwo15%.txt"
+  ],
+  "45fd6a2c0d0fc15014ab2442d3a32c32073b0fcae9565f1f62772d4097ce9d76": [
+    "01_XRD/20251110/kit-6-1.raw"
+  ],
+  "d0acd2a3597c7409318a471d5d6df6f855324a50d81e4bdd24f2f6fd3791d9b7": [
+    "01_XRD/20251110/kit-6-1.txt"
+  ],
+  "cb4b2d1005fc557a7b282bd029cc42bf24c52d4e64dad6c07e8c40d08ba1979e": [
+    "01_XRD/20251110/kit-6-2.raw"
+  ],
+  "bb4ac0b5fa554d569fb672e669e4d6aa1491348d7005ac833d190c5d57064169": [
+    "01_XRD/20251110/kit-6-2.txt"
+  ],
+  "86c14ad264bc229930b0e0de8f47f155ce00c81992d0c47b14aa487e067576a3": [
+    "01_XRD/20260326LL BOB BOC BCN/BICSNH4.dql"
+  ],
+  "83879e7a7ab2c98b93c0b5acf3c05c0c2e50e60985af749f727261265c8569c4": [
+    "01_XRD/20260326LL BOB BOC BCN/BICSNH4.raw"
+  ],
+  "d36d5a7effd8b6cc3ad40c91b87f9343d6cd84ce4d1ccad39b36ecf3b8bbab92": [
+    "01_XRD/20260326LL BOB BOC BCN/CL.dql"
+  ],
+  "209b5142584d0809c04427e23d77720c8de9d4f53ef6407a985d8f5dfeec3ea9": [
+    "01_XRD/20260326LL BOB BOC BCN/CL.raw"
+  ],
+  "779c85ccf96675da0dbbc5fb021092aa071753e7cda8f2c002a6f92aac213785": [
+    "01_XRD/20260326LL BOB BOC BCN/NH4.dql"
+  ],
+  "04eecafc10215ebd2b99f146bcc9e5da5fe89be5861955dd3b472b159fc93094": [
+    "01_XRD/20260326LL BOB BOC BCN/NH4.raw"
+  ],
+  "ec92656b3e8c2cd19a7671d30d667b717b7da33fc214ab23fb4923669698f06d": [
+    "01_XRD/BOBC+MS/250530/bm.raw"
+  ],
+  "6bcd31560cbd469c7aa3c36e0eb3b1869cc067c23bac36e808a0b74d68a73f33": [
+    "01_XRD/BOBC+MS/250530/bm.txt"
+  ],
+  "0dffc86fd4ea541245d4598a5d8fbac8b1effeaa5cf3d8f9c2fd85b35911c898": [
+    "01_XRD/BOBC+MS/250530/BOBC.raw"
+  ],
+  "777f198d6a14cd023a68da1e15a3262e44e2232f55247d6c26fd89e25bb44a74": [
+    "01_XRD/BOBC+MS/250530/BOBC.TXT"
+  ],
+  "5aa1476087309bb3c316eed0a38ae8087c7c2a3922015a0a01639f3341e9ec59": [
+    "01_XRD/BOBC+MS/251024/origin_project/20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju"
+  ],
+  "bb6c6901d50182c920a3c02471fb4ea2c39c3619688131902aa9509de3d01041": [
+    "01_XRD/BOBC+MS/251024/processed_tables/mb9.jip"
+  ],
+  "e4bc9e68a7645950b094785362898d4b884502321f7403fd76c551fcc9bf4730": [
+    "01_XRD/BOBC+MS/251024/raw_data/bobc.raw"
+  ],
+  "46104cfa4d00234084d3db7826767b288b66db120d3421aa773fd62d5ea2a5b7": [
+    "01_XRD/BOBC+MS/251024/raw_data/bobc.txt"
+  ],
+  "d7f68e5a8ea724424fdb8fc5123e833486f54c413aa980a3935aa62c979c100f": [
+    "01_XRD/BOBC+MS/251024/raw_data/mb9.raw"
+  ],
+  "aea0a47ba1c0225b41ca353286d42d40377ac1abab42c1fea2f33d397cc3b51b": [
+    "01_XRD/BOBC+MS/251024/raw_data/mb9.txt"
+  ],
+  "68445e0628572dcc6764722d5395e00e24a4bb71da8da870bcac4ccb36439288": [
+    "01_XRD/BOBC+MS/251024/raw_data/MOSE2 10MIN.dql",
+    "01_XRD/BOBC+MS/251024/raw_data/mose2 10min.txt"
+  ],
+  "170d72ff90503a0fc879bec9d398910944cb0a6d5c0aeec366d834bbedfb4b8c": [
+    "01_XRD/BOBC+MS/251024/raw_data/MOSE2 10MIN.raw"
+  ],
+  "0ce2d773f725aea349021d4899d0169c0a5fa2002a95e772efeda9ac0ae4a2ef": [
+    "01_XRD/BOBC+MS/251024/raw_data/MOSE2 5MIN.dql",
+    "01_XRD/BOBC+MS/251024/raw_data/mose2 5min.txt"
+  ],
+  "f30dd58e40003118a32ec2a4d9db72578f9d3842c26c5e881a73e6bbf2bc810c": [
+    "01_XRD/BOBC+MS/251024/raw_data/MOSE2 5MIN.raw"
+  ],
+  "0d45dca3afbde699d6837f202ddd76ee11a565645d9fe98e03e6b8ef295e4250": [
+    "01_XRD/BOBC+MS/MS+BOBC.tif"
+  ],
+  "861bd6353eb633ec8e7e342c2cfadba36a7d7bd08920271e276def34f930ba9d": [
+    "01_XRD/BPO/BPO+MS.raw"
+  ],
+  "3e4de504ea5aeaa9381424b970941e15ccaf8a93e4956f1caff0cdfa2a9045bf": [
+    "01_XRD/BPO/BPO+MS.TXT"
+  ],
+  "b3fc6ca8d9ae11f11f5f014c6a96f7a7425424d845292b1903a15f36043e2976": [
+    "01_XRD/BPO/BPO.raw"
+  ],
+  "93d300c3638a59c7dd195962228029ed2860e8e3ceaf2304e86422332775fce2": [
+    "01_XRD/BPO/BPO.TXT"
+  ],
+  "797f576e48c8feb01581c7cdcc794c750655d9f85bbe2dace46cea64ac24dbbb": [
+    "01_XRD/BWO/origin_project/BWO.opju"
+  ],
+  "301ce2f4bd065095f153299610b92b80b19e7aa66af907e7cc551486fe1b1f83": [
+    "01_XRD/BWO/raw_data/A BWO.raw"
+  ],
+  "d43e75f3f9c4fe1700daf363ee24f27b8a95ec4df60231b51b4dc80e00cb81e8": [
+    "01_XRD/BWO/raw_data/A BWO.TXT"
+  ],
+  "c286e642de9536fb08333d57f7f1a33ff2bf06b72693917d688839a736e7e843": [
+    "01_XRD/BWO/raw_data/M BWO.RAW"
+  ],
+  "49f9826129eb97b4ec9336925e1f7326403931fe76187a532da1927fcf67a0e9": [
+    "01_XRD/BWO/raw_data/M BWO.TXT"
+  ],
+  "7c5a5cddc099d6975c6ee4c79c8818fe3f68fc77874c4a192dc89f30183fde89": [
+    "01_XRD/CWO+BOBC/origin_project/CWO+BOBC+标卡.opju"
+  ],
+  "b632025a6b3f637258e09c2bde333cb796349795cf57e4e7083d4f11ce6b35dc": [
+    "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC.dql"
+  ],
+  "c6e71fbb17d714fad5925596c1fe0be6581ad9c137e9ab07f71d4ad2a266e0ec": [
+    "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC.raw"
+  ],
+  "76bc684a3b3d4cd76125e6b5d0e22b4379ba69fced9dbae407ef5ab67b6a6947": [
+    "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/BOBC600.dql",
+    "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/bobc600.txt"
+  ],
+  "d6c3a182b7a63964b297798aa7ecc453873df0aeb84c2dbb8bf6b21cfaa33d67": [
+    "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/BOBC600.raw"
+  ],
+  "bbb15f2e7f2cede8de139db20cf6ab30ce80a3c311622021a129932e3bcc68e2": [
+    "01_XRD/CWO+BOBC/raw_data/CWO  PDF#04-009-8466.txt"
+  ],
+  "012bf0359ec4a6f14fb1ed707a47185b71cecb934e9e10e4c434d684887ae6ba": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+BOBC15%.RAW"
+  ],
+  "91597d4ef3b3ad4c145bfa89c9eb43a3d76c4a424b3a108c7fd9ee1ece864815": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+BOBC15%.TXT"
+  ],
+  "32a30af9df383d48e7cf32f475df24473ffce4d7a4ea02cefd06edde287d65ec": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+CWO15%.RAW"
+  ],
+  "26cc061c4235c10369e6d62653ee7dfd3802a1ce16a75dfbf630cad9e13a7a7e": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+CWO15%.TXT"
+  ],
+  "39c6a087a250c7aec382eea6f82a6f84fb549ccf18876dd5c44c1f750043fb87": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-30/BC30.RAW"
+  ],
+  "6f8b0701e0e4f4f9f3e14a206e67d60344b9ba0895d967aedf6362bd95910324": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-30/BC30.TXT"
+  ],
+  "9608c881719b87011fc8d27158f39efc12cce507e31e1d2ed285e0db4283827b": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo10.raw"
+  ],
+  "9fadc881b03f41dbcd3a1d4c635cbb7ed9fe13b121bea208a1faf6d5f80fe636": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo10.txt"
+  ],
+  "c7cfa8349d0f0eae13f3f59c1a42ffdfc868433706853a6e9a44053b2f3d7939": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo15.raw"
+  ],
+  "f4a782e487e8d499884552503fa5a0a461c8701bd89785f52869b65c56f9fd39": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo15.txt"
+  ],
+  "c1c924775a0445d751b0a3e7aef8aeefd310d8824378a08c87644ecf3f8a9816": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo5.raw"
+  ],
+  "65d8922c60f3e47244c98a9b6aae0376a152d74f0f7fe3855c6b39631bd0bc7d": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo5.txt"
+  ],
+  "61b411831c6c6ea2d3e2dc2dc20bbb76c94ca271b3611826507dbb72d85c6986": [
+    "01_XRD/CWO+BOBC/raw_data/cwo+bobc/XRD2.tif"
+  ],
+  "8debaee5ad145effd6fe81a495ba54746acdb5b32c31f87c96615ca8e1b9292f": [
+    "01_XRD/CWO+BOBC/raw_data/cwo八面体/cwo 8.jip"
+  ],
+  "f3af9cc37ae74818e7078f18d061cec0bdadc7226d2275c8fcb328f71ed16edf": [
+    "01_XRD/CWO+BOBC/raw_data/cwo八面体/cwo 8.txt"
+  ],
+  "5da634d11b1a15ba872a48b3eb67a0d641f71fc975c2a8bf055bc2638fa63619": [
+    "01_XRD/CWO+BOBC/raw_data/cwo八面体/cwo 8面体.raw"
+  ],
+  "b54c8c3315b685d79d454894bdc38e3e8509631ec60dbc4fda957cebc8c3b40d": [
+    "01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/CWO 对 沉淀PDF#04-009-6293.txt"
+  ],
+  "f3cf98828ca453ca35fd0fb0504aef47b3f5804f85fb7641ae127273c47dd882": [
+    "01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.dql"
+  ],
+  "ab6a56e89a41f2f00ace97d9c01976e6ac5bffcfdae523c7b885bfe7bd56a871": [
+    "01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.jip"
+  ],
+  "48c3dc9b3ca2f6db56c5bbf9d0bc79828649142fbee1b67eac9235fa3e9769a5": [
+    "01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.raw"
+  ],
+  "c1ca379007f2c0980591f2a612e87815c56d3d50ba39e55f96250fa332bac0dd": [
+    "01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.txt"
+  ],
+  "2533b5e99b6b651e2be4ef645348d4d18d7ffa93434e232565df3159390dbc15": [
+    "01_XRD/KIT-6/exported_figures/kit-6.tif"
+  ],
+  "841b2cdf55a8ea5380f005f2165888a0521cd166cc44c742c2ba662506b51fb9": [
+    "01_XRD/KIT-6/origin_project/kit-6.opju"
+  ],
+  "6fbbb402fc1c1cca73e149841acd34dc8b4a43f19ac6b06e5e1825beefb38bb0": [
+    "01_XRD/KIT-6/origin_project/KIT-6第二批.opju"
+  ],
+  "dcc8686c37e2d29e3a016b99addcce61e070fa8d62a018393e0577c5e2ff15c2": [
+    "01_XRD/KIT-6/raw_data/kit-6bo.raw"
+  ],
+  "dfb4717e34992d94a3bb29b649d085889c910f94c9a1177dfb06fb9821ec0a0e": [
+    "01_XRD/KIT-6/raw_data/kit-6bo.txt"
+  ],
+  "1365774d7d07c677ce900f26d56f498cb5ccef5e651a4a876fe2b9db30f564ce": [
+    "01_XRD/KIT-6/raw_data/kit-6bo2.raw"
+  ],
+  "76c281351af088962eb94bb28d28cd42ea38cb3ffd33849621a3e3236817ac2d": [
+    "01_XRD/KIT-6/raw_data/kit-6bo2.txt"
+  ],
+  "ab6df4f2d558cd1ecfd8de76b7b8aaf01e88cb3ca486083f954665efc1faf5e6": [
+    "01_XRD/KIT-6/raw_data/kit-6fe.raw"
+  ],
+  "23bcd4ef659d4755fc753ee7cc1160f5e7e83b6d913636400cd40ecfd200c365": [
+    "01_XRD/KIT-6/raw_data/kit-6fe.txt"
+  ],
+  "4174232903f2c81f9749d060aefd1c6de942e70a5999a43df4819a6a4aae50ac": [
+    "01_XRD/MS/MSXRD/exported_figures/1mmolmose2的XRD.tif"
+  ],
+  "44315a79ba7f72d254b8e089e2f22e505a512ccc17baadb9d51b7c8e0fb10b37": [
+    "01_XRD/MS/MSXRD/origin_project/MOSE2.opju"
+  ],
+  "a21132e5992d9242c61694544680f61d739abf34457bb15660733d1d560de40e": [
+    "01_XRD/MS/MSXRD/origin_project/MS.opju"
+  ],
+  "138d19a847dd4c6cbdd6ccf918f8bb50e4d8e176651b6a67c1424b7b0f6f99c3": [
+    "01_XRD/MS/MSXRD/origin_project/球磨第二批XRD.opju"
+  ],
+  "ce69250a986be84a9018f3728b9debae19694a6a2dc02c704070d822aa8b8928": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose3.1.raw"
+  ],
+  "526fb21c03f34b9a2fb9f7e1587a22860d8811e721781fba8641f27e6244867e": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose3.1.txt"
+  ],
+  "35885bcb438751407692d6c269e8c624d30d03aec2fc330b05704e75a7c9807b": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose3.2.raw",
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose3.2.txt"
+  ],
+  "20f991a78f7fe858926f81732f0010ebe40b5f341166f86072fa1cc7fe79d0b2": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose4.raw"
+  ],
+  "69567d946acbb55be74f3cdea588c82c0739bd16f7bb95668c33195af334015b": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose4.txt"
+  ],
+  "f0ff3e386ea78a9a66d804c515cb101125ac0f093864ed2c3db2aec43bb5cb80": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose4re.raw"
+  ],
+  "62ad6dbfdd57353ed23029c1c03ce571936c07caf3635325b6e410aa80c69ad3": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose4re.txt"
+  ],
+  "8d1c5a33570bf3dea6f118bf00f388cc0cdc566a954fbfdda8ed3be6f3a72644": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose5.raw"
+  ],
+  "af38450c58bf78b85dbcf1eacee2853903586318b4378d9d68097cb5628dee8b": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/mose5.txt"
+  ],
+  "050ad2f79d91fd1d2ff395d0e68ea294f35058ae29da33edbfa50fbac571fbae": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/XRD2.pdf"
+  ],
+  "b40df2fce2d11394ada4cd20c497f7933799526f7df9c3d0e252521fa71e639a": [
+    "01_XRD/MS/MSXRD/raw_data/4种方法/XRD同.pdf"
+  ],
+  "5d99458920968df45014816263fa40d9e4a25c0d0e9024d200d0ae2c27b54434": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/2h.raw"
+  ],
+  "3da447a60f6a61e96c93dbcf86a7d23d0c53a8405e098a75b1333210fd61751d": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/2h.txt"
+  ],
+  "fa34dd0256f5605b66f59feb79def88eb5fcc6bcc74ff5c24f187e40c38a6094": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/6h.raw"
+  ],
+  "820465199bcba479c354040e5631cbb609873af8e80a1a454d91b650696b955c": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/6h.txt"
+  ],
+  "6f618960f480a16b9f9ccdb4b8870073d6475a29dff995654a322cb14946c4bf": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.1.dql",
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.TXT"
+  ],
+  "d288abb8d0c0676eae7e0f9be51de8e501517dfcdd5517098b51e2ad675a8877": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.1.raw"
+  ],
+  "a9317094c39fc1ccb8f34f59249b291b26a6e2f67fc3d73b5514e7330464a52a": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.2.RAW"
+  ],
+  "04f56a619e56c74bbd279331310096bc908d4c2a04f4d72b45ab65da71fda02a": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.2.TXT"
+  ],
+  "3fd477357764433ca489670df571e0773ad3c8c86702dbccdfd4e41d06684ba8": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.1.RAW"
+  ],
+  "c31bf660f2118f8b3e1145096cd0cabb14555e0c0ba4d9392968e1ae200ae79c": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.1.TXT"
+  ],
+  "e0d1c9b8abc214b8204cf2fc93d028026b362338f103dc1ef191a082fcdb1086": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.2.RAW"
+  ],
+  "bc3509a047287f5284ad830ed9ec32c06a1446399d17d3447d7ce186021a56bf": [
+    "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.2.TXT"
+  ],
+  "67f1775c1aa883fa8f9d183e177b5ff1fcdba5ee814a062da46de0098af1cd5d": [
+    "01_XRD/MS/MSXRD/raw_data/SHUIRE/mose new 啥也不是.raw"
+  ],
+  "8ed7fab9cba2a07dca4bb17a1b580d1b8661624d9075352bbee026b6d8d55fc0": [
+    "01_XRD/MS/MSXRD/raw_data/SHUIRE/mose new.txt"
+  ],
+  "b1682d845bcf081cc2f2b77683d02679f10be8d433d8f9a76c4e045d4ac3ffb1": [
+    "01_XRD/MS/MSXRD/raw_data/SHUIRE/mose3bei.txt"
+  ],
+  "6d8e5f87e00b9cd6401ae3c8387268f36da3567472db8578b9ac04050f703243": [
+    "01_XRD/MS/MSXRD/raw_data/SHUIRE/mose方法4，放大3bei.raw"
+  ],
+  "f70d3f89e35b80ea40ab0b2c6847c5af3f8833226ea5f5392a4922d53ba47d95": [
+    "01_XRD/MS/MSXRD/raw_data/SHUIRE/re mose3bei.raw"
+  ],
+  "669c96e7f10fe474d4dab66c273a03f0278263c990e8030805fdcf8e3230ed24": [
+    "01_XRD/MS/MSXRD/raw_data/SHUIRE/re mose3bei.txt"
+  ],
+  "7f482fd2cab33879f0db676bc12a370fa37da4024b07769be1d939bba79a402f": [
+    "01_XRD/MS/MSXRD/raw_data/初版PEG/PDF#00-029-0914.txt"
+  ],
+  "59ced6d1f5f3e49d04c9ca05658bc86c6e1d54f9d304a593382dfc712b5d23ec": [
+    "01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS-200.raw",
+    "01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS200.raw"
+  ],
+  "0688da8f3ae5b0e4011e90444e78918f43cb9be49271ba35032ad49ab711000e": [
+    "01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS200.TXT"
+  ],
+  "c1443e2066d80361bae4c0b68fc14335c79a003601fd6a377fba2ae799976a58": [
+    "01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS400.RAW"
+  ],
+  "a91f5576c05fb9cc0a251dc77ac199f6541f5ec149dbf2a37467d418baa251e5": [
+    "01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS400.TXT"
+  ],
+  "9f44335ce30d4b385b1d91bcd9f8898d514c0dc2f22f52306c3445ad946ee2dd": [
+    "01_XRD/MS/origin_project/BPO+MS.opju"
+  ],
+  "ce37cc01e407421436eb04de0b08191e81407004f1c6a750a4c0f69939b1caa6": [
+    "01_XRD/研一上xrd数据及图片/origin_project/20241125XRD.opju"
+  ],
+  "4b8e1fe739c0c0264c5635de32c75542450056f8f284e04aa297b5ec56d5df1c": [
+    "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2 2.raw"
+  ],
+  "53abbc60e30f20333bf44cff6e4cddf70037db25bed3f6f60a7e9d4b92526768": [
+    "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2 2.txt"
+  ],
+  "5739b13f47bfc2e5e9abfe411003f0a547e362825f6080147371d83301ae4600": [
+    "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.bc"
+  ],
+  "3920ce33caa47ae55416db01182a6ad5ca5303fe3a109de3fb00707c2cf2c220": [
+    "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.raw"
+  ],
+  "2ee07b04087c02b2513d21213b9ad8233574722ea56c2b046a641e12c20df288": [
+    "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.txt"
+  ],
+  "4b2160d8c1e542857e727265bbb6df75706730bee87b8bd3c357d06bfba6fa6d": [
+    "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl.raw"
+  ],
+  "150064b50e15a70057e8822354f3d1d2093a5fae91bc3027287cf5bc4c26ee8a": [
+    "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl.txt"
+  ],
+  "b5a5f0a42a1d379d43d03b3d9ba9e1d9f0d5726bb5f0626e05d3ab58bfa81a2b": [
+    "01_XRD/研一上xrd数据及图片/raw_data/TiO2.bc"
+  ],
+  "2f128931a205d2f0a57618c8236b4c05edd410a5d0c2c7d4ff82ae3f8bd65333": [
+    "01_XRD/研一上xrd数据及图片/raw_data/TiO2.raw"
+  ],
+  "026498ce88511247a77296b9685314d08fd6a477617bf8649039ae6fa98666b2": [
+    "01_XRD/研一上xrd数据及图片/raw_data/TiO2.txt"
+  ],
+  "e4120031606a6d89f02aadb45e61b861207327e44e79071867d07ea41fba37ca": [
+    "01_XRD/研一上xrd数据及图片/raw_data/TIO2标准卡片PDF#98-000-0081.txt"
+  ],
+  "a892867591f9a1a81f59a1b58fd10824ff45616bf066eafc51d1a263ea6964f0": [
+    "02_XPS/origin_project/BC-OW.opju"
+  ],
+  "a28e2cf3528d659ef18190e5e74f79d58f5acdbd4dfc3f314c566458be9e92b8": [
+    "02_XPS/origin_project/bc-XPS.opju"
+  ],
+  "190620e7406f7e537a9db953adfc9810ce3e9bb6d0a82b03e1d6541d554b5028": [
+    "02_XPS/origin_project/bobc xps.opju"
+  ],
+  "e33a894cf4d637b065861cb90bbcb0854d7eb735f193662922a6ad91bc465f72": [
+    "02_XPS/origin_project/cwo xps.opju"
+  ],
+  "af4709c2a79f0bfc7b5c68f3bd631549c0186c0bad605ff627191e71cb525e5e": [
+    "02_XPS/origin_project/CWO+BOBC VBXPS谱图.opju"
+  ],
+  "21a1728e989366a88461e36a5dda32ba49e960a8a2ad3ea0b832c4aac8201396": [
+    "02_XPS/raw_archives/26010989730.rar"
+  ],
+  "dcd797084d4b8d30ac2a3752028d1b5e89e970b6bc462f828933ab93b82aaf0b": [
+    "02_XPS/raw_archives/原位XPS.zip"
+  ],
+  "f44dc06ef5728b8476202ea821e05d682e82e97d43d9d72b4462071dc8a899b4": [
+    "02_XPS/raw_data/26010989730/BC-11/BC-11.xls"
+  ],
+  "ba933582534b7ad84051a3590a95f80c730ca2cdd6cd08aa1483b3321ad564fa": [
+    "02_XPS/raw_data/26010989730/BC-11/bc拟合后的数据.xlsx",
+    "02_XPS/raw_data/26010989730/bc拟合后的数据.xlsx"
+  ],
+  "a2763da75b7c9e147e3e5755e2b767e6acd435f8c9cb3152984135538e5f5a46": [
+    "02_XPS/raw_data/26010989730/BC-11/BI.xlsx"
+  ],
+  "ee937ec4c41dcfbe7b85aadd978633fc6b3740f6017e1387e2fdff12d7195a02": [
+    "02_XPS/raw_data/26010989730/BC-11/Bi4f Scan.VGD"
+  ],
+  "ea2f307667edb6474d18fe9184e44d588b7329244529254e15305afb524eef7b": [
+    "02_XPS/raw_data/26010989730/BC-11/Br3d Scan.VGD"
+  ],
+  "be28395f0af2c7f7c243e150951dcc0c2f9cf9f82523f7537cb6d70fc1fd7342": [
+    "02_XPS/raw_data/26010989730/BC-11/C1s Scan.VGD"
+  ],
+  "9923515f65fe5ad6d25a6b1cd53f1ff459c02769c825a754e3dfb794d165a1dc": [
+    "02_XPS/raw_data/26010989730/BC-11/Cl2p Scan.VGD"
+  ],
+  "262db1d0b88eee0ec25f937cd4d4d2dcc96e4021f333a47cab1a2a1bf28a08a0": [
+    "02_XPS/raw_data/26010989730/BC-11/Cu2p Scan.VGD"
+  ],
+  "e5e18f310d3c05cb1a89cd58d2b8ad4044f497e49d6a4f4731b414da12c41818": [
+    "02_XPS/raw_data/26010989730/BC-11/O1s Scan.VGD"
+  ],
+  "ffa4fe14cfc47bb2d19b3124fa5f1cb9b1a36dccb7531c27cd2616495b4ab289": [
+    "02_XPS/raw_data/26010989730/BC-11/Valence.VGD"
+  ],
+  "650fd475d13bc7478841c172f8c182fa01a17db010da370618bbaef1c6b93aa9": [
+    "02_XPS/raw_data/26010989730/BC-11/W4f Scan.VGD"
+  ],
+  "123b01b272c3201a4cb9020d448d71ff8b8798c1b2f7ce47a36d50eaba65fb17": [
+    "02_XPS/raw_data/26010989730/BC-11/XPS Survey.VGD"
+  ],
+  "69ef24902fcc5a991a58c7314120804e4f83269c53b9faa11e62c5d85c40e68c": [
+    "02_XPS/raw_data/26010989730/BOBC/Bi4f Scan.VGD"
+  ],
+  "c449a03b1921e644e70734b9040ea353064a875484d90b127beb367dafdfbad9": [
+    "02_XPS/raw_data/26010989730/BOBC/BOBC.xls"
+  ],
+  "1d9bee01054b9ae167db76823238669aebc1906e66a816e401e894af43d4549d": [
+    "02_XPS/raw_data/26010989730/BOBC/BOBC数据拟合后2.xlsx",
+    "02_XPS/raw_data/26010989730/BOBC数据拟合后2.xlsx",
+    "02_XPS/raw_data/BOBC拟合后/BOBC数据拟合后2.xlsx"
+  ],
+  "ebbf8e1cb84d9e149eb74b95f351b8a75c420a695c422d9e7ec001b5be9bf398": [
+    "02_XPS/raw_data/26010989730/BOBC/Br3d Scan.VGD"
+  ],
+  "264da89a47de02ad1dd82f6ed6ece24a03257910178683a28afeeaf679797239": [
+    "02_XPS/raw_data/26010989730/BOBC/C1s Scan.VGD"
+  ],
+  "dccba3bc5706c4f1dc36189a923a271b595d0047814cfb65514bc1fc144e90e5": [
+    "02_XPS/raw_data/26010989730/BOBC/Cl2p Scan.VGD"
+  ],
+  "7dd3cc519de89d4e8d48a2dfb33c26f5a46b0dd498c00d73960e1a8027ad6d6c": [
+    "02_XPS/raw_data/26010989730/BOBC/O1s Scan.VGD"
+  ],
+  "363e953a8dc4c32dbd2feb7fb1c3c997f16980b3d137b2cbd2d844ea396a9f82": [
+    "02_XPS/raw_data/26010989730/BOBC/Valence.VGD"
+  ],
+  "58c3a6a99408f132ad67ef866b5ece097680aa6b2dabb2f5fab88dbff43d2a3b": [
+    "02_XPS/raw_data/26010989730/BOBC/XPS Survey.VGD"
+  ],
+  "03c404d697fb445b2575c031eca271736fb576acb65721425b00e266ed276196": [
+    "02_XPS/raw_data/26010989730/CWO/C1s Scan.VGD"
+  ],
+  "8ff06c0ba225213e986f9d4cf244b53cdca46ca6948a39b83c343217db0a2761": [
+    "02_XPS/raw_data/26010989730/CWO/Cu2p Scan.VGD"
+  ],
+  "1f9a8309773bf0079ac65616b197a0846556340fabddc3bc5236fad260920a66": [
+    "02_XPS/raw_data/26010989730/CWO/CWO.xls"
+  ],
+  "20327a0137b2724a125488c6521007159c949f8f752559566ab55d8667558c07": [
+    "02_XPS/raw_data/26010989730/CWO/CWO数据拟合后.xlsx",
+    "02_XPS/raw_data/26010989730/CWO数据拟合后.xlsx",
+    "02_XPS/raw_data/CWO拟合后/CWO数据拟合后.xlsx"
+  ],
+  "7c520967b0d86aebede9de60b393009cdc091d81d1b268b919971d9ea06753e7": [
+    "02_XPS/raw_data/26010989730/CWO/O1s Scan.VGD"
+  ],
+  "2764717420fd4bb3a75307edf203804b7c80c792be19fd5117444f9aa1b0af2c": [
+    "02_XPS/raw_data/26010989730/CWO/Valence.VGD"
+  ],
+  "db80a61eb1bfa1d339c8b579362e736e32f9cb10da47301b6d6695a58f81ae05": [
+    "02_XPS/raw_data/26010989730/CWO/W4f Scan.VGD"
+  ],
+  "e343d83305871dfdced461afbd9fdfce7f1b5b22444f3a2416a38ae4da6f3cbc": [
+    "02_XPS/raw_data/26010989730/CWO/XPS Survey.VGD"
+  ],
+  "e9cad5cb336a607d7a5c8b223e275de7b75d1eab99a63ae8e6e17b96eae93948": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Bi4f Scan.VGD"
+  ],
+  "6be0de9907bfefc10cc9f6f7347b144dd7092bbe7c9ce2b990c9228d9e9888be": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Bi4f Scan_0.VGD"
+  ],
+  "e5647b84d26b0e615bcdb5e966e0c695c1114402f19a7b0563b9da5a308b2fba": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Br3d Scan.VGD"
+  ],
+  "94da7004dfd4eb67329c0b56afb14acaf7a09cf275cb341307a21c441165b79f": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Br3d Scan_0.VGD"
+  ],
+  "ea02b61338b24edfd380aed5b9b0e3ca438987cf496fe3dfcc66eac89a14a63d": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/C1s Scan.VGD"
+  ],
+  "5952877951f285dea8628101b7549e6618669cfc565c7f9c30d6c63213840ac8": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/C1s Scan_0.VGD"
+  ],
+  "bce4eb4e1783e3df2901777a6f3e03f64c1e9f5c26fd503d18c415d7e8d35372": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cl2p Scan.VGD"
+  ],
+  "f74b79188b749dbce922fe3f3f560870d58c4fdc4f3fd113fc6614728137302a": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cl2p Scan_0.VGD"
+  ],
+  "ca35e37c9d9184370b3ea0c6aab3b5e3ac7fadaa0e5cbd1fd7ef413024f3d5d2": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cu2p Scan.VGD"
+  ],
+  "6c0dab822355af7f85d3a20bfed695454ce3fd3ca167c1516c7abc097b12cd38": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cu2p Scan_0.VGD"
+  ],
+  "bd05c67547c1d708002d3a00c02f42dccbc433cdcce0bdde0aa9289fef5d564b": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/O1s Scan.VGD"
+  ],
+  "561284d3fad47d4db3e5f759b36d0801b4e85f9515ea77a0070ec905b51d8dbb": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/O1s Scan_0.VGD"
+  ],
+  "f798ed83d7c3cbf08af9309b1c3dd08f6d458acf6ef92937f45786a2ff219a2d": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Valence.VGD"
+  ],
+  "b3a6805ac9803d4b1e455951ec5e3cf9dbb5f44c273d13ad5b7be0a117a57380": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/Valence_0.VGD"
+  ],
+  "220b610e0a077c13ed47af9a91bff611daded4f0dc96571a3dab657d41483a04": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/W4f Scan.VGD"
+  ],
+  "75bcdbdbcbdda92f7527b82e511364a75cd35a1598b205a1a72ef4aedf8cfba2": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/W4f Scan_0.VGD"
+  ],
+  "0242f99e74e352b25c7ab5d5ee78424ad8d1ab7ad4eb7fdbbab6107dae956ac7": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/XPS Survey.VGD"
+  ],
+  "d28f0b14f16306f041e8e1b73db721ab8e05992dd6fc5d684bb69e4a8ad39c1a": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.DATA/XPS Survey_0.VGD"
+  ],
+  "1de8e02353ecdf06739b41696f1289462ea6d370bf0d8a546d7d253943d4cf0b": [
+    "02_XPS/raw_data/BC拟合后/Data Grid.vgp"
+  ],
+  "90370f0fa6b9a43263264f30fe355854d8cb9ae4d2ff6c42c81d00a7a6be764f": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Bi4f Scan.VGD"
+  ],
+  "d2cfa45756775f2b9340e07dc3fe0311b97dc9c39b07b4e4101c82561ea6e4bf": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Bi4f Scan_0.VGD"
+  ],
+  "6b055215515a1ec6799d4bf83653d5b14c70d735c557769147f9a5a27fae743b": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Br3d Scan.VGD"
+  ],
+  "d0a4d3623fd243cdaf95f6c221b68215bcfd2d7ce937ec2f822559091f65f48c": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Br3d Scan_0.VGD"
+  ],
+  "de8622c77d54e5098349a832f4a3847340f7e9411c520edbbdc60d08a3f7e964": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/C1s Scan.VGD"
+  ],
+  "66dd0ca3b4f1239a776a158bdd5499a77afe187a584505bde7a78bce16b16c74": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/C1s Scan_0.VGD"
+  ],
+  "b7066847c14b678f09bf1111cbd9dc86cce4e92460a733660df0453670dc5f42": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Cl2p Scan.VGD"
+  ],
+  "877c1ee786e4730f613fc3517a2809d0411ea4a442daa0d492b0980475030171": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Cl2p Scan_0.VGD"
+  ],
+  "9e7ea568485a0a8c4869c8b18ea3334f6558b355cb7cad744972fd4a9f904215": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/O1s Scan.VGD"
+  ],
+  "a50c29d0ac1d98c9b8a765e0c1d56f3b10c31651b41c4e0448e8794bed71c1ee": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/O1s Scan_0.VGD"
+  ],
+  "4c2ab6c6b2306380a33a0e21654d620f28fbd31a75eb1f9b69245220272ee3fc": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Valence.VGD"
+  ],
+  "9501f75c04be9f78efff91402de996b8bed4301f2f503e9e0f81d4fc206c2384": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Valence_0.VGD"
+  ],
+  "5bceda9f1422ed3e69b09210a02ddd44fc6cce05af3e0314728bfaf55251926d": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/XPS Survey.VGD"
+  ],
+  "87c624e4a968ce2fdea93d42f590e3094787745f3525c9aeb91412bd9f8e5cf9": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/XPS Survey_0.VGD"
+  ],
+  "45860535dfd145f26cfbf0199eb69b045d9ab25182dc105ae1373b8158623321": [
+    "02_XPS/raw_data/BOBC拟合后/Data Grid.vgp"
+  ],
+  "70806e7bc7efc835d4b05a0360ed07f00bc760236934960de476e87918e9ee79": [
+    "02_XPS/raw_data/CWO拟合后/cu-20260506.xlsx"
+  ],
+  "27d1d2bd990a3de845d1610173ab66d0d1db0f2760c6cbb5f881ece7675e1753": [
+    "02_XPS/raw_data/CWO拟合后/cu-260506.xls"
+  ],
+  "87a8b28e81954614502c75bc2e71cce036377c48bc702abcd0f4766a62da283c": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/C1s Scan.VGD"
+  ],
+  "b83369fba3c44600106a7efb1b2ce09c02c45d97ed846bdbfd9c2d078e1d620f": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/C1s Scan_0.VGD"
+  ],
+  "011f168e6fb3c66377c1efd317c8e553bcb71babac4d2d97410eb7006542d21a": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Cu2p Scan.VGD"
+  ],
+  "319f6852815af6107f0e76436f3bac903034aefe76064aa273b153f6f5261a87": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Cu2p Scan_0.VGD"
+  ],
+  "0ab22b0b34dfb5444f55bb5209b221fd434a91c246b7d3b793f74c35970627a6": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/O1s Scan.VGD"
+  ],
+  "54bfb7715e38409c2b2f0a2f71b8fb21247467705797b04d11fcf381442841b7": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/O1s Scan_0.VGD"
+  ],
+  "430de8a167a8db9838838b444165c9625e89da44152902f418b71463eff9681c": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Valence.VGD"
+  ],
+  "ea65f490105cba3e1aa19bb8272b4ab6b07b15b4c8ae402cfc06b66be73f8873": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Valence_0.VGD"
+  ],
+  "2cd2a3c996c597d08ca002070390ba61128ea27054ccfbc01b7076e920533c79": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/W4f Scan.VGD"
+  ],
+  "d089439f14167b8ef58c4440cc551e8363c896e07a231b2e332c34bfc8d6bcf4": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/W4f Scan_0.VGD"
+  ],
+  "d86dfef9064a3c59c05554da0b1d97d4c50a96c1fc39041b9685b29bfb2c83e0": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/XPS Survey.VGD"
+  ],
+  "63c38802def9d80a085a557cb1072566c7d84121008684b090e2adbe4b7ae8c0": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.DATA/XPS Survey_0.VGD"
+  ],
+  "916a956126aa480e97dd1373d371fee8621c65b0aa672e8db46896d46fcdf989": [
+    "02_XPS/raw_data/CWO拟合后/Data Grid.vgp"
+  ],
+  "8aab088fe6e1b35619a84a7e336203c6a35a4d0d78267fc04247a12e2fddc51e": [
+    "02_XPS/raw_data/原位XPS/26041816225/1#-light.xls"
+  ],
+  "af881880b2eae14990587cdf52c8d95ff0986a4813b13b97772bf01f04cf8d4c": [
+    "02_XPS/raw_data/原位XPS/26041816225/1#.xls"
+  ],
+  "e407c7812d9ca2810c6ad24a52b94ba9cb16eb577828046544068b3a194b37b9": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Bi4f Scan.VGD"
+  ],
+  "1af32b376731941a3f29098707c42f25cedd1df6faee3f0d3579a496fb47d2e9": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Br3d Scan.VGD"
+  ],
+  "0f955bdc718f050427f35ff3c01810fd8e9f365a0bff141d3f0888c61e3cc8bf": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/C1s Scan.VGD"
+  ],
+  "db5c1acff914e61ecb192ea9e6bcf4710d4cb784fce1f7ac163889d82ad73373": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Cl2p Scan.VGD"
+  ],
+  "4c9efc9f20617ea1895c2c86068d51d0be0fdc153758922b1a17142e38a21893": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Cu2p Scan.VGD"
+  ],
+  "81615f2109d5b3d474e2f1bba004c9dd761abb9a2e3d5b69e26929985a1d77dd": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/O1s Scan.VGD"
+  ],
+  "a58696dd17862b74db5c3b7adcd15a120f03a54953d4959fc6703ad0ad31c041": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Survey.VGD"
+  ],
+  "bb5bf569b4eccc8139dc57ed3580af2885c4ee377e0f7fc343be7b4420c36ffd": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/W4f Scan.VGD"
+  ],
+  "09ff05a8f31e05d21966ab160639de7a0428d34ed408aea59b96a1e130f73755": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.vgp"
+  ],
+  "9ac6919bb710d44251d5af0c68950c67cff5a37b12226b91c9e2009cd30de3c1": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Bi4f Scan.VGD"
+  ],
+  "b51916a2105df08237539ed0e0d38b1acb3d1b009f36459e9db9b9830542b792": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Br3d Scan.VGD"
+  ],
+  "8dbc1307a32c670b72e874cd6ef44a4fb37ee2e797eb021151a3529a41b68056": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/C1s Scan.VGD"
+  ],
+  "ceb806b63bc1b855e47b0b6b7f2be587ac41bbfcd6e101c880c5518971d01d0f": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Cl2p Scan.VGD"
+  ],
+  "5ee5a46fcc4108184872993a38ba95bb4a687fda4fd67a2f54782c338c9dbeeb": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Cu2p Scan.VGD"
+  ],
+  "59e106aa537a19ce3b2f78cb6b19ee229dd6a5e37ca6dd4aed332d10c10b2679": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/O1s Scan.VGD"
+  ],
+  "8afb961384d132b978c84c90aa109a2b14c2a494325998d03dc613acc4ccf83c": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Survey.VGD"
+  ],
+  "152ba3bd32be02ae57e88b794183c6fd52cbb847360f29f96759f22dfef6dfc6": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/W4f Scan.VGD"
+  ],
+  "d95e5d0b29399edf50266f60dcfbc3b5ae1945b2771189801444f04604c21cd7": [
+    "02_XPS/raw_data/原位XPS/26041816225/Processing View #1.vgp"
+  ],
+  "d823235ad700279bcce084cc5e9b316a28ec503495303ea84326745a95b6ae1a": [
+    "02_XPS/raw_data/原位XPS/DARK-20260506.xlsx"
+  ],
+  "57c5f3828ef9965bacf22aa71bb0b5f70407e1a5cb858e25e8e1fb53150ec32d": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Bi4f Scan.VGD"
+  ],
+  "5f13a76384b1c041ae2ea57f73d4d3bd4731cc8728eb4f24f81e7e237c07a9e0": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Bi4f Scan_0.VGD"
+  ],
+  "8e663296296cb57741d84afd2c3997c496e957346fb883432be1fdcdf13e41cd": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Br3d Scan.VGD"
+  ],
+  "96e1dedfbf71ff8cf08f06a1e014fc16158e409c0cb41ab4d1b2015577ff8c0a": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Br3d Scan_0.VGD"
+  ],
+  "4777827600ec4f2447eedaea4111fc8089fc2fd77013e1f4a4bb15e02006b578": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/C1s Scan.VGD"
+  ],
+  "0b91f60ea5cb640735c05686105f4f451a2c83640f9811ba60b4af54ef695ca6": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/C1s Scan_0.VGD"
+  ],
+  "457f6d18c86b00f0a6011c649797a7e78e3b9392d758cee2252ca027c57b5e6a": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Cl2p Scan.VGD"
+  ],
+  "746dc52b21f342e2b57afcc79d06bc5fbf7f5a34edd319dca818d36dcca8ceac": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Cl2p Scan_0.VGD"
+  ],
+  "4932a32fd3b9e4b05793b0665237217ff137d8206197792ac57a048734edfe6a": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Cu2p Scan.VGD"
+  ],
+  "cfb2ce380de5867b206396d84074fcc29ab0db527c9c905f841a60bb4ed388f4": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Cu2p Scan_0.VGD"
+  ],
+  "24eb4fab8e25632861aecf0bfc4fd3fcbe1b07a6a43382ea391834bef13ad7d3": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/O1s Scan.VGD"
+  ],
+  "5101d1807e00f7f164b004232f9c56879ce27dc0a74ed44738384f7204a06758": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/O1s Scan_0.VGD"
+  ],
+  "5a76a2dd209d9467d18e15c9d0e638d634f05fb3f6327735c01076568349dbe6": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Survey.VGD"
+  ],
+  "5a041cd86f381c8f88a8aaa60a90884c62de92d4e1ec69795fad3bbf648081a4": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/Survey_0.VGD"
+  ],
+  "bd537a2f0508dc7c8d5307fe469d606b7d2acb519834fbcedd300fe6afdf1f5c": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/W4f Scan.VGD"
+  ],
+  "d92a39ab54fa3f15a7819f1f50ae28e58bc33e532759fd2c5e79724d700e7af3": [
+    "02_XPS/raw_data/原位XPS/DARK.DATA/W4f Scan_0.VGD"
+  ],
+  "d9f674e767a590c42bc7975e1113274c710ee996dae039aeffd7e6ed1351f66a": [
+    "02_XPS/raw_data/原位XPS/DARK.vgp"
+  ],
+  "205315a2c5208c19f1b7d2b287451871bd4664f2ae44a718960c5f4bdc084adf": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Bi4f Scan.VGD"
+  ],
+  "ca0929c7cf1c2de3f859a5e053bcfd63e0cd670791c3d820b83f672761326264": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Bi4f Scan_0.VGD"
+  ],
+  "bb1af96dba2d67b920745452f2879377706cf527bb9814f8e19cd8e8e1e56fcd": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Br3d Scan.VGD"
+  ],
+  "3d431ee859d9899638f187d6582b4f5556e0eebd68457ecb38168bbfa51b700c": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Br3d Scan_0.VGD"
+  ],
+  "1a9d34df6617c5936df669eca1c0d0e36e00da2eb7163651a4b219c56f361c6f": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/C1s Scan.VGD"
+  ],
+  "daaccc6dad2783ed758f1b36e057a5b59d2c26046cf00ac1be0272f3db04a488": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/C1s Scan_0.VGD"
+  ],
+  "0c17ce0d55ac34d5598b7b28226b105cb83e9b57f1cdccad0fc3101192043ee9": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cl2p Scan.VGD"
+  ],
+  "ad8cbd56f525759243c2b6db15720262ee65cf1e84244fa8d596953b5b51b409": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cl2p Scan_0.VGD"
+  ],
+  "5d27fba6f313466f229a3439f1903af1c8086997b90e9b78b66ab605c6b7780b": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cu2p Scan.VGD"
+  ],
+  "23926d66db6b37cff71c91a3927e2b16335defe2442449a0a230137b616c8347": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cu2p Scan_0.VGD"
+  ],
+  "484e86bdf24666fb05274a1f5540a050ac678f881176b728d1b46df5c39455d8": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/O1s Scan.VGD"
+  ],
+  "53aa486318e331a835cbf9e356ad06fd10a81a172841dee6081f259eb0442278": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/O1s Scan_0.VGD"
+  ],
+  "2c9c5b4f17d503e96991dfb98377a6db1aff6cecc0d55fc6d05759e5f3b3f060": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Survey.VGD"
+  ],
+  "7b4a45e2c79fdb4e51a5f3b9f268e294a04bc261c44e7694385cbaf79471aef4": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Survey_0.VGD"
+  ],
+  "2e83072cac3f2fec6feded157ea9c8d84eb513d427933b5413133af51f1f892b": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/W4f Scan.VGD"
+  ],
+  "28e985c4e11f815297cd84858d042670161e9d8248da95dfef6e384b21e3624b": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/W4f Scan_0.VGD"
+  ],
+  "9d0701ef14d246d6282216955af5439386242ba74c6144bf61e59941eb0b3dbf": [
+    "02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.vgp"
+  ],
+  "edf465250f9e9430023ccc4e6c7f380268904aeac996b6729aa3774faabc0ffd": [
+    "02_XPS/raw_data/原位XPS/LIGHT.xls"
+  ],
+  "69d7c43bc53a662f7d5d19251c8dbd029284b5cf5eb52a9f3d9b82287817cbd8": [
+    "02_XPS/raw_data/原位XPS/LINGT-20260506.xlsx"
+  ],
+  "e0362b0f138e9380daa1caf0dc039c3eb1315de3558ce25b3f71158e56d94b6c": [
+    "02_XPS/raw_data/原位XPS/新建 Microsoft Excel 工作表.xls"
+  ],
+  "288c96ff27923a4aafcee484cd5aa07090e162b4fd7e076d2320a19b89c858ba": [
+    "02_XPS/电荷未矫正第一次/origin_project/xps 全数据BI.opju"
+  ],
+  "c749e9d2c78931ac4ed7b25eaf483c5ff3a0c887de18bca445115f6c2c68db57": [
+    "02_XPS/电荷未矫正第一次/origin_project/xps全数据CU.opju"
+  ],
+  "39a9145944f343cf5758e3f80e916ec19fa8572061cbb2a1fbe8abd7ea0e4195": [
+    "02_XPS/电荷未矫正第一次/origin_project/xps全数据版.opju"
+  ],
+  "0867dd9d9f0c4ecaf79ca842ba911f2322243f89eefb725351aaba9300045ee3": [
+    "02_XPS/电荷未矫正第一次/processed_tables/dark拟合第一遍.vgp"
+  ],
+  "537a7ccdd5a74a12e0f535a7678464becb3c2e100b9384d4fecb29cc02ba3e2e": [
+    "02_XPS/电荷未矫正第一次/processed_tables/dark拟合第一遍.xls"
+  ],
+  "0741f2e824e39b1bb80d37474ebed15f4c44467c900cbb1a01c608c46e9a2cdc": [
+    "02_XPS/电荷未矫正第一次/processed_tables/light拟合第一遍.vgp"
+  ],
+  "1ed3dc4e1b6685ef2fa721facd18150ba83a7233f938f50b7d6338826c0e5cbe": [
+    "02_XPS/电荷未矫正第一次/processed_tables/light拟合第一遍.xls"
+  ],
+  "f277de67b13706f8146ac1ba27081ec010f0065ead0709079028c3115dcfa809": [
+    "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Bi4f Scan.VGD"
+  ],
+  "d766db5b2209c5a89c308a4ac8ad5d54b89781b233b90060308122c223eea7fd": [
+    "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Br3d Scan.VGD"
+  ],
+  "d38a8d7b122278d3eb976a80b1af376234afa7914916ab104f6dc71fa6566c1a": [
+    "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/C1s Scan.VGD"
+  ],
+  "42f516162712a0b0fe027be356e087fcc6aed7897518ac2fc6317f3bfed5ced5": [
+    "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/C1s Scan_0.VGD"
+  ],
+  "c17fe5ad482232f740db46abd2f376d8ae9eee23593f8f8327fc0c28b81c8cb2": [
+    "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Cl2p Scan.VGD"
+  ],
+  "0082698351aaa3ec8092276adbc3f2885867ababdf1f178e4210f3187a0bed46": [
+    "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Cu2p Scan.VGD"
+  ],
+  "aa1e1c217b2200752f1c286fb5db95c6fd0c30fff1422045bbe947e6ad3a43a6": [
+    "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/O1s Scan.VGD"
+  ],
+  "c223473991fd65cd73a7ea5faef04c472a98edd09f7878bd2b05e7a1a465018f": [
+    "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Survey.VGD"
+  ],
+  "dbf82962c5d4516012cab8390471ae1f18e1ab360e5c05f464dcfa39bc4082ca": [
+    "02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/W4f Scan.VGD"
+  ],
+  "4ee1d470f5b0ea40c82ef5dfc7eb3eb6747b0dae44d6021636d3a087caf95c10": [
+    "02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Bi4f Scan.VGD"
+  ],
+  "00f0392af251e31c0f74a9d97d0f60ed9a6a708e50cd7ca4fc26aa145452b20f": [
+    "02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Br3d Scan.VGD"
+  ],
+  "9a162b6065a5fdab172a1b074cdb6c47ff7b35df1b17fc5a66878f5bcc12c236": [
+    "02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/C1s Scan.VGD"
+  ],
+  "0debd462abbd5d6eb491310e3297768c385da2d840b8b4df1f9e18f9e1d07d41": [
+    "02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/C1s Scan_0.VGD"
+  ],
+  "def7e3abe333efb05f4572accb9b9d1fa96c91b50ed4027333c22fefb2a1f037": [
+    "02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Cl2p Scan.VGD"
+  ],
+  "81f61562ee4c3beb0e32bf4768f69b677deea41308938273d72f1f4910e38857": [
+    "02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Cu2p Scan.VGD"
+  ],
+  "e2390d39452ba4e5905653c3357dea8a7a733a5562fe4a8f73870f0679137354": [
+    "02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/O1s Scan.VGD"
+  ],
+  "75020581eb8d6fbc5ea4364889df25b899ae5937d84f99b6e4f60bab24d01a86": [
+    "02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Survey.VGD"
+  ],
+  "9afa2e1cce6887d34cd8183f1f292600c0dd9ca4eb3ce785ef64c7c27f70c13f": [
+    "02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/W4f Scan.VGD"
+  ],
+  "4996b5f27e5c2eb6a6bfe884b1b36b475c1383bb2226cea2010e21386252678b": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/1-BOC-(OCP).bin"
+  ],
+  "e04a3a1d013ffc41ccebaaa09699e45ba2c6a4bdb0fed38147a0a819f1924243": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/1-BOC-(OCP).txt"
+  ],
+  "0548596cd98b913a8b083644b902c1282a757938e944b3e84c65b96174ebdb73": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/2-MCS-(OCP).bin"
+  ],
+  "6ff0094fd65c35a7aafa586a51b89fa645ec001fe606c08933e1d2fbc6961ead": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/2-MCS-(OCP).txt"
+  ],
+  "9e99f87c578a67b9d67bff7373b04cf49826030699d518ce308db2b1681fce63": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/3-BM-10-(OCP).bin"
+  ],
+  "06e37983a2eeb3b493082a768fedf52dd802f15358becd779abd56e79a0cbd7a": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/3-BM-10-(OCP).txt"
+  ],
+  "e996f13dfcc3d5f284b443f361cbed43e575a7cc1e8c28b4cff148a48b8b7d82": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/4-BOBC-(OCP).bin",
+    "03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/4-BOBC-(OCP).bin"
+  ],
+  "164b3e8107905489b6546557360784a9ad80360a0e639d4daccf53d819f2a2db": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/4-BOBC-(OCP).txt",
+    "03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/4-BOBC-(OCP).txt"
+  ],
+  "883f6c67c7e0e1fe696dbdb2b0b6b6bb346900a5faeedae6bf81611690a110df": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/5-CWO-(OCP) .bin",
+    "03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/5-CWO-(OCP) .bin"
+  ],
+  "e2f2164674cce6884d4022308c9d8d0bd6b8e35c721d2644a6d921da10b49424": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/5-CWO-(OCP) .txt",
+    "03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/5-CWO-(OCP) .txt"
+  ],
+  "776a2c2cff8f5d009f0babb98ea49a87c82e5be2a1f734fcc8935bf8b1a607f0": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/6-BC-11-(OCP).bin",
+    "03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/6-BC-11-(OCP).bin"
+  ],
+  "f702a569b648290a6181da7791eac06d4015b26a6feee9276fadfebfb7034c65": [
+    "03_光电流/20260109_光电流/26010964564/Photocurrent/6-BC-11-(OCP).txt",
+    "03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/6-BC-11-(OCP).txt"
+  ],
+  "c738db9b65bf34b53e3be9c5410863cc1e070e9596c39288278b50da2c9c8e54": [
+    "03_光电流/20260109_光电流/26010964564/光电流基线处理教程.pdf",
+    "03_光电流/光电流响应/raw_data/第三次光电流补测/26041550465/光电流基线处理教程.pdf",
+    "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/光电流基线处理教程.pdf",
+    "03_光电流/光电流响应/reports_notes/光电流基线处理教程.pdf"
+  ],
+  "30ff68a5161d9007e5df9970c6e26391473ab7122cc0e38ceed3f48cbac39da6": [
+    "03_光电流/20260109_光电流/26010964564/备注.txt",
+    "03_光电流/光电流响应/raw_data/备注.txt"
+  ],
+  "85eb2765645272ac7a6df6de632ac62cc8eef9835ab5743dad64f054eb0ce94b": [
+    "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/origin_project/I-T BOBC+CWO 4.22.opju"
+  ],
+  "06da9a8a7148d4cbb5ce9c6792f569aff09c59e30d6fd5a156b009b92eba0011": [
+    "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/bicu/1-（OCP）.bin",
+    "03_光电流/光电流响应/raw_data/第三次光电流补测/26041550465/Photocurrent/1-（OCP）.bin"
+  ],
+  "d104b636be5cc8b1dd0d1ab515324d81ef27da3d168531ec082ae4592762eb23": [
+    "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/bicu/1-（OCP）.txt",
+    "03_光电流/光电流响应/raw_data/第三次光电流补测/26041550465/Photocurrent/1-（OCP）.txt"
+  ],
+  "e8bd29c58a161bc12aa7a8ae131b5413b1e9ca113f284d842f4604c39da16446": [
+    "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/BOBC/1-(OCP).bin",
+    "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/1-(OCP).bin"
+  ],
+  "cf9895657fae772eebfcdbda6ecd3b1b7339edeed2048a0eed80ecac4b373c2b": [
+    "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/BOBC/1-(OCP).txt",
+    "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/1-(OCP).txt"
+  ],
+  "1aaa7255267253053bb378f7f27f9ef77f2c323dc0bee7d43f2b45bbebe2cc31": [
+    "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/CWO/2-(OCP).bin",
+    "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/2-(OCP).bin"
+  ],
+  "7f51a17d2cf9f7cf3b295f0179141fcb58eed623963506c5515e4579dd528dfa": [
+    "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/CWO/2-(OCP).txt",
+    "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/2-(OCP).txt"
+  ],
+  "dd825b1ddc3dc46f43bf4ee5509d429f9a1ca4421f4f8c8ada5ee7fe1d42443f": [
+    "03_光电流/光电流响应/origin_project/SECOND.opju"
+  ],
+  "83cc0773903cc52bbd3e2e1fd168a244fbeaf30181d3a24d41ce2c4fa1810f25": [
+    "03_光电流/光电流响应/origin_project/光电流相应CWO+BOBC.opju"
+  ],
+  "f89c9f5df6608db9008d120f989b99fa196add724ec738ec00b6841fbf55e068": [
+    "03_光电流/光电流响应/raw_archives/2758_1774879987011_26032562524.zip"
+  ],
+  "c775f9d1ac7f2e4a222e8c2b41f7569c2a5a15e7b142e86e42642e1e2fa3c499": [
+    "03_光电流/光电流响应/raw_archives/2758_1776699905862_26041550465.zip"
+  ],
+  "f8ef978511cf8428e4581485411a8ae5242eea513040044a36fa39c148d5f9d2": [
+    "03_光电流/光电流响应/raw_data/第三次光电流补测/26041550465/备注.txt"
+  ],
+  "29d39a0fedf61e7d6d805644a3e17c1a4cc5d3f9e4faedca32573510098d6b65": [
+    "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/备注.txt"
+  ],
+  "3321002e70e9ea484e062589d39e6da3368bfb4a150ccd82104f89eee46a24f3": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-1000.bin"
+  ],
+  "c3c885e23ebc516acf35cd48e84a38a719f090a043b429ac29e6ddc5f9d1b296": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-1000.csv"
+  ],
+  "320f51befdfc07d0bc7e14c456712a500cf424ff5460b4eecc466372b10e866b": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-1500.bin"
+  ],
+  "9e1ea3eec7ed9c04125ea85a7e70c2d0b184cad695215dc7a75e49e296fe2d4e": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-1500.csv"
+  ],
+  "8ad4a1a677b4725988d8a90e20f8c85fe460a387a1a1295b52cb1bb6bf707dc7": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-2000.bin"
+  ],
+  "51dc20b9997ad8e3f7f93aae50eff07f5907b76f19095691befcd2503c8fa097": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-2000.csv"
+  ],
+  "411a320a5ecf220d4bdc05a5f5789a470bdcc982c62a7bb4e876dc428777e45d": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-2500.bin"
+  ],
+  "2bced5a96c5b30a6df26efbbca2d9ef4e226ae8a3983d3fb1b77a5414ebc1c78": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-2500.csv"
+  ],
+  "d16e022351b85e25bb316002fe116817bb10138dfe280f500ffd496cb427e8c5": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-3000.bin"
+  ],
+  "e85e8167dfc2ffc2ddbd5a2ef44d684a055574b55e96162bc65a61f623adaedd": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-3000.csv"
+  ],
+  "46281296a9f3bd1e5857400c7a0ef39a587c744e20a9daec0507f4a9fc2769af": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-3500.bin"
+  ],
+  "73986a633c223838b6491514329f7200c425fa29bfe80acdd3e3add8921c8b65": [
+    "04_莫特肖特基/20251126/BOBC/BOBC-2-3500.csv"
+  ],
+  "c019cbc31d2e2f4680e8b5711e0461a1332648a1aeee8eb7cf6a167e0967b494": [
+    "04_莫特肖特基/20251126/BOBC/BOBC1000.bin"
+  ],
+  "48df10c03c8876febf2d63f7f33682ea7e98f4b1d6049fbc860f3755795704cc": [
+    "04_莫特肖特基/20251126/BOBC/BOBC1000.csv"
+  ],
+  "115c0ea022fece97c61c0d4a5fdc33f9bb0dd530bc17a20265e5e01d4f273c2f": [
+    "04_莫特肖特基/20251126/BOBC/BOBC1500.bin"
+  ],
+  "c2fa8dd12eaf0f54aee64db59bd740bc4a300af036491ad3ed5ae469010a7111": [
+    "04_莫特肖特基/20251126/BOBC/BOBC1500.csv"
+  ],
+  "dc0f29f7fe1598fa36327fc0b532d6ad5573b80b0e7076b687565a25c88a333d": [
+    "04_莫特肖特基/20251126/BOBC/BOBC2000.bin"
+  ],
+  "88458bed292fb51e3af4306b3bbb13567ebe264d8e0899a92ee5b0106f8bfdc8": [
+    "04_莫特肖特基/20251126/BOBC/BOBC2000.csv"
+  ],
+  "e8bc66fd0adbdcbb3919680ee8d6a0a96dc22bff13195da466810634482ac48c": [
+    "04_莫特肖特基/20251126/BOBC/BOBC2500.bin"
+  ],
+  "16b4f3d46eff722b241916238b0f7aaa70c2c212308139ab616cd7bd7aff630f": [
+    "04_莫特肖特基/20251126/BOBC/BOBC2500.csv"
+  ],
+  "35d433330ce0223bf9b1532f18f47533615d31d3f66d1518833a3df643a2409b": [
+    "04_莫特肖特基/20251126/BOBC/BOBC3000.bin"
+  ],
+  "148552ff366ad5823c25acc54928b453fc3b816ae928fbdde59a2a4f7b0587f9": [
+    "04_莫特肖特基/20251126/BOBC/BOBC3000.csv"
+  ],
+  "2be200b3eaa4d3bff13483f06e34a3b99bb7f8e5b867331a41bb546fc1dbb27d": [
+    "04_莫特肖特基/20251126/BOBC/BOBC3500.bin"
+  ],
+  "a4e7b2e516ee488386383c670c43193f0d7cdd462aefed8f33d9143994593770": [
+    "04_莫特肖特基/20251126/BOBC/BOBC3500.csv"
+  ],
+  "e0872be407c29723cca4ab911bd2947ea8047997289fd79c899b786d31fe8d63": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-1500.bin"
+  ],
+  "8d79816d7f5ee360ba0a8d0255dc533df1de8a3abb6c8ad68f4ae0530336614d": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-1500.csv"
+  ],
+  "3774ca223973b8c13f4623c7b074ca621a1cc568ddfc158d253b02532c39a57e": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-2000.bin"
+  ],
+  "4d422d393fd039b091b391131230d30ee5a78cec7f632e3bce6804573d43a098": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-2000.csv"
+  ],
+  "54558aa62ab724cce4f7904f5846f1b7cf3e4105122bb41f716f4c517ac223a7": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-2500.bin"
+  ],
+  "3448d7a04f0aa09b1ae32625768ec6e8899fccabdfaaadc12e4d43919147710c": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-2500.csv"
+  ],
+  "62069026f9c4917b072da911962349aa26de639456f64a5ca7856cdd9a43d89a": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-3000.bin"
+  ],
+  "9777314c4cd39fcf73b8c38a5d923c8e39308b372edc43c77629c9330a560593": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-3000.csv"
+  ],
+  "8d3e45cc929b43b35a7dc07dd41fc6817fdf45355f4aab58b3bb384fa926fb10": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-3500.bin"
+  ],
+  "cc9a47778bfaaa81a6369388067e0a263b777a3e063fe7be9d388fda192af643": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-3500.csv"
+  ],
+  "1caaf20d04b4268f93edebcbebfacb3a935d708da5d14fa7a1605d5ed145c5b6": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-4000.bin"
+  ],
+  "97a4f75dc511017b97a7fc42b377a0a7d0f57677a91f62872da39701c88a407b": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-4000.csv"
+  ],
+  "a0a678ed912276bb25dfe7ff4532ba30a780242dc781af39eaa2c9a0bcffbd3a": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-4500.bin"
+  ],
+  "d5185b437b6e6956333b504381f2e6a64f109a592554470090693eb9155466cb": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-4500.csv"
+  ],
+  "68e9a10802316372614e742008c51bed9362d7622c2519cc010c9c874496cae8": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-5000.bin"
+  ],
+  "b17215234421c08e5bde29bb6f6024bc15ee55a02d4e7c21847a2b2a9907aaba": [
+    "04_莫特肖特基/20251126/CWO/CWO-2-5000.csv"
+  ],
+  "218234a42e38a3328d8e889fdc09ce7253fcfa1896926b3696653930a8a7fb23": [
+    "04_莫特肖特基/20251126/CWO/CWO-MT-YS1.xlsx"
+  ],
+  "2bb2313d9ea7ee3fed0ef935f55b9fb64f28a386a874daa8da49fcda7bb040ed": [
+    "04_莫特肖特基/20251126/CWO/CWO1500.bin"
+  ],
+  "bae75e98ff90cfe25060a6d692390d9cfe17dbd0623afaafd2d8f945233852b0": [
+    "04_莫特肖特基/20251126/CWO/CWO1500.csv"
+  ],
+  "0b64b0478223328422e7be9fb60136a449f942fd692d74dacf4b45fe2d581816": [
+    "04_莫特肖特基/20251126/CWO/CWO2000.bin"
+  ],
+  "d1fc1ba0da6de6ec8376b47cdc14c0728a253ff0ce109eccca8dce70cdffbbd3": [
+    "04_莫特肖特基/20251126/CWO/CWO2000.csv"
+  ],
+  "b01a9420a6478eab4e9b2f83ace8fabb708266e025aeaa769b9f852dd7fa103a": [
+    "04_莫特肖特基/20251126/CWO/CWO2500.bin"
+  ],
+  "0140f7ee6d57aea3be38cad31e750c455ef98efbf1f0de77afde154f6cace99f": [
+    "04_莫特肖特基/20251126/CWO/CWO2500.csv"
+  ],
+  "1462427453b6f6b63db639919ad292872a52c032eaf4720bd62b0c473972da42": [
+    "04_莫特肖特基/20251126/CWO/CWO3000.bin"
+  ],
+  "222db31f9e8d48e2eec4a3b70252badbde820189d6a455b474b7d00ed91157a9": [
+    "04_莫特肖特基/20251126/CWO/CWO3000.csv"
+  ],
+  "e73a63b0b2da00a0918dde824e4f5a68c288c8cd9fae2a06678605dba8f64315": [
+    "04_莫特肖特基/20251126/CWO/CWO3500.bin"
+  ],
+  "6222bf6e3c7e90f01617afd29a11fa28ecfcefc865c1741e0fc0dc2d2a3b0407": [
+    "04_莫特肖特基/20251126/CWO/CWO3500.csv"
+  ],
+  "47232cdd22b9c3c75b29282942286e26d53c722afa8bc994820ecfc80636f93e": [
+    "04_莫特肖特基/20260121CWO+BOBC/origin_project/BOBC.opju"
+  ],
+  "c59e10cfa0e591e66d9f3b84043763248485db99a2d07a70e87c0ae2d5dca51b": [
+    "04_莫特肖特基/20260121CWO+BOBC/origin_project/CWO新.opju"
+  ],
+  "cbc1ef6a9f94d4eecf58ecc3bbc3b44d7632c966b7be432c0788c5f3e741a5b8": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2000.bin"
+  ],
+  "86d3bbb3df69e7b64801907b6ff1a389a67a3fa187093699f2ad9a58453ffef8": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2000.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC2000.csv"
+  ],
+  "5dc46d56dbeb7e4b7447cc411e68d7c50cc89b87b870b3f1ba15ac44616fee3a": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2500.bin"
+  ],
+  "376aae62aa1fc3bf0ee43826e4c59d8e44d9ba93d7ee22d4f1725de0bcd5f3d9": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2500.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC2500.csv"
+  ],
+  "1cfd850b82a55f12a17e199aae59222e4ca507a1cd0380d1f8b34d7a147fd736": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC3000.bin"
+  ],
+  "675b0f828efa71b10ebbe8ddbf332163c7532f95af3f8b014ce0a7fbdd880d2c": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC3000.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC3000.csv"
+  ],
+  "8529a8213a0ca7f13f3f09a1a73a93b7d6a6877dec00bb8bc5d3732922f27195": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC3500.bin"
+  ],
+  "a289a6183e770f9caeafcf343bc6defc70f6abc40a472719e0482e05353c484d": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC3500.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC3500.csv"
+  ],
+  "85a845a5f33072eb366138c9c563ef0e54d6367b3cef074e5480d131047f2339": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC4000.bin"
+  ],
+  "353440666408ab6324e2820a379219bc29ee9f18d85c91385036651af45721d1": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC4000.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC4000.csv"
+  ],
+  "d8649a7b88406bd303108d93d34a4a5755796b9d762d1ebe5924011b878bd006": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC4500.bin"
+  ],
+  "c7e897d5661e0feab8865db965af8696da26b97fff500834820ef95c2ad9cb40": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC4500.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC4500.csv"
+  ],
+  "1c76fee5b419125c3ff2f11dbd32c0ea678376215aba6036b93d225285b23e9c": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC5000.bin"
+  ],
+  "5bbc03b3ee31852fecf80a9f450ffe356a0acca5c7bcc4dd7d53999abe9f6d65": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC5000.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC5000.csv"
+  ],
+  "74ba33abe0d4ce2584bd304c7da302c46ed9202e0275506a8acc3da6f92aa696": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO1000废.bin"
+  ],
+  "cf9964d4629a9b4750426c12e02595e8bbc2161a07f05836acdbd1145d4c7168": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO1000废.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO1000废.csv"
+  ],
+  "1626edb6d4eeeced91505f979ab8dc406e2e62b29ed3c3083b63c6ea11d684ec": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO1500.bin"
+  ],
+  "3dc13cfe43a7316a3165c897a7b34fb189e85fbd3f80faeba136896aa2d0541f": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO1500.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO1500.csv"
+  ],
+  "8dae7d8d88717a87dc27900efbadffcbd3dabb7a7fc43e260a8c7b053e432340": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO2000.bin"
+  ],
+  "eb26d4095ae02e2bd07e3f6bb65a6f4aa90a4bf58ac51da0393c50d20232d662": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO2000.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO2000.csv"
+  ],
+  "8eaa2ad0df98e282f985f14a4d32c419ba77494cc9f091fbb8fabffa27d272f6": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO2500.bin"
+  ],
+  "4a52bfb6c0d22740434f8105706ed0a4283e6cac610ec161c86f2c3883ffef3e": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO2500.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO2500.csv"
+  ],
+  "c306f380918b11f9afbc30bddb6710dbd41cb5a9a507390d04c7561e30997029": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3000.bin"
+  ],
+  "9db37cd7027aae667aaf15368f202106b4c232142dce41c4f8d7790926a36006": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3000.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO3000.csv"
+  ],
+  "da0881e7c6c056d1abf8d5e6c551ba0226969855e3c84de794f3989f2ec3ae26": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3500-2.bin"
+  ],
+  "4f75c2e616506f713f93f6034d14cd86ce639a2b4e44a68353428215ed8e37ac": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3500-2.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO3500-2.csv"
+  ],
+  "73869155c1c957cba23505dd4caf8bd5057e8da8aa3ebcafbe15d7bc94860e29": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3500.bin"
+  ],
+  "6a51c6671d49aba215d900d1570a01ad7bc79c31701395f46d8f0348b8f061e3": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3500.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO3500.csv"
+  ],
+  "144b08da9c2950392f2bfca7f625817784ea18ac46d952932c810e88b523b5d1": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO4000.bin"
+  ],
+  "743ce9d22793f65e9f1afc8ffcbc16737d28d9ebf9ff24c8e703237261a11141": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO4000.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO4000.csv"
+  ],
+  "6d2f9fb8a85270dc5e032bc7de9209817c8d0792863ca3f8f81dbc72431d85f0": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO4500.bin"
+  ],
+  "eb87f575a25b9c176e6984e73605f551fbfc17dcec27d6c4a977aa9055cff8da": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO4500.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO4500.csv"
+  ],
+  "8626069a7ed2485f45e782dbde9e72d2a2062f358f55bd1107db19e9a10a5e91": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO5000.bin"
+  ],
+  "2d81d0bb25237865323344c1e39e0f77e29ac40ecd7f4af9bbdccd69d26581a8": [
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO5000.csv",
+    "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO5000.csv"
+  ],
+  "9a700def8de8b6d5bfca961653e4a3d7fdb6047c482b6bee17166a728e1fdfab": [
+    "04_莫特肖特基/BOBC/exported_figures/BOBCMOSE能带.tif"
+  ],
+  "2f1ee75efa068825ebbfa95cc44445227ba656303fe6470cd43a66a013f687e0": [
+    "04_莫特肖特基/BOBC/exported_figures/BOBC莫特肖特基.tif"
+  ],
+  "7ed22c34fe7475913a105a327b27e70cfdd620974a91907164620f96b4dc3607": [
+    "04_莫特肖特基/BOBC/exported_figures/CWO+BOBC莫特.tif"
+  ],
+  "6a9eaa88bf3385a2c635b905e2d9b658be02d54110838147ef6b806ac1e2606a": [
+    "04_莫特肖特基/BOBC/origin_project/bobc.opju"
+  ],
+  "964b7b4a9a560f074dddaa11da0f0f34cfa8c949716ca6f601ff8da3162ef3fe": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC1000.bin"
+  ],
+  "8baccf58e1033c52e8f90e14113ea403e2b59b1a4115906d6b234c27e13b75e8": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC1000.csv"
+  ],
+  "0dd6867d922f03c5213b3b6c38f7a902dab8da46cfa089537778cf2fc259aeb3": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC1500.bin"
+  ],
+  "ead02bb418d261879ceffaf4c5775a0471556e49a38fd0df51c1e9c673b9d294": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC1500.csv"
+  ],
+  "7f445fcb785a357c401cbba4f088f11315066d23309f77bcd75b2b75ab05ee0b": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC2000.bin"
+  ],
+  "ce4881536e0ac0663137a58242ad87bf7c1edfc2781b0aa3242639d617ab4bf0": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC2000.csv"
+  ],
+  "5a8c3ccb4d5f851c56b25d8cd0ba5c09d7469590d432334bb244e04353d95197": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC2500.bin"
+  ],
+  "077eeb12cfc36dc427f6da9d02e5db243d1595ed1fff430f612c5d0d9c5722b4": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC2500.csv"
+  ],
+  "06f7935f49db7f4f64a84a7f968e8b4e5e016f36042afa516f734aac69d1550c": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC3000.bin"
+  ],
+  "9861f84cf95629e85457d1ab91241ffc40f81557e5dc29eee69b29c660f4240e": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC3000.csv"
+  ],
+  "7b8ba9096c1f02b5cac29b29d9a2bf07aea226a444478e7b0960e6099c9c863e": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC3500 2.bin"
+  ],
+  "31b58c0e1b778e60f4ff0071126582d35efde6ff235a6ccf23331d55ad6317f6": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC3500 2.csv"
+  ],
+  "22b222676675b3fb9397d0076827cd7504db4144a9b5620e44f5b8a3f272906f": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC3500.bin"
+  ],
+  "c3a9d6b16b470f5d885928f52f1bbe1c2af64743d48551e87acb254bbe91eea7": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC3500.csv"
+  ],
+  "a309c42f01e0e52bbe3ea42d4474b6c6807806ebc6a8d6909d05dc36a9e6a99d": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC4000.bin"
+  ],
+  "3da0ca922522e5abace1a3ebdc8acfa1be8916376cbe415df44215cb9f2768f6": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC4000.csv"
+  ],
+  "f125dcbdecc1aa4806532765d13de393af277683a9dc71b2cb84da23f08dfcc7": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC4500.bin"
+  ],
+  "206198a1bc2dee6f7a63f461fe8150cc7495d04fc0832299bad1f63fa6759a02": [
+    "04_莫特肖特基/BOBC/raw_data/BOBC4500.csv"
+  ],
+  "2ac4a1f7068b921c9c3cdb039cf895c1af69d585ea21550d5d80e51f4e0d0278": [
+    "04_莫特肖特基/CWO/origin_project/CWO MT-0.6.opju"
+  ],
+  "4bd8a9ab90a5d9648c56319890b071f0f1f40f65f66a7b403d477226924fbc3a": [
+    "04_莫特肖特基/CWO/origin_project/CWO MT-2 +0.3.opju",
+    "04_莫特肖特基/第一体系确定版本/MT2/origin_project/CWO MT-2 +0.3.opju"
+  ],
+  "73b0af83fe61273c3f4f751244780911397ba5c37541cb6272ca394cda62d7ea": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/CWO1000.xlsx",
+    "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO1000.xlsx"
+  ],
+  "0fe26cfc870bac39006bffc186ededbc9bcbb92ab591a608e879c2830453fdc9": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/CWO1500.xlsx",
+    "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO1500.xlsx"
+  ],
+  "75b2a6fc033f91e0478ce69c2e37a71463d52cbb7d906c069493dd83b67c0ad9": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/CWO2000.xlsx",
+    "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO2000.xlsx"
+  ],
+  "c3cb1e005842e1b81e4b5f2ee09ca6d087c4d1cf53d7c8ca800fface009d8b03": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/CWO3000RE.xlsx",
+    "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO3000RE.xlsx"
+  ],
+  "940ace8e85cc353ce5e7c15676645461d0025c67eee641fc3da804aa253262cd": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS1000.xlsx",
+    "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS1000.xlsx"
+  ],
+  "d3aa696d2b59e1af1dd9e70bf1a72a00f4bf3dcea3baf1f0b06321537d764e24": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS1500.xlsx",
+    "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS1500.xlsx"
+  ],
+  "5286e7eae7c9a4d516896067a06dce9a2911ea6355cebf49b7930650797619fd": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS2000.xlsx",
+    "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS2000.xlsx"
+  ],
+  "78f508b105a5422f2c87b63add0ef4d53012fa9bc761cc317b6da7c0af00d980": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS2500.xlsx",
+    "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS2500.xlsx"
+  ],
+  "0fc3a5f2d7998d8efbdf8d18d3e0b6f4eccd6e383e3edf5f876f2d9170fb12ba": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/MS3000.xlsx",
+    "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS3000.xlsx"
+  ],
+  "36c7f57049f5f042ef5a1918b81314836a443dc2ebae477084d587257c9f7c46": [
+    "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/李霖25年11月20日.pptx"
+  ],
+  "7aef807c62e54280da056a80a3e9321bcf39858072593c137c0d92c6acce3fa8": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO1000.bin"
+  ],
+  "216e8e4129708c0346f56f05b38b742fb9f9f6345b6af8be80fbe3e03dbbfc07": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO1000.csv"
+  ],
+  "69fbdfdb4c3d6c6aebfe7bbbb01f5e225b0c403e019e51c7eadb98c1450fcfe7": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO1500.bin"
+  ],
+  "6f07d4dba8b8587fe8b7eb427a6cf1ce825268a601ccf2c8ac509435fee17b20": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO1500.csv"
+  ],
+  "63c4611d45f3b9b31ee0f5a8fb7587f33a419156a8ea0309be0971e7342935c3": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO2000.bin"
+  ],
+  "cb0516065c7d17cddd46bca6f566c3bf5e202ff0fa9e9c8e1eeb166668b2191f": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO2000.csv"
+  ],
+  "4233d17f674e00ce31ee8a4a72bf28c1715385c83ce1e639fc81e6a029778072": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO2500.bin"
+  ],
+  "05c0dfaf9ae22cd570e24a8ccc477bb22e2c6ef9a79db987c1a97694b06a0d03": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO2500.csv"
+  ],
+  "5462bf9ce5771303a9d4d12a1245ff8e61901ebc8c9a27bbcd32f3c2788ae19d": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO3000.bin"
+  ],
+  "bd4227e659d68fb800dee28fe4970aad5a015f410008ab99c123c393cdf52410": [
+    "04_莫特肖特基/CWO/raw_data/MT1/CWO3000RE.csv"
+  ],
+  "413949f37a0ee38f1339f5a2cb88ddbc34c7c50eaabbc31c6a79b3072ccd25bb": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO1500 2.bin",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO1500 2.bin"
+  ],
+  "391b6a8636501df77c5e13770276dd98487cabc92ba9675aa8d69c8840c85a7e": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO1500 2.csv",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO1500 2.csv"
+  ],
+  "49225c1c0c6c158f6833cfe5fad500632590988a3457a288677441cad77c9137": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO2000 2.bin",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2000 2.bin"
+  ],
+  "9768556c67753e2d058957bceae8c5b0c98e3e1fce8a9e2244952c120c20981e": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO2000 2.csv",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2000 2.csv"
+  ],
+  "c52ecdf516fe632986f4bb46c122bfecdedca7eb6fe4b5d64699564e2f83e23b": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO2500 2.bin",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2500 2.bin"
+  ],
+  "09ba8641b6c0b8eb1637f6fa769734cee5013a28c1b51ecec857046a14ff1da4": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO2500 2.csv",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2500 2.csv"
+  ],
+  "add0068d92ee8f532105c8c0e50b0f60738972cff5a2c9186e09509fb65a43f2": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO3000 2.bin",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3000 2.bin"
+  ],
+  "48f3531bf2c6539114311e555febdd45e1c6e8c088b96e39e9eff508d9f8cae2": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO3000 2.csv",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3000 2.csv"
+  ],
+  "c3491a9b3b3209a3226dbe61e358e0244c7b355a656d665e60a87eaf92a79f9c": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO3500 2.bin",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 2.bin"
+  ],
+  "71355076d7d193ad379f92ab44e5a449cb4a319b653a27db55ce1cfcd863537e": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO3500 2.csv",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 2.csv"
+  ],
+  "b036ada294e946d48d60b954958f71017759c3a3740f24f96dc527b607d1bafb": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO3500 3.bin",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 3.bin"
+  ],
+  "14ea95dfbff3186265d6e9b49abd2bacc77e3520f4f1cdfad59f599928030ebc": [
+    "04_莫特肖特基/CWO/raw_data/MT2/CWO3500 3.csv",
+    "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 3.csv"
+  ],
+  "7cb41d3b2e2b749a334847b8403325f751727518b7fb732e6895d0803aca028f": [
+    "04_莫特肖特基/LL/BOBC/1000.bin",
+    "04_莫特肖特基/第一体系确定版本/BOBC/1000.bin"
+  ],
+  "18de7421b572bdd2fee04cfa8c6e7dafa24a36764acb644b9548e2e01aec644c": [
+    "04_莫特肖特基/LL/BOBC/1000.csv",
+    "04_莫特肖特基/第一体系确定版本/BOBC/1000.csv"
+  ],
+  "db097c680c6c8ff31e0ea8056a3770d158a92da278349ef5bbb8e46c48eb061b": [
+    "04_莫特肖特基/LL/BOBC/1500.bin",
+    "04_莫特肖特基/第一体系确定版本/BOBC/1500.bin"
+  ],
+  "e560e60af70356cf32f8b64cd3d02e5de8e23cc05cef8343e24512216dbc5fb0": [
+    "04_莫特肖特基/LL/BOBC/1500.csv",
+    "04_莫特肖特基/第一体系确定版本/BOBC/1500.csv"
+  ],
+  "ad1e4440bd5ed47855fd4e09da45bab198c6a9dc76e2ae266f8be4990cd130ab": [
+    "04_莫特肖特基/LL/BOBC/2000.bin",
+    "04_莫特肖特基/第一体系确定版本/BOBC/2000.bin"
+  ],
+  "3b85f52d7e15efd0dc56f165927ab554a6e82755f494ca796e64952c458254a5": [
+    "04_莫特肖特基/LL/BOBC/2000.csv",
+    "04_莫特肖特基/第一体系确定版本/BOBC/2000.csv"
+  ],
+  "65bcc26fcf9de7f4b090e1521bd0b0dc78100156c4aa1e901bef7302892ffb57": [
+    "04_莫特肖特基/LL/BOBC/2500.bin",
+    "04_莫特肖特基/第一体系确定版本/BOBC/2500.bin"
+  ],
+  "829d1bfcd65e4c1429f53a2e3dcc0d1418e849c13b1f9d98b48392f562c727cc": [
+    "04_莫特肖特基/LL/BOBC/2500.csv",
+    "04_莫特肖特基/第一体系确定版本/BOBC/2500.csv"
+  ],
+  "b93990e2f09953b8a7e7ab34af8cb9639ee6e52dae2c90aea184685d7c3494d5": [
+    "04_莫特肖特基/LL/BOBC/3000.bin",
+    "04_莫特肖特基/第一体系确定版本/BOBC/3000.bin"
+  ],
+  "85b8b423e841b38262ba504bdb3a8b98d9932d5e7b411ff9834ecba742f8c2ee": [
+    "04_莫特肖特基/LL/BOBC/3000.csv",
+    "04_莫特肖特基/第一体系确定版本/BOBC/3000.csv"
+  ],
+  "7a9f214a0621a220b22fd5e09da4c2addbbbbe5b27fc4cab2b2387e22fdbde77": [
+    "04_莫特肖特基/LL/BOBC/3500.bin",
+    "04_莫特肖特基/第一体系确定版本/BOBC/3500.bin"
+  ],
+  "472bc4e2ba92c5bc9983958d15703238efe1bd7795d68da2e6272ca9211a41df": [
+    "04_莫特肖特基/LL/BOBC/3500.csv",
+    "04_莫特肖特基/第一体系确定版本/BOBC/3500.csv"
+  ],
+  "2fd7739754b0bb1271b5d643bc3521f682e62fa61ec573686771484147026b64": [
+    "04_莫特肖特基/LL/BOBC/4000.bin",
+    "04_莫特肖特基/第一体系确定版本/BOBC/4000.bin"
+  ],
+  "9e754ae7cea13485a786543e9962b23c549255be32f005cd290865a844e0a012": [
+    "04_莫特肖特基/LL/BOBC/4000.csv",
+    "04_莫特肖特基/第一体系确定版本/BOBC/4000.csv"
+  ],
+  "acde0b320c2da027f1a62be630a389b32043ba071918f46e54438ef096a816c3": [
+    "04_莫特肖特基/LL/BOBC20251023/BOBC1000.xlsx"
+  ],
+  "fa02cf1c81c110edc4032421cfed8c76fbfa22aaefc5b83180214158fe88aa23": [
+    "04_莫特肖特基/LL/BOBC20251023/BOBC1500.xlsx"
+  ],
+  "984ef367c80762b4319a6281810f6c31dce6bca7786bf536e46f7bc26595dec4": [
+    "04_莫特肖特基/LL/BOBC20251023/BOBC2000.xlsx"
+  ],
+  "1fa747a84e0b15297ab2312b1c3b7521d6d9cfb3f98492bbd8a4380716f0e56c": [
+    "04_莫特肖特基/LL/BOBC20251023/BOBC3000.xlsx"
+  ],
+  "944a6de2c899b70f6a665c02091832541ae355eaebe5e1158ff7df994f6f5e0f": [
+    "04_莫特肖特基/LL/BOBC20251023/BOBC4000.xlsx"
+  ],
+  "b4c626c400005f8d375c6ab31c659f136e834179732ea968c647212c89cb07e6": [
+    "04_莫特肖特基/LL/BOBC20251023/BOBC5000.xlsx"
+  ],
+  "43923e274429e356f501088e5386efcec52c4d64c0b56836a3a374ed008c7048": [
+    "04_莫特肖特基/LL/BOBC20251023/BOBC6000.xlsx"
+  ],
+  "a42c4cca06383ead43dde597fba826828322697b7c3482281111854cc0f89639": [
+    "04_莫特肖特基/LL/BOBC20251023/MS1000.xlsx"
+  ],
+  "a6f44c8ecf086c16f65daaa1efce06e0a4b20159b8c8e9bb839afe33bcaaa2c3": [
+    "04_莫特肖特基/LL/BOBC20251023/MS2000.xlsx"
+  ],
+  "f36e7ec2a9b14587e518808ec6ce23fa5a89f542a0ec2438e285a220174c899c": [
+    "04_莫特肖特基/LL/BOBC20251023/MS4000 re2.xlsx"
+  ],
+  "747f2d08f33cfe84632431bbafbf663f37e0aa96719467d96d220875d2645898": [
+    "04_莫特肖特基/LL/BOBC20251023/MS4000.xlsx"
+  ],
+  "aa0801b54951f54574f7f441151d7ecf664304aabebc4d26e85fd0596bc545c7": [
+    "04_莫特肖特基/LL/BOBC20251023/MS4000RE.xlsx"
+  ],
+  "7ec5259b3fd76894e15afdfbf51d29e12e4c9cd4b4cd26cbb6aa79310784b2dc": [
+    "04_莫特肖特基/LL/BOBC20251023/MS5000.xlsx"
+  ],
+  "0b70bc504ad10f387295c97e2bb213ce4bde39852af09ec64a86a5fdd93a8391": [
+    "04_莫特肖特基/LL/bobc数据处理版本/origin_project/bobc.opju",
+    "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/origin_project/bobc.opju"
+  ],
+  "d40e36d571cedec9573de9bfbeba788cd5379fa9d09032c19e1240b6d367b82f": [
+    "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/1000.xlsx",
+    "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/1000.xlsx"
+  ],
+  "84cd85fb4554071d11736b5f9d300afe8b6eb762be5cad04b9cbc102fc108caa": [
+    "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/1500.xlsx",
+    "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/1500.xlsx"
+  ],
+  "e07e019e39022a761ed5f0b21de6c9c0734cb98f5875223604ee9de2a3353b28": [
+    "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/2000.xlsx",
+    "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/2000.xlsx"
+  ],
+  "3e7c9f44e77a2d04b33dc9f3678f8a9d9042deba575a29d424f2064104aa5e6d": [
+    "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/2500.xlsx",
+    "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/2500.xlsx"
+  ],
+  "63d4cee6fcca3970762d97410e26913f72e4d856fb733345aff8d6ce35b3cff0": [
+    "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/3000.xlsx",
+    "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/3000.xlsx"
+  ],
+  "ddbbbb7f307cf30218ca21760c54c4b1f2ae608f78eaa947d857cc1eed06ddaa": [
+    "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/3500.xlsx",
+    "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/3500.xlsx"
+  ],
+  "6301eff5c35b98aae02cfc4e1f790ae2a7d4d2f1f94bc55430255e42d7b6f8f0": [
+    "04_莫特肖特基/LL/bobc数据处理版本/processed_tables/4000.xlsx",
+    "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/4000.xlsx"
+  ],
+  "bc79609d22903b4dfb779ac91acb8420b3c1eb0be9fcd42593b997daffff0317": [
+    "04_莫特肖特基/LLKT ms/20250905/11MB EIS.csv"
+  ],
+  "e574968e6198d7285be23b87fded876c9cf047dd3371677228db2a39a30938b3": [
+    "04_莫特肖特基/LLKT ms/20250905/11MB EIS.xlsx"
+  ],
+  "c614ed60e1c3d00060cf03cf4dc204ea0b14f6b6299e036883719afa977189b7": [
+    "04_莫特肖特基/LLKT ms/20250905/13MBEIS.bin"
+  ],
+  "c9acf6b3432e2447c3f21b4e1be1563269f62b7ece2a8b2caff98b37f043a5f7": [
+    "04_莫特肖特基/LLKT ms/20250905/13MBEIS.csv"
+  ],
+  "3f9a31f65847642ee910bd4b15422127d1815e3f23869f32e0ea51f84c85cbc5": [
+    "04_莫特肖特基/LLKT ms/20250905/13MBEIS2.bin"
+  ],
+  "a560348e640b8161aab81bb855d1b977cb1002df904be5c071cac606e2bb87e9": [
+    "04_莫特肖特基/LLKT ms/20250905/13MBEIS2.csv"
+  ],
+  "14e9098637ebf1ce9605726a15cefdbbd48213116cc61769ef36a04b3dc4815d": [
+    "04_莫特肖特基/LLKT ms/20250905/13MBEIS2.xlsx"
+  ],
+  "b2791a10faa6d4e192bf9255755203afbf720fc999ad6992d28c7c1c3b37bb6f": [
+    "04_莫特肖特基/LLKT ms/20250905/1mbMT1000.bin"
+  ],
+  "6a6becbeda275f9bd14c99be106c2c3be8aada449cf24e2029e8ce4224262068": [
+    "04_莫特肖特基/LLKT ms/20250905/1mbMT1000.csv"
+  ],
+  "c5c6e5b3c88ead4237e7284e8f8c2a35bfa1e92d8b99d483d422775341a73bab": [
+    "04_莫特肖特基/LLKT ms/20250905/1mbMT1000.xlsx"
+  ],
+  "69957618b85dc56c52de678055d52650e0ae15429af801e9fcde2c32db91e9df": [
+    "04_莫特肖特基/LLKT ms/20250905/1msEIS.bin"
+  ],
+  "6ab9759ab8ec000fd127f9c046999d5b4ded0c2b46e48fed63d13e907f2c1c43": [
+    "04_莫特肖特基/LLKT ms/20250905/1msEIS.csv"
+  ],
+  "f70f9710f99b4633c608710937aad7f29e88f3ef415335608368e5860b6e1f00": [
+    "04_莫特肖特基/LLKT ms/20250905/1msEIS.xlsx"
+  ],
+  "f2db2277d447f3a19a9d6933fac91e118e9cd828f9ecf8e207ce569549f09e82": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT1000-2.bin"
+  ],
+  "a7646667f4cde94bb7feab83e63f203795a0e2f9f0114e0e63dce7b51691b705": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT1000-2.csv"
+  ],
+  "d08f3df96832ae235a9f83f8f124c62b18ef50096432e8c94812a2895688904d": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT2000-2.bin"
+  ],
+  "c094a03ba97f9060c65589e75b83e0f77df70c8b53b9ae75318f5b643fc6fe80": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT2000-2.csv"
+  ],
+  "dd05770fa9030dbab92246a1d369677d544959a1437d414740b4f0544a2e3f6f": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT2000-2.xlsx"
+  ],
+  "4c2b5c496b20f9568ffd13edc46e0ab67fd3002bce4b71bd1f32f8aeac8282b6": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT3000-2.bin"
+  ],
+  "b673de2bc14bbf608ceed673fa9ccb8a899fe0ead848364d66662e71d3de5938": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT3000-2.csv"
+  ],
+  "873255741ac18beba23fa1df4236d04e06533b231afc1c1f91b78205de47dc5e": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT3000-2.xlsx"
+  ],
+  "ea6dc443f3d07b48af9b3b6bcad7be4a0d723d7a44196dd446022c9d7700821d": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT4000-2.bin"
+  ],
+  "acb228a03c7aee8858687b4af26d4dbf50f7b4dcd7d2e1ac93e7234200158025": [
+    "04_莫特肖特基/LLKT ms/20250905/1MT5000-2.bin"
+  ],
+  "12c2136fa0851cd5e0ab68fc588af12720834f95b36f3e46e69ded09c5fec516": [
+    "04_莫特肖特基/LLKT ms/20250905/3mbEIS.bin"
+  ],
+  "69de33fbedab1053efc55e1a9daf8cd0d401e60d9551ca3eb4b9ec3dabc378d4": [
+    "04_莫特肖特基/LLKT ms/20250905/3mbEIS.csv"
+  ],
+  "5f85608d87f67b114032653748b1207c6f37af533379ca612f5134d27908a5b3": [
+    "04_莫特肖特基/LLKT ms/20250905/3mbEIS.xlsx"
+  ],
+  "601d6529824c1ad6994a588ccd0728b52e3366c4220d55fa3cecd55247a6a290": [
+    "04_莫特肖特基/LLKT ms/20250905/5MB EIS.bin"
+  ],
+  "6a095f5458dbdf3df2d1af2c3909b1e71737913e5b454e28e3bf536fbc1607a5": [
+    "04_莫特肖特基/LLKT ms/20250905/5MB EIS.csv"
+  ],
+  "413aa7162526548a5b086f12993b9b3e4b97bbb5c18ec65b7a1cc502f4c263f7": [
+    "04_莫特肖特基/LLKT ms/20250905/5MB EIS.xlsx"
+  ],
+  "6a4dded8fbaf93b2c3ffe1b7e3e6f26189dec46785fba1512fe58b1aa23190de": [
+    "04_莫特肖特基/LLKT ms/20250905/5MBEIS2.bin"
+  ],
+  "9b42e891bf1e6c1f6b069d765bc5a6b6f9156b90625529679e677fc554b24af1": [
+    "04_莫特肖特基/LLKT ms/20250905/5MBEIS2.csv"
+  ],
+  "96f2e0a26b7d33d341408cb6bca9609238e5c96fa000a44a3143ce038c8dfd22": [
+    "04_莫特肖特基/LLKT ms/20250905/7BMEIS.bin"
+  ],
+  "0018546ba28f31b877c5e30d66882ccbb3299c92aa0ac76a78260d712b14f3a7": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bm.bin"
+  ],
+  "e694b05bb26c45a232a4553894889741d8563e4a6ce8095870b714dab3aa6181": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bm.txt"
+  ],
+  "f9111c1c91e6c5e0807a5b3dd42322d917847fb2f29af021fe23c16dec888edd": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bm2.bin"
+  ],
+  "f49c4dd15210232fe5bd56cca5e811c47cc957a1d9fb9adcfc2a2a1d2c4bb35e": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bm2.txt"
+  ],
+  "89b7755d1c913d1bdb3d181e20882446d0487834ad11eb93be15f5adf2c9d04a": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt.bin"
+  ],
+  "955ab16a2f3ac36f88123db0a967145c2433f2d102495a2a17e4d533fb69bccc": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt2000.bin"
+  ],
+  "546283962d107250819e16834bdf33198d0c7cd80edab50ff0741a6aa3e797bf": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt2000.txt"
+  ],
+  "013f832db5c39249ab82e6f8b0d153ff05c3f3986550b46234324ac0392f7e19": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt3000.bin"
+  ],
+  "50b872482ddba7624e74bfa8a55b81c242eacbcd24612c87696741be19212637": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt3000.txt"
+  ],
+  "da09ae77a28bc4e54dd127493b3dbaec567f622f1c96dd27bdb1aeb294b5bad1": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000-2.bin"
+  ],
+  "4a2800716a8e8f03c9dfc0cd8279b76751f51f5d2537da1653b652d1bb69adf3": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000-2.txt"
+  ],
+  "e3641c316409b2b863c56e8c9b11f501d3ac9e1ba09b6df2ad27481005f2c3d4": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000.bin"
+  ],
+  "d7ce80450587d6c116f921b2509e301340435ce88300c2199d709a8daecd1b61": [
+    "04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000.txt"
+  ],
+  "8ab092768e7deff9f6c5fba95972b4a27bf932a16e39e26a3052ba88e868f389": [
+    "04_莫特肖特基/LLKT ms/MOSE.TXT"
+  ],
+  "5797c22fe4f361f25bdb9811b3c105cb2bf0ed1caa5e92c3b23176a5302cfe4e": [
+    "04_莫特肖特基/MoSe2MT/exported_figures/MOSE模特肖特基.tif"
+  ],
+  "2afb49cd2fdb1554a2f19ef3e3309f21084d2c85891142937802543a24657a4f": [
+    "04_莫特肖特基/MoSe2MT/origin_project/ms.opju"
+  ],
+  "35e3887114fca48d839612d6e90c53d63c1f717ed3531ef61caee0b7fcd3577f": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS1000.bin"
+  ],
+  "7103dc08c4c365d0ea4045e9e8e21b92ba24faab7369be8cc7fb63bb9c0b69e7": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS1000.csv"
+  ],
+  "c653a918f582c98e3049638b98d79edae394a92ea920c99692aad7d2588644a0": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS1500.bin"
+  ],
+  "ff39bb101f2a9ee16e4127fea1c6139df5a78489a22dc9de22530e2c0ee4e056": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS1500.csv"
+  ],
+  "8d3d53e2a324e08da67d637fb05c6218401efb754aad6aee83976b4a8fc25fc9": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS2000.bin"
+  ],
+  "c8ea473a84d06b9f94e0f869c19b714e9dcca90b532409960965a7f8397b6561": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS2000.csv"
+  ],
+  "405c129cdf4718857903e989d73a6d21a2bce0dea54a49156a13c8e1324d630b": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS2500.bin"
+  ],
+  "80056116ab8b1537dce04e0511bdbb4457336eb8eba8c7768e6f0d52f25c0a2d": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS2500.csv"
+  ],
+  "e685a019c674bec716e8f44fbd5399ae324d85ee9e6c373ef0450738de8e4fb0": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3000.bin"
+  ],
+  "2701f9fb1ebb396587451fabfddebbabe9cb6cfa9b725b2dd62f100175a26b8b": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3000.csv"
+  ],
+  "b4daabf9a3ec3c1a1baea273e696e8c1a89c722c5fdbd3a0448e289e6a29e0aa": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500  2.bin"
+  ],
+  "dbe1b2f0b50d3ab69f9419b5f068a1a04c4417e6d815f644cf85946744e7a0b7": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500  2.csv"
+  ],
+  "7be8f34fcc4080ca7676283e2d24406952ef5f90f80afa10f33957071a8965aa": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500  3.bin"
+  ],
+  "4ce8ff0e1758ebf7aef714469984841cab5254769f7d700029d5ea29c176cfa6": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500  3.csv"
+  ],
+  "a16d75a93055d46fff95f94d7d06955ca52fee8d3d36fac7483f15e5991e1608": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500  4.bin"
+  ],
+  "f41e0872be6c2b8bebd5a07dd7eb6b4554fb76da2031d3c96928d4b5482b3349": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500  4.csv"
+  ],
+  "2846c858529327af25f2f51fe6ed03177bd68dcbf36650bfe6528ffbbe676b08": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500 5.bin"
+  ],
+  "9b5bff0bb0c3d47e56114e37740a0dc0282dc60d46f16939ee69c10e66c796b3": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500 5.csv"
+  ],
+  "62bef1559e8cc0de30807d87c65b36c0442e2daece508d2888b3b971b9a2e1f7": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500.bin"
+  ],
+  "013ab116451f606157ec9d29e013b9d6f5ee17989ff129ae8038b58accdb7a9c": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS3500.csv"
+  ],
+  "647a3d10274a073a17dbaaa201c5c356dabd00209409c57ed747e451a1f5b68d": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS4000 2.bin"
+  ],
+  "ff6f38e80cc06dd4cd8f9cfe9a20682da1dcc60c9baa2b2aee6c547e705f22ba": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS4000 2.csv"
+  ],
+  "56b53c0a61d9fdffe5ace8b5cef71d9fe4d6997685f72d215db2e9498ef5ea18": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS4000.bin"
+  ],
+  "25f89d31bb532b3b27959ba8e74fa9957f35ee1b5918065aadd5d9005987bfce": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS4000.csv"
+  ],
+  "d6ac76fbe3dba48be5feee0730170023770db53a439493f5b01e1c0d6b843817": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS4500.bin"
+  ],
+  "439492ee854d2437c9ecc218b917fdca53eaa4408381227f61e2cf7bd2a91c63": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS4500.csv"
+  ],
+  "3a7c9de5ad8646825f5c9ae56558aa703d7cc9341789f7353db0ba9aae3e6ac2": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS5000.bin"
+  ],
+  "a7d3e1fac82ca796cba9a748c1b68fd54fcb7a12ca71f14ccbbe21a48f808c10": [
+    "04_莫特肖特基/MoSe2MT/raw_data/MS5000.csv"
+  ],
+  "c44b655e8383a17029562ae618249524dccfb325a9d3b0b76fe8bad654c04e63": [
+    "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/origin_project/bobc格式美化版本.opju"
+  ],
+  "d13a2ad99f6bfbbc71f6d3ef3e1c8202baadb5947d0f1212cf84395e34a74d8f": [
+    "04_莫特肖特基/第一体系确定版本/MT2/origin_project/CWO MT-2 +0.3数据美化版本.opju"
+  ],
+  "a00708b0cd73d7fbbcc9c724f41f5447e699e09e9b6731483bd00c4aee3296c2": [
+    "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1"
+  ],
+  "cb84b72b0202c9bd9bac775c894ce37eecfef1b5af8a6c8ea02637ef75735365": [
+    "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.txt"
+  ],
+  "f892b2af6749fbd85633801fa82341418feaec06add8e1f84354bf698812e6c4": [
+    "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1.xlsx"
+  ],
+  "c558eb19a04e67cb1b8ddcf06077e5777ec48a1a056e2c62c19aa5a21ac7456c": [
+    "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD",
+    "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOODZVIEW.txt"
+  ],
+  "59edba1edde9b8291725b14c2263fccc1ace195e1b6598f60f33ff5217db0169": [
+    "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD.txt"
+  ],
+  "4d6bd364a810cbc4417214c421df91bb8b320b3be137e0e343e1fdc0fc599012": [
+    "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD.xlsx"
+  ],
+  "6c76bb95d4f7974432d5c6de3cfc43e212839003b822722c2551376abb7275f1": [
+    "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD拟合后.txt"
+  ],
+  "200a531ca9e9dc959d0760ab4039a4026d9b1c95bccb84057a9d2fbd6ed781c5": [
+    "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.txt"
+  ],
+  "2a2740bc21da70885018f289102e81ede891f255f2c9be45c668c9ce3ba59ebd": [
+    "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1.xlsx"
+  ],
+  "1413964e31371d3b715ecd2d34d241505d59617eceead98c966875caf9792e10": [
+    "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1ZVIEW.txt"
+  ],
+  "d3e55a7f07004f8c97919d6d34ff5336d1f989197800f99bdb8b44a7bdc046b5": [
+    "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.txt"
+  ],
+  "6fb4e4012893c0599ed1da735ecdcac20d9d121a9f747e1afac047b7be53c7d2": [
+    "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2.xlsx"
+  ],
+  "8d8cd76920a1853134ed30587d2c7c67cfc1e7a881b35a66ea95ddec7bf28a5e": [
+    "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2ZVIEW.txt"
+  ],
+  "d2bd5d756c5a578238b65c3cda137c733394ba333a216a7b239d5deeb7e7ef8d": [
+    "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS",
+    "05_阻抗EIS/20251106阻抗李永进/MOSE/EISZVIEW.txt"
+  ],
+  "3257b94fc230cce504ab9532a41a9f27c8a54b8697e96cacb4a55c224582a59c": [
+    "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.txt"
+  ],
+  "440c04242d224a24c62ae1b6330216ac88a26f5ed54d599ca9db01cb64e47dec": [
+    "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS.xlsx"
+  ],
+  "329c380bd8a51d2a17f7cb79ac3ee52ff8b1242c17d8e05467a26267a428fbe4": [
+    "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS拟合MS.txt"
+  ],
+  "f553f03bcaeae78bb0a56cd86e7f36289a0dd8e101ef1b644ad9bb422de7eb8f": [
+    "05_阻抗EIS/20251106阻抗李永进.zip"
+  ],
+  "c2a2e42956937608d3d065b1c8c77e2bf1ebabcfec4bda44677699f02cd5f52f": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-A.txt"
+  ],
+  "5a2eec0839efc979cec5d36798d96dec804c6fb9bfdb8aa07254be5307dc54a7": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-E.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B11-2-E.xlsm"
+  ],
+  "00c5e19f4743b2a47d507b673b7d9c89f4660820169d861f2def8c6ad07b9ea8": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-Z",
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-Z.txt"
+  ],
+  "d1126ca644c66aa98d7cfbabe0771a66f12c03a4c921ea27517d777a9d22a6d9": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-A.txt"
+  ],
+  "5db40792730907435228b93d55448105baacc380347ffe2a04c51a1bce8717f7": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-E.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B11-E.xlsm"
+  ],
+  "26c4bc702de56eee029b1929fdd5ca579246a8776abcbfcd46731c9a942669af": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-Z.txt"
+  ],
+  "06eac913e15fb12b8386d19bcfc27a8d3b8c3e6c49f9fa66ad5d1baeffc8f4b0": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3",
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3.txt"
+  ],
+  "10abde64e49d8509df63866644ed2063ce2c086792529fb9d5c867d0c802e4ca": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3-Z"
+  ],
+  "43c705100c099b1a9adadc057d4b187920ca34ad1dd6f7abe8cde90b7ebd3f14": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3-Z.txt",
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B7-Z"
+  ],
+  "617042798eeb38285cd3c4250da643711d29c63cc83cf155e5993a9828d871ea": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3-Z.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-Z3.xlsm"
+  ],
+  "c71e8976a0894bc3399327edb288ba81eef9c76ea16ae4f0c9090580ad8d930e": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B7-A"
+  ],
+  "06399f5e605f068366357a61ab061ade0d9b155788c1e929fd32401719cff471": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B7-E.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B7-E.xlsm"
+  ],
+  "eaa40974df2a2922ce2ab38564db04080812a1ebd7dce7a2cc666448343b4037": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-A.txt"
+  ],
+  "1f6b828356416d9647dab4adb363ed3695a5d5aa81c5caf9bb2fb5d669e4e1a1": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-E.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B9-2-E.xlsm"
+  ],
+  "cd90c6fca60774d7c08e9bbb36da98288bd1ac68bbc5be9eba59e74a286d723a": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-Z",
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-Z.txt"
+  ],
+  "accefea29056099b6d3401a6f39f944e75d26aade63dfda1179de7feb6ae1358": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-A.txt"
+  ],
+  "262748a8c75956dbf486ea5cb84fac0ca5459e9915dc84b235d7e6ac57e9fab8": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-E.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B9-E.xlsm"
+  ],
+  "ab209c0a8480c15fb75e0ef894fdae061389c7021882e99dde6b35fa70b4410e": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-Z.txt"
+  ],
+  "8c50623fd4b83d86141d7de6b8f013b49c26fcbb4e552f0cc097a800093e1049": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-A.txt"
+  ],
+  "34e27e225489e8fcefbabf49207eda0b8a70568b241491017f22e5178adc45a0": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-E.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-2-E.xlsm"
+  ],
+  "c4d46a703c0ccd383c3ba645a73499c2719c4ef55508d802f9b30c4f9f61490e": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-Z",
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-Z.txt"
+  ],
+  "01aa98f7a5fe3da7599cd958e0eb039b8e9106d09eaeda2e659e6d3ce6fe881c": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-Z.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-2-Z.xlsm"
+  ],
+  "514f3895c4f15bfa037cb9ccf1663348c8b203be1c180df09d19f57a65cd79f6": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-A.txt"
+  ],
+  "19a51ba5409c7790eada2b9d75e4e97e3de2a691cba2047ddb86d98f841a4936": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-E.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-E.xlsm"
+  ],
+  "8a1a6b8bed9b32dffd277cee2054c4f8d031d2fed35229070618133ecd6ff55f": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-Z",
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-Z.txt"
+  ],
+  "d091f3e348f61f7b2a4faed5b78b1bf185ac19d6b7c3c7904122c58a3d4d4e5d": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-A",
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-A.txt"
+  ],
+  "44666540a07d835de326cc45a0ac901b7028a180fc9e9873816d7518c1e32383": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-E.xlsm",
+    "05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/CWO-E.xlsm"
+  ],
+  "185b361b51910dc172ac3697db5c98e2e6719f13585296826337fb8b3158dafc": [
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-Z",
+    "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-Z.txt"
+  ],
+  "ef1c10aa10710085d03f6581fdacb676a94ee4bf3c17cb02a0e534ce44616d98": [
+    "05_阻抗EIS/20260202/origin_project/eis图20260202.opju"
+  ],
+  "057d31044c48b7b418d6d96744b8f892e80989302c927de962cff110b03fc083": [
+    "05_阻抗EIS/20260202/origin_project/eis图BOBC+CWO.opju"
+  ],
+  "e12f795f458402a015039486d17c8550b96ad5cf68c01579133c4bb355a25e68": [
+    "05_阻抗EIS/20260202/raw_data/b11-2-z.lst"
+  ],
+  "3d9a083432affa90eed37772ab7efd3922813da876409a838093c2a11db3b3f7": [
+    "05_阻抗EIS/20260202/raw_data/b11-2-z.txt"
+  ],
+  "8035e79fd0664ca4a5ef2b12e20c0993053939c3bba1e4aff694def16a4f7ad6": [
+    "05_阻抗EIS/20260202/raw_data/b11-2-z.z"
+  ],
+  "eefc82ea44439d01b489e5fea98f3c08d61568d7b0cb1cc827962a54b19aefed": [
+    "05_阻抗EIS/20260202/raw_data/b11-z.lst"
+  ],
+  "0e564c5bfab17a9e911d6f4a37690e0c6e60492e3b85cf23a2c5eb81eddd3f08": [
+    "05_阻抗EIS/20260202/raw_data/b11-z.txt"
+  ],
+  "214b83b7afe2d1586704efc3f1ce7be557e00e28c637d39623ea2237e9e80669": [
+    "05_阻抗EIS/20260202/raw_data/b11-z.z"
+  ],
+  "846caa88be8b6df4878648b95ed707b78b53272791e5a6dc20b9638b5d5eb607": [
+    "05_阻抗EIS/20260202/raw_data/b3.lst"
+  ],
+  "543412474d1a425a253c5a7bdf3c2ae4d228d08127e1fffb5ac4de97d3c718fa": [
+    "05_阻抗EIS/20260202/raw_data/b3.txt"
+  ],
+  "c7dbaf0bbdd1a1a5b21e74ef82209c283b7623d664c62f62e38b362e5b90bfb9": [
+    "05_阻抗EIS/20260202/raw_data/b3.z"
+  ],
+  "8a5683d9f033567eae86c41d7583abb1f27136209aaa394220cd51eeee31ee57": [
+    "05_阻抗EIS/20260202/raw_data/b7.lst"
+  ],
+  "fa3a280630014d8415c331efd9ff552b5c92a71e6922a8b9320159532324f1a9": [
+    "05_阻抗EIS/20260202/raw_data/b7.txt"
+  ],
+  "9bde66b207e8c2eeddcd65650eacee0f23abd1e1aa4f746b07ec33c34e2d2761": [
+    "05_阻抗EIS/20260202/raw_data/b7.z"
+  ],
+  "e96dea542753fa128e78ce6567c8a75dd98047a32f05cfea8b25c6907fb1e970": [
+    "05_阻抗EIS/20260202/raw_data/b9-2z.lst"
+  ],
+  "16f175398cdcf4beba06e4d1c77931926e6a239764572e2d6acd068f7ec8629b": [
+    "05_阻抗EIS/20260202/raw_data/b9-2z.txt"
+  ],
+  "120804f30844e56acb87be15e86ea1bc0faaf49f8e955659f1923a29728c0b6d": [
+    "05_阻抗EIS/20260202/raw_data/b9-2z.z"
+  ],
+  "1cf4775defb1036020694783b20f6a2f549f672ed1b5e89e94f527d92b3495b0": [
+    "05_阻抗EIS/20260202/raw_data/b9-z.lst"
+  ],
+  "d4c615231fa131cd695b638fa436a05e78666537d48ff90ee185a8164d7a7a50": [
+    "05_阻抗EIS/20260202/raw_data/b9-z.txt"
+  ],
+  "f2fb4709238707c32e0570e8e5d56c339e2cc77209f81816fe11b76af12b3bc9": [
+    "05_阻抗EIS/20260202/raw_data/b9-z.z"
+  ],
+  "e8db0ab4274da525e5c4472cedefd2c938a00d5694fd8797e9ca764d9f94c0cb": [
+    "05_阻抗EIS/20260202/raw_data/bobc-z.lst"
+  ],
+  "94dde14273669dab9cf43f7d492ba7b80ef1ec84448616d93a77edd08e1ee0b9": [
+    "05_阻抗EIS/20260202/raw_data/bobc-z.txt"
+  ],
+  "d61b567e57de1d2beb2daf584666b79e86ccc8e097b6551bdbc1e30d5386b50f": [
+    "05_阻抗EIS/20260202/raw_data/bobc-z.z"
+  ],
+  "f09643030f2402924f89453a911fdf689bdaa1ac3f0d12a2051b685cb248ac75": [
+    "05_阻抗EIS/20260202/raw_data/cwo-z.lst"
+  ],
+  "298c4e6137352686e72afe53a709323c94dbe9b6463c0ff9271cfe5f75dcb0fb": [
+    "05_阻抗EIS/20260202/raw_data/cwo-z.txt"
+  ],
+  "f29ee4b0d0e17ce4b2940d9501b96d98d873c1a302472860b5e63b61b5d0729e": [
+    "05_阻抗EIS/20260202/raw_data/cwo-z.z"
+  ],
+  "71369466e28111c98565ab273d6e6f226eb1c300b641ece2f90f2975655a30f4": [
+    "05_阻抗EIS/20260202.zip"
+  ],
+  "095f99f9015326c44d84f79c4071e1dad8f9b5847bdd3734c90c856c3dc83de3": [
+    "05_阻抗EIS/20260203李永进CWO+BOBC/origin_project/2eis图20260202.opju"
+  ],
+  "994c2cc69091e6411bd4797529a2aa4e9705c54018b96afac533fbd1a07b9eeb": [
+    "05_阻抗EIS/308阻抗/BOBC/EIS/BOBC.bin"
+  ],
+  "81b493f44cfbf98f5ddb5980f9cbb03b7199fcaf53df0ff4a315bbc9f8d0fd70": [
+    "05_阻抗EIS/308阻抗/BOBC/EIS/BOBC.csv"
+  ],
+  "eb84287297eae73566aba92cdbf973c2a95885a4fee0604f5be4e7647a705bd0": [
+    "05_阻抗EIS/308阻抗/CWO/EIS/CWO EIS.bin"
+  ],
+  "9791bf1958a1e36c060a0e6aebeeaef1b3bc3e1ad98173727b678d9e732949ff": [
+    "05_阻抗EIS/308阻抗/CWO/EIS/CWO EIS.csv"
+  ],
+  "283bd08bcc47795939783eb314797b60cf266142b9643c0bb7871a6a7fa575de": [
+    "05_阻抗EIS/308阻抗/CWO/EIS/CWOEIS2.bin"
+  ],
+  "19224224b322a03b9af5e4cbf3c9130c45ae1ab7da63f7a5e18aec4ba9e3e956": [
+    "05_阻抗EIS/308阻抗/CWO/EIS/CWOEIS2.csv"
+  ],
+  "c454f8c7103ecdc89dd4c367d8d8b6c65f6957bad2bfb1754361ecda7de948ee": [
+    "05_阻抗EIS/308阻抗/MS/MS EIS.bin"
+  ],
+  "5e1407c66376a5fa3818e7ff7048d064f721518cf03de83c9811cd6068c10933": [
+    "05_阻抗EIS/308阻抗/MS/MS EIS.csv"
+  ],
+  "cd97c4ed5bf5f3f7ac8ae8a664ef6cbae3343fea668925b681aad46901ddecb3": [
+    "05_阻抗EIS/308阻抗.zip"
+  ],
+  "91506db80935f0bb677b6224bac57f37c51519aa446781595be1cfedca83f706": [
+    "05_阻抗EIS/BM重新拟合版本/exported_figures/BM阻抗.tif"
+  ],
+  "32a62c4483cec85bdfd2356e9777a9a00d21cfb60eea01cc2d9faa9c1d2bf0e5": [
+    "05_阻抗EIS/BM重新拟合版本/origin_project/BM.opju"
+  ],
+  "03cbf37d60337bd42119d2e9a572ab8f1a55015d11481328dc3b344403d16529": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/1.TXT"
+  ],
+  "476586ce83327665fb33e857f660c9a24f2c830b8603886ca9d4f06e1d0a477e": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/3.TXT"
+  ],
+  "985d23165c3a4f4d88e67c8e79432096f04017b780b25afccc89f5388ac71ec5": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/5.TXT"
+  ],
+  "2e36f746a6b015adf8b1aca5d3cc57504d2a750e0ce0eb9253811a8ac0933ba5": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/7.TXT"
+  ],
+  "82fa3c7b8485c3aaa35208fb03a766260440ef47fe541ac4be9f503c5893caa9": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/9.TXT"
+  ],
+  "65cd7582f44ed4f24c4ac8c0b74d4984f627109d697b3abbb0f1c6ebcc564345": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/bm1.z",
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm1.z"
+  ],
+  "ce03b51c9048d3a7fb861ead2bb8c7aaeb6b18f47f0fc0fb1e9aca8bb6cf6b03": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/bm3.z",
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm3.z"
+  ],
+  "88e47c3a2c69face013bc1b4db5c1b439fb9ecd917175df4efd071d65b56292b": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/bm5z.z",
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm5z.z"
+  ],
+  "a5cfb9d45546533b552987c7b44b0fcdfbceaa51907f6f899ddf1008c1bd5eea": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/bm7.z",
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm7.z"
+  ],
+  "2802376efb32da10f52947915831b4ba18c45de57b80adb4ef82dd5969e4e613": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/bm9.z",
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm9.z"
+  ],
+  "4f966f32505507fb250a424a7bde896737add5702cbaee57ca0caa5f280d4271": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/bobc.txt"
+  ],
+  "46571464078e6331c2ca9ec874f6a78ec5581969e981cbbb36c45ea2f0514b00": [
+    "05_阻抗EIS/BM重新拟合版本/raw_data/MOSE2.TXT"
+  ],
+  "eb779a603ac18376fa59a3a9f67952c135bb59a2d5702daa8ca306e78eeb4a90": [
+    "05_阻抗EIS/EIS-20251025拟合后师妹/exported_figures/LL-EIS-BM-X.png"
+  ],
+  "d72372164c90cb594f089faefd166442c5977395577fe0822450c32a43945671": [
+    "05_阻抗EIS/EIS-20251025拟合后师妹/origin_project/BM-X.opju"
+  ],
+  "4604de1f1dceba2896a14f4a999e5faa013e66f5a0119fed80f15acf994adfe7": [
+    "05_阻抗EIS/EIS-20251025拟合后师妹/origin_project/拟合后BM-X.opju"
+  ],
+  "4642d36a469e771250149914491b5596af2121b9aaf7fe1fc87a572375097a9b": [
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/1.txt"
+  ],
+  "9579f71e2ec7d2e15d0c5470ac1f50dc52f730ac94efb3a7b65cd4fe6f6b73ba": [
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/3.txt"
+  ],
+  "e9547aedb622b2b07c141a8c6fc6cd35154e11993b6975fd20f2121486aae612": [
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/5.txt"
+  ],
+  "7d4bcd2ca9b3adb7235113e3eae14f4652a0db2120c30fb8b5d970f73a741a46": [
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/7.txt"
+  ],
+  "4406d1170d8e782be6f23371af4ca7a3cf46a75c596a6b2a995b49fd6ad8ce53": [
+    "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/9.txt"
+  ],
+  "111e2f9568ebe079761c51f5e065b144402cd969e732546217ccfcbaa588c43e": [
+    "05_阻抗EIS/阻抗图.tif"
+  ],
+  "bae697dd38b3f3bf747b550c401c250044cf6306475881332ae34259ab4b0ac3": [
+    "06_红外/BOBC+MS 以前水热的Mose/exported_figures/BOBC+MS-FTRIR.tif"
+  ],
+  "00ea6aba8a1623f05b41eaa5a8771bb13d6505e34710d417eed92cc400719fa5": [
+    "06_红外/BOBC+MS 以前水热的Mose/origin_project/BOBC+MS.opju"
+  ],
+  "377cdb9d655ba9fcbbad5d4433045ac9c14089a9e6525da79d473f9732ec88e9": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM1.0.dpt"
+  ],
+  "46d23f4cba8153ec75a85e4d9c2a71495ea2574d91a287146bd94888b8913504": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM3.0.dpt"
+  ],
+  "4408dcb0a4eeaa516ec75f7d516614234ec60f117ee3b71517009e9c51b174df": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM5.0.dpt"
+  ],
+  "5ccce8191cc95d9d3504bfd6f4729ea4af91fbeb1d36c10cded886de1bf36cf5": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM7.0.dpt"
+  ],
+  "ffc62058232143b9161d03f5b771347040e53fdf2a122efda485e21a53ebc51a": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM9.0.dpt"
+  ],
+  "03eae5290ad2dc5372c31d19d7cec538dd5facaa740f6513fd1dfdce3fb318e1": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM1.0"
+  ],
+  "42c1dde41b0574ad8c7bcfcf9ab0d7d2e26a9220cc691e572b78d39f45891227": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM1.0.dpt"
+  ],
+  "9c12e103adc719ba1611223e3e9c567df61500556defabe872e5185800b4ad5b": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM3.0"
+  ],
+  "de5a99b7326372bd100094bdba209ceba11b0642ca7d255eb2b395c05633d85c": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM3.0.dpt"
+  ],
+  "dc907f7e46640a8f7f1f1162949feeb2ac7fd71e9dab77c4cedff59a4980ea10": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM5.0"
+  ],
+  "64807d9d78e9d0d97a57c81985fcbbf19037d380f00d9d98daa9522e2fe65899": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM5.0.dpt"
+  ],
+  "57766d172ce26e1761d51b9ba30955cd1efa995a73d7b1b46ee20bb8689188a3": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM7.0"
+  ],
+  "69dd740c043b36781fb0724b40b7ff395ffc22a41f5612becedd90bb28f70388": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM7.0.dpt"
+  ],
+  "99ea8e03d6717be5f764b5fde29f998799ace4eed40eaa6dff76fe3d63cddf6f": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM9.0"
+  ],
+  "cffc5a14a953e1bf4e8924949e02fdd1d1254c28da79218918d807efd1f7efba": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM9.0.dpt"
+  ],
+  "befd63a968e959e48e6df2eecfb804606b6ce82be5cdc3c6cc635b7cb31bb9af": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BOBC.0"
+  ],
+  "0c399514e6fb1eafbf308936c02823546940f714763816b9f171a85a72fbdcc2": [
+    "06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BOBC.0.dpt",
+    "06_红外/cwo+bobc/raw_data/BOBC.0.dpt"
+  ],
+  "325af2384bf33ec7a727f539133c276c6a86a98ab99959326dd747ac7cd2b333": [
+    "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM1.pdf"
+  ],
+  "1184dcfae8bf0fc95e02c1de632c35d79bd1d021705049568da6b5c8652e5ff8": [
+    "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM3.pdf"
+  ],
+  "c33a86c22720062f7a2f0ed28a0b46947ac017c5e6d9d8cec92b19efdcd50e1e": [
+    "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM5.pdf"
+  ],
+  "1cce1d099e50a93dff87e49b9e42e62d5d0f7ce8254eb7522d4718b98c5722e2": [
+    "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM7.pdf"
+  ],
+  "5657a4dcebfeeb3789d76f69cbdc7a7681103f5e04224e25143f505f666896d9": [
+    "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM9.pdf"
+  ],
+  "2c263cd41e95caf5775386eb754fbadf8115d6bfb850cf473f1cd9aa9ea34f55": [
+    "06_红外/cwo+bobc/exported_figures/CWO+BOBC FTIR 2026018新制备.tif"
+  ],
+  "1bbeb0a58d38c301e47530844d831d4f81acccf7ff2b7b4df4ec42c4c27c6840": [
+    "06_红外/cwo+bobc/exported_figures/CWO+BOBC FTIR.tif"
+  ],
+  "54bbbcbdcfad4aaa805418da259d559bc85c6be9039b12f0146503f941fb261b": [
+    "06_红外/cwo+bobc/exported_figures/FTIR2.tif"
+  ],
+  "2f3d319f1376fc932747c102598836cfcc1dc752106b939b4f2bbb3ead2976cc": [
+    "06_红外/cwo+bobc/exported_figures/hongwai.tif"
+  ],
+  "40e2dded104db988a878c01a87440967f73fcd9aa457b58c0cec1bc986e8affb": [
+    "06_红外/cwo+bobc/origin_project/CWO+BOBC红外.opju"
+  ],
+  "ffa0259677c017aa3712e328bb86bf4329723563599c7ac9f7b3fd1403160059": [
+    "06_红外/cwo+bobc/raw_data/CWO 15.0"
+  ],
+  "e59b1a8ef71189785831d4a75562027db47b6a6049c2570231b2952557d372a4": [
+    "06_红外/cwo+bobc/raw_data/CWO 15.0.dpt"
+  ],
+  "a8c9e147e3a8e84288cf3ed263aca4406521fee57b4afd849628c3f109b1bf5e": [
+    "06_红外/cwo+bobc/raw_data/cwo 20260128 李永进组/BC-10 环己烷.0"
+  ],
+  "34a0a1155f358a68b6bdbf653a018b5f9341f8c1e8304126aa8774f6d19569fd": [
+    "06_红外/cwo+bobc/raw_data/cwo 20260128 李永进组/BC-10.0环己烷.dpt"
+  ],
+  "69e15420d6d316c4a7ce2a5502d7991d33a9d21b914d83f2b8489e1a82aec0bc": [
+    "06_红外/cwo+bobc/raw_data/CWO.0"
+  ],
+  "605c192fd38cbd4722821913a3625c66b29ccf732fc71a752601c084998c00d8": [
+    "06_红外/cwo+bobc/raw_data/CWO.0.dpt"
+  ],
+  "4fbcffbc2b4320d09acb5d3aeac78baf7e7f059884ddbe4c8f8040f06ee279f5": [
+    "06_红外/红外MS+BPO 暑期版本/origin_project/红外.opju"
+  ],
+  "08fb9da71b349208227e43c0dcc27ee5962eb7b6bb7d512cbaef05356469652e": [
+    "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/3.bpo.0"
+  ],
+  "0deb6d2c0722ea787a86f2908d8b8908f0498630fd8276f2914ec7d4f953102c": [
+    "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/3.bpo.0.dpt"
+  ],
+  "1141f919abed0861b482687c5494ee5c2ca29ff503d6d31d470171bd40dc0d74": [
+    "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/4.ms-bpo.0.dpt"
+  ],
+  "3e04e80e6003b18813623d97dda364c15a5ca6c4c8d786a8d77d5a44075f8fb4": [
+    "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/4.msF-bpo.0"
+  ],
+  "e9409592eb6ab62e171a49bdb7afbce2fb74454e1c9437c275e2fbf6f72e1c23": [
+    "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/5.ms.0"
+  ],
+  "5e7bcd610a742b0b543f0e3d6e144bc1621c1204d1657e336bb8fc74447b9b16": [
+    "06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/5.ms.0.dpt"
+  ],
+  "05ad773f8b391a7e78c8ce5d6855c7b2c99ca8366da1848a9b52f98e2fcfa069": [
+    "07_拉曼/20251021/exported_figures/ranman.tif"
+  ],
+  "f640e86a9ca80a2295075f12abd9a18808882d17503f19fba120f8713af05916": [
+    "07_拉曼/20251021/origin_project/bobc+ms.opju"
+  ],
+  "afa15f4fc3e44be6a46643069344b57ea3731c5fef2ffa97adc2d9a546472652": [
+    "07_拉曼/20251021/raw_data/BOBC.txt"
+  ],
+  "24bdc01066a4015b4bc8a1956c0089e8fd42329f16d1104e6312ac3ac0a59d7f": [
+    "07_拉曼/20251021/raw_data/BOBCMS9.txt"
+  ],
+  "e183bcf0f55e275d1ede873a4bc7fb7cba4bfddf302aaaa6689bde3bc081780c": [
+    "07_拉曼/20251021/raw_data/MOSE2_6.txt"
+  ],
+  "1163e7314f107af82759aa92bf526a08e7df2c7c18754065a4004dee15be3a91": [
+    "07_拉曼/origin_project/cwo+bobc raman.opju"
+  ],
+  "539509d171cfcd421617e6f561a0b35a6e5249d9d4b63d94981248e3eee54f96": [
+    "07_拉曼/raw_data/20251027/BOBC2.txt",
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BOBC2.txt"
+  ],
+  "77df863a8753cccbf18216e10c9a739f34606c54a2d69a8813985bc31bb45f44": [
+    "07_拉曼/raw_data/20251027/WYT/CWO+BOBC+2.txt"
+  ],
+  "8db84b1cbf5c499f1960e174af652f27ede1bda3e907b36edec192e9d652da26": [
+    "07_拉曼/raw_data/20251027/WYT/CWO+BOBC+3.txt"
+  ],
+  "3a1b69efc7a280e039350809f89e1dd138676a08522d4823e2a2af1d3813292c": [
+    "07_拉曼/raw_data/20251027/WYT/CWO+BOBC.txt"
+  ],
+  "90a81673ff539edaff7180e220e62cf2f029da6401442e33bb25df2fc92a30bd": [
+    "07_拉曼/raw_data/20251027/WYT/CWO_1.txt"
+  ],
+  "ee5d899923e17e7c01e9ecedffbe38b6ca355c99f58afed41bd071d4cdc01ae5": [
+    "07_拉曼/raw_data/20251027/WYT/MoTe2_1.txt"
+  ],
+  "543ecacd4189b8190770f05212de72aee900211a5ad790cd85ade8918c4d389c": [
+    "07_拉曼/raw_data/20251027/WYT/MoTe2_2.txt"
+  ],
+  "437c450c95bd16b86fc4988b9f4e94c5a5116232218639153e7278658ae9a28c": [
+    "07_拉曼/raw_data/20251027/WYT/MoTe2_3.txt"
+  ],
+  "8bae97b1af59a47e28b47b0010fa86a5cd61ab2cfb2177597cd9e2f08486fcf3": [
+    "07_拉曼/raw_data/20251027/WYT/MoTe2_5.txt"
+  ],
+  "16db15695933358f949744715b9f9d24f66e7b2db0a5c5d936958cf36af23f59": [
+    "07_拉曼/raw_data/BC-30/bc30_1.l6s"
+  ],
+  "356a8bf214d3ab5bc92162e53ceccd9884d29ecf8c0d8684e302e56fceed9d59": [
+    "07_拉曼/raw_data/BC-30/bc30_1.txt"
+  ],
+  "b16d17c25b1ed37165e826a9fc057401ee162b19bb91377be30b005f2deb35b9": [
+    "07_拉曼/raw_data/BC-30/bc30_3 2 50-2000.txt"
+  ],
+  "6eaccc5c697d3f0a8855a226fac70960dd168024857ea6d66e79fe6bf2b3ba62": [
+    "07_拉曼/raw_data/BC-30/bc30_3 2.txt"
+  ],
+  "2a57b9951a3e57308f57444cd11c809d9f000dd23743473621cbc3051fa46060": [
+    "07_拉曼/raw_data/BC-30/bc30_5 500-2000.txt"
+  ],
+  "e168c1e2e358605f0c98da5cf1fc346944a2cd09586e47dc12d10ae6883b47f5": [
+    "07_拉曼/raw_data/bc30 HUANG_1 100-2000.txt"
+  ],
+  "c69b086190051fc5089349350051bcda43305309e11839cd334a20593a9bad63": [
+    "07_拉曼/老版本BOBC+MS+BPO/exported_figures/BOBC+MS-RAMAN.tif"
+  ],
+  "6b03217e6f57b4208481685eb7884e5038b524b43b9a1d2f87679578eafeff38": [
+    "07_拉曼/老版本BOBC+MS+BPO/origin_project/BOBC+MS+BPO.opju"
+  ],
+  "bafe7898a143ef0ec06a1779ca06ccd900fb866debef2ae0bf7a89b0e65c670b": [
+    "07_拉曼/老版本BOBC+MS+BPO/origin_project/BOBC+MS.opju"
+  ],
+  "1972186104f7d7a9bba3972bec157e77f1aea8156a8561e501f66344fbad471e": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BM1.txt"
+  ],
+  "30ed855ef8dc1eb9ad78f8760992c8d41072e1b66617678fc8811b4da715d15b": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BM2.txt"
+  ],
+  "c6089d09dde9b6c96a2b18304cfe0ea19154960e9180dce3b8618f805dbbc2fa": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BM3.txt"
+  ],
+  "bdd09b0915ee1f7c154fee1361b6f7d97a137803a804634857cf263eb449b996": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BOBC1.txt"
+  ],
+  "813ed9ddfdbb896c0eb1a1c01a24ddbc4617624cf1ba830002079bc95264c34b": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPO1.txt"
+  ],
+  "d6c6bdd9572b9ba4cf9cf61dec13309739977ac46382a1171413a671991042ce": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPO2.txt"
+  ],
+  "58fbe45c78fc74458d0a642fbe41b3e1d0e7adf5fa715c0061e054b0fcf5ae95": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPO3.txt"
+  ],
+  "f3dcfdc665dfc49e0d2168d8d0f8715fdfc08c1101b1f202d6d84c1787c2d8b2": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPOM1.txt"
+  ],
+  "fbe5dfb1acfcc32ac9acb78af5f1716fac4bdc6755e6159cc59b1ce60fa9057a": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPOM2.txt"
+  ],
+  "eb713c86d4ed660f895f768611dc7aefd0cc02c782851756760540563c08f515": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPOM3.txt"
+  ],
+  "6bc11b301d4c6db401afe16ecd020b5baae059c39942487205bc2940c2c0d17f": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPOM4.txt"
+  ],
+  "4c3acabbab65ef379546832e23172ca4ca656a5e11e68b555187f2ae6710d95a": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/MS1.txt"
+  ],
+  "111e20604aa2c5a5517e37d780f70f5fa8ee1676f89bf3214eab387e58fc8036": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/MS2.txt"
+  ],
+  "f1b4d4a2e05c483e12e6ccdfc0699d0e2f429f43765bcb723a4d094454f85caa": [
+    "07_拉曼/老版本BOBC+MS+BPO/raw_data/MS3.txt"
+  ],
+  "7450ccf0a886c3c00521505406cc39512c6ac1a26256e18adbd7d50282ce1f05": [
+    "08_固体紫外/exported_figures/CWO+BOBC紫外.tif"
+  ],
+  "3be7d33335afdca75d2056c3239f8759be4df0edc56ebad40b8d7295dd12cf53": [
+    "08_固体紫外/exported_figures/CWO+BOBC紫外tacu.tif"
+  ],
+  "995997f599d11218e984242d6eb7c5f247e0c7243783204aa30f1ecf1f04287e": [
+    "08_固体紫外/exported_figures/MS+BOBC固体紫外200-800.tif"
+  ],
+  "27fc27739e4ff84e50609eb473f0ba560c8228bd3a4770186d83ba464cf5979c": [
+    "08_固体紫外/exported_figures/MS+BOBC固体紫外260-800.tif"
+  ],
+  "23855eb8b90710651297646891627dc7b2392a037f610f2145d2d2bb7ad4c882": [
+    "08_固体紫外/exported_figures/MS+BOBC固体紫外tacu.tif"
+  ],
+  "8d1d56069a6120d3fade4f45db53387b592a97c8bb867ae18bed49259a8a0fcb": [
+    "08_固体紫外/origin_project/BOBC+MS.opju"
+  ],
+  "7f2b16a700d23061d4922d32354435a2b7beeb94d0710ccb9f99e321589d1418": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/bobc.TXT"
+  ],
+  "dc18f9cae44a77f3214bcb8ac22b86c199cba21340cb8b572fefa7b0a0d9cb96": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/bobc.UDS"
+  ],
+  "112797b08c1c4499df9e869daf2a9a578fd7b6da32bad5789d1ed496f1442c74": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/bobcms.TXT"
+  ],
+  "16a0ee56111a89f3686c30662c997850cf54d153abf82d07ca38fb3673ff8778": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/bobcms.UDS"
+  ],
+  "09cc61e72298fb674335cdf192cfed83cd6fb053afbe8f2d4c0a89ffa92a3851": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/cwo.TXT"
+  ],
+  "3b9cccb96bc09cdc46cbd0e319a6f398d2e2a5da8846188281eff1bf3320f0d9": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/cwo.UDS"
+  ],
+  "820028584afcab184c9cfad1de57758cd4bcbf617e39d95e6e2316871dff5791": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/cwobobc.TXT"
+  ],
+  "bf3629e8d160ae4574ef6b621f6d5064c0b0cace2a009f2b28df420bc382156a": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/cwobobc.UDS"
+  ],
+  "5dd34c0bc8b973add196ee474541bd31108fb2efa33a21a474cdcd3f95566df5": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/ms.TXT"
+  ],
+  "bc927be80b234ec4492348b2fcaa8ba7b0b4b2954f437cb1a4efee513aa6c234": [
+    "08_固体紫外/raw_data/20251017-LL/20251017/ms.UDS"
+  ],
+  "ef3bb5116e6e767a9b1c4f30ddce975e4c81e85d84d905a7667283bffda67a88": [
+    "08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10-2.TXT"
+  ],
+  "fdd780acf57350b0d52cb64f17c14e7c611fef53d8522929da0f437c1b3762df": [
+    "08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10-2.UDS"
+  ],
+  "1a9c30705ea78b222fbb25de226427bb1c8a2beed8cf2115019dfc72dcd9d6a3": [
+    "08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10.TXT"
+  ],
+  "cd0593b5c2477037492232c3ae49cb3e6c7d2ec9160cca1e464d67b1c6c91359": [
+    "08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10.UDS"
+  ],
+  "a58b23dc4c01c46104c4c4a3d5ac0ea6589a091d137359ede4a664ffab0d071a": [
+    "08_固体紫外/固体紫外CWO+BOBC/origin_project/BOBC+CWO.opju"
+  ],
+  "15b3265a2fa4b112b7d14408723fb756b48e68ebc60604b224f71b130f4edf80": [
+    "09_BET/XWM-LL-260428-1-BOBC-All Pore/origin_project/BOBC.opju"
+  ],
+  "49d29b22db7b396263fa1cf272f32cca9da223f462809005275dd6f8ce887911": [
+    "09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/MICDIR.DB3",
+    "09_BET/ZPF-LL-20260327-4-BOBC-BET/MICDIR.DB3",
+    "09_BET/ZPF-LL-20260327-7-CWO-BET/MICDIR.DB3",
+    "09_BET/ZPF-LL-20260327-8-BC-BET/MICDIR.DB3",
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/MICDIR.DB3",
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/MICDIR.DB3",
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/MICDIR.DB3",
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/MICDIR.DB3"
+  ],
+  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": [
+    "09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/MICDIR.DB3-journal",
+    "09_BET/ZPF-LL-20260327-4-BOBC-BET/MICDIR.DB3-journal",
+    "09_BET/ZPF-LL-20260327-7-CWO-BET/MICDIR.DB3-journal",
+    "09_BET/ZPF-LL-20260327-8-BC-BET/MICDIR.DB3-journal",
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/MICDIR.DB3-journal",
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/MICDIR.DB3-journal",
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/MICDIR.DB3-journal",
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/MICDIR.DB3-journal",
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/MICDIR.DB3-journal",
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/prosol_History",
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/prosol_History"
+  ],
+  "a386f4b94e3ea431ec7ac959eabc512c0b47a5437604412a337c428f46a74f2e": [
+    "09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/XWM-LL-260428-1-BOBC-All Pore.XLS"
+  ],
+  "751bde6e9e6479f7472d071179aa31a64fb2abbfd55752f1081d79aa9e064e16": [
+    "09_BET/XWM-LL-260428-1-BOBC-All Pore/raw_data/XWM-LL-260428-1-BOBC-All Pore.SMP"
+  ],
+  "d36a7f9fb6a057d8d1db6c1dd63766cb116c09257da3c029bf20312f68679953": [
+    "09_BET/XWM-LL-260428-1-BOBC-All Pore/reports_notes/XWM-LL-260428-1-BOBC-All Pore.PDF"
+  ],
+  "fcd156d363bcd445393769c3bba3e5ffcee83a9900e66e1e234808fc44fe1ca9": [
+    "09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.PDF"
+  ],
+  "76b99561d29ffb69acabaf7221ed4240e00195711ba0ee56f68b139c9f8c2917": [
+    "09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.SMP"
+  ],
+  "f1364d0b2cfbc42fcf43b9d2a30340423f895b97207aad1d189d878972dc8800": [
+    "09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.XLS"
+  ],
+  "8ae3dd3ef0ba5e305ed270fda80797ddbd63b877258aa044ee2f27ec7601e847": [
+    "09_BET/ZPF-LL-20260327-7-CWO-BET/ZPF-LL-20260327-7-CWO-BET.PDF"
+  ],
+  "ce7153874d6f86c0643a3a7282e21b0800cb7ee301e53cded5afaf1ed7c0930e": [
+    "09_BET/ZPF-LL-20260327-7-CWO-BET/ZPF-LL-20260327-7-CWO-BET.XLS"
+  ],
+  "2939b11a121e559904d1c8650be54b95d867ca4fa64ea80559bb04ff4c7dce5b": [
+    "09_BET/ZPF-LL-20260327-8-BC-BET/ZPF-LL-20260327-8-CWO-BET.PDF"
+  ],
+  "b71f1006c17d762dc8c4ecb4dcc3a8c4794b2fbc4129a24ccd62a7a9634b0d9a": [
+    "09_BET/ZPF-LL-20260327-8-BC-BET/ZPF-LL-20260327-8-CWO-BET.XLS"
+  ],
+  "dfa96a1214977b63ad9340c4d33570549c64e91a2593a2c2e3e7201c67d455f5": [
+    "09_BET/氮气吸附脱附等温曲线/origin_project/BET -BOBC为负数.opju"
+  ],
+  "9fefc03de8322755d6a4fdbefe2bc249f066255210e1ae80fd39fcf0ee738c5b": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/MICDIR.DB3"
+  ],
+  "375b6fa66dbde8742f02ba60abaa8af633b433a88f3fe212e3a170ab8e3d05d8": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/XWM-LL-260421-1-BOBC-All Pore.PDF"
+  ],
+  "3114bab6bbbec196aeff392cc556bf4a136d95ab2726b4c35222ede4ed19b0af": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/XWM-LL-260421-1-BOBC-All Pore.SMP"
+  ],
+  "f3323b36cada8fb832510b0a45272acf6803260c76831eb8aac00845f885f1f7": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/XWM-LL-260421-1-BOBC-All Pore.XLS"
+  ],
+  "a702e3c426c6543a07045096a5ed6545addd9eb28e9407d8b9cfefc4259f2f8e": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/XWM-LL-260421-2-CWO-All Pore.PDF"
+  ],
+  "4065300d64025157f2d468ccc539a50c0bd4c0dffbb5ea81b962f481833604aa": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/XWM-LL-260421-2-CWO-All Pore.SMP"
+  ],
+  "e6c86d4ac4d22a4ce185edd5257055434c872858ebd1c310ae4b10c9758f1398": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/XWM-LL-260421-2-CWO-All Pore.XLS"
+  ],
+  "cb3b2894be385e04bd9563387b2f16da7067f818bbf5f9e33036d3cd183d4dd2": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/XWM-LL-260421-3-BiCu-All Pore.PDF"
+  ],
+  "2b649a0f4ed2f56c15de25ca2d100e166f8d9556a78f778736c2768354d85b44": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/XWM-LL-260421-3-BiCu-All Pore.SMP"
+  ],
+  "5e34d11aa18c7939f9d8bed45fdc5be7fccd3ca80d77b6bb929ca40703cd314e": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/XWM-LL-260421-3-BiCu-All Pore.XLS"
+  ],
+  "902422917bb625424b31b52b34e4a2cf41768f92b1e7528a0c84741365b8f591": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/XWM-LL-260421-4-BOBC-4-XIN-All Pore.PDF"
+  ],
+  "07ad5dcc4087d8ade4f2bfef7593c83a816d2a842a624083d01eddf9fa89c8f8": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/XWM-LL-260421-4-BOBC-4-XIN-All Pore.SMP"
+  ],
+  "fd1069ae9dc08f8934c70a7ecbac0c9d1b5f307677bad4824cfcd4fefc4e3f79": [
+    "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/XWM-LL-260421-4-BOBC-4-XIN-All Pore.XLS"
+  ],
+  "a007b3908b3d85b6fc481df81ef1aca0761b56448307a67644b470b0418b6825": [
+    "10_EPR_PL/EPR/origin_project/epr.opju"
+  ],
+  "9281666eb69e55261e1f99216b0952590d84f7a1b1acdcdf520543a58b709c69": [
+    "10_EPR_PL/EPR/raw_archives/20260430-1.zip"
+  ],
+  "88ec88a994c8029b9b57e739707bdd0091c4402353657fe483db1fadf71c6e5f": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-dark"
+  ],
+  "d9d1a368a4db991db5a01268411aad3a3f5d5d0229cbadaa4ac5a559ae5ec320": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light1"
+  ],
+  "88fea266d1e172034a79af7e86136ffa208927cb50a08f26f18fa7e4b8b4a6a6": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light2"
+  ],
+  "33ed46f17b7cb656e31e5515ad23ed968b69a193ad1276af31cc2e068c61975c": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light3"
+  ],
+  "7d19de1fff7ca7b7e4a3189153161b5331fa58749669c6fa708a41827bb4fb06": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light4"
+  ],
+  "0e0792b4e55ef47399ab66ccfa9f6070cf30ec526fd9ae23e6d99e70da81d94c": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light5"
+  ],
+  "005670c7e5306f40b4e012ec5b673ad409849619ae05d15bbb9ccd01d8c162f4": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-dark"
+  ],
+  "ae9251619c71efb17467b1dc55a3a0be0c309694c0a9a21356f81b91ccb2dd39": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-dark2"
+  ],
+  "e8d9dd65678ebc6e068d4a3678c5d8289a7ef86b5162fad57e5ebb7c4608886b": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-light1"
+  ],
+  "ba8b28dade254f350cae2caa8243b50ffa8c2b03e6dce04709d0a8311d65bcca": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-light2"
+  ],
+  "e5ed31872b649d9da1c6f9435cbe49b655dc824f84c9bd0af0d739f265b02c0e": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-light3"
+  ],
+  "0e9e239043cc8aea66e04c6c8d08cee30e4addad5f73637f691ff8018c180aac": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-dark"
+  ],
+  "39c60db7d803d9378d49ffa739b803944a8b91042946d636c4cd5e7a903c3dd8": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-dark-none"
+  ],
+  "14807b9a5d484ba5cda0e17131c1c22f44ba0b7e5db0fd319dd507f884db4288": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-light1"
+  ],
+  "f5c288c56ae95fc00370d9b10b53d9abe155e36be868bed823b9b5e06e06a57d": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-light2"
+  ],
+  "fde883806630a813747aab74edadd0b5cd4fba4c1f84e3c911d013494e08770a": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-light3"
+  ],
+  "8f7a30f4f53ca70bd55380abb0c90267d911e9ec7a919dfab3b37ea3398b7f4e": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BOBC-OH-dark"
+  ],
+  "5e592a59809c8bd409c93b42ecc6d963e50d6cf6fc82d17d5d0e30693bc83453": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/BOBC-OH-light1"
+  ],
+  "76a585e90881f6d25cacd6b0f8dfbea53f648b3b3c9c6c8bfa1943cd8ee01b84": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/CWO-O3-dark"
+  ],
+  "1ceb800fdd6481dd17ca58c1e6cb58317d622f57598bc8cf7cf4ca3cd0280713": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/CWO-O3-dark-none"
+  ],
+  "f39e6b870e12ef9eb1815794effc4313cbb85b10eb7f0a8d5d241836fe7f7d95": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/CWO-O3-light1"
+  ],
+  "2ef2d8f1ca5f11cc31edbbea7d113f5af2ffb03ae7ac391e67d7498fc71b0986": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/CWO-OH-dark"
+  ],
+  "85af451836476175c55cae9699b002bfda767e5fbe11b4ddafc8b62f94db4e69": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/CWO-OH-light1"
+  ],
+  "bf86f24612ab91a54403347b4c008d065853b54dd4d2caa8f7a7b956a9b8279a": [
+    "10_EPR_PL/EPR/raw_data/20260410-3/CWO-OH-light2"
+  ],
+  "af95814cad5fc7074baca62502f696884e052720deb6afb7574e6a2e4586d334": [
+    "10_EPR_PL/EPR/raw_data/20260421/10%-O2-dark"
+  ],
+  "157a5d21031a6d0cec403a6382666a013eccbce454d0948b638346b097436482": [
+    "10_EPR_PL/EPR/raw_data/20260421/10%-O2-light-1"
+  ],
+  "edd6fa64b68d661df9eb8d7a78c2b80f6f9526e0332b250148a78989957ecb77": [
+    "10_EPR_PL/EPR/raw_data/20260421/10%-O2-light-2"
+  ],
+  "79c61fd0588cf4a30ecaf2ad18427b4fa88d3692a98e001633e18c1451a2c0fd": [
+    "10_EPR_PL/EPR/raw_data/20260421/10%-OH-dark"
+  ],
+  "092d39871cd95ebcb8816c50dd17dab8bc2a900e2c35aa3fc796daf2a06cb543": [
+    "10_EPR_PL/EPR/raw_data/20260421/10%-OH-light"
+  ],
+  "b721d11719a6710913fa5d73989a911698efc0592bcb620eed206006868cc081": [
+    "10_EPR_PL/EPR/raw_data/20260421/6.7%-O2-light"
+  ],
+  "2130dcac42d0bd042ad4c74cc7928e03a6d33b72e54f1c2387188dcfae076076": [
+    "10_EPR_PL/EPR/raw_data/20260421/6.7%-O2-light-2"
+  ],
+  "3b92b3ebfd33b871e11ea9e292c8ae3bb30febc902cdd371d91dcaef86044991": [
+    "10_EPR_PL/EPR/raw_data/20260421/6.7%-OH-dark"
+  ],
+  "c7e89275f75759aac0ca75864dd1406b122af3acf5a0728fa432b1da38f03b73": [
+    "10_EPR_PL/EPR/raw_data/20260421/6.7%-OH-light"
+  ],
+  "3acad587082c25aad1d170095092189cdd5c904bfc86bee7a4eec66f85ca35fc": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-O3-light-1min"
+  ],
+  "441c07f9790d0019f46141d16a6a60da1f4d9c4219294d14c410fea3dd51e30e": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-O3-light-2min"
+  ],
+  "1ab86e460e548887967972e733b87255729c81314e6a153474e389752f197028": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-O3-light-3min"
+  ],
+  "181f6a0a8e6d041575887eb454b13594f4ae19c888ad5a0831f65120392fde4f": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-OH-light-1min"
+  ],
+  "f061a5984c31a8e0bb47645f6f89b70e6d45c578481c2a5ce99c13eae491ef19": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-OH-light-2min"
+  ],
+  "c38ab45e8e76529befc4636bec1e3a287bc0159a78bbd25fbb6cd4ccefeefeae": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-O3-light-1min"
+  ],
+  "023ccdfbbde2d547f7a77bdc947f09eb249dcfcba77b1535b7f6737712ac6577": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-O3-light-2min"
+  ],
+  "2047356de47541b33293943a2a589c5f09b81eb23bd8a48753716893644af5b6": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-O3-light-3min"
+  ],
+  "f3b7addc7700f022dc46607604a65d56470cf3f51e87de4555f180636391b0d2": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-OH-light-1min"
+  ],
+  "6d0c7882b5225fe5e0b3b57ec33a10c66f90a7670734a8cc8c1b8f7782a71116": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-OH-light-2min"
+  ],
+  "88b7aa856ee2c8b1ddceb4f76e3ee9920edd0588a57625dd756cd8ba70d350e1": [
+    "10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-OH-light-3min"
+  ],
+  "12e38b0d77f5044d622fd39989c168c7f1cd1ce3b2457c42d9214e62a595740d": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/BC-O3-dark.xlsx"
+  ],
+  "b0175a86ccebebb836e845d478dd5a95694c2716ee120c86bef98b0f2a233c0a": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/BC-O3-light5.xlsx"
+  ],
+  "80604edec2cea47d4837fcb8ff2584b9f6c2b7a972a596b925443264c001b033": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/BC-OH-dark.xlsx"
+  ],
+  "4e45ef6fca46474e9c8372dd1e389cc2ff92fe51f2e448d44d68403ebd932432": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/BC-OH-light2.xlsx"
+  ],
+  "3f7fdc609c80ebb9a108f2e1d57088a6607ac05a6d3264904673db4704c1fb4c": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-O3-dark.xlsx"
+  ],
+  "d7d1ad00adbb13ca3b12ef25a57b04020c2532cc23c171ed7f18fd7ad559e1bf": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-O3-light1.xlsx"
+  ],
+  "9257522b6ba198593e93e65ad7bd01a32d59b7be86f5556c13d8641813c2cc22": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-O3-light2.xlsx"
+  ],
+  "634e1f5c64273e3113e23f705ea2c479d345de5d54ed068e1c3f41c888875266": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-O3-light3.xlsx"
+  ],
+  "a50783bf0ed051a688c80e1bf9c81eff878baa441895febfabe953aaea4336d5": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-OH-light1.xlsx"
+  ],
+  "1e28a68e8fb3d43a0e667e50093a7b8a2f5c86fbff00cdc5ec04a49e2eca2cf8": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/CWO-O3-dark.xlsx"
+  ],
+  "dcf631b06abf0e9dd1bd65d3c5371ac12835ad5c419f57d74d8559598153d867": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/CWO-O3-light1.xlsx"
+  ],
+  "d3e84774994a98bec9dc7fde175270805835cb45a95a82d3857560914dd3cf27": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/CWO-OH-dark.xlsx"
+  ],
+  "c602aba087c67d480b6e119e6a59acba8a061ab7cfca9b52596184a5cf77cf70": [
+    "10_EPR_PL/EPR/raw_data/导出后的数据/CWO-OH-light2.xlsx"
+  ],
+  "46aa6892157633cae52b37c198af409c66e21d760fa818bb9fac0a5c396a00a4": [
+    "10_EPR_PL/PL/origin_project/激发谱发射谱.opju"
+  ],
+  "650ce322e928585e083eddd0be1f5a867a417f8506096d793cb2a7ad8beb0f92": [
+    "10_EPR_PL/PL/raw_archives/3176_1775399174649_26032574877.zip"
+  ],
+  "e9280141c22449b339258f7d4c6ad3db32d335e538ed44d30d3725a0cc08bdc4": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.FS"
+  ],
+  "de128f0172d8ed8d73d874cc761097c8a56cb6d36b87206cf518998755e3e7f7": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.txt"
+  ],
+  "99c0140dcffe4332610b9239718edfed04e202f19c9dcc15601126491eb33337": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.wmf"
+  ],
+  "c367fbcd1af43248b9478c430eefc12e172ce849ea8d1f5ccd596ce2211607f0": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.FS"
+  ],
+  "1c74954b08484eb76188fcca248125f56513f3c7f5bb25709f48193e118969c8": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.txt"
+  ],
+  "0a314b4f03ee0fa443c37274151d169cf5fc627b9ec26bd943ab513ddcf3e322": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.wmf"
+  ],
+  "63956fca5146d817bcde4bb543f6e95399304525a2a2a2b86384f1edcf7d957a": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.FS"
+  ],
+  "60179545f37d49d476b0a79fec005635771b20f1e4baa02a9cf52c3da9f34b5a": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.txt"
+  ],
+  "0cadecb2be24d4f0cece5dba6370b8af9b66c9fc48042553c1808f82525dc2b7": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.wmf"
+  ],
+  "dc2ac036679ff884837335deb6fc7768b192d2f4d7e9846675abf7c52d598631": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.FS"
+  ],
+  "77420e3c638780cffe1fa7209604cd64232aacaf92b63be2550a1bc6b89baaaf": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.txt"
+  ],
+  "03b986f93d61a185a2ddaab286a66a19a6074816e53a26f68572297e6dc0bc39": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.wmf"
+  ],
+  "011ebd3d34d11bebd52e6075d66f182d1afa4c0201d83655d745d4dd51b42cec": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.FS"
+  ],
+  "6eaa62ca2abbe0e04214d2c6b01fce462eab267975ae01d62c9ee231da4660ba": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.txt"
+  ],
+  "193cb4a6a8b900d0b5a8318d48fb24facf8fa0204775122df8cfef669fc88dba": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.wmf"
+  ],
+  "494bfe0e872d7aaf9d30fd89c7c95a2caa6de652836d7be42095c3fccb5def96": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.FS"
+  ],
+  "228a78be925100d913affbd38752800c3f8fb0366fa746de4c475150a0eeead0": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.txt"
+  ],
+  "678495231e8dfb87a5945c08272f74142c8cde3edb2e670601e6815752e71f35": [
+    "10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.wmf"
+  ],
+  "a8715fec5c1d732c0e2cd4871e90525a36de2c6481151fc61a081767fd6b7bea": [
+    "11_光反应条件筛选/CL/origin_project/催化剂筛选.opju"
+  ],
+  "72a92342e8da0d281cf063d862af433430e3e3927294340443b614c5a55d4611": [
+    "11_光反应条件筛选/CL/origin_project/循环实验.opju"
+  ],
+  "295826268a96f3e39dc4b14407ece6b2a70625e52ea481e36f31463a84703b36": [
+    "11_光反应条件筛选/CL/origin_project/溶剂筛选.opju"
+  ],
+  "ba6c7f11f05483f74f2b97f50c93a53187a69761248995d44e84eef5250208b6": [
+    "11_光反应条件筛选/CL/origin_project/自由基猝灭.opju"
+  ],
+  "ab902c06b6460e3499e93a2673a74e22bfdb10c9321735d6e5cb765c7fc95aed": [
+    "11_光反应条件筛选/origin_project/溶剂筛选.opju"
+  ],
+  "e6b3102eb21818b3a3a1a990279ac855fee60e7071758c3e5e4cf97c99bd9cf1": [
+    "11_光反应条件筛选/origin_project/自由基捕获.opju"
+  ],
+  "8ac65d1729554efc6ffc2f74556eda067bb3dfb4d4887d230dc6125c470be458": [
+    "11_光反应条件筛选/标曲/origin_project/BBAD1.opju"
+  ],
+  "d6f25b32d2206d6468f4f100c2b1becb71cdc075d18f5394b25b866efe9a7f96": [
+    "11_光反应条件筛选/标曲/origin_project/BZA2.opju"
+  ],
+  "805b195e7f2869685dddc0f4ceab33db5671445aa94932f463d24caffc30ae83": [
+    "12_显微_SEM_TEM/SEM/BIOBRCL/3-1.tif"
+  ],
+  "6199657d36af2cb364f9b9cfda0cf8a115d1396ebb3d5b30477fdbf71269344d": [
+    "12_显微_SEM_TEM/SEM/BIOBRCL/3-2.tif"
+  ],
+  "cdc84d25ef4521a0d33f6e0bed000e37984380655952eefb767cf9a95d74895c": [
+    "12_显微_SEM_TEM/SEM/BIOBRCL/3-3.tif"
+  ],
+  "1cbdb8f38c41bf6b862b97cabee9cc0b40c543629dff3d69f7d9c2dc9fab0827": [
+    "12_显微_SEM_TEM/SEM/BIOBRCL/3-4.tif"
+  ],
+  "7836079b909f55443a40c7ac2b2236c98d000456c7034d36edb70d3a0ff3b113": [
+    "12_显微_SEM_TEM/SEM/BIOBRCL/3-5.tif"
+  ],
+  "64aae3ce846cd821fc887dfa7668f7954679b8cad59a5d600bc26c43a835665d": [
+    "12_显微_SEM_TEM/SEM/CWO/1001.tif"
+  ],
+  "fe052d55ae289ef1b9f9bc6bdf980eb9f160ff7a5de86eec8948a27abb843883": [
+    "12_显微_SEM_TEM/SEM/CWO/1002.tif"
+  ],
+  "33cef3e9ea68b2ff8364e239b38f2e5cf23417c7009044c69c735f5ac064ef92": [
+    "12_显微_SEM_TEM/SEM/CWO/1003.tif"
+  ],
+  "794b8d9e0b4c33a1a2cf5d7d169a0d512ea668f3a8650402b2841376fce0a4c3": [
+    "12_显微_SEM_TEM/SEM/CWO/1004.tif"
+  ],
+  "517b6a407211cf9d3178942706674d87d56ad9900ba0f6919f0f2dd17b2e3f3e": [
+    "12_显微_SEM_TEM/SEM/CWO/1005.tif"
+  ],
+  "d9ec6b4d236c26fcd2c301cad6530ac089c1ab41747b247e8310146503787108": [
+    "12_显微_SEM_TEM/SEM/CWO/1006.tif"
+  ],
+  "60997bcd18307392c3e35be8fa92792aa632506a6f79bc01b5a53480cfd35e2f": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1001.tif"
+  ],
+  "9301b5a668d66f2d06ef1407a098382579396bd8cadf6aed2b2471cb5f655742": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1002.tif"
+  ],
+  "9332c94dc5bfaf7cbade699d8569ebfb5c6c1931749506b2103690d526b2e120": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1003.tif"
+  ],
+  "0dfbe265fd15bca42233e0b19ececb84e1481f16375c88c1ecc90a0ed735d3f5": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1004.tif"
+  ],
+  "b563121573a3b06c64aa08ec60ccc9ff68dcf27aaeb3f995d88e7ec197f8b3f8": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1005.tif"
+  ],
+  "cba9c044f29ff6d05c4d833bf5fbfd7e121b992525306d87413246f9c4ab7008": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1006.tif"
+  ],
+  "daaa755b5c038bdde3208d89e90235192bbcf775c2ccadd7b108906ab27c0957": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1007.tif"
+  ],
+  "07c06fd6eefd9be657787685618261e14127686d56db1dbf45c9d4a364e604d2": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1008.tif"
+  ],
+  "d9afd8dec8588320c08d76e88b74243b73e5a4476e9692786def8865f89ddf39": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1009.tif"
+  ],
+  "867550f20fb6d0cacbf9ab70ed53b57f15c629014803ed1b7d400741d50ca04f": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1010.tif"
+  ],
+  "50e4d2d62b4ba46b3244ca8cef9330d83fcf6550a492e82bad17c979e1736a6c": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1011.tif"
+  ],
+  "cff111cc00dfbe7ca4d7254137c3a47bb4fe12c84d83c605ee1c2f82d6ddb78f": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1012.tif"
+  ],
+  "d7832bf2ce1e885ba4da09c7d8c624b16798507190d485a8da4f1d13cb643790": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1013.tif"
+  ],
+  "eea4a59963ca0a7b9262d5ff77ce454cfa44e7218e38062082c96db3337d4855": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1014.tif"
+  ],
+  "82706e550ebfd1fbe852dba169fdd176ab8da6c88a2a8a8310f416fcb01db535": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1015.tif"
+  ],
+  "1d6cd934e5cafaccea7a96aea70cd033bb40d83e21c1d0feead3449fd93f4de7": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1016.tif"
+  ],
+  "28b82cd9fd225a6ae8a93b17c598e71ac982570f39eb7a49f3b56d1e8ca20294": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/1017.tif"
+  ],
+  "6efacda7a19804b669de8954f4c4945a32b133f1f59f69ad34dddff7b0ab49f0": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/EDS/LL-1.docx"
+  ],
+  "0213e1b0dfa33df74e94a097576c5aa15cf29a322a9b5735986826bb126d25bd": [
+    "12_显微_SEM_TEM/SEM/CWO-BOBC/EDS/LL.docx"
+  ],
+  "152fe7733e10abc0b4ccfbb47f2d80bbacdb45bf6e2d041ded49bf7ef4c8187a": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1001.tif"
+  ],
+  "c405bfb6bff8315189c3521af5fed9eea8c99ac7581f83a6c1cd35612e2ec00f": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1002.tif"
+  ],
+  "f73087b6a6370e176e07e3fb9f6f4a67ae6d17b35b7e234ae86471789aea0207": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1003.tif"
+  ],
+  "a8370eff23b431e99f0ebb7491480c8676dce1067fde429a1cc6b72fd0a04595": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1004.tif"
+  ],
+  "3842329161c1ed24871f9768082d62f85cc8681229facf64ef4a15b7aaa952a7": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1005.tif"
+  ],
+  "534be6a31845b2d68cc5a7962e2c8e0a54fcb78f0636d509f597665969d09969": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1006.tif"
+  ],
+  "8a037b64dab344ca0b6a45818f6a85c96627c80cb5b2bb957fd18de0ba1a7ad5": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1007.tif"
+  ],
+  "e9c4ffbed2940e8ac945bcf908daded5b46d83fa93c3675161dacbd8e5690a55": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1008.tif"
+  ],
+  "01eb9408db040028533c8bfd32f5afa8ee4e2ff72373b1fc99b83ccb5bdd2aac": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1009.tif"
+  ],
+  "4fa0188010632f680c77f2126dcceed7671c763dda03ded401c79745470d128c": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1010.tif"
+  ],
+  "4a58fe1d8d8e45232759797c60d4f3d4eb31fcf8196c3a6a4fde9ae25a246cee": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1011.tif"
+  ],
+  "dc361cd8e9a15afa63fab013a0c7ea4200ec6a61e0104235873fc01607f8d1eb": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1012.tif"
+  ],
+  "64de7a0ab4325ac323ac5726238f8e6dd6e055bcfcf72ec26e59acc9eed848b8": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1013.tif"
+  ],
+  "03a3425f4f539347f8fb9efbd3a2633b185ceab8140ae49f22e76d9b2f7e61a3": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1014.tif"
+  ],
+  "54a6652c50151b9994957e8e7e9865723d67a54d8c1efce268c4852c776ab9c2": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1015.tif"
+  ],
+  "c8089d1c5dbfc4bd25b1f7b7b4ccb7b3f6608d7397c50e9f6eb4d8944ed0eb5a": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1016.tif"
+  ],
+  "3a985348036537b4edc4694393dc44c69b8d9b40161a90201568e70d65e3ffdd": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1017.tif"
+  ],
+  "3de8e470061cfbc4841b3b16888462a82f6c658768549f493d01591bf4bacb03": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1018.tif"
+  ],
+  "9b4a032783f3d19e15367fb1da72c5f652a03abc62d36b42a2131726554c9e0b": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1019.tif"
+  ],
+  "3d67477122ddd82ed92a4b08f272bdf6e92697ce806fd31c663773ad0aedf902": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1020.tif"
+  ],
+  "2fd99aa717734d80d1edc71cbcb282920bf9044dceec623ea65f230ba11b3d2e": [
+    "12_显微_SEM_TEM/SEM/LL20250721SEN/1021.tif"
+  ],
+  "e3762bc03225781b236c661a1ef989333feb8f4d79448f7925d548d2dfa2faa9": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun009.tif"
+  ],
+  "12ceec9c7bb5b23820a4f2c9907247da5e77dcc02cf95ccaf6afd71e4614346c": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun010.tif"
+  ],
+  "237cf452d76ee061ded10d9c878e294e6455c006bc0392643d092c98f0f19823": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun011.tif"
+  ],
+  "601c933809dc6f05a04454f49f77bea2b0637b0a1655f71961a2f519fb164d93": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun012.tif"
+  ],
+  "0a0415117d38bbe96d341522a980d0640a4c16bfb784f90bb56de3e59726b626": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun013.tif"
+  ],
+  "34ccf34b889729878fa948f11259253a9a96a3be1304e024e4f7c34ecbc2db89": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun014.tif"
+  ],
+  "5b08616a45fa3b72021aa365f397a34cb7107ffa735250792d6f871145590caf": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun015.tif"
+  ],
+  "79c3c5e74569d7f75028bbb5dd14771e28c345f977eed18d5d274e1e6f22e3cf": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun016.tif"
+  ],
+  "9235abea4e7295dd0856ce248579c46fbafbe4bcb4bafbe758dcf2bbac5feda5": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun017.tif"
+  ],
+  "c697b5e705621f27751c30050c96297ee93dfae1d7cfbae6deb58f097ff31df0": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun018.tif"
+  ],
+  "87ce7d88ab38032cf623aee1c21bc65fcaba90dad6bbddab7f6c60fb90e4dbbf": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun019.tif"
+  ],
+  "dac5e7d5cf6a4363201e5b150aa9f02f7d862cc1a4b8b0b60487f3715825836f": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun020.tif"
+  ],
+  "44402115cc8f542bbbef7f6527aea0257dcc22c3db85e787abbc01a01d521cbe": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun021.tif"
+  ],
+  "110d64a8d6a522ac50034320cf97e4b497c0dc3b90b8999a868c30c31a498802": [
+    "12_显微_SEM_TEM/SEM/ll20260126/bobc/10wt_shui_yichun022.tif"
+  ],
+  "e59de003daa2c2f6e92a8d3a5b079391893b258f70bafba4fb27acd9bfa0ca7d": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun023.tif"
+  ],
+  "efc2f633ce5b90ec4c073050a30b85be7de42163c2beb05807eaf37ebf693380": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun024.tif"
+  ],
+  "86a3dca69478083c325e49a142103104723085d863bcc78145d0997acae61030": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun025.tif"
+  ],
+  "f49a25026a4e103c0a7775670edfc1dfefd8446c9a5fa3a8c9e06980aad20d72": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun026.tif"
+  ],
+  "7b0642d80934da81d5d03c6d6566ac0e21487c2bc0d6637704dc04614dd2d720": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun027.tif"
+  ],
+  "7bca808969254654c7231f24a83573bff6243e6cfcc9045aab66fa8f22a8ce45": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun028.tif"
+  ],
+  "060afa4559ae44b2b0c0104b8539b49166fa590b957dc1befbe02fc76eeb6300": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun029.tif"
+  ],
+  "7f8ea30b1dd0cfbe42934291ce258de18889bc315a05813055faf6ea91ddff97": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun030.tif"
+  ],
+  "a6b4c5753d2e1a2e03291451bc9225b7111ec707432416630d9994a2b012fafb": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun031.tif"
+  ],
+  "cf8e1859985600af4e20b4e5a0df11b5e1d6de79290c98d8598f513ca7c45045": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun032.tif"
+  ],
+  "2b928763ae034c998a69869337057a4216d4a31cce379bf495acd80dfdb23e42": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun033.tif"
+  ],
+  "51a7ae959af9b06db29fa415cc6ddad28c501ebcbe95cb5b0d4db9bffe097ad8": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun034.tif"
+  ],
+  "e83cd75d938ab6a12e893d3cafd037525c457792313af1775f02aa297f6a460d": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun035.tif"
+  ],
+  "ec8fb3123708a089301c4b0f3bd28283aacb4889b4853920b32992b0f1b9ae54": [
+    "12_显微_SEM_TEM/SEM/ll20260126/fh/10wt_shui_yichun036.tif"
+  ],
+  "d898f119a324739f1ecda3185369af628824ab8751b320514e29cba4c4ce0cd1": [
+    "12_显微_SEM_TEM/SEM/ll20260126-eds/~$ 1_区 1_2026-01-26_10-04-27.docx"
+  ],
+  "c70f0b7e1da4638472531ac6780cc69b9398b8f8e25c59886e896dc32b9c207c": [
+    "12_显微_SEM_TEM/SEM/ll20260126-eds/项目 1_区 1_2026-01-26_10-04-27.docx"
+  ],
+  "60315664c2162906416e5253b5d3dd37e440e81fc1d9d743cf33c82be44601e3": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1001.tif"
+  ],
+  "85a77a1f3252fdf95646bdae5c715ce43e557abcdddc66ae804e980177f2ea1c": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1002.tif"
+  ],
+  "7be5eaec3bc453f718fd530c35ad471eff31c2e1e9d8f8c203c0dfdb2b19c337": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1003.tif"
+  ],
+  "f39f9879d7c01fa5f463b6e1382c6eef87e3c5b7a25ba45915b8176a28b82bd0": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1004.tif"
+  ],
+  "83d7790d109505b7ba829e9a8144c42b9d1adc039b5c880d0b14d8befc8ae15e": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1005.tif"
+  ],
+  "e210b008d2f77a5e36b86b27f55f89017b3ce28ec5e5b197b5d884f5cdcda4cf": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1006.tif"
+  ],
+  "35b2ae702542c76a92fa6c0626c40f7ce5e7f50d919c7ad3bb3c62dbdabf6843": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1007.tif"
+  ],
+  "45a8a999cc031f2cd0a6df3f505adaa3d6d3272df89457f94ca91e4529782c6f": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1008.tif"
+  ],
+  "44225e190c595bca2378f700a0f3bd87191527486e6e349b8a5ade82485ab659": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1009.tif"
+  ],
+  "23eb4e858d716fbba4f8fcab5e4a362b1f4e8a4f88448b40c5c74125068100e0": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1010.tif"
+  ],
+  "79f94cc42ede60f3b3ee1e7246c3ef413396cc5a89827a3f2786c1c6f3229707": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1011.tif"
+  ],
+  "3a6aa1e17d7475a63974105af99104df58ecd47b753fbdcb4dd2ef6e867980a2": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1012.tif"
+  ],
+  "bd6dd6ad86f065068917853cb6d3ffecd5c2914aa35045d1aa4f005cbabf7aad": [
+    "12_显微_SEM_TEM/SEM/LL20260429SEM/1013.tif"
+  ],
+  "f6dcb483846fc398ca117d3fd8ee8cbe925ed94abac97bce7002a6e25f052b22": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3001.tif"
+  ],
+  "0e2d0ab558b99e3fdf0ab5931470f631d124ec4b9c60bc2adda4f6af903ee163": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3002.tif"
+  ],
+  "c3bb04c3b90c070f07316bfa5af5ac8f6dcb668418dc6f4a415f2a77f6bc721e": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3003.tif"
+  ],
+  "029969cf69eb67a1fae4d1ade229f7ea85de82092d0d05b9957f23a26b7a5124": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3004.tif"
+  ],
+  "ab71dc18d8631029a1bc15641689bb017354df9ef3d42469e5bf1cca122ac427": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3005.tif"
+  ],
+  "5afd9a440f7fd3185a51b37eae9f47aa11395265180a500901e74feac6dab9ee": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3006.tif"
+  ],
+  "eb67036f7659098be03647bcf7c4e445a0c833bebc84db283f83b57c7fb511fe": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3007.tif"
+  ],
+  "9281a7d0843bcf23ffbe17ed1c9c893e8c719cccba8e2ef800cf69cb757b4d6a": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3008.tif"
+  ],
+  "dbcc34326664a83b510b2c0b43ee75582afa8517b7036111e083776fd5c21959": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3009.tif"
+  ],
+  "4805d1ca5887205750438f45ecb0ea4324e67ffd014e9779a1abc7d7aba865a3": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3010.tif"
+  ],
+  "861463d9dce16b40c0e7aa766f4dcc7b7c4d6d0965746bcdc1634b5b843c9e69": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3011.tif"
+  ],
+  "da82888d285fb499131a3f0a99e0b979fc92d7502e1f89d9d7bb7cea57877f17": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3012.tif"
+  ],
+  "b2bb931679adabff45ea2e0f48ff06b16aa81b6a5483b7678cc5c46b642d7651": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法3/MS_3013.tif"
+  ],
+  "f6796ed2a63efa45a4ed14f4ac536b69605e7ce1cb859e4e79846b7dbffa0098": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/0416HOU.docx"
+  ],
+  "acd549a91fbe968bf00c724b1b7e8922c331d5840f76a0adaff03cf3e1aa495e": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/0416HOU.pdf"
+  ],
+  "ee48756c9f51b89d3acb539faeb561b7e124efe91a42d9837e8333dabebadcf4": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4001.tif"
+  ],
+  "0592a51e1eb898abf4144ec2df1fae0116b76c291e06038291898a77e0e20b2d": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4002.tif"
+  ],
+  "16d230b6bf17564baf0659f132cc3559655a75644de8a37498a4f0d10588c528": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4003.tif"
+  ],
+  "58fffc02985f85c9309c2d7c0680dcaffd95fa08c1a2d30585317bc486f6af49": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4004.tif"
+  ],
+  "fb057cb9741a8901af29fcf440d5272a0c55a9857bd6ec9f5b23da11fc35e535": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4005.tif"
+  ],
+  "42b37824f2a30d099985e25dac700652454b4a5a8d2ec988253e01fee835f7c2": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4006.tif"
+  ],
+  "29c7364f29989dd0388df5007c771e7f270ba21dc2bdbccb54b1581a0e2d466f": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4007.tif"
+  ],
+  "657b7f2539e39136e9db1881e26218c17f83ac0919d6ddf4cd1b5eb62ce1ed1b": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4008.tif"
+  ],
+  "3c8eedbb9a3520f029f6194d3a0e4a5717626666bbde527f7006ebfdff8642a2": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4009.tif"
+  ],
+  "1b4a1b01fd2b742741964be20a1a29ffc67c629bd76c823fdea06e365c5fe660": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4010.tif"
+  ],
+  "318a2eec27d41ec77274c836a4be026a594cc22ee7c4a9c0bc2227afcbd3b987": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法4/MS_4011.tif"
+  ],
+  "aa13ca143cd51dae823d3ac3afdfb0d8c14c92dfd38924c6aeb117979730e4a3": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5001.tif"
+  ],
+  "04c63aa0c77b7b36e8c015b9f6d2270d27514a874e7835d59b418cb2934f9824": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5002.tif"
+  ],
+  "776143666ca3670d053712b42d16db5c9d7b2754bcb762cdf5986db2caeca76b": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5003.tif"
+  ],
+  "efe7ed1c4c2677a081d9733e438d92010ca885af48e35f9159173b7a2d5dfc4e": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5004.tif"
+  ],
+  "1b005b30b151d217dde885cb9eb0def28ac4f7349e5eb9983c309179d0de92f3": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5005.tif"
+  ],
+  "e233778dc8bd5508e9e6e63bebb5601b9e4c51f57b639eb789fd42f02ac9ad84": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5006.tif"
+  ],
+  "937403b32d17599138b1fda0a9a439749c0154830ce4ec132005b6db674a2009": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5007.tif"
+  ],
+  "abc3c60c5cf6fc638fac3909fb6285ca0485384cf155d8966cfddc166dce22bc": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5008.tif"
+  ],
+  "2d2c8d9f20bde327e3b74b615078c60a839bebc0efee257cb91cdafbd0f95471": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5009.tif"
+  ],
+  "681f1da17fd386f37f45cf529515fb266f910229006b8f7258a9a3a6d0f1eb90": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5010.tif"
+  ],
+  "dd8dae6a4901e3f854a718e4e2367a00b413ae81014be11f87e2e55d6b08c4c7": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5011.tif"
+  ],
+  "a835aa85a5f42fa73d0860fc109b5a6828ae39ddb3cb311387e4e099d97cb618": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5012.tif"
+  ],
+  "d4149f3fe8acd40e745143b7087df1d048a03b69d104e923386c6544a0fb278c": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5013.tif"
+  ],
+  "3ff1b61ae0bd9ae1da86c051fd60096138ff9629384e065a44b50cae38c86ff4": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5014.tif"
+  ],
+  "5f9c7f481d54d1e5d3bfbc19ffca5fdaaf1d20d4c611633068951653f07bed37": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5015.tif"
+  ],
+  "d32fa7fb2b528ffcc9cc424645e11269b139a6fa7f8cef320b2fa531038e410e": [
+    "12_显微_SEM_TEM/SEM/MOSE2/MS方法5/MS_5016.tif"
+  ],
+  "f8a885a82f0accec43f48c8e01662abd6e1a76c8502b3c2b82718e944b088519": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/FUHE/300.tif"
+  ],
+  "18d578cf3826a2cfea674c0cb64281c6913e823baa4eac48f4a479a052b6b454": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/FUHE/301.tif"
+  ],
+  "fcbee07263847374149003a49f0ab9a477d1e3bf2fcaaeeaa8e270720576a27f": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE001.tif"
+  ],
+  "b18b9128f37fa72430633ee4979b3fb4ff01646cf25aa164548c3eb6a79b13f0": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE002.tif"
+  ],
+  "d0beee642219aade7abf089f99623e9a37308909a28b6383bb280da3f1b3067b": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE003.tif"
+  ],
+  "9547afa2597abc5e3aba56e84d857181145952bec4341cc3a8eb01b9a855b0d3": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE008.tif"
+  ],
+  "797a012a36832e16835708b1b788692e1870de7f315f49377e0b12efed1d89ee": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/FUHE009.tif"
+  ],
+  "1690f45e36109198481ea6a575ab462af9310fbdbc759d95d55ac7fbc242e7a2": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2001.tif"
+  ],
+  "2e87e0f486fcfbf5a77a44301ea2d7246ec9d52a63dcfebb93b44fc4719ba38c": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2002.tif"
+  ],
+  "5da0db10fd0389d57b9defb925a684fe5d44a815a7925dd26b11f56e6b1afff9": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2003.tif"
+  ],
+  "d7e563e0c9ff869a5d3cf15730ee867deb5e7fdae86f9d392cf05f850b0fa0e1": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2004.tif"
+  ],
+  "b7db28da1f62d89358a26eed0fe4b31eb96c130dff082f7f5f290be8a7f5dee7": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2005.tif"
+  ],
+  "a938b3ea193577c1696669777776303ca546bcc097a142ef40a1982ea8501fce": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2006.tif"
+  ],
+  "304361849d2234daf82ff5877d19c4cfcbfff8405c358372796180af138b697f": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2007.tif"
+  ],
+  "567c1fbac10e54055507b82e730e14569de4623f5ede932553cdb55a8f7a2cbb": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2008.tif"
+  ],
+  "ed71271d179da727ff3e49cc34579a7c3f91f1c4a276bb17e7f7b889896076a8": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2012.tif"
+  ],
+  "cc420355bcef204ccc135c2ecbc77a06bd14c6a1975b163c2de91e43b1e51a7e": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2014.tif"
+  ],
+  "d557c417c8c5d9186c9d6dc539bb04acda0c9fc79cb782e4f93b2fdb37eb2021": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2015.tif"
+  ],
+  "f9760a8b917bfd6c91ff54ae5b72b4f9f6657bd650190c3954dee1fa858fdb42": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2017.tif"
+  ],
+  "4badc0ed00dbd18c3c929120f82923bdf9a4a9f6261a53e600958cff244c8ad8": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2021.tif"
+  ],
+  "0f93c6e391e86b2f347697bbd5a2c70f97af1f5810731b478fafc880d7f75be6": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2022.tif"
+  ],
+  "189cf175042c4571fd4924fac3c3b9b6721675324583957755518bfdda68afc8": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/LL20241113SEM/TiO2023.tif"
+  ],
+  "a1268fd82992c96b4c19ef76c02f0fb08a00e0ca0f8e193740d6a108846f9c25": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/TIO2/302.tif"
+  ],
+  "8527bec8a46e63a8e905c8e998b3631fcb89ebdd9b11b5cafccdd54945190b9b": [
+    "12_显微_SEM_TEM/SEM/师姐电镜/TIO2/303.tif"
+  ],
+  "e273f9c61d3dfbaf5734770c6b552cff2e2322ef6e709c28031c5fad6cb19172": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0001 - BC Camera 36000 x Ceta Ceta.tif"
+  ],
+  "659fe2157f72cad2bc0fb06bccd5ec62b718f0bc87fb67358ecdfa7bb154073e": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0001 - BC Camera 36000 x Ceta.emd"
+  ],
+  "62f621b80f330eaa6e1590ea22412b9a6f225fefbae2b0fb1d7cc9e78d5ab0dc": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0002 - BC Camera 630 kx Ceta Ceta.tif"
+  ],
+  "4c7763093503f07d7c84165d5f58c294d8335e9457e8978d1897e85b847aa800": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0002 - BC Camera 630 kx Ceta.emd"
+  ],
+  "cd23cfcc515a6b45fc285f07ed197fb64bc40abf7fb83fe4432e6901eaaf83b4": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0003 - BC Camera 630 kx Ceta B DCFI(Ceta).tif"
+  ],
+  "b0a57c5391b49e00b1205f45598feb9cc4a4977e49a33599a60d9824b7349a04": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0003 - BC Camera 630 kx Ceta Ceta.tif"
+  ],
+  "3cb0bf6c63a1d2e7530f86636649111fd7701ff2c28458d46beaa35659ea230f": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0003 - BC Camera 630 kx Ceta.emd"
+  ],
+  "42515574d9393ecc691a528265062bfbed14ec990fb636b30fdadfa2e23d861e": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0004 - BC Camera 630 kx Ceta Ceta.tif"
+  ],
+  "b98ff6b9a4535727f8f3f4aab41c1896f3e60d864d571237dc05f8c326eedf5b": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0004 - BC Camera 630 kx Ceta.emd"
+  ],
+  "f39b4d6f1d2bc43d9ab1840893a7319a468c9a8ee545386d799dead57559098f": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0005 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "a9c12a63323102dec07de7334cce7bc650dc9047c745ffb67b30a4ebac0fa77b": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0005 - BC Camera 820 kx Ceta.emd"
+  ],
+  "a2431131c42f636d9be0c425e80de3da4a6b4cc2cd047a5a1e4b5dad5178426c": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0006 - BC Camera 46000 x Ceta Ceta.tif"
+  ],
+  "56c0dabca969e6947cf541582e924aec0c0d31765f1ddea7fcf21cee73bf2ada": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0006 - BC Camera 46000 x Ceta.emd"
+  ],
+  "92246f7a17b00c13b75705c0b6ab59912507235f86af953c8743c3973a55b08b": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0007 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "3eb216b1dae39326cda320848e1b074afbf6879546e8b34640395ef4a3255fe6": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0007 - BC Camera 820 kx Ceta.emd"
+  ],
+  "94fb80b8aa7f4698b84e2b2932c515c262c06810c365f7c1bc8b8b0d6cc9b6af": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0008 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "a521578299b8d6b39aad5d32f42a9b6e2939a6ec6f56c8afdf0e52055b0ed9b1": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0008 - BC Camera 820 kx Ceta.emd"
+  ],
+  "338da312362d0180ba9a18a7d318d5b84ddcefb5cd99440cfe2ed47869bfbee9": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0009 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "a8edaf4472b08d34d9e255361d529f756a3ca23b731b135f364c8f0709bdb68a": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0009 - BC Camera 820 kx Ceta.emd"
+  ],
+  "51b586279a3593e727d3e2b04dbe37024483d538f81e92160586513542aedb4e": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0010 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "f04060a495c62999d3e7c1e0d29b8b20da1da7089c26a093a7cb0c6c265edd32": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0010 - BC Camera 820 kx Ceta.emd"
+  ],
+  "9fc972fda0dced61917c1047309b2c62c10b5ed073da481953e55b0c5e5753b7": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0011 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "55efe77eafa478b156ee8e7f6c1c2a86cf0c724a24a8aafbe76824aa0a924a15": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0011 - BC Camera 820 kx Ceta.emd"
+  ],
+  "5e2ff160334ffe30a9252aedb519b7ef64995ed6cb88672f7ee9f655c900261d": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0012 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "8218745fc11caad9201b4c33ebae0b773e39b75483a3aa2fb253d6f6e12d0158": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0012 - BC Camera 820 kx Ceta.emd"
+  ],
+  "20df3035f88efa11f9dc77a792f3b76ce72f4ef452b8e2fdb8aa2ff935c5f5ca": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0013 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "6fe40dd5876dc0518d399775f4e83a89abb0277f4d00f05b872a8cd91bae51b9": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0013 - BC Camera 820 kx Ceta.emd"
+  ],
+  "fd48674f3eb0cdf8b8da015b8877b21d540c86991668a9d24aa56e1eb0b3bf46": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0014 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "dc0b6f6e93daaa885b47845c5d772320c7637a9f8eb097b377888db63d6b3803": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0014 - BC Camera 820 kx Ceta.emd"
+  ],
+  "45a489660d947463543d44cf35d76f5524b1198584f0bd751903c29a07cd3e41": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0015 - BC Camera 74000 x Ceta Ceta.tif"
+  ],
+  "cb62208a4d87c818ed9ec1ca7d620ce1ec84b5e02d76e1b6997193cd42fdf943": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0015 - BC Camera 74000 x Ceta.emd"
+  ],
+  "1df82872def8a7ee5ec6de26e85b42003630784cefa0626049ef65de6c64a9e6": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0016 - BC Camera 74000 x Ceta Ceta.tif"
+  ],
+  "9670813cc3b609e6c1f0bdb79bcca96d72132b6847bda578ff9efc3905a36bea": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0016 - BC Camera 74000 x Ceta.emd"
+  ],
+  "abcf88196402f13966218130540bf257ed8cb7cdc3e3756167bf4ec5a994982d": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0017 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "45df63b2b24b373775d927413513dc45dad84e1369ecdf1548c20e1ff6acf8af": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0017 - BC Camera 820 kx Ceta.emd"
+  ],
+  "ddcecc59dd752ae172ae998edbffd8b2159f06b6d0058192e04ca03ab6656bf0": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0018 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "59119ad7d62e2957bbe428c9f949c8da39b03068268e0888d0017fc99cd2d94e": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0018 - BC Camera 820 kx Ceta.emd"
+  ],
+  "6e399a795a123494a6e3c5ca8ee5646a37822f6739f2019ea76500d391571914": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0019 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "7538d2e90c31a78710482dbc887d6e099f0d1ded500f71b1ab1392c5446c7f33": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0019 - BC Camera 820 kx Ceta.emd"
+  ],
+  "e0e4d0843c52ae00ae7838424761987ed252b75814ca81ed2ef98fbd5ca361b7": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0019 0.2845nm .tif"
+  ],
+  "c071e29e331b5e6fc4704102cd6e2980e08ffd19ec9856f3d531d5e45f98acc0": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0020 - BC Camera 58000 x Ceta Ceta.tif"
+  ],
+  "059cf9300cba63f76b925737b55275ff5e20170c219c505951e10c28fe4b0f9b": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0020 - BC Camera 58000 x Ceta.emd"
+  ],
+  "4cebe9c1983c654e5c7ce4a69ef9458e1f1f1e5ba0d206baac5d52d278cae754": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0021 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "1b17b5f8e247149744c57d3a7fdb5e642a17656063fc7862b7cf6f378a80a762": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0021 - BC Camera 820 kx Ceta.emd"
+  ],
+  "c31cb96c219155caca45898526867500ad2ff050259f39dece3a767ca96dee2f": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0022 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "7b16b8122c30ae40c314b1d4a1dc78c6792c3c51edb1fc7072dce49c858dbd0a": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0022 - BC Camera 820 kx Ceta.emd"
+  ],
+  "536425d1f30c40b229ef7f779f4e07e174dfe577fa124194a0b977259a4840f2": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0023 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "5109d9db0ad53deacfde9bd9467115ed07a5738ea94b60d82ff6fbe62184f8e9": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0023 - BC Camera 820 kx Ceta.emd"
+  ],
+  "9dab4f38fe747cb68eaca93fcb2abe0158fd84d132b65e90145e16d945b11a32": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0024 - BC Camera 820 kx Ceta Ceta.tif"
+  ],
+  "4dcf3f238a8ae96ffd01d5036738322b3a77e64fd6dd61f8aff1adf699b103bd": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0024 - BC Camera 820 kx Ceta.emd"
+  ],
+  "b2d49d4c18562b8484cc1f614df5c2a2e5e54118e77fe2627346f626498c21ed": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0025 - BC Camera 120 kx Ceta Ceta.tif"
+  ],
+  "355ca2132878890250e81c8249972b19a1c3aa7f4566aecd19ab77f0799ea4de": [
+    "12_显微_SEM_TEM/TEM/HRTEM/0025 - BC Camera 120 kx Ceta.emd"
+  ],
+  "cbeb35ac8ae16df73760f53bd7150301612f253dd34110480a80f4fefa5b2c5f": [
+    "12_显微_SEM_TEM/TEM/HRTEM/24 0.272 0.33-2.tif"
+  ],
+  "0cb12ea262b734ce824c4649e5c8e26de08c8191b0a1d25f0c8688b8b9613db9": [
+    "12_显微_SEM_TEM/TEM/HRTEM/24 0.272 0.33.tif"
+  ],
+  "0e15e6313a820278875f273db31008f289d49ef6b98882b76159af41a74bdc22": [
+    "12_显微_SEM_TEM/TEM/HRTEM/24 0.272.tif"
+  ],
+  "8bf0397334343e638d35d822492a8075d19f0718f5e681597b887755d58b785d": [
+    "12_显微_SEM_TEM/TEM/HRTEM/24 0.272NM.tif"
+  ],
+  "ec82ffd443cb67bb152ffada080e52d6e5de49700dfcdd773a5173da59c160f5": [
+    "12_显微_SEM_TEM/TEM/HRTEM/BC-0.4-CWO-0.204.tif"
+  ],
+  "c91948cd911d7effb8300994929db808aef922b4bd8755ec94694f126a1bec2a": [
+    "12_显微_SEM_TEM/TEM/HRTEM/BC-04-0.282-0.204.tif"
+  ],
+  "1be4178dc9ba4612fa7afedce86630e32ebbc0434091886db93ed434e6bae1f4": [
+    "12_显微_SEM_TEM/TEM/HRTEM/BC-04-BOBC 0.292.tif"
+  ],
+  "1d0cde09a1ce87e5c4da430879651d374eab2b87cc5a5050fae8d82af0cc0f78": [
+    "12_显微_SEM_TEM/TEM/HRTEM/BC-04-BOBC-0.282-2.tif"
+  ],
+  "4ff962e6c55db71927925edba62034af22faeb1887d982d29c6ffb7217aa825d": [
+    "12_显微_SEM_TEM/TEM/HRTEM/BC-04-BOBC-0.282.tif"
+  ],
+  "5c1d1242090156854b0c935b5205f12032daa175cad04f1ac0809139b77075dc": [
+    "12_显微_SEM_TEM/TEM/HRTEM/BC-04-BOBC-0.284.tif"
+  ],
+  "cc13d87e09d8233f4f7bc78d409cd507546bdc0dd0ba49619773d50732e252b5": [
+    "12_显微_SEM_TEM/TEM/HRTEM/BC-04-BOBC-0.286-3.tif"
+  ],
+  "84298a9222c60e4230d12d6cab0d83e680aee00904cd49054c9afef87a44b52f": [
+    "12_显微_SEM_TEM/TEM/HRTEM/BC-04-BOBC-0.286.tif"
+  ],
+  "abd5b4126b8ed8c669f5cd9e8aba71d6a893247e28858a2216a2787ab39ed53c": [
+    "12_显微_SEM_TEM/TEM/HRTEM/BC-04-CWO-0.204-2.tif"
+  ],
+  "45c623e410284fcbe391808eadb4c5878230aff91ab4fdc491a5b56376bccb90": [
+    "12_显微_SEM_TEM/TEM/HRTEM/C19 0.2845.tif"
+  ],
+  "5fe129cea8c493030b28d0b759374642e085f53f9096a7c90dbd38a0d0da023f": [
+    "12_显微_SEM_TEM/TEM/HRTEM/c24 0.33nm.tif"
+  ],
+  "f2471bf658091816083d0c86f037bac19a4f3ecd54df118fb0b11d0591e4b2f4": [
+    "12_显微_SEM_TEM/TEM/HRTEM/Profile Of BC-04-BOBC-0.286.tif"
+  ],
+  "01d5d68151325f183e734e088d4710f1e64378a203e61fa44945c14e1d380338": [
+    "12_显微_SEM_TEM/TEM/HRTEM/Thumbs.db"
+  ],
+  "5135fa3024d6d3480f63e5c6e43edd93b47aca5f40e8302462ed736ef5625a0b": [
+    "12_显微_SEM_TEM/TEM/TEM/#20260326.mdb"
+  ],
+  "c7366e681a800af993caa1be415074a430bbc563d453ebdc4ecb1fef164379e1": [
+    "12_显微_SEM_TEM/TEM/TEM/Img8713.tif"
+  ],
+  "3d190aa9988eaada0de6b44a58b89ba5ccb36bc3319d13c1084bcd323c6a6f2c": [
+    "12_显微_SEM_TEM/TEM/TEM/Img8714.tif"
+  ],
+  "8684c358e4bfb4596b0d6437836e343cb43f3576ca8ea288fd8a55f4f8497e78": [
+    "12_显微_SEM_TEM/TEM/TEM/Img8715.tif"
+  ],
+  "8d25e1295c857fe4cb543fca126df40f52994662774e7c108d38805f81983bc9": [
+    "12_显微_SEM_TEM/TEM/TEM/Img8716.tif"
+  ],
+  "e2a0aa91ccf690a4bc6832663b9cc6bec0ec3c5aec9d9912d4900c0db1328790": [
+    "12_显微_SEM_TEM/TEM/TEM/Img8717.tif"
+  ],
+  "c6ed80bf3db2fdf386cdb296c55805af2fe409e8beeda7b03ea2b08a67cc7f0c": [
+    "12_显微_SEM_TEM/TEM/TEM文献晶格图/BOBC+TIO2.png"
+  ],
+  "4be45246563fe160e22fca09665c08dc3ba0153efa51aed29987d349b54b278d": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/acqu"
+  ],
+  "30981226dac303733ff31c40412dd61f5adcedec2a5add8cbb9c84af174b953e": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/acqus"
+  ],
+  "24a59ad20bfb5670ccf8c1779dbea9a8dfc933a443e4f904eea22f73cfa2ac9c": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/audita.txt"
+  ],
+  "377441dd3836b8c6030fe56056ab2b9915229422924241f989a8e89378cd8c3e": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/fid"
+  ],
+  "b6f8b293ea9b51bd1472b75a16881d2a1e03f8462c9995e6a9695d4345ee9fec": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/format.temp",
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/format.temp"
+  ],
+  "e26210bad11d363f241ccfbd8303cf528f8acb13759f80f313ad92c523562902": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/fq1list",
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/fq1list"
+  ],
+  "25236e8749c67a03c7acc58580b1f7025c9fc277cd0caec4e9a73fcfab1a0b16": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/1i"
+  ],
+  "c97c641088e7df9e0dda57b7699913e80c9feff084f75406faf60ad01e92bbcc": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/1r"
+  ],
+  "ed0be431f263264769439aaa3e01d8aa6d3eedca28a3f764af6aa90c4ff5768f": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/auditp.txt"
+  ],
+  "5a455c651db914a01490b05a08f19e5ee2717ad7b0792808945735bf65ed9392": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/intrng"
+  ],
+  "3dffe5a4386f12cc949c08b4aa267875d1f583985a847ce2393b1db0c301afca": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/outd"
+  ],
+  "2cd2458e37eb716f1c8eff6ca25264bf7e47bcf62ef7957629d79196e58eef19": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/parm.txt"
+  ],
+  "69037357661e2926b1488e896c09245922c9359a71d941921a0e38270e75278c": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/peaklist.xml"
+  ],
+  "39e170e0974169fe1d0cd739e0154aff89582947f464b28ca0e38ddb1c002e4d": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/peakrng"
+  ],
+  "8cadec829f4f2d21c7c8eeb9d280780897d7fb83638ab990819077bf67633d25": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/peaks"
+  ],
+  "a6d0a5dc04f5a442e3c9bc7c53213809d7915049d61e6f43b8e38a1f3fd3f9b6": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/proc"
+  ],
+  "4cb90c102d824e8e5038dc8779caa39d95c484bb2be2d4edd0033afd8f27abff": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/procs"
+  ],
+  "ef367f8568aec4d88ac5266a071d2aa3db43cbc2e3da83018c0b612c9fb95ea2": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pdata/1/title"
+  ],
+  "0982664fac3e059d772a03d4c79acfae3947245442682431576c98d700eba847": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/pulseprogram",
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pulseprogram"
+  ],
+  "0327e63abf1e1dd8c4b774ad40778f9f121cb7ed5cf0d3ae5925b342ec0c6e73": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/scon2"
+  ],
+  "157439a60f54508f0b1bc24995d727dafc2d91122ccd3f4c4031d7e612764d63": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/shimvalues"
+  ],
+  "b7b2c54564b1df173698cedeb833f617f7600285d1a1030eabfaef525deb5028": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/specpar",
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/specpar"
+  ],
+  "ab6f8034033e4fe213312ce9a32d767ca1abfbec35e2b914824eb5b914814c1c": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/uxnmr.info",
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/uxnmr.info"
+  ],
+  "ed9d1f43e81f66d4d8f026585a884b6bd1999f7d7f122cf3801ae93a7c14665a": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-1/10/uxnmr.par",
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/uxnmr.par"
+  ],
+  "00510cc19b88cf5a6d4bba3cc930bf586b3c1173d91a2c4f7228a1986210ceb1": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/acqu"
+  ],
+  "0041639bfa074b0e374f03e2df4e9fbec0d305f2d3392ab222278e68381a8f09": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/acqus"
+  ],
+  "186f49614a842cb57f72d3186fb4477bbce954134286bfc1baad6d2cffe60141": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/audita.txt"
+  ],
+  "0ba9e2a1d0b7c36c1af8751a3b370618075f889eb9c7dcef4364656b23d4277f": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/fid"
+  ],
+  "e0b3cddabdfaf4252879e5a78749e4779657c06444038e8fa2507ad8cc614f66": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/1i"
+  ],
+  "e75460133569a500109aecc05107903124affa0ecb56fedb9fe644404eef3244": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/1r"
+  ],
+  "3ad49095ff40b309ba233d1836e7bd98e84b1b506c7e2b389af336243336e076": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/auditp.txt"
+  ],
+  "ee77845c8486bb1d9ac0e6fb75430fd3145a65c1232e23b8475066ce31239d38": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/intrng"
+  ],
+  "6eaf22dd6dfe9a972edfa84b5c3a796fe17c40f1e8d29321ccf4415c0220d2cb": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/outd"
+  ],
+  "1cc86bf95fe919ed127f456c89a104c49d3f08e85a25b872d36a839f703588a0": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/parm.txt"
+  ],
+  "d0608ecaeb927083ea8753aa2cb4be3aa1f36b3fa65b95ac2f23da6e2ad2796b": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/peaklist.xml"
+  ],
+  "c517bce35555442c2a06ee16ccb985193d6933f84538929c7b55758c9240738b": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/peakrng"
+  ],
+  "a84101b24f28fe587a50093daabce8bd9fa47f8f949bf4c9cf5c2e24150a857b": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/peaks"
+  ],
+  "7c10a6e5c27c51b05b42f9ddba6223711d460a83c1ef8a965a47eb9518564832": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/proc"
+  ],
+  "f84dc94bd92462f2d348ebc5a705bd0b311e99150a088259b27f8d156c371403": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/procs"
+  ],
+  "766a6b4a50ef938b375d194a3fcf9798b9f85d6e9e13e98790b8be9c085fe69e": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/pdata/1/title"
+  ],
+  "918dff76d6d390f4256bc4b71525a9d5754ff0d37e89eac3be1b04797189978e": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/scon2"
+  ],
+  "f3864f812c49aa74e38667b78d545d6dfcd4b2912f09304a59feba7c2a659504": [
+    "13_反应产物分析_液相_质谱_核磁/核磁/ZPF-LL-1125-2/10/shimvalues"
+  ],
+  "98634c37def483a9d4b35a5ffa249dbc4f7c8c46c06318b980b8d2cbc2863969": [
+    "13_反应产物分析_液相_质谱_核磁/液相/11%.pdf"
+  ],
+  "40f1f0cbcca9d732ef0cccbb349b6ed51bbd01af6bc2f4a68033b1324bef56b3": [
+    "13_反应产物分析_液相_质谱_核磁/液相/5%.pdf"
+  ],
+  "045f27af2e839dd2b5d00c838f2bb0c37cb2ed18afa77d9a0c556c25034f53ea": [
+    "13_反应产物分析_液相_质谱_核磁/液相/7%.pdf"
+  ],
+  "bfc423f507e6a09dee72d10b1604e9d81e2eb52ae34e707871fec1930342a7a0": [
+    "13_反应产物分析_液相_质谱_核磁/液相/9%.pdf"
+  ],
+  "68d4288a3a602af9b38cfb88554648e2ba3ce2006862c76cb5dfb40c00006807": [
+    "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/15%.pdf"
+  ],
+  "2acfc2e701a7d9d72f8171fd55faae13ba6560ebc40277d76c0c551e4a42401b": [
+    "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/20%.pdf"
+  ],
+  "ccf4e0fdfb74d60742062cdfe6ac59df2c02eee24a58c503d29c258989720650": [
+    "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/3%.pdf"
+  ],
+  "d972438360817466fd99032c1b2f21da3bdb5761c79ce8f93f15aeeea9b3bbbc": [
+    "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/5%.pdf"
+  ],
+  "0b7ff5a4fb06ccab27fea8918e64c99366be15eab671b9b6b847fa6cb3c2d006": [
+    "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/80%.pdf"
+  ],
+  "84e5a3e64d1a1cb3658766f52249354a26cf3683c308f4e0d3461d1d1fba8166": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/1.xls"
+  ],
+  "2c9c9e70faad44ab4f69dc7c3c584edfea68ce90370898418beab2bf5d405604": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/2.xls"
+  ],
+  "b2fbcfda384dc4f6e13743840a3b6c010fc039c7783774d6ad401168a3bdc5cc": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/2CH3.xls",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/2CH3.xls"
+  ],
+  "86d24b6c00ecbedfa4f100d69b5e5f2bcf0e37c75edec596587a7538d6029e74": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/2CH3.xps",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/2CH3.xps"
+  ],
+  "3e7d0d5f54b1d303cfd953982d13fd6e0721fd7b6e8b71d0d56c23c952f6a76b": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/3CH3.xls",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/3CH3.xls"
+  ],
+  "41107d7927d1021d51c7980a3055fcac12b6f6bb7626c458ccda89f076a318c4": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/3CH3.xps",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/3CH3.xps"
+  ],
+  "4f2642ada5cee814e6a4c87ee9c826a3c83a62f7e923e10256f2ce0d5bd84581": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/4BR.xls",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/4BR.xls"
+  ],
+  "0e1e517d3e9663e7457ddc644db0bcd193a9074c99ee048ea63535928d2f3472": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/4BR.xps",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/4BR.xps"
+  ],
+  "d5f0c6f7c982265b50d2e30059d397f70cd75b5ac661ec685d2d25f71a243700": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/4CH3.xls",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/4CH3.xls"
+  ],
+  "832675e169964ab0636bb97bdd8db4904087f1836904d6995e8e83196c506030": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/4CH3.xps",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/4CH3.xps"
+  ],
+  "df770e42d83f20866a2a565d8e77c8c8591d72ceddbc8a9fca46cbdb56b46c7b": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/4CL.xls",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/4CL.xls"
+  ],
+  "ccfe7ea71fdc44b193e29ddeaaf90a589a239129ca724d9a86f3c4bd6e452f4a": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/4cl.xps",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/4cl.xps"
+  ],
+  "9ec0a34a71a683ba18c3b490494eab257842729453970e893cb8c264326f592a": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/4OCH3.xls",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/4OCH3.xls"
+  ],
+  "a9964709c6a83bb7ae6a3a24e987029807a4849597883dc4fc18a24e1d41e972": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/KANG.xps",
+    "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/KANG.xps"
+  ],
+  "c09c3e07156b21382857b5514b6f04207565be5b198bf14e67b423f77b4fdb96": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/KANG1.xls",
+    "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/KANG1.xls"
+  ],
+  "ba407b262413f151a0c58e7e5f2645465d7db8968ba3c425ab7bca28d0b8356b": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/KANG2.xls"
+  ],
+  "c8ff492754fbb6e23af78281de4aa8c9f1696f3c8ac76b1ebdbd361e27bd022a": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/LM.xps"
+  ],
+  "9db1d524908f98718290a4d81ab014df92be408d6453741d91759e5f24a8b568": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/LM405.xls"
+  ],
+  "5a3261e1a72f19cf5e8364cd27ea8f9675f937c740a38ac0d2770b461bceb6bf": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/N8h.xls"
+  ],
+  "aad17b1c071afc70df8d369cb1d49cd9d41593653ae96c44d7b928f12e5d1196": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/N8h.xps"
+  ],
+  "77c9d635247db49ebb177583ae93c15ac63d27b3cd276523e1e8b707902d63ee": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/OCH3.xps",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260317-LL 2+3+4甲基，4CL、BR、甲氧基/OCH3.xps"
+  ],
+  "89f617b484bb770f7d575176402267c82d712d9b622668a6813426f9e64080e2": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/S8h.xls"
+  ],
+  "337661f7512e7d516d9d6499a596284e0b79b19acf7c8e99be22d7fb1968b29f": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/S8h.xps"
+  ],
+  "71513d4ecb0acf4a70d46b62914dc0e2dc7037cc48341d7843e66cb4dabfad64": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/SHUDINGJI.xls"
+  ],
+  "42db6008eec22c456b7557ed8f078d1f58b9c9e0b09116e8203ff0b9ff2bc512": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/SHUDINGJI.xps",
+    "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/SHUDINGJI.xps"
+  ],
+  "b59cc9b56a4136f916f1380550aea3fc39f29a344e2a94a190af6e794f3d367c": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/AcqMethod.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/AcqMethod.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/AcqMethod.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/AcqMethod.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/AcqMethod.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/AcqMethod.xml"
+  ],
+  "6315cacebe5dc9c533dd16def7a4562e521d83e0b5cadf525a990bcc482a575e": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/BinPump1.cd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/BinPump1.cd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/BinPump1.cd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/BinPump1.cd"
+  ],
+  "c26c3b0506007bfb9b186cad147c31c426178c2a0296d99de64228b8086c7778": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/BinPump1.cg"
+  ],
+  "89ef44bbdbb0dcb07124fe63cd7a75c1e60426dba3690b482a280fdc6f6ee658": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/Contents.xml"
+  ],
+  "e40fe518fb26e4b420cf7ec9207e647c31b955a562ddbb95ebd1225b68cd9872": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/DefaultMassCal.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/DefaultMassCal.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/DefaultMassCal.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/DefaultMassCal.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/DefaultMassCal.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/DefaultMassCal.xml"
+  ],
+  "05b61eeaa2b6d3eff6b3b1abf1473924a265a15e58b30c15966623a91624d6a3": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/DeviceConfigInfo.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/DeviceConfigInfo.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/DeviceConfigInfo.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/DeviceConfigInfo.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/DeviceConfigInfo.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/DeviceConfigInfo.xml"
+  ],
+  "1e999ef5f6d5b23f1205b4b65cd54c1eee096a24fa658b9fcc2d66a728fe78b2": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/Devices.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/Devices.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/Devices.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/Devices.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/Devices.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/Devices.xml"
+  ],
+  "b6ae11dbe902841c6e66a43de1ddd70544d93b1eb484e51a99aee2e0fad7f2d2": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/191_1.stg"
+  ],
+  "9cb5af1fae82e6cba27d663b2a694bbdc1febf8d43af95340fc0508010ce15bc": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/BinPump_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/BinPump_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/BinPump_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/BinPump_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/BinPump_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/BinPump_1.XML"
+  ],
+  "1c7713c086b3dc4a25e2b9f120fb9864397efef14f42a139180f86e861c55111": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/BinPump_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/HiP-ALS_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/TCC_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/BinPump_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/HiP-ALS_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/TCC_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/BinPump_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/HiP-ALS_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/TCC_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/BinPump_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/HiP-ALS_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/TCC_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/BinPump_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/HiP-ALS_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/TCC_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/BinPump_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/HiP-ALS_1_MethodMetaData.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/TCC_1_MethodMetaData.XML"
+  ],
+  "ce00403c7c169f8d6a05eb24022559efe41ba11dd39e4b395f69979bc2d1681e": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/DaMethod/Qual/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/DaMethod/Qual/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/DaMethod/Qual/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/DaMethod/Qual/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/DaMethod/Qual/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/DaMethod/Qual/info.xml"
+  ],
+  "0fe2b9e1f6bd19ef7e80f1468a816569482c8c200c535e914172daeeb64c72c3": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/DaMethod/Qual/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/DaMethod/Qual/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/DaMethod/Qual/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/DaMethod/Qual/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/DaMethod/Qual/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/DaMethod/Qual/method.xml"
+  ],
+  "3ada9e43de5a4eac122045c7ca3462b71ece38d8883b1cbe70b28150bc436e03": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/DaMethod/Qual/qualitative.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/DaMethod/Qual/qualitative.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/DaMethod/Qual/qualitative.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/DaMethod/Qual/qualitative.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/DaMethod/Qual/qualitative.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/DaMethod/Qual/qualitative.xml"
+  ],
+  "e049b95a00edce3bbe310fa8639bb7af295b2e3bc36e1cfa0359ab1cf0cb5936": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/DaMethod/Quant/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/DaMethod/Quant/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/DaMethod/Quant/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/DaMethod/Quant/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/DaMethod/Quant/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/DaMethod/Quant/info.xml"
+  ],
+  "f03c01056ef3c5d1d1d563efb4eaf4a71dde6b1722e045942bfeb3f27ce51159": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/DaMethod/Quant/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/DaMethod/Quant/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/DaMethod/Quant/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/DaMethod/Quant/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/DaMethod/Quant/method.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/DaMethod/Quant/method.xml"
+  ],
+  "e56e1ef636609974862ddd3104b52d28c578df0bbd8e66a61d6de5ab17ac97e7": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/HiP-ALS_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/HiP-ALS_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/HiP-ALS_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/HiP-ALS_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/HiP-ALS_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/HiP-ALS_1.XML"
+  ],
+  "a5ae609e14c180a997960f3c1d257698c12a6acee6e7a1617f8f3d09118f65c1": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/HiP-ALS_1_Pretreatment.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/HiP-ALS_1_Pretreatment.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/HiP-ALS_1_Pretreatment.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/HiP-ALS_1_Pretreatment.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/HiP-ALS_1_Pretreatment.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/HiP-ALS_1_Pretreatment.XML"
+  ],
+  "bf6ba4325b6aa0ea9897de0d4d4bf00e49b87eed5e6df0d984daba3c96ad5e21": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/info.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/info.xml"
+  ],
+  "9fc1dc72b26f1f176e4aa1a47858718db38906c5d6e341327ef10c81cb2c96ba": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/JYH.m/TCC_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/TCC_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/TCC_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/TCC_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/TCC_1.XML",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/TCC_1.XML"
+  ],
+  "072fc9fcb8774f92db4969dd774c8ad17d272d13229835f3161c83c93ffebc7d": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/MSActualDefs.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/MSActualDefs.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/MSActualDefs.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/MSActualDefs.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/MSActualDefs.xml",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/MSActualDefs.xml"
+  ],
+  "d4b4c55669dc4f41e64cab2f9d70b680a7e7cc5fd37a1d9a3eb2fcbafb4adfb2": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/MSMassCal.bin",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/MSMassCal.bin",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/MSMassCal.bin",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/MSMassCal.bin",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/MSMassCal.bin",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/MSMassCal.bin"
+  ],
+  "735870427a34ce38ece54400dbd03eca7d76581af454968e5712977c30820b1f": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/MSPeriodicActuals.bin"
+  ],
+  "9ee6ae39c980dfb0f6919abff98bee82aa42472eae6cec35648dd1fe48a60138": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/MSProfile.bin"
+  ],
+  "179843aa33719672b21cb99a9e6ccdf3e61843f9bb0b999624dd6d473a3dcd05": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/MSScan.bin"
+  ],
+  "4167cf72d1afe6413cbd26185ec8b6025b4c81e4b2bb1f113a643512fe19d0fe": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/MSScan.xsd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/MSScan.xsd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/MSScan.xsd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/MSScan.xsd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/MSScan.xsd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/MSScan.xsd"
+  ],
+  "6c2075b1fbaaa58bedaff1d06ae6905baffecdedc4b7b5eeb02387038e8eab8a": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/MSTS.xml"
+  ],
+  "db8c4c83591706c6ff5f4693a642c001c70e79a3c2b2a3757326d31dd8fd91eb": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/sample_info.xml"
+  ],
+  "880d2184c6071e82eaba84fb99a3867bbf4e08da1d9a9ff3b567c3a5e1988c25": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/TCC1.cd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/TCC1.cd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/TCC1.cd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/TCC1.cd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/TCC1.cd",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/TCC1.cd"
+  ],
+  "9081c4034d5ae399b470a35262a9471cf0e5d89233536f86cd5271740f94fd50": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/TCC1.cg"
+  ],
+  "b354b88687b8fadcead294df2ada7332746b91cb84a5c81781a255dfadf5f661": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/AcqData/Worklist.xml"
+  ],
+  "4ee8c3297e3316c4c7a8d19e5898dd4aeaebca0267ccc39b56cb0819a3df5443": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+2CH3.d/desktop.ini",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/desktop.ini",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/desktop.ini",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/desktop.ini",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/desktop.ini",
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/desktop.ini"
+  ],
+  "c27df03d48aca08fea0835e553ba64f7b18f6adcabe3dcc32660b78d3dc27979": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/BinPump1.cd"
+  ],
+  "65c92446c94947ce8391032af923cf5628b85ed5e9d63faffdd762f027c960eb": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/BinPump1.cg"
+  ],
+  "abba22c05a302c98b11c4f9983d690b228f5d929f0428a8109f63abcd0747885": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/Contents.xml"
+  ],
+  "0f5046331ca34bb2a0535cab64d78e5dd9bfc017c3ca117f948c0e1513d38052": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/JYH.m/191_1.stg"
+  ],
+  "0a710c728137b1029f61e1a91b649e11d1478e81e2b20930e3e9155a1b1b5457": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/MSPeriodicActuals.bin"
+  ],
+  "ad8b40ae45e3fe05f9909c0ffde3dad61b672c6e68f69c6da3b5b96426b9ff05": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/MSProfile.bin"
+  ],
+  "02a806cdc37c4a2cdde599f940219f8cebc0e3c74956a7db63370621152e75ae": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/MSScan.bin"
+  ],
+  "771d1ef9ee05ca9075846838dbf0e8f4792cb040524249950abfe46ff3696ed6": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/MSTS.xml"
+  ],
+  "52ea72603bfa32e0023462ed4bf0676b5958e51fcd84df71fc23cac3c2b8cb4f": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/sample_info.xml"
+  ],
+  "175f0bf054906dacc506e295fbac86d7e57d638bd58f8a937f3e604e5946bf76": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/TCC1.cg"
+  ],
+  "6b41dd8994d22d0af60bda6b222db38e6d00e6a9f0eda491df267da9d4683bb6": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+3CH3.d/AcqData/Worklist.xml"
+  ],
+  "de5380d45825b8e6906895ce281889454fe990b28e8fbee28430077c44055472": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/BinPump1.cd"
+  ],
+  "f98582fbe238e654a29a94b98007ca93251d0361a6816ad050fc3009bdf6922a": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/BinPump1.cg"
+  ],
+  "83022ce51901ff84fdb5124168cabbfe05cb601c1306994e383f1517f48edbff": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/Contents.xml"
+  ],
+  "4a85eb616d0424c154b9ae587386027457edf012ecedc782d61a833f0c88baa4": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/JYH.m/191_1.stg"
+  ],
+  "a7b4fec72359e5207105730eed1a122d91ef34c3a7cb48329cce4839a80bddb9": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/MSPeriodicActuals.bin"
+  ],
+  "d34c7e22ba09cd1db960f1ceb736c4c1d610a2b3503f907198a3503a9c3f9aed": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/MSProfile.bin"
+  ],
+  "045ea261a5ad98aaeea3970af1d415112a2c1903886d755133ec04213d622ef6": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/MSScan.bin"
+  ],
+  "c23c2addb2c3240f9071ae97342ae045f9c639d53e8dca4f30a5dd6569fc8450": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/MSTS.xml"
+  ],
+  "1df450a3738e4d3a3897f1aa800f5786e87d92002b139b0402753fedd2308027": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/sample_info.xml"
+  ],
+  "273c0033ca116c463d4af610459b30e16795703b73e291aa9fe8a52f95f22f89": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/TCC1.cg"
+  ],
+  "6fd287ad26ac326c85a1e5f112deba330e2e41ffada5ca1804cc97ad9e975714": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4BR3.d/AcqData/Worklist.xml"
+  ],
+  "1251af609f0f17024386b3f7e0083fe547d2820e3bc2b34f090400b3a5a8e1b6": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/BinPump1.cg"
+  ],
+  "b7dffcb83bff5ae41b7cc5450aab619f0ce4c8249a79ea1d069904d42921d2a5": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/Contents.xml"
+  ],
+  "82fa70e62a73b935448a3ed52dcd28f663b2b82e93431961850ed78d86845957": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/JYH.m/191_1.stg"
+  ],
+  "d34ba8c05254e30b865677767ba9eefad186a3b0c73d278f2b2f4b61839b1ba8": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/MSPeriodicActuals.bin"
+  ],
+  "117d8e7765d7507db97d5c99eebfffe686f9a36ac15e71d791fa2473809c77ba": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/MSProfile.bin"
+  ],
+  "0be6243cd4c040e5f7f275dc237537f061bd37a45ec073362516b2386c3e6b7b": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/MSScan.bin"
+  ],
+  "57e0b6ec2bc3f142a85399169c674ddee924993a54c4cdcf89cf27cabb732398": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/MSTS.xml"
+  ],
+  "a493f8f04f20f0831e31cca3e1d561539c7a8fec8afe50bd80020da924b5bb86": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/sample_info.xml"
+  ],
+  "e32c5a73632d6d26ed8529f702afd5a07a77a724e222ddf95f13eaff2204b146": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/TCC1.cg"
+  ],
+  "73652f357215702609bf8cb8d6781e91b680c4d0d315664e4e2496f8cbe9d9e3": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CH3.d/AcqData/Worklist.xml"
+  ],
+  "b9725f8e019bfbe8c254879952111205aeffb02257d13542fa55b9fc32cbf808": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/BinPump1.cg"
+  ],
+  "4c73c6166ec67335538eba6104190d0aae24c17036bc2387925804064f5c1915": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/Contents.xml"
+  ],
+  "93f808cbe1815827aebe9f6cbbe6181d19c628d489540d1db1e035a2a6ff8386": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/JYH.m/191_1.stg"
+  ],
+  "f11b51bff444545b967ba457fb63512940bca72c6164a562a42ca26f5a9c3e6e": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/MSPeriodicActuals.bin"
+  ],
+  "5f727109fc3f078ba0a5e996216b2c70200969ca324de9366958859717babf69": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/MSProfile.bin"
+  ],
+  "7af5d3676885a45337e9db5fef08150d10a8d8a513bf2dd77f8fc0335f837ba6": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/MSScan.bin"
+  ],
+  "62244f5f99bd9ee83f605839664d046d3f6ac3153bd6d622dbdb9c3be9e45a41": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/MSTS.xml"
+  ],
+  "5b9ffd1ae51c8eeec265f35437367b4469ef254622a394eec53c289ca9a88adb": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/sample_info.xml"
+  ],
+  "5f5ccbaaa9ce5f9e01bc34930b005409d4c6594ae46bb4dfade5bba3ffcacf2f": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/TCC1.cg"
+  ],
+  "a91aa8fe59568c88b3c5c684a67a229c7c509d4caa35b72e28985b8f61263d25": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4CL.d/AcqData/Worklist.xml"
+  ],
+  "c64736179e91d228223ccc6a925e15218192b89c0932685e284097adb7e50823": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/BinPump1.cg"
+  ],
+  "3d02a3f03faa3a568e46d3ae049a52f0c6f64f6d06dcdcb1bccdaa7b4ed392b7": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/Contents.xml"
+  ],
+  "16918801bc4fdf1748a44f0b0e9ba6c844b093d54081e630f9a084d65325b96f": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/JYH.m/191_1.stg"
+  ],
+  "acc05bc3ffe4d19e86510ee2cc6cc3e816c79dbf5c4841072bb10f0de06d501b": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/MSPeriodicActuals.bin"
+  ],
+  "344d9fd40a90935fd38a507f3386adee29caabacee07dc2323ac52e35aea410e": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/MSProfile.bin"
+  ],
+  "4475d2dd99a549e7dac6266e92f77241129e406dfa28c6e5918598e1d0cb65c3": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/MSScan.bin"
+  ],
+  "c7a8226358de7383668a7393aac70aaa9cf85ac5af89d7b9a32bdb3a94dc51b8": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/MSTS.xml"
+  ],
+  "b744001887de3e0bceeefa8bf167ae4a7a7ac2c601337978c0e32c9956c5c02b": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/sample_info.xml"
+  ],
+  "46819a115536ca16da926df7c8547fb43ca7e5cde03e052c1532b214ad2784ec": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/TCC1.cg"
+  ],
+  "34beb5b9e1db05e4340bf9c7d028d3758124eeebbfe642deb85c3401a683a1fe": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/底物拓展原文件/20260316+4OCH3.d/AcqData/Worklist.xml"
+  ],
+  "b5ac587f2b2145a3d87b1568268a113e1fd2494cdc986843ac9cd9b4a4a07481": [
+    "13_反应产物分析_液相_质谱_核磁/质谱/糠胺叔丁基/SHUDINGJI.xls"
+  ],
+  "51f538aec883438b0b5928f739222afcd9bb56dcea8e4a0452fecfc1237ac2a3": [
+    "14_动力学/动力学/COFIn2S3 S 型光催化剂具有增强的光吸收和 H2O2 生成活性以及 fs-TA 研究.pdf",
+    "14_动力学/动力学/从CdS量子点到原子分散Pt的超快电子转移用于增强H2演化和增值化学合成.pdf"
+  ],
+  "8aab0d91acba04cf633872861cb6597be642d6229d5987014dc00a688c233b89": [
+    "14_动力学/动力学/S 型 g-C3N4CdS 异质结构接枝单个 Pd 原子以实现超快电荷传输和高效可见光驱动的 H2 演化.pdf"
+  ],
+  "3855cb6f51ddf8191890a88b25856faca931505ca7adea96ec196032b6c65ca8": [
+    "14_动力学/动力学/S型量子点异质结光催化剂：组装类型、机理见解和设计策略.pdf"
+  ],
+  "aab1ffc7db9dc8b2fa6d6b8a16b08f812b1527f631b27696198f3127fb4d6394": [
+    "14_动力学/动力学/yue/Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf"
+  ],
+  "44a60cb1b59fa06010fd3fa1809709aa4648e38fc85021123bf4937cc4c1ee0c": [
+    "14_动力学/动力学/yue/EPR/SI Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf"
+  ],
+  "7e111b8d261c5b2548d53880b3e518178b5970456fad7cf39c70424e00692abc": [
+    "14_动力学/动力学/yue/EPR/使用高级 EPR 探索 S 型异质结界面的电荷转移动力学.pdf"
+  ],
+  "121254db73be352342c9289276cef4eed8ad44f56905308fa4b97d7d413a3c94": [
+    "14_动力学/动力学/yue/KPFM/SI K.docx"
+  ],
+  "e703c413e21276f36615640c8080d433c7b75cb693edbd4e3f70b062f1fc9697": [
+    "14_动力学/动力学/yue/KPFM/开尔文探针力显微镜揭示了 CdSBiOBr S 型异质结光催化剂中的空间分辨电荷转移机制.pdf"
+  ],
+  "b577ff100c2c13b2bdf13d32e46fa766b8d8b5ef7973a4da55f3e973f3c2179f": [
+    "14_动力学/动力学/yue/S 型光催化剂中的电荷转移动力学.pdf"
+  ],
+  "ba02166899d01c144c3c28eefda410d146bc2b972ded0358536ec5ff7d0797bf": [
+    "14_动力学/动力学/双功能 g-C3N4 纳米球CdZnS QDs S 型光催化剂，具有增强的 H2 析出和糠醛合成机制.pdf"
+  ],
+  "58d8fe62ba4f4c01a2d0c138261117cf24ad4cdc51d8a771b9613c3b72c8fb6d": [
+    "14_动力学/动力学/双功能 TiO2COF S 型光催化剂具有增强的 H2O2 产生和糠酸合成机制.pdf"
+  ],
+  "baaa3d0ab3bf714dfe93070b48daf0b1a239989fd90cd37239f98790c8ff9baf": [
+    "14_动力学/动力学/在核壳NiS@Au助催化剂上实现自由电子转移反转和 dz2 轨道占用调制，实现高选择性 H2O2 光合作用.pdf"
+  ],
+  "dc6dd4c70a529ccd2094984595f5b72652307485950f37f0ea79c7dd3a592b81": [
+    "14_动力学/动力学/异质结光催化剂制备表征与机理研究_王中辽 (1).pdf"
+  ],
+  "333913d484cba25091e54506ec166c2b062a03c29ed433abe2e03d5bd46e65ed": [
+    "14_动力学/动力学/新建文件夹/ZnOCOF S-Scheme 光催化剂中通过 Zn─N 键的界面电荷转移.pdf"
+  ],
+  "f802743722237a856796e33dc9fa8af9a5a858331fe3add4e4f19b14d5a379f0": [
+    "14_动力学/动力学/新建文件夹/用于光催化 H2 析出中超快电荷分离和转移的超晶格界面和 S 型异质结.pdf"
+  ],
+  "967caae087a76a1ba2080faa18615c405068d8cbbdbb747f0e33421e21f9964c": [
+    "14_动力学/动力学/用于 CO2 光还原的 In2O3Nb2O5 S 型界面的超快电子转移.pdf"
+  ],
+  "fa7cae1461e6c60926766694c7548f2521ced461bcac1c9a81f66750dd110df4": [
+    "14_动力学/动力学/过渡金属硫族化合物助剂的结构调控及其光催化析氢性能_钟威.pdf"
+  ],
+  "fb0e283c7c8909fc10c19a8548a52cccbf89ecfcfe92e08a32f5803c44eb341e": [
+    "14_动力学/动力学/铋 S 型异质结界面处的氧空位修饰的快速电荷传输通道促进光催化性能.pdf"
+  ]
+}

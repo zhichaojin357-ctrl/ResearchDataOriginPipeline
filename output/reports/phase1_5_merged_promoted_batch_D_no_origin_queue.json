@@ -1,0 +1,1097 @@
+{
+  "queue_version": "phase1_5_merged_manual_promotion_v1",
+  "created_at": "2026-05-30T16:42:02.920521+00:00",
+  "source_manifest": "output/reports/data_triage_manifest.json",
+  "source_root": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530",
+  "batch": "D",
+  "batch_data_types": [
+    "EPR",
+    "XPS"
+  ],
+  "origin_mode": "no_origin_only",
+  "requires_process_flags": [
+    "--include-ambiguous",
+    "--no-origin",
+    "--force"
+  ],
+  "items": [
+    {
+      "queue_id": "c31da11b1fbd1906_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/BC-O3-dark.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\BC-O3-dark.xlsx",
+      "source_hash": "12e38b0d77f5044d622fd39989c168c7f1cd1ce3b2457c42d9214e62a595740d",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BC-O3-dark",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=82014",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "f819b38810bd5012_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/BC-O3-light5.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\BC-O3-light5.xlsx",
+      "source_hash": "b0175a86ccebebb836e845d478dd5a95694c2716ee120c86bef98b0f2a233c0a",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BC-O3-light5",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=83453",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "fd42890877f21b90_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/BC-OH-dark.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\BC-OH-dark.xlsx",
+      "source_hash": "80604edec2cea47d4837fcb8ff2584b9f6c2b7a972a596b925443264c001b033",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BC-OH-dark",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=83028",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "f784cbc62a00ae45_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/BC-OH-light2.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\BC-OH-light2.xlsx",
+      "source_hash": "4e45ef6fca46474e9c8372dd1e389cc2ff92fe51f2e448d44d68403ebd932432",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BC-OH-light2",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=82277",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "844d0c49b024a128_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-O3-dark.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\BOBC-O3-dark.xlsx",
+      "source_hash": "3f7fdc609c80ebb9a108f2e1d57088a6607ac05a6d3264904673db4704c1fb4c",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BOBC-O3-dark",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=82324",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "214a29135fa88d53_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-O3-light1.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\BOBC-O3-light1.xlsx",
+      "source_hash": "d7d1ad00adbb13ca3b12ef25a57b04020c2532cc23c171ed7f18fd7ad559e1bf",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BOBC-O3-light1",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=83074",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "74cdbfc3f4be6e8a_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-O3-light2.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\BOBC-O3-light2.xlsx",
+      "source_hash": "9257522b6ba198593e93e65ad7bd01a32d59b7be86f5556c13d8641813c2cc22",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BOBC-O3-light2",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=83819",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "a8822fa8616fed2d_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-O3-light3.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\BOBC-O3-light3.xlsx",
+      "source_hash": "634e1f5c64273e3113e23f705ea2c479d345de5d54ed068e1c3f41c888875266",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BOBC-O3-light3",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=83231",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "304a8e4951f63034_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/BOBC-OH-light1.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\BOBC-OH-light1.xlsx",
+      "source_hash": "a50783bf0ed051a688c80e1bf9c81eff878baa441895febfabe953aaea4336d5",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BOBC-OH-light1",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=82874",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "33b4d60fc92d4e44_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/CWO-O3-dark.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\CWO-O3-dark.xlsx",
+      "source_hash": "1e28a68e8fb3d43a0e667e50093a7b8a2f5c86fbff00cdc5ec04a49e2eca2cf8",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "CWO-O3-dark",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=83223",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "8a3631e5f61adf76_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/CWO-O3-light1.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\CWO-O3-light1.xlsx",
+      "source_hash": "dcf631b06abf0e9dd1bd65d3c5371ac12835ad5c419f57d74d8559598153d867",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "CWO-O3-light1",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=82697",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "7d9cbbf835cf48c9_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/CWO-OH-dark.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\CWO-OH-dark.xlsx",
+      "source_hash": "d3e84774994a98bec9dc7fde175270805835cb45a95a82d3857560914dd3cf27",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "CWO-OH-dark",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=80483",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "19bac433dd075f43_p15m",
+      "relative_path": "10_EPR_PL/EPR/raw_data/导出后的数据/CWO-OH-light2.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\raw_data\\导出后的数据\\CWO-OH-light2.xlsx",
+      "source_hash": "c602aba087c67d480b6e119e6a59acba8a061ab7cfca9b52596184a5cf77cf70",
+      "data_type": "EPR",
+      "subtype": "EPR",
+      "selected_processor": "epr_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "CWO-OH-light2",
+      "traceability_group_id": "fb2a5a2f1743ec4c",
+      "traceability_group_path": "10_EPR_PL/EPR",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=83031",
+        "parser_probe_status=success",
+        "folder_type_hint=EPR",
+        "numeric_rows=4095",
+        "numeric_columns=2"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "64d751af605bf453_p15m",
+      "relative_path": "02_XPS/raw_data/26010989730/BC-11/BI.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\26010989730\\BC-11\\BI.xlsx",
+      "source_hash": "a2763da75b7c9e147e3e5755e2b767e6acd435f8c9cb3152984135538e5f5a46",
+      "data_type": "XPS",
+      "subtype": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "BI",
+      "traceability_group_id": "6cececbf9a7e2913",
+      "traceability_group_path": "02_XPS",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=26471",
+        "parser_probe_status=success",
+        "folder_type_hint=XPS",
+        "numeric_rows=161",
+        "numeric_columns=13"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "0491cce070da5ba6_p15m",
+      "relative_path": "02_XPS/raw_data/CWO拟合后/cu-20260506.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\CWO拟合后\\cu-20260506.xlsx",
+      "source_hash": "70806e7bc7efc835d4b05a0360ed07f00bc760236934960de476e87918e9ee79",
+      "data_type": "XPS",
+      "subtype": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "cu-20260506",
+      "traceability_group_id": "327d848ca00dbaf3",
+      "traceability_group_path": "02_XPS/raw_data",
+      "traceability_role": "processed_table",
+      "traceability_basis": [
+        "role_folder=CWO拟合后"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=156508",
+        "parser_probe_status=success",
+        "folder_type_hint=XPS",
+        "numeric_rows=1371",
+        "numeric_columns=13"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "0d4a12c737a95939_p15m",
+      "relative_path": "02_XPS/raw_data/CWO拟合后/cu-260506.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\CWO拟合后\\cu-260506.xls",
+      "source_hash": "27d1d2bd990a3de845d1610173ab66d0d1db0f2760c6cbb5f881ece7675e1753",
+      "data_type": "XPS",
+      "subtype": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "cu-260506",
+      "traceability_group_id": "327d848ca00dbaf3",
+      "traceability_group_path": "02_XPS/raw_data",
+      "traceability_role": "processed_table",
+      "traceability_basis": [
+        "role_folder=CWO拟合后"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xls",
+        "file_size_bytes=156512",
+        "parser_probe_status=success",
+        "folder_type_hint=XPS",
+        "numeric_rows=1371",
+        "numeric_columns=13"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "be31e8e2abb1fb8e_p15m",
+      "relative_path": "02_XPS/raw_data/原位XPS/DARK-20260506.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\DARK-20260506.xlsx",
+      "source_hash": "d823235ad700279bcce084cc5e9b316a28ec503495303ea84326745a95b6ae1a",
+      "data_type": "XPS",
+      "subtype": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "DARK-20260506",
+      "traceability_group_id": "6cececbf9a7e2913",
+      "traceability_group_path": "02_XPS",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=130493",
+        "parser_probe_status=success",
+        "folder_type_hint=XPS",
+        "numeric_rows=211",
+        "numeric_columns=13"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "bf658e4e28eaefef_p15m",
+      "relative_path": "02_XPS/raw_data/原位XPS/LIGHT.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\LIGHT.xls",
+      "source_hash": "edf465250f9e9430023ccc4e6c7f380268904aeac996b6729aa3774faabc0ffd",
+      "data_type": "XPS",
+      "subtype": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "LIGHT",
+      "traceability_group_id": "6cececbf9a7e2913",
+      "traceability_group_path": "02_XPS",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xls",
+        "file_size_bytes=184334",
+        "parser_probe_status=success",
+        "folder_type_hint=XPS",
+        "numeric_rows=191",
+        "numeric_columns=13"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "5dde5fe26e86dfd5_p15m",
+      "relative_path": "02_XPS/raw_data/原位XPS/LINGT-20260506.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\LINGT-20260506.xlsx",
+      "source_hash": "69d7c43bc53a662f7d5d19251c8dbd029284b5cf5eb52a9f3d9b82287817cbd8",
+      "data_type": "XPS",
+      "subtype": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "LINGT-20260506",
+      "traceability_group_id": "6cececbf9a7e2913",
+      "traceability_group_path": "02_XPS",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xlsx",
+        "file_size_bytes=184331",
+        "parser_probe_status=success",
+        "folder_type_hint=XPS",
+        "numeric_rows=191",
+        "numeric_columns=13"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "c402d28637bc362e_p15m",
+      "relative_path": "02_XPS/raw_data/原位XPS/新建 Microsoft Excel 工作表.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\新建 Microsoft Excel 工作表.xls",
+      "source_hash": "e0362b0f138e9380daa1caf0dc039c3eb1315de3558ce25b3f71158e56d94b6c",
+      "data_type": "XPS",
+      "subtype": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "新建 Microsoft Excel 工作表",
+      "traceability_group_id": "6cececbf9a7e2913",
+      "traceability_group_path": "02_XPS",
+      "traceability_role": "raw_data",
+      "traceability_basis": [
+        "role_folder=raw_data"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xls",
+        "file_size_bytes=130499",
+        "parser_probe_status=success",
+        "folder_type_hint=XPS",
+        "numeric_rows=211",
+        "numeric_columns=13"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "7bcffc32b64fc739_p15m",
+      "relative_path": "02_XPS/电荷未矫正第一次/processed_tables/dark拟合第一遍.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\processed_tables\\dark拟合第一遍.xls",
+      "source_hash": "537a7ccdd5a74a12e0f535a7678464becb3c2e100b9384d4fecb29cc02ba3e2e",
+      "data_type": "XPS",
+      "subtype": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "dark拟合第一遍",
+      "traceability_group_id": "2367677b2a89b798",
+      "traceability_group_path": "02_XPS/电荷未矫正第一次",
+      "traceability_role": "processed_table",
+      "traceability_basis": [
+        "role_folder=processed_tables"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xls",
+        "file_size_bytes=193319",
+        "parser_probe_status=success",
+        "folder_type_hint=XPS",
+        "numeric_rows=191",
+        "numeric_columns=13"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    },
+    {
+      "queue_id": "a0ea8cb121dff789_p15m",
+      "relative_path": "02_XPS/电荷未矫正第一次/processed_tables/light拟合第一遍.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\processed_tables\\light拟合第一遍.xls",
+      "source_hash": "1ed3dc4e1b6685ef2fa721facd18150ba83a7233f938f50b7d6338826c0e5cbe",
+      "data_type": "XPS",
+      "subtype": "XPS",
+      "selected_processor": "xps_processor",
+      "decision": "MANUAL_REVIEW",
+      "confidence_score": 0.45,
+      "validity_score": 0.85,
+      "manual_check_required": true,
+      "column_mapping": {},
+      "sheet_name": null,
+      "sample_id": "light拟合第一遍",
+      "traceability_group_id": "2367677b2a89b798",
+      "traceability_group_path": "02_XPS/电荷未矫正第一次",
+      "traceability_role": "processed_table",
+      "traceability_basis": [
+        "role_folder=processed_tables"
+      ],
+      "reasons": [
+        "below_auto_process_threshold_or_ambiguous"
+      ],
+      "warnings": [
+        "Promoted from MANUAL_REVIEW for no-Origin processing only; scientific interpretation remains manual-check required."
+      ],
+      "evidence": [
+        "extension=.xls",
+        "file_size_bytes=193356",
+        "parser_probe_status=success",
+        "folder_type_hint=XPS",
+        "numeric_rows=191",
+        "numeric_columns=9"
+      ],
+      "folder_type_conflict": false,
+      "duplicate_group_id": null,
+      "duplicate_representative": null,
+      "original_triage_decision": "MANUAL_REVIEW",
+      "promoted_from_manual_review": true,
+      "promoted_by_phase": "phase1_5_merged",
+      "promoted_batch": "D",
+      "promoted_confidence": 0.45,
+      "promoted_validity": 0.85,
+      "promotion_rule": "parser_success_validity_ge_0.75_hash_verified_supported_not_duplicate_no_folder_header_conflict",
+      "promotion_reason": "Read-only triage candidate was parser-successful, hash-verified, supported in Phase 1, non-duplicate, and safe for no-Origin table processing only.",
+      "safe_to_process_no_origin": true,
+      "safe_to_process_with_origin": false
+    }
+  ]
+}

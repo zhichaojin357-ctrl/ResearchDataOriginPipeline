@@ -1,0 +1,10 @@
+# Conservative Phase 1 core dependencies.
+# Do not add optional domain packages here without project-owner approval.
+pandas
+numpy
+scipy
+openpyxl
+PyYAML
+pybaselines
+originpro
+pywin32

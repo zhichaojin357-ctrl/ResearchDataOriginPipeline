@@ -1,0 +1,33 @@
+# Python/runtime caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local Codex/session state
+.codex/
+.agents/
+
+# Raw/workspace data copies
+workspace_data/
+input/raw_data/
+
+# Generated data products and large Origin artifacts
+output/processed_data/
+output/metadata/
+output/figures_preview/
+output/figures_tif/
+output/origin_files/
+output/origin_jobs/
+output/phase1_*/
+output/unclassified/
+
+# Keep lightweight review/report outputs versioned
+!output/reports/
+!output/reports/**
+!output/review_dashboard/
+!output/review_dashboard/**
+
+# Temporary logs and scratch
+*.log
+*.tmp
+*.bak

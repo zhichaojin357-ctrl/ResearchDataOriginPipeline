@@ -1,0 +1,24 @@
+{
+  "updated_metadata_count": 18,
+  "updated_metadata": [
+    "output/metadata/EIS/B11-2-A_4fa41d00/metadata.json",
+    "output/metadata/EIS/B11-A_7cbd9639/metadata.json",
+    "output/metadata/EIS/B3_c4658832/metadata.json",
+    "output/metadata/EIS/B9-2-A_5b78b593/metadata.json",
+    "output/metadata/EIS/B9-A_957f54e4/metadata.json",
+    "output/metadata/EIS/BOBC-2-A_5198492f/metadata.json",
+    "output/metadata/EIS/BOBC-A_bbba2791/metadata.json",
+    "output/metadata/EIS/CWO-A_81003f42/metadata.json",
+    "output/metadata/EIS/EIS-1_2a1c2604/metadata.json",
+    "output/metadata/EIS/EIS-1_62008ff9/metadata.json",
+    "output/metadata/EIS/EIS-1_9af033ca/metadata.json",
+    "output/metadata/EIS/EIS-1_c56761c5/metadata.json",
+    "output/metadata/EIS/EIS-2GOOD_13d173c9/metadata.json",
+    "output/metadata/EIS/EIS-2GOOD_c8ad68bd/metadata.json",
+    "output/metadata/EIS/EIS-2_50475090/metadata.json",
+    "output/metadata/EIS/EIS-2_ad49695d/metadata.json",
+    "output/metadata/EIS/EIS_6625ff31/metadata.json",
+    "output/metadata/EIS/EIS_7cbc05bc/metadata.json"
+  ],
+  "note": "Filled AUTO_PROCESS provenance fields without changing source data or processed CSV values."
+}
