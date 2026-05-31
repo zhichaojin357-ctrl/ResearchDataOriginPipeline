@@ -4,7 +4,7 @@
 - No-Origin repair success: 9
 - Origin repair success: 9
 - Origin repair failure: 0
-- Package updated: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_6_origin_results_20260531_041538`
+- Package updated: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_6_origin_results_20260531_041538`
 - QC: {'QC_PASS': 9}
 
 ## Bug Fixed

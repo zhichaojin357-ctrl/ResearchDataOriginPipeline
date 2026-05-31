@@ -2,7 +2,7 @@
   "queue_version": "phase1_5_merged_manual_promotion_v1",
   "created_at": "2026-05-30T16:42:02.920521+00:00",
   "source_manifest": "output/reports/data_triage_manifest.json",
-  "source_root": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530",
+  "source_root": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530",
   "batch": "B",
   "batch_data_types": [
     "Raman",
@@ -18,7 +18,7 @@
     {
       "queue_id": "2e5505e954557645_p15m",
       "relative_path": "07_拉曼/20251021/raw_data/BOBC.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\raw_data\\BOBC.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\raw_data\\BOBC.txt",
       "source_hash": "afa15f4fc3e44be6a46643069344b57ea3731c5fef2ffa97adc2d9a546472652",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -67,7 +67,7 @@
     {
       "queue_id": "7b496d5c7c942d9e_p15m",
       "relative_path": "07_拉曼/20251021/raw_data/BOBCMS9.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\raw_data\\BOBCMS9.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\raw_data\\BOBCMS9.txt",
       "source_hash": "24bdc01066a4015b4bc8a1956c0089e8fd42329f16d1104e6312ac3ac0a59d7f",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -116,7 +116,7 @@
     {
       "queue_id": "3e467c04861676b9_p15m",
       "relative_path": "07_拉曼/20251021/raw_data/MOSE2_6.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\raw_data\\MOSE2_6.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\raw_data\\MOSE2_6.txt",
       "source_hash": "e183bcf0f55e275d1ede873a4bc7fb7cba4bfddf302aaaa6689bde3bc081780c",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -165,7 +165,7 @@
     {
       "queue_id": "c9751391fcf84163_p15m",
       "relative_path": "07_拉曼/raw_data/20251027/WYT/CWO+BOBC+2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\CWO+BOBC+2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\CWO+BOBC+2.txt",
       "source_hash": "77df863a8753cccbf18216e10c9a739f34606c54a2d69a8813985bc31bb45f44",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -214,7 +214,7 @@
     {
       "queue_id": "197bcf8fe237cab1_p15m",
       "relative_path": "07_拉曼/raw_data/20251027/WYT/CWO+BOBC+3.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\CWO+BOBC+3.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\CWO+BOBC+3.txt",
       "source_hash": "8db84b1cbf5c499f1960e174af652f27ede1bda3e907b36edec192e9d652da26",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -263,7 +263,7 @@
     {
       "queue_id": "f23c5be4d25e8507_p15m",
       "relative_path": "07_拉曼/raw_data/20251027/WYT/CWO+BOBC.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\CWO+BOBC.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\CWO+BOBC.txt",
       "source_hash": "3a1b69efc7a280e039350809f89e1dd138676a08522d4823e2a2af1d3813292c",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -312,7 +312,7 @@
     {
       "queue_id": "69ed0044e6aa631c_p15m",
       "relative_path": "07_拉曼/raw_data/20251027/WYT/CWO_1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\CWO_1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\CWO_1.txt",
       "source_hash": "90a81673ff539edaff7180e220e62cf2f029da6401442e33bb25df2fc92a30bd",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -361,7 +361,7 @@
     {
       "queue_id": "3b621a03f3a89bd5_p15m",
       "relative_path": "07_拉曼/raw_data/20251027/WYT/MoTe2_1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\MoTe2_1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\MoTe2_1.txt",
       "source_hash": "ee5d899923e17e7c01e9ecedffbe38b6ca355c99f58afed41bd071d4cdc01ae5",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -410,7 +410,7 @@
     {
       "queue_id": "ca6037dc7a525355_p15m",
       "relative_path": "07_拉曼/raw_data/20251027/WYT/MoTe2_2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\MoTe2_2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\MoTe2_2.txt",
       "source_hash": "543ecacd4189b8190770f05212de72aee900211a5ad790cd85ade8918c4d389c",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -459,7 +459,7 @@
     {
       "queue_id": "efca461b7834bbd8_p15m",
       "relative_path": "07_拉曼/raw_data/20251027/WYT/MoTe2_3.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\MoTe2_3.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\MoTe2_3.txt",
       "source_hash": "437c450c95bd16b86fc4988b9f4e94c5a5116232218639153e7278658ae9a28c",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -508,7 +508,7 @@
     {
       "queue_id": "d948c5ab7f5d0d88_p15m",
       "relative_path": "07_拉曼/raw_data/20251027/WYT/MoTe2_5.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\MoTe2_5.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\20251027\\WYT\\MoTe2_5.txt",
       "source_hash": "8bae97b1af59a47e28b47b0010fa86a5cd61ab2cfb2177597cd9e2f08486fcf3",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -557,7 +557,7 @@
     {
       "queue_id": "db02678d6157397c_p15m",
       "relative_path": "07_拉曼/raw_data/BC-30/bc30_1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\BC-30\\bc30_1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\BC-30\\bc30_1.txt",
       "source_hash": "356a8bf214d3ab5bc92162e53ceccd9884d29ecf8c0d8684e302e56fceed9d59",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -606,7 +606,7 @@
     {
       "queue_id": "d497c96c29ad7206_p15m",
       "relative_path": "07_拉曼/raw_data/BC-30/bc30_3 2 50-2000.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\BC-30\\bc30_3 2 50-2000.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\BC-30\\bc30_3 2 50-2000.txt",
       "source_hash": "b16d17c25b1ed37165e826a9fc057401ee162b19bb91377be30b005f2deb35b9",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -655,7 +655,7 @@
     {
       "queue_id": "98f7fb73d4b06304_p15m",
       "relative_path": "07_拉曼/raw_data/BC-30/bc30_3 2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\BC-30\\bc30_3 2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\BC-30\\bc30_3 2.txt",
       "source_hash": "6eaccc5c697d3f0a8855a226fac70960dd168024857ea6d66e79fe6bf2b3ba62",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -704,7 +704,7 @@
     {
       "queue_id": "0ec5a9d7fc31dacc_p15m",
       "relative_path": "07_拉曼/raw_data/BC-30/bc30_5 500-2000.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\BC-30\\bc30_5 500-2000.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\BC-30\\bc30_5 500-2000.txt",
       "source_hash": "2a57b9951a3e57308f57444cd11c809d9f000dd23743473621cbc3051fa46060",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -753,7 +753,7 @@
     {
       "queue_id": "25789b6bdb0037bf_p15m",
       "relative_path": "07_拉曼/raw_data/bc30 HUANG_1 100-2000.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\bc30 HUANG_1 100-2000.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\raw_data\\bc30 HUANG_1 100-2000.txt",
       "source_hash": "e168c1e2e358605f0c98da5cf1fc346944a2cd09586e47dc12d10ae6883b47f5",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -802,7 +802,7 @@
     {
       "queue_id": "532909ca881324c4_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BM1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BM1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BM1.txt",
       "source_hash": "1972186104f7d7a9bba3972bec157e77f1aea8156a8561e501f66344fbad471e",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -851,7 +851,7 @@
     {
       "queue_id": "e756c0e9c578507d_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BM2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BM2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BM2.txt",
       "source_hash": "30ed855ef8dc1eb9ad78f8760992c8d41072e1b66617678fc8811b4da715d15b",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -900,7 +900,7 @@
     {
       "queue_id": "2e7b427b13497b7e_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BM3.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BM3.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BM3.txt",
       "source_hash": "c6089d09dde9b6c96a2b18304cfe0ea19154960e9180dce3b8618f805dbbc2fa",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -949,7 +949,7 @@
     {
       "queue_id": "23209fa2fd388ce9_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BOBC1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BOBC1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BOBC1.txt",
       "source_hash": "bdd09b0915ee1f7c154fee1361b6f7d97a137803a804634857cf263eb449b996",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -998,7 +998,7 @@
     {
       "queue_id": "8175e52044a847f4_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPO1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPO1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPO1.txt",
       "source_hash": "813ed9ddfdbb896c0eb1a1c01a24ddbc4617624cf1ba830002079bc95264c34b",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1047,7 +1047,7 @@
     {
       "queue_id": "acdb2d10346f6cc9_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPO2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPO2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPO2.txt",
       "source_hash": "d6c6bdd9572b9ba4cf9cf61dec13309739977ac46382a1171413a671991042ce",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1096,7 +1096,7 @@
     {
       "queue_id": "268d16264089eaba_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPO3.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPO3.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPO3.txt",
       "source_hash": "58fbe45c78fc74458d0a642fbe41b3e1d0e7adf5fa715c0061e054b0fcf5ae95",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1145,7 +1145,7 @@
     {
       "queue_id": "4bcf4d91f019fb5d_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPOM1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPOM1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPOM1.txt",
       "source_hash": "f3dcfdc665dfc49e0d2168d8d0f8715fdfc08c1101b1f202d6d84c1787c2d8b2",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1194,7 +1194,7 @@
     {
       "queue_id": "76dd777f7216fcf6_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPOM2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPOM2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPOM2.txt",
       "source_hash": "fbe5dfb1acfcc32ac9acb78af5f1716fac4bdc6755e6159cc59b1ce60fa9057a",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1243,7 +1243,7 @@
     {
       "queue_id": "c7bc57b1731131f7_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPOM3.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPOM3.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPOM3.txt",
       "source_hash": "eb713c86d4ed660f895f768611dc7aefd0cc02c782851756760540563c08f515",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1292,7 +1292,7 @@
     {
       "queue_id": "a1d514df76b4d5d0_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BPOM4.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPOM4.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BPOM4.txt",
       "source_hash": "6bc11b301d4c6db401afe16ecd020b5baae059c39942487205bc2940c2c0d17f",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1341,7 +1341,7 @@
     {
       "queue_id": "1b04f7cad53ec52c_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/MS1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\MS1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\MS1.txt",
       "source_hash": "4c3acabbab65ef379546832e23172ca4ca656a5e11e68b555187f2ae6710d95a",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1390,7 +1390,7 @@
     {
       "queue_id": "1980bc766fe809b5_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/MS2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\MS2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\MS2.txt",
       "source_hash": "111e20604aa2c5a5517e37d780f70f5fa8ee1676f89bf3214eab387e58fc8036",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1439,7 +1439,7 @@
     {
       "queue_id": "f06a0ef7ca4e32c9_p15m",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/MS3.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\MS3.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\MS3.txt",
       "source_hash": "f1b4d4a2e05c483e12e6ccdfc0699d0e2f429f43765bcb723a4d094454f85caa",
       "data_type": "Raman",
       "subtype": "Raman",
@@ -1488,7 +1488,7 @@
     {
       "queue_id": "82c787322bc7634f_p15m",
       "relative_path": "03_光电流/20260109_光电流/26010964564/Photocurrent/1-BOC-(OCP).txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\Photocurrent\\1-BOC-(OCP).txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\Photocurrent\\1-BOC-(OCP).txt",
       "source_hash": "e04a3a1d013ffc41ccebaaa09699e45ba2c6a4bdb0fed38147a0a819f1924243",
       "data_type": "photocurrent",
       "subtype": "photocurrent",
@@ -1537,7 +1537,7 @@
     {
       "queue_id": "7a8c1a77014b0fe3_p15m",
       "relative_path": "03_光电流/20260109_光电流/26010964564/Photocurrent/2-MCS-(OCP).txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\Photocurrent\\2-MCS-(OCP).txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\Photocurrent\\2-MCS-(OCP).txt",
       "source_hash": "6ff0094fd65c35a7aafa586a51b89fa645ec001fe606c08933e1d2fbc6961ead",
       "data_type": "photocurrent",
       "subtype": "photocurrent",
@@ -1586,7 +1586,7 @@
     {
       "queue_id": "28eda5d6e687c0ad_p15m",
       "relative_path": "03_光电流/20260109_光电流/26010964564/Photocurrent/3-BM-10-(OCP).txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\Photocurrent\\3-BM-10-(OCP).txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\Photocurrent\\3-BM-10-(OCP).txt",
       "source_hash": "06e37983a2eeb3b493082a768fedf52dd802f15358becd779abd56e79a0cbd7a",
       "data_type": "photocurrent",
       "subtype": "photocurrent",

@@ -1,7 +1,7 @@
 {
   "runner": "origin-batch",
-  "manifest": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\phase1_6_origin_results_20260531_041538\\index.csv",
-  "package_root": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\phase1_6_origin_results_20260531_041538",
+  "manifest": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\phase1_6_origin_results_20260531_041538\\index.csv",
+  "package_root": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\phase1_6_origin_results_20260531_041538",
   "options": {
     "dry_run": true,
     "execute": false,

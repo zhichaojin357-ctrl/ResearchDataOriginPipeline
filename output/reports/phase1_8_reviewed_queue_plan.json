@@ -1,8 +1,8 @@
 {
   "runner": "reviewed-queue",
-  "created_at": "2026-05-31T11:52:33",
-  "proposals": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\reports\\phase1_7_new_override_proposals_after_optimization.json",
-  "decisions": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\reports\\phase1_8_review_decisions_template.csv",
+  "created_at": "2026-05-31T12:18:55",
+  "proposals": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_7_new_override_proposals_after_optimization.json",
+  "decisions": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_8_review_decisions_template.csv",
   "options": {
     "dry_run": true,
     "write_template": false

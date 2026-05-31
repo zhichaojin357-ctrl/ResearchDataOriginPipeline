@@ -11,7 +11,7 @@ from src.core.project import (
     registry_path,
     report_path,
 )
-from src.origin.adapter import check_origin_available
+from src.origin.adapter import ORIGIN_DISABLE_ENV_VARS, check_origin_available
 
 
 def validate(project_root: Path) -> int:
@@ -25,7 +25,7 @@ def validate(project_root: Path) -> int:
         failures.append("missing core dependencies")
 
     origin_ok, origin_message = check_origin_available()
-    origin_disabled = "GROUPMEETINGAUTOPPT_DISABLE_ORIGIN=1" in origin_message
+    origin_disabled = any(f"{env_var}=1" in origin_message for env_var in ORIGIN_DISABLE_ENV_VARS)
     origin_status = "pass" if origin_ok else "skip" if origin_disabled else "fail"
     lines.append(f"- Origin callability: {origin_status} ({origin_message})")
     if not origin_ok and not origin_disabled:

@@ -1,12 +1,12 @@
-# GroupMeetingAutoPPT Phase 1 Codex Goal Spec
+# ResearchDataOriginPipeline Phase 1 Codex Goal Spec
 
 ## 0. Goal summary
 
 项目名称：
-GroupMeetingAutoPPT
+ResearchDataOriginPipeline
 
 项目根目录：
-D:\Codex Project\科研数据处理\GroupMeetingAutoPPT
+D:\Codex Project\科研数据处理\ResearchDataOriginPipeline
 
 Phase 1 目标：
 只完成“实验数据扫描 → 数据处理 → Origin 绘图 → 保存 .opju → 导出 .tif → 生成 metadata/report/manual-check”的基础流水线。
@@ -202,7 +202,7 @@ Rules for 动力学:
 
 Required structure:
 
-GroupMeetingAutoPPT/
+ResearchDataOriginPipeline/
 ├─ AGENTS.md
 ├─ README.md
 ├─ requirements.txt

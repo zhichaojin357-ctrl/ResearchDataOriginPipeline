@@ -1,6 +1,6 @@
 # Phase 1.7 Manifest Runner Plan
 
-- Manifest: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_6_origin_results_20260531_041538\index.csv`
+- Manifest: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_6_origin_results_20260531_041538\index.csv`
 - Total manifest items: 167
 - Planned items: 0
 - Skipped items: 167

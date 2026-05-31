@@ -1,7 +1,7 @@
 {
   "queue_version": "phase1_6_origin_queue_v1",
   "source_consistency_report": "output/reports/phase1_6_no_origin_result_consistency.json",
-  "source_root": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530",
+  "source_root": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530",
   "data_type": "Mott-Schottky",
   "origin_mode": "with_origin_explicit_only",
   "items": [
@@ -9,7 +9,7 @@
       "queue_id": "2d7575e12f069472_p15m",
       "result_id": "Mott-Schottky_MS3000_2d7575e1",
       "relative_path": "04_莫特肖特基/MoSe2MT/raw_data/MS3000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\MoSe2MT\\raw_data\\MS3000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\MoSe2MT\\raw_data\\MS3000.csv",
       "source_hash": "2701f9fb1ebb396587451fabfddebbabe9cb6cfa9b725b2dd62f100175a26b8b",
       "data_type": "Mott-Schottky",
       "subtype": "Mott-Schottky",

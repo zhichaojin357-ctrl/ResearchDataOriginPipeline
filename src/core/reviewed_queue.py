@@ -426,10 +426,10 @@ def _truthy(value: object) -> bool:
 
 def _resolve_existing_path(project_root: Path, raw_path: Path) -> Path:
     path = raw_path if raw_path.is_absolute() else project_root / raw_path
-    resolved = path.resolve()
-    if not resolved.exists():
+    absolute = path.absolute()
+    if not absolute.exists():
         raise FileNotFoundError(f"Required file not found: {raw_path}")
-    return resolved
+    return absolute
 
 
 def _guard_output_path(project_root: Path, path: Path) -> None:

@@ -4,7 +4,7 @@
   "no_origin_success": 9,
   "origin_success": 9,
   "origin_failure": 0,
-  "package": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\phase1_6_origin_results_20260531_041538",
+  "package": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\phase1_6_origin_results_20260531_041538",
   "removed_temporary_artifacts": [
     "output\\processed_data\\XPS\\BI_BI_64d75_processed.csv",
     "output\\metadata\\XPS\\BI_BI_64d75",

@@ -1,6 +1,6 @@
 # Classification Report
 
-Scan root: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\LL_detection_copy_20260530`
+Scan root: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`
 Raw file count: 1589
 
 | folder_name | physical_presence | inferred_data_type | supported_in_phase_1 | selected_processor | special_handling | file_count |

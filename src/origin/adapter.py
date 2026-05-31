@@ -13,6 +13,12 @@ from pathlib import Path
 from src.core.project import _parse_simple_yaml
 
 
+ORIGIN_DISABLE_ENV_VARS = (
+    "RESEARCHDATAORIGINPIPELINE_DISABLE_ORIGIN",
+    "GROUPMEETINGAUTOPPT_DISABLE_ORIGIN",
+)
+
+
 @dataclass(frozen=True)
 class OriginResult:
     ok: bool
@@ -133,8 +139,9 @@ PLOT_TYPE_CODES = {
 
 
 def check_origin_available() -> tuple[bool, str]:
-    if os.environ.get("GROUPMEETINGAUTOPPT_DISABLE_ORIGIN") == "1":
-        return False, "Origin disabled by GROUPMEETINGAUTOPPT_DISABLE_ORIGIN=1"
+    for env_var in ORIGIN_DISABLE_ENV_VARS:
+        if os.environ.get(env_var) == "1":
+            return False, f"Origin disabled by {env_var}=1"
     try:
         import originpro  # noqa: F401
     except Exception as exc:

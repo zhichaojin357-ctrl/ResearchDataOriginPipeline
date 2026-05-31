@@ -24,6 +24,7 @@ output/unclassified/
 # Keep lightweight review/report outputs versioned
 !output/reports/
 !output/reports/**
+output/reports/_test_*
 !output/review_dashboard/
 !output/review_dashboard/**
 

@@ -4,8 +4,8 @@ Created at: 2026-05-31 00:45 +08:00
 
 ## Checked Paths
 
-- Project root: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
-- Workspace copy: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\LL_detection_copy_20260530`
+- Project root: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
+- Workspace copy: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`
 - F-drive backup: `F:\课题\LL\检测`
 
 ## Existence And Size

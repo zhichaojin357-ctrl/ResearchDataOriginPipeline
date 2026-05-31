@@ -7,6 +7,7 @@ import pytest
 
 
 def pytest_configure() -> None:
+    os.environ.setdefault("RESEARCHDATAORIGINPIPELINE_DISABLE_ORIGIN", "1")
     os.environ.setdefault("GROUPMEETINGAUTOPPT_DISABLE_ORIGIN", "1")
 
 

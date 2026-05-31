@@ -1,8 +1,8 @@
 # Phase 1.7 Final Summary
 
-1. Phase 1.7 instruction archive: `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_7_review_and_manifest_runner_instruction.md`
+1. Phase 1.7 instruction archive: `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_7_review_and_manifest_runner_instruction.md`
 2. Phase 1.7 instruction SHA256: `5C2EB25FF55C65E7C5B552868F22468CAD3C4FC94646FEE662921CC96EDDBC28`
-3. Triage-recognition addendum archive: `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_7_append_triage_recognition_optimization_instruction.md`
+3. Triage-recognition addendum archive: `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_7_append_triage_recognition_optimization_instruction.md`
 4. Triage-recognition addendum SHA256: `FE6C9E54F0EEF13B91A6B5177033446DED7AD815C2858494B1596AB936DDFBB1`
 5. Baseline report: `docs/agent_reports/phase1_7_baseline.md`
 6. Phase 1.6 package audit: PASS
@@ -33,7 +33,7 @@
 31. New/modified reports: Phase 1.7 package audit, preview checklist, galleries, manifest plan, COM proof, triage baseline/pattern/taxonomy/comparison/candidates, final validation, reviewer report, final summary
 32. New/modified docs: `README.md`, `PROJECT_STATUS.md`, `TASK_BOARD.md`, `AGENT_HANDOFF.md`, `docs/REAL_DATA_COMPATIBILITY_MATRIX.md`, `docs/REAL_DATA_INTAKE_GUIDE.md`, `output/review_dashboard/index.md`
 33. Cleanup: removed `_test_phase1_7_manifest_runner_plan.json` and `_test_phase1_7_manifest_runner_plan.md`; final outputs were retained
-34. Git commit: not created because `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT` is not a git repository
+34. Git commit: not created because `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline` is not a git repository
 35. User confirmation needed: inspect Origin PNG previews, high-priority XPS/EPR/Mott-Schottky/photocurrent/Raman/EIS checklist, and approve/reject override proposal rows
 36. Phase 1.8 suggestion: create an explicit reviewed queue only from user-approved proposal rows, run no-Origin first, then consider Origin export after QC
 

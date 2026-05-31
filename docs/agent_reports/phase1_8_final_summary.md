@@ -1,6 +1,6 @@
 # Phase 1.8 Final Summary
 
-1. Phase 1.8 instruction archive: `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_8_reviewed_queue_and_processing_gate_instruction.md`
+1. Phase 1.8 instruction archive: `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_8_reviewed_queue_and_processing_gate_instruction.md`
 2. Phase 1.8 instruction SHA256: `B3F2A025FC2235F1920C3EDCBB5B274C970B9C458F9D9B8054D46D0C18F508CA`
 3. Phase 1.8 execution plan: `docs/agent_reports/phase1_8_execution_plan.md`
 4. Reviewed-queue CLI implemented: `run.py reviewed-queue`

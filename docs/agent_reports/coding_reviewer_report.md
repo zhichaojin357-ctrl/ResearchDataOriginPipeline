@@ -2,7 +2,7 @@
 
 Date: 2026-05-30
 
-Scope: read-only review of the current GroupMeetingAutoPPT coding checkpoint. I inspected code, tests, configs, docs, and existing reports. I did not call Origin, did not process raw data, did not run the test suite because it would rewrite files under `output/`, and did not modify code/config/raw data/output data. This report is the only file written.
+Scope: read-only review of the current ResearchDataOriginPipeline coding checkpoint. I inspected code, tests, configs, docs, and existing reports. I did not call Origin, did not process raw data, did not run the test suite because it would rewrite files under `output/`, and did not modify code/config/raw data/output data. This report is the only file written.
 
 ## Findings
 

@@ -8,13 +8,13 @@ This checkpoint supports automatic continuation after quota exhaustion or interr
 
 ## Active Goal
 
-Complete GroupMeetingAutoPPT Phase 1.5-Merged while preserving raw-data safety, no-Origin defaults, and PPT/kinetics/deferred-type guardrails.
+Complete ResearchDataOriginPipeline Phase 1.5-Merged while preserving raw-data safety, no-Origin defaults, and PPT/kinetics/deferred-type guardrails.
 
 ## Instruction Archive
 
 The current long instruction was archived byte-for-byte at:
 
-`D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_5_merged_completion_and_hardening_instruction.md`
+`D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_5_merged_completion_and_hardening_instruction.md`
 
 Source attachment SHA256 and archived MD SHA256 were both:
 
@@ -85,7 +85,7 @@ On resume, wait for these agents if still running, then close them after collect
 ## Recommended Resume Commands
 
 ```powershell
-cd "D:\Codex Project\科研数据处理\GroupMeetingAutoPPT"
+cd "D:\Codex Project\科研数据处理\ResearchDataOriginPipeline"
 D:\Python\python.exe -m pytest
 D:\Python\python.exe run.py deps-audit
 D:\Python\python.exe run.py validate

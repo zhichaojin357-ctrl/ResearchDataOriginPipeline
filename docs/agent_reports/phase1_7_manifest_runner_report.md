@@ -1,7 +1,7 @@
 # Phase 1.7 Manifest Runner Report
 
 - Runner: `origin-batch`
-- Manifest: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_6_origin_results_20260531_041538\index.csv`
+- Manifest: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_6_origin_results_20260531_041538\index.csv`
 - Dry run: True
 - Will launch Origin: False
 - Total manifest items: 167

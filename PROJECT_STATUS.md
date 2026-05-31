@@ -4,7 +4,7 @@
 
 Phase 1.8 is the current reviewed-queue safety gate. It turns Phase 1.7 review-only proposals into a user decision template and dry-run plan, but it does not run new real processing and does not launch Origin.
 
-- Phase 1.8 instruction archive: `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_8_reviewed_queue_and_processing_gate_instruction.md`
+- Phase 1.8 instruction archive: `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_8_reviewed_queue_and_processing_gate_instruction.md`
 - Phase 1.8 instruction SHA256: `B3F2A025FC2235F1920C3EDCBB5B274C970B9C458F9D9B8054D46D0C18F508CA`
 - Reviewed-queue template: `output\reports\phase1_8_review_decisions_template.csv`
 - Reviewed-queue dry-run plan: `output\reports\phase1_8_reviewed_queue_plan.md`

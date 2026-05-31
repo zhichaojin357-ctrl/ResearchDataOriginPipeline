@@ -1,8 +1,8 @@
 {
   "created_at": "2026-05-31 04:37:52",
-  "instruction_archive_path": "D:\\Codex Project\\科研数据处理\\指令归档\\GroupMeetingAutoPPT_phase1_6_origin_production_and_second_wave_instruction.md",
+  "instruction_archive_path": "D:\\Codex Project\\科研数据处理\\指令归档\\ResearchDataOriginPipeline_phase1_6_origin_production_and_second_wave_instruction.md",
   "instruction_sha256": "993AF1806AA5DB86FCA8E25FDE2DADC3806D3F74429EF9A8B6160109A5C356DF",
-  "baseline_report": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\docs\\agent_reports\\phase1_6_baseline.md",
+  "baseline_report": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\docs\\agent_reports\\phase1_6_baseline.md",
   "workspace_copy_exists": true,
   "f_drive_backup_exists": true,
   "phase1_5_audit": {
@@ -73,7 +73,7 @@
   "origin_visual_qc": {
     "QC_PASS": 158
   },
-  "origin_package": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\phase1_6_origin_results_20260531_041538",
+  "origin_package": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\phase1_6_origin_results_20260531_041538",
   "manual_review_second_wave": {
     "remaining_manual_review_total": 737,
     "already_processed_manual_review": 149,
@@ -176,7 +176,7 @@
   "material_color_verification": "PASS",
   "origin_process_count_after_validation": 0,
   "git_commit_status": "failed_not_git_repository",
-  "git_commit_attempt_report": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\reports\\phase1_6_git_commit_attempt.json",
+  "git_commit_attempt_report": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_6_git_commit_attempt.json",
   "git_commit_exit_code": 128,
   "git_commit_output": "Skipped: current directory is not inside a git repository. No git init was performed."
 }

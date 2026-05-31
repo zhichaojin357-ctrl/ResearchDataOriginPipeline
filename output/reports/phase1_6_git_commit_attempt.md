@@ -1,7 +1,7 @@
 # Phase 1.6 Git Commit Attempt
 
 - Created: 2026-05-31 04:38:46
-- Project root: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
+- Project root: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 
 ## Results
 

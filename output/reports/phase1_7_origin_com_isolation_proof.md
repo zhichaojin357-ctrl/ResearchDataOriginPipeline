@@ -5,7 +5,7 @@
 - Origin processes after: 0
 - Single-instance probe: not_run
 - Dual-instance probe: simulated_plan_only
-- Synthetic data: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\reports\phase1_7_origin_com_isolation_synthetic\synthetic.csv`
+- Synthetic data: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\reports\phase1_7_origin_com_isolation_synthetic\synthetic.csv`
 
 ## Notes
 - Phase 1.7 does not enable 8 concurrent Origin instances.

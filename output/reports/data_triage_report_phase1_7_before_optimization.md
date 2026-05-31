@@ -1,6 +1,6 @@
 # Data Triage Report
 
-Source root: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\LL_detection_copy_20260530`
+Source root: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`
 
 - AUTO_PROCESS: 18
 - MANUAL_REVIEW: 737

@@ -4,15 +4,15 @@ Date: 2026-05-31
 
 ## Scope
 
-Completed the Phase 1.5-Merged hardening and processing pass for `GroupMeetingAutoPPT` on the workspace copy:
+Completed the Phase 1.5-Merged hardening and processing pass for `ResearchDataOriginPipeline` on the workspace copy:
 
-`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\LL_detection_copy_20260530`
+`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`
 
 The F-drive backup/reference data was not modified.
 
 ## Instruction Archive
 
-- Saved the current long instruction as `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_5_merged_completion_and_hardening_instruction.md`.
+- Saved the current long instruction as `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_5_merged_completion_and_hardening_instruction.md`.
 - Verified archive SHA256: `EB49DA73C432567EADFCB9A8C27A2A845F4DC9C40735256754207C582507A1AF`.
 
 ## Automation And Agents
@@ -85,7 +85,7 @@ Combined with the existing 18 auto-queue EIS outputs:
 
 Created the consolidated review folder:
 
-`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_5_processed_results_20260531_005613`
+`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_5_processed_results_20260531_005613`
 
 Contents:
 

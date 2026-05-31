@@ -241,7 +241,24 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             self.assertFalse((project_root / "output" / "processed_data").exists())
 
     def test_check_origin_available_honors_test_disable_guard(self) -> None:
-        with patch.dict("src.origin.adapter.os.environ", {"GROUPMEETINGAUTOPPT_DISABLE_ORIGIN": "1"}):
+        with patch.dict(
+            "src.origin.adapter.os.environ",
+            {"RESEARCHDATAORIGINPIPELINE_DISABLE_ORIGIN": "1"},
+            clear=True,
+        ):
+            from src.origin.adapter import check_origin_available
+
+            ok, message = check_origin_available()
+
+        self.assertFalse(ok)
+        self.assertIn("RESEARCHDATAORIGINPIPELINE_DISABLE_ORIGIN", message)
+
+    def test_check_origin_available_honors_legacy_disable_guard(self) -> None:
+        with patch.dict(
+            "src.origin.adapter.os.environ",
+            {"GROUPMEETINGAUTOPPT_DISABLE_ORIGIN": "1"},
+            clear=True,
+        ):
             from src.origin.adapter import check_origin_available
 
             ok, message = check_origin_available()

@@ -1,7 +1,7 @@
-# GroupMeetingAutoPPT 当前完成情况与下一步行动方案
+# ResearchDataOriginPipeline 当前完成情况与下一步行动方案
 
 更新时间：2026-05-31  
-项目根目录：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
+项目根目录：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 
 ## 最新更新：重组目录后的路径和分类修正
 
@@ -20,7 +20,7 @@
 
 用户正在继续梳理：
 
-`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\LL_detection_copy_20260530`
+`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`
 
 因此该目录下的文件路径可能继续变化。后续如果需要核对原始数据，应优先参考稳定备份：
 
@@ -36,7 +36,7 @@
 
 已将项目放在：
 
-`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
+`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 
 当前主工作区是：
 
@@ -44,7 +44,7 @@
 
 当前可见目录包括：
 
-- `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
+- `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 - `D:\Codex Project\科研数据处理\数据`
 - `D:\Codex Project\科研数据处理\指令归档`
 - `D:\Codex Project\科研数据处理\Jade_FindIt_PDF数据库提取`
@@ -58,10 +58,10 @@
 
 当前已确认存在的长指令 Markdown 文件：
 
-- `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_goal_init_instruction_20260530.md`
-- `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_1_real_data_intake_hardening_instruction_20260530.md`
-- `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_2_mixed_data_triage_instruction_20260530.md`
-- `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_origin_opju_plotting_skill_update_instruction_20260530.md`
+- `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_goal_init_instruction_20260530.md`
+- `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_1_real_data_intake_hardening_instruction_20260530.md`
+- `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_2_mixed_data_triage_instruction_20260530.md`
+- `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_origin_opju_plotting_skill_update_instruction_20260530.md`
 - `D:\Codex Project\科研数据处理\指令归档\README.md`
 
 后续每次用户提供新的大段任务指令，都应继续先转存为 Markdown，再执行。
@@ -84,13 +84,13 @@
 
 项目已经建立以下主要结构：
 
-- CLI 入口：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\run.py`
-- 主源码目录：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\src`
-- 配置目录：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\config`
-- 文档目录：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\docs`
-- 测试目录：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\tests`
-- 输出目录：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output`
-- 工作区数据目录：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data`
+- CLI 入口：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\run.py`
+- 主源码目录：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\src`
+- 配置目录：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\config`
+- 文档目录：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\docs`
+- 测试目录：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\tests`
+- 输出目录：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output`
+- 工作区数据目录：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data`
 
 已建立的主要配置：
 
@@ -139,7 +139,7 @@
 
 项目状态记录显示该请求路径当时不存在，实际使用了 F 盘 LL 检测相关目录作为来源，并复制到工作区副本：
 
-`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\LL_detection_copy_20260530`
+`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`
 
 复制原则：
 
@@ -162,8 +162,8 @@
 
 已生成：
 
-- `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\manifests\LL_detection_copy_20260530_summary.json`
-- `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\manifests\LL_detection_copy_20260530_files.csv`
+- `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\manifests\LL_detection_copy_20260530_summary.json`
+- `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\manifests\LL_detection_copy_20260530_files.csv`
 
 ## 8. 已完成 Phase 1.1
 
@@ -225,8 +225,8 @@ Phase 1.1 已完成：
 
 输出目录：
 
-- `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\processed_data\EIS`
-- `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\metadata\EIS`
+- `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\processed_data\EIS`
+- `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\metadata\EIS`
 
 ## 11. 已完成项目验证
 
@@ -272,7 +272,7 @@ Phase 1.1 已完成：
 
 当前文件：
 
-`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\reports\validation_report.md`
+`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\reports\validation_report.md`
 
 关键结果：
 
@@ -333,7 +333,7 @@ Phase 1.1 已完成：
 
 已扫描 `F:\课题\LL` 和 `F:\课题\LL\检测` 下已有处理好的 OPJU 文件，并生成：
 
-`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\reports\opju_inventory_20260530.csv`
+`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\reports\opju_inventory_20260530.csv`
 
 盘点到的 OPJU 类型包括：
 

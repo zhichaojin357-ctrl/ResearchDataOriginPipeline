@@ -1,6 +1,6 @@
 # Phase 1.7 Phase 1.6 Result Package Audit
 
-- Package: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_6_origin_results_20260531_041538`
+- Package: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_6_origin_results_20260531_041538`
 - Status: PASS
 - Index rows: 167
 - Data types: {'EIS': 22, 'EPR': 13, 'Mott-Schottky': 90, 'Raman': 30, 'XPS': 9, 'photocurrent': 3}

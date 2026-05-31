@@ -1,10 +1,10 @@
 # 上次完整报告之后的工作完成报告
 
-- 项目：GroupMeetingAutoPPT
-- 项目根目录：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
+- 项目：ResearchDataOriginPipeline
+- 项目根目录：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 - 稳定原始备份：`F:\课题\LL\检测`
-- 工作区数据副本：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\LL_detection_copy_20260530`
-- 当前最新成果包：`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_6_origin_results_20260531_041538`
+- 工作区数据副本：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`
+- 当前最新成果包：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_6_origin_results_20260531_041538`
 - 本报告范围：记录“上次要求从零到尾完整说明的那份报告”之后，我继续完成、修复、验证和整理的所有事项。
 
 ## 1. 总体完成状态
@@ -35,7 +35,7 @@
 
 完成了 Phase 1.6 长指令归档：
 
-- 路径：`D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_6_origin_production_and_second_wave_instruction.md`
+- 路径：`D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_6_origin_production_and_second_wave_instruction.md`
 - SHA256：`993AF1806AA5DB86FCA8E25FDE2DADC3806D3F74429EF9A8B6160109A5C356DF`
 
 建立了 Phase 1.6 基线：

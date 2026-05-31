@@ -5,9 +5,9 @@ This report was refreshed after the XPS repair pass. See the post-repair validat
 # Phase 1.6 Post-Repair Validation
 
 - Created: 2026-05-31 09:31:18
-- Project root: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
+- Project root: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 - F-drive backup exists: True (`F:\课题\LL\检测`)
-- Origin package: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_6_origin_results_20260531_041538`
+- Origin package: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_6_origin_results_20260531_041538`
 - Package results: 167
 - Package by type: {'EIS': 22, 'EPR': 13, 'Mott-Schottky': 90, 'Raman': 30, 'XPS': 9, 'photocurrent': 3}
 - Origin process count after validation: 0

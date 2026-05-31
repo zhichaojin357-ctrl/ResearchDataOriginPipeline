@@ -1,7 +1,7 @@
 # Phase 1.8 Review Dashboard
 
 - Last refreshed: 2026-05-31
-- Project root: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
+- Project root: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 - Stable F-drive backup: `F:\课题\LL\检测`
 - Latest locked Origin package: `output\phase1_6_origin_results_20260531_041538`
 

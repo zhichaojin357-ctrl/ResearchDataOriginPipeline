@@ -69,7 +69,7 @@ class TriageOptions:
 
 def run_triage(project_root: Path, input_path: Path, options: TriageOptions | None = None) -> dict:
     options = options or TriageOptions()
-    input_path = input_path.resolve()
+    input_path = input_path.absolute()
     registry = load_json_compatible_yaml(registry_path(project_root))
     entries = list(registry["entries"])
     items = []

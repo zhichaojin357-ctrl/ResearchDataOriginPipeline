@@ -1,6 +1,6 @@
 # Phase 1.6 Phase 1.5 Result Folder Audit
 
-Result folder: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_5_processed_results_20260531_005613`
+Result folder: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_5_processed_results_20260531_005613`
 
 ## Counts
 

@@ -5,7 +5,7 @@
     {
       "queue_id": "64d751af",
       "relative_path": "02_XPS/raw_data/26010989730/BC-11/BI.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\26010989730\\BC-11\\BI.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\26010989730\\BC-11\\BI.xlsx",
       "source_hash": "a2763da75b7c9e147e3e5755e2b767e6acd435f8c9cb3152984135538e5f5a46",
       "data_type": "XPS",
       "selected_processor": "xps_processor",

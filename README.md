@@ -1,4 +1,4 @@
-# GroupMeetingAutoPPT
+# ResearchDataOriginPipeline
 
 Current checkpoint: Phase 1.8 reviewed-queue safety gate and manual-review output.
 

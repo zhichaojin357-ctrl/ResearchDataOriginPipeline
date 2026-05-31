@@ -5,7 +5,7 @@ Created at: 2026-05-31 00:39 +08:00
 ## Git
 
 - Current branch: unavailable.
-- `git status`: failed because `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT` is not a git repository.
+- `git status`: failed because `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline` is not a git repository.
 - Lightweight tag `phase1_5_merged_start_baseline`: not created because this directory is not a git repository.
 
 ## Interpreter
@@ -21,9 +21,9 @@ Use `D:\Python\python.exe` explicitly for project commands.
 
 ## Paths
 
-- Project root: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
+- Project root: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 - Workspace copy exists: yes
-- Workspace copy path: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\LL_detection_copy_20260530`
+- Workspace copy path: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`
 - Workspace copy files: 1589
 - Workspace copy bytes: 2643322364
 - F-drive backup exists: yes

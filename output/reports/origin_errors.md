@@ -16,7 +16,7 @@
 
 - EIS_EIS_6625ff31: Origin is already running. Close it or rerun with -AllowRunningOrigin after confirming no unsaved work will be affected
 
-- Mott-Schottky_MS3000_2d7575e1: Command '['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\origin_jobs\\Mott-Schottky_MS3000_2d7575e1.ps1']' timed out after 600 seconds
+- Mott-Schottky_MS3000_2d7575e1: Command '['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\origin_jobs\\Mott-Schottky_MS3000_2d7575e1.ps1']' timed out after 600 seconds
 
 - Mott-Schottky_MS3500_2_8433d93b: Origin is still running before starting export; aborting to avoid attaching to an unsafe session.
 

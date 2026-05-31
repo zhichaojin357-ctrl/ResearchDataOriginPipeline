@@ -1,5 +1,5 @@
 project:
-  name: GroupMeetingAutoPPT
+  name: ResearchDataOriginPipeline
   phase: phase1
 paths:
   raw_data: input/raw_data

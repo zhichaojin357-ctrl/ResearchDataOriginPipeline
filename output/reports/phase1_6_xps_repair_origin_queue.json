@@ -5,7 +5,7 @@
     {
       "queue_id": "64d751af",
       "relative_path": "02_XPS/raw_data/26010989730/BC-11/BI.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\26010989730\\BC-11\\BI.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\26010989730\\BC-11\\BI.xlsx",
       "source_hash": "a2763da75b7c9e147e3e5755e2b767e6acd435f8c9cb3152984135538e5f5a46",
       "data_type": "XPS",
       "selected_processor": "xps_processor",
@@ -34,7 +34,7 @@
     {
       "queue_id": "0491cce0",
       "relative_path": "02_XPS/raw_data/CWO拟合后/cu-20260506.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\CWO拟合后\\cu-20260506.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\CWO拟合后\\cu-20260506.xlsx",
       "source_hash": "70806e7bc7efc835d4b05a0360ed07f00bc760236934960de476e87918e9ee79",
       "data_type": "XPS",
       "selected_processor": "xps_processor",
@@ -63,7 +63,7 @@
     {
       "queue_id": "0d4a12c7",
       "relative_path": "02_XPS/raw_data/CWO拟合后/cu-260506.xls",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\CWO拟合后\\cu-260506.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\CWO拟合后\\cu-260506.xls",
       "source_hash": "27d1d2bd990a3de845d1610173ab66d0d1db0f2760c6cbb5f881ece7675e1753",
       "data_type": "XPS",
       "selected_processor": "xps_processor",
@@ -92,7 +92,7 @@
     {
       "queue_id": "be31e8e2",
       "relative_path": "02_XPS/raw_data/原位XPS/DARK-20260506.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\DARK-20260506.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\DARK-20260506.xlsx",
       "source_hash": "d823235ad700279bcce084cc5e9b316a28ec503495303ea84326745a95b6ae1a",
       "data_type": "XPS",
       "selected_processor": "xps_processor",
@@ -121,7 +121,7 @@
     {
       "queue_id": "7bcffc32",
       "relative_path": "02_XPS/电荷未矫正第一次/processed_tables/dark拟合第一遍.xls",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\processed_tables\\dark拟合第一遍.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\processed_tables\\dark拟合第一遍.xls",
       "source_hash": "537a7ccdd5a74a12e0f535a7678464becb3c2e100b9384d4fecb29cc02ba3e2e",
       "data_type": "XPS",
       "selected_processor": "xps_processor",
@@ -150,7 +150,7 @@
     {
       "queue_id": "a0ea8cb1",
       "relative_path": "02_XPS/电荷未矫正第一次/processed_tables/light拟合第一遍.xls",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\processed_tables\\light拟合第一遍.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\processed_tables\\light拟合第一遍.xls",
       "source_hash": "1ed3dc4e1b6685ef2fa721facd18150ba83a7233f938f50b7d6338826c0e5cbe",
       "data_type": "XPS",
       "selected_processor": "xps_processor",
@@ -179,7 +179,7 @@
     {
       "queue_id": "bf658e4e",
       "relative_path": "02_XPS/raw_data/原位XPS/LIGHT.xls",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\LIGHT.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\LIGHT.xls",
       "source_hash": "edf465250f9e9430023ccc4e6c7f380268904aeac996b6729aa3774faabc0ffd",
       "data_type": "XPS",
       "selected_processor": "xps_processor",
@@ -208,7 +208,7 @@
     {
       "queue_id": "5dde5fe2",
       "relative_path": "02_XPS/raw_data/原位XPS/LINGT-20260506.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\LINGT-20260506.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\LINGT-20260506.xlsx",
       "source_hash": "69d7c43bc53a662f7d5d19251c8dbd029284b5cf5eb52a9f3d9b82287817cbd8",
       "data_type": "XPS",
       "selected_processor": "xps_processor",
@@ -237,7 +237,7 @@
     {
       "queue_id": "c402d286",
       "relative_path": "02_XPS/raw_data/原位XPS/新建 Microsoft Excel 工作表.xls",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\新建 Microsoft Excel 工作表.xls",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\raw_data\\原位XPS\\新建 Microsoft Excel 工作表.xls",
       "source_hash": "e0362b0f138e9380daa1caf0dc039c3eb1315de3558ce25b3f71158e56d94b6c",
       "data_type": "XPS",
       "selected_processor": "xps_processor",

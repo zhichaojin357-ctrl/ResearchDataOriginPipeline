@@ -18,4 +18,4 @@
 - Original F-drive backup files were not copied or modified.
 - Manual scientific checks remain required; forbidden claims are preserved in metadata.
 
-Package path: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_6_origin_results_20260531_041538`
+Package path: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_6_origin_results_20260531_041538`

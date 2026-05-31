@@ -1,7 +1,7 @@
 {
   "queue_version": "phase1_6_origin_queue_v1",
   "source_consistency_report": "output/reports/phase1_6_no_origin_result_consistency.json",
-  "source_root": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530",
+  "source_root": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530",
   "data_type": "EIS",
   "origin_mode": "with_origin_explicit_only",
   "items": [
@@ -9,7 +9,7 @@
       "queue_id": "4fa41d00781e55a9",
       "result_id": "EIS_B11-2-A_4fa41d00",
       "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-A.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B11-2-A.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B11-2-A.txt",
       "source_hash": "c2a2e42956937608d3d065b1c8c77e2bf1ebabcfec4bda44677699f02cd5f52f",
       "data_type": "EIS",
       "subtype": "EIS",

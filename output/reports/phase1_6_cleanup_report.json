@@ -1,45 +1,45 @@
 ﻿{
     "created_at":  "2026-05-31T04:31:42",
-    "project_root":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT",
+    "project_root":  "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline",
     "removed":  [
                     {
                         "relative_path":  ".pytest_cache",
-                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\.pytest_cache",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\.pytest_cache",
                         "reason":  "cache or diagnostic scratch artifact"
                     },
                     {
                         "relative_path":  "output\\origin_debug",
-                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\output\\origin_debug",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\origin_debug",
                         "reason":  "cache or diagnostic scratch artifact"
                     },
                     {
                         "relative_path":  "src\\__pycache__",
-                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\src\\__pycache__",
                         "reason":  "Python bytecode cache"
                     },
                     {
                         "relative_path":  "src\\core\\__pycache__",
-                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\core\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\src\\core\\__pycache__",
                         "reason":  "Python bytecode cache"
                     },
                     {
                         "relative_path":  "src\\origin\\__pycache__",
-                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\origin\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\src\\origin\\__pycache__",
                         "reason":  "Python bytecode cache"
                     },
                     {
                         "relative_path":  "src\\processors\\__pycache__",
-                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\processors\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\src\\processors\\__pycache__",
                         "reason":  "Python bytecode cache"
                     },
                     {
                         "relative_path":  "src\\scanner\\__pycache__",
-                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\src\\scanner\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\src\\scanner\\__pycache__",
                         "reason":  "Python bytecode cache"
                     },
                     {
                         "relative_path":  "tests\\__pycache__",
-                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\tests\\__pycache__",
+                        "resolved_path":  "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\tests\\__pycache__",
                         "reason":  "Python bytecode cache"
                     }
                 ],

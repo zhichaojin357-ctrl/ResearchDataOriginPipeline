@@ -68,7 +68,7 @@ def _matching_folders(raw_root: Path, entry: dict) -> list[Path]:
 def scan_raw_data(project_root: Path, input_path: Path) -> dict:
     ensure_output_structure(project_root)
     registry = load_json_compatible_yaml(registry_path(project_root))
-    input_path = input_path.resolve()
+    input_path = input_path.absolute()
     classifications: list[Classification] = []
     all_files = []
 

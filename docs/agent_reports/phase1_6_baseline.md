@@ -4,7 +4,7 @@ Created at: 2026-05-31T01:41:09
 
 ## Instruction Archive
 
-- Path: `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_6_origin_production_and_second_wave_instruction.md`
+- Path: `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_6_origin_production_and_second_wave_instruction.md`
 - Exists: True
 - SHA256: `993AF1806AA5DB86FCA8E25FDE2DADC3806D3F74429EF9A8B6160109A5C356DF`
 
@@ -24,13 +24,13 @@ Created at: 2026-05-31T01:41:09
 
 ## Environment
 
-- Project root: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
+- Project root: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 - Python executable: `D:\Python\python.exe`
 - PATH python: `D:\MestReNova\python.EXE`
-- Workspace copy exists: True (`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\workspace_data\LL_detection_copy_20260530`)
+- Workspace copy exists: True (`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`)
 - F-drive backup exists: True (`F:\课题\LL\检测`)
-- Phase 1.5 result folder exists: True (`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_5_processed_results_20260531_005613`)
-- Phase 1.5 completion report exists: True (`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\docs\agent_reports\phase1_5_merged_completion_report.md`)
+- Phase 1.5 result folder exists: True (`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_5_processed_results_20260531_005613`)
+- Phase 1.5 completion report exists: True (`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\docs\agent_reports\phase1_5_merged_completion_report.md`)
 
 ## Origin Process State Before Real Export
 

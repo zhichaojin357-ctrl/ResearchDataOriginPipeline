@@ -1,7 +1,7 @@
 # Phase 1.6 Origin Visual QC
 
 - Updated: 2026-05-31 09:27:11
-- Package: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_6_origin_results_20260531_041538`
+- Package: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_6_origin_results_20260531_041538`
 - Total: 167
 - Status counts: {'QC_PASS': 167}
 

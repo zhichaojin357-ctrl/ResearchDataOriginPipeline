@@ -3,7 +3,7 @@
     {
       "file_id": "e01cbfbac8e9e139",
       "relative_path": "03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/4-BOBC-(OCP).txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第一次CWO BOBC BC数据\\4-BOBC-(OCP).txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第一次CWO BOBC BC数据\\4-BOBC-(OCP).txt",
       "absolute_path_hash": "3e5cd875353545fd8c6c4fdfd30caf91fcbc9a12f0e730f0ce0f881d3244a780",
       "source_hash": "164b3e8107905489b6546557360784a9ad80360a0e639d4daccf53d819f2a2db",
       "file_name": "4-BOBC-(OCP).txt",
@@ -83,7 +83,7 @@
     {
       "file_id": "36c018ae8c9edf67",
       "relative_path": "03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/5-CWO-(OCP) .txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第一次CWO BOBC BC数据\\5-CWO-(OCP) .txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第一次CWO BOBC BC数据\\5-CWO-(OCP) .txt",
       "absolute_path_hash": "efe07dc034d09071f94fea7647462f43e880f0b39d00375d2b232a9dcffd242e",
       "source_hash": "e2f2164674cce6884d4022308c9d8d0bd6b8e35c721d2644a6d921da10b49424",
       "file_name": "5-CWO-(OCP) .txt",
@@ -163,7 +163,7 @@
     {
       "file_id": "38772fc1f43a136f",
       "relative_path": "03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/6-BC-11-(OCP).txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第一次CWO BOBC BC数据\\6-BC-11-(OCP).txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第一次CWO BOBC BC数据\\6-BC-11-(OCP).txt",
       "absolute_path_hash": "62a00b57aabedf837a3dce20ca15a81455693732b808f57832994ead7b550ff5",
       "source_hash": "f702a569b648290a6181da7791eac06d4015b26a6feee9276fadfebfb7034c65",
       "file_name": "6-BC-11-(OCP).txt",
@@ -243,7 +243,7 @@
     {
       "file_id": "b12fa4380a1e902a",
       "relative_path": "03_光电流/光电流响应/raw_data/第三次光电流补测/26041550465/Photocurrent/1-（OCP）.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第三次光电流补测\\26041550465\\Photocurrent\\1-（OCP）.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第三次光电流补测\\26041550465\\Photocurrent\\1-（OCP）.txt",
       "absolute_path_hash": "875432a17d33fa93ece1fc66a76fd46cceb113a78831e9b83026b6d7c693e1d1",
       "source_hash": "d104b636be5cc8b1dd0d1ab515324d81ef27da3d168531ec082ae4592762eb23",
       "file_name": "1-（OCP）.txt",
@@ -323,7 +323,7 @@
     {
       "file_id": "3aa205c216736d4b",
       "relative_path": "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/1-(OCP).txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第二次BOBC BC\\26032562524\\Photocurrent\\1-(OCP).txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第二次BOBC BC\\26032562524\\Photocurrent\\1-(OCP).txt",
       "absolute_path_hash": "c654af8f90493b8c302903747be3e74718a7f68649d5979ce02189655a947c5b",
       "source_hash": "cf9895657fae772eebfcdbda6ecd3b1b7339edeed2048a0eed80ecac4b373c2b",
       "file_name": "1-(OCP).txt",
@@ -403,7 +403,7 @@
     {
       "file_id": "454ada8c14b801b6",
       "relative_path": "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/2-(OCP).txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第二次BOBC BC\\26032562524\\Photocurrent\\2-(OCP).txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第二次BOBC BC\\26032562524\\Photocurrent\\2-(OCP).txt",
       "absolute_path_hash": "89e5a6d3c97f8aabecbaebe9298365307e8124d2e136c5f23b0c4e0189f7b8a4",
       "source_hash": "7f51a17d2cf9f7cf3b295f0179141fcb58eed623963506c5515e4579dd528dfa",
       "file_name": "2-(OCP).txt",
@@ -483,7 +483,7 @@
     {
       "file_id": "7bedb524f31389d9",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC2000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC2000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC2000.csv",
       "absolute_path_hash": "d352c04ebdca8e79b9c86e98e100329bbb9f470e6d38fc3e43e2b1394f9cbdba",
       "source_hash": "86d3bbb3df69e7b64801907b6ff1a389a67a3fa187093699f2ad9a58453ffef8",
       "file_name": "BOBC2000.csv",
@@ -563,7 +563,7 @@
     {
       "file_id": "28ba36d02d30becf",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC2500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC2500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC2500.csv",
       "absolute_path_hash": "761f4e395cd7385553d93753a3032b42a10995e7cbb1394afd3fcb7f96cb356e",
       "source_hash": "376aae62aa1fc3bf0ee43826e4c59d8e44d9ba93d7ee22d4f1725de0bcd5f3d9",
       "file_name": "BOBC2500.csv",
@@ -643,7 +643,7 @@
     {
       "file_id": "195a262f85e48a5f",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC3000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC3000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC3000.csv",
       "absolute_path_hash": "8af72179385a79951b3866204df631663e44022063906960bf5714014766536d",
       "source_hash": "675b0f828efa71b10ebbe8ddbf332163c7532f95af3f8b014ce0a7fbdd880d2c",
       "file_name": "BOBC3000.csv",
@@ -723,7 +723,7 @@
     {
       "file_id": "e6e72e262b8cad41",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC3500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC3500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC3500.csv",
       "absolute_path_hash": "a7f02072e0d10c76ef53794a708e81f278504ca24d367a667c7a998e7e03d04e",
       "source_hash": "a289a6183e770f9caeafcf343bc6defc70f6abc40a472719e0482e05353c484d",
       "file_name": "BOBC3500.csv",
@@ -803,7 +803,7 @@
     {
       "file_id": "08203ddb6ab49daa",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC4000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC4000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC4000.csv",
       "absolute_path_hash": "0c878c5e8efbed3b8c4e5adc00b5f49b99e709c5fd03548392e782cdf42d9986",
       "source_hash": "353440666408ab6324e2820a379219bc29ee9f18d85c91385036651af45721d1",
       "file_name": "BOBC4000.csv",
@@ -883,7 +883,7 @@
     {
       "file_id": "f33328a6ebdea302",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC4500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC4500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC4500.csv",
       "absolute_path_hash": "0582b63d75938ab34d39cf1d669441d68b114f1865bbb99a8beda1cdcb5ff3de",
       "source_hash": "c7e897d5661e0feab8865db965af8696da26b97fff500834820ef95c2ad9cb40",
       "file_name": "BOBC4500.csv",
@@ -963,7 +963,7 @@
     {
       "file_id": "0aeaacebb317bb9f",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/BOBC5000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC5000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\BOBC5000.csv",
       "absolute_path_hash": "85b1986a1d1d8e5391ab21fe2465d34faa7b24008e496b5602284cca56af134c",
       "source_hash": "5bbc03b3ee31852fecf80a9f450ffe356a0acca5c7bcc4dd7d53999abe9f6d65",
       "file_name": "BOBC5000.csv",
@@ -1043,7 +1043,7 @@
     {
       "file_id": "41d61bedbd8a9c0c",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO1000废.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO1000废.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO1000废.csv",
       "absolute_path_hash": "4c68953ed45e0df351f4a1c463d9f5d2eb13baf819e370c101df3c1d86cbf6fb",
       "source_hash": "cf9964d4629a9b4750426c12e02595e8bbc2161a07f05836acdbd1145d4c7168",
       "file_name": "CWO1000废.csv",
@@ -1123,7 +1123,7 @@
     {
       "file_id": "cad69a098f5b8793",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO1500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO1500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO1500.csv",
       "absolute_path_hash": "126c73a8972115332e58793a4a78b200e6fba8eed1572f0717719e6380720731",
       "source_hash": "3dc13cfe43a7316a3165c897a7b34fb189e85fbd3f80faeba136896aa2d0541f",
       "file_name": "CWO1500.csv",
@@ -1203,7 +1203,7 @@
     {
       "file_id": "664220ca411c3a96",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO2000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO2000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO2000.csv",
       "absolute_path_hash": "71759c84e36c534be5963ff6a3b7f2cd9184f019ad6536bc145a7f42ae329a52",
       "source_hash": "eb26d4095ae02e2bd07e3f6bb65a6f4aa90a4bf58ac51da0393c50d20232d662",
       "file_name": "CWO2000.csv",
@@ -1283,7 +1283,7 @@
     {
       "file_id": "000285c6b9a7c27a",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO2500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO2500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO2500.csv",
       "absolute_path_hash": "25b6a62ff05f0c4f32df45a63478533a99c8beef3ed331cb6876e04b04132b88",
       "source_hash": "4a52bfb6c0d22740434f8105706ed0a4283e6cac610ec161c86f2c3883ffef3e",
       "file_name": "CWO2500.csv",
@@ -1363,7 +1363,7 @@
     {
       "file_id": "351efa36c5a9a89b",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO3000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO3000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO3000.csv",
       "absolute_path_hash": "80fee7313ec60d0bc8e75960e4b022d715eb2df99be953618b79af254ba04d5a",
       "source_hash": "9db37cd7027aae667aaf15368f202106b4c232142dce41c4f8d7790926a36006",
       "file_name": "CWO3000.csv",
@@ -1443,7 +1443,7 @@
     {
       "file_id": "54fb7657be5006b1",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO3500-2.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO3500-2.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO3500-2.csv",
       "absolute_path_hash": "02d937ad3747bda3d8380b0398b85c44dc9688f45cff056bd0a63f7a0162568e",
       "source_hash": "4f75c2e616506f713f93f6034d14cd86ce639a2b4e44a68353428215ed8e37ac",
       "file_name": "CWO3500-2.csv",
@@ -1523,7 +1523,7 @@
     {
       "file_id": "bf07a62085f06a56",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO3500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO3500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO3500.csv",
       "absolute_path_hash": "c45acce2249835f97b58b0aaacfac069bb35b0e7641a6b1a6b98c286984d161a",
       "source_hash": "6a51c6671d49aba215d900d1570a01ad7bc79c31701395f46d8f0348b8f061e3",
       "file_name": "CWO3500.csv",
@@ -1603,7 +1603,7 @@
     {
       "file_id": "f550085a5117c5c2",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO4000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO4000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO4000.csv",
       "absolute_path_hash": "e9adf23aff6efa085aa76535644891fbd4a6f0af3e48db1814ce2d4af8eafd2e",
       "source_hash": "743ce9d22793f65e9f1afc8ffcbc16737d28d9ebf9ff24c8e703237261a11141",
       "file_name": "CWO4000.csv",
@@ -1683,7 +1683,7 @@
     {
       "file_id": "609a6eb02c2320b1",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO4500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO4500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO4500.csv",
       "absolute_path_hash": "430b75cdb760213c2497d2a8ff3197221d059f1891139571ae836b20a86c6dfc",
       "source_hash": "eb87f575a25b9c176e6984e73605f551fbfc17dcec27d6c4a977aa9055cff8da",
       "file_name": "CWO4500.csv",
@@ -1763,7 +1763,7 @@
     {
       "file_id": "a7f5e120e013d3b9",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/raw_data/MT/CWO5000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO5000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\raw_data\\MT\\CWO5000.csv",
       "absolute_path_hash": "21597e18aa055175544f2d26e2c91d9cc5e020bc8ae8b673b35f36e81648850e",
       "source_hash": "2d81d0bb25237865323344c1e39e0f77e29ac40ecd7f4af9bbdccd69d26581a8",
       "file_name": "CWO5000.csv",
@@ -1843,7 +1843,7 @@
     {
       "file_id": "0c44be8e0535c22e",
       "relative_path": "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO1000.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\CWO1000.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\CWO1000.xlsx",
       "absolute_path_hash": "bd43b7972bd4f5613fbfb3c094b0f7885d5b87ec557e9d3b353ad8f4b512028f",
       "source_hash": "73b0af83fe61273c3f4f751244780911397ba5c37541cb6272ca394cda62d7ea",
       "file_name": "CWO1000.xlsx",
@@ -1952,7 +1952,7 @@
     {
       "file_id": "bd94c544279d0462",
       "relative_path": "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO1500.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\CWO1500.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\CWO1500.xlsx",
       "absolute_path_hash": "891d449dddab64ad1d5058cd2d62b1ff3480917edb2a3a3a1c44bb278470d4a6",
       "source_hash": "0fe26cfc870bac39006bffc186ededbc9bcbb92ab591a608e879c2830453fdc9",
       "file_name": "CWO1500.xlsx",
@@ -2061,7 +2061,7 @@
     {
       "file_id": "6a59489caf7f662a",
       "relative_path": "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO2000.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\CWO2000.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\CWO2000.xlsx",
       "absolute_path_hash": "d99435bacd9685f065c7698a93b896ce1ca6fb813b944364e0fa8eb1af0c4f1a",
       "source_hash": "75b2a6fc033f91e0478ce69c2e37a71463d52cbb7d906c069493dd83b67c0ad9",
       "file_name": "CWO2000.xlsx",
@@ -2170,7 +2170,7 @@
     {
       "file_id": "7bff6558ea702f4c",
       "relative_path": "04_莫特肖特基/CWO莫特肖特基数据处理版/CWO3000RE.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\CWO3000RE.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\CWO3000RE.xlsx",
       "absolute_path_hash": "39114017df76d147423e5aa7c5a501f259fedd706edcd6d5b38afa1302853a0b",
       "source_hash": "c3cb1e005842e1b81e4b5f2ee09ca6d087c4d1cf53d7c8ca800fface009d8b03",
       "file_name": "CWO3000RE.xlsx",
@@ -2279,7 +2279,7 @@
     {
       "file_id": "12fea5fe1de356c4",
       "relative_path": "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS1000.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS1000.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS1000.xlsx",
       "absolute_path_hash": "14d6fc941cba8cbb65120ed7f0094fab777a4908245c565fef5b9e1dd07e2b88",
       "source_hash": "940ace8e85cc353ce5e7c15676645461d0025c67eee641fc3da804aa253262cd",
       "file_name": "MS1000.xlsx",
@@ -2388,7 +2388,7 @@
     {
       "file_id": "a79b5a23eef50c68",
       "relative_path": "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS1500.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS1500.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS1500.xlsx",
       "absolute_path_hash": "a11e91fc1c0331d5089d23db82728708c2c78b00314023805fccad1622b66639",
       "source_hash": "d3aa696d2b59e1af1dd9e70bf1a72a00f4bf3dcea3baf1f0b06321537d764e24",
       "file_name": "MS1500.xlsx",
@@ -2497,7 +2497,7 @@
     {
       "file_id": "7904e8d0c7eb72a9",
       "relative_path": "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS2000.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS2000.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS2000.xlsx",
       "absolute_path_hash": "0dc1eb3a3b0d8c0e97fd546afbad057b9d24206b65c48ad98106e08a62ba9f4a",
       "source_hash": "5286e7eae7c9a4d516896067a06dce9a2911ea6355cebf49b7930650797619fd",
       "file_name": "MS2000.xlsx",
@@ -2606,7 +2606,7 @@
     {
       "file_id": "3e291ea4033e22af",
       "relative_path": "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS2500.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS2500.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS2500.xlsx",
       "absolute_path_hash": "a289dc280f167faebdcdc2e7c9ac535c6f99460159ba3c561bac67abdf303512",
       "source_hash": "78f508b105a5422f2c87b63add0ef4d53012fa9bc761cc317b6da7c0af00d980",
       "file_name": "MS2500.xlsx",
@@ -2715,7 +2715,7 @@
     {
       "file_id": "f4d58c45482e7491",
       "relative_path": "04_莫特肖特基/CWO莫特肖特基数据处理版/MS数据处理版/MS3000.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS3000.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO莫特肖特基数据处理版\\MS数据处理版\\MS3000.xlsx",
       "absolute_path_hash": "b75c730618147598049cda4ba4c7f2950dc874b95278036cbe114a0d13fb960d",
       "source_hash": "0fc3a5f2d7998d8efbdf8d18d3e0b6f4eccd6e383e3edf5f876f2d9170fb12ba",
       "file_name": "MS3000.xlsx",
@@ -2824,7 +2824,7 @@
     {
       "file_id": "4ea8cb1c4cc35529",
       "relative_path": "04_莫特肖特基/第一体系确定版本/BOBC/1000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\1000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\1000.csv",
       "absolute_path_hash": "9ebf9898952f31d2d2ed65ebbf0a9b85dcd9bf804895bc07ae356b0e797e71d2",
       "source_hash": "18de7421b572bdd2fee04cfa8c6e7dafa24a36764acb644b9548e2e01aec644c",
       "file_name": "1000.csv",
@@ -2904,7 +2904,7 @@
     {
       "file_id": "b98383726b0e298c",
       "relative_path": "04_莫特肖特基/第一体系确定版本/BOBC/1500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\1500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\1500.csv",
       "absolute_path_hash": "48b6bc3e46ce8afc74066266e7585096ecb7ea896312742ee3cdafb635fc5693",
       "source_hash": "e560e60af70356cf32f8b64cd3d02e5de8e23cc05cef8343e24512216dbc5fb0",
       "file_name": "1500.csv",
@@ -2984,7 +2984,7 @@
     {
       "file_id": "3a4aea189b77f312",
       "relative_path": "04_莫特肖特基/第一体系确定版本/BOBC/2000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\2000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\2000.csv",
       "absolute_path_hash": "b1eb69323f231f71d04a40ffbaeb9ec20d27addf7061b4a4e167b711e6e8d4e7",
       "source_hash": "3b85f52d7e15efd0dc56f165927ab554a6e82755f494ca796e64952c458254a5",
       "file_name": "2000.csv",
@@ -3064,7 +3064,7 @@
     {
       "file_id": "83eb75e49ea3a5a4",
       "relative_path": "04_莫特肖特基/第一体系确定版本/BOBC/2500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\2500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\2500.csv",
       "absolute_path_hash": "6d815a46108723ba2792ac9846afba9046d944a3cf276cec7783e27425f5fd4a",
       "source_hash": "829d1bfcd65e4c1429f53a2e3dcc0d1418e849c13b1f9d98b48392f562c727cc",
       "file_name": "2500.csv",
@@ -3144,7 +3144,7 @@
     {
       "file_id": "5cd0ecfcefd4b417",
       "relative_path": "04_莫特肖特基/第一体系确定版本/BOBC/3000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\3000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\3000.csv",
       "absolute_path_hash": "e97547fe3b052379e4ef8bf177610826baed20d1a0a5109d70e9aac3d365f8c7",
       "source_hash": "85b8b423e841b38262ba504bdb3a8b98d9932d5e7b411ff9834ecba742f8c2ee",
       "file_name": "3000.csv",
@@ -3224,7 +3224,7 @@
     {
       "file_id": "7843cc68c5af0422",
       "relative_path": "04_莫特肖特基/第一体系确定版本/BOBC/3500.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\3500.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\3500.csv",
       "absolute_path_hash": "df2803776fc286acb016dee85d522f649647fe9634dbfb4b19151c3968c037df",
       "source_hash": "472bc4e2ba92c5bc9983958d15703238efe1bd7795d68da2e6272ca9211a41df",
       "file_name": "3500.csv",
@@ -3304,7 +3304,7 @@
     {
       "file_id": "ec6e6ca6fe030bc4",
       "relative_path": "04_莫特肖特基/第一体系确定版本/BOBC/4000.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\4000.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\BOBC\\4000.csv",
       "absolute_path_hash": "f877adf935a490a1e86d95d99caba11673198eb0e5bd7a90cc7835a1985e2dfc",
       "source_hash": "9e754ae7cea13485a786543e9962b23c549255be32f005cd290865a844e0a012",
       "file_name": "4000.csv",
@@ -3384,7 +3384,7 @@
     {
       "file_id": "75f49e8cf4d6d8fe",
       "relative_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/1000.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\1000.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\1000.xlsx",
       "absolute_path_hash": "6a6c13cbbfa3660726c40d7f945b93d51960430156106421bf15af78ca083ad7",
       "source_hash": "d40e36d571cedec9573de9bfbeba788cd5379fa9d09032c19e1240b6d367b82f",
       "file_name": "1000.xlsx",
@@ -3495,7 +3495,7 @@
     {
       "file_id": "98369a02cb3bd1dc",
       "relative_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/1500.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\1500.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\1500.xlsx",
       "absolute_path_hash": "7f7986fe3596e65e6c7c122bb42cc2a8e5f44b2967b65add44a29fc330a1465a",
       "source_hash": "84cd85fb4554071d11736b5f9d300afe8b6eb762be5cad04b9cbc102fc108caa",
       "file_name": "1500.xlsx",
@@ -3606,7 +3606,7 @@
     {
       "file_id": "5ba7c8ccd85ae284",
       "relative_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/2000.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\2000.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\2000.xlsx",
       "absolute_path_hash": "5fe6cb181c9491a80052c88d87412ffbcb539e00574578ff7ef7e81310226824",
       "source_hash": "e07e019e39022a761ed5f0b21de6c9c0734cb98f5875223604ee9de2a3353b28",
       "file_name": "2000.xlsx",
@@ -3717,7 +3717,7 @@
     {
       "file_id": "ab7f2a24f39f508b",
       "relative_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/2500.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\2500.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\2500.xlsx",
       "absolute_path_hash": "19247aab8aace0e868aba0ee4041b3012fe0b38de33f31405326db7cfc8408f8",
       "source_hash": "3e7c9f44e77a2d04b33dc9f3678f8a9d9042deba575a29d424f2064104aa5e6d",
       "file_name": "2500.xlsx",
@@ -3828,7 +3828,7 @@
     {
       "file_id": "985d73ebb600cd5b",
       "relative_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/3000.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\3000.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\3000.xlsx",
       "absolute_path_hash": "5d05291af90933cedbaa38b2015b8579358b6e8e40c8d9420a8931aaf8912131",
       "source_hash": "63d4cee6fcca3970762d97410e26913f72e4d856fb733345aff8d6ce35b3cff0",
       "file_name": "3000.xlsx",
@@ -3939,7 +3939,7 @@
     {
       "file_id": "17eb7be255e53676",
       "relative_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/3500.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\3500.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\3500.xlsx",
       "absolute_path_hash": "062292321eb37ab5aba76dc8dec915b29085eb373ccaab1907ac6b3a04a87ac1",
       "source_hash": "ddbbbb7f307cf30218ca21760c54c4b1f2ae608f78eaa947d857cc1eed06ddaa",
       "file_name": "3500.xlsx",
@@ -4050,7 +4050,7 @@
     {
       "file_id": "1b795f90fe4ba9cc",
       "relative_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/processed_tables/4000.xlsx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\4000.xlsx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\processed_tables\\4000.xlsx",
       "absolute_path_hash": "f30e898250baf19598b1887876a8f4a6f06e864d72b9d3725080aed2317f9a24",
       "source_hash": "6301eff5c35b98aae02cfc4e1f790ae2a7d4d2f1f94bc55430255e42d7b6f8f0",
       "file_name": "4000.xlsx",
@@ -4161,7 +4161,7 @@
     {
       "file_id": "2d80414b51230395",
       "relative_path": "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO1500 2.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO1500 2.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO1500 2.csv",
       "absolute_path_hash": "d89ce10fdbd3e111978c1a658bc4aa538902f6acce1176ddc1820126bf651a68",
       "source_hash": "391b6a8636501df77c5e13770276dd98487cabc92ba9675aa8d69c8840c85a7e",
       "file_name": "CWO1500 2.csv",
@@ -4241,7 +4241,7 @@
     {
       "file_id": "a36a4d099df256e3",
       "relative_path": "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2000 2.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO2000 2.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO2000 2.csv",
       "absolute_path_hash": "55685b227c1522506b22c0dd85c16e1f659d765163f0578be29e216d1b9b2f28",
       "source_hash": "9768556c67753e2d058957bceae8c5b0c98e3e1fce8a9e2244952c120c20981e",
       "file_name": "CWO2000 2.csv",
@@ -4321,7 +4321,7 @@
     {
       "file_id": "3aeb493b1715f4e3",
       "relative_path": "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2500 2.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO2500 2.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO2500 2.csv",
       "absolute_path_hash": "f75ded93242e2f070af47729ceb01d27d9ac8b0bbde0266f769a1c23ebd15af9",
       "source_hash": "09ba8641b6c0b8eb1637f6fa769734cee5013a28c1b51ecec857046a14ff1da4",
       "file_name": "CWO2500 2.csv",
@@ -4401,7 +4401,7 @@
     {
       "file_id": "ed1b65abd57c17b7",
       "relative_path": "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3000 2.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO3000 2.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO3000 2.csv",
       "absolute_path_hash": "1ad0afb6cb764d71cd64c5ac920e9736f3a32fa179e7640409f7229f08ceb96d",
       "source_hash": "48f3531bf2c6539114311e555febdd45e1c6e8c088b96e39e9eff508d9f8cae2",
       "file_name": "CWO3000 2.csv",
@@ -4481,7 +4481,7 @@
     {
       "file_id": "d850528e31f54b27",
       "relative_path": "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 2.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO3500 2.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO3500 2.csv",
       "absolute_path_hash": "e66ad642068118785cb6be1bec2933f0de6383c06241bd54dc311ed14b9a7333",
       "source_hash": "71355076d7d193ad379f92ab44e5a449cb4a319b653a27db55ce1cfcd863537e",
       "file_name": "CWO3500 2.csv",
@@ -4561,7 +4561,7 @@
     {
       "file_id": "3f54acc4dde99a3d",
       "relative_path": "04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 3.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO3500 3.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\raw_data\\CWO3500 3.csv",
       "absolute_path_hash": "cc88a94dd95d1a439e2ded096519b4a28b8d658efcd17a5db59a37a0148403f3",
       "source_hash": "14ea95dfbff3186265d6e9b49abd2bacc77e3520f4f1cdfad59f599928030ebc",
       "file_name": "CWO3500 3.csv",
@@ -4641,7 +4641,7 @@
     {
       "file_id": "b1582302c6b381f8",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/raw_data/BOBC2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BOBC2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\raw_data\\BOBC2.txt",
       "absolute_path_hash": "c4afed52bfaa2d960deebd0e913cd99a016e703ec19e2bcc1dca93a3c336fcd4",
       "source_hash": "539509d171cfcd421617e6f561a0b35a6e5249d9d4b63d94981248e3eee54f96",
       "file_name": "BOBC2.txt",

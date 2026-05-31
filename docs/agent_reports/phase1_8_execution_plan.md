@@ -26,7 +26,7 @@ Make Phase 1.8 a safe decision gate between Phase 1.7 review-only proposals and 
 
 ### Task 1: Baseline And Instruction Archive
 
-- [x] Save Phase 1.8 instruction to `D:\Codex Project\科研数据处理\指令归档\GroupMeetingAutoPPT_phase1_8_reviewed_queue_and_processing_gate_instruction.md`.
+- [x] Save Phase 1.8 instruction to `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_8_reviewed_queue_and_processing_gate_instruction.md`.
 - [x] Compute instruction SHA256.
 - [x] Run baseline commands and record results in `docs/agent_reports/phase1_8_baseline.md`.
 

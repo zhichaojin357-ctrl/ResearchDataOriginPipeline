@@ -1,568 +1,580 @@
-# Phase 1.8 Manual Review Required After Rule And AI Review
+# Phase 1.8 AI 语义判断后仍需人工复核清单
 
-- Scope: current MANUAL_REVIEW files after Phase 1.7/1.8 recognition work.
-- AI-assisted step: Codex reviewed manifest evidence, folder/file/header hints, parser status, duplicate state, and Phase 1.6 processed hashes.
-- No real no-Origin processing was run.
-- No Origin export was run.
-- Manual review output CSV: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\reports\phase1_8_manual_review_required_after_ai.csv`
-- Total manual review rows after exclusions: 538
-- Excluded from this user-review list because already represented in Phase 1.6: 151
-- Excluded from this user-review list because duplicate grouped: 53
+## 清单说明
+- 范围：Phase 1.7/1.8 识别后，仍标记为 `MANUAL_REVIEW` 的项目。
+- 判断依据：清单证据、文件夹/文件名/表头线索、解析器探测结果、重复分组、Phase 1.6 已处理哈希。
+- 本次仅整理清单；没有处理原始数据，没有运行 Origin，也没有导出 Origin 数据。
+- 对应 CSV：`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\reports\phase1_8_manual_review_required_after_ai.csv`
+- 本清单需人工复核：538 项。
+- 未列入本清单：151 项已由 Phase 1.6 处理结果覆盖；53 项被归入重复组。
 
-## Status Counts
-- AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT: 520
-- AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL: 18
+## 为什么需要人工复核
+| 风险/状态 | 数量 | 含义 |
+|---|---:|---|
+| 格式暂不能自动解析 | 520 | AI 能判断大致类别，但当前解析器不能可靠读取该格式或内容。 |
+| 需人工确认 | 18 | 规则和 AI 已给出判断，但是否采纳、归档或处理仍需要用户确认。 |
 
-## Likely Data Type Counts
-- XPS: 156
-- Mott-Schottky: 116
-- XRD: 69
-- EIS: 48
-- EPR: 45
-- FTIR: 30
-- BET: 23
-- PL: 19
-- UV-vis DRS: 14
-- photocurrent: 9
-- photocurrent_response: 8
-- Raman: 1
+## 推测类别统计
+| 推测类别 | 数量 |
+|---|---:|
+| XPS | 156 |
+| Mott-Schottky | 116 |
+| XRD | 69 |
+| EIS | 48 |
+| EPR | 45 |
+| FTIR | 30 |
+| BET | 23 |
+| PL | 19 |
+| UV-vis DRS | 14 |
+| 光电流 | 9 |
+| 光电流响应 | 8 |
+| Raman | 1 |
 
-## Files Requiring Manual Review
-- `04_莫特肖特基/LLKT ms/20250905/1MT2000-2.xlsx` | EIS | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `04_莫特肖特基/LLKT ms/20250905/1mbMT1000.xlsx` | EIS | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.txt` | PL | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.txt` | PL | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.txt` | PL | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.txt` | PL | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.txt` | PL | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.txt` | PL | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `08_固体紫外/raw_data/20251017-LL/20251017/bobc.TXT` | UV-vis DRS | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `08_固体紫外/raw_data/20251017-LL/20251017/bobcms.TXT` | UV-vis DRS | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `08_固体紫外/raw_data/20251017-LL/20251017/cwo.TXT` | UV-vis DRS | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `08_固体紫外/raw_data/20251017-LL/20251017/cwobobc.TXT` | UV-vis DRS | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `08_固体紫外/raw_data/20251017-LL/20251017/ms.TXT` | UV-vis DRS | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10-2.TXT` | UV-vis DRS | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10.TXT` | UV-vis DRS | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `01_XRD/BOBC+MS/250530/BOBC.TXT` | XRD | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `01_XRD/BPO/BPO+MS.TXT` | XRD | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `01_XRD/BPO/BPO.TXT` | XRD | AI_AND_RULE_CLASSIFIED_REQUIRES_USER_APPROVAL | phase1_7_review_only_proposal_needs_user_decision
-- `09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/MICDIR.DB3` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/XWM-LL-260428-1-BOBC-All Pore.XLS` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/XWM-LL-260428-1-BOBC-All Pore/raw_data/XWM-LL-260428-1-BOBC-All Pore.SMP` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/ZPF-LL-20260327-4-BOBC-BET/MICDIR.DB3` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.SMP` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.XLS` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/ZPF-LL-20260327-7-CWO-BET/MICDIR.DB3` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/ZPF-LL-20260327-7-CWO-BET/ZPF-LL-20260327-7-CWO-BET.XLS` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/ZPF-LL-20260327-8-BC-BET/MICDIR.DB3` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/ZPF-LL-20260327-8-BC-BET/ZPF-LL-20260327-8-CWO-BET.XLS` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/MICDIR.DB3` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/MICDIR.DB3` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/XWM-LL-260421-1-BOBC-All Pore.SMP` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/XWM-LL-260421-1-BOBC-All Pore.XLS` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/MICDIR.DB3` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/XWM-LL-260421-2-CWO-All Pore.SMP` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/XWM-LL-260421-2-CWO-All Pore.XLS` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/MICDIR.DB3` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/XWM-LL-260421-3-BiCu-All Pore.SMP` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/XWM-LL-260421-3-BiCu-All Pore.XLS` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/MICDIR.DB3` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/XWM-LL-260421-4-BOBC-4-XIN-All Pore.SMP` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/XWM-LL-260421-4-BOBC-4-XIN-All Pore.XLS` | BET | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20251106阻抗李永进.zip` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20251106阻抗李永进/MOSE/EIS` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-Z` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3-Z` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3-Z.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B7-A` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B7-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B7-Z` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-Z` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-Z` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-Z.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-Z` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-Z` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260202.zip` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260202/raw_data/b11-2-z.lst` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260202/raw_data/b11-z.lst` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260202/raw_data/b3.lst` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260202/raw_data/b7.lst` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260202/raw_data/b9-2z.lst` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260202/raw_data/b9-z.lst` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260202/raw_data/bobc-z.lst` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260202/raw_data/cwo-z.lst` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B11-2-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B11-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B7-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B9-2-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B9-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-2-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-2-Z.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-Z3.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/CWO-E.xlsm` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/308阻抗.zip` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/308阻抗/BOBC/EIS/BOBC.bin` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/308阻抗/CWO/EIS/CWO EIS.bin` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/308阻抗/CWO/EIS/CWOEIS2.bin` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `05_阻抗EIS/308阻抗/MS/MS EIS.bin` | EIS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_archives/20260430-1.zip` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-dark` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light1` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light2` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light3` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light4` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light5` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-dark` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-dark2` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-light1` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-light2` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-light3` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-dark` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-dark-none` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-light1` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-light2` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-light3` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-OH-dark` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-OH-light1` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/CWO-O3-dark` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/CWO-O3-dark-none` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/CWO-O3-light1` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/CWO-OH-dark` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/CWO-OH-light1` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260410-3/CWO-OH-light2` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260421/10%-O2-dark` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260421/10%-O2-light-1` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260421/10%-O2-light-2` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260421/10%-OH-dark` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260421/10%-OH-light` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260421/6.7%-O2-light` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260421/6.7%-O2-light-2` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260421/6.7%-OH-dark` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260421/6.7%-OH-light` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-O3-light-1min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-O3-light-2min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-O3-light-3min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-OH-light-1min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-OH-light-2min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-O3-light-1min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-O3-light-2min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-O3-light-3min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-OH-light-1min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-OH-light-2min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-OH-light-3min` | EPR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM1.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM3.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM5.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM7.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM9.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM1.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM1.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM3.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM3.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM5.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM5.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM7.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM7.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM9.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM9.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BOBC.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BOBC.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/cwo+bobc/raw_data/BOBC.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/cwo+bobc/raw_data/CWO 15.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/cwo+bobc/raw_data/CWO 15.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/cwo+bobc/raw_data/CWO.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/cwo+bobc/raw_data/CWO.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/cwo+bobc/raw_data/cwo 20260128 李永进组/BC-10 环己烷.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/cwo+bobc/raw_data/cwo 20260128 李永进组/BC-10.0环己烷.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/3.bpo.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/3.bpo.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/4.ms-bpo.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/4.msF-bpo.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/5.ms.0` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/5.ms.0.dpt` | FTIR | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC-2-1000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC-2-1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC-2-2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC-2-2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC-2-3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC-2-3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC1000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/BOBC/BOBC3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO-2-1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO-2-2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO-2-2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO-2-3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO-2-3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO-2-4000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO-2-4500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO-2-5000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20251126/CWO/CWO3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC4000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC4500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC5000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO1000废.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3500-2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO4000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO4500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO5000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/BOBC/raw_data/BOBC1000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/BOBC/raw_data/BOBC1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/BOBC/raw_data/BOBC2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/BOBC/raw_data/BOBC2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/BOBC/raw_data/BOBC3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/BOBC/raw_data/BOBC3500 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/BOBC/raw_data/BOBC3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/BOBC/raw_data/BOBC4000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/BOBC/raw_data/BOBC4500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT1/CWO1000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT1/CWO1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT1/CWO2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT1/CWO2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT1/CWO3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT2/CWO1500 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT2/CWO2000 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT2/CWO2500 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT2/CWO3000 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT2/CWO3500 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/CWO/raw_data/MT2/CWO3500 3.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LL/BOBC/1000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LL/BOBC/1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LL/BOBC/2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LL/BOBC/2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LL/BOBC/3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LL/BOBC/3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LL/BOBC/4000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/13MBEIS.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/13MBEIS2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/1MT1000-2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/1MT2000-2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/1MT3000-2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/1MT4000-2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/1MT5000-2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/1mbMT1000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/1msEIS.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/3mbEIS.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/5MB EIS.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/5MBEIS2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/7BMEIS.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/LL/1bm.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/LL/1bm2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000-2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS1000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS3500  2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS3500  3.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS3500  4.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS3500 5.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS4000 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS4000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS4500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/MoSe2MT/raw_data/MS5000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/BOBC/1000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/BOBC/1500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/BOBC/2000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/BOBC/2500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/BOBC/3000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/BOBC/3500.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/BOBC/4000.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO1500 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2000 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2500 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3000 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 2.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 3.bin` | Mott-Schottky | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_archives/3176_1775399174649_26032574877.zip` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.FS` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.wmf` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.FS` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.wmf` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.FS` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.wmf` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.FS` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.wmf` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.FS` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.wmf` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.FS` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.wmf` | PL | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `07_拉曼/raw_data/BC-30/bc30_1.l6s` | Raman | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `08_固体紫外/raw_data/20251017-LL/20251017/bobc.UDS` | UV-vis DRS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `08_固体紫外/raw_data/20251017-LL/20251017/bobcms.UDS` | UV-vis DRS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `08_固体紫外/raw_data/20251017-LL/20251017/cwo.UDS` | UV-vis DRS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `08_固体紫外/raw_data/20251017-LL/20251017/cwobobc.UDS` | UV-vis DRS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `08_固体紫外/raw_data/20251017-LL/20251017/ms.UDS` | UV-vis DRS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10-2.UDS` | UV-vis DRS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10.UDS` | UV-vis DRS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_archives/26010989730.rar` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_archives/原位XPS.zip` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/BC-11.xls` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/Valence.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/XPS Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BC-11/bc拟合后的数据.xlsx` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC/BOBC.xls` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC/BOBC数据拟合后2.xlsx` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC/Valence.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC/XPS Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/BOBC数据拟合后2.xlsx` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/CWO/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/CWO/CWO.xls` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/CWO/CWO数据拟合后.xlsx` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/CWO/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/CWO/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/CWO/Valence.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/CWO/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/CWO/XPS Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/CWO数据拟合后.xlsx` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/26010989730/bc拟合后的数据.xlsx` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Bi4f Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Br3d Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/C1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cl2p Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cu2p Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/O1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Valence.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Valence_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/W4f Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/XPS Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.DATA/XPS Survey_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BC拟合后/Data Grid.vgp` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/BOBC数据拟合后2.xlsx` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Bi4f Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Br3d Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/C1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Cl2p Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/O1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Valence.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Valence_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/XPS Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/XPS Survey_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/BOBC拟合后/Data Grid.vgp` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/CWO数据拟合后.xlsx` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/C1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Cu2p Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/O1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Valence.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Valence_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/W4f Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/XPS Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/XPS Survey_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/CWO拟合后/Data Grid.vgp` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/1#-light.xls` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/1#.xls` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.vgp` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.vgp` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Bi4f Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Br3d Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/C1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Cl2p Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Cu2p Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/O1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/Survey_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.DATA/W4f Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/DARK.vgp` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Bi4f Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Br3d Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/C1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cl2p Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cu2p Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/O1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Survey_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/W4f Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.vgp` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/processed_tables/dark拟合第一遍.vgp` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/processed_tables/light拟合第一遍.vgp` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/C1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Bi4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Br3d Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/C1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/C1s Scan_0.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Cl2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Cu2p Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/O1s Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Survey.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/W4f Scan.VGD` | XPS | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20251110/bobc shuirei.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20251110/bobc shuirei2.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20251110/bobcshuirei+cwo15%.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20251110/kit-6-1.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20251110/kit-6-2.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20260326LL BOB BOC BCN/BICSNH4.dql` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20260326LL BOB BOC BCN/BICSNH4.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20260326LL BOB BOC BCN/CL.dql` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20260326LL BOB BOC BCN/CL.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20260326LL BOB BOC BCN/NH4.dql` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/20260326LL BOB BOC BCN/NH4.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BOBC+MS/250530/BOBC.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BOBC+MS/250530/bm.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BOBC+MS/251024/processed_tables/mb9.jip` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BOBC+MS/251024/raw_data/MOSE2 10MIN.dql` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BOBC+MS/251024/raw_data/MOSE2 10MIN.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BOBC+MS/251024/raw_data/MOSE2 5MIN.dql` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BOBC+MS/251024/raw_data/MOSE2 5MIN.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BOBC+MS/251024/raw_data/bobc.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BOBC+MS/251024/raw_data/mb9.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BPO/BPO+MS.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BPO/BPO.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BWO/raw_data/A BWO.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/BWO/raw_data/M BWO.RAW` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/BOBC/BOBC.dql` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/BOBC/BOBC.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/BOBC600.dql` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/BOBC600.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+BOBC15%.RAW` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+CWO15%.RAW` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-30/BC30.RAW` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo10.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo15.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo5.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo八面体/cwo 8.jip` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo八面体/cwo 8面体.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.dql` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.jip` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/KIT-6/raw_data/kit-6bo.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/KIT-6/raw_data/kit-6bo2.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/KIT-6/raw_data/kit-6fe.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/4种方法/mose3.1.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/4种方法/mose3.2.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/4种方法/mose4.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/4种方法/mose4re.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/4种方法/mose5.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/QIUMO/2h.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/QIUMO/6h.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.1.dql` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.1.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.2.RAW` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.1.RAW` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.2.RAW` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/SHUIRE/mose new 啥也不是.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/SHUIRE/mose方法4，放大3bei.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/SHUIRE/re mose3bei.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS-200.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS200.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS400.RAW` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2 2.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.bc` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/研一上xrd数据及图片/raw_data/TiO2.bc` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `01_XRD/研一上xrd数据及图片/raw_data/TiO2.raw` | XRD | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/20260109_光电流/26010964564/Photocurrent/1-BOC-(OCP).bin` | photocurrent | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/20260109_光电流/26010964564/Photocurrent/2-MCS-(OCP).bin` | photocurrent | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/20260109_光电流/26010964564/Photocurrent/3-BM-10-(OCP).bin` | photocurrent | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/20260109_光电流/26010964564/Photocurrent/4-BOBC-(OCP).bin` | photocurrent | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/20260109_光电流/26010964564/Photocurrent/5-CWO-(OCP) .bin` | photocurrent | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/20260109_光电流/26010964564/Photocurrent/6-BC-11-(OCP).bin` | photocurrent | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/raw_data/第三次光电流补测/26041550465/Photocurrent/1-（OCP）.bin` | photocurrent | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/1-(OCP).bin` | photocurrent | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/2-(OCP).bin` | photocurrent | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/BOBC/1-(OCP).bin` | photocurrent_response | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/CWO/2-(OCP).bin` | photocurrent_response | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/bicu/1-（OCP）.bin` | photocurrent_response | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/raw_archives/2758_1774879987011_26032562524.zip` | photocurrent_response | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/raw_archives/2758_1776699905862_26041550465.zip` | photocurrent_response | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/4-BOBC-(OCP).bin` | photocurrent_response | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/5-CWO-(OCP) .bin` | photocurrent_response | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
-- `03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/6-BC-11-(OCP).bin` | photocurrent_response | AI_CONTEXT_CLASSIFIED_BUT_UNPROCESSABLE_FORMAT | parser_probe_not_success_after_rule_and_ai_context_review
+## 建议复核方式
+- 先处理“需人工确认”的 18 项，确认是否进入后续处理或归档。
+- 对“格式暂不能自动解析”的项目，用对应仪器软件、Origin、Excel 或文本工具打开核对。
+- 重点确认样品名、实验日期、测试类型、是否已有可用表格或曲线导出。
+- 遇到乱码路径时，不直接改名或删除；先和原始文件夹、实验记录、日期批次对应。
+- 复核结论建议记录为：保留、排除、归入重复组、需要格式转换、需要重新导出。
+
+## 待人工复核文件
+| 路径 | 推测类别 | 风险/状态 | 证据/原因 |
+|---|---|---|---|
+| `04_莫特肖特基/LLKT ms/20250905/1MT2000-2.xlsx` | EIS | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `04_莫特肖特基/LLKT ms/20250905/1mbMT1000.xlsx` | EIS | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.txt` | PL | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.txt` | PL | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.txt` | PL | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.txt` | PL | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.txt` | PL | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.txt` | PL | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/bobc.TXT` | UV-vis DRS | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/bobcms.TXT` | UV-vis DRS | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/cwo.TXT` | UV-vis DRS | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/cwobobc.TXT` | UV-vis DRS | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/ms.TXT` | UV-vis DRS | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10-2.TXT` | UV-vis DRS | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10.TXT` | UV-vis DRS | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `01_XRD/BOBC+MS/250530/BOBC.TXT` | XRD | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `01_XRD/BPO/BPO+MS.TXT` | XRD | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `01_XRD/BPO/BPO.TXT` | XRD | 需人工确认 | Phase 1.7 仅作建议，需用户决定 |
+| `09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/MICDIR.DB3` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/XWM-LL-260428-1-BOBC-All Pore.XLS` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/XWM-LL-260428-1-BOBC-All Pore/raw_data/XWM-LL-260428-1-BOBC-All Pore.SMP` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/ZPF-LL-20260327-4-BOBC-BET/MICDIR.DB3` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.SMP` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.XLS` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/ZPF-LL-20260327-7-CWO-BET/MICDIR.DB3` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/ZPF-LL-20260327-7-CWO-BET/ZPF-LL-20260327-7-CWO-BET.XLS` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/ZPF-LL-20260327-8-BC-BET/MICDIR.DB3` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/ZPF-LL-20260327-8-BC-BET/ZPF-LL-20260327-8-CWO-BET.XLS` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/MICDIR.DB3` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/MICDIR.DB3` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/XWM-LL-260421-1-BOBC-All Pore.SMP` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/XWM-LL-260421-1-BOBC-All Pore.XLS` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/MICDIR.DB3` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/XWM-LL-260421-2-CWO-All Pore.SMP` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/XWM-LL-260421-2-CWO-All Pore.XLS` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/MICDIR.DB3` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/XWM-LL-260421-3-BiCu-All Pore.SMP` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/XWM-LL-260421-3-BiCu-All Pore.XLS` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/MICDIR.DB3` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/XWM-LL-260421-4-BOBC-4-XIN-All Pore.SMP` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/XWM-LL-260421-4-BOBC-4-XIN-All Pore.XLS` | BET | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20251106阻抗李永进.zip` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-1` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20251106阻抗李永进/MOSE/EIS` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-Z` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3-Z` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3-Z.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B7-A` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B7-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B7-Z` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-Z` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-Z` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-Z.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-Z` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-Z` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260202.zip` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260202/raw_data/b11-2-z.lst` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260202/raw_data/b11-z.lst` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260202/raw_data/b3.lst` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260202/raw_data/b7.lst` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260202/raw_data/b9-2z.lst` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260202/raw_data/b9-z.lst` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260202/raw_data/bobc-z.lst` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260202/raw_data/cwo-z.lst` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B11-2-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B11-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B7-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B9-2-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/B9-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-2-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-2-Z.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/BOBC-Z3.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/20260203李永进CWO+BOBC/processed_tables/CWO-E.xlsm` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/308阻抗.zip` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/308阻抗/BOBC/EIS/BOBC.bin` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/308阻抗/CWO/EIS/CWO EIS.bin` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/308阻抗/CWO/EIS/CWOEIS2.bin` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `05_阻抗EIS/308阻抗/MS/MS EIS.bin` | EIS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_archives/20260430-1.zip` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-dark` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light1` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light2` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light3` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light4` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-O3-light5` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-dark` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-dark2` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-light1` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-light2` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BC-OH-light3` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-dark` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-dark-none` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-light1` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-light2` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-O3-light3` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-OH-dark` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/BOBC-OH-light1` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/CWO-O3-dark` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/CWO-O3-dark-none` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/CWO-O3-light1` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/CWO-OH-dark` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/CWO-OH-light1` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260410-3/CWO-OH-light2` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260421/10%-O2-dark` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260421/10%-O2-light-1` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260421/10%-O2-light-2` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260421/10%-OH-dark` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260421/10%-OH-light` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260421/6.7%-O2-light` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260421/6.7%-O2-light-2` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260421/6.7%-OH-dark` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260421/6.7%-OH-light` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-O3-light-1min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-O3-light-2min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-O3-light-3min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-OH-light-1min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/1-OH-light-2min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-O3-light-1min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-O3-light-2min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-O3-light-3min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-OH-light-1min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-OH-light-2min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/EPR/raw_data/20260430-1/20260430-1/3-OH-light-3min` | EPR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM1.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM3.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM5.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM7.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/LL-BM9.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM1.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM1.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM3.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM3.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM5.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM5.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM7.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM7.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM9.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BM9.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BOBC.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/BOBC+MS 以前水热的Mose/raw_data/李永进组版本/BOBC.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/cwo+bobc/raw_data/BOBC.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/cwo+bobc/raw_data/CWO 15.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/cwo+bobc/raw_data/CWO 15.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/cwo+bobc/raw_data/CWO.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/cwo+bobc/raw_data/CWO.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/cwo+bobc/raw_data/cwo 20260128 李永进组/BC-10 环己烷.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/cwo+bobc/raw_data/cwo 20260128 李永进组/BC-10.0环己烷.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/3.bpo.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/3.bpo.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/4.ms-bpo.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/4.msF-bpo.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/5.ms.0` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `06_红外/红外MS+BPO 暑期版本/raw_data/20250715-1/5.ms.0.dpt` | FTIR | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC-2-1000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC-2-1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC-2-2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC-2-2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC-2-3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC-2-3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC1000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/BOBC/BOBC3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO-2-1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO-2-2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO-2-2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO-2-3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO-2-3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO-2-4000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO-2-4500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO-2-5000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20251126/CWO/CWO3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC4000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC4500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/BOBC5000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO1000废.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3500-2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO4000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO4500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/20260121CWO+BOBC/raw_data/CWO5000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/BOBC/raw_data/BOBC1000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/BOBC/raw_data/BOBC1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/BOBC/raw_data/BOBC2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/BOBC/raw_data/BOBC2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/BOBC/raw_data/BOBC3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/BOBC/raw_data/BOBC3500 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/BOBC/raw_data/BOBC3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/BOBC/raw_data/BOBC4000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/BOBC/raw_data/BOBC4500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT1/CWO1000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT1/CWO1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT1/CWO2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT1/CWO2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT1/CWO3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT2/CWO1500 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT2/CWO2000 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT2/CWO2500 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT2/CWO3000 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT2/CWO3500 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/CWO/raw_data/MT2/CWO3500 3.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LL/BOBC/1000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LL/BOBC/1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LL/BOBC/2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LL/BOBC/2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LL/BOBC/3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LL/BOBC/3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LL/BOBC/4000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/13MBEIS.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/13MBEIS2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/1MT1000-2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/1MT2000-2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/1MT3000-2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/1MT4000-2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/1MT5000-2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/1mbMT1000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/1msEIS.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/3mbEIS.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/5MB EIS.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/5MBEIS2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/7BMEIS.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/LL/1bm.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/LL/1bm2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000-2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/LLKT ms/20250905/LL/1bmmt4000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS1000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS3500  2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS3500  3.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS3500  4.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS3500 5.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS4000 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS4000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS4500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/MoSe2MT/raw_data/MS5000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/BOBC/1000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/BOBC/1500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/BOBC/2000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/BOBC/2500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/BOBC/3000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/BOBC/3500.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/BOBC/4000.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO1500 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2000 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO2500 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3000 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 2.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `04_莫特肖特基/第一体系确定版本/MT2/raw_data/CWO3500 3.bin` | Mott-Schottky | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_archives/3176_1775399174649_26032574877.zip` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.FS` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EM-ex340nm.wmf` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.FS` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/1-EX-em640nm.wmf` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.FS` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EM-ex340nm.wmf` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.FS` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/2-EX-em445nm.wmf` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.FS` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EM-ex340nm.wmf` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.FS` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `10_EPR_PL/PL/raw_data/bobc+cwo+bc/3-EX-em630nm.wmf` | PL | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `07_拉曼/raw_data/BC-30/bc30_1.l6s` | Raman | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/bobc.UDS` | UV-vis DRS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/bobcms.UDS` | UV-vis DRS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/cwo.UDS` | UV-vis DRS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/cwobobc.UDS` | UV-vis DRS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `08_固体紫外/raw_data/20251017-LL/20251017/ms.UDS` | UV-vis DRS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10-2.UDS` | UV-vis DRS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `08_固体紫外/raw_data/20251017-LL/BOBC CWO10%(bc10%环己烷)/bc10.UDS` | UV-vis DRS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_archives/26010989730.rar` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_archives/原位XPS.zip` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/BC-11.xls` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/Valence.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/XPS Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BC-11/bc拟合后的数据.xlsx` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC/BOBC.xls` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC/BOBC数据拟合后2.xlsx` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC/Valence.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC/XPS Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/BOBC数据拟合后2.xlsx` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/CWO/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/CWO/CWO.xls` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/CWO/CWO数据拟合后.xlsx` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/CWO/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/CWO/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/CWO/Valence.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/CWO/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/CWO/XPS Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/CWO数据拟合后.xlsx` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/26010989730/bc拟合后的数据.xlsx` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Bi4f Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Br3d Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/C1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cl2p Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Cu2p Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/O1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Valence.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/Valence_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/W4f Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/XPS Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.DATA/XPS Survey_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BC拟合后/Data Grid.vgp` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/BOBC数据拟合后2.xlsx` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Bi4f Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Br3d Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/C1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Cl2p Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/O1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Valence.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/Valence_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/XPS Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.DATA/XPS Survey_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/BOBC拟合后/Data Grid.vgp` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/CWO数据拟合后.xlsx` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/C1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Cu2p Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/O1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Valence.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/Valence_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/W4f Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/XPS Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.DATA/XPS Survey_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/CWO拟合后/Data Grid.vgp` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/1#-light.xls` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/1#.xls` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.DATA/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1-light.vgp` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.DATA/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/26041816225/Processing View #1.vgp` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Bi4f Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Br3d Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/C1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Cl2p Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Cu2p Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/O1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/Survey_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.DATA/W4f Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/DARK.vgp` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Bi4f Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Br3d Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/C1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cl2p Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Cu2p Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/O1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/Survey_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.DATA/W4f Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/raw_data/原位XPS/light .vgp CU没有拟合.vgp` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/processed_tables/dark拟合第一遍.vgp` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/processed_tables/light拟合第一遍.vgp` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/C1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/dark拟合第一遍.DATA/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Bi4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Br3d Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/C1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/C1s Scan_0.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Cl2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Cu2p Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/O1s Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/Survey.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `02_XPS/电荷未矫正第一次/raw_data/light拟合第一遍.DATA/W4f Scan.VGD` | XPS | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20251110/bobc shuirei.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20251110/bobc shuirei2.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20251110/bobcshuirei+cwo15%.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20251110/kit-6-1.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20251110/kit-6-2.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20260326LL BOB BOC BCN/BICSNH4.dql` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20260326LL BOB BOC BCN/BICSNH4.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20260326LL BOB BOC BCN/CL.dql` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20260326LL BOB BOC BCN/CL.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20260326LL BOB BOC BCN/NH4.dql` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/20260326LL BOB BOC BCN/NH4.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BOBC+MS/250530/BOBC.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BOBC+MS/250530/bm.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BOBC+MS/251024/processed_tables/mb9.jip` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BOBC+MS/251024/raw_data/MOSE2 10MIN.dql` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BOBC+MS/251024/raw_data/MOSE2 10MIN.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BOBC+MS/251024/raw_data/MOSE2 5MIN.dql` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BOBC+MS/251024/raw_data/MOSE2 5MIN.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BOBC+MS/251024/raw_data/bobc.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BOBC+MS/251024/raw_data/mb9.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BPO/BPO+MS.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BPO/BPO.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BWO/raw_data/A BWO.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/BWO/raw_data/M BWO.RAW` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/BOBC/BOBC.dql` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/BOBC/BOBC.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/BOBC600.dql` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/BOBC600.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+BOBC15%.RAW` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+CWO15%.RAW` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-30/BC30.RAW` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo10.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo15.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo5.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo八面体/cwo 8.jip` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo八面体/cwo 8面体.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.dql` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.jip` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/KIT-6/raw_data/kit-6bo.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/KIT-6/raw_data/kit-6bo2.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/KIT-6/raw_data/kit-6fe.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/4种方法/mose3.1.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/4种方法/mose3.2.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/4种方法/mose4.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/4种方法/mose4re.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/4种方法/mose5.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/QIUMO/2h.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/QIUMO/6h.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.1.dql` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.1.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.2.RAW` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.1.RAW` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.2.RAW` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/SHUIRE/mose new 啥也不是.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/SHUIRE/mose方法4，放大3bei.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/SHUIRE/re mose3bei.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS-200.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS200.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS400.RAW` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2 2.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.bc` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/研一上xrd数据及图片/raw_data/TiO2.bc` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `01_XRD/研一上xrd数据及图片/raw_data/TiO2.raw` | XRD | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/20260109_光电流/26010964564/Photocurrent/1-BOC-(OCP).bin` | 光电流 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/20260109_光电流/26010964564/Photocurrent/2-MCS-(OCP).bin` | 光电流 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/20260109_光电流/26010964564/Photocurrent/3-BM-10-(OCP).bin` | 光电流 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/20260109_光电流/26010964564/Photocurrent/4-BOBC-(OCP).bin` | 光电流 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/20260109_光电流/26010964564/Photocurrent/5-CWO-(OCP) .bin` | 光电流 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/20260109_光电流/26010964564/Photocurrent/6-BC-11-(OCP).bin` | 光电流 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/raw_data/第三次光电流补测/26041550465/Photocurrent/1-（OCP）.bin` | 光电流 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/1-(OCP).bin` | 光电流 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/Photocurrent/2-(OCP).bin` | 光电流 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/BOBC/1-(OCP).bin` | 光电流响应 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/CWO/2-(OCP).bin` | 光电流响应 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/1bobc+2cwo+3bicu-10/raw_data/bicu/1-（OCP）.bin` | 光电流响应 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/raw_archives/2758_1774879987011_26032562524.zip` | 光电流响应 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/raw_archives/2758_1776699905862_26041550465.zip` | 光电流响应 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/4-BOBC-(OCP).bin` | 光电流响应 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/5-CWO-(OCP) .bin` | 光电流响应 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |
+| `03_光电流/光电流响应/raw_data/第一次CWO BOBC BC数据/6-BC-11-(OCP).bin` | 光电流响应 | 格式暂不能自动解析 | 规则和 AI 判断过大类，但解析探测未成功 |

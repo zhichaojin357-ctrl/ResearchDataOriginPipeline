@@ -3,7 +3,7 @@
     {
       "file_id": "26c4ef93c1ae05b9",
       "relative_path": "00_索引与说明/duplicate_opju_sha256.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\duplicate_opju_sha256.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\duplicate_opju_sha256.csv",
       "absolute_path_hash": "a682468bd8fb9fc3865957c168a296ce27fcd1bcd3b2c9099b1f1a000939eb26",
       "source_hash": "fb09636bac279c759493c850971828338bbdc36ccffc966ff77cc64ac6038491",
       "file_name": "duplicate_opju_sha256.csv",
@@ -84,7 +84,7 @@
     {
       "file_id": "3ec2a005ac32a31c",
       "relative_path": "00_索引与说明/file_snapshot_after.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\file_snapshot_after.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\file_snapshot_after.csv",
       "absolute_path_hash": "f64d9bff6a2ff083e56b4f68dab9c19bc584bd8fe20dfe7e59f44c931f7feaa1",
       "source_hash": "8c409027aa8d04f019ef0a1bf24aa0082d4b1351b3ec8fc48193510c89a99000",
       "file_name": "file_snapshot_after.csv",
@@ -165,7 +165,7 @@
     {
       "file_id": "209d2d0af429e77b",
       "relative_path": "00_索引与说明/file_snapshot_before.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\file_snapshot_before.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\file_snapshot_before.csv",
       "absolute_path_hash": "016ccf8a7349112bc04aa49dd491f35fd85c72d057a5cffd08a3c89aaee7ade2",
       "source_hash": "873e5265167aa98cb30babc6720ae75c8bd157185ffa39f451606e7c0779065d",
       "file_name": "file_snapshot_before.csv",
@@ -246,7 +246,7 @@
     {
       "file_id": "2c7380a895aa3030",
       "relative_path": "00_索引与说明/move_log.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\move_log.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\move_log.csv",
       "absolute_path_hash": "0b4b59c375bb8da216af5cc28c5543e887cbc3d0999b4e7b08d0899351b7af99",
       "source_hash": "dee1e4fb368868be126eb1ee6579a582bdd3085ecbe1b12004cba2542844ef19",
       "file_name": "move_log.csv",
@@ -327,7 +327,7 @@
     {
       "file_id": "530d80183d051775",
       "relative_path": "00_索引与说明/opju_数据对应索引.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\opju_数据对应索引.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\opju_数据对应索引.csv",
       "absolute_path_hash": "b943dd7ebc795a8665f7e220c548136a8b11c6b396d806930db5f44c452c1b8e",
       "source_hash": "6a3de1aeb17001ae4e66649a7d10d51ce3216b19ad109b1c48ada98b5301fc07",
       "file_name": "opju_数据对应索引.csv",
@@ -415,7 +415,7 @@
     {
       "file_id": "b71d27fe7d5b10f0",
       "relative_path": "00_索引与说明/opju_精细对应关系.csv",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\opju_精细对应关系.csv",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\opju_精细对应关系.csv",
       "absolute_path_hash": "20a26d70a6394ed31dfc507bc96e6a887191b7388171baf2d4a02a10c4af2fa1",
       "source_hash": "9fb750803e029d9fa99fd9dc9ac977ef1807152197dd87d0b0b9670ae1f6ee02",
       "file_name": "opju_精细对应关系.csv",
@@ -500,7 +500,7 @@
     {
       "file_id": "f4d49e576fb2aaa6",
       "relative_path": "00_索引与说明/整理说明.md",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\整理说明.md",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\00_索引与说明\\整理说明.md",
       "absolute_path_hash": "5c47fe93a14366ed090cdb69470a1f4925f7abd9fb190b2aaa008dc6e662ad80",
       "source_hash": "908f50b5e6917a4aebf6d634110b0a305166742089342880586b868e157cc0d3",
       "file_name": "整理说明.md",
@@ -567,7 +567,7 @@
     {
       "file_id": "8ed4620a00289123",
       "relative_path": "01_XRD/20251110/bobc shuirei.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\bobc shuirei.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\bobc shuirei.txt",
       "absolute_path_hash": "a3a340fd7fc6abe8b14f5b7db77cda7e890155ed275a688041d98032899b137e",
       "source_hash": "bba033d45b8df3bc16fc121b483629b43b321fe112feec14647c848d3249f22f",
       "file_name": "bobc shuirei.txt",
@@ -645,7 +645,7 @@
     {
       "file_id": "c345edfad12fe58e",
       "relative_path": "01_XRD/20251110/bobc shuirei2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\bobc shuirei2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\bobc shuirei2.txt",
       "absolute_path_hash": "616340274e7eef32d2491f940d1d041543fcfb6aff9cbdb7b20b1d440add6940",
       "source_hash": "1e376286b51e771a29daf9f3c5b9b50f1cfad566506703d3f4777a19bdd29c22",
       "file_name": "bobc shuirei2.txt",
@@ -723,7 +723,7 @@
     {
       "file_id": "1c9be57a903c434b",
       "relative_path": "01_XRD/20251110/bobcshuirei+cwo15%.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\bobcshuirei+cwo15%.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\bobcshuirei+cwo15%.txt",
       "absolute_path_hash": "41c9275af4e847250d11d24e563b19a79bd239fe219ebfee355a312a38539c97",
       "source_hash": "97d39fc2e6a670fc2315da8ed132678d1ed58704e1f778ee1c08308db7bec94c",
       "file_name": "bobcshuirei+cwo15%.txt",
@@ -801,7 +801,7 @@
     {
       "file_id": "e82e6dff1d8bab94",
       "relative_path": "01_XRD/20251110/kit-6-1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\kit-6-1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\kit-6-1.txt",
       "absolute_path_hash": "5114d8878c8bca5bfdd7a5d74adf3095bbf734b50def28876e336c451ce7d634",
       "source_hash": "d0acd2a3597c7409318a471d5d6df6f855324a50d81e4bdd24f2f6fd3791d9b7",
       "file_name": "kit-6-1.txt",
@@ -879,7 +879,7 @@
     {
       "file_id": "1c246f93492c0d34",
       "relative_path": "01_XRD/20251110/kit-6-2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\kit-6-2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\20251110\\kit-6-2.txt",
       "absolute_path_hash": "2d5911590ed6e7cb714b0224ff13f70dd56b48be6b809170319048c7270aa31f",
       "source_hash": "bb4ac0b5fa554d569fb672e669e4d6aa1491348d7005ac833d190c5d57064169",
       "file_name": "kit-6-2.txt",
@@ -957,7 +957,7 @@
     {
       "file_id": "f365f27c05c427a3",
       "relative_path": "01_XRD/BOBC+MS/250530/bm.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\250530\\bm.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\250530\\bm.txt",
       "absolute_path_hash": "73bf902d27e46a4399068effccf4113fd2f439e3016d1561f176d1f0042e2654",
       "source_hash": "6bcd31560cbd469c7aa3c36e0eb3b1869cc067c23bac36e808a0b74d68a73f33",
       "file_name": "bm.txt",
@@ -1035,7 +1035,7 @@
     {
       "file_id": "eb12309f8b2d9106",
       "relative_path": "01_XRD/BOBC+MS/251024/raw_data/bobc.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\raw_data\\bobc.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\raw_data\\bobc.txt",
       "absolute_path_hash": "ccff822cef572b255ec0bf7856796a6085406ba2f0b0322a503dfed429852563",
       "source_hash": "46104cfa4d00234084d3db7826767b288b66db120d3421aa773fd62d5ea2a5b7",
       "file_name": "bobc.txt",
@@ -1113,7 +1113,7 @@
     {
       "file_id": "6ecf2386a5035359",
       "relative_path": "01_XRD/BOBC+MS/251024/raw_data/mb9.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\raw_data\\mb9.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\raw_data\\mb9.txt",
       "absolute_path_hash": "4b3e88ea448eddb2a1ab0e7fd65c91a4bb0bc6e565c127854a221ff8d94c468d",
       "source_hash": "aea0a47ba1c0225b41ca353286d42d40377ac1abab42c1fea2f33d397cc3b51b",
       "file_name": "mb9.txt",
@@ -1191,7 +1191,7 @@
     {
       "file_id": "3778b838d2797946",
       "relative_path": "01_XRD/BOBC+MS/251024/raw_data/mose2 10min.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\raw_data\\mose2 10min.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\raw_data\\mose2 10min.txt",
       "absolute_path_hash": "daa7607d4135eae9ccd22454e197035d99c30db31be44b68991b63a17cf0adf2",
       "source_hash": "68445e0628572dcc6764722d5395e00e24a4bb71da8da870bcac4ccb36439288",
       "file_name": "mose2 10min.txt",
@@ -1269,7 +1269,7 @@
     {
       "file_id": "59f57b43c4cbdd97",
       "relative_path": "01_XRD/BOBC+MS/251024/raw_data/mose2 5min.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\raw_data\\mose2 5min.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\raw_data\\mose2 5min.txt",
       "absolute_path_hash": "534a985d6e87821503ee2eede650ded83a5b723802dcde8b374ffc115ff6a95e",
       "source_hash": "0ce2d773f725aea349021d4899d0169c0a5fa2002a95e772efeda9ac0ae4a2ef",
       "file_name": "mose2 5min.txt",
@@ -1347,7 +1347,7 @@
     {
       "file_id": "28efc8d01bfc567c",
       "relative_path": "01_XRD/BWO/raw_data/A BWO.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BWO\\raw_data\\A BWO.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BWO\\raw_data\\A BWO.TXT",
       "absolute_path_hash": "4bfa059093962303c9896f8074a44cb644d1ae5ffdbf046c3144b3ca4bd63a6e",
       "source_hash": "d43e75f3f9c4fe1700daf363ee24f27b8a95ec4df60231b51b4dc80e00cb81e8",
       "file_name": "A BWO.TXT",
@@ -1425,7 +1425,7 @@
     {
       "file_id": "7c90ec2c3727f96e",
       "relative_path": "01_XRD/BWO/raw_data/M BWO.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BWO\\raw_data\\M BWO.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BWO\\raw_data\\M BWO.TXT",
       "absolute_path_hash": "ef9635b7424e191fc136a61574c83c1ae7543bd491ee7ca61fcb081603ab06f4",
       "source_hash": "49f9826129eb97b4ec9336925e1f7326403931fe76187a532da1927fcf67a0e9",
       "file_name": "M BWO.TXT",
@@ -1503,7 +1503,7 @@
     {
       "file_id": "459951549af54414",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/BOBC/BOBC600度/bobc600.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\BOBC\\BOBC600度\\bobc600.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\BOBC\\BOBC600度\\bobc600.txt",
       "absolute_path_hash": "d1efcfe678e887b94993f4ba0e2c7275fd44e481ea441f9b4c600c336448078f",
       "source_hash": "76bc684a3b3d4cd76125e6b5d0e22b4379ba69fced9dbae407ef5ab67b6a6947",
       "file_name": "bobc600.txt",
@@ -1581,7 +1581,7 @@
     {
       "file_id": "09830df253e856db",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/CWO  PDF#04-009-8466.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\CWO  PDF#04-009-8466.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\CWO  PDF#04-009-8466.txt",
       "absolute_path_hash": "025a74660159f8abb498010d42017526c3d06d09b8f14f8fd9fefa8abc0883ed",
       "source_hash": "bbb15f2e7f2cede8de139db20cf6ab30ce80a3c311622021a129932e3bcc68e2",
       "file_name": "CWO  PDF#04-009-8466.txt",
@@ -1659,7 +1659,7 @@
     {
       "file_id": "4d9a11f5fbebf950",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+BOBC15%.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\BC-15\\BOBC+BOBC15%.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\BC-15\\BOBC+BOBC15%.TXT",
       "absolute_path_hash": "1a38073f536228887bbdaa734e066465cee82f8b948225ee73b8d483cf97b735",
       "source_hash": "91597d4ef3b3ad4c145bfa89c9eb43a3d76c4a424b3a108c7fd9ee1ece864815",
       "file_name": "BOBC+BOBC15%.TXT",
@@ -1737,7 +1737,7 @@
     {
       "file_id": "c15e63943564d55e",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-15/BOBC+CWO15%.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\BC-15\\BOBC+CWO15%.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\BC-15\\BOBC+CWO15%.TXT",
       "absolute_path_hash": "43cb45d3e9cbb4e90ca9f6b6c83f8b0b547fd0e82000ad43565d6b0afea8491a",
       "source_hash": "26cc061c4235c10369e6d62653ee7dfd3802a1ce16a75dfbf630cad9e13a7a7e",
       "file_name": "BOBC+CWO15%.TXT",
@@ -1815,7 +1815,7 @@
     {
       "file_id": "f606a358c80c616f",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo+bobc/BC-30/BC30.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\BC-30\\BC30.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\BC-30\\BC30.TXT",
       "absolute_path_hash": "54e6b3b0b197b918f984694b3bb58e770d40eb33a9b6e9741e0fb8a04621249a",
       "source_hash": "6f8b0701e0e4f4f9f3e14a206e67d60344b9ba0895d967aedf6362bd95910324",
       "file_name": "BC30.TXT",
@@ -1893,7 +1893,7 @@
     {
       "file_id": "db22403af3bb4aaa",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo10.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\CWO为主体\\cwo10.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\CWO为主体\\cwo10.txt",
       "absolute_path_hash": "0c5af4af16da3ce3e9c8899ff52c5fabdc46648d5746be287dc1bbad88c8872e",
       "source_hash": "9fadc881b03f41dbcd3a1d4c635cbb7ed9fe13b121bea208a1faf6d5f80fe636",
       "file_name": "cwo10.txt",
@@ -1971,7 +1971,7 @@
     {
       "file_id": "791004ec12122c5d",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo15.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\CWO为主体\\cwo15.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\CWO为主体\\cwo15.txt",
       "absolute_path_hash": "5561bf30b1464b9df05d0819ec378dbead16ba5459b79096ac24b9c8e435ca0c",
       "source_hash": "f4a782e487e8d499884552503fa5a0a461c8701bd89785f52869b65c56f9fd39",
       "file_name": "cwo15.txt",
@@ -2049,7 +2049,7 @@
     {
       "file_id": "ff926cb059806931",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo+bobc/CWO为主体/cwo5.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\CWO为主体\\cwo5.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\CWO为主体\\cwo5.txt",
       "absolute_path_hash": "453c4263488ba3489918b070d480382483e39fb8cee85f9f0c522d8ef8d240a2",
       "source_hash": "65d8922c60f3e47244c98a9b6aae0376a152d74f0f7fe3855c6b39631bd0bc7d",
       "file_name": "cwo5.txt",
@@ -2127,7 +2127,7 @@
     {
       "file_id": "c28c2a8b4cce67a7",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo八面体/cwo 8.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo八面体\\cwo 8.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo八面体\\cwo 8.txt",
       "absolute_path_hash": "1ac6f59b4e51c36f47f8a5a5cf1f3f00000e18fce212b1c8df0dde8602efab91",
       "source_hash": "f3af9cc37ae74818e7078f18d061cec0bdadc7226d2275c8fcb328f71ed16edf",
       "file_name": "cwo 8.txt",
@@ -2205,7 +2205,7 @@
     {
       "file_id": "45002761e0ed8053",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/CWO 对 沉淀PDF#04-009-6293.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo沉淀法+合适的标准卡片\\CWO 对 沉淀PDF#04-009-6293.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo沉淀法+合适的标准卡片\\CWO 对 沉淀PDF#04-009-6293.txt",
       "absolute_path_hash": "5a7deb2e7b5abc37d3286e436061148d7d02e3c500ba0ca0ac75cc1ce5d31bd7",
       "source_hash": "b54c8c3315b685d79d454894bdc38e3e8509631ec60dbc4fda957cebc8c3b40d",
       "file_name": "CWO 对 沉淀PDF#04-009-6293.txt",
@@ -2287,7 +2287,7 @@
     {
       "file_id": "bdb4014d7612f79c",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo沉淀法+合适的标准卡片/cwo.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo沉淀法+合适的标准卡片\\cwo.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo沉淀法+合适的标准卡片\\cwo.txt",
       "absolute_path_hash": "1afbe99f20ea6e73bc4cab54731b44b6130a3c9ec5b5a5ed79f5ab1b4eb623b8",
       "source_hash": "c1ca379007f2c0980591f2a612e87815c56d3d50ba39e55f96250fa332bac0dd",
       "file_name": "cwo.txt",
@@ -2365,7 +2365,7 @@
     {
       "file_id": "2b60fe986582d8a1",
       "relative_path": "01_XRD/KIT-6/raw_data/kit-6bo.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\raw_data\\kit-6bo.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\raw_data\\kit-6bo.txt",
       "absolute_path_hash": "92a9ccfc8e0ccfbe87b2b5b35529b6dc0086f4833e82af761b9e0040a8a953e5",
       "source_hash": "dfb4717e34992d94a3bb29b649d085889c910f94c9a1177dfb06fb9821ec0a0e",
       "file_name": "kit-6bo.txt",
@@ -2443,7 +2443,7 @@
     {
       "file_id": "8a9829ba5267a108",
       "relative_path": "01_XRD/KIT-6/raw_data/kit-6bo2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\raw_data\\kit-6bo2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\raw_data\\kit-6bo2.txt",
       "absolute_path_hash": "9ecfb9211457d236dfebc8cc5cd6d82308a7c521ef6fdbfa438bfc318b821d2b",
       "source_hash": "76c281351af088962eb94bb28d28cd42ea38cb3ffd33849621a3e3236817ac2d",
       "file_name": "kit-6bo2.txt",
@@ -2521,7 +2521,7 @@
     {
       "file_id": "1035b94e17859e16",
       "relative_path": "01_XRD/KIT-6/raw_data/kit-6fe.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\raw_data\\kit-6fe.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\raw_data\\kit-6fe.txt",
       "absolute_path_hash": "400616e3ebd90d0cd1c4a4062cc5fc8564d8c6796ad97dd1f64d1f8db438c564",
       "source_hash": "23bcd4ef659d4755fc753ee7cc1160f5e7e83b6d913636400cd40ecfd200c365",
       "file_name": "kit-6fe.txt",
@@ -2599,7 +2599,7 @@
     {
       "file_id": "6791add481630ada",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/4种方法/mose3.1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose3.1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose3.1.txt",
       "absolute_path_hash": "9cfe5df4313c928e19f975cf762a61a60c30fc3a0ec6b28463259040f19b0de3",
       "source_hash": "526fb21c03f34b9a2fb9f7e1587a22860d8811e721781fba8641f27e6244867e",
       "file_name": "mose3.1.txt",
@@ -2677,7 +2677,7 @@
     {
       "file_id": "b72037993b0af51c",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/4种方法/mose3.2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose3.2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose3.2.txt",
       "absolute_path_hash": "0c6e5c7fc6c9318d951fa88178f414fd5d5dc8531f5412570577589643b0c1ec",
       "source_hash": "35885bcb438751407692d6c269e8c624d30d03aec2fc330b05704e75a7c9807b",
       "file_name": "mose3.2.txt",
@@ -2755,7 +2755,7 @@
     {
       "file_id": "19841169bb06e0b6",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/4种方法/mose4.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose4.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose4.txt",
       "absolute_path_hash": "787f2de3d01d6bab1aad36831ee5b4af911202e85e02dfa689d7ce4a7a85c70f",
       "source_hash": "69567d946acbb55be74f3cdea588c82c0739bd16f7bb95668c33195af334015b",
       "file_name": "mose4.txt",
@@ -2833,7 +2833,7 @@
     {
       "file_id": "c584044c3bda5b5d",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/4种方法/mose4re.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose4re.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose4re.txt",
       "absolute_path_hash": "118d2e90042974ca724bbba2c26d78b55ad55f75a0dff8c5e08c0b40f28f50fd",
       "source_hash": "62ad6dbfdd57353ed23029c1c03ce571936c07caf3635325b6e410aa80c69ad3",
       "file_name": "mose4re.txt",
@@ -2911,7 +2911,7 @@
     {
       "file_id": "95953736d466daf8",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/4种方法/mose5.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose5.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\mose5.txt",
       "absolute_path_hash": "b1a32fb37f2425b874e186adcfa5dc5a5ee708d9eb6e38e9cf92e55b1b51496d",
       "source_hash": "af38450c58bf78b85dbcf1eacee2853903586318b4378d9d68097cb5628dee8b",
       "file_name": "mose5.txt",
@@ -2989,7 +2989,7 @@
     {
       "file_id": "99e4e5bb71453416",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/QIUMO/2h.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\2h.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\2h.txt",
       "absolute_path_hash": "2373cb8b341270b7cfb6b59e0495ba1f44ce4e30f69e034a296563ba159ff236",
       "source_hash": "3da447a60f6a61e96c93dbcf86a7d23d0c53a8405e098a75b1333210fd61751d",
       "file_name": "2h.txt",
@@ -3067,7 +3067,7 @@
     {
       "file_id": "8dfa852d8501ab80",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/QIUMO/6h.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\6h.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\6h.txt",
       "absolute_path_hash": "5664d21b8abd0fcd71d48eb43afa31ef76458366dc2ea96dc0b15ca7e3870dcb",
       "source_hash": "820465199bcba479c354040e5631cbb609873af8e80a1a454d91b650696b955c",
       "file_name": "6h.txt",
@@ -3145,7 +3145,7 @@
     {
       "file_id": "67c380a420a68316",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.2.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\球磨第一次\\QIUMO1.2.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\球磨第一次\\QIUMO1.2.TXT",
       "absolute_path_hash": "e7d8edfa91198968e453ffe88a3dd0b993eb014cc90beb6ab2cb8a7f6dac90e9",
       "source_hash": "04f56a619e56c74bbd279331310096bc908d4c2a04f4d72b45ab65da71fda02a",
       "file_name": "QIUMO1.2.TXT",
@@ -3223,7 +3223,7 @@
     {
       "file_id": "5cd281d3c5e8e3ce",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO1.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\球磨第一次\\QIUMO1.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\球磨第一次\\QIUMO1.TXT",
       "absolute_path_hash": "1cc69e3022d02e5e666aef136fd790d964fbfd28e9661c2a3cd08d2a39d1832b",
       "source_hash": "6f618960f480a16b9f9ccdb4b8870073d6475a29dff995654a322cb14946c4bf",
       "file_name": "QIUMO1.TXT",
@@ -3301,7 +3301,7 @@
     {
       "file_id": "360211735f4fe3e7",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.1.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\球磨第一次\\QIUMO2.1.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\球磨第一次\\QIUMO2.1.TXT",
       "absolute_path_hash": "024be1ab8bb75639f809e205d746c88fa3b04ecb431e0416e7c37cec8fc92447",
       "source_hash": "c31bf660f2118f8b3e1145096cd0cabb14555e0c0ba4d9392968e1ae200ae79c",
       "file_name": "QIUMO2.1.TXT",
@@ -3379,7 +3379,7 @@
     {
       "file_id": "cf7beedbe94d7641",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/QIUMO/球磨第一次/QIUMO2.2.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\球磨第一次\\QIUMO2.2.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\QIUMO\\球磨第一次\\QIUMO2.2.TXT",
       "absolute_path_hash": "2b7db0d5ad7b98cc42e3d890859aae21e07d491d126d31d6755a8484f0b6e995",
       "source_hash": "bc3509a047287f5284ad830ed9ec32c06a1446399d17d3447d7ce186021a56bf",
       "file_name": "QIUMO2.2.TXT",
@@ -3457,7 +3457,7 @@
     {
       "file_id": "82838a397cabeed6",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/SHUIRE/mose new.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\SHUIRE\\mose new.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\SHUIRE\\mose new.txt",
       "absolute_path_hash": "ba3bf57823e5a87eca92f2fdede1597af83ae5956661972f4139de7de2cc3804",
       "source_hash": "8ed7fab9cba2a07dca4bb17a1b580d1b8661624d9075352bbee026b6d8d55fc0",
       "file_name": "mose new.txt",
@@ -3535,7 +3535,7 @@
     {
       "file_id": "26162125f9d4bd61",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/SHUIRE/mose3bei.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\SHUIRE\\mose3bei.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\SHUIRE\\mose3bei.txt",
       "absolute_path_hash": "5e68e1a8c63dc95b88c72a1062504590c240d8ea949765ada2139c54ff55e8f7",
       "source_hash": "b1682d845bcf081cc2f2b77683d02679f10be8d433d8f9a76c4e045d4ac3ffb1",
       "file_name": "mose3bei.txt",
@@ -3613,7 +3613,7 @@
     {
       "file_id": "3d79ba6cf4d42529",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/SHUIRE/re mose3bei.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\SHUIRE\\re mose3bei.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\SHUIRE\\re mose3bei.txt",
       "absolute_path_hash": "cafd7d60f5044c1cd38cf941d50ed869652eaaf6bf7a5ac40e6cc06e2ad13412",
       "source_hash": "669c96e7f10fe474d4dab66c273a03f0278263c990e8030805fdcf8e3230ed24",
       "file_name": "re mose3bei.txt",
@@ -3691,7 +3691,7 @@
     {
       "file_id": "95d718d11994dbb3",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/初版PEG/PDF#00-029-0914.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\初版PEG\\PDF#00-029-0914.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\初版PEG\\PDF#00-029-0914.txt",
       "absolute_path_hash": "4780872018182fa3829b5e2900de105812c38ed7dd9370feccfefab6d3350747",
       "source_hash": "7f482fd2cab33879f0db676bc12a370fa37da4024b07769be1d939bba79a402f",
       "file_name": "PDF#00-029-0914.txt",
@@ -3769,7 +3769,7 @@
     {
       "file_id": "e43e4f610b48b3d2",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS200.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\初版PEG\\PEG\\MS200.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\初版PEG\\PEG\\MS200.TXT",
       "absolute_path_hash": "8c253c598144c4c4c7cee96fcea44c6abcd081a0baa58322f3f65b06b33463cf",
       "source_hash": "0688da8f3ae5b0e4011e90444e78918f43cb9be49271ba35032ad49ab711000e",
       "file_name": "MS200.TXT",
@@ -3847,7 +3847,7 @@
     {
       "file_id": "27670bfe78e2c712",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/初版PEG/PEG/MS400.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\初版PEG\\PEG\\MS400.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\初版PEG\\PEG\\MS400.TXT",
       "absolute_path_hash": "1c91fb83b5bf792720ab0b4c6bda6493b0f07fc1331d172e8e715ced340350b3",
       "source_hash": "a91f5576c05fb9cc0a251dc77ac199f6541f5ec149dbf2a37467d418baa251e5",
       "file_name": "MS400.TXT",
@@ -3925,7 +3925,7 @@
     {
       "file_id": "9edd9d9553aae62e",
       "relative_path": "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2 2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\BiOBrCl-TiO2 2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\BiOBrCl-TiO2 2.txt",
       "absolute_path_hash": "0df2dcdc2cc9d9480b228e55d4cae9443c5d1db9dcd2e0a287b7c5b4f970030a",
       "source_hash": "53abbc60e30f20333bf44cff6e4cddf70037db25bed3f6f60a7e9d4b92526768",
       "file_name": "BiOBrCl-TiO2 2.txt",
@@ -4003,7 +4003,7 @@
     {
       "file_id": "9732c18e708c2bac",
       "relative_path": "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl-TiO2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\BiOBrCl-TiO2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\BiOBrCl-TiO2.txt",
       "absolute_path_hash": "96c8f6df3354c2e04c8d147a0003f7c781cd21342f51bb147185e911b1ae5ceb",
       "source_hash": "2ee07b04087c02b2513d21213b9ad8233574722ea56c2b046a641e12c20df288",
       "file_name": "BiOBrCl-TiO2.txt",
@@ -4081,7 +4081,7 @@
     {
       "file_id": "1b1e125b69b1dd15",
       "relative_path": "01_XRD/研一上xrd数据及图片/raw_data/BiOBrCl.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\BiOBrCl.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\BiOBrCl.txt",
       "absolute_path_hash": "6075f81517600ac01c33f5d095d0a60939389b1d56d35805b68b35d6a3516b80",
       "source_hash": "150064b50e15a70057e8822354f3d1d2093a5fae91bc3027287cf5bc4c26ee8a",
       "file_name": "BiOBrCl.txt",
@@ -4159,7 +4159,7 @@
     {
       "file_id": "e00f9ffecdb2b871",
       "relative_path": "01_XRD/研一上xrd数据及图片/raw_data/TiO2.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\TiO2.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\TiO2.txt",
       "absolute_path_hash": "5a456d8e265f15985bd06bd5c77fe894b9620e05a25849b9582f84f18a07b6bc",
       "source_hash": "026498ce88511247a77296b9685314d08fd6a477617bf8649039ae6fa98666b2",
       "file_name": "TiO2.txt",
@@ -4237,7 +4237,7 @@
     {
       "file_id": "b6961f37552f3d69",
       "relative_path": "01_XRD/研一上xrd数据及图片/raw_data/TIO2标准卡片PDF#98-000-0081.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\TIO2标准卡片PDF#98-000-0081.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\raw_data\\TIO2标准卡片PDF#98-000-0081.txt",
       "absolute_path_hash": "833fd533d46ba30ac30f28979f830f9ca0b70fe6fb3aee6a97e8e25d9b1cfa8a",
       "source_hash": "e4120031606a6d89f02aadb45e61b861207327e44e79071867d07ea41fba37ca",
       "file_name": "TIO2标准卡片PDF#98-000-0081.txt",
@@ -4315,7 +4315,7 @@
     {
       "file_id": "08e3fda1f30ee10f",
       "relative_path": "03_光电流/20260109_光电流/26010964564/备注.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\备注.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\备注.txt",
       "absolute_path_hash": "0d31d7a9e45dde044643d0810c2f676ca7a98481bf0af4bd3549adda730d538e",
       "source_hash": "30ff68a5161d9007e5df9970c6e26391473ab7122cc0e38ceed3f48cbac39da6",
       "file_name": "备注.txt",
@@ -4397,7 +4397,7 @@
     {
       "file_id": "cb82d76ea39649e1",
       "relative_path": "03_光电流/光电流响应/raw_data/备注.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\备注.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\备注.txt",
       "absolute_path_hash": "30b76be56b44a5f2683f9c39ef8857a452faf6dbabe68b3b8fa817d6f7fd6192",
       "source_hash": "30ff68a5161d9007e5df9970c6e26391473ab7122cc0e38ceed3f48cbac39da6",
       "file_name": "备注.txt",
@@ -4479,7 +4479,7 @@
     {
       "file_id": "f81c9ed4d1cd400c",
       "relative_path": "03_光电流/光电流响应/raw_data/第三次光电流补测/26041550465/备注.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第三次光电流补测\\26041550465\\备注.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第三次光电流补测\\26041550465\\备注.txt",
       "absolute_path_hash": "720027b929ee3b7049c5e6d7102ea7a4b12db0d645887f093fc6bc02c11fd24a",
       "source_hash": "f8ef978511cf8428e4581485411a8ae5242eea513040044a36fa39c148d5f9d2",
       "file_name": "备注.txt",
@@ -4561,7 +4561,7 @@
     {
       "file_id": "448d4f8368653986",
       "relative_path": "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/备注.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第二次BOBC BC\\26032562524\\备注.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第二次BOBC BC\\26032562524\\备注.txt",
       "absolute_path_hash": "65e07cdec21e5ab270ce5e9acb9eb2b87a3f07d531d93b6c24c8313ee301039c",
       "source_hash": "29d39a0fedf61e7d6d805644a3e17c1a4cc5d3f9e4faedca32573510098d6b65",
       "file_name": "备注.txt",
@@ -4643,7 +4643,7 @@
     {
       "file_id": "8b4b65d4f3c78747",
       "relative_path": "04_莫特肖特基/LLKT ms/MOSE.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\LLKT ms\\MOSE.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\LLKT ms\\MOSE.TXT",
       "absolute_path_hash": "61cb43f66762fa574d4b622062b16e0aafb96d7ef352f90887a9e123dfca4265",
       "source_hash": "8ab092768e7deff9f6c5fba95972b4a27bf932a16e39e26a3052ba88e868f389",
       "file_name": "MOSE.TXT",
@@ -4721,7 +4721,7 @@
     {
       "file_id": "280e621e27cae19c",
       "relative_path": "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOODZVIEW.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\BOBC\\EIS-2GOODZVIEW.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\BOBC\\EIS-2GOODZVIEW.txt",
       "absolute_path_hash": "a55d54629b16c05a1f71a04d4516f16aa9c7e8e5daa596d27cb97c20e9b531c6",
       "source_hash": "c558eb19a04e67cb1b8ddcf06077e5777ec48a1a056e2c62c19aa5a21ac7456c",
       "file_name": "EIS-2GOODZVIEW.txt",
@@ -4800,7 +4800,7 @@
     {
       "file_id": "753c1e473e3cbdbd",
       "relative_path": "05_阻抗EIS/20251106阻抗李永进/BOBC/EIS-2GOOD拟合后.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\BOBC\\EIS-2GOOD拟合后.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\BOBC\\EIS-2GOOD拟合后.txt",
       "absolute_path_hash": "621dff382956dd1b2d745289cef4e33253bbeecb6db4ac5a9f0af0963cf58fb5",
       "source_hash": "6c76bb95d4f7974432d5c6de3cfc43e212839003b822722c2551376abb7275f1",
       "file_name": "EIS-2GOOD拟合后.txt",
@@ -4879,7 +4879,7 @@
     {
       "file_id": "fc31825e947ad05b",
       "relative_path": "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-1ZVIEW.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\CWO\\EIS-1ZVIEW.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\CWO\\EIS-1ZVIEW.txt",
       "absolute_path_hash": "637a33c14ed8e27a4f348d34a24358b16342e66babd156a1656b3a1711c8f02f",
       "source_hash": "1413964e31371d3b715ecd2d34d241505d59617eceead98c966875caf9792e10",
       "file_name": "EIS-1ZVIEW.txt",
@@ -4958,7 +4958,7 @@
     {
       "file_id": "ef227190557c1751",
       "relative_path": "05_阻抗EIS/20251106阻抗李永进/CWO/EIS-2ZVIEW.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\CWO\\EIS-2ZVIEW.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\CWO\\EIS-2ZVIEW.txt",
       "absolute_path_hash": "100bc8df42e2a9839fc47b249c262573385e7af8336dbadc9f2dd1d6ecf13dbe",
       "source_hash": "8d8cd76920a1853134ed30587d2c7c67cfc1e7a881b35a66ea95ddec7bf28a5e",
       "file_name": "EIS-2ZVIEW.txt",
@@ -5037,7 +5037,7 @@
     {
       "file_id": "df9cf46ddf3efd42",
       "relative_path": "05_阻抗EIS/20251106阻抗李永进/MOSE/EISZVIEW.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\MOSE\\EISZVIEW.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\MOSE\\EISZVIEW.txt",
       "absolute_path_hash": "f90a71f8ed5f39bdf420d112e7ba6585c8ac7789771e45a437bcc7762156b9eb",
       "source_hash": "d2bd5d756c5a578238b65c3cda137c733394ba333a216a7b239d5deeb7e7ef8d",
       "file_name": "EISZVIEW.txt",
@@ -5115,7 +5115,7 @@
     {
       "file_id": "90446e95d6d557b8",
       "relative_path": "05_阻抗EIS/20251106阻抗李永进/MOSE/EIS拟合MS.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\MOSE\\EIS拟合MS.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20251106阻抗李永进\\MOSE\\EIS拟合MS.txt",
       "absolute_path_hash": "5402584f1bf77d8fd698122e35f0e994f344260de136516777601fc96d733dbe",
       "source_hash": "329c380bd8a51d2a17f7cb79ac3ee52ff8b1242c17d8e05467a26267a428fbe4",
       "file_name": "EIS拟合MS.txt",
@@ -5194,7 +5194,7 @@
     {
       "file_id": "bbb553dd0c8c59e4",
       "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-2-Z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B11-2-Z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B11-2-Z.txt",
       "absolute_path_hash": "721dba0906501d73426ed6c4c67b30cfe9571ec94269b6b9332912d526e3cf4b",
       "source_hash": "00c5e19f4743b2a47d507b673b7d9c89f4660820169d861f2def8c6ad07b9ea8",
       "file_name": "B11-2-Z.txt",
@@ -5272,7 +5272,7 @@
     {
       "file_id": "195a0f8b67f2340c",
       "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B11-Z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B11-Z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B11-Z.txt",
       "absolute_path_hash": "798fbf757f05275707fe3ea1ed604e8f7c90ee3e83df5b4788f333a435a9ad51",
       "source_hash": "26c4bc702de56eee029b1929fdd5ca579246a8776abcbfcd46731c9a942669af",
       "file_name": "B11-Z.txt",
@@ -5350,7 +5350,7 @@
     {
       "file_id": "1a0e77fea10aece3",
       "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B3-Z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B3-Z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B3-Z.txt",
       "absolute_path_hash": "040a06389ce6e76f278457136a9679b8a600ee1cea7c24d4cb7b1fd6eb3271e4",
       "source_hash": "43c705100c099b1a9adadc057d4b187920ca34ad1dd6f7abe8cde90b7ebd3f14",
       "file_name": "B3-Z.txt",
@@ -5428,7 +5428,7 @@
     {
       "file_id": "1367908b2c378ea3",
       "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-2-Z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B9-2-Z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B9-2-Z.txt",
       "absolute_path_hash": "8df06e0aa979918497ab53f048268e616ac8e28c0d78042ebd6ce3551f49cab5",
       "source_hash": "cd90c6fca60774d7c08e9bbb36da98288bd1ac68bbc5be9eba59e74a286d723a",
       "file_name": "B9-2-Z.txt",
@@ -5506,7 +5506,7 @@
     {
       "file_id": "d33a4b7606cbf3ac",
       "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/B9-Z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B9-Z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\B9-Z.txt",
       "absolute_path_hash": "44fef377c9d86d1ae57e8e70c89c1f5c3e321133d441074bb9bf33538a761c5d",
       "source_hash": "ab209c0a8480c15fb75e0ef894fdae061389c7021882e99dde6b35fa70b4410e",
       "file_name": "B9-Z.txt",
@@ -5584,7 +5584,7 @@
     {
       "file_id": "061079a4e4bd04e3",
       "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-2-Z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\BOBC-2-Z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\BOBC-2-Z.txt",
       "absolute_path_hash": "909490ffeb5b9d941858fafd98b8767fb2690e72990ffab867aba35c0c074d05",
       "source_hash": "c4d46a703c0ccd383c3ba645a73499c2719c4ef55508d802f9b30c4f9f61490e",
       "file_name": "BOBC-2-Z.txt",
@@ -5662,7 +5662,7 @@
     {
       "file_id": "71f057a6fadac8fb",
       "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/BOBC-Z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\BOBC-Z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\BOBC-Z.txt",
       "absolute_path_hash": "f71348f4beb6c5e41033692f45c7a11d0dfb59dbd6a56f0f41fdd1415aa74200",
       "source_hash": "8a1a6b8bed9b32dffd277cee2054c4f8d031d2fed35229070618133ecd6ff55f",
       "file_name": "BOBC-Z.txt",
@@ -5740,7 +5740,7 @@
     {
       "file_id": "b4cac67896323d43",
       "relative_path": "05_阻抗EIS/20260121 李永进阻抗 CWO+BOBC/CWO-Z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\CWO-Z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260121 李永进阻抗 CWO+BOBC\\CWO-Z.txt",
       "absolute_path_hash": "011c253948d640ed056e560397536788f07a31a5eaa3ee1ed97bbe209dd98428",
       "source_hash": "185b361b51910dc172ac3697db5c98e2e6719f13585296826337fb8b3158dafc",
       "file_name": "CWO-Z.txt",
@@ -5818,7 +5818,7 @@
     {
       "file_id": "b42b2246004473d0",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b11-2-z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b11-2-z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b11-2-z.txt",
       "absolute_path_hash": "366cdd4d6f51a65adc0ed7943daf6c418eb1d1150ef1de45fb6ba899da02c2de",
       "source_hash": "3d9a083432affa90eed37772ab7efd3922813da876409a838093c2a11db3b3f7",
       "file_name": "b11-2-z.txt",
@@ -5896,7 +5896,7 @@
     {
       "file_id": "db78701db787a033",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b11-2-z.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b11-2-z.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b11-2-z.z",
       "absolute_path_hash": "3d4e48feb362c652c499b3c12eb862d6a28079e95733fcc76d4390a31e383497",
       "source_hash": "8035e79fd0664ca4a5ef2b12e20c0993053939c3bba1e4aff694def16a4f7ad6",
       "file_name": "b11-2-z.z",
@@ -5974,7 +5974,7 @@
     {
       "file_id": "77df7235dcc1bef4",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b11-z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b11-z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b11-z.txt",
       "absolute_path_hash": "3cf5b53379fdfe5d2bb33c4cab01ab091cb9a1a0ab549ec66d49e92d924c4623",
       "source_hash": "0e564c5bfab17a9e911d6f4a37690e0c6e60492e3b85cf23a2c5eb81eddd3f08",
       "file_name": "b11-z.txt",
@@ -6052,7 +6052,7 @@
     {
       "file_id": "6038443a504d45cb",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b11-z.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b11-z.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b11-z.z",
       "absolute_path_hash": "f4bcbbb086a4373547c91bf83576342eb8829ed1361c0a8974c49793799203cd",
       "source_hash": "214b83b7afe2d1586704efc3f1ce7be557e00e28c637d39623ea2237e9e80669",
       "file_name": "b11-z.z",
@@ -6130,7 +6130,7 @@
     {
       "file_id": "91b6657edf11eb6e",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b3.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b3.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b3.txt",
       "absolute_path_hash": "22f934d30ca59b6dba4d79a3d5036f4a0a8dd582e2b667e47842055c606b9f6b",
       "source_hash": "543412474d1a425a253c5a7bdf3c2ae4d228d08127e1fffb5ac4de97d3c718fa",
       "file_name": "b3.txt",
@@ -6208,7 +6208,7 @@
     {
       "file_id": "c6563bd2315db9e0",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b3.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b3.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b3.z",
       "absolute_path_hash": "77d97d77eb570700b61d8fc519306a22bf07f5e33c78ceea1c506d504f082c9d",
       "source_hash": "c7dbaf0bbdd1a1a5b21e74ef82209c283b7623d664c62f62e38b362e5b90bfb9",
       "file_name": "b3.z",
@@ -6286,7 +6286,7 @@
     {
       "file_id": "8b17bc480ad0ddc7",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b7.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b7.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b7.txt",
       "absolute_path_hash": "1e929ea19da66edb5c783c60c9b6c3f26538eb63af2221a2eebdc3a687f1ef25",
       "source_hash": "fa3a280630014d8415c331efd9ff552b5c92a71e6922a8b9320159532324f1a9",
       "file_name": "b7.txt",
@@ -6364,7 +6364,7 @@
     {
       "file_id": "13ac21bafed75221",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b7.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b7.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b7.z",
       "absolute_path_hash": "bb6efad17a2c4357893ffe8d700da6d8bd08892751710c50e1773b90966e16ac",
       "source_hash": "9bde66b207e8c2eeddcd65650eacee0f23abd1e1aa4f746b07ec33c34e2d2761",
       "file_name": "b7.z",
@@ -6442,7 +6442,7 @@
     {
       "file_id": "2f201bf6908ac7e9",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b9-2z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b9-2z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b9-2z.txt",
       "absolute_path_hash": "5613f092973f7650fc5a764f7c51d205abbf0c96936dacd2a2c07819e9eba612",
       "source_hash": "16f175398cdcf4beba06e4d1c77931926e6a239764572e2d6acd068f7ec8629b",
       "file_name": "b9-2z.txt",
@@ -6520,7 +6520,7 @@
     {
       "file_id": "2292bfbe8c14e8bf",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b9-2z.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b9-2z.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b9-2z.z",
       "absolute_path_hash": "b39892dc1ebecad204e14e48afc31bc48a85b7c771ffa8d5c23d0c2217b8deb4",
       "source_hash": "120804f30844e56acb87be15e86ea1bc0faaf49f8e955659f1923a29728c0b6d",
       "file_name": "b9-2z.z",
@@ -6598,7 +6598,7 @@
     {
       "file_id": "f78838a0d4645947",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b9-z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b9-z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b9-z.txt",
       "absolute_path_hash": "b467dcd95767d0b7ef46de226495adfc5cf7fe3718d71a4de89f5cd7e4e2f184",
       "source_hash": "d4c615231fa131cd695b638fa436a05e78666537d48ff90ee185a8164d7a7a50",
       "file_name": "b9-z.txt",
@@ -6676,7 +6676,7 @@
     {
       "file_id": "c1adb89d725c7908",
       "relative_path": "05_阻抗EIS/20260202/raw_data/b9-z.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b9-z.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\b9-z.z",
       "absolute_path_hash": "1370a13f5362d7d0bc787b44792b67bbc9d7fe7d26a12cbcee887a15de32b30d",
       "source_hash": "f2fb4709238707c32e0570e8e5d56c339e2cc77209f81816fe11b76af12b3bc9",
       "file_name": "b9-z.z",
@@ -6754,7 +6754,7 @@
     {
       "file_id": "7210057480072c86",
       "relative_path": "05_阻抗EIS/20260202/raw_data/bobc-z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\bobc-z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\bobc-z.txt",
       "absolute_path_hash": "a4a203c91da9c4712903edcc67909b23ed8de4e0b987ecb060e9c2e094626ad4",
       "source_hash": "94dde14273669dab9cf43f7d492ba7b80ef1ec84448616d93a77edd08e1ee0b9",
       "file_name": "bobc-z.txt",
@@ -6832,7 +6832,7 @@
     {
       "file_id": "454a8cc8b63daa0e",
       "relative_path": "05_阻抗EIS/20260202/raw_data/bobc-z.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\bobc-z.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\bobc-z.z",
       "absolute_path_hash": "41de3828bb8a86f01cf5fbb17472cf935647806756b26eaa402e916e7c1d0ce7",
       "source_hash": "d61b567e57de1d2beb2daf584666b79e86ccc8e097b6551bdbc1e30d5386b50f",
       "file_name": "bobc-z.z",
@@ -6910,7 +6910,7 @@
     {
       "file_id": "8631a47847cadefa",
       "relative_path": "05_阻抗EIS/20260202/raw_data/cwo-z.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\cwo-z.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\cwo-z.txt",
       "absolute_path_hash": "361b972a3472f0884f0789eecde10384d9735cdcd7d1b57e7115edc302d38c71",
       "source_hash": "298c4e6137352686e72afe53a709323c94dbe9b6463c0ff9271cfe5f75dcb0fb",
       "file_name": "cwo-z.txt",
@@ -6988,7 +6988,7 @@
     {
       "file_id": "dd3baba5300f1b76",
       "relative_path": "05_阻抗EIS/20260202/raw_data/cwo-z.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\cwo-z.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\raw_data\\cwo-z.z",
       "absolute_path_hash": "d4b7adf0397cad15fee9d0c33ede8a4ccde113e80785d6b09f441f2630bec222",
       "source_hash": "f29ee4b0d0e17ce4b2940d9501b96d98d873c1a302472860b5e63b61b5d0729e",
       "file_name": "cwo-z.z",
@@ -7066,7 +7066,7 @@
     {
       "file_id": "f2de7ed0153215e9",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/1.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\1.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\1.TXT",
       "absolute_path_hash": "add1538c5ec7bd36a0e4994d18eb7a1e3c488eb6bff88a412281b3a46f685665",
       "source_hash": "03cbf37d60337bd42119d2e9a572ab8f1a55015d11481328dc3b344403d16529",
       "file_name": "1.TXT",
@@ -7144,7 +7144,7 @@
     {
       "file_id": "0df1b40e1c0fa188",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/3.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\3.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\3.TXT",
       "absolute_path_hash": "0fb6404c3739e7ecff4d1eb3291e172d5e5fe18ca9d440621ed21284fc36a030",
       "source_hash": "476586ce83327665fb33e857f660c9a24f2c830b8603886ca9d4f06e1d0a477e",
       "file_name": "3.TXT",
@@ -7222,7 +7222,7 @@
     {
       "file_id": "96b804adefb12c28",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/5.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\5.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\5.TXT",
       "absolute_path_hash": "2ee61e68bb5176419c216b68e9551039c8d5005a53aead0a8bb6d124a478255b",
       "source_hash": "985d23165c3a4f4d88e67c8e79432096f04017b780b25afccc89f5388ac71ec5",
       "file_name": "5.TXT",
@@ -7300,7 +7300,7 @@
     {
       "file_id": "ff2c2521c6e71af1",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/7.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\7.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\7.TXT",
       "absolute_path_hash": "c01f85ab7d7924cf8aa93758c47f6026018b652c610ed48957661b2ddc9efa73",
       "source_hash": "2e36f746a6b015adf8b1aca5d3cc57504d2a750e0ce0eb9253811a8ac0933ba5",
       "file_name": "7.TXT",
@@ -7378,7 +7378,7 @@
     {
       "file_id": "a556c6be442857d1",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/9.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\9.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\9.TXT",
       "absolute_path_hash": "ebc46547cbcf24c6afb3968e6b49a1abd29badb8fdad863e7e0644aa0984d795",
       "source_hash": "82fa3c7b8485c3aaa35208fb03a766260440ef47fe541ac4be9f503c5893caa9",
       "file_name": "9.TXT",
@@ -7456,7 +7456,7 @@
     {
       "file_id": "78613dabf289cd34",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/bm1.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm1.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm1.z",
       "absolute_path_hash": "0167e1812f5e0e2350f493bc5f01fdd4bb51502caf372abe3cbb4ae5392a2350",
       "source_hash": "65cd7582f44ed4f24c4ac8c0b74d4984f627109d697b3abbb0f1c6ebcc564345",
       "file_name": "bm1.z",
@@ -7534,7 +7534,7 @@
     {
       "file_id": "2413110dc7908347",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/bm3.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm3.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm3.z",
       "absolute_path_hash": "7139890b2551c5555403b92aa88dbd0da213c28560fc375534751179221f04f0",
       "source_hash": "ce03b51c9048d3a7fb861ead2bb8c7aaeb6b18f47f0fc0fb1e9aca8bb6cf6b03",
       "file_name": "bm3.z",
@@ -7612,7 +7612,7 @@
     {
       "file_id": "08fc784f81eae54c",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/bm5z.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm5z.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm5z.z",
       "absolute_path_hash": "e535e22ad1a0bc3b15bfbc25e6d21aa5233d5cad80d1390493581be56d53cec2",
       "source_hash": "88e47c3a2c69face013bc1b4db5c1b439fb9ecd917175df4efd071d65b56292b",
       "file_name": "bm5z.z",
@@ -7690,7 +7690,7 @@
     {
       "file_id": "3e3468800cab7513",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/bm7.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm7.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm7.z",
       "absolute_path_hash": "1a86c38a84796159e0e76ec4dccc3ad79e1d81015d6059d8fe0b56ec2e1267ef",
       "source_hash": "a5cfb9d45546533b552987c7b44b0fcdfbceaa51907f6f899ddf1008c1bd5eea",
       "file_name": "bm7.z",
@@ -7768,7 +7768,7 @@
     {
       "file_id": "bfd11f6809772fd9",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/bm9.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm9.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bm9.z",
       "absolute_path_hash": "c3b789f1c0638bcd20b9c2d509c9f21dbee56f523cdf1a1ff9d56266cc89cea9",
       "source_hash": "2802376efb32da10f52947915831b4ba18c45de57b80adb4ef82dd5969e4e613",
       "file_name": "bm9.z",
@@ -7846,7 +7846,7 @@
     {
       "file_id": "2fa630011931537d",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/bobc.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bobc.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\bobc.txt",
       "absolute_path_hash": "5bc4f151ec58601e3a8e99dea9ac667e518a16feaf74f15349b4f4482b657f5a",
       "source_hash": "4f966f32505507fb250a424a7bde896737add5702cbaee57ca0caa5f280d4271",
       "file_name": "bobc.txt",
@@ -7924,7 +7924,7 @@
     {
       "file_id": "09a3aace81613517",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/raw_data/MOSE2.TXT",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\MOSE2.TXT",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\raw_data\\MOSE2.TXT",
       "absolute_path_hash": "b1863b638a4d4467c030c4203ff07d731a1b80a1f21d48e351f8956efe73b3f5",
       "source_hash": "46571464078e6331c2ca9ec874f6a78ec5581969e981cbbb36c45ea2f0514b00",
       "file_name": "MOSE2.TXT",
@@ -8002,7 +8002,7 @@
     {
       "file_id": "0b76eb97758e631d",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/1.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\1.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\1.txt",
       "absolute_path_hash": "afea90289584c053de239c209b8e55847ae28016ca6378b45dfffbee07df0af6",
       "source_hash": "4642d36a469e771250149914491b5596af2121b9aaf7fe1fc87a572375097a9b",
       "file_name": "1.txt",
@@ -8080,7 +8080,7 @@
     {
       "file_id": "ab590a4ba1768354",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/3.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\3.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\3.txt",
       "absolute_path_hash": "0b27dfe9a87f3bc6d90f613da89bfd846e7be99c6b5a6c9ad6e58b9bcd5f8ce4",
       "source_hash": "9579f71e2ec7d2e15d0c5470ac1f50dc52f730ac94efb3a7b65cd4fe6f6b73ba",
       "file_name": "3.txt",
@@ -8158,7 +8158,7 @@
     {
       "file_id": "75209c9fc9a0117c",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/5.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\5.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\5.txt",
       "absolute_path_hash": "7c2792b1718c2cb09354a5e7dff4a31068c379a60a6cc98f6789d3b82010b1d6",
       "source_hash": "e9547aedb622b2b07c141a8c6fc6cd35154e11993b6975fd20f2121486aae612",
       "file_name": "5.txt",
@@ -8236,7 +8236,7 @@
     {
       "file_id": "6ea28ec52ce3f505",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/7.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\7.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\7.txt",
       "absolute_path_hash": "f97d192ce36dea60875e6f4f3cfd9f19105d85ccf5f1441326d217ca126f8b73",
       "source_hash": "7d4bcd2ca9b3adb7235113e3eae14f4652a0db2120c30fb8b5d970f73a741a46",
       "file_name": "7.txt",
@@ -8314,7 +8314,7 @@
     {
       "file_id": "751e2a40280ea285",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/9.txt",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\9.txt",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\9.txt",
       "absolute_path_hash": "da54fb0dfadeb194bc486924869c546888f48568ee57c6596a19340a4a996163",
       "source_hash": "4406d1170d8e782be6f23371af4ca7a3cf46a75c596a6b2a995b49fd6ad8ce53",
       "file_name": "9.txt",
@@ -8392,7 +8392,7 @@
     {
       "file_id": "0cf59e05b9af105a",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm1.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm1.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm1.z",
       "absolute_path_hash": "9450482da5e67efd1be0fb65329ebb9169aa4a5379038f15d89d850289405556",
       "source_hash": "65cd7582f44ed4f24c4ac8c0b74d4984f627109d697b3abbb0f1c6ebcc564345",
       "file_name": "bm1.z",
@@ -8470,7 +8470,7 @@
     {
       "file_id": "b44043bddf74b362",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm3.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm3.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm3.z",
       "absolute_path_hash": "e1ce34a51db00fed9f4c372a40f495455f797d7cb61935638680d8f8ec431929",
       "source_hash": "ce03b51c9048d3a7fb861ead2bb8c7aaeb6b18f47f0fc0fb1e9aca8bb6cf6b03",
       "file_name": "bm3.z",
@@ -8548,7 +8548,7 @@
     {
       "file_id": "ceaa49c05cc4c9a9",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm5z.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm5z.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm5z.z",
       "absolute_path_hash": "ddaa92b983fd0b75b39c9df0be660e24db6939d881d035f4dead8ef06d75ccbe",
       "source_hash": "88e47c3a2c69face013bc1b4db5c1b439fb9ecd917175df4efd071d65b56292b",
       "file_name": "bm5z.z",
@@ -8626,7 +8626,7 @@
     {
       "file_id": "84e00331ff260937",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm7.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm7.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm7.z",
       "absolute_path_hash": "0a062e40d4c41f0383bd80f9b3bc85b77559d5002c13be86422879920e19e35e",
       "source_hash": "a5cfb9d45546533b552987c7b44b0fcdfbceaa51907f6f899ddf1008c1bd5eea",
       "file_name": "bm7.z",
@@ -8704,7 +8704,7 @@
     {
       "file_id": "4a45eec0414f3eac",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/raw_data/bm9.z",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm9.z",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\raw_data\\bm9.z",
       "absolute_path_hash": "f92e431d2133eef6a8b35624d2229af3db91f8d01f1c51bba22d411ad7f1e1bf",
       "source_hash": "2802376efb32da10f52947915831b4ba18c45de57b80adb4ef82dd5969e4e613",
       "file_name": "bm9.z",
@@ -8782,7 +8782,7 @@
     {
       "file_id": "1e48e8b1d294d0b4",
       "relative_path": "09_BET/XWM-LL-260428-1-BOBC-All Pore/processed_tables/MICDIR.DB3-journal",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\XWM-LL-260428-1-BOBC-All Pore\\processed_tables\\MICDIR.DB3-journal",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\XWM-LL-260428-1-BOBC-All Pore\\processed_tables\\MICDIR.DB3-journal",
       "absolute_path_hash": "1ff1a59a84e91231ce5eec80f4b59613ee3e13f3ac292164036a5dd49ea427df",
       "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "file_name": "MICDIR.DB3-journal",
@@ -8850,7 +8850,7 @@
     {
       "file_id": "ef91e8a02d21aee9",
       "relative_path": "09_BET/ZPF-LL-20260327-4-BOBC-BET/MICDIR.DB3-journal",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-4-BOBC-BET\\MICDIR.DB3-journal",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-4-BOBC-BET\\MICDIR.DB3-journal",
       "absolute_path_hash": "e4872ffb8a4827a674001b37f0f528062b7230ce616535627aaa28ce1486f500",
       "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "file_name": "MICDIR.DB3-journal",
@@ -8918,7 +8918,7 @@
     {
       "file_id": "566409a17dc60dbf",
       "relative_path": "09_BET/ZPF-LL-20260327-7-CWO-BET/MICDIR.DB3-journal",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-7-CWO-BET\\MICDIR.DB3-journal",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-7-CWO-BET\\MICDIR.DB3-journal",
       "absolute_path_hash": "78bf2995da167072ed7974716f792c2e7a527f6334ae8b5fd1aef9f863058732",
       "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "file_name": "MICDIR.DB3-journal",
@@ -8986,7 +8986,7 @@
     {
       "file_id": "77771a10ec095315",
       "relative_path": "09_BET/ZPF-LL-20260327-8-BC-BET/MICDIR.DB3-journal",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-8-BC-BET\\MICDIR.DB3-journal",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-8-BC-BET\\MICDIR.DB3-journal",
       "absolute_path_hash": "5c8ed7ef2dce7f359e0a75af178a17db80bb72320173559daf344c7b007f0df3",
       "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "file_name": "MICDIR.DB3-journal",
@@ -9054,7 +9054,7 @@
     {
       "file_id": "6febc7e6cb448f44",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/MICDIR.DB3-journal",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\MICDIR.DB3-journal",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\MICDIR.DB3-journal",
       "absolute_path_hash": "019957e40b451c279603fe0114e25e427a3c8b452087ea6ef6635e12e812bfcc",
       "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "file_name": "MICDIR.DB3-journal",
@@ -9122,7 +9122,7 @@
     {
       "file_id": "e365d3e3dfa8478c",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/MICDIR.DB3-journal",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-1-BOBC-All Pore\\MICDIR.DB3-journal",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-1-BOBC-All Pore\\MICDIR.DB3-journal",
       "absolute_path_hash": "7124f0696bd9590df1411440daa3461fb0acdff922900088cb3dfb146c09f7e8",
       "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "file_name": "MICDIR.DB3-journal",
@@ -9190,7 +9190,7 @@
     {
       "file_id": "36e2a5ebf5495a8e",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/MICDIR.DB3-journal",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-2-CWO-All Pore\\MICDIR.DB3-journal",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-2-CWO-All Pore\\MICDIR.DB3-journal",
       "absolute_path_hash": "8412b5d26a27ed9261a6594bb9099cd2976312a9394665e50688d805ee966110",
       "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "file_name": "MICDIR.DB3-journal",
@@ -9258,7 +9258,7 @@
     {
       "file_id": "fd8ebd51701caf01",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/MICDIR.DB3-journal",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-3-BiCu-All Pore\\MICDIR.DB3-journal",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-3-BiCu-All Pore\\MICDIR.DB3-journal",
       "absolute_path_hash": "e83cf37d901148594687cfe058f2df6854c18c207efc74721f2a3191906c0c0c",
       "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "file_name": "MICDIR.DB3-journal",
@@ -9326,7 +9326,7 @@
     {
       "file_id": "d94458a054594da1",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/MICDIR.DB3-journal",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-4-BOBC-4-XIN-All Pore\\MICDIR.DB3-journal",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-4-BOBC-4-XIN-All Pore\\MICDIR.DB3-journal",
       "absolute_path_hash": "88efe6386591ad503808dfc1c85829d6f2875fa893a25a7e1d0176465d78cfea",
       "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "file_name": "MICDIR.DB3-journal",
@@ -9394,7 +9394,7 @@
     {
       "file_id": "0d72a54723553848",
       "relative_path": "01_XRD/BOBC+MS/251024/origin_project/20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\origin_project\\20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\251024\\origin_project\\20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju",
       "absolute_path_hash": "cac216b9884c8fa2d1c423d01a064e46edfd8d59774f83f22b2fdcfbd7d722dc",
       "source_hash": "5aa1476087309bb3c316eed0a38ae8087c7c2a3922015a0a01639f3341e9ec59",
       "file_name": "20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju",
@@ -9462,7 +9462,7 @@
     {
       "file_id": "69696022521464a1",
       "relative_path": "01_XRD/BOBC+MS/MS+BOBC.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\MS+BOBC.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BOBC+MS\\MS+BOBC.tif",
       "absolute_path_hash": "07e56f4296bf9772025907dfebc90b4ac9da8250d92f9ee8d263f7e058804204",
       "source_hash": "0d45dca3afbde699d6837f202ddd76ee11a565645d9fe98e03e6b8ef295e4250",
       "file_name": "MS+BOBC.tif",
@@ -9531,7 +9531,7 @@
     {
       "file_id": "254f1087bcaab7b4",
       "relative_path": "01_XRD/BWO/origin_project/BWO.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BWO\\origin_project\\BWO.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\BWO\\origin_project\\BWO.opju",
       "absolute_path_hash": "723e6a1ac2a575049440fe5ebdc97bac00a03a0aae27dfbdb73b0c368494ef93",
       "source_hash": "797f576e48c8feb01581c7cdcc794c750655d9f85bbe2dace46cea64ac24dbbb",
       "file_name": "BWO.opju",
@@ -9599,7 +9599,7 @@
     {
       "file_id": "8c972b0952939c42",
       "relative_path": "01_XRD/CWO+BOBC/origin_project/CWO+BOBC+标卡.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\origin_project\\CWO+BOBC+标卡.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\origin_project\\CWO+BOBC+标卡.opju",
       "absolute_path_hash": "8b7e68d0a2422eed45420145fbc0f9ae0c2e865e1be6441aa34c2c0bcc3873f5",
       "source_hash": "7c5a5cddc099d6975c6ee4c79c8818fe3f68fc77874c4a192dc89f30183fde89",
       "file_name": "CWO+BOBC+标卡.opju",
@@ -9667,7 +9667,7 @@
     {
       "file_id": "b2d78a453acee118",
       "relative_path": "01_XRD/CWO+BOBC/raw_data/cwo+bobc/XRD2.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\XRD2.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\CWO+BOBC\\raw_data\\cwo+bobc\\XRD2.tif",
       "absolute_path_hash": "6a73c20fc53e97d89393348e079bb45c83759a5f832cd732ead20f5e44e6532f",
       "source_hash": "61b411831c6c6ea2d3e2dc2dc20bbb76c94ca271b3611826507dbb72d85c6986",
       "file_name": "XRD2.tif",
@@ -9735,7 +9735,7 @@
     {
       "file_id": "e0ffb9bbb3ded8e9",
       "relative_path": "01_XRD/KIT-6/exported_figures/kit-6.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\exported_figures\\kit-6.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\exported_figures\\kit-6.tif",
       "absolute_path_hash": "ffaa7fb1b31d47c68abfab701f290d94c9c2e3d3c2b5ec6e2ac0794e1a280e38",
       "source_hash": "2533b5e99b6b651e2be4ef645348d4d18d7ffa93434e232565df3159390dbc15",
       "file_name": "kit-6.tif",
@@ -9803,7 +9803,7 @@
     {
       "file_id": "0d5b15796408a22e",
       "relative_path": "01_XRD/KIT-6/origin_project/kit-6.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\origin_project\\kit-6.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\origin_project\\kit-6.opju",
       "absolute_path_hash": "4c4c2950c000ea4bee284d8c29f54e9c2ae0d8a4f1229e52cb22d3e43008073c",
       "source_hash": "841b2cdf55a8ea5380f005f2165888a0521cd166cc44c742c2ba662506b51fb9",
       "file_name": "kit-6.opju",
@@ -9871,7 +9871,7 @@
     {
       "file_id": "3bcfd810f6663b56",
       "relative_path": "01_XRD/KIT-6/origin_project/KIT-6第二批.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\origin_project\\KIT-6第二批.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\KIT-6\\origin_project\\KIT-6第二批.opju",
       "absolute_path_hash": "8e32d320b69474e0d4bea6419e9bdf200fd0d1f016d0593f74f4d3f66ab39dc4",
       "source_hash": "6fbbb402fc1c1cca73e149841acd34dc8b4a43f19ac6b06e5e1825beefb38bb0",
       "file_name": "KIT-6第二批.opju",
@@ -9939,7 +9939,7 @@
     {
       "file_id": "448759944d76aa0b",
       "relative_path": "01_XRD/MS/MSXRD/exported_figures/1mmolmose2的XRD.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\exported_figures\\1mmolmose2的XRD.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\exported_figures\\1mmolmose2的XRD.tif",
       "absolute_path_hash": "06fc4dee9763969a6983f247b277630406dab4d0625f383aadbb65a28e4e7d6a",
       "source_hash": "4174232903f2c81f9749d060aefd1c6de942e70a5999a43df4819a6a4aae50ac",
       "file_name": "1mmolmose2的XRD.tif",
@@ -10008,7 +10008,7 @@
     {
       "file_id": "e2be2a35b5b1e3c8",
       "relative_path": "01_XRD/MS/MSXRD/origin_project/MOSE2.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\origin_project\\MOSE2.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\origin_project\\MOSE2.opju",
       "absolute_path_hash": "b4dc173f1e8c47b4a9ec48cbbbcd509b48fd0a10341441ab56587bc6e61dd80a",
       "source_hash": "44315a79ba7f72d254b8e089e2f22e505a512ccc17baadb9d51b7c8e0fb10b37",
       "file_name": "MOSE2.opju",
@@ -10076,7 +10076,7 @@
     {
       "file_id": "e9caaa265b27b2b3",
       "relative_path": "01_XRD/MS/MSXRD/origin_project/MS.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\origin_project\\MS.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\origin_project\\MS.opju",
       "absolute_path_hash": "0768660ba4abf0206e741ebbccfe0e6b8daf2b8fd2b5dd7674c5051f02c5c076",
       "source_hash": "a21132e5992d9242c61694544680f61d739abf34457bb15660733d1d560de40e",
       "file_name": "MS.opju",
@@ -10145,7 +10145,7 @@
     {
       "file_id": "fe94f6b3455494ea",
       "relative_path": "01_XRD/MS/MSXRD/origin_project/球磨第二批XRD.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\origin_project\\球磨第二批XRD.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\origin_project\\球磨第二批XRD.opju",
       "absolute_path_hash": "8cfd2d90898725eb020a13d83fc72bfdff41de153367facbae4401a1e5605724",
       "source_hash": "138d19a847dd4c6cbdd6ccf918f8bb50e4d8e176651b6a67c1424b7b0f6f99c3",
       "file_name": "球磨第二批XRD.opju",
@@ -10214,7 +10214,7 @@
     {
       "file_id": "80172c03041ef07f",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/4种方法/XRD2.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\XRD2.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\XRD2.pdf",
       "absolute_path_hash": "17973617b72ecfc7dc9415f95001ff829cd5713f166c948ab1b53bd9d905a97a",
       "source_hash": "050ad2f79d91fd1d2ff395d0e68ea294f35058ae29da33edbfa50fbac571fbae",
       "file_name": "XRD2.pdf",
@@ -10282,7 +10282,7 @@
     {
       "file_id": "b123050e30a37825",
       "relative_path": "01_XRD/MS/MSXRD/raw_data/4种方法/XRD同.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\XRD同.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\MSXRD\\raw_data\\4种方法\\XRD同.pdf",
       "absolute_path_hash": "4e771b9565308e513c1592e1fc4c29e30ebe713016e548c1c5b6ca25c73d715c",
       "source_hash": "b40df2fce2d11394ada4cd20c497f7933799526f7df9c3d0e252521fa71e639a",
       "file_name": "XRD同.pdf",
@@ -10351,7 +10351,7 @@
     {
       "file_id": "3453830fd1feb9c5",
       "relative_path": "01_XRD/MS/origin_project/BPO+MS.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\origin_project\\BPO+MS.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\MS\\origin_project\\BPO+MS.opju",
       "absolute_path_hash": "6d70c83b2f8918213e6dae28404918da65eab4597eb3f9d5ba148dd3e3542e95",
       "source_hash": "9f44335ce30d4b385b1d91bcd9f8898d514c0dc2f22f52306c3445ad946ee2dd",
       "file_name": "BPO+MS.opju",
@@ -10420,7 +10420,7 @@
     {
       "file_id": "93dc6105286fef52",
       "relative_path": "01_XRD/研一上xrd数据及图片/origin_project/20241125XRD.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\origin_project\\20241125XRD.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\01_XRD\\研一上xrd数据及图片\\origin_project\\20241125XRD.opju",
       "absolute_path_hash": "c0d62c8ea6d72362c0bb29624e2875fd073c0548f2a5c13b695e813dd9489171",
       "source_hash": "ce37cc01e407421436eb04de0b08191e81407004f1c6a750a4c0f69939b1caa6",
       "file_name": "20241125XRD.opju",
@@ -10488,7 +10488,7 @@
     {
       "file_id": "5d4df4d6f9c49f46",
       "relative_path": "02_XPS/origin_project/BC-OW.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\BC-OW.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\BC-OW.opju",
       "absolute_path_hash": "4b232bef3e6f9a688943dc9fe090bc5eb7ad448726c6c1a12ecc45a4ad63e3ec",
       "source_hash": "a892867591f9a1a81f59a1b58fd10824ff45616bf066eafc51d1a263ea6964f0",
       "file_name": "BC-OW.opju",
@@ -10556,7 +10556,7 @@
     {
       "file_id": "4e8df9961b87af11",
       "relative_path": "02_XPS/origin_project/bc-XPS.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\bc-XPS.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\bc-XPS.opju",
       "absolute_path_hash": "dbff8d8f38bf70fb2f1340b4f98af46c5df0d3bab4ad1f45f9b11a018b481d84",
       "source_hash": "a28e2cf3528d659ef18190e5e74f79d58f5acdbd4dfc3f314c566458be9e92b8",
       "file_name": "bc-XPS.opju",
@@ -10625,7 +10625,7 @@
     {
       "file_id": "a6c82988224db7ee",
       "relative_path": "02_XPS/origin_project/bobc xps.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\bobc xps.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\bobc xps.opju",
       "absolute_path_hash": "0d6413ed7231fa0bea6a8cef4f8417f7dec11e79eb72ad194ae5f63c348af232",
       "source_hash": "190620e7406f7e537a9db953adfc9810ce3e9bb6d0a82b03e1d6541d554b5028",
       "file_name": "bobc xps.opju",
@@ -10694,7 +10694,7 @@
     {
       "file_id": "d85a2d1a350a2a63",
       "relative_path": "02_XPS/origin_project/cwo xps.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\cwo xps.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\cwo xps.opju",
       "absolute_path_hash": "eba9b703dc17ef8dfee97cb776846887ffe29723abbb8c8b3d883a4221fad40e",
       "source_hash": "e33a894cf4d637b065861cb90bbcb0854d7eb735f193662922a6ad91bc465f72",
       "file_name": "cwo xps.opju",
@@ -10763,7 +10763,7 @@
     {
       "file_id": "69103cc39492d074",
       "relative_path": "02_XPS/origin_project/CWO+BOBC VBXPS谱图.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\CWO+BOBC VBXPS谱图.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\origin_project\\CWO+BOBC VBXPS谱图.opju",
       "absolute_path_hash": "08090507231168f613459a7e4f42ee7ba93a2eca3acacb8acb360af15e2de188",
       "source_hash": "af4709c2a79f0bfc7b5c68f3bd631549c0186c0bad605ff627191e71cb525e5e",
       "file_name": "CWO+BOBC VBXPS谱图.opju",
@@ -10831,7 +10831,7 @@
     {
       "file_id": "91a5e491550adbf2",
       "relative_path": "02_XPS/电荷未矫正第一次/origin_project/xps 全数据BI.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\origin_project\\xps 全数据BI.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\origin_project\\xps 全数据BI.opju",
       "absolute_path_hash": "88561c036b7aa9b0138427e736f53290b1a8ca3bdd8f05fd0a75902d24456756",
       "source_hash": "288c96ff27923a4aafcee484cd5aa07090e162b4fd7e076d2320a19b89c858ba",
       "file_name": "xps 全数据BI.opju",
@@ -10900,7 +10900,7 @@
     {
       "file_id": "7d5ddd8b9bbff98d",
       "relative_path": "02_XPS/电荷未矫正第一次/origin_project/xps全数据CU.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\origin_project\\xps全数据CU.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\origin_project\\xps全数据CU.opju",
       "absolute_path_hash": "870ca08bfe46be4e50aa81e55d620a82dcac994891de6d791cc9e7ea33cabd85",
       "source_hash": "c749e9d2c78931ac4ed7b25eaf483c5ff3a0c887de18bca445115f6c2c68db57",
       "file_name": "xps全数据CU.opju",
@@ -10969,7 +10969,7 @@
     {
       "file_id": "355829761bb9b9a5",
       "relative_path": "02_XPS/电荷未矫正第一次/origin_project/xps全数据版.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\origin_project\\xps全数据版.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\02_XPS\\电荷未矫正第一次\\origin_project\\xps全数据版.opju",
       "absolute_path_hash": "898f3588744a5d569043c04f3ac87e6b3e43b747227015193db38c36960652b1",
       "source_hash": "39a9145944f343cf5758e3f80e916ec19fa8572061cbb2a1fbe8abd7ea0e4195",
       "file_name": "xps全数据版.opju",
@@ -11038,7 +11038,7 @@
     {
       "file_id": "eb0cba6ca7b16cfc",
       "relative_path": "03_光电流/20260109_光电流/26010964564/光电流基线处理教程.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\光电流基线处理教程.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\20260109_光电流\\26010964564\\光电流基线处理教程.pdf",
       "absolute_path_hash": "f2906f254aa2f0047373122e58104eb47d531b45237b422d0fbb797dbfe56627",
       "source_hash": "c738db9b65bf34b53e3be9c5410863cc1e070e9596c39288278b50da2c9c8e54",
       "file_name": "光电流基线处理教程.pdf",
@@ -11107,7 +11107,7 @@
     {
       "file_id": "b4dd7a38c807782f",
       "relative_path": "03_光电流/光电流响应/1bobc+2cwo+3bicu-10/origin_project/I-T BOBC+CWO 4.22.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\1bobc+2cwo+3bicu-10\\origin_project\\I-T BOBC+CWO 4.22.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\1bobc+2cwo+3bicu-10\\origin_project\\I-T BOBC+CWO 4.22.opju",
       "absolute_path_hash": "68fec5ef9db3fedabb085c358b891afb445d98bb44cb62bc0df7bb0f78ebadbb",
       "source_hash": "85eb2765645272ac7a6df6de632ac62cc8eef9835ab5743dad64f054eb0ce94b",
       "file_name": "I-T BOBC+CWO 4.22.opju",
@@ -11175,7 +11175,7 @@
     {
       "file_id": "2e008a62cd21f28e",
       "relative_path": "03_光电流/光电流响应/origin_project/SECOND.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\origin_project\\SECOND.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\origin_project\\SECOND.opju",
       "absolute_path_hash": "c210fb96f93c7c8a1ad676b0092a32bcf8b31eca5429d17a96a1e2ad2f3684c9",
       "source_hash": "dd825b1ddc3dc46f43bf4ee5509d429f9a1ca4421f4f8c8ada5ee7fe1d42443f",
       "file_name": "SECOND.opju",
@@ -11243,7 +11243,7 @@
     {
       "file_id": "8e134d96a72be195",
       "relative_path": "03_光电流/光电流响应/origin_project/光电流相应CWO+BOBC.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\origin_project\\光电流相应CWO+BOBC.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\origin_project\\光电流相应CWO+BOBC.opju",
       "absolute_path_hash": "85a371941d56368af084cb0763a05bb631ab051acd3d505c5ebb417aa2d1340d",
       "source_hash": "83cc0773903cc52bbd3e2e1fd168a244fbeaf30181d3a24d41ce2c4fa1810f25",
       "file_name": "光电流相应CWO+BOBC.opju",
@@ -11312,7 +11312,7 @@
     {
       "file_id": "59c9705d9a506abe",
       "relative_path": "03_光电流/光电流响应/raw_data/第三次光电流补测/26041550465/光电流基线处理教程.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第三次光电流补测\\26041550465\\光电流基线处理教程.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第三次光电流补测\\26041550465\\光电流基线处理教程.pdf",
       "absolute_path_hash": "831b8f123a9ea29ad523c799f7f0450bf74fb37291fac25c55238edf576b7a1d",
       "source_hash": "c738db9b65bf34b53e3be9c5410863cc1e070e9596c39288278b50da2c9c8e54",
       "file_name": "光电流基线处理教程.pdf",
@@ -11381,7 +11381,7 @@
     {
       "file_id": "d23a8ec95ff2e8c0",
       "relative_path": "03_光电流/光电流响应/raw_data/第二次BOBC BC/26032562524/光电流基线处理教程.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第二次BOBC BC\\26032562524\\光电流基线处理教程.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\raw_data\\第二次BOBC BC\\26032562524\\光电流基线处理教程.pdf",
       "absolute_path_hash": "39563006493f5c6415f83669fd4a164e513a7504f1018bf8a8c4095e58d1947f",
       "source_hash": "c738db9b65bf34b53e3be9c5410863cc1e070e9596c39288278b50da2c9c8e54",
       "file_name": "光电流基线处理教程.pdf",
@@ -11450,7 +11450,7 @@
     {
       "file_id": "ad7f03e7cd5dde5f",
       "relative_path": "03_光电流/光电流响应/reports_notes/光电流基线处理教程.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\reports_notes\\光电流基线处理教程.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\03_光电流\\光电流响应\\reports_notes\\光电流基线处理教程.pdf",
       "absolute_path_hash": "e34a64e948b9fe7ca7905cd280e7a1688af5e4002924890fb592cff2aa58d1b4",
       "source_hash": "c738db9b65bf34b53e3be9c5410863cc1e070e9596c39288278b50da2c9c8e54",
       "file_name": "光电流基线处理教程.pdf",
@@ -11519,7 +11519,7 @@
     {
       "file_id": "5d33b9802c3d3ac8",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/origin_project/BOBC.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\origin_project\\BOBC.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\origin_project\\BOBC.opju",
       "absolute_path_hash": "63f570ac7506aab3e2b00a033e8c6ec0fe0ba3ec378ec2eafb61d58dcc8f87b6",
       "source_hash": "47232cdd22b9c3c75b29282942286e26d53c722afa8bc994820ecfc80636f93e",
       "file_name": "BOBC.opju",
@@ -11587,7 +11587,7 @@
     {
       "file_id": "db222a705eaf306a",
       "relative_path": "04_莫特肖特基/20260121CWO+BOBC/origin_project/CWO新.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\origin_project\\CWO新.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\20260121CWO+BOBC\\origin_project\\CWO新.opju",
       "absolute_path_hash": "a4dffb46644baa3e76993c81ab9bb463b439498b42ea7faaeadc7fea0d0d0a4c",
       "source_hash": "c59e10cfa0e591e66d9f3b84043763248485db99a2d07a70e87c0ae2d5dca51b",
       "file_name": "CWO新.opju",
@@ -11655,7 +11655,7 @@
     {
       "file_id": "8a48d0f3149b5814",
       "relative_path": "04_莫特肖特基/BOBC/exported_figures/BOBCMOSE能带.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\BOBC\\exported_figures\\BOBCMOSE能带.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\BOBC\\exported_figures\\BOBCMOSE能带.tif",
       "absolute_path_hash": "26b73c90667a0d674dba42d91e623d18861eda7114788942f7c003ee63df9db1",
       "source_hash": "9a700def8de8b6d5bfca961653e4a3d7fdb6047c482b6bee17166a728e1fdfab",
       "file_name": "BOBCMOSE能带.tif",
@@ -11723,7 +11723,7 @@
     {
       "file_id": "3dc4838146fb70e8",
       "relative_path": "04_莫特肖特基/BOBC/exported_figures/BOBC莫特肖特基.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\BOBC\\exported_figures\\BOBC莫特肖特基.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\BOBC\\exported_figures\\BOBC莫特肖特基.tif",
       "absolute_path_hash": "4234660c8df1e4a2dbe632d001037b06b5cd37212c266b649422b8f70b183384",
       "source_hash": "2f1ee75efa068825ebbfa95cc44445227ba656303fe6470cd43a66a013f687e0",
       "file_name": "BOBC莫特肖特基.tif",
@@ -11792,7 +11792,7 @@
     {
       "file_id": "76e334270d471ecf",
       "relative_path": "04_莫特肖特基/BOBC/exported_figures/CWO+BOBC莫特.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\BOBC\\exported_figures\\CWO+BOBC莫特.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\BOBC\\exported_figures\\CWO+BOBC莫特.tif",
       "absolute_path_hash": "b4c4675b497a8b38f05da797ee8a6fbc6c7e1981e6a03ca5bae3976e4df92056",
       "source_hash": "7ed22c34fe7475913a105a327b27e70cfdd620974a91907164620f96b4dc3607",
       "file_name": "CWO+BOBC莫特.tif",
@@ -11860,7 +11860,7 @@
     {
       "file_id": "ca9b47c40d885929",
       "relative_path": "04_莫特肖特基/BOBC/origin_project/bobc.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\BOBC\\origin_project\\bobc.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\BOBC\\origin_project\\bobc.opju",
       "absolute_path_hash": "e31287f4e136d4e5807956e0a25e3147ab90cb1ec12dae77ca0a09600817e440",
       "source_hash": "6a9eaa88bf3385a2c635b905e2d9b658be02d54110838147ef6b806ac1e2606a",
       "file_name": "bobc.opju",
@@ -11928,7 +11928,7 @@
     {
       "file_id": "39dd44c41659c70d",
       "relative_path": "04_莫特肖特基/CWO/origin_project/CWO MT-0.6.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO\\origin_project\\CWO MT-0.6.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO\\origin_project\\CWO MT-0.6.opju",
       "absolute_path_hash": "4a2f709f879a0aa9e9ed4cd6f3afdead0d5c0b7ddf936b8d8916a28455b7e10a",
       "source_hash": "2ac4a1f7068b921c9c3cdb039cf895c1af69d585ea21550d5d80e51f4e0d0278",
       "file_name": "CWO MT-0.6.opju",
@@ -11996,7 +11996,7 @@
     {
       "file_id": "907cbda9a302f449",
       "relative_path": "04_莫特肖特基/CWO/origin_project/CWO MT-2 +0.3.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO\\origin_project\\CWO MT-2 +0.3.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO\\origin_project\\CWO MT-2 +0.3.opju",
       "absolute_path_hash": "844ab40ccc569f8306c026c7b6a041d93ed74e1a3d898c7794800515f197b43f",
       "source_hash": "4bd8a9ab90a5d9648c56319890b071f0f1f40f65f66a7b403d477226924fbc3a",
       "file_name": "CWO MT-2 +0.3.opju",
@@ -12064,7 +12064,7 @@
     {
       "file_id": "75f06c8301dc7df6",
       "relative_path": "04_莫特肖特基/CWO/raw_data/CWO莫特肖特基数据处理版/MS数据处理版/李霖25年11月20日.pptx",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO\\raw_data\\CWO莫特肖特基数据处理版\\MS数据处理版\\李霖25年11月20日.pptx",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\CWO\\raw_data\\CWO莫特肖特基数据处理版\\MS数据处理版\\李霖25年11月20日.pptx",
       "absolute_path_hash": "84bf62aa15bdc3bd2ac5ffbc435fbb52a5406bb4c49a04beb2ad5b8c4ca3f50f",
       "source_hash": "36c7f57049f5f042ef5a1918b81314836a443dc2ebae477084d587257c9f7c46",
       "file_name": "李霖25年11月20日.pptx",
@@ -12132,7 +12132,7 @@
     {
       "file_id": "e7930453abe4c67a",
       "relative_path": "04_莫特肖特基/LL/bobc数据处理版本/origin_project/bobc.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\LL\\bobc数据处理版本\\origin_project\\bobc.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\LL\\bobc数据处理版本\\origin_project\\bobc.opju",
       "absolute_path_hash": "eb461b28ea8c423a1d1a02945490fbe4e59dbb441930e9f2fb3c2faffca01784",
       "source_hash": "0b70bc504ad10f387295c97e2bb213ce4bde39852af09ec64a86a5fdd93a8391",
       "file_name": "bobc.opju",
@@ -12200,7 +12200,7 @@
     {
       "file_id": "e4f2381dfb451be2",
       "relative_path": "04_莫特肖特基/MoSe2MT/exported_figures/MOSE模特肖特基.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\MoSe2MT\\exported_figures\\MOSE模特肖特基.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\MoSe2MT\\exported_figures\\MOSE模特肖特基.tif",
       "absolute_path_hash": "4b18e991c6f3c725269b47a08c1eada7de10f0d2e0d2531d3ed47703d8144081",
       "source_hash": "5797c22fe4f361f25bdb9811b3c105cb2bf0ed1caa5e92c3b23176a5302cfe4e",
       "file_name": "MOSE模特肖特基.tif",
@@ -12268,7 +12268,7 @@
     {
       "file_id": "604becdb4666ee0f",
       "relative_path": "04_莫特肖特基/MoSe2MT/origin_project/ms.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\MoSe2MT\\origin_project\\ms.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\MoSe2MT\\origin_project\\ms.opju",
       "absolute_path_hash": "34b9fb9417d8a62760744f710bc1a5609dc87837bba61621a77cfa20be959e0b",
       "source_hash": "2afb49cd2fdb1554a2f19ef3e3309f21084d2c85891142937802543a24657a4f",
       "file_name": "ms.opju",
@@ -12337,7 +12337,7 @@
     {
       "file_id": "24064b381d27538b",
       "relative_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/origin_project/bobc.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\origin_project\\bobc.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\origin_project\\bobc.opju",
       "absolute_path_hash": "16ea3f09810509a42416b4efa42ea82289040e2bab24230f2b66b9a1ac21c52f",
       "source_hash": "0b70bc504ad10f387295c97e2bb213ce4bde39852af09ec64a86a5fdd93a8391",
       "file_name": "bobc.opju",
@@ -12405,7 +12405,7 @@
     {
       "file_id": "5364534d60c3583a",
       "relative_path": "04_莫特肖特基/第一体系确定版本/bobc数据处理版本/origin_project/bobc格式美化版本.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\origin_project\\bobc格式美化版本.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\bobc数据处理版本\\origin_project\\bobc格式美化版本.opju",
       "absolute_path_hash": "c4b5fc49a561e0cd0c22dd741045e127a617401035df2d2d828b8c913b7f0c4a",
       "source_hash": "c44b655e8383a17029562ae618249524dccfb325a9d3b0b76fe8bad654c04e63",
       "file_name": "bobc格式美化版本.opju",
@@ -12473,7 +12473,7 @@
     {
       "file_id": "9888b3f8a1f628ea",
       "relative_path": "04_莫特肖特基/第一体系确定版本/MT2/origin_project/CWO MT-2 +0.3.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\origin_project\\CWO MT-2 +0.3.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\origin_project\\CWO MT-2 +0.3.opju",
       "absolute_path_hash": "eff07562b2fe95eb3179872347865cb03899c04e689aa2a4356a7b87dc8018b1",
       "source_hash": "4bd8a9ab90a5d9648c56319890b071f0f1f40f65f66a7b403d477226924fbc3a",
       "file_name": "CWO MT-2 +0.3.opju",
@@ -12541,7 +12541,7 @@
     {
       "file_id": "15b67f795cd9ac00",
       "relative_path": "04_莫特肖特基/第一体系确定版本/MT2/origin_project/CWO MT-2 +0.3数据美化版本.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\origin_project\\CWO MT-2 +0.3数据美化版本.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\04_莫特肖特基\\第一体系确定版本\\MT2\\origin_project\\CWO MT-2 +0.3数据美化版本.opju",
       "absolute_path_hash": "89afe50ff96f890e296b71457b648c2e38e3343b40f0e5d4c147d7e68ca13069",
       "source_hash": "d13a2ad99f6bfbbc71f6d3ef3e1c8202baadb5947d0f1212cf84395e34a74d8f",
       "file_name": "CWO MT-2 +0.3数据美化版本.opju",
@@ -12609,7 +12609,7 @@
     {
       "file_id": "0c30df7fbbb7e034",
       "relative_path": "05_阻抗EIS/20260202/origin_project/eis图20260202.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\origin_project\\eis图20260202.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\origin_project\\eis图20260202.opju",
       "absolute_path_hash": "81b1cb05e33eb5016729d2fc638f000fff8170c4da86371b22ca47b4f99514f6",
       "source_hash": "ef1c10aa10710085d03f6581fdacb676a94ee4bf3c17cb02a0e534ce44616d98",
       "file_name": "eis图20260202.opju",
@@ -12678,7 +12678,7 @@
     {
       "file_id": "1c38c4ac22a7a980",
       "relative_path": "05_阻抗EIS/20260202/origin_project/eis图BOBC+CWO.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\origin_project\\eis图BOBC+CWO.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260202\\origin_project\\eis图BOBC+CWO.opju",
       "absolute_path_hash": "69b385c91aea133c73e2f37507bb6f39848156c8ff9a6ff8e003ec4f95585a29",
       "source_hash": "057d31044c48b7b418d6d96744b8f892e80989302c927de962cff110b03fc083",
       "file_name": "eis图BOBC+CWO.opju",
@@ -12747,7 +12747,7 @@
     {
       "file_id": "83b9ecf1a0004b09",
       "relative_path": "05_阻抗EIS/20260203李永进CWO+BOBC/origin_project/2eis图20260202.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260203李永进CWO+BOBC\\origin_project\\2eis图20260202.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\20260203李永进CWO+BOBC\\origin_project\\2eis图20260202.opju",
       "absolute_path_hash": "d41d226dd9d120a8e7730a81b34579dcc4c17ea933166ae5d7a130ea3d1b5ddd",
       "source_hash": "095f99f9015326c44d84f79c4071e1dad8f9b5847bdd3734c90c856c3dc83de3",
       "file_name": "2eis图20260202.opju",
@@ -12815,7 +12815,7 @@
     {
       "file_id": "6ac54cbe06fd38c3",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/exported_figures/BM阻抗.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\exported_figures\\BM阻抗.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\exported_figures\\BM阻抗.tif",
       "absolute_path_hash": "29839b25bb00749f6032257d6ec2f945c136402da6b731e5d2bf1b183008320a",
       "source_hash": "91506db80935f0bb677b6224bac57f37c51519aa446781595be1cfedca83f706",
       "file_name": "BM阻抗.tif",
@@ -12883,7 +12883,7 @@
     {
       "file_id": "988b7d48f9e128ff",
       "relative_path": "05_阻抗EIS/BM重新拟合版本/origin_project/BM.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\origin_project\\BM.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\BM重新拟合版本\\origin_project\\BM.opju",
       "absolute_path_hash": "7a424b549feb2afb8e1abeb968cc31ddd90d912e14300394f3b9e76adec178c3",
       "source_hash": "32a62c4483cec85bdfd2356e9777a9a00d21cfb60eea01cc2d9faa9c1d2bf0e5",
       "file_name": "BM.opju",
@@ -12951,7 +12951,7 @@
     {
       "file_id": "8f876a5533e82fb6",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/exported_figures/LL-EIS-BM-X.png",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\exported_figures\\LL-EIS-BM-X.png",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\exported_figures\\LL-EIS-BM-X.png",
       "absolute_path_hash": "c47f75c725ce32f09812f0125a873a3768c33e14d42661dbae1fb9b07c345614",
       "source_hash": "eb779a603ac18376fa59a3a9f67952c135bb59a2d5702daa8ca306e78eeb4a90",
       "file_name": "LL-EIS-BM-X.png",
@@ -13020,7 +13020,7 @@
     {
       "file_id": "8ce28b5c3ba34241",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/origin_project/BM-X.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\origin_project\\BM-X.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\origin_project\\BM-X.opju",
       "absolute_path_hash": "05878b698d882695e0513e4f58bfed9440925cfc081589a054ba044d80b4c10b",
       "source_hash": "d72372164c90cb594f089faefd166442c5977395577fe0822450c32a43945671",
       "file_name": "BM-X.opju",
@@ -13088,7 +13088,7 @@
     {
       "file_id": "c15cec2b98d6ce83",
       "relative_path": "05_阻抗EIS/EIS-20251025拟合后师妹/origin_project/拟合后BM-X.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\origin_project\\拟合后BM-X.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\EIS-20251025拟合后师妹\\origin_project\\拟合后BM-X.opju",
       "absolute_path_hash": "6264b89bda7d3277ecf3f39ce5d7dbf00c271448e8d93afc6699c7b2171b0454",
       "source_hash": "4604de1f1dceba2896a14f4a999e5faa013e66f5a0119fed80f15acf994adfe7",
       "file_name": "拟合后BM-X.opju",
@@ -13156,7 +13156,7 @@
     {
       "file_id": "e28e864626ff0e67",
       "relative_path": "05_阻抗EIS/阻抗图.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\阻抗图.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\05_阻抗EIS\\阻抗图.tif",
       "absolute_path_hash": "422ea86e16ec6d47161e1c22f1218fe196b71046ece212cebf2e2c07f3fff825",
       "source_hash": "111e2f9568ebe079761c51f5e065b144402cd969e732546217ccfcbaa588c43e",
       "file_name": "阻抗图.tif",
@@ -13224,7 +13224,7 @@
     {
       "file_id": "b6a3ee18e0708096",
       "relative_path": "06_红外/BOBC+MS 以前水热的Mose/exported_figures/BOBC+MS-FTRIR.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\exported_figures\\BOBC+MS-FTRIR.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\exported_figures\\BOBC+MS-FTRIR.tif",
       "absolute_path_hash": "ba04b11738740cbe0a5afaca2ec959a9df073dfa5911d25b4aab2352091ad4c4",
       "source_hash": "bae697dd38b3f3bf747b550c401c250044cf6306475881332ae34259ab4b0ac3",
       "file_name": "BOBC+MS-FTRIR.tif",
@@ -13293,7 +13293,7 @@
     {
       "file_id": "2625f883b17604f7",
       "relative_path": "06_红外/BOBC+MS 以前水热的Mose/origin_project/BOBC+MS.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\origin_project\\BOBC+MS.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\origin_project\\BOBC+MS.opju",
       "absolute_path_hash": "14843aa775d0427b491026d6589eb7133bff2198643cbc41ce6e6037f81599a3",
       "source_hash": "00ea6aba8a1623f05b41eaa5a8771bb13d6505e34710d417eed92cc400719fa5",
       "file_name": "BOBC+MS.opju",
@@ -13362,7 +13362,7 @@
     {
       "file_id": "fb52ac317f2b1ee7",
       "relative_path": "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM1.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM1.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM1.pdf",
       "absolute_path_hash": "2ec9644757224f9d568e174905676b44f695a760d84833574811be578b790da3",
       "source_hash": "325af2384bf33ec7a727f539133c276c6a86a98ab99959326dd747ac7cd2b333",
       "file_name": "LL-BM1.pdf",
@@ -13430,7 +13430,7 @@
     {
       "file_id": "ae7b3977938e873a",
       "relative_path": "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM3.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM3.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM3.pdf",
       "absolute_path_hash": "7c50d882f61d6c5e966b8203d539474f2b91294d27ed26b3fdd5b66e1fd4dea0",
       "source_hash": "1184dcfae8bf0fc95e02c1de632c35d79bd1d021705049568da6b5c8652e5ff8",
       "file_name": "LL-BM3.pdf",
@@ -13498,7 +13498,7 @@
     {
       "file_id": "6d67edd80e90cbaf",
       "relative_path": "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM5.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM5.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM5.pdf",
       "absolute_path_hash": "818a3e45c7d644e9a62cdfe3257805a5fe22a5bd782bad32de6b8d8cb071eb8f",
       "source_hash": "c33a86c22720062f7a2f0ed28a0b46947ac017c5e6d9d8cec92b19efdcd50e1e",
       "file_name": "LL-BM5.pdf",
@@ -13566,7 +13566,7 @@
     {
       "file_id": "7d26f3c5a1daa1b7",
       "relative_path": "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM7.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM7.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM7.pdf",
       "absolute_path_hash": "8b161024528ee3033e954295b73ed8672bb55e67c1b0446ac789656bdd96bf88",
       "source_hash": "1cce1d099e50a93dff87e49b9e42e62d5d0f7ce8254eb7522d4718b98c5722e2",
       "file_name": "LL-BM7.pdf",
@@ -13634,7 +13634,7 @@
     {
       "file_id": "501ba849d60c6438",
       "relative_path": "06_红外/BOBC+MS 以前水热的Mose/reports_notes/LL-BM9.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM9.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\BOBC+MS 以前水热的Mose\\reports_notes\\LL-BM9.pdf",
       "absolute_path_hash": "60f54c5bc932abc6679a15a01cdb6b696fede51e4f79d73d8c2b9aec75676f55",
       "source_hash": "5657a4dcebfeeb3789d76f69cbdc7a7681103f5e04224e25143f505f666896d9",
       "file_name": "LL-BM9.pdf",
@@ -13702,7 +13702,7 @@
     {
       "file_id": "bc952f75fe697a03",
       "relative_path": "06_红外/cwo+bobc/exported_figures/CWO+BOBC FTIR 2026018新制备.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\exported_figures\\CWO+BOBC FTIR 2026018新制备.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\exported_figures\\CWO+BOBC FTIR 2026018新制备.tif",
       "absolute_path_hash": "f8e7bd5e129c83d071bbe4fda212efc43e7a06a46997bd7e311a08014570c3cc",
       "source_hash": "2c263cd41e95caf5775386eb754fbadf8115d6bfb850cf473f1cd9aa9ea34f55",
       "file_name": "CWO+BOBC FTIR 2026018新制备.tif",
@@ -13771,7 +13771,7 @@
     {
       "file_id": "9e2fbae5aa590f29",
       "relative_path": "06_红外/cwo+bobc/exported_figures/CWO+BOBC FTIR.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\exported_figures\\CWO+BOBC FTIR.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\exported_figures\\CWO+BOBC FTIR.tif",
       "absolute_path_hash": "329350f334b59aa547dd987297614069ebc564b0f87e12cda30f923c481362c6",
       "source_hash": "1bbeb0a58d38c301e47530844d831d4f81acccf7ff2b7b4df4ec42c4c27c6840",
       "file_name": "CWO+BOBC FTIR.tif",
@@ -13840,7 +13840,7 @@
     {
       "file_id": "da80edd525a8f38f",
       "relative_path": "06_红外/cwo+bobc/exported_figures/FTIR2.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\exported_figures\\FTIR2.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\exported_figures\\FTIR2.tif",
       "absolute_path_hash": "a4f812131e4706f44ec9d0c377710cd1dbf1a000e1e47dbe934083d35a5e20f3",
       "source_hash": "54bbbcbdcfad4aaa805418da259d559bc85c6be9039b12f0146503f941fb261b",
       "file_name": "FTIR2.tif",
@@ -13908,7 +13908,7 @@
     {
       "file_id": "a25e57397d12c4d9",
       "relative_path": "06_红外/cwo+bobc/exported_figures/hongwai.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\exported_figures\\hongwai.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\exported_figures\\hongwai.tif",
       "absolute_path_hash": "693140215aea6d5d95cfe4973bfc5c97edfb0d3cf1971a96aa430f5165ab9dbd",
       "source_hash": "2f3d319f1376fc932747c102598836cfcc1dc752106b939b4f2bbb3ead2976cc",
       "file_name": "hongwai.tif",
@@ -13976,7 +13976,7 @@
     {
       "file_id": "458246cf175b8e01",
       "relative_path": "06_红外/cwo+bobc/origin_project/CWO+BOBC红外.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\origin_project\\CWO+BOBC红外.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\cwo+bobc\\origin_project\\CWO+BOBC红外.opju",
       "absolute_path_hash": "fda087e5f48b36d7aafa5f04cf5287d3408537da02e3a187f18426c6ac3f3f10",
       "source_hash": "40e2dded104db988a878c01a87440967f73fcd9aa457b58c0cec1bc986e8affb",
       "file_name": "CWO+BOBC红外.opju",
@@ -14045,7 +14045,7 @@
     {
       "file_id": "67390d10333445b4",
       "relative_path": "06_红外/红外MS+BPO 暑期版本/origin_project/红外.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\06_红外\\红外MS+BPO 暑期版本\\origin_project\\红外.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\06_红外\\红外MS+BPO 暑期版本\\origin_project\\红外.opju",
       "absolute_path_hash": "b9ae2994ddfce9b143eb93d0de821802e9dae6af6413380609a42a155c6a8157",
       "source_hash": "4fbcffbc2b4320d09acb5d3aeac78baf7e7f059884ddbe4c8f8040f06ee279f5",
       "file_name": "红外.opju",
@@ -14114,7 +14114,7 @@
     {
       "file_id": "531b4d4fc1eec0f4",
       "relative_path": "07_拉曼/20251021/exported_figures/ranman.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\exported_figures\\ranman.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\exported_figures\\ranman.tif",
       "absolute_path_hash": "396e68204b782ad47da3013baa2447eb784d384edd17d0c0ec6918fa5ebfcdc0",
       "source_hash": "05ad773f8b391a7e78c8ce5d6855c7b2c99ca8366da1848a9b52f98e2fcfa069",
       "file_name": "ranman.tif",
@@ -14182,7 +14182,7 @@
     {
       "file_id": "0ef441b95d2ac1ba",
       "relative_path": "07_拉曼/20251021/origin_project/bobc+ms.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\origin_project\\bobc+ms.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\20251021\\origin_project\\bobc+ms.opju",
       "absolute_path_hash": "49b5b661eeed909199705e9486abca23b9a9c6c050b063a69e5dae77d58b1797",
       "source_hash": "f640e86a9ca80a2295075f12abd9a18808882d17503f19fba120f8713af05916",
       "file_name": "bobc+ms.opju",
@@ -14251,7 +14251,7 @@
     {
       "file_id": "e3ac2ec5cd5229de",
       "relative_path": "07_拉曼/origin_project/cwo+bobc raman.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\origin_project\\cwo+bobc raman.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\origin_project\\cwo+bobc raman.opju",
       "absolute_path_hash": "8f4e76a083942107d5dfae1cc9ba4d3e2d3cba86fdfac7e0638f46c4037ba419",
       "source_hash": "1163e7314f107af82759aa92bf526a08e7df2c7c18754065a4004dee15be3a91",
       "file_name": "cwo+bobc raman.opju",
@@ -14320,7 +14320,7 @@
     {
       "file_id": "b1ae19b4f0af0a1b",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/exported_figures/BOBC+MS-RAMAN.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\exported_figures\\BOBC+MS-RAMAN.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\exported_figures\\BOBC+MS-RAMAN.tif",
       "absolute_path_hash": "d4786be617e51f957a9de0e8585a2bf7488b88f84db90ddad907b820115d8b8d",
       "source_hash": "c69b086190051fc5089349350051bcda43305309e11839cd334a20593a9bad63",
       "file_name": "BOBC+MS-RAMAN.tif",
@@ -14389,7 +14389,7 @@
     {
       "file_id": "3d94eaed7d125cd0",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/origin_project/BOBC+MS+BPO.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\origin_project\\BOBC+MS+BPO.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\origin_project\\BOBC+MS+BPO.opju",
       "absolute_path_hash": "b731d78200d67468e48feae7dd0243fdc867c9dff7d6a5d0bda076925e79871a",
       "source_hash": "6b03217e6f57b4208481685eb7884e5038b524b43b9a1d2f87679578eafeff38",
       "file_name": "BOBC+MS+BPO.opju",
@@ -14458,7 +14458,7 @@
     {
       "file_id": "4d86d18c986d68e2",
       "relative_path": "07_拉曼/老版本BOBC+MS+BPO/origin_project/BOBC+MS.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\origin_project\\BOBC+MS.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\07_拉曼\\老版本BOBC+MS+BPO\\origin_project\\BOBC+MS.opju",
       "absolute_path_hash": "bd35ee6b8dc7510a70f35f80c6e45c4261150fdb707ade222457382f03cb3b6b",
       "source_hash": "bafe7898a143ef0ec06a1779ca06ccd900fb866debef2ae0bf7a89b0e65c670b",
       "file_name": "BOBC+MS.opju",
@@ -14527,7 +14527,7 @@
     {
       "file_id": "a4273dce5f4b6bc0",
       "relative_path": "08_固体紫外/exported_figures/CWO+BOBC紫外.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\CWO+BOBC紫外.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\CWO+BOBC紫外.tif",
       "absolute_path_hash": "3b606521153ac21ccb311892eb889d4411558db6e688f7d9b6d196b3a160d8f4",
       "source_hash": "7450ccf0a886c3c00521505406cc39512c6ac1a26256e18adbd7d50282ce1f05",
       "file_name": "CWO+BOBC紫外.tif",
@@ -14595,7 +14595,7 @@
     {
       "file_id": "d51600ef1def03f4",
       "relative_path": "08_固体紫外/exported_figures/CWO+BOBC紫外tacu.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\CWO+BOBC紫外tacu.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\CWO+BOBC紫外tacu.tif",
       "absolute_path_hash": "5b3a5d8f59c0045d6c76413ab052ebc8788590c901c6b0b8faae008242d275b4",
       "source_hash": "3be7d33335afdca75d2056c3239f8759be4df0edc56ebad40b8d7295dd12cf53",
       "file_name": "CWO+BOBC紫外tacu.tif",
@@ -14663,7 +14663,7 @@
     {
       "file_id": "d9693144dd64f24b",
       "relative_path": "08_固体紫外/exported_figures/MS+BOBC固体紫外200-800.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\MS+BOBC固体紫外200-800.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\MS+BOBC固体紫外200-800.tif",
       "absolute_path_hash": "0296bfd7e7bb544d8b3eed3ec12a66cb5c6e4f0e7322ee4e7ee6e1cd6aa89cec",
       "source_hash": "995997f599d11218e984242d6eb7c5f247e0c7243783204aa30f1ecf1f04287e",
       "file_name": "MS+BOBC固体紫外200-800.tif",
@@ -14732,7 +14732,7 @@
     {
       "file_id": "880f4b89997a4686",
       "relative_path": "08_固体紫外/exported_figures/MS+BOBC固体紫外260-800.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\MS+BOBC固体紫外260-800.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\MS+BOBC固体紫外260-800.tif",
       "absolute_path_hash": "121cc5e3ef955d506255562451eedf903d25a0b570f500d082b5a89e999d0a7e",
       "source_hash": "27fc27739e4ff84e50609eb473f0ba560c8228bd3a4770186d83ba464cf5979c",
       "file_name": "MS+BOBC固体紫外260-800.tif",
@@ -14801,7 +14801,7 @@
     {
       "file_id": "470996046f992423",
       "relative_path": "08_固体紫外/exported_figures/MS+BOBC固体紫外tacu.tif",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\MS+BOBC固体紫外tacu.tif",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\exported_figures\\MS+BOBC固体紫外tacu.tif",
       "absolute_path_hash": "4e312683051263b4b91819a37051c75e68d61565b378299d011909d201bfbdcb",
       "source_hash": "23855eb8b90710651297646891627dc7b2392a037f610f2145d2d2bb7ad4c882",
       "file_name": "MS+BOBC固体紫外tacu.tif",
@@ -14870,7 +14870,7 @@
     {
       "file_id": "e62b2fa32b6ad6c8",
       "relative_path": "08_固体紫外/origin_project/BOBC+MS.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\origin_project\\BOBC+MS.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\origin_project\\BOBC+MS.opju",
       "absolute_path_hash": "baf6f8e7d9cacefa224bd4e695dfd9d6131cfcd68371acbc301efc176f2dea87",
       "source_hash": "8d1d56069a6120d3fade4f45db53387b592a97c8bb867ae18bed49259a8a0fcb",
       "file_name": "BOBC+MS.opju",
@@ -14939,7 +14939,7 @@
     {
       "file_id": "5e0773b65eacff3a",
       "relative_path": "08_固体紫外/固体紫外CWO+BOBC/origin_project/BOBC+CWO.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\固体紫外CWO+BOBC\\origin_project\\BOBC+CWO.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\08_固体紫外\\固体紫外CWO+BOBC\\origin_project\\BOBC+CWO.opju",
       "absolute_path_hash": "6ea2d086d9f78a53af16add4fd67227ff56c3a8d692dc147acd8c2a8ca668a9e",
       "source_hash": "a58b23dc4c01c46104c4c4a3d5ac0ea6589a091d137359ede4a664ffab0d071a",
       "file_name": "BOBC+CWO.opju",
@@ -15007,7 +15007,7 @@
     {
       "file_id": "d35f4ab0a9ee0092",
       "relative_path": "09_BET/XWM-LL-260428-1-BOBC-All Pore/origin_project/BOBC.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\XWM-LL-260428-1-BOBC-All Pore\\origin_project\\BOBC.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\XWM-LL-260428-1-BOBC-All Pore\\origin_project\\BOBC.opju",
       "absolute_path_hash": "2d57937fa2fda16e4f1831f5e5cd73d208ba1336e9e559dbcc621ce4ea055559",
       "source_hash": "15b3265a2fa4b112b7d14408723fb756b48e68ebc60604b224f71b130f4edf80",
       "file_name": "BOBC.opju",
@@ -15075,7 +15075,7 @@
     {
       "file_id": "db1d1d366ccb1911",
       "relative_path": "09_BET/XWM-LL-260428-1-BOBC-All Pore/reports_notes/XWM-LL-260428-1-BOBC-All Pore.PDF",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\XWM-LL-260428-1-BOBC-All Pore\\reports_notes\\XWM-LL-260428-1-BOBC-All Pore.PDF",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\XWM-LL-260428-1-BOBC-All Pore\\reports_notes\\XWM-LL-260428-1-BOBC-All Pore.PDF",
       "absolute_path_hash": "ddd8ac100489830311a51ced554adb2d0a7cbe144b471fa062e4d1eda539b1fb",
       "source_hash": "d36a7f9fb6a057d8d1db6c1dd63766cb116c09257da3c029bf20312f68679953",
       "file_name": "XWM-LL-260428-1-BOBC-All Pore.PDF",
@@ -15143,7 +15143,7 @@
     {
       "file_id": "2db514309325a7cb",
       "relative_path": "09_BET/ZPF-LL-20260327-4-BOBC-BET/ZPF-LL-20260327-4-BOBC-BET.PDF",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-4-BOBC-BET\\ZPF-LL-20260327-4-BOBC-BET.PDF",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-4-BOBC-BET\\ZPF-LL-20260327-4-BOBC-BET.PDF",
       "absolute_path_hash": "10b588b00bea9b269cb4dc64156e8462b1110fbe49ca8aaa2a26250df5f0032f",
       "source_hash": "fcd156d363bcd445393769c3bba3e5ffcee83a9900e66e1e234808fc44fe1ca9",
       "file_name": "ZPF-LL-20260327-4-BOBC-BET.PDF",
@@ -15212,7 +15212,7 @@
     {
       "file_id": "3953c9464655aa80",
       "relative_path": "09_BET/ZPF-LL-20260327-7-CWO-BET/ZPF-LL-20260327-7-CWO-BET.PDF",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-7-CWO-BET\\ZPF-LL-20260327-7-CWO-BET.PDF",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-7-CWO-BET\\ZPF-LL-20260327-7-CWO-BET.PDF",
       "absolute_path_hash": "f5a7a3de277c1772fb0bc2c7e106dddbbbc22e90a01c2175a25ca18919c23846",
       "source_hash": "8ae3dd3ef0ba5e305ed270fda80797ddbd63b877258aa044ee2f27ec7601e847",
       "file_name": "ZPF-LL-20260327-7-CWO-BET.PDF",
@@ -15281,7 +15281,7 @@
     {
       "file_id": "33b98d1262b5d35e",
       "relative_path": "09_BET/ZPF-LL-20260327-8-BC-BET/ZPF-LL-20260327-8-CWO-BET.PDF",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-8-BC-BET\\ZPF-LL-20260327-8-CWO-BET.PDF",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\ZPF-LL-20260327-8-BC-BET\\ZPF-LL-20260327-8-CWO-BET.PDF",
       "absolute_path_hash": "326dfb47c70d317947ea8717d576124a8e2acb17bc5271e2c730f689b0b1df16",
       "source_hash": "2939b11a121e559904d1c8650be54b95d867ca4fa64ea80559bb04ff4c7dce5b",
       "file_name": "ZPF-LL-20260327-8-CWO-BET.PDF",
@@ -15350,7 +15350,7 @@
     {
       "file_id": "56f45b8524c0e5ad",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/origin_project/BET -BOBC为负数.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\origin_project\\BET -BOBC为负数.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\origin_project\\BET -BOBC为负数.opju",
       "absolute_path_hash": "8ce0eaeb95cee01541948eca0f0737ceef79da49634145a2f744ca20920dc43f",
       "source_hash": "dfa96a1214977b63ad9340c4d33570549c64e91a2593a2c2e3e7201c67d455f5",
       "file_name": "BET -BOBC为负数.opju",
@@ -15419,7 +15419,7 @@
     {
       "file_id": "1866dbbf3a757cd7",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-1-BOBC-All Pore/XWM-LL-260421-1-BOBC-All Pore.PDF",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-1-BOBC-All Pore\\XWM-LL-260421-1-BOBC-All Pore.PDF",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-1-BOBC-All Pore\\XWM-LL-260421-1-BOBC-All Pore.PDF",
       "absolute_path_hash": "59ca557b4a5c29eded51ec84400e4906b2ebbefcc8a691a858a252a4307f02b6",
       "source_hash": "375b6fa66dbde8742f02ba60abaa8af633b433a88f3fe212e3a170ab8e3d05d8",
       "file_name": "XWM-LL-260421-1-BOBC-All Pore.PDF",
@@ -15487,7 +15487,7 @@
     {
       "file_id": "0d08c3876dd30ef7",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-2-CWO-All Pore/XWM-LL-260421-2-CWO-All Pore.PDF",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-2-CWO-All Pore\\XWM-LL-260421-2-CWO-All Pore.PDF",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-2-CWO-All Pore\\XWM-LL-260421-2-CWO-All Pore.PDF",
       "absolute_path_hash": "d269c447eefaddececea762c3fb96b1111a121396e859871032799c9b32d8ee0",
       "source_hash": "a702e3c426c6543a07045096a5ed6545addd9eb28e9407d8b9cfefc4259f2f8e",
       "file_name": "XWM-LL-260421-2-CWO-All Pore.PDF",
@@ -15555,7 +15555,7 @@
     {
       "file_id": "279a7b1c3e1156e1",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-3-BiCu-All Pore/XWM-LL-260421-3-BiCu-All Pore.PDF",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-3-BiCu-All Pore\\XWM-LL-260421-3-BiCu-All Pore.PDF",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-3-BiCu-All Pore\\XWM-LL-260421-3-BiCu-All Pore.PDF",
       "absolute_path_hash": "f72bb610bfed2a954de95251e94849026021f66c36cf20b368bc5858b1123c53",
       "source_hash": "cb3b2894be385e04bd9563387b2f16da7067f818bbf5f9e33036d3cd183d4dd2",
       "file_name": "XWM-LL-260421-3-BiCu-All Pore.PDF",
@@ -15623,7 +15623,7 @@
     {
       "file_id": "5e028b554454627e",
       "relative_path": "09_BET/氮气吸附脱附等温曲线/raw_data/20260421/XWM-LL-260421-4-BOBC-4-XIN-All Pore/XWM-LL-260421-4-BOBC-4-XIN-All Pore.PDF",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-4-BOBC-4-XIN-All Pore\\XWM-LL-260421-4-BOBC-4-XIN-All Pore.PDF",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\09_BET\\氮气吸附脱附等温曲线\\raw_data\\20260421\\XWM-LL-260421-4-BOBC-4-XIN-All Pore\\XWM-LL-260421-4-BOBC-4-XIN-All Pore.PDF",
       "absolute_path_hash": "505a190ef76c810d04d015e77e903f22a49cfe00c683109ef7056475aac535c3",
       "source_hash": "902422917bb625424b31b52b34e4a2cf41768f92b1e7528a0c84741365b8f591",
       "file_name": "XWM-LL-260421-4-BOBC-4-XIN-All Pore.PDF",
@@ -15691,7 +15691,7 @@
     {
       "file_id": "6fe4a385d492b300",
       "relative_path": "10_EPR_PL/EPR/origin_project/epr.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\origin_project\\epr.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\EPR\\origin_project\\epr.opju",
       "absolute_path_hash": "5cbbf4ef59c5eefa32e4a848bc8b4117a6b03b595d454dc349a15fe700fcb998",
       "source_hash": "a007b3908b3d85b6fc481df81ef1aca0761b56448307a67644b470b0418b6825",
       "file_name": "epr.opju",
@@ -15760,7 +15760,7 @@
     {
       "file_id": "bf02645922aa69db",
       "relative_path": "10_EPR_PL/PL/origin_project/激发谱发射谱.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\PL\\origin_project\\激发谱发射谱.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\10_EPR_PL\\PL\\origin_project\\激发谱发射谱.opju",
       "absolute_path_hash": "1194a587d3029263a7f2c3779b3dc22eb2a7367f3ffe75df0bc773dffe179f2a",
       "source_hash": "46aa6892157633cae52b37c198af409c66e21d760fa818bb9fac0a5c396a00a4",
       "file_name": "激发谱发射谱.opju",
@@ -15828,7 +15828,7 @@
     {
       "file_id": "0e057bd6fd241b81",
       "relative_path": "11_光反应条件筛选/CL/origin_project/催化剂筛选.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\CL\\origin_project\\催化剂筛选.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\CL\\origin_project\\催化剂筛选.opju",
       "absolute_path_hash": "1bf156b9df599e65072b268aff911ae91824ab7b9879129014135aab6bc80c81",
       "source_hash": "a8715fec5c1d732c0e2cd4871e90525a36de2c6481151fc61a081767fd6b7bea",
       "file_name": "催化剂筛选.opju",
@@ -15895,7 +15895,7 @@
     {
       "file_id": "c23b89d3efe9c473",
       "relative_path": "11_光反应条件筛选/CL/origin_project/循环实验.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\CL\\origin_project\\循环实验.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\CL\\origin_project\\循环实验.opju",
       "absolute_path_hash": "3e71a1c458bc25a1f2e1b09224c9faf15b8dfd21dc155beabe08ef12aa98fcff",
       "source_hash": "72a92342e8da0d281cf063d862af433430e3e3927294340443b614c5a55d4611",
       "file_name": "循环实验.opju",
@@ -15962,7 +15962,7 @@
     {
       "file_id": "b8c772a4f90b2de9",
       "relative_path": "11_光反应条件筛选/CL/origin_project/溶剂筛选.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\CL\\origin_project\\溶剂筛选.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\CL\\origin_project\\溶剂筛选.opju",
       "absolute_path_hash": "dbca64c0fc2c5523a1e7c261c73d58384ae7541e2a10784bd63edbff32d375c7",
       "source_hash": "295826268a96f3e39dc4b14407ece6b2a70625e52ea481e36f31463a84703b36",
       "file_name": "溶剂筛选.opju",
@@ -16029,7 +16029,7 @@
     {
       "file_id": "5a783e9ed002677f",
       "relative_path": "11_光反应条件筛选/CL/origin_project/自由基猝灭.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\CL\\origin_project\\自由基猝灭.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\CL\\origin_project\\自由基猝灭.opju",
       "absolute_path_hash": "4ede143e1d7f21157647e41fc8d8c2841ee56a0754f5d7165243b7184f506184",
       "source_hash": "ba6c7f11f05483f74f2b97f50c93a53187a69761248995d44e84eef5250208b6",
       "file_name": "自由基猝灭.opju",
@@ -16096,7 +16096,7 @@
     {
       "file_id": "c038a05160f05b83",
       "relative_path": "11_光反应条件筛选/origin_project/溶剂筛选.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\origin_project\\溶剂筛选.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\origin_project\\溶剂筛选.opju",
       "absolute_path_hash": "41d143b83e2b64671902f681b1a2d1172a7952a4091a709dae0c9f67f78e6844",
       "source_hash": "ab902c06b6460e3499e93a2673a74e22bfdb10c9321735d6e5cb765c7fc95aed",
       "file_name": "溶剂筛选.opju",
@@ -16163,7 +16163,7 @@
     {
       "file_id": "6f09560e6bb21acf",
       "relative_path": "11_光反应条件筛选/origin_project/自由基捕获.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\origin_project\\自由基捕获.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\origin_project\\自由基捕获.opju",
       "absolute_path_hash": "cbcd12c8440d84851ae15a36f935894e8a8ed6bd49886bdec571b6fa5e83caba",
       "source_hash": "e6b3102eb21818b3a3a1a990279ac855fee60e7071758c3e5e4cf97c99bd9cf1",
       "file_name": "自由基捕获.opju",
@@ -16230,7 +16230,7 @@
     {
       "file_id": "b8e88d398bcd2868",
       "relative_path": "11_光反应条件筛选/标曲/origin_project/BBAD1.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\标曲\\origin_project\\BBAD1.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\标曲\\origin_project\\BBAD1.opju",
       "absolute_path_hash": "eb2a1631997f10a46d2af96ae11dbdc849768810df3100f527b139ab1ff41839",
       "source_hash": "8ac65d1729554efc6ffc2f74556eda067bb3dfb4d4887d230dc6125c470be458",
       "file_name": "BBAD1.opju",
@@ -16297,7 +16297,7 @@
     {
       "file_id": "6ffaecec645c65df",
       "relative_path": "11_光反应条件筛选/标曲/origin_project/BZA2.opju",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\标曲\\origin_project\\BZA2.opju",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\11_光反应条件筛选\\标曲\\origin_project\\BZA2.opju",
       "absolute_path_hash": "868dda4238553b28a0b9643e426a81241d7037ea7dddc103b44223930c6d84e2",
       "source_hash": "d6f25b32d2206d6468f4f100c2b1becb71cdc075d18f5394b25b866efe9a7f96",
       "file_name": "BZA2.opju",
@@ -16364,7 +16364,7 @@
     {
       "file_id": "e44d7475904ba86d",
       "relative_path": "13_反应产物分析_液相_质谱_核磁/液相/11%.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\11%.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\11%.pdf",
       "absolute_path_hash": "6a959ef5f256e0dadae6674392e621c872fa8c9e6f5727903fdda9ba4ac35c02",
       "source_hash": "98634c37def483a9d4b35a5ffa249dbc4f7c8c46c06318b980b8d2cbc2863969",
       "file_name": "11%.pdf",
@@ -16432,7 +16432,7 @@
     {
       "file_id": "9168f144fd40138f",
       "relative_path": "13_反应产物分析_液相_质谱_核磁/液相/5%.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\5%.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\5%.pdf",
       "absolute_path_hash": "52ce6a961a5da69a6ab9924f5d5d6b67e849ce3a8f45ce8b16f0d750c12d757b",
       "source_hash": "40f1f0cbcca9d732ef0cccbb349b6ed51bbd01af6bc2f4a68033b1324bef56b3",
       "file_name": "5%.pdf",
@@ -16500,7 +16500,7 @@
     {
       "file_id": "3a87d26720dcc0cf",
       "relative_path": "13_反应产物分析_液相_质谱_核磁/液相/7%.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\7%.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\7%.pdf",
       "absolute_path_hash": "ccab60fd6356a7a5f68c29bc915bed7112ec1b783ad252edeb9f5bcafc9bfe8e",
       "source_hash": "045f27af2e839dd2b5d00c838f2bb0c37cb2ed18afa77d9a0c556c25034f53ea",
       "file_name": "7%.pdf",
@@ -16568,7 +16568,7 @@
     {
       "file_id": "bd1498100f841652",
       "relative_path": "13_反应产物分析_液相_质谱_核磁/液相/9%.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\9%.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\9%.pdf",
       "absolute_path_hash": "780ea09d242130c7bb2afa335e4bf8c5f57683ee80b99739f4923cf3f04a9ba6",
       "source_hash": "bfc423f507e6a09dee72d10b1604e9d81e2eb52ae34e707871fec1930342a7a0",
       "file_name": "9%.pdf",
@@ -16636,7 +16636,7 @@
     {
       "file_id": "d399be6bbcefadb1",
       "relative_path": "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/15%.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\15%.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\15%.pdf",
       "absolute_path_hash": "42599643c97dec0b087e95aeec9d1e545ebd0e6dc15e133159b09da5e78a2372",
       "source_hash": "68d4288a3a602af9b38cfb88554648e2ba3ce2006862c76cb5dfb40c00006807",
       "file_name": "15%.pdf",
@@ -16704,7 +16704,7 @@
     {
       "file_id": "bb5d0a8be90863f6",
       "relative_path": "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/20%.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\20%.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\20%.pdf",
       "absolute_path_hash": "2217d38acaa50dc5eb2f97d2d22dd11ebbbf08f261585a313fd98c9bc2d42cb8",
       "source_hash": "2acfc2e701a7d9d72f8171fd55faae13ba6560ebc40277d76c0c551e4a42401b",
       "file_name": "20%.pdf",
@@ -16772,7 +16772,7 @@
     {
       "file_id": "0c29100bf9060af4",
       "relative_path": "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/3%.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\3%.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\3%.pdf",
       "absolute_path_hash": "bd733f304faacf32d4666ff50660e25a32834b8dfea54997aa56c1e596b3691a",
       "source_hash": "ccf4e0fdfb74d60742062cdfe6ac59df2c02eee24a58c503d29c258989720650",
       "file_name": "3%.pdf",
@@ -16840,7 +16840,7 @@
     {
       "file_id": "0f020e1f4e19ef1f",
       "relative_path": "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/5%.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\5%.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\5%.pdf",
       "absolute_path_hash": "810768d5b88f00f210ae56b40f965f1d80371ad430aa31e177448dbc6224ceb4",
       "source_hash": "d972438360817466fd99032c1b2f21da3bdb5761c79ce8f93f15aeeea9b3bbbc",
       "file_name": "5%.pdf",
@@ -16908,7 +16908,7 @@
     {
       "file_id": "2964946dbc7c0da2",
       "relative_path": "13_反应产物分析_液相_质谱_核磁/液相/新建文件夹/80%.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\80%.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\13_反应产物分析_液相_质谱_核磁\\液相\\新建文件夹\\80%.pdf",
       "absolute_path_hash": "15e1dfd367a8e9623b34b9d381f1fefefa11cfd39bcb41f45bfa67d84dc417f9",
       "source_hash": "0b7ff5a4fb06ccab27fea8918e64c99366be15eab671b9b6b847fa6cb3c2d006",
       "file_name": "80%.pdf",
@@ -16976,7 +16976,7 @@
     {
       "file_id": "8071ae5d03652b46",
       "relative_path": "14_动力学/动力学/yue/EPR/SI Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\14_动力学\\动力学\\yue\\EPR\\SI Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\14_动力学\\动力学\\yue\\EPR\\SI Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf",
       "absolute_path_hash": "5f4a996d68cdd079919393273bf6f8075030b1408897ceeae653e451181e5174",
       "source_hash": "44a60cb1b59fa06010fd3fa1809709aa4648e38fc85021123bf4937cc4c1ee0c",
       "file_name": "SI Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf",
@@ -17044,7 +17044,7 @@
     {
       "file_id": "b4ad1de6c54d2092",
       "relative_path": "14_动力学/动力学/yue/EPR/使用高级 EPR 探索 S 型异质结界面的电荷转移动力学.pdf",
-      "absolute_path": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530\\14_动力学\\动力学\\yue\\EPR\\使用高级 EPR 探索 S 型异质结界面的电荷转移动力学.pdf",
+      "absolute_path": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530\\14_动力学\\动力学\\yue\\EPR\\使用高级 EPR 探索 S 型异质结界面的电荷转移动力学.pdf",
       "absolute_path_hash": "e2036ff55a3c21e1f3a76c87853dedf4a2d360204c47e40fd06c15c7b4ed2298",
       "source_hash": "7e111b8d261c5b2548d53880b3e518178b5970456fad7cf39c70424e00692abc",
       "file_name": "使用高级 EPR 探索 S 型异质结界面的电荷转移动力学.pdf",

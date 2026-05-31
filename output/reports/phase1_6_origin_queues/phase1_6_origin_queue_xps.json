@@ -1,7 +1,7 @@
 {
   "queue_version": "phase1_6_origin_queue_v1",
   "source_consistency_report": "output/reports/phase1_6_no_origin_result_consistency.json",
-  "source_root": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT\\workspace_data\\LL_detection_copy_20260530",
+  "source_root": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530",
   "data_type": "XPS",
   "origin_mode": "with_origin_explicit_only",
   "items": [],

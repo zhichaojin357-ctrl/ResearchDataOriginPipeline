@@ -42,9 +42,9 @@ def run_origin_batch(project_root: Path, options: OriginBatchOptions) -> int:
 
 
 def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
-    project_root = project_root.resolve()
+    project_root = project_root.absolute()
     manifest_path = _resolve_existing_path(project_root, options.manifest)
-    package_root = manifest_path.parent.resolve()
+    package_root = manifest_path.parent.absolute()
     rows = _read_manifest_rows(manifest_path)
     planned = []
     skipped = []
@@ -199,15 +199,16 @@ def _read_manifest_rows(path: Path) -> list[dict[str, str]]:
 
 def _resolve_existing_path(project_root: Path, raw_path: Path) -> Path:
     path = raw_path if raw_path.is_absolute() else project_root / raw_path
-    resolved = path.resolve()
-    if not resolved.exists():
+    absolute = path.absolute()
+    if not absolute.exists():
         raise FileNotFoundError(f"Manifest not found: {raw_path}")
-    return resolved
+    return absolute
 
 
 def _resolve_artifact_paths(package_root: Path, row: dict[str, str]) -> tuple[list[dict], dict[str, Path]]:
     errors: list[dict] = []
     resolved: dict[str, Path] = {}
+    package_root_resolved = package_root.resolve()
     for field in PACKAGE_ARTIFACT_FIELDS:
         value = (row.get(field) or "").strip()
         if not value:
@@ -216,9 +217,10 @@ def _resolve_artifact_paths(package_root: Path, row: dict[str, str]) -> tuple[li
         if path.is_absolute() or ".." in path.parts:
             errors.append({"field": field, "value": value})
             continue
-        candidate = (package_root / path).resolve()
+        candidate = package_root / path
+        candidate_resolved = candidate.resolve()
         try:
-            candidate.relative_to(package_root)
+            candidate_resolved.relative_to(package_root_resolved)
         except ValueError:
             errors.append({"field": field, "value": value})
             continue
@@ -232,9 +234,10 @@ def _check_source_hash(project_root: Path, package_root: Path, row: dict[str, st
         source_copy = Path(source_copy_value)
         if source_copy.is_absolute() or ".." in source_copy.parts:
             return {"ok": False, "reason": "source_copy_path_traversal_or_absolute"}
-        source_path = (package_root / source_copy).resolve()
+        source_path = package_root / source_copy
+        source_path_resolved = source_path.resolve()
         try:
-            source_path.relative_to(package_root)
+            source_path_resolved.relative_to(package_root.resolve())
         except ValueError:
             return {"ok": False, "reason": "source_copy_resolves_outside_package"}
         if not source_path.exists() or not source_path.is_file():
@@ -256,10 +259,12 @@ def _check_source_hash(project_root: Path, package_root: Path, row: dict[str, st
     source_relative = Path(source_value)
     if source_relative.is_absolute() or ".." in source_relative.parts:
         return {"ok": False, "reason": "source_file_path_traversal_or_absolute"}
-    workspace_root = (project_root / DEFAULT_WORKSPACE_RELATIVE).resolve()
-    source_path = (workspace_root / source_relative).resolve()
+    workspace_root = (project_root / DEFAULT_WORKSPACE_RELATIVE).absolute()
+    workspace_root_resolved = workspace_root.resolve()
+    source_path = workspace_root / source_relative
+    source_path_resolved = source_path.resolve()
     try:
-        source_path.relative_to(workspace_root)
+        source_path_resolved.relative_to(workspace_root_resolved)
     except ValueError:
         return {"ok": False, "reason": "source_file_resolves_outside_workspace"}
     if not source_path.exists() or not source_path.is_file():

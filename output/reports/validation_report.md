@@ -1,7 +1,7 @@
 # Validation Report
 
 - Dependency audit: pass
-- Origin callability: pass (originpro and win32com are importable)
+- Origin callability: skip (Origin disabled by RESEARCHDATAORIGINPIPELINE_DISABLE_ORIGIN=1)
 - Required output directories: pass
 - Required config files: pass
 - Processor registry entries: 19

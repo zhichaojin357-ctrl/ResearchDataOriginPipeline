@@ -1,6 +1,6 @@
 # Phase 1.7 Preview Gallery
 
-- Package: `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT\output\phase1_6_origin_results_20260531_041538`
+- Package: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\phase1_6_origin_results_20260531_041538`
 - Total previews: 167
 - Material color map: `../reports/material_color_assignments.json`
 - Origin visual QC: `../reports/phase1_6_origin_visual_qc.md`

@@ -1,5 +1,5 @@
 [project]
-name = "groupmeetingautoppt"
+name = "researchdataoriginpipeline"
 version = "0.1.0"
 description = "Phase 1 planning scaffold for scientific characterization data processing and Origin export."
 requires-python = ">=3.10"
