@@ -85,6 +85,27 @@ class Phase11ProcessCliTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 run_process(project, raw, ProcessOptions(no_origin=True, with_origin=True))
 
+    def test_process_rejects_auto_select_with_origin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = project / "input" / "raw_data"
+            raw.mkdir(parents=True)
+
+            with self.assertRaises(ValueError):
+                run_process(project, raw, ProcessOptions(auto_select=True, with_origin=True))
+
+    def test_process_rejects_auto_select_with_explicit_queue(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = project / "input" / "raw_data"
+            raw.mkdir(parents=True)
+            queue = project / "output" / "reports" / "processing_queue.json"
+            queue.parent.mkdir(parents=True)
+            queue.write_text('{"items": []}', encoding="utf-8")
+
+            with self.assertRaises(ValueError):
+                run_process(project, raw, ProcessOptions(auto_select=True, from_queue=queue))
+
     def test_cli_rejects_no_origin_with_origin_conflict(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
@@ -104,6 +125,121 @@ class Phase11ProcessCliTest(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("not allowed with argument", result.stderr)
+
+    def test_cli_reports_auto_select_with_origin_without_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = self._copy_project_inputs(project)
+
+            result = run_cli(
+                "process",
+                "--input",
+                str(raw),
+                "--config",
+                str(project / "config" / "default.yaml"),
+                "--auto-select",
+                "--with-origin",
+                "--force",
+                cwd=project,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("--auto-select cannot be combined with --with-origin", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+
+    def test_cli_reports_missing_queue_file_without_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = project / "input" / "raw_data"
+            (raw / "XRD").mkdir(parents=True)
+            (raw / "XRD" / "sample.csv").write_text("2theta,intensity\n10,1\n", encoding="utf-8")
+            missing_queue = project / "output" / "reports" / "missing_queue.json"
+
+            result = run_cli(
+                "process",
+                "--input",
+                str(raw),
+                "--from-queue",
+                str(missing_queue),
+                "--no-origin",
+                cwd=project,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("missing_queue.json", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+
+    def test_cli_reports_invalid_queue_json_shape_without_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = project / "input" / "raw_data"
+            (raw / "XRD").mkdir(parents=True)
+            (raw / "XRD" / "sample.csv").write_text("2theta,intensity\n10,1\n", encoding="utf-8")
+            queue = project / "output" / "reports" / "bad_queue.json"
+            queue.parent.mkdir(parents=True)
+            queue.write_text("[]", encoding="utf-8")
+
+            result = run_cli(
+                "process",
+                "--input",
+                str(raw),
+                "--from-queue",
+                str(queue),
+                "--no-origin",
+                cwd=project,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("queue JSON must be an object", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+
+    def test_cli_reports_invalid_queue_items_shape_without_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = project / "input" / "raw_data"
+            (raw / "XRD").mkdir(parents=True)
+            (raw / "XRD" / "sample.csv").write_text("2theta,intensity\n10,1\n", encoding="utf-8")
+            queue = project / "output" / "reports" / "bad_queue.json"
+            queue.parent.mkdir(parents=True)
+            queue.write_text('{"items": {}}', encoding="utf-8")
+
+            result = run_cli(
+                "process",
+                "--input",
+                str(raw),
+                "--from-queue",
+                str(queue),
+                "--no-origin",
+                cwd=project,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("queue JSON items must be a list", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+
+    def test_cli_reports_non_object_queue_item_without_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = project / "input" / "raw_data"
+            (raw / "XRD").mkdir(parents=True)
+            (raw / "XRD" / "sample.csv").write_text("2theta,intensity\n10,1\n", encoding="utf-8")
+            queue = project / "output" / "reports" / "bad_queue.json"
+            queue.parent.mkdir(parents=True)
+            queue.write_text('{"items": ["not-an-object"]}', encoding="utf-8")
+
+            result = run_cli(
+                "process",
+                "--input",
+                str(raw),
+                "--from-queue",
+                str(queue),
+                "--no-origin",
+                cwd=project,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("queue JSON item 1 must be an object", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
 
     def test_with_origin_failure_is_recorded_as_origin_export_failure(self):
         with tempfile.TemporaryDirectory() as tmp:

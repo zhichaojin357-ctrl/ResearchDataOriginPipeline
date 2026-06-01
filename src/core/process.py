@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import csv
 from dataclasses import dataclass, replace
 from pathlib import Path
 
 from src.processors.base import process_table_dataset
 from src.scanner.scanner import scan_raw_data
 from src.core.project import output_dir, report_path
+from src.core.runtime_paths import resolve_phase1_6_index
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,7 @@ class ProcessOptions:
 
 def run_process(project_root: Path, input_path: Path, options: ProcessOptions | None = None) -> int:
     options = _normalize_origin_mode(options or ProcessOptions())
+    _validate_process_mode(options)
     if options.auto_select and options.from_queue is None:
         from src.core.triage import TriageOptions, run_triage
 
@@ -138,18 +141,53 @@ def _normalize_origin_mode(options: ProcessOptions) -> ProcessOptions:
     return replace(options, no_origin=True)
 
 
+def _validate_process_mode(options: ProcessOptions) -> None:
+    if options.auto_select and options.with_origin:
+        raise ValueError("--auto-select cannot be combined with --with-origin; build and review an explicit queue first.")
+    if options.auto_select and options.from_queue is not None:
+        raise ValueError("--auto-select cannot be combined with --from-queue; use one queue source explicitly.")
+
+
 def _selected_queue_items(project_root: Path, input_path: Path, options: ProcessOptions) -> list[tuple[dict, Path, dict]]:
     from src.core.metadata import file_hash
     from src.core.project import load_json_compatible_yaml, registry_path
 
     queue_path = options.from_queue if options.from_queue.is_absolute() else project_root / options.from_queue
     queue = json.loads(queue_path.read_text(encoding="utf-8"))
+    if not isinstance(queue, dict):
+        raise ValueError(f"queue JSON must be an object with an items list: {queue_path}")
+    queue_items = queue.get("items", [])
+    if not isinstance(queue_items, list):
+        raise ValueError(f"queue JSON items must be a list: {queue_path}")
+    for index, item in enumerate(queue_items, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"queue JSON item {index} must be an object: {queue_path}")
     registry = load_json_compatible_yaml(registry_path(project_root))
     by_type = {entry["inferred_data_type"]: entry for entry in registry["entries"]}
+    raw_queue_duplicate_items = _raw_queue_phase1_6_duplicate_items(project_root, queue_path, queue)
+    if raw_queue_duplicate_items:
+        message = (
+            "raw output/reports/processing_queue.json contains source hashes already represented in the "
+            "Phase 1.6 Origin package; run `run.py auto-queue` and process "
+            "output/reports/phase1_8_new_auto_process_queue.json instead"
+        )
+        blocked = []
+        for item in raw_queue_duplicate_items:
+            source, _ = _resolve_queue_source(input_path, item)
+            blocked.append((_classification_for_queue_item(item, by_type), source, _triage_from_queue_item(item, stale=True, message=message)))
+        return blocked
     selected = []
     for item in queue.get("items", []):
         decision = item.get("decision")
         if decision != "AUTO_PROCESS" and not (options.include_ambiguous and decision == "MANUAL_REVIEW"):
+            continue
+        if decision == "MANUAL_REVIEW" and options.include_ambiguous and not _manual_review_queue_provenance_ok(item):
+            source, _ = _resolve_queue_source(input_path, item)
+            selected.append((
+                _classification_for_queue_item(item, by_type),
+                source,
+                _triage_from_queue_item(item, stale=True, message="manual review queue item requires promotion provenance before --include-ambiguous processing"),
+            ))
             continue
         if options.only_type and _normalize(str(item.get("data_type"))) != _normalize(options.only_type):
             continue
@@ -158,6 +196,10 @@ def _selected_queue_items(project_root: Path, input_path: Path, options: Process
         source, source_error = _resolve_queue_source(input_path, item)
         if source_error:
             selected.append((_classification_for_queue_item(item, by_type), source, _triage_from_queue_item(item, stale=True, message=source_error)))
+            continue
+        registry_error = _queue_registry_error(item, by_type)
+        if registry_error:
+            selected.append((_classification_for_queue_item(item, by_type), source, _triage_from_queue_item(item, stale=True, message=registry_error)))
             continue
         if options.with_origin and item.get("origin_export_allowed") is not True:
             selected.append((
@@ -178,6 +220,28 @@ def _selected_queue_items(project_root: Path, input_path: Path, options: Process
             continue
         selected.append((_classification_for_queue_item(item, by_type), source, _triage_from_queue_item(item)))
     return selected
+
+
+def _raw_queue_phase1_6_duplicate_items(project_root: Path, queue_path: Path, queue: dict) -> list[dict]:
+    default_queue = report_path(project_root, "processing_queue.json").resolve()
+    if queue_path.resolve() != default_queue:
+        return []
+    processed_hashes = _phase1_6_processed_hashes(project_root)
+    if not processed_hashes:
+        return []
+    return [
+        item
+        for item in queue.get("items", [])
+        if str(item.get("source_hash", "")).strip() in processed_hashes
+    ]
+
+
+def _phase1_6_processed_hashes(project_root: Path) -> set[str]:
+    index = resolve_phase1_6_index(project_root)
+    if not index.is_file():
+        return set()
+    with index.open("r", encoding="utf-8-sig", newline="") as handle:
+        return {str(row.get("source_hash", "")).strip() for row in csv.DictReader(handle) if str(row.get("source_hash", "")).strip()}
 
 
 def _resolve_queue_source(input_path: Path, item: dict) -> tuple[Path, str | None]:
@@ -216,8 +280,30 @@ def _classification_for_queue_item(item: dict, by_type: dict[str, dict]) -> dict
     return {
         "inferred_data_type": data_type,
         "selected_processor": item.get("selected_processor") or entry.get("selected_processor", "none"),
-        "supported_in_phase_1": bool(entry.get("supported_in_phase_1", True)),
+        "supported_in_phase_1": bool(entry.get("supported_in_phase_1", False)),
     }
+
+
+def _queue_registry_error(item: dict, by_type: dict[str, dict]) -> str | None:
+    data_type = str(item.get("data_type", "")).strip()
+    entry = by_type.get(data_type)
+    if entry is None:
+        return f"queue data_type is not in processor registry: {data_type}"
+    if entry.get("supported_in_phase_1") is not True:
+        return f"queue data_type is not supported in Phase 1: {data_type}"
+    expected_processor = str(entry.get("selected_processor", "none"))
+    actual_processor = str(item.get("selected_processor") or expected_processor)
+    if actual_processor != expected_processor:
+        return f"queue selected_processor does not match processor registry for {data_type}: {actual_processor} != {expected_processor}"
+    return None
+
+
+def _manual_review_queue_provenance_ok(item: dict) -> bool:
+    if item.get("original_triage_decision") != "MANUAL_REVIEW":
+        return False
+    if not str(item.get("promoted_by_phase", "")).strip():
+        return False
+    return item.get("promoted_from_manual_review") is True or item.get("current_decision") == "USER_APPROVED_NO_ORIGIN_QUEUE"
 
 
 def _triage_from_queue_item(item: dict, *, stale: bool = False, message: str | None = None) -> dict:

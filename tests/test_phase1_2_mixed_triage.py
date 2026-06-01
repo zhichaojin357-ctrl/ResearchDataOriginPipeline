@@ -274,6 +274,50 @@ class Phase12MixedTriageTest(unittest.TestCase):
             self.assertEqual(triage["promotion_rule"], "test_rule")
             self.assertEqual(triage["traceability_group_path"], "XRD")
 
+    def test_include_ambiguous_requires_manual_review_promotion_provenance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw_root = project / "input" / "raw_data"
+            raw = raw_root / "XRD"
+            raw.mkdir(parents=True)
+            source = raw / "manual_unreviewed.csv"
+            write_xrd(source, rows=3)
+            queue_path = project / "output" / "reports" / "unreviewed_manual_queue.json"
+            queue_path.parent.mkdir(parents=True)
+            queue_path.write_text(
+                json.dumps(
+                    {
+                        "items": [
+                            {
+                                "queue_id": "manual_unreviewed_001",
+                                "relative_path": "XRD/manual_unreviewed.csv",
+                                "source_hash": file_hash(source),
+                                "data_type": "XRD",
+                                "selected_processor": "xrd_processor",
+                                "decision": "MANUAL_REVIEW",
+                                "confidence_score": 0.6,
+                                "validity_score": 0.8,
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+
+            code = run_process(
+                project,
+                raw_root,
+                ProcessOptions(no_origin=True, include_ambiguous=True, from_queue=queue_path, force=True),
+            )
+
+            self.assertEqual(code, 2)
+            self.assertEqual(list((project / "output" / "metadata").rglob("metadata.json")), [])
+            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
+            self.assertIn("manual review queue item requires promotion provenance", failures["failures"][0]["error_message"])
+
     def test_processing_summary_reports_missing_no_origin_artifact_files(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
@@ -361,6 +405,57 @@ class Phase12MixedTriageTest(unittest.TestCase):
             self.assertEqual(failures["failures"][0]["triage_decision"], "AUTO_PROCESS")
             self.assertTrue(failures["failures"][0]["whether_retry_with_manual_override_is_possible"])
 
+    def test_process_blocks_raw_queue_when_phase1_6_processed_hashes_are_present(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = project / "input" / "raw_data" / "XRD"
+            raw.mkdir(parents=True)
+            source = raw / "synthetic_xrd.csv"
+            write_xrd(source)
+            run_triage(project, project / "input" / "raw_data", TriageOptions(min_confidence=0.75))
+            phase1_6 = project / "output" / "phase1_6_origin_results_20260531_041538"
+            phase1_6.mkdir(parents=True)
+            (phase1_6 / "index.csv").write_text(f"source_hash\n{file_hash(source)}\n", encoding="utf-8")
+
+            code = run_process(
+                project,
+                project / "input" / "raw_data",
+                ProcessOptions(
+                    no_origin=True,
+                    from_queue=project / "output" / "reports" / "processing_queue.json",
+                    force=True,
+                ),
+            )
+
+            self.assertEqual(code, 2)
+            self.assertEqual(list((project / "output" / "metadata").rglob("metadata.json")), [])
+            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
+            self.assertIn("phase1_8_new_auto_process_queue.json", failures["failures"][0]["error_message"])
+
+    def test_auto_select_blocks_phase1_6_processed_hashes_from_raw_queue(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = project / "input" / "raw_data" / "XRD"
+            raw.mkdir(parents=True)
+            source = raw / "synthetic_xrd.csv"
+            write_xrd(source)
+            phase1_6 = project / "output" / "phase1_6_origin_results_20260531_041538"
+            phase1_6.mkdir(parents=True)
+            (phase1_6 / "index.csv").write_text(f"source_hash\n{file_hash(source)}\n", encoding="utf-8")
+
+            code = run_process(
+                project,
+                project / "input" / "raw_data",
+                ProcessOptions(no_origin=True, auto_select=True, force=True),
+            )
+
+            self.assertEqual(code, 2)
+            self.assertEqual(list((project / "output" / "metadata").rglob("metadata.json")), [])
+            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
+            self.assertIn("phase1_8_new_auto_process_queue.json", failures["failures"][0]["error_message"])
+
     def test_process_from_queue_reports_missing_source_hash_without_processing(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
@@ -389,6 +484,45 @@ class Phase12MixedTriageTest(unittest.TestCase):
             failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertIn("source hash missing", failures["failures"][0]["error_message"])
+
+    def test_process_from_queue_blocks_unknown_registry_data_type(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = project / "input" / "raw_data" / "Unknown"
+            raw.mkdir(parents=True)
+            source = raw / "synthetic_unknown.csv"
+            source.write_text("x,y\n1,2\n3,4\n", encoding="utf-8")
+            queue_path = project / "output" / "reports" / "unknown_queue.json"
+            queue_path.parent.mkdir(parents=True)
+            queue_path.write_text(
+                json.dumps(
+                    {
+                        "items": [
+                            {
+                                "queue_id": "unknown_001",
+                                "relative_path": "Unknown/synthetic_unknown.csv",
+                                "source_hash": file_hash(source),
+                                "data_type": "unknown_numeric_type",
+                                "selected_processor": "unknown_processor",
+                                "decision": "AUTO_PROCESS",
+                                "confidence_score": 1.0,
+                                "validity_score": 1.0,
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+
+            code = run_process(project, project / "input" / "raw_data", ProcessOptions(no_origin=True, from_queue=queue_path, force=True))
+
+            self.assertEqual(code, 2)
+            self.assertEqual(list((project / "output" / "metadata").rglob("metadata.json")), [])
+            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
+            self.assertIn("not in processor registry", failures["failures"][0]["error_message"])
 
     def test_process_from_queue_rejects_absolute_path_outside_input_root(self):
         with tempfile.TemporaryDirectory() as tmp:

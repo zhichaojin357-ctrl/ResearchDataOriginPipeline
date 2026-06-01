@@ -6,9 +6,12 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+import pytest
+
 from src.core.reviewed_queue import (
     APPROVE_DECISION,
     ReviewedQueueOptions,
+    TEMPLATE_FIELDS,
     load_proposals,
     plan_reviewed_queue,
     run_reviewed_queue,
@@ -53,6 +56,19 @@ def test_blank_decisions_create_zero_queue_items(tmp_path: Path, project_root: P
     assert plan["summary"]["skipped_count"] == 3
     assert plan["summary"]["will_launch_origin"] is False
     assert plan["summary"]["will_run_process"] is False
+
+
+def test_reviewed_queue_plan_records_input_hashes(tmp_path: Path, project_root: Path):
+    fixture = _make_fixture(tmp_path)
+    proposals = load_proposals(project_root, fixture.proposals)
+    decisions = _make_decisions(tmp_path, proposals, {})
+
+    plan = _plan(project_root, fixture, decisions)
+
+    assert plan["input_hashes"] == {
+        "proposals_sha256": _sha256(fixture.proposals),
+        "decisions_sha256": _sha256(decisions),
+    }
 
 
 def test_explicit_medium_risk_approval_creates_dry_run_queue_item(tmp_path: Path, project_root: Path):
@@ -150,6 +166,56 @@ def test_path_traversal_blocks_approved_row(tmp_path: Path, project_root: Path):
     assert plan["blocked_items"][0]["status"] == "BLOCKED_POLICY"
 
 
+def test_composite_forbidden_type_blocks_approved_row(tmp_path: Path, project_root: Path):
+    fixture = _make_fixture(tmp_path)
+    proposals = load_proposals(project_root, fixture.proposals)
+    for proposal in proposals:
+        if proposal["proposal_id"] == "P18-002":
+            proposal["proposed_data_type"] = "SEM/TEM/NMR/MS"
+            proposal["proposed_processor"] = "none"
+    decisions = _make_decisions(tmp_path, proposals, {"P18-002": _approval()})
+
+    plan = plan_reviewed_queue(
+        project_root,
+        proposals,
+        ReviewedQueueOptions(
+            proposals=fixture.proposals,
+            decisions=decisions,
+            workspace_root=fixture.workspace_root,
+            triage_manifest=fixture.triage_manifest,
+            processed_index=fixture.processed_index,
+        ),
+    )
+
+    assert plan["blocked_items"][0]["status"] == "BLOCKED_POLICY"
+    assert "forbidden_data_type" in plan["blocked_items"][0]["reason"]
+
+
+def test_chinese_kinetics_type_blocks_approved_row(tmp_path: Path, project_root: Path):
+    fixture = _make_fixture(tmp_path)
+    proposals = load_proposals(project_root, fixture.proposals)
+    for proposal in proposals:
+        if proposal["proposal_id"] == "P18-002":
+            proposal["proposed_data_type"] = "动力学"
+            proposal["proposed_processor"] = "none"
+    decisions = _make_decisions(tmp_path, proposals, {"P18-002": _approval()})
+
+    plan = plan_reviewed_queue(
+        project_root,
+        proposals,
+        ReviewedQueueOptions(
+            proposals=fixture.proposals,
+            decisions=decisions,
+            workspace_root=fixture.workspace_root,
+            triage_manifest=fixture.triage_manifest,
+            processed_index=fixture.processed_index,
+        ),
+    )
+
+    assert plan["blocked_items"][0]["status"] == "BLOCKED_POLICY"
+    assert plan["blocked_items"][0]["reason"] == "forbidden_data_type:动力学"
+
+
 def test_current_triage_drift_blocks_approved_row(tmp_path: Path, project_root: Path):
     fixture = _make_fixture(tmp_path, triage_decision_override={"P18-002": "DUPLICATE_SUPPRESSED"})
     proposals = load_proposals(project_root, fixture.proposals)
@@ -158,6 +224,81 @@ def test_current_triage_drift_blocks_approved_row(tmp_path: Path, project_root: 
     plan = _plan(project_root, fixture, decisions)
 
     assert plan["blocked_items"][0]["status"] == "BLOCKED_STALE_PROPOSAL"
+
+
+def test_reviewed_queue_blocks_duplicate_decision_csv_headers(tmp_path: Path, project_root: Path):
+    fixture = _make_fixture(tmp_path)
+    decisions = tmp_path / "duplicate_headers.csv"
+    decisions.write_text(
+        "proposal_id,proposal_id,relative_path,source_hash,proposed_data_type,proposed_processor,risk_level,reason,recommended_action,user_decision,high_risk_ack,folder_header_conflict_ack,approved_by,approval_date,user_notes\n"
+        "P18-001,P18-002,phase1_8_fixture/uvvis.txt,hash,UV-vis DRS,uvvis_drs_processor,medium,reason,user_review_before_phase1_8_queue,approve_for_no_origin_queue,,,user,2026-05-31,\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="duplicate decision CSV header"):
+        _plan(project_root, fixture, decisions)
+
+
+def test_reviewed_queue_blocks_missing_required_decision_headers(tmp_path: Path, project_root: Path):
+    fixture = _make_fixture(tmp_path)
+    decisions = tmp_path / "missing_headers.csv"
+    decisions.write_text(
+        "proposal_id,relative_path,source_hash,user_decision\n"
+        "P18-002,phase1_8_fixture/uvvis.txt,hash,approve_for_no_origin_queue\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="missing decision CSV headers"):
+        _plan(project_root, fixture, decisions)
+
+
+def test_reviewed_queue_blocks_unknown_decision_csv_columns(tmp_path: Path, project_root: Path):
+    fixture = _make_fixture(tmp_path)
+    proposals = load_proposals(project_root, fixture.proposals)
+    decisions = _make_decisions(tmp_path, proposals, {"P18-002": _approval()})
+    text = decisions.read_text(encoding="utf-8")
+    header, rest = text.split("\n", 1)
+    decisions.write_text(f"{header},surprise\n{rest}", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unknown decision CSV headers"):
+        _plan(project_root, fixture, decisions)
+
+
+def test_reviewed_queue_blocks_blank_extra_decision_csv_header(tmp_path: Path, project_root: Path):
+    fixture = _make_fixture(tmp_path)
+    proposals = load_proposals(project_root, fixture.proposals)
+    decisions = _make_decisions(tmp_path, proposals, {"P18-002": _approval()})
+    text = decisions.read_text(encoding="utf-8")
+    header, rest = text.split("\n", 1)
+    decisions.write_text(f"{header},\n{rest}", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="blank decision CSV header"):
+        _plan(project_root, fixture, decisions)
+
+
+def test_reviewed_queue_blocks_blank_proposal_id_rows(tmp_path: Path, project_root: Path):
+    fixture = _make_fixture(tmp_path)
+    proposals = load_proposals(project_root, fixture.proposals)
+    decisions = _make_decisions(tmp_path, proposals, {"P18-002": _approval()})
+    with decisions.open("a", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(TEMPLATE_FIELDS))
+        writer.writerow({"proposal_id": "", "user_decision": APPROVE_DECISION})
+
+    with pytest.raises(ValueError, match="blank proposal_id"):
+        _plan(project_root, fixture, decisions)
+
+
+def test_reviewed_queue_blocks_malformed_csv_as_parse_error(tmp_path: Path, project_root: Path):
+    fixture = _make_fixture(tmp_path)
+    decisions = tmp_path / "malformed.csv"
+    decisions.write_text(
+        ",".join(TEMPLATE_FIELDS) + "\n"
+        'P18-002,phase1_8_fixture/uvvis.txt,"unterminated\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="malformed decision CSV"):
+        _plan(project_root, fixture, decisions)
 
 
 def test_reviewed_queue_cli_help_and_blank_dry_run(project_root: Path):
@@ -188,6 +329,99 @@ def test_reviewed_queue_cli_help_and_blank_dry_run(project_root: Path):
     assert payload["summary"]["approved_count"] == 0
     assert payload["summary"]["will_launch_origin"] is False
     assert payload["summary"]["will_run_process"] is False
+
+
+def test_reviewed_queue_cli_reports_missing_proposals_without_traceback(project_root: Path):
+    result = subprocess.run(
+        [
+            "D:\\Python\\python.exe",
+            "run.py",
+            "reviewed-queue",
+            "--proposals",
+            "output/reports/missing_phase1_8_proposals.json",
+            "--write-template",
+        ],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "missing_phase1_8_proposals.json" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_reviewed_queue_cli_reports_invalid_proposals_shape_without_traceback(tmp_path: Path, project_root: Path):
+    proposals = tmp_path / "bad_proposals.json"
+    proposals.write_text("[]", encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            "D:\\Python\\python.exe",
+            "run.py",
+            "reviewed-queue",
+            "--proposals",
+            str(proposals),
+            "--write-template",
+        ],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "proposal JSON must be an object" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_reviewed_queue_cli_reports_invalid_proposals_items_without_traceback(tmp_path: Path, project_root: Path):
+    proposals = tmp_path / "bad_proposals_items.json"
+    proposals.write_text('{"items": {}}', encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            "D:\\Python\\python.exe",
+            "run.py",
+            "reviewed-queue",
+            "--proposals",
+            str(proposals),
+            "--write-template",
+        ],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "proposal JSON items must be a list" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_reviewed_queue_cli_reports_non_object_proposal_item_without_traceback(tmp_path: Path, project_root: Path):
+    proposals = tmp_path / "bad_proposals_item.json"
+    proposals.write_text('{"items": ["not-an-object"]}', encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            "D:\\Python\\python.exe",
+            "run.py",
+            "reviewed-queue",
+            "--proposals",
+            str(proposals),
+            "--write-template",
+        ],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "proposal JSON item 1 must be an object" in result.stderr
+    assert "Traceback" not in result.stderr
 
 
 def test_reviewed_queue_module_does_not_import_origin_or_process(project_root: Path):

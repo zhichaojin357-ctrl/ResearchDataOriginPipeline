@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -69,6 +70,21 @@ def test_manifest_runner_dry_run_skips_completed_items_and_does_not_launch_origi
     assert plan["skipped_items"][0]["reason"] == "already_complete"
 
 
+def test_manifest_runner_uses_package_source_copy_hash_when_manifest_lacks_source_copy(tmp_path: Path, project_root: Path):
+    package = _make_manifest_package(tmp_path, project_root, complete=True)
+    rows = list(csv.DictReader((package / "index.csv").open(encoding="utf-8")))
+    for row in rows:
+        row.pop("source_copy", None)
+        row["source_file"] = "source/path/that/no/longer/exists.txt"
+    _rewrite_manifest(package / "index.csv", rows)
+
+    plan = plan_origin_batch(project_root, OriginBatchOptions(manifest=package / "index.csv"))
+
+    assert plan["summary"]["blocked_count"] == 0
+    assert plan["summary"]["skipped_count"] == 1
+    assert plan["skipped_items"][0]["reason"] == "already_complete"
+
+
 def test_manifest_runner_only_type_filters_items(tmp_path: Path, project_root: Path):
     package = _make_manifest_package(tmp_path, project_root, complete=False, data_type="XPS")
     _append_manifest_row(package / "index.csv", package, project_root, data_type="EIS", result_id="EIS_done")
@@ -122,8 +138,6 @@ def test_manifest_runner_writes_default_reports(tmp_path: Path, project_root: Pa
 
 
 def test_origin_batch_help_documents_dry_run_default(project_root: Path):
-    import subprocess
-
     result = subprocess.run(
         ["D:\\Python\\python.exe", "run.py", "origin-batch", "--help"],
         cwd=project_root,
@@ -135,6 +149,113 @@ def test_origin_batch_help_documents_dry_run_default(project_root: Path):
     assert "--manifest" in result.stdout
     assert "--dry-run" in result.stdout
     assert "--with-origin" in result.stdout
+
+
+def test_origin_batch_cli_reports_missing_manifest_headers_without_traceback(tmp_path: Path, project_root: Path):
+    manifest = tmp_path / "bad_manifest.csv"
+    manifest.write_text(
+        "result_id,data_type,processed_csv,metadata,origin_file,figure_tif,preview_png,origin_status,qc_status\n"
+        "item,EIS,processed.csv,metadata.json,item.opju,item.tif,item.png,success,QC_PASS\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "manifest CSV missing required headers" in result.stderr
+    assert "source_hash" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_origin_batch_cli_reports_duplicate_manifest_headers_without_traceback(tmp_path: Path, project_root: Path):
+    manifest = tmp_path / "duplicate_manifest.csv"
+    manifest.write_text(
+        "result_id,result_id,data_type,source_file,source_hash,processed_csv,metadata,origin_file,figure_tif,preview_png,origin_status,qc_status\n"
+        "item,item2,EIS,source.csv,hash,processed.csv,metadata.json,item.opju,item.tif,item.png,success,QC_PASS\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "manifest CSV duplicate header" in result.stderr
+    assert "result_id" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_origin_batch_cli_reports_missing_source_locator_header_without_traceback(tmp_path: Path, project_root: Path):
+    manifest = tmp_path / "missing_source_locator_manifest.csv"
+    manifest.write_text(
+        "result_id,data_type,source_hash,processed_csv,metadata,origin_file,figure_tif,preview_png,origin_status,qc_status\n"
+        "item,EIS,hash,processed.csv,metadata.json,item.opju,item.tif,item.png,success,QC_PASS\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "manifest CSV must include one source locator header" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_origin_batch_cli_reports_extra_manifest_columns_without_traceback(tmp_path: Path, project_root: Path):
+    manifest = tmp_path / "extra_columns_manifest.csv"
+    manifest.write_text(
+        "result_id,data_type,source_file,source_hash,processed_csv,metadata,origin_file,figure_tif,preview_png,origin_status,qc_status\n"
+        "item,EIS,source.csv,hash,processed.csv,metadata.json,item.opju,item.tif,item.png,success,QC_PASS,extra\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "manifest CSV row 2 has 12 columns; expected 11" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_origin_batch_cli_reports_short_manifest_rows_without_traceback(tmp_path: Path, project_root: Path):
+    manifest = tmp_path / "short_row_manifest.csv"
+    manifest.write_text(
+        "result_id,data_type,source_file,source_hash,processed_csv,metadata,origin_file,figure_tif,preview_png,origin_status,qc_status\n"
+        "item,EIS,source.csv,hash,processed.csv,metadata.json,item.opju,item.tif,item.png,success\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "manifest CSV row 2 has 10 columns; expected 11" in result.stderr
+    assert "Traceback" not in result.stderr
 
 
 def _make_manifest_package(

@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.cli import build_parser
 from src.core.metadata import write_metadata
 from src.core.project import REQUIRED_OUTPUT_DIRS
 
@@ -27,6 +28,18 @@ def run_cli(*args, cwd=ROOT):
 
 
 class Phase1ContractsTest(unittest.TestCase):
+    def test_readiness_cli_defaults_to_desktop_review_workbook_check(self):
+        args = build_parser().parse_args(["readiness"])
+
+        self.assertEqual(args.command, "readiness")
+        self.assertEqual(args.desktop_review_xlsx, Path.home() / "Desktop" / "phase1_8_manual_review_required_filtered.xlsx")
+
+    def test_readiness_cli_can_skip_desktop_review_workbook_check(self):
+        args = build_parser().parse_args(["readiness", "--no-desktop-review-xlsx"])
+
+        self.assertEqual(args.command, "readiness")
+        self.assertTrue(args.no_desktop_review_xlsx)
+
     def test_scan_classifies_required_folders_without_touching_raw_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
@@ -77,6 +90,45 @@ class Phase1ContractsTest(unittest.TestCase):
             unclassified = project / "output" / "unclassified" / "unclassified_manifest.json"
             self.assertTrue(unclassified.exists())
             self.assertEqual(source.read_text(encoding="utf-8"), "a,b\n1,2\n")
+
+    def test_scan_cli_reports_missing_input_directory_without_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            missing = project / "missing_raw_data"
+
+            result = run_cli("scan", "--input", str(missing), cwd=project)
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("input directory does not exist", result.stderr)
+            self.assertIn("missing_raw_data", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertFalse((project / "output").exists())
+
+    def test_triage_cli_reports_missing_input_directory_without_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            missing = project / "missing_raw_data"
+
+            result = run_cli("triage", "--input", str(missing), cwd=project)
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("input directory does not exist", result.stderr)
+            self.assertIn("missing_raw_data", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertFalse((project / "output").exists())
+
+    def test_process_cli_reports_missing_input_directory_without_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            missing = project / "missing_raw_data"
+
+            result = run_cli("process", "--input", str(missing), "--no-origin", cwd=project)
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("input directory does not exist", result.stderr)
+            self.assertIn("missing_raw_data", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertFalse((project / "output").exists())
 
     def test_scan_matches_nested_and_multiple_known_folders_and_reports_unsupported_extensions(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -388,6 +440,37 @@ class Phase1ContractsTest(unittest.TestCase):
             report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
             self.assertIn("Kinetics processor paths: fail", report)
             self.assertIn("src\\processors\\kinetics\\__init__.py", report)
+
+    def test_validate_rejects_deferred_registry_entries_with_processors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            config = project / "config"
+            config.mkdir()
+            for name in [
+                "default.yaml",
+                "processor_registry.yaml",
+                "claim_policy.yaml",
+                "plot_style.yaml",
+                "sample_registry.yaml",
+                "manual_overrides.yaml",
+            ]:
+                (config / name).write_text((ROOT / "config" / name).read_text(encoding="utf-8"), encoding="utf-8")
+            registry_path = config / "processor_registry.yaml"
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+            for entry in registry["entries"]:
+                if entry["inferred_data_type"] == "NMR":
+                    entry["selected_processor"] = "nmr_processor"
+                if entry["folder_name"] == "动力学":
+                    entry["special_handling"] = "process_when_present"
+            registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2), encoding="utf-8")
+
+            result = run_cli("validate", cwd=project)
+
+            self.assertEqual(result.returncode, 1)
+            report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+            self.assertIn("deferred/reference registry semantics", report)
+            self.assertIn("NMR", report)
+            self.assertIn("动力学", report)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
 - Exported EPR/ESR spectra with magnetic field and intensity columns.
+- JEOL JES-FA/JES-X3 `cAcqu` raw files with no extension when the binary header is verified.
 
 ## Automatic Recognition Signals
 - Folder/name keywords: `EPR`, `ESR`, `spin trap`.
@@ -10,12 +11,19 @@
 - Metadata keywords: `microwave frequency`, `frequency`, `GHz`.
 
 ## Basic Processing Flow
-1. Read exported field-intensity table.
+1. Read exported field-intensity table, or decode verified JEOL `cAcqu` raw files to a field-intensity table.
 2. Detect magnetic-field and intensity columns.
 3. Sort by field and preserve original signal scale.
 4. Apply optional baseline correction only when configured.
 5. Plot field-intensity spectrum in Origin.
 6. Save `.opju`, 600 dpi `.tif`, processed CSV, and `metadata.json`.
+
+## JEOL cAcqu Raw Decode
+- Only enable this path when the file header identifies a JEOL JES-FA/JES-X3 `cAcqu` file.
+- Read CH1 from offset 9500 as little-endian float32 values.
+- For 65536-point acquisitions, export 4096 points by averaging each consecutive block of 16 CH1 values.
+- Use only two columns after decode: `magnetic field` and `intensity`.
+- Do not infer radical identity from decoded spectra.
 
 ## Automatic Calculations Allowed
 - Peak-to-peak intensity candidate.

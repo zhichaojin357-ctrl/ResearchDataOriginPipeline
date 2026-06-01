@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 from src.core.project import _parse_simple_yaml
+from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern
 
 
 ORIGIN_DISABLE_ENV_VARS = (
@@ -474,11 +475,7 @@ def build_origin_plot_job(
     for directory in (origin_dir, tif_dir, preview_dir, job_dir):
         directory.mkdir(parents=True, exist_ok=True)
 
-    reference_search_pattern = _read_plot_style_value(
-        project_root,
-        "reference_search_pattern",
-        r"D:\OriginFlies\Manual Save\CWO+BOBC+*.opju",
-    )
+    reference_search_pattern = resolve_origin_reference_pattern(project_root)
     refresh_reference_style = _read_plot_style_value(project_root, "refresh_reference_style", "false").casefold() == "true"
     line_width = float(_read_plot_style_value(project_root, "line_width", "3"))
     axis_line_width = float(_read_plot_style_value(project_root, "axis_line_width", "3"))
@@ -496,7 +493,7 @@ def build_origin_plot_job(
         figure_tif=tif_dir / f"{page_name}.tif",
         preview_png=preview_dir / f"{page_name}.png",
         job_script=job_dir / f"{dataset_id}.ps1",
-        helper_script=Path(r"D:\CodexData\.codex\skills\origin-plotting\scripts\origin_plot_from_template.ps1"),
+        helper_script=resolve_origin_helper(project_root),
         reference_opju=_resolve_reference_opju(reference_search_pattern) if refresh_reference_style else None,
         reference_search_pattern=reference_search_pattern,
         reference_graph=_read_plot_style_value(project_root, "default_graph_page", "Graph4"),

@@ -13,14 +13,20 @@
 - Current reviewed-queue dry-run approved/skipped/blocked: 0/18/0
 - Will launch Origin: false
 - Will run process: false
-- Manual review required after code and AI-assisted recognition: 538
-- Current triage: AUTO_PROCESS 18, MANUAL_REVIEW 742
+- Manual review rows in current filtered workbook: 493
+- Same-data items excluded from the main workbook: 125
+- Current triage: AUTO_PROCESS 188, MANUAL_REVIEW 618
+- New AUTO_PROCESS queue after Phase 1.6 exclusion: 105 candidates
+- New AUTO_PROCESS queue types: EPR 44, Mott-Schottky 32, EIS 24, photocurrent 5
 
 ## Phase 1.8 Links
 
 - [Reviewed queue decision template](../reports/phase1_8_review_decisions_template.csv)
 - [Reviewed queue dry-run plan](../reports/phase1_8_reviewed_queue_plan.md)
-- [Manual review required after AI](../reports/phase1_8_manual_review_required_after_ai.md)
+- [Current filtered manual-review report](../reports/phase1_8_manual_review_required_filtered_report.md)
+- [Current filtered manual-review workbook](../reports/phase1_8_manual_review_required_filtered.xlsx)
+- [New AUTO_PROCESS dry-run plan](../reports/phase1_8_new_auto_process_plan.md)
+- [New AUTO_PROCESS candidate queue](../reports/phase1_8_new_auto_process_queue.json)
 - [Phase 1.8 execution plan](../../docs/agent_reports/phase1_8_execution_plan.md)
 
 ## Phase 1.7 Links
@@ -42,6 +48,7 @@
 3. For any row to approve, set `user_decision=approve_for_no_origin_queue`, fill `approved_by` and `approval_date`, and add required acknowledgement fields.
 4. Leave uncertain rows blank.
 5. Re-run reviewed-queue dry-run and inspect accepted/skipped/blocked results before any future processing.
+6. Review `phase1_8_new_auto_process_plan.md` before using any automatically recognized queue.
 
 ## Safety
 

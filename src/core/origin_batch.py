@@ -6,6 +6,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.core.runtime_paths import resolve_workspace_root
+
 
 PACKAGE_ARTIFACT_FIELDS = (
     "processed_csv",
@@ -18,7 +20,19 @@ PACKAGE_ARTIFACT_FIELDS = (
 )
 ORIGIN_OUTPUT_FIELDS = ("origin_file", "figure_tif", "preview_png")
 INPUT_ARTIFACT_FIELDS = ("processed_csv", "metadata")
-DEFAULT_WORKSPACE_RELATIVE = Path("workspace_data") / "LL_detection_copy_20260530"
+REQUIRED_MANIFEST_HEADERS = {
+    "result_id",
+    "data_type",
+    "source_hash",
+    "processed_csv",
+    "metadata",
+    "origin_file",
+    "figure_tif",
+    "preview_png",
+    "origin_status",
+    "qc_status",
+}
+SOURCE_LOCATOR_HEADERS = {"source_file", "source_copy", "selected_source_copy", "selected_source_data"}
 
 
 @dataclass(frozen=True)
@@ -194,7 +208,39 @@ def _manifest_plan_markdown(plan: dict) -> str:
 
 def _read_manifest_rows(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as handle:
-        return list(csv.DictReader(handle))
+        try:
+            reader = csv.reader(handle, strict=True)
+            raw_header = next(reader, None)
+            headers = _validate_manifest_headers(raw_header, path)
+            rows: list[dict[str, str]] = []
+            for line_number, row in enumerate(reader, start=2):
+                if not row or not any(str(cell).strip() for cell in row):
+                    continue
+                if len(row) != len(headers):
+                    raise ValueError(f"manifest CSV row {line_number} has {len(row)} columns; expected {len(headers)}: {path}")
+                rows.append(dict(zip(headers, row, strict=True)))
+            return rows
+        except csv.Error as exc:
+            raise ValueError(f"manifest CSV parse error: {exc}: {path}") from exc
+
+
+def _validate_manifest_headers(fieldnames: list[str] | None, path: Path) -> list[str]:
+    if not fieldnames:
+        raise ValueError(f"manifest CSV missing headers: {path}")
+    headers = [str(field).strip() for field in fieldnames]
+    if any(not header for header in headers):
+        raise ValueError(f"manifest CSV blank header: {path}")
+    duplicates = sorted({header for header in headers if headers.count(header) > 1})
+    if duplicates:
+        raise ValueError(f"manifest CSV duplicate header: {', '.join(duplicates)}: {path}")
+    header_set = set(headers)
+    missing = sorted(REQUIRED_MANIFEST_HEADERS - header_set)
+    if missing:
+        raise ValueError(f"manifest CSV missing required headers: {', '.join(missing)}: {path}")
+    if not header_set.intersection(SOURCE_LOCATOR_HEADERS):
+        choices = ", ".join(sorted(SOURCE_LOCATOR_HEADERS))
+        raise ValueError(f"manifest CSV must include one source locator header ({choices}): {path}")
+    return headers
 
 
 def _resolve_existing_path(project_root: Path, raw_path: Path) -> Path:
@@ -253,13 +299,22 @@ def _check_source_hash(project_root: Path, package_root: Path, row: dict[str, st
             }
         return {"ok": True, "source_copy": source_copy_value, "source_path_checked": str(source_path)}
 
+    packaged_source = _find_package_source_copy_by_hash(package_root, expected_hash)
+    if packaged_source is not None:
+        return {
+            "ok": True,
+            "source_copy": str(packaged_source.relative_to(package_root).as_posix()),
+            "source_path_checked": str(packaged_source),
+            "source_copy_resolution": "selected_source_data_hash_match",
+        }
+
     source_value = (row.get("source_file") or "").strip()
     if not source_value:
         return {"ok": False, "reason": "source_file_missing_from_manifest"}
     source_relative = Path(source_value)
     if source_relative.is_absolute() or ".." in source_relative.parts:
         return {"ok": False, "reason": "source_file_path_traversal_or_absolute"}
-    workspace_root = (project_root / DEFAULT_WORKSPACE_RELATIVE).absolute()
+    workspace_root = resolve_workspace_root(project_root).absolute()
     workspace_root_resolved = workspace_root.resolve()
     source_path = workspace_root / source_relative
     source_path_resolved = source_path.resolve()
@@ -279,6 +334,17 @@ def _check_source_hash(project_root: Path, package_root: Path, row: dict[str, st
             "actual_hash": actual_hash,
         }
     return {"ok": True, "source_file": source_value, "source_path_checked": str(source_path)}
+
+
+def _find_package_source_copy_by_hash(package_root: Path, expected_hash: str) -> Path | None:
+    source_root = package_root / "selected_source_data"
+    if not source_root.is_dir():
+        return None
+    expected = expected_hash.lower()
+    for path in sorted(source_root.rglob("*")):
+        if path.is_file() and _file_sha256(path).lower() == expected:
+            return path
+    return None
 
 
 def _missing_or_empty(paths: dict[str, Path], fields: tuple[str, ...]) -> list[str]:

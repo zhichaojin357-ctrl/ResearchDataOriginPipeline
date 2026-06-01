@@ -6,6 +6,8 @@ __pycache__/
 # Local Codex/session state
 .codex/
 .agents/
+config/local.yaml
+config/*.local.yaml
 
 # Raw/workspace data copies
 workspace_data/
@@ -20,6 +22,9 @@ output/origin_files/
 output/origin_jobs/
 output/phase1_*/
 output/unclassified/
+output/material_collections/
+output/xps_*/
+outputs/
 
 # Keep lightweight review/report outputs versioned
 !output/reports/

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from src.core.table_reader import coerce_numeric_rows, read_table
+from src.core.table_reader import TableReadResult, _configure_excel_for_safe_read, coerce_numeric_rows, read_table, read_table_with_metadata
 from src.processors.base import process_table_dataset
 
 
@@ -30,6 +30,149 @@ class ProcessorBehaviorTest(unittest.TestCase):
             numeric = coerce_numeric_rows(rows)
 
             self.assertEqual(numeric, [(10.0, 1.0), (20.0, 5.0), (30.0, 2.0)])
+
+    def test_generic_reader_accepts_headerless_tsv_numeric_text(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "bet.tsv"
+            source.write_text("0.1\t5\n0.2\t7\n", encoding="utf-8")
+
+            rows = read_table(source)
+            numeric = coerce_numeric_rows(rows)
+
+            self.assertEqual(numeric, [(0.1, 5.0), (0.2, 7.0)])
+
+    def test_text_reader_detects_instrument_metadata_header_before_numeric_rows(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "mott.csv"
+            source.write_text(
+                "\n".join(
+                    [
+                        "Nov. 26, 2025   21:24:18",
+                        "Impedance - Potential",
+                        "Instrument Model:  CHI660E",
+                        "",
+                        "Init E (V) = 0.17",
+                        "Final E (V) = 1.17",
+                        "Incr E (V) = 0.05",
+                        "Frequency (Hz) = 1000",
+                        "",
+                        "Potential/V, Z'/ohm, Z\"/ohm, Z/ohm, Phase/deg",
+                        "",
+                        "1.700e-1, 3.754e+1, 4.904e+1, 6.176e+1, 52.6",
+                        "2.200e-1, 3.743e+1, 4.885e+1, 6.154e+1, 52.5",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = read_table_with_metadata(source)
+
+            self.assertEqual(result.header_row_index, 9)
+            self.assertIn("Potential/V", result.rows[0])
+            self.assertIn("Z'/ohm", result.rows[0])
+            self.assertEqual(result.rows[0]["Potential/V"], "1.700e-1")
+            self.assertEqual(result.rows[0]["Z'/ohm"], " 3.754e+1")
+
+    def test_generic_reader_accepts_xlsm_workbooks_without_excel_com(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "eis.xlsm"
+
+            from openpyxl import Workbook
+
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.append(["frequency", "Re(Z)", "-Im(Z)"])
+            sheet.append([1000, 10, 3])
+            sheet.append([100, 20, 8])
+            workbook.save(source)
+
+            with patch("src.core.table_reader._read_legacy_xls_with_excel_com") as fallback:
+                rows = read_table(source)
+
+            fallback.assert_not_called()
+            self.assertEqual(coerce_numeric_rows(rows), [(1000.0, 10.0), (100.0, 20.0)])
+
+    def test_legacy_xls_uses_excel_com_fallback_when_xlrd_is_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "legacy.xls"
+            source.write_bytes(b"not used by mocked reader")
+
+            def missing_xlrd(*_args, **_kwargs):
+                raise ImportError("Missing optional dependency 'xlrd'. Install xlrd >= 2.0.1 for xls Excel support")
+
+            with patch("pandas.read_excel", side_effect=missing_xlrd), patch(
+                "src.core.table_reader._read_legacy_xls_with_excel_com",
+                return_value=TableReadResult(
+                    [{"relative pressure": "0.1", "quantity adsorbed": "5"}],
+                    sheet_name="Sheet1",
+                    header_row_index=0,
+                    sheet_scores={"Sheet1": {"score": 12, "header_bonus": 2, "numeric_rows": 1, "numeric_columns": 2, "header_row_index": 0}},
+                ),
+            ) as fallback:
+                result = read_table_with_metadata(source)
+
+            fallback.assert_called_once_with(source)
+            self.assertEqual(result.rows[0]["relative pressure"], "0.1")
+
+    def test_legacy_xls_com_fallback_can_be_disabled_for_triage(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "legacy.xls"
+            source.write_bytes(b"not used by mocked reader")
+
+            def missing_xlrd(*_args, **_kwargs):
+                raise ImportError("Missing optional dependency 'xlrd'. Install xlrd >= 2.0.1 for xls Excel support")
+
+            with patch("pandas.read_excel", side_effect=missing_xlrd), patch(
+                "src.core.table_reader._read_legacy_xls_with_excel_com"
+            ) as fallback:
+                with self.assertRaisesRegex(RuntimeError, "legacy .xls requires xlrd"):
+                    read_table_with_metadata(source, allow_legacy_xls_com=False)
+
+            fallback.assert_not_called()
+
+    def test_excel_com_reader_disables_macros_events_and_prompts(self):
+        class ExcelStub:
+            pass
+
+        excel = ExcelStub()
+        _configure_excel_for_safe_read(excel)
+
+        self.assertEqual(excel.Visible, False)
+        self.assertEqual(excel.DisplayAlerts, False)
+        self.assertEqual(excel.EnableEvents, False)
+        self.assertEqual(excel.AskToUpdateLinks, False)
+        self.assertEqual(excel.AutomationSecurity, 3)
+
+    def test_excel_reader_handles_empty_sheet_without_parser_crash(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            import pandas as pd
+
+            source = Path(tmpdir) / "empty.xlsx"
+            source.write_bytes(b"not used by mocked reader")
+
+            with patch("pandas.read_excel", return_value={"Sheet1": pd.DataFrame()}):
+                result = read_table_with_metadata(source)
+
+            self.assertEqual(result.rows, [])
+            self.assertEqual(result.sheet_name, "Sheet1")
+
+    def test_excel_reader_deduplicates_repeated_headers(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            import pandas as pd
+
+            source = Path(tmpdir) / "duplicate_headers.xlsx"
+            source.write_bytes(b"not used by mocked reader")
+            frame = pd.DataFrame([
+                ["x", "x", "intensity"],
+                [1, 10, 5],
+                [2, 20, 7],
+            ])
+
+            with patch("pandas.read_excel", return_value={"Sheet1": frame}):
+                rows = read_table(source)
+
+            self.assertEqual(set(rows[0]), {"x", "x.1", "intensity"})
+            self.assertEqual(coerce_numeric_rows(rows), [(1.0, 5.0), (2.0, 7.0)])
 
     def test_generic_reader_handles_gbk_encoded_chinese_headers(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -62,6 +205,36 @@ class ProcessorBehaviorTest(unittest.TestCase):
             rows = self._processed_rows(root, metadata)
             self.assertEqual(set(rows[0]), {"two_theta_deg", "intensity", "normalized_intensity", "peak_candidate_flag"})
             self.assertEqual(rows[1]["peak_candidate_flag"], "1")
+
+    def test_reviewed_queue_same_stem_uses_unique_output_suffixes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_a = root / "workspace" / "batch_a" / "sample.csv"
+            source_b = root / "workspace" / "batch_b" / "sample.csv"
+            for source, scale in ((source_a, 1), (source_b, 2)):
+                source.parent.mkdir(parents=True)
+                with source.open("w", encoding="utf-8", newline="") as handle:
+                    writer = csv.writer(handle)
+                    writer.writerow(["2theta", "intensity"])
+                    writer.writerow([10, scale])
+                    writer.writerow([20, scale * 2])
+
+            metadata_a = process_table_dataset(
+                root,
+                classification("XRD", "xrd_processor"),
+                source_a,
+                triage={"queue_id": "phase1_8_aaaaaaaaaaaaaaaa"},
+            )
+            metadata_b = process_table_dataset(
+                root,
+                classification("XRD", "xrd_processor"),
+                source_b,
+                triage={"queue_id": "phase1_8_bbbbbbbbbbbbbbbb"},
+            )
+
+            self.assertNotEqual(metadata_a["dataset_id"], metadata_b["dataset_id"])
+            self.assertNotEqual(metadata_a["processed_data"], metadata_b["processed_data"])
+            self.assertNotEqual(metadata_a["metadata_path"], metadata_b["metadata_path"])
 
     def test_processor_passes_method_specific_axis_titles_to_origin_export(self):
         with tempfile.TemporaryDirectory() as tmpdir:

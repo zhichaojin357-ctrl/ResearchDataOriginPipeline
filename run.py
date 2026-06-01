@@ -11,4 +11,8 @@ from src.cli import main
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"run.py: error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from None

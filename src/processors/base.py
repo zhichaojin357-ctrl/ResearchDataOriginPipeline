@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import re
 from pathlib import Path
 
+from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.metadata import write_metadata
 from src.core.project import claim_policy_path, load_json_compatible_yaml, output_dir
 from src.core.table_reader import coerce_numeric_rows, read_table
@@ -36,15 +38,7 @@ def process_table_dataset(
     force: bool = True,
     triage: dict | None = None,
 ) -> dict:
-    rows = read_table(source_file)
-    numeric = coerce_numeric_rows(rows)
     data_type = classification["inferred_data_type"]
-    if not numeric and data_type == "reaction_condition_screening":
-        numeric = condition_screening_numeric(rows)
-    if data_type == "BET":
-        numeric = bet_numeric(rows, numeric)
-    if data_type == "EPR":
-        numeric = epr_numeric(rows, numeric)
     processor_name = classification["selected_processor"]
     if (
         classification.get("supported_in_phase_1") is False
@@ -52,6 +46,15 @@ def process_table_dataset(
         or data_type == "reference_literature"
     ):
         raise ValueError(f"{data_type} is scan-only and must not be processed as experimental data.")
+
+    rows, input_warnings = _read_processor_rows(source_file, data_type)
+    numeric = coerce_numeric_rows(rows)
+    if not numeric and data_type == "reaction_condition_screening":
+        numeric = condition_screening_numeric(rows)
+    if data_type == "BET":
+        numeric = bet_numeric(rows, numeric)
+    if data_type == "EPR":
+        numeric = epr_numeric(rows, numeric)
 
     source_slug = safe_name(source_file.stem)
     dataset_suffix = _queue_dataset_suffix(triage)
@@ -64,7 +67,7 @@ def process_table_dataset(
     if processed_csv.exists() and not force:
         raise FileExistsError(f"Output already exists; rerun with --force to overwrite: {processed_csv}")
 
-    warnings = []
+    warnings = list(input_warnings)
     key_results = {}
     if not numeric:
         warnings.append("No two-column numeric data could be read.")
@@ -139,6 +142,14 @@ def process_table_dataset(
     )
 
 
+def _read_processor_rows(source_file: Path, data_type: str) -> tuple[list[dict[str, str]], list[str]]:
+    if data_type == "EPR" and looks_like_jeol_cwesr_file(source_file):
+        return decode_jeol_cacqu_rows(source_file), [
+            "Decoded JEOL JES-FA/JES-X3 cAcqu EPR raw file to field-intensity table; radical assignment remains blocked.",
+        ]
+    return read_table(source_file), []
+
+
 def _forbidden_claims(project_root: Path, data_type: str, profile: dict | None) -> list[str]:
     claims: list[str] = []
     if profile:
@@ -173,7 +184,8 @@ def _queue_dataset_suffix(triage: dict | None) -> str:
     queue_id = str(triage.get("queue_id") or "").strip()
     if not queue_id:
         return ""
-    return safe_name(queue_id[:8])
+    digest = hashlib.sha256(queue_id.encode("utf-8")).hexdigest()[:12]
+    return safe_name(f"q_{digest}")
 
 
 def process_supported(project_root: Path, manifest: dict, *, no_origin: bool = True, force: bool = True) -> list[dict]:

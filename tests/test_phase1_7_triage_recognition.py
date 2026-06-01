@@ -74,6 +74,38 @@ def test_chinese_and_unit_headers_are_recognized():
         assert by_name["ms.csv"]["data_type_candidate"] == "Mott-Schottky"
 
 
+def test_chi_impedance_potential_export_in_mott_folder_is_mott_schottky_not_eis():
+    with tempfile.TemporaryDirectory() as tmp:
+        project = Path(tmp)
+        raw = project / "input" / "raw_data" / "Mott-Schottky"
+        raw.mkdir(parents=True)
+        rows = "\n".join(
+            [
+                "Nov. 26, 2025   21:24:18",
+                "Impedance - Potential",
+                "Instrument Model:  CHI660E",
+                "",
+                "Frequency (Hz) = 1000",
+                "",
+                "Potential/V, Z'/ohm, Z\"/ohm, Z/ohm, Phase/deg",
+                "",
+                "1.700e-1, 3.754e+1, 4.904e+1, 6.176e+1, 52.6",
+                "2.200e-1, 3.743e+1, 4.885e+1, 6.154e+1, 52.5",
+                "2.700e-1, 3.746e+1, 4.877e+1, 6.150e+1, 52.5",
+            ]
+        )
+        (raw / "chi_mott.csv").write_text(rows, encoding="utf-8")
+
+        result = run_triage(project, project / "input" / "raw_data", TriageOptions(explain=True))
+        item = result["items"][0]
+
+        assert item["header_type_hint"] == "Mott-Schottky"
+        assert item["data_type_candidate"] == "Mott-Schottky"
+        assert item["decision"] == "AUTO_PROCESS"
+        assert item["folder_header_conflict_level"] == "none"
+        assert item["parser_probe_status"] == "success"
+
+
 def test_raman_unit_headers_do_not_get_first_match_ft_ir():
     with tempfile.TemporaryDirectory() as tmp:
         project = Path(tmp)

@@ -7,6 +7,8 @@
 - Blocked items: 0
 - Will launch Origin: False
 - Will run process: False
+- Proposals SHA256: `bb02770fbb18d4cc212ba900df1ed7a56a6fbab028d5a974771025e9e1945842`
+- Decisions SHA256: `46bef8ae78c8833b2fc722bdcc98d81c614b3cc3718555d61c62414275a461c1`
 
 ## Approved Queue Items
 - None.

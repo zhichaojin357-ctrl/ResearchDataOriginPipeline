@@ -4,7 +4,7 @@ Current checkpoint: Phase 1.8 reviewed-queue safety gate and manual-review outpu
 
 Latest locked Origin package: `output/phase1_6_origin_results_20260531_041538`
 
-Phase 1.6 produced 167 real Origin result sets. Phase 1.7 added preview review, manifest dry-run, Origin isolation proof, and triage-recognition reports. Phase 1.8 adds a user-reviewed queue gate and the post-AI manual review list; it does not process new real data and does not launch Origin.
+Phase 1.6 produced 167 real Origin result sets. Phase 1.7 added preview review, manifest dry-run, Origin isolation proof, and triage-recognition reports. Phase 1.8 adds a user-reviewed queue gate and a filtered manual-review workbook; it does not process new real data and does not launch Origin.
 
 ## Current Scope
 
@@ -31,6 +31,8 @@ output\reports\phase1_8_review_decisions_template.csv
 
 CSV rules:
 
+- The CSV header must exactly match the generated template. Missing, duplicate, blank, or unknown columns are rejected.
+- Every non-empty decision row must keep a non-empty `proposal_id`; malformed CSV is rejected before planning.
 - Do not edit traceability columns such as `proposal_id`, `relative_path`, `source_hash`, `proposed_data_type`, `proposed_processor`, `risk_level`, and `reason`.
 - Empty `user_decision` means skip; it will not enter a queue.
 - The only approval value is `approve_for_no_origin_queue`.
@@ -52,22 +54,53 @@ Outputs:
 - `output/reports/phase1_8_reviewed_queue_plan.md`
 - `docs/agent_reports/phase1_8_reviewed_queue_report.md`
 
-The planner validates path safety, current hash, current triage state, Phase 1.6 duplicate/processed status, required approvals, and high-risk acknowledgement. It never launches Origin and never calls `process`.
+The planner validates CSV schema, path safety, current source hash, current triage state, Phase 1.6 duplicate/processed status, required approvals, and high-risk acknowledgement. It records the proposals CSV/JSON and decision CSV SHA256 values in the dry-run plan so `readiness` can detect stale plans even when file modification times are unreliable. It never launches Origin and never calls `process`.
 
-## Manual Review After AI-Assisted Recognition
+## New AUTO_PROCESS Queue Planner
 
-After code-rule optimization and AI-assisted semantic review of the current manifest, the files still needing manual review are listed here:
+After the latest triage improvements, the raw `output/reports/processing_queue.json` contains both new candidates and items already represented in the Phase 1.6 Origin package. Use the dry-run planner before any future no-Origin run:
 
-- CSV: `output/reports/phase1_8_manual_review_required_after_ai.csv`
-- Markdown: `output/reports/phase1_8_manual_review_required_after_ai.md`
+```powershell
+D:\Python\python.exe run.py auto-queue
+```
+
+Outputs:
+
+- Plan: `output/reports/phase1_8_new_auto_process_plan.md`
+- Candidate queue: `output/reports/phase1_8_new_auto_process_queue.json`
+
+Current dry-run result:
+
+- Source AUTO_PROCESS items: 188
+- Skipped because already represented in Phase 1.6: 83
+- New no-Origin candidates: 105
+- Candidate types: EPR 44, Mott-Schottky 32, EIS 24, photocurrent 5
+- Will run process: false
+- Will launch Origin: false
+
+Do not run the raw `processing_queue.json` directly for the next batch. Review `phase1_8_new_auto_process_plan.md` first, then use the generated candidate queue only for an explicit no-Origin run. The `process --from-queue output/reports/processing_queue.json` path now refuses to run when the raw queue still contains hashes already represented in the Phase 1.6 package. Queue processing also rejects unknown `data_type` values, scan-only data types, and `selected_processor` values that do not match the processor registry. `--include-ambiguous` is restricted to MANUAL_REVIEW queue items with explicit promotion/user-approval provenance. `--auto-select` cannot be combined with `--with-origin` or an explicit `--from-queue`; build and review a queue first.
+
+Queue-driven output filenames use a stable hash of the full queue id so reviewed-queue items with the same source filename cannot collapse into the same `sample_phase1_8` output path.
+
+## Latest Manual Review Workbook
+
+After the latest rule optimization, triage refresh, and same-data filtering, unresolved files are listed here:
+
+- Excel: `output/reports/phase1_8_manual_review_required_filtered.xlsx`
+- CSV: `output/reports/phase1_8_manual_review_required_filtered.csv`
+- Report: `output/reports/phase1_8_manual_review_required_filtered_report.md`
+- Desktop copy: `C:\Users\lenovo\Desktop\phase1_8_manual_review_required_filtered.xlsx`
 
 Current counts:
 
-- 538 files still require manual review after exclusions.
-- 18 are classifiable review-only proposals that need user approval before a future no-Origin queue.
-- 520 can be context-classified by folder/name/type hints but remain unprocessable safely because parser probing did not succeed.
-- 151 MANUAL_REVIEW items were excluded from this user-review list because they are already represented in Phase 1.6 results.
-- 53 MANUAL_REVIEW items were excluded because they are duplicate-grouped.
+- Latest triage has 618 `MANUAL_REVIEW` items.
+- 125 same-data items are excluded from the main manual-review workbook because a successful Phase 1.6 result or an AUTO_PROCESS/DUPLICATE_SUPPRESSED representative exists.
+- 493 files remain in the current manual-review workbook.
+- The older `phase1_8_manual_review_required_after_ai.csv` is historical and should not be used as the current user-facing list.
+
+## BET Status
+
+`D:\Codex Project\科研数据处理\数据\26.5.29\BET` already contains legacy BET OPJU/PNG/TSV/CSV outputs, including Graph4-style PNG previews. Those files are preserved as existing work. BET has not yet been incorporated into the locked Phase 1.6 standardized result package, and current triage keeps BET in manual review/proposal mode until adsorption/desorption columns and source format handling are reviewed.
 
 ## Phase 1.7 Review Outputs
 
@@ -78,6 +111,16 @@ Current counts:
 - Manual override decision table: `output/reports/phase1_7_manual_override_decision_table.csv`
 
 The preview checklist is for visual acceptance of the 167 completed Phase 1.6 figures. It is not approval to process new files.
+
+## Separate XPS Figure Outputs
+
+The Phase 1.8 queue gate did not process new real datasets or launch Origin. Separate XPS figure-output workflows may still exist outside that queue gate:
+
+- Guardrails: `docs/xps_origin_plotting_guardrails.md`
+- Stacked heterojunction summary: `output/xps_heterojunction_stacked/reports/xps_heterojunction_stacked_summary.md`
+- In-situ XPS mapping: `outputs/xps_in_situ_20260506/xps_data_mapping_report.md`
+
+Treat those outputs as dedicated XPS figure products, not as Phase 1.8 queue-processing results.
 
 ## Manifest Runner
 
@@ -92,7 +135,7 @@ The runner reads the package manifest, verifies paths and hashes, skips complete
 
 ## Why Remaining MANUAL_REVIEW Is Not Processed In Bulk
 
-The latest triage still has 742 `MANUAL_REVIEW` items. Only 18 became review-only proposals after optimization; no new safe promotion candidates were created. Many remaining items involve parser failures, proprietary/binary formats, duplicate ambiguity, folder/header conflicts, or scientific context. Do not use global `--include-ambiguous`.
+The latest triage has 618 `MANUAL_REVIEW` items after parser and recognition improvements. The user-facing filtered workbook keeps 493 rows after excluding same-data items already represented by successful or processable formats. Many remaining items involve parser failures, proprietary/binary formats, duplicate ambiguity, folder/header conflicts, or scientific context. Do not use global `--include-ambiguous`.
 
 ## Recommended Validation Commands
 
@@ -100,9 +143,15 @@ The latest triage still has 742 `MANUAL_REVIEW` items. Only 18 became review-onl
 D:\Python\python.exe -m pytest
 D:\Python\python.exe run.py deps-audit
 D:\Python\python.exe run.py validate
+D:\Python\python.exe run.py readiness
+D:\Python\python.exe run.py readiness --no-desktop-review-xlsx
 D:\Python\python.exe run.py scan --input workspace_data\LL_detection_copy_20260530 --config config/default.yaml
 D:\Python\python.exe run.py triage --input workspace_data\LL_detection_copy_20260530 --config config/default.yaml --explain --force-refresh
 ```
+
+`readiness` writes `output/reports/readiness_report.json` and `.md`. It checks the locked Phase 1.6 package count plus `result_summary.json`/`index.csv` consistency, current filtered manual-review workbook CSV/XLSX/report row consistency, the desktop review workbook copy, auto-queue dry-run safety flags, auto-queue plan/queue identity consistency, auto-queue dry-run provenance, reviewed-queue proposal/template/plan consistency including stored input SHA256 values and zero blocked approval rows, current `validate` report safety markers, validation-report freshness against validation-related source/config files, required active entry documents, current Phase 1.8 summaries, the review dashboard's current links, workspace copy, F-drive backup, project-rename path hygiene, and PPT forbidden paths without processing data or launching Origin.
+
+`--no-desktop-review-xlsx` is for portable or CI-style checks where the project workbook exists but the user-facing desktop copy is not expected. The default remains the stricter local workflow. If PowerShell displays Chinese paths as mojibake, inspect the UTF-8 Markdown/JSON files directly; the stored files are UTF-8.
 
 ## Data Safety
 

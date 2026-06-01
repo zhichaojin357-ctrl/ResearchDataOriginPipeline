@@ -1,31 +1,31 @@
 # Classification Report
 
 Scan root: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\workspace_data\LL_detection_copy_20260530`
-Raw file count: 1589
+Raw file count: 1644
 
 | folder_name | physical_presence | inferred_data_type | supported_in_phase_1 | selected_processor | special_handling | file_count |
 |---|---:|---|---:|---|---|---:|
-| 20260109 光电流 | present | photocurrent | True | photocurrent_processor | process_when_present | 49 |
+| 20260109 光电流 | present | photocurrent | True | photocurrent_processor | process_when_present | 30 |
 | BET | present | BET | True | bet_processor | process_when_present_manual_check | 22 |
-| EPR | present | EPR | True | epr_processor | process_when_present_manual_check | 32 |
-| PL | present | PL | True | pl_processor | process_when_present_manual_check | 25 |
-| XPS | present | XPS | True | xps_processor | process_when_present_manual_check | 28 |
+| EPR | present | EPR | True | epr_processor | process_when_present_manual_check | 101 |
+| PL | present | PL | True | pl_processor | process_when_present_manual_check | 6 |
+| XPS | present | XPS | True | xps_processor | process_when_present_manual_check | 27 |
 | XRD | present | XRD | True | xrd_processor | process_when_present_manual_check | 73 |
 | 固体紫外 | present | UV-vis DRS | True | uvvis_drs_processor | process_when_present_manual_check | 7 |
 | 光电流响应 | present | photocurrent_response | True | photocurrent_processor | process_when_present | 12 |
-| 光反应的条件筛选 | absent | reaction_condition_screening | True | condition_screening_processor | process_when_present_manual_check | 0 |
+| 光反应的条件筛选 | present | reaction_condition_screening | True | condition_screening_processor | process_when_present_manual_check | 0 |
 | 红外 | present | FTIR | True | ftir_processor | process_when_present_manual_check | 3 |
 | 拉曼 | present | Raman | True | raman_processor | process_when_present_manual_check | 32 |
 | 莫特肖特基 | present | Mott-Schottky | True | mott_schottky_processor | process_when_present_manual_check | 203 |
-| 液相 | present | HPLC/LC exported data | True | lc_exported_data_processor | process_when_present_manual_check | 28 |
-| 阻抗EIS | present | EIS | True | eis_processor | process_when_present_manual_check | 87 |
-| SEM | present | SEM_image_data | False | none | scan_only | 390 |
-| TEM | present | TEM_image_data | False | none | scan_only | 301 |
-| 核磁 | present | NMR | False | none | scan_only | 34 |
-| 质谱 | present | MS | False | none | scan_only | 182 |
-| 动力学 | present | reference_literature | False | none | scan_only | 38 |
+| 液相 | present | HPLC/LC exported data | True | lc_exported_data_processor | process_when_present_manual_check | 0 |
+| 阻抗EIS | present | EIS | True | eis_processor | process_when_present_manual_check | 107 |
+| SEM | present | SEM_image_data | False | none | scan_only | 187 |
+| TEM | present | TEM_image_data | False | none | scan_only | 98 |
+| 核磁 | present | NMR | False | none | scan_only | 6 |
+| 质谱 | present | MS | False | none | scan_only | 154 |
+| 动力学 | present | reference_literature | False | none | scan_only | 19 |
 
-Unclassified file count: 891
+Unclassified file count: 841
 - `00_索引与说明\duplicate_opju_sha256.csv` (.csv)
 - `00_索引与说明\file_snapshot_after.csv` (.csv)
 - `00_索引与说明\file_snapshot_before.csv` (.csv)
@@ -33,3091 +33,1988 @@ Unclassified file count: 891
 - `00_索引与说明\opju_数据对应索引.csv` (.csv)
 - `00_索引与说明\opju_精细对应关系.csv` (.csv)
 - `00_索引与说明\整理说明.md` (.md)
-- `05_阻抗EIS\20251106阻抗李永进.zip` (.zip)
-- `05_阻抗EIS\20260202.zip` (.zip)
-- `05_阻抗EIS\308阻抗.zip` (.zip)
-- `05_阻抗EIS\阻抗图.tif` (.tif)
-- `01_XRD\20251110\bobc shuirei.raw` (.raw)
-- `01_XRD\20251110\bobc shuirei2.raw` (.raw)
-- `01_XRD\20251110\bobcshuirei+cwo15%.raw` (.raw)
-- `01_XRD\20251110\kit-6-1.raw` (.raw)
-- `01_XRD\20251110\kit-6-2.raw` (.raw)
-- `01_XRD\20260326LL BOB BOC BCN\BICSNH4.dql` (.dql)
-- `01_XRD\20260326LL BOB BOC BCN\BICSNH4.raw` (.raw)
-- `01_XRD\20260326LL BOB BOC BCN\CL.dql` (.dql)
-- `01_XRD\20260326LL BOB BOC BCN\CL.raw` (.raw)
-- `01_XRD\20260326LL BOB BOC BCN\NH4.dql` (.dql)
-- `01_XRD\20260326LL BOB BOC BCN\NH4.raw` (.raw)
-- `01_XRD\BOBC+MS\MS+BOBC.tif` (.tif)
-- `01_XRD\BPO\BPO+MS.raw` (.raw)
-- `01_XRD\BPO\BPO.raw` (.raw)
-- `01_XRD\BOBC+MS\251024\origin_project\20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju` (.opju)
-- `01_XRD\BOBC+MS\251024\processed_tables\mb9.jip` (.jip)
-- `01_XRD\BOBC+MS\251024\raw_data\MOSE2 10MIN.dql` (.dql)
-- `01_XRD\BOBC+MS\251024\raw_data\MOSE2 5MIN.dql` (.dql)
-- `01_XRD\BWO\origin_project\BWO.opju` (.opju)
-- `01_XRD\BWO\raw_data\A BWO.raw` (.raw)
-- `01_XRD\BWO\raw_data\M BWO.RAW` (.raw)
-- `01_XRD\CWO+BOBC\origin_project\CWO+BOBC+标卡.opju` (.opju)
-- `01_XRD\CWO+BOBC\raw_data\BOBC\BOBC.dql` (.dql)
-- `01_XRD\CWO+BOBC\raw_data\BOBC\BOBC.raw` (.raw)
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\XRD2.tif` (.tif)
-- `01_XRD\CWO+BOBC\raw_data\cwo八面体\cwo 8.jip` (.jip)
-- `01_XRD\CWO+BOBC\raw_data\cwo八面体\cwo 8面体.raw` (.raw)
-- `01_XRD\CWO+BOBC\raw_data\cwo沉淀法+合适的标准卡片\cwo.dql` (.dql)
-- `01_XRD\CWO+BOBC\raw_data\cwo沉淀法+合适的标准卡片\cwo.jip` (.jip)
-- `01_XRD\CWO+BOBC\raw_data\cwo沉淀法+合适的标准卡片\cwo.raw` (.raw)
-- `01_XRD\CWO+BOBC\raw_data\BOBC\BOBC600度\BOBC600.dql` (.dql)
-- `01_XRD\CWO+BOBC\raw_data\BOBC\BOBC600度\BOBC600.raw` (.raw)
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\BC-15\BOBC+BOBC15%.RAW` (.raw)
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\BC-15\BOBC+CWO15%.RAW` (.raw)
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\BC-30\BC30.RAW` (.raw)
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\CWO为主体\cwo10.raw` (.raw)
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\CWO为主体\cwo15.raw` (.raw)
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\CWO为主体\cwo5.raw` (.raw)
-- `01_XRD\KIT-6\exported_figures\kit-6.tif` (.tif)
-- `01_XRD\KIT-6\origin_project\kit-6.opju` (.opju)
-- `01_XRD\KIT-6\origin_project\KIT-6第二批.opju` (.opju)
-- `01_XRD\KIT-6\raw_data\kit-6bo.raw` (.raw)
-- `01_XRD\KIT-6\raw_data\kit-6bo2.raw` (.raw)
-- `01_XRD\KIT-6\raw_data\kit-6fe.raw` (.raw)
-- `01_XRD\MS\origin_project\BPO+MS.opju` (.opju)
-- `01_XRD\MS\MSXRD\exported_figures\1mmolmose2的XRD.tif` (.tif)
-- `01_XRD\MS\MSXRD\origin_project\MOSE2.opju` (.opju)
-- `01_XRD\MS\MSXRD\origin_project\MS.opju` (.opju)
-- `01_XRD\MS\MSXRD\origin_project\球磨第二批XRD.opju` (.opju)
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD2.pdf` (.pdf)
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD同.pdf` (.pdf)
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO1.1.dql` (.dql)
-- `01_XRD\研一上xrd数据及图片\origin_project\20241125XRD.opju` (.opju)
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl-TiO2 2.raw` (.raw)
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl-TiO2.bc` (.bc)
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl-TiO2.raw` (.raw)
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl.raw` (.raw)
-- `01_XRD\研一上xrd数据及图片\raw_data\TiO2.bc` (.bc)
-- `01_XRD\研一上xrd数据及图片\raw_data\TiO2.raw` (.raw)
-- `02_XPS\origin_project\BC-OW.opju` (.opju)
-- `02_XPS\origin_project\bc-XPS.opju` (.opju)
-- `02_XPS\origin_project\bobc xps.opju` (.opju)
-- `02_XPS\origin_project\cwo xps.opju` (.opju)
-- `02_XPS\origin_project\CWO+BOBC VBXPS谱图.opju` (.opju)
-- `02_XPS\raw_archives\26010989730.rar` (.rar)
-- `02_XPS\raw_archives\原位XPS.zip` (.zip)
-- `02_XPS\raw_data\BC拟合后\Data Grid.vgp` (.vgp)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.vgp` (.vgp)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.vgp` (.vgp)
-- `02_XPS\raw_data\原位XPS\DARK.vgp` (.vgp)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.vgp` (.vgp)
-- `02_XPS\raw_data\26010989730\BC-11\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BC-11\Br3d Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BC-11\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BC-11\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BC-11\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BC-11\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BC-11\Valence.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BC-11\W4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BC-11\XPS Survey.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BOBC\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BOBC\Br3d Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BOBC\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BOBC\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BOBC\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BOBC\Valence.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\BOBC\XPS Survey.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\CWO\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\CWO\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\CWO\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\CWO\Valence.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\CWO\W4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\26010989730\CWO\XPS Survey.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Bi4f Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Br3d Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Br3d Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\C1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Cl2p Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Cu2p Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\O1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Valence.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Valence_0.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\W4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\W4f Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\XPS Survey.VGD` (.vgd)
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\XPS Survey_0.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Bi4f Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Br3d Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Br3d Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\C1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Cl2p Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\O1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Valence.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Valence_0.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\XPS Survey.VGD` (.vgd)
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\XPS Survey_0.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\C1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\Cu2p Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\O1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\Valence.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\Valence_0.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\W4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\W4f Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\XPS Survey.VGD` (.vgd)
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\XPS Survey_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.vgp` (.vgp)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.vgp` (.vgp)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Bi4f Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Br3d Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Br3d Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\C1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cl2p Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cu2p Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\O1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Survey.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Survey_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\W4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\DARK.DATA\W4f Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Survey.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Survey_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan_0.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Br3d Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Survey.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\W4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Br3d Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\C1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\O1s Scan.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Survey.VGD` (.vgd)
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\W4f Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\origin_project\xps 全数据BI.opju` (.opju)
-- `02_XPS\电荷未矫正第一次\origin_project\xps全数据CU.opju` (.opju)
-- `02_XPS\电荷未矫正第一次\origin_project\xps全数据版.opju` (.opju)
-- `02_XPS\电荷未矫正第一次\processed_tables\dark拟合第一遍.vgp` (.vgp)
-- `02_XPS\电荷未矫正第一次\processed_tables\light拟合第一遍.vgp` (.vgp)
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Br3d Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\C1s Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\C1s Scan_0.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\O1s Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Survey.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\W4f Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Bi4f Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Br3d Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\C1s Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\C1s Scan_0.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Cl2p Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Cu2p Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\O1s Scan.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Survey.VGD` (.vgd)
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\W4f Scan.VGD` (.vgd)
-- `03_光电流\20260109_光电流\26010964564\光电流基线处理教程.pdf` (.pdf)
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\1-BOC-(OCP).bin` (.bin)
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\2-MCS-(OCP).bin` (.bin)
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\3-BM-10-(OCP).bin` (.bin)
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\4-BOBC-(OCP).bin` (.bin)
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\5-CWO-(OCP) .bin` (.bin)
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\6-BC-11-(OCP).bin` (.bin)
-- `03_光电流\光电流响应\origin_project\SECOND.opju` (.opju)
-- `03_光电流\光电流响应\origin_project\光电流相应CWO+BOBC.opju` (.opju)
-- `03_光电流\光电流响应\raw_archives\2758_1774879987011_26032562524.zip` (.zip)
-- `03_光电流\光电流响应\raw_archives\2758_1776699905862_26041550465.zip` (.zip)
-- `03_光电流\光电流响应\reports_notes\光电流基线处理教程.pdf` (.pdf)
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\origin_project\I-T BOBC+CWO 4.22.opju` (.opju)
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\bicu\1-（OCP）.bin` (.bin)
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\BOBC\1-(OCP).bin` (.bin)
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\CWO\2-(OCP).bin` (.bin)
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\4-BOBC-(OCP).bin` (.bin)
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\5-CWO-(OCP) .bin` (.bin)
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\6-BC-11-(OCP).bin` (.bin)
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\光电流基线处理教程.pdf` (.pdf)
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` (.bin)
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\光电流基线处理教程.pdf` (.pdf)
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\1-(OCP).bin` (.bin)
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\2-(OCP).bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-1000.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-1500.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-2000.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-2500.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-3000.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-3500.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC1000.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC1500.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC2000.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC2500.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC3000.bin` (.bin)
-- `04_莫特肖特基\20251126\BOBC\BOBC3500.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO-2-1500.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO-2-2000.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO-2-2500.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO-2-3000.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO-2-3500.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO-2-4000.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO-2-4500.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO-2-5000.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO1500.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO2000.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO2500.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO3000.bin` (.bin)
-- `04_莫特肖特基\20251126\CWO\CWO3500.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\origin_project\BOBC.opju` (.opju)
-- `04_莫特肖特基\20260121CWO+BOBC\origin_project\CWO新.opju` (.opju)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC2000.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC2500.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC3000.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC3500.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC4000.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC4500.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC5000.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO1000废.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO1500.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO2000.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO2500.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO3000.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO3500-2.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO3500.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO4000.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO4500.bin` (.bin)
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO5000.bin` (.bin)
-- `04_莫特肖特基\BOBC\exported_figures\BOBCMOSE能带.tif` (.tif)
-- `04_莫特肖特基\BOBC\exported_figures\BOBC莫特肖特基.tif` (.tif)
-- `04_莫特肖特基\BOBC\exported_figures\CWO+BOBC莫特.tif` (.tif)
-- `04_莫特肖特基\BOBC\origin_project\bobc.opju` (.opju)
-- `04_莫特肖特基\BOBC\raw_data\BOBC1000.bin` (.bin)
-- `04_莫特肖特基\BOBC\raw_data\BOBC1500.bin` (.bin)
-- `04_莫特肖特基\BOBC\raw_data\BOBC2000.bin` (.bin)
-- `04_莫特肖特基\BOBC\raw_data\BOBC2500.bin` (.bin)
-- `04_莫特肖特基\BOBC\raw_data\BOBC3000.bin` (.bin)
-- `04_莫特肖特基\BOBC\raw_data\BOBC3500 2.bin` (.bin)
-- `04_莫特肖特基\BOBC\raw_data\BOBC3500.bin` (.bin)
-- `04_莫特肖特基\BOBC\raw_data\BOBC4000.bin` (.bin)
-- `04_莫特肖特基\BOBC\raw_data\BOBC4500.bin` (.bin)
-- `04_莫特肖特基\CWO\origin_project\CWO MT-0.6.opju` (.opju)
-- `04_莫特肖特基\CWO\origin_project\CWO MT-2 +0.3.opju` (.opju)
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO1000.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO1500.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO2000.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO2500.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO3000.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO1500 2.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO2000 2.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO2500 2.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO3000 2.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO3500 2.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO3500 3.bin` (.bin)
-- `04_莫特肖特基\CWO\raw_data\CWO莫特肖特基数据处理版\MS数据处理版\李霖25年11月20日.pptx` (.pptx)
-- `04_莫特肖特基\LL\BOBC\1000.bin` (.bin)
-- `04_莫特肖特基\LL\BOBC\1500.bin` (.bin)
-- `04_莫特肖特基\LL\BOBC\2000.bin` (.bin)
-- `04_莫特肖特基\LL\BOBC\2500.bin` (.bin)
-- `04_莫特肖特基\LL\BOBC\3000.bin` (.bin)
-- `04_莫特肖特基\LL\BOBC\3500.bin` (.bin)
-- `04_莫特肖特基\LL\BOBC\4000.bin` (.bin)
-- `04_莫特肖特基\LL\bobc数据处理版本\origin_project\bobc.opju` (.opju)
-- `04_莫特肖特基\LLKT ms\20250905\13MBEIS.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\13MBEIS2.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\1mbMT1000.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\1msEIS.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\1MT1000-2.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\1MT2000-2.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\1MT3000-2.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\1MT4000-2.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\1MT5000-2.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\3mbEIS.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\5MB EIS.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\5MBEIS2.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\7BMEIS.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bm.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bm2.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt2000.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt3000.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt4000-2.bin` (.bin)
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt4000.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\exported_figures\MOSE模特肖特基.tif` (.tif)
-- `04_莫特肖特基\MoSe2MT\origin_project\ms.opju` (.opju)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS1000.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS1500.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS2000.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS2500.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3000.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500  2.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500  3.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500  4.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500 5.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS4000 2.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS4000.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS4500.bin` (.bin)
-- `04_莫特肖特基\MoSe2MT\raw_data\MS5000.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\BOBC\1000.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\BOBC\1500.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\BOBC\2000.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\BOBC\2500.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\BOBC\3000.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\BOBC\3500.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\BOBC\4000.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\bobc数据处理版本\origin_project\bobc.opju` (.opju)
-- `04_莫特肖特基\第一体系确定版本\bobc数据处理版本\origin_project\bobc格式美化版本.opju` (.opju)
-- `04_莫特肖特基\第一体系确定版本\MT2\origin_project\CWO MT-2 +0.3.opju` (.opju)
-- `04_莫特肖特基\第一体系确定版本\MT2\origin_project\CWO MT-2 +0.3数据美化版本.opju` (.opju)
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO1500 2.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO2000 2.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO2500 2.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO3000 2.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO3500 2.bin` (.bin)
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO3500 3.bin` (.bin)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B11-2-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B11-2-Z` (no suffix)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B11-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3` (no suffix)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3-Z` (no suffix)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3-Z.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-A` (no suffix)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-Z` (no suffix)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B9-2-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B9-2-Z` (no suffix)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B9-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-2-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-2-Z` (no suffix)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-2-Z.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-Z` (no suffix)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-A` (no suffix)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-Z` (no suffix)
-- `05_阻抗EIS\20251106阻抗李永进\BOBC\EIS-1` (no suffix)
-- `05_阻抗EIS\20251106阻抗李永进\BOBC\EIS-2GOOD` (no suffix)
-- `05_阻抗EIS\20251106阻抗李永进\MOSE\EIS` (no suffix)
-- `05_阻抗EIS\20260202\origin_project\eis图20260202.opju` (.opju)
-- `05_阻抗EIS\20260202\origin_project\eis图BOBC+CWO.opju` (.opju)
-- `05_阻抗EIS\20260202\raw_data\b11-2-z.lst` (.lst)
-- `05_阻抗EIS\20260202\raw_data\b11-z.lst` (.lst)
-- `05_阻抗EIS\20260202\raw_data\b3.lst` (.lst)
-- `05_阻抗EIS\20260202\raw_data\b7.lst` (.lst)
-- `05_阻抗EIS\20260202\raw_data\b9-2z.lst` (.lst)
-- `05_阻抗EIS\20260202\raw_data\b9-z.lst` (.lst)
-- `05_阻抗EIS\20260202\raw_data\bobc-z.lst` (.lst)
-- `05_阻抗EIS\20260202\raw_data\cwo-z.lst` (.lst)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\origin_project\2eis图20260202.opju` (.opju)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B11-2-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B11-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B7-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B9-2-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B9-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\BOBC-2-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\BOBC-2-Z.xlsm` (.xlsm)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\BOBC-E.xlsm` (.xlsm)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\BOBC-Z3.xlsm` (.xlsm)
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\CWO-E.xlsm` (.xlsm)
-- `05_阻抗EIS\308阻抗\MS\MS EIS.bin` (.bin)
-- `05_阻抗EIS\308阻抗\BOBC\EIS\BOBC.bin` (.bin)
-- `05_阻抗EIS\308阻抗\CWO\EIS\CWO EIS.bin` (.bin)
-- `05_阻抗EIS\308阻抗\CWO\EIS\CWOEIS2.bin` (.bin)
-- `05_阻抗EIS\BM重新拟合版本\exported_figures\BM阻抗.tif` (.tif)
-- `05_阻抗EIS\BM重新拟合版本\origin_project\BM.opju` (.opju)
-- `05_阻抗EIS\EIS-20251025拟合后师妹\exported_figures\LL-EIS-BM-X.png` (.png)
-- `05_阻抗EIS\EIS-20251025拟合后师妹\origin_project\BM-X.opju` (.opju)
-- `05_阻抗EIS\EIS-20251025拟合后师妹\origin_project\拟合后BM-X.opju` (.opju)
-- `06_红外\BOBC+MS 以前水热的Mose\exported_figures\BOBC+MS-FTRIR.tif` (.tif)
-- `06_红外\BOBC+MS 以前水热的Mose\origin_project\BOBC+MS.opju` (.opju)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM1.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM3.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM5.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM7.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM9.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM1.pdf` (.pdf)
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM3.pdf` (.pdf)
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM5.pdf` (.pdf)
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM7.pdf` (.pdf)
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM9.pdf` (.pdf)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM1.0` (.0)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM1.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM3.0` (.0)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM3.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM5.0` (.0)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM5.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM7.0` (.0)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM7.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM9.0` (.0)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM9.0.dpt` (.dpt)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BOBC.0` (.0)
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BOBC.0.dpt` (.dpt)
-- `06_红外\cwo+bobc\exported_figures\CWO+BOBC FTIR 2026018新制备.tif` (.tif)
-- `06_红外\cwo+bobc\exported_figures\CWO+BOBC FTIR.tif` (.tif)
-- `06_红外\cwo+bobc\exported_figures\FTIR2.tif` (.tif)
-- `06_红外\cwo+bobc\exported_figures\hongwai.tif` (.tif)
-- `06_红外\cwo+bobc\origin_project\CWO+BOBC红外.opju` (.opju)
-- `06_红外\cwo+bobc\raw_data\BOBC.0.dpt` (.dpt)
-- `06_红外\cwo+bobc\raw_data\CWO 15.0` (.0)
-- `06_红外\cwo+bobc\raw_data\CWO 15.0.dpt` (.dpt)
-- `06_红外\cwo+bobc\raw_data\CWO.0` (.0)
-- `06_红外\cwo+bobc\raw_data\CWO.0.dpt` (.dpt)
-- `06_红外\cwo+bobc\raw_data\cwo 20260128 李永进组\BC-10 环己烷.0` (.0)
-- `06_红外\cwo+bobc\raw_data\cwo 20260128 李永进组\BC-10.0环己烷.dpt` (.dpt)
-- `06_红外\红外MS+BPO 暑期版本\origin_project\红外.opju` (.opju)
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\3.bpo.0` (.0)
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\3.bpo.0.dpt` (.dpt)
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\4.ms-bpo.0.dpt` (.dpt)
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\4.msF-bpo.0` (.0)
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\5.ms.0` (.0)
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\5.ms.0.dpt` (.dpt)
-- `07_拉曼\origin_project\cwo+bobc raman.opju` (.opju)
-- `07_拉曼\20251021\exported_figures\ranman.tif` (.tif)
-- `07_拉曼\20251021\origin_project\bobc+ms.opju` (.opju)
-- `07_拉曼\raw_data\BC-30\bc30_1.l6s` (.l6s)
-- `07_拉曼\老版本BOBC+MS+BPO\exported_figures\BOBC+MS-RAMAN.tif` (.tif)
-- `07_拉曼\老版本BOBC+MS+BPO\origin_project\BOBC+MS+BPO.opju` (.opju)
-- `07_拉曼\老版本BOBC+MS+BPO\origin_project\BOBC+MS.opju` (.opju)
-- `08_固体紫外\exported_figures\CWO+BOBC紫外.tif` (.tif)
-- `08_固体紫外\exported_figures\CWO+BOBC紫外tacu.tif` (.tif)
-- `08_固体紫外\exported_figures\MS+BOBC固体紫外200-800.tif` (.tif)
-- `08_固体紫外\exported_figures\MS+BOBC固体紫外260-800.tif` (.tif)
-- `08_固体紫外\exported_figures\MS+BOBC固体紫外tacu.tif` (.tif)
-- `08_固体紫外\origin_project\BOBC+MS.opju` (.opju)
-- `08_固体紫外\raw_data\20251017-LL\20251017\bobc.UDS` (.uds)
-- `08_固体紫外\raw_data\20251017-LL\20251017\bobcms.UDS` (.uds)
-- `08_固体紫外\raw_data\20251017-LL\20251017\cwo.UDS` (.uds)
-- `08_固体紫外\raw_data\20251017-LL\20251017\cwobobc.UDS` (.uds)
-- `08_固体紫外\raw_data\20251017-LL\20251017\ms.UDS` (.uds)
-- `08_固体紫外\raw_data\20251017-LL\BOBC CWO10%(bc10%环己烷)\bc10-2.UDS` (.uds)
-- `08_固体紫外\raw_data\20251017-LL\BOBC CWO10%(bc10%环己烷)\bc10.UDS` (.uds)
-- `08_固体紫外\固体紫外CWO+BOBC\origin_project\BOBC+CWO.opju` (.opju)
-- `09_BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3` (.db3)
-- `09_BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3-journal` (.db3-journal)
-- `09_BET\ZPF-LL-20260327-4-BOBC-BET\ZPF-LL-20260327-4-BOBC-BET.SMP` (.smp)
-- `09_BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3` (.db3)
-- `09_BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3-journal` (.db3-journal)
-- `09_BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3` (.db3)
-- `09_BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3-journal` (.db3-journal)
-- `09_BET\XWM-LL-260428-1-BOBC-All Pore\origin_project\BOBC.opju` (.opju)
-- `09_BET\XWM-LL-260428-1-BOBC-All Pore\processed_tables\MICDIR.DB3` (.db3)
-- `09_BET\XWM-LL-260428-1-BOBC-All Pore\processed_tables\MICDIR.DB3-journal` (.db3-journal)
-- `09_BET\XWM-LL-260428-1-BOBC-All Pore\raw_data\XWM-LL-260428-1-BOBC-All Pore.SMP` (.smp)
-- `09_BET\氮气吸附脱附等温曲线\origin_project\BET -BOBC为负数.opju` (.opju)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\MICDIR.DB3` (.db3)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\MICDIR.DB3-journal` (.db3-journal)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-1-BOBC-All Pore\MICDIR.DB3` (.db3)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-1-BOBC-All Pore\MICDIR.DB3-journal` (.db3-journal)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-1-BOBC-All Pore\XWM-LL-260421-1-BOBC-All Pore.SMP` (.smp)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-2-CWO-All Pore\MICDIR.DB3` (.db3)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-2-CWO-All Pore\MICDIR.DB3-journal` (.db3-journal)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-2-CWO-All Pore\XWM-LL-260421-2-CWO-All Pore.SMP` (.smp)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-3-BiCu-All Pore\MICDIR.DB3` (.db3)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-3-BiCu-All Pore\MICDIR.DB3-journal` (.db3-journal)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-3-BiCu-All Pore\XWM-LL-260421-3-BiCu-All Pore.SMP` (.smp)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\MICDIR.DB3` (.db3)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\MICDIR.DB3-journal` (.db3-journal)
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\XWM-LL-260421-4-BOBC-4-XIN-All Pore.SMP` (.smp)
-- `10_EPR_PL\EPR\origin_project\epr.opju` (.opju)
-- `10_EPR_PL\EPR\raw_archives\20260430-1.zip` (.zip)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-dark` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light1` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light2` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light3` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light4` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light5` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-dark` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-dark2` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light1` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light2` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light3` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-dark` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-dark-none` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light1` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light2` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light3` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-OH-dark` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-OH-light1` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-dark` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-dark-none` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-light1` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-dark` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-light1` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-light2` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-dark` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-light-1` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-light-2` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260421\10%-OH-dark` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260421\10%-OH-light` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-O2-light` (.7%-o2-light)
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-O2-light-2` (.7%-o2-light-2)
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-OH-dark` (.7%-oh-dark)
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-OH-light` (.7%-oh-light)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-1min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-2min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-3min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-OH-light-1min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-OH-light-2min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-1min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-2min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-3min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-1min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-2min` (no suffix)
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-3min` (no suffix)
-- `10_EPR_PL\PL\origin_project\激发谱发射谱.opju` (.opju)
-- `10_EPR_PL\PL\raw_archives\3176_1775399174649_26032574877.zip` (.zip)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EM-ex340nm.FS` (.fs)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EM-ex340nm.wmf` (.wmf)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EX-em640nm.FS` (.fs)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EX-em640nm.wmf` (.wmf)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EM-ex340nm.FS` (.fs)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EM-ex340nm.wmf` (.wmf)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EX-em445nm.FS` (.fs)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EX-em445nm.wmf` (.wmf)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EM-ex340nm.FS` (.fs)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EM-ex340nm.wmf` (.wmf)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EX-em630nm.FS` (.fs)
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EX-em630nm.wmf` (.wmf)
-- `11_光反应条件筛选\origin_project\溶剂筛选.opju` (.opju)
-- `11_光反应条件筛选\origin_project\自由基捕获.opju` (.opju)
-- `11_光反应条件筛选\CL\origin_project\催化剂筛选.opju` (.opju)
-- `11_光反应条件筛选\CL\origin_project\循环实验.opju` (.opju)
-- `11_光反应条件筛选\CL\origin_project\溶剂筛选.opju` (.opju)
-- `11_光反应条件筛选\CL\origin_project\自由基猝灭.opju` (.opju)
-- `11_光反应条件筛选\标曲\origin_project\BBAD1.opju` (.opju)
-- `11_光反应条件筛选\标曲\origin_project\BZA2.opju` (.opju)
-- `12_显微_SEM_TEM\SEM\ll20260126-eds\~$ 1_区 1_2026-01-26_10-04-27.docx` (.docx)
-- `12_显微_SEM_TEM\SEM\ll20260126-eds\项目 1_区 1_2026-01-26_10-04-27.docx` (.docx)
-- `12_显微_SEM_TEM\SEM\CWO-BOBC\EDS\LL-1.docx` (.docx)
-- `12_显微_SEM_TEM\SEM\CWO-BOBC\EDS\LL.docx` (.docx)
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.docx` (.docx)
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.pdf` (.pdf)
-- `12_显微_SEM_TEM\TEM\HRTEM\0001 - BC Camera 36000 x Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0002 - BC Camera 630 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0003 - BC Camera 630 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0004 - BC Camera 630 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0005 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0006 - BC Camera 46000 x Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0007 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0008 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0009 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0010 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0011 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0012 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0013 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0014 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0015 - BC Camera 74000 x Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0016 - BC Camera 74000 x Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0017 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0018 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0019 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0020 - BC Camera 58000 x Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0021 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0022 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0023 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0024 - BC Camera 820 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\0025 - BC Camera 120 kx Ceta.emd` (.emd)
-- `12_显微_SEM_TEM\TEM\HRTEM\Thumbs.db` (.db)
-- `12_显微_SEM_TEM\TEM\TEM\#20260326.mdb` (.mdb)
-- `13_反应产物分析_液相_质谱_核磁\液相\11%.pdf` (.pdf)
-- `13_反应产物分析_液相_质谱_核磁\液相\5%.pdf` (.pdf)
-- `13_反应产物分析_液相_质谱_核磁\液相\7%.pdf` (.pdf)
-- `13_反应产物分析_液相_质谱_核磁\液相\9%.pdf` (.pdf)
-- `13_反应产物分析_液相_质谱_核磁\质谱\2CH3.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\3CH3.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\4BR.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\4CH3.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\4cl.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\KANG.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\LM.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\N8h.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\OCH3.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\S8h.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\SHUDINGJI.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqu` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqus` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fid` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\format.temp` (.temp)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fq1list` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\prosol_History` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pulseprogram` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\scon2` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\shimvalues` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\specpar` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.info` (.info)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.par` (.par)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1i` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1r` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\intrng` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\outd` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaklist.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peakrng` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaks` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\proc` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\procs` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\title` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqu` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqus` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fid` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\format.temp` (.temp)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fq1list` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\prosol_History` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pulseprogram` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\scon2` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\shimvalues` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\specpar` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.info` (.info)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.par` (.par)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1i` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1r` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\intrng` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\outd` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaklist.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peakrng` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaks` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\proc` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\procs` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\title` (no suffix)
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\15%.pdf` (.pdf)
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\20%.pdf` (.pdf)
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\3%.pdf` (.pdf)
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\5%.pdf` (.pdf)
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\80%.pdf` (.pdf)
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\KANG.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\SHUDINGJI.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\desktop.ini` (.ini)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\desktop.ini` (.ini)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\desktop.ini` (.ini)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\desktop.ini` (.ini)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\desktop.ini` (.ini)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\desktop.ini` (.ini)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\2CH3.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\3CH3.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4BR.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4CH3.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4cl.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\OCH3.xps` (.xps)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\AcqMethod.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Contents.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DefaultMassCal.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DeviceConfigInfo.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Devices.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSActualDefs.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSMassCal.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSPeriodicActuals.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSProfile.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.xsd` (.xsd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSTS.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\sample_info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Worklist.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\191_1.stg` (.stg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\AcqMethod.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Contents.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DefaultMassCal.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DeviceConfigInfo.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Devices.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSActualDefs.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSMassCal.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSPeriodicActuals.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSProfile.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.xsd` (.xsd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSTS.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\sample_info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Worklist.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\191_1.stg` (.stg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\AcqMethod.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Contents.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DefaultMassCal.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DeviceConfigInfo.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Devices.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSActualDefs.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSMassCal.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSPeriodicActuals.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSProfile.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.xsd` (.xsd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSTS.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\sample_info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Worklist.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\191_1.stg` (.stg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\AcqMethod.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Contents.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DefaultMassCal.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DeviceConfigInfo.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Devices.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSActualDefs.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSMassCal.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSPeriodicActuals.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSProfile.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.xsd` (.xsd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSTS.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\sample_info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Worklist.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\191_1.stg` (.stg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\AcqMethod.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Contents.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DefaultMassCal.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DeviceConfigInfo.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Devices.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSActualDefs.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSMassCal.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSPeriodicActuals.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSProfile.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.xsd` (.xsd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSTS.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\sample_info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Worklist.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\191_1.stg` (.stg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\AcqMethod.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Contents.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DefaultMassCal.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DeviceConfigInfo.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Devices.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSActualDefs.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSMassCal.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSPeriodicActuals.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSProfile.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.bin` (.bin)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.xsd` (.xsd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSTS.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\sample_info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cd` (.cd)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cg` (.cg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Worklist.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\191_1.stg` (.stg)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
+- `EPR\20260430-1.zip` (.zip)
+- `EPR\epr.opju` (.opju)
+- `PL\3176_1775399174649_26032574877.zip` (.zip)
+- `PL\激发谱发射谱.opju` (.opju)
+- `XPS\26010989730.rar` (.rar)
+- `XPS\BC-OW.opju` (.opju)
+- `XPS\bc-XPS.opju` (.opju)
+- `XPS\bobc xps.opju` (.opju)
+- `XPS\cwo xps.opju` (.opju)
+- `XPS\CWO+BOBC VBXPS谱图.opju` (.opju)
+- `XPS\原位XPS.zip` (.zip)
+- `光反应的条件筛选\时间反应取样.opju` (.opju)
+- `光反应的条件筛选\溶剂筛选.opju` (.opju)
+- `光反应的条件筛选\自由基捕获.opju` (.opju)
+- `光电流响应\2758_1774879987011_26032562524.zip` (.zip)
+- `光电流响应\2758_1776699905862_26041550465.zip` (.zip)
+- `光电流响应\SECOND.opju` (.opju)
+- `光电流响应\光电流基线处理教程.pdf` (.pdf)
+- `光电流响应\光电流相应CWO+BOBC.opju` (.opju)
+- `固体紫外\BOBC+MS.opju` (.opju)
+- `固体紫外\CWO+BOBC紫外.tif` (.tif)
+- `固体紫外\CWO+BOBC紫外tacu.tif` (.tif)
+- `固体紫外\MS+BOBC固体紫外200-800.tif` (.tif)
+- `固体紫外\MS+BOBC固体紫外260-800.tif` (.tif)
+- `固体紫外\MS+BOBC固体紫外tacu.tif` (.tif)
+- `拉曼\cwo+bobc raman.opju` (.opju)
+- `液相\11%.pdf` (.pdf)
+- `液相\5%.pdf` (.pdf)
+- `液相\7%.pdf` (.pdf)
+- `液相\9%.pdf` (.pdf)
+- `质谱\2CH3.xps` (.xps)
+- `质谱\3CH3.xps` (.xps)
+- `质谱\4BR.xps` (.xps)
+- `质谱\4CH3.xps` (.xps)
+- `质谱\4cl.xps` (.xps)
+- `质谱\KANG.xps` (.xps)
+- `质谱\LM.xps` (.xps)
+- `质谱\N8h.xps` (.xps)
+- `质谱\OCH3.xps` (.xps)
+- `质谱\S8h.xps` (.xps)
+- `质谱\SHUDINGJI.xps` (.xps)
+- `阻抗EIS\20251106阻抗李永进.zip` (.zip)
+- `阻抗EIS\20260202.zip` (.zip)
+- `阻抗EIS\308阻抗.zip` (.zip)
+- `阻抗EIS\阻抗图.tif` (.tif)
+- `20260109 光电流\26010964564\光电流基线处理教程.pdf` (.pdf)
+- `20260109 光电流\26010964564\Photocurrent\1-BOC-(OCP).bin` (.bin)
+- `20260109 光电流\26010964564\Photocurrent\2-MCS-(OCP).bin` (.bin)
+- `20260109 光电流\26010964564\Photocurrent\3-BM-10-(OCP).bin` (.bin)
+- `20260109 光电流\26010964564\Photocurrent\4-BOBC-(OCP).bin` (.bin)
+- `20260109 光电流\26010964564\Photocurrent\5-CWO-(OCP) .bin` (.bin)
+- `20260109 光电流\26010964564\Photocurrent\6-BC-11-(OCP).bin` (.bin)
+- `BET\XWM-LL-260428-1-BOBC-All Pore\BOBC.opju` (.opju)
+- `BET\XWM-LL-260428-1-BOBC-All Pore\MICDIR.DB3` (.db3)
+- `BET\XWM-LL-260428-1-BOBC-All Pore\MICDIR.DB3-journal` (.db3-journal)
+- `BET\XWM-LL-260428-1-BOBC-All Pore\XWM-LL-260428-1-BOBC-All Pore.SMP` (.smp)
+- `BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3` (.db3)
+- `BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3-journal` (.db3-journal)
+- `BET\ZPF-LL-20260327-4-BOBC-BET\ZPF-LL-20260327-4-BOBC-BET.SMP` (.smp)
+- `BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3` (.db3)
+- `BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3-journal` (.db3-journal)
+- `BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3` (.db3)
+- `BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3-journal` (.db3-journal)
+- `BET\氮气吸附脱附等温曲线\BET -BOBC为负数.opju` (.opju)
+- `BET\氮气吸附脱附等温曲线\20260421\MICDIR.DB3` (.db3)
+- `BET\氮气吸附脱附等温曲线\20260421\MICDIR.DB3-journal` (.db3-journal)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-1-BOBC-All Pore\MICDIR.DB3` (.db3)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-1-BOBC-All Pore\MICDIR.DB3-journal` (.db3-journal)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-1-BOBC-All Pore\XWM-LL-260421-1-BOBC-All Pore.SMP` (.smp)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-2-CWO-All Pore\MICDIR.DB3` (.db3)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-2-CWO-All Pore\MICDIR.DB3-journal` (.db3-journal)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-2-CWO-All Pore\XWM-LL-260421-2-CWO-All Pore.SMP` (.smp)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-3-BiCu-All Pore\MICDIR.DB3` (.db3)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-3-BiCu-All Pore\MICDIR.DB3-journal` (.db3-journal)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-3-BiCu-All Pore\XWM-LL-260421-3-BiCu-All Pore.SMP` (.smp)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\MICDIR.DB3` (.db3)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\MICDIR.DB3-journal` (.db3-journal)
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\XWM-LL-260421-4-BOBC-4-XIN-All Pore.SMP` (.smp)
+- `EPR\20260421\6.7%-O2-light` (.7%-o2-light)
+- `EPR\20260421\6.7%-O2-light-2` (.7%-o2-light-2)
+- `EPR\20260421\6.7%-OH-dark` (.7%-oh-dark)
+- `EPR\20260421\6.7%-OH-light` (.7%-oh-light)
+- `EPR\EPR_Origin_outputs_20260531\EPR_OH_20260421_test.opju` (.opju)
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_10pct_dark_light_offset.tsv` (.tsv)
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_10pct_dark_light_xy_pairs.tsv` (.tsv)
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_10pct_dark_single.tsv` (.tsv)
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_test.tsv` (.tsv)
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_test_manifest.json` (.json)
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_test_offset.tsv` (.tsv)
+- `EPR\EPR_Origin_outputs_20260531\exports\EPR_OH_20260421_Test.png` (.png)
+- `EPR\EPR_Origin_outputs_20260531\exports\EPR_OH_20260421_Test.tif` (.tif)
+- `PL\bobc+cwo+bc\1-EM-ex340nm.FS` (.fs)
+- `PL\bobc+cwo+bc\1-EM-ex340nm.wmf` (.wmf)
+- `PL\bobc+cwo+bc\1-EX-em640nm.FS` (.fs)
+- `PL\bobc+cwo+bc\1-EX-em640nm.wmf` (.wmf)
+- `PL\bobc+cwo+bc\2-EM-ex340nm.FS` (.fs)
+- `PL\bobc+cwo+bc\2-EM-ex340nm.wmf` (.wmf)
+- `PL\bobc+cwo+bc\2-EX-em445nm.FS` (.fs)
+- `PL\bobc+cwo+bc\2-EX-em445nm.wmf` (.wmf)
+- `PL\bobc+cwo+bc\3-EM-ex340nm.FS` (.fs)
+- `PL\bobc+cwo+bc\3-EM-ex340nm.wmf` (.wmf)
+- `PL\bobc+cwo+bc\3-EX-em630nm.FS` (.fs)
+- `PL\bobc+cwo+bc\3-EX-em630nm.wmf` (.wmf)
+- `SEM\ll20260126-eds\~$ 1_区 1_2026-01-26_10-04-27.docx` (.docx)
+- `SEM\ll20260126-eds\项目 1_区 1_2026-01-26_10-04-27.docx` (.docx)
+- `SEM\CWO-BOBC\EDS\LL-1.docx` (.docx)
+- `SEM\CWO-BOBC\EDS\LL.docx` (.docx)
+- `SEM\MOSE2\MS方法4\0416HOU.docx` (.docx)
+- `SEM\MOSE2\MS方法4\0416HOU.pdf` (.pdf)
+- `TEM\HRTEM\0001 - BC Camera 36000 x Ceta.emd` (.emd)
+- `TEM\HRTEM\0002 - BC Camera 630 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0003 - BC Camera 630 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0004 - BC Camera 630 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0005 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0006 - BC Camera 46000 x Ceta.emd` (.emd)
+- `TEM\HRTEM\0007 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0008 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0009 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0010 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0011 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0012 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0013 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0014 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0015 - BC Camera 74000 x Ceta.emd` (.emd)
+- `TEM\HRTEM\0016 - BC Camera 74000 x Ceta.emd` (.emd)
+- `TEM\HRTEM\0017 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0018 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0019 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0020 - BC Camera 58000 x Ceta.emd` (.emd)
+- `TEM\HRTEM\0021 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0022 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0023 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0024 - BC Camera 820 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\0025 - BC Camera 120 kx Ceta.emd` (.emd)
+- `TEM\HRTEM\Thumbs.db` (.db)
+- `TEM\TEM\#20260326.mdb` (.mdb)
+- `XPS\BC拟合后\Data Grid.vgp` (.vgp)
+- `XPS\BOBC拟合后\Data Grid.vgp` (.vgp)
+- `XPS\CWO拟合后\Data Grid.vgp` (.vgp)
+- `XPS\原位XPS\DARK.vgp` (.vgp)
+- `XPS\原位XPS\light .vgp CU没有拟合.vgp` (.vgp)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.vgp` (.vgp)
+- `XPS\电荷未矫正第一次\light拟合第一遍.vgp` (.vgp)
+- `XPS\电荷未矫正第一次\xps 全数据BI.opju` (.opju)
+- `XPS\电荷未矫正第一次\xps全数据CU.opju` (.opju)
+- `XPS\电荷未矫正第一次\xps全数据版.opju` (.opju)
+- `XPS\26010989730\BC-11\Bi4f Scan.VGD` (.vgd)
+- `XPS\26010989730\BC-11\Br3d Scan.VGD` (.vgd)
+- `XPS\26010989730\BC-11\C1s Scan.VGD` (.vgd)
+- `XPS\26010989730\BC-11\Cl2p Scan.VGD` (.vgd)
+- `XPS\26010989730\BC-11\Cu2p Scan.VGD` (.vgd)
+- `XPS\26010989730\BC-11\O1s Scan.VGD` (.vgd)
+- `XPS\26010989730\BC-11\Valence.VGD` (.vgd)
+- `XPS\26010989730\BC-11\W4f Scan.VGD` (.vgd)
+- `XPS\26010989730\BC-11\XPS Survey.VGD` (.vgd)
+- `XPS\26010989730\BOBC\Bi4f Scan.VGD` (.vgd)
+- `XPS\26010989730\BOBC\Br3d Scan.VGD` (.vgd)
+- `XPS\26010989730\BOBC\C1s Scan.VGD` (.vgd)
+- `XPS\26010989730\BOBC\Cl2p Scan.VGD` (.vgd)
+- `XPS\26010989730\BOBC\O1s Scan.VGD` (.vgd)
+- `XPS\26010989730\BOBC\Valence.VGD` (.vgd)
+- `XPS\26010989730\BOBC\XPS Survey.VGD` (.vgd)
+- `XPS\26010989730\CWO\C1s Scan.VGD` (.vgd)
+- `XPS\26010989730\CWO\Cu2p Scan.VGD` (.vgd)
+- `XPS\26010989730\CWO\O1s Scan.VGD` (.vgd)
+- `XPS\26010989730\CWO\Valence.VGD` (.vgd)
+- `XPS\26010989730\CWO\W4f Scan.VGD` (.vgd)
+- `XPS\26010989730\CWO\XPS Survey.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Bi4f Scan.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Bi4f Scan_0.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Br3d Scan.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Br3d Scan_0.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\C1s Scan.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\C1s Scan_0.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Cl2p Scan.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Cl2p Scan_0.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Cu2p Scan.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Cu2p Scan_0.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\O1s Scan.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\O1s Scan_0.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Valence.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\Valence_0.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\W4f Scan.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\W4f Scan_0.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\XPS Survey.VGD` (.vgd)
+- `XPS\BC拟合后\Data Grid.DATA\XPS Survey_0.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\Bi4f Scan.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\Bi4f Scan_0.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\Br3d Scan.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\Br3d Scan_0.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\C1s Scan.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\C1s Scan_0.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\Cl2p Scan.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\Cl2p Scan_0.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\O1s Scan.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\O1s Scan_0.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\Valence.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\Valence_0.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\XPS Survey.VGD` (.vgd)
+- `XPS\BOBC拟合后\Data Grid.DATA\XPS Survey_0.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\C1s Scan.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\C1s Scan_0.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\Cu2p Scan.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\Cu2p Scan_0.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\O1s Scan.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\O1s Scan_0.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\Valence.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\Valence_0.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\W4f Scan.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\W4f Scan_0.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\XPS Survey.VGD` (.vgd)
+- `XPS\CWO拟合后\Data Grid.DATA\XPS Survey_0.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1-light.vgp` (.vgp)
+- `XPS\原位XPS\26041816225\Processing View #1.vgp` (.vgp)
+- `XPS\原位XPS\DARK.DATA\Bi4f Scan.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\Bi4f Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\Br3d Scan.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\Br3d Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\C1s Scan.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\C1s Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\Cl2p Scan.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\Cl2p Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\Cu2p Scan.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\Cu2p Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\O1s Scan.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\O1s Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\Survey.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\Survey_0.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\W4f Scan.VGD` (.vgd)
+- `XPS\原位XPS\DARK.DATA\W4f Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Survey.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Survey_0.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan.VGD` (.vgd)
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan_0.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Bi4f Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Br3d Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\C1s Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Cl2p Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Cu2p Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\O1s Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Survey.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\W4f Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Bi4f Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Br3d Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\C1s Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Cl2p Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Cu2p Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\O1s Scan.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Survey.VGD` (.vgd)
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\W4f Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Bi4f Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Br3d Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\C1s Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\C1s Scan_0.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Cl2p Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Cu2p Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\O1s Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Survey.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\W4f Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Bi4f Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Br3d Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\C1s Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\C1s Scan_0.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Cl2p Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Cu2p Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\O1s Scan.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Survey.VGD` (.vgd)
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\W4f Scan.VGD` (.vgd)
+- `XRD\20251110\bobc shuirei.raw` (.raw)
+- `XRD\20251110\bobc shuirei2.raw` (.raw)
+- `XRD\20251110\bobcshuirei+cwo15%.raw` (.raw)
+- `XRD\20251110\kit-6-1.raw` (.raw)
+- `XRD\20251110\kit-6-2.raw` (.raw)
+- `XRD\20260326LL BOB BOC BCN\BICSNH4.dql` (.dql)
+- `XRD\20260326LL BOB BOC BCN\BICSNH4.raw` (.raw)
+- `XRD\20260326LL BOB BOC BCN\CL.dql` (.dql)
+- `XRD\20260326LL BOB BOC BCN\CL.raw` (.raw)
+- `XRD\20260326LL BOB BOC BCN\NH4.dql` (.dql)
+- `XRD\20260326LL BOB BOC BCN\NH4.raw` (.raw)
+- `XRD\BOBC+MS\MS+BOBC.tif` (.tif)
+- `XRD\BPO\BPO+MS.raw` (.raw)
+- `XRD\BPO\BPO.raw` (.raw)
+- `XRD\BWO\A BWO.raw` (.raw)
+- `XRD\BWO\BWO.opju` (.opju)
+- `XRD\BWO\M BWO.RAW` (.raw)
+- `XRD\CWO+BOBC\CWO+BOBC+标卡.opju` (.opju)
+- `XRD\KIT-6\kit-6.opju` (.opju)
+- `XRD\KIT-6\kit-6.tif` (.tif)
+- `XRD\KIT-6\kit-6bo.raw` (.raw)
+- `XRD\KIT-6\kit-6bo2.raw` (.raw)
+- `XRD\KIT-6\kit-6fe.raw` (.raw)
+- `XRD\KIT-6\KIT-6第二批.opju` (.opju)
+- `XRD\MS\BPO+MS.opju` (.opju)
+- `XRD\研一上xrd数据及图片\20241125XRD.opju` (.opju)
+- `XRD\研一上xrd数据及图片\BiOBrCl-TiO2 2.raw` (.raw)
+- `XRD\研一上xrd数据及图片\BiOBrCl-TiO2.bc` (.bc)
+- `XRD\研一上xrd数据及图片\BiOBrCl-TiO2.raw` (.raw)
+- `XRD\研一上xrd数据及图片\BiOBrCl.raw` (.raw)
+- `XRD\研一上xrd数据及图片\TiO2.bc` (.bc)
+- `XRD\研一上xrd数据及图片\TiO2.raw` (.raw)
+- `XRD\BOBC+MS\251024\20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju` (.opju)
+- `XRD\BOBC+MS\251024\mb9.jip` (.jip)
+- `XRD\BOBC+MS\251024\MOSE2 10MIN.dql` (.dql)
+- `XRD\BOBC+MS\251024\MOSE2 5MIN.dql` (.dql)
+- `XRD\CWO+BOBC\BOBC\BOBC.dql` (.dql)
+- `XRD\CWO+BOBC\BOBC\BOBC.raw` (.raw)
+- `XRD\CWO+BOBC\cwo+bobc\XRD2.tif` (.tif)
+- `XRD\CWO+BOBC\cwo八面体\cwo 8.jip` (.jip)
+- `XRD\CWO+BOBC\cwo八面体\cwo 8面体.raw` (.raw)
+- `XRD\CWO+BOBC\cwo沉淀法+合适的标准卡片\cwo.dql` (.dql)
+- `XRD\CWO+BOBC\cwo沉淀法+合适的标准卡片\cwo.jip` (.jip)
+- `XRD\CWO+BOBC\cwo沉淀法+合适的标准卡片\cwo.raw` (.raw)
+- `XRD\CWO+BOBC\BOBC\BOBC600度\BOBC600.dql` (.dql)
+- `XRD\CWO+BOBC\BOBC\BOBC600度\BOBC600.raw` (.raw)
+- `XRD\CWO+BOBC\cwo+bobc\BC-15\BOBC+BOBC15%.RAW` (.raw)
+- `XRD\CWO+BOBC\cwo+bobc\BC-15\BOBC+CWO15%.RAW` (.raw)
+- `XRD\CWO+BOBC\cwo+bobc\BC-30\BC30.RAW` (.raw)
+- `XRD\CWO+BOBC\cwo+bobc\CWO为主体\cwo10.raw` (.raw)
+- `XRD\CWO+BOBC\cwo+bobc\CWO为主体\cwo15.raw` (.raw)
+- `XRD\CWO+BOBC\cwo+bobc\CWO为主体\cwo5.raw` (.raw)
+- `XRD\MS\MSXRD\1mmolmose2的XRD.tif` (.tif)
+- `XRD\MS\MSXRD\MOSE2.opju` (.opju)
+- `XRD\MS\MSXRD\MS.opju` (.opju)
+- `XRD\MS\MSXRD\球磨第二批XRD.opju` (.opju)
+- `XRD\MS\MSXRD\4种方法\XRD2.pdf` (.pdf)
+- `XRD\MS\MSXRD\4种方法\XRD同.pdf` (.pdf)
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO1.1.dql` (.dql)
+- `光反应的条件筛选\CL\催化剂筛选.opju` (.opju)
+- `光反应的条件筛选\CL\循环实验.opju` (.opju)
+- `光反应的条件筛选\CL\溶剂筛选.opju` (.opju)
+- `光反应的条件筛选\CL\自由基猝灭.opju` (.opju)
+- `光反应的条件筛选\标曲\BBAD1.opju` (.opju)
+- `光反应的条件筛选\标曲\BZA2.opju` (.opju)
+- `光电流响应\1bobc+2cwo+3bicu-10\I-T BOBC+CWO 4.22.opju` (.opju)
+- `光电流响应\第一次CWO BOBC BC数据\4-BOBC-(OCP).bin` (.bin)
+- `光电流响应\第一次CWO BOBC BC数据\5-CWO-(OCP) .bin` (.bin)
+- `光电流响应\第一次CWO BOBC BC数据\6-BC-11-(OCP).bin` (.bin)
+- `光电流响应\1bobc+2cwo+3bicu-10\bicu\1-（OCP）.bin` (.bin)
+- `光电流响应\1bobc+2cwo+3bicu-10\BOBC\1-(OCP).bin` (.bin)
+- `光电流响应\1bobc+2cwo+3bicu-10\CWO\2-(OCP).bin` (.bin)
+- `光电流响应\第三次光电流补测\26041550465\光电流基线处理教程.pdf` (.pdf)
+- `光电流响应\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` (.bin)
+- `光电流响应\第二次BOBC BC\26032562524\光电流基线处理教程.pdf` (.pdf)
+- `光电流响应\第二次BOBC BC\26032562524\Photocurrent\1-(OCP).bin` (.bin)
+- `光电流响应\第二次BOBC BC\26032562524\Photocurrent\2-(OCP).bin` (.bin)
+- `固体紫外\固体紫外CWO+BOBC\BOBC+CWO.opju` (.opju)
+- `固体紫外\20251017-LL\20251017\bobc.UDS` (.uds)
+- `固体紫外\20251017-LL\20251017\bobcms.UDS` (.uds)
+- `固体紫外\20251017-LL\20251017\cwo.UDS` (.uds)
+- `固体紫外\20251017-LL\20251017\cwobobc.UDS` (.uds)
+- `固体紫外\20251017-LL\20251017\ms.UDS` (.uds)
+- `固体紫外\20251017-LL\BOBC CWO10%(bc10%环己烷)\bc10-2.UDS` (.uds)
+- `固体紫外\20251017-LL\BOBC CWO10%(bc10%环己烷)\bc10.UDS` (.uds)
+- `拉曼\20251021\bobc+ms.opju` (.opju)
+- `拉曼\20251021\ranman.tif` (.tif)
+- `拉曼\BC-30\bc30_1.l6s` (.l6s)
+- `拉曼\老版本BOBC+MS+BPO\BOBC+MS+BPO.opju` (.opju)
+- `拉曼\老版本BOBC+MS+BPO\BOBC+MS-RAMAN.tif` (.tif)
+- `拉曼\老版本BOBC+MS+BPO\BOBC+MS.opju` (.opju)
+- `核磁\ZPF-LL-1125-1\10\acqu` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\acqus` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\fid` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\format.temp` (.temp)
+- `核磁\ZPF-LL-1125-1\10\fq1list` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\prosol_History` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\pulseprogram` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\scon2` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\shimvalues` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\specpar` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\uxnmr.info` (.info)
+- `核磁\ZPF-LL-1125-1\10\uxnmr.par` (.par)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\1i` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\1r` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\intrng` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\outd` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\peaklist.xml` (.xml)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\peakrng` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\peaks` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\proc` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\procs` (no suffix)
+- `核磁\ZPF-LL-1125-1\10\pdata\1\title` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\acqu` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\acqus` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\fid` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\format.temp` (.temp)
+- `核磁\ZPF-LL-1125-2\10\fq1list` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\prosol_History` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\pulseprogram` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\scon2` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\shimvalues` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\specpar` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\uxnmr.info` (.info)
+- `核磁\ZPF-LL-1125-2\10\uxnmr.par` (.par)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\1i` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\1r` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\intrng` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\outd` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\peaklist.xml` (.xml)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\peakrng` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\peaks` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\proc` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\procs` (no suffix)
+- `核磁\ZPF-LL-1125-2\10\pdata\1\title` (no suffix)
+- `液相\新建文件夹\15%.pdf` (.pdf)
+- `液相\新建文件夹\20%.pdf` (.pdf)
+- `液相\新建文件夹\3%.pdf` (.pdf)
+- `液相\新建文件夹\5%.pdf` (.pdf)
+- `液相\新建文件夹\80%.pdf` (.pdf)
+- `红外\BOBC+MS 以前水热的Mose\BOBC+MS-FTRIR.tif` (.tif)
+- `红外\BOBC+MS 以前水热的Mose\BOBC+MS.opju` (.opju)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM1.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM1.pdf` (.pdf)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM3.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM3.pdf` (.pdf)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM5.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM5.pdf` (.pdf)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM7.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM7.pdf` (.pdf)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM9.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\LL-BM9.pdf` (.pdf)
+- `红外\cwo+bobc\BOBC.0.dpt` (.dpt)
+- `红外\cwo+bobc\CWO 15.0` (.0)
+- `红外\cwo+bobc\CWO 15.0.dpt` (.dpt)
+- `红外\cwo+bobc\CWO+BOBC FTIR 2026018新制备.tif` (.tif)
+- `红外\cwo+bobc\CWO+BOBC FTIR.tif` (.tif)
+- `红外\cwo+bobc\CWO+BOBC红外.opju` (.opju)
+- `红外\cwo+bobc\CWO.0` (.0)
+- `红外\cwo+bobc\CWO.0.dpt` (.dpt)
+- `红外\cwo+bobc\FTIR2.tif` (.tif)
+- `红外\cwo+bobc\hongwai.tif` (.tif)
+- `红外\红外MS+BPO 暑期版本\红外.opju` (.opju)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM1.0` (.0)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM1.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM3.0` (.0)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM3.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM5.0` (.0)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM5.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM7.0` (.0)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM7.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM9.0` (.0)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM9.0.dpt` (.dpt)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BOBC.0` (.0)
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BOBC.0.dpt` (.dpt)
+- `红外\cwo+bobc\cwo 20260128 李永进组\BC-10 环己烷.0` (.0)
+- `红外\cwo+bobc\cwo 20260128 李永进组\BC-10.0环己烷.dpt` (.dpt)
+- `红外\红外MS+BPO 暑期版本\20250715-1\3.bpo.0` (.0)
+- `红外\红外MS+BPO 暑期版本\20250715-1\3.bpo.0.dpt` (.dpt)
+- `红外\红外MS+BPO 暑期版本\20250715-1\4.ms-bpo.0.dpt` (.dpt)
+- `红外\红外MS+BPO 暑期版本\20250715-1\4.msF-bpo.0` (.0)
+- `红外\红外MS+BPO 暑期版本\20250715-1\5.ms.0` (.0)
+- `红外\红外MS+BPO 暑期版本\20250715-1\5.ms.0.dpt` (.dpt)
+- `莫特肖特基\20260121CWO+BOBC\BOBC.opju` (.opju)
+- `莫特肖特基\20260121CWO+BOBC\BOBC2000.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\BOBC2500.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\BOBC3000.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\BOBC3500.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\BOBC4000.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\BOBC4500.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\BOBC5000.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO1000废.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO1500.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO2000.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO2500.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO3000.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO3500-2.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO3500.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO4000.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO4500.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO5000.bin` (.bin)
+- `莫特肖特基\20260121CWO+BOBC\CWO新.opju` (.opju)
+- `莫特肖特基\BOBC\bobc.opju` (.opju)
+- `莫特肖特基\BOBC\BOBC1000.bin` (.bin)
+- `莫特肖特基\BOBC\BOBC1500.bin` (.bin)
+- `莫特肖特基\BOBC\BOBC2000.bin` (.bin)
+- `莫特肖特基\BOBC\BOBC2500.bin` (.bin)
+- `莫特肖特基\BOBC\BOBC3000.bin` (.bin)
+- `莫特肖特基\BOBC\BOBC3500 2.bin` (.bin)
+- `莫特肖特基\BOBC\BOBC3500.bin` (.bin)
+- `莫特肖特基\BOBC\BOBC4000.bin` (.bin)
+- `莫特肖特基\BOBC\BOBC4500.bin` (.bin)
+- `莫特肖特基\BOBC\BOBCMOSE能带.tif` (.tif)
+- `莫特肖特基\BOBC\BOBC莫特肖特基.tif` (.tif)
+- `莫特肖特基\BOBC\CWO+BOBC莫特.tif` (.tif)
+- `莫特肖特基\CWO\CWO MT-0.6.opju` (.opju)
+- `莫特肖特基\CWO\CWO MT-2 +0.3.opju` (.opju)
+- `莫特肖特基\MoSe2MT\MOSE模特肖特基.tif` (.tif)
+- `莫特肖特基\MoSe2MT\ms.opju` (.opju)
+- `莫特肖特基\MoSe2MT\MS1000.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS1500.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS2000.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS2500.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS3000.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS3500  2.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS3500  3.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS3500  4.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS3500 5.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS3500.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS4000 2.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS4000.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS4500.bin` (.bin)
+- `莫特肖特基\MoSe2MT\MS5000.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC-2-1000.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC-2-1500.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC-2-2000.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC-2-2500.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC-2-3000.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC-2-3500.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC1000.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC1500.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC2000.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC2500.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC3000.bin` (.bin)
+- `莫特肖特基\20251126\BOBC\BOBC3500.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO-2-1500.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO-2-2000.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO-2-2500.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO-2-3000.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO-2-3500.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO-2-4000.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO-2-4500.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO-2-5000.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO1500.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO2000.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO2500.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO3000.bin` (.bin)
+- `莫特肖特基\20251126\CWO\CWO3500.bin` (.bin)
+- `莫特肖特基\CWO\MT1\CWO1000.bin` (.bin)
+- `莫特肖特基\CWO\MT1\CWO1500.bin` (.bin)
+- `莫特肖特基\CWO\MT1\CWO2000.bin` (.bin)
+- `莫特肖特基\CWO\MT1\CWO2500.bin` (.bin)
+- `莫特肖特基\CWO\MT1\CWO3000.bin` (.bin)
+- `莫特肖特基\CWO\MT2\CWO1500 2.bin` (.bin)
+- `莫特肖特基\CWO\MT2\CWO2000 2.bin` (.bin)
+- `莫特肖特基\CWO\MT2\CWO2500 2.bin` (.bin)
+- `莫特肖特基\CWO\MT2\CWO3000 2.bin` (.bin)
+- `莫特肖特基\CWO\MT2\CWO3500 2.bin` (.bin)
+- `莫特肖特基\CWO\MT2\CWO3500 3.bin` (.bin)
+- `莫特肖特基\CWO\CWO莫特肖特基数据处理版\MS数据处理版\李霖25年11月20日.pptx` (.pptx)
+- `莫特肖特基\LL\BOBC\1000.bin` (.bin)
+- `莫特肖特基\LL\BOBC\1500.bin` (.bin)
+- `莫特肖特基\LL\BOBC\2000.bin` (.bin)
+- `莫特肖特基\LL\BOBC\2500.bin` (.bin)
+- `莫特肖特基\LL\BOBC\3000.bin` (.bin)
+- `莫特肖特基\LL\BOBC\3500.bin` (.bin)
+- `莫特肖特基\LL\BOBC\4000.bin` (.bin)
+- `莫特肖特基\LL\bobc数据处理版本\bobc.opju` (.opju)
+- `莫特肖特基\LLKT ms\20250905\13MBEIS.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\13MBEIS2.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\1mbMT1000.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\1msEIS.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\1MT1000-2.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\1MT2000-2.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\1MT3000-2.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\1MT4000-2.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\1MT5000-2.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\3mbEIS.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\5MB EIS.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\5MBEIS2.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\7BMEIS.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\LL\1bm.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\LL\1bm2.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt2000.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt3000.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt4000-2.bin` (.bin)
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt4000.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\BOBC\1000.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\BOBC\1500.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\BOBC\2000.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\BOBC\2500.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\BOBC\3000.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\BOBC\3500.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\BOBC\4000.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\bobc数据处理版本\bobc.opju` (.opju)
+- `莫特肖特基\第一体系确定版本\bobc数据处理版本\bobc格式美化版本.opju` (.opju)
+- `莫特肖特基\第一体系确定版本\MT2\CWO MT-2 +0.3.opju` (.opju)
+- `莫特肖特基\第一体系确定版本\MT2\CWO MT-2 +0.3数据美化版本.opju` (.opju)
+- `莫特肖特基\第一体系确定版本\MT2\CWO1500 2.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\MT2\CWO2000 2.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\MT2\CWO2500 2.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\MT2\CWO3000 2.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\MT2\CWO3500 2.bin` (.bin)
+- `莫特肖特基\第一体系确定版本\MT2\CWO3500 3.bin` (.bin)
+- `质谱\糠胺叔丁基\KANG.xps` (.xps)
+- `质谱\糠胺叔丁基\SHUDINGJI.xps` (.xps)
+- `质谱\底物拓展原文件\20260316+2CH3.d\desktop.ini` (.ini)
+- `质谱\底物拓展原文件\20260316+3CH3.d\desktop.ini` (.ini)
+- `质谱\底物拓展原文件\20260316+4BR3.d\desktop.ini` (.ini)
+- `质谱\底物拓展原文件\20260316+4CH3.d\desktop.ini` (.ini)
+- `质谱\底物拓展原文件\20260316+4CL.d\desktop.ini` (.ini)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\desktop.ini` (.ini)
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\2CH3.xps` (.xps)
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\3CH3.xps` (.xps)
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4BR.xps` (.xps)
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4CH3.xps` (.xps)
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4cl.xps` (.xps)
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\OCH3.xps` (.xps)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\AcqMethod.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Contents.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DefaultMassCal.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DeviceConfigInfo.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Devices.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSActualDefs.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSMassCal.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSPeriodicActuals.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSProfile.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.xsd` (.xsd)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSTS.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\sample_info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Worklist.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\191_1.stg` (.stg)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\AcqMethod.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Contents.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DefaultMassCal.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DeviceConfigInfo.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Devices.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSActualDefs.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSMassCal.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSPeriodicActuals.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSProfile.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.xsd` (.xsd)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSTS.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\sample_info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Worklist.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\191_1.stg` (.stg)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\AcqMethod.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Contents.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DefaultMassCal.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DeviceConfigInfo.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Devices.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSActualDefs.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSMassCal.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSPeriodicActuals.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSProfile.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.xsd` (.xsd)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSTS.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\sample_info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Worklist.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\191_1.stg` (.stg)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\AcqMethod.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Contents.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DefaultMassCal.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DeviceConfigInfo.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Devices.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSActualDefs.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSMassCal.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSPeriodicActuals.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSProfile.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.xsd` (.xsd)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSTS.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\sample_info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Worklist.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\191_1.stg` (.stg)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\AcqMethod.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\Contents.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\DefaultMassCal.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\DeviceConfigInfo.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\Devices.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSActualDefs.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSMassCal.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSPeriodicActuals.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSProfile.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.xsd` (.xsd)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSTS.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\sample_info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\Worklist.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\191_1.stg` (.stg)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\AcqMethod.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Contents.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DefaultMassCal.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DeviceConfigInfo.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Devices.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSActualDefs.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSMassCal.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSPeriodicActuals.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSProfile.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.bin` (.bin)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.xsd` (.xsd)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSTS.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\sample_info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cd` (.cd)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cg` (.cg)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Worklist.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\191_1.stg` (.stg)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` (.xml)
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` (.xml)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B11-2-Z` (no suffix)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3` (no suffix)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3-Z` (no suffix)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-A` (no suffix)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-Z` (no suffix)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B9-2-Z` (no suffix)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-2-Z` (no suffix)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-Z` (no suffix)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-A` (no suffix)
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-Z` (no suffix)
+- `阻抗EIS\20260202\b11-2-z.lst` (.lst)
+- `阻抗EIS\20260202\b11-z.lst` (.lst)
+- `阻抗EIS\20260202\b3.lst` (.lst)
+- `阻抗EIS\20260202\b7.lst` (.lst)
+- `阻抗EIS\20260202\b9-2z.lst` (.lst)
+- `阻抗EIS\20260202\b9-z.lst` (.lst)
+- `阻抗EIS\20260202\bobc-z.lst` (.lst)
+- `阻抗EIS\20260202\cwo-z.lst` (.lst)
+- `阻抗EIS\20260202\eis图20260202.opju` (.opju)
+- `阻抗EIS\20260202\eis图BOBC+CWO.opju` (.opju)
+- `阻抗EIS\20260203李永进CWO+BOBC\2eis图20260202.opju` (.opju)
+- `阻抗EIS\BM重新拟合版本\BM.opju` (.opju)
+- `阻抗EIS\BM重新拟合版本\BM阻抗.tif` (.tif)
+- `阻抗EIS\EIS-20251025拟合后师妹\BM-X.opju` (.opju)
+- `阻抗EIS\EIS-20251025拟合后师妹\LL-EIS-BM-X.png` (.png)
+- `阻抗EIS\EIS-20251025拟合后师妹\拟合后BM-X.opju` (.opju)
+- `阻抗EIS\20251106阻抗李永进\BOBC\EIS-1` (no suffix)
+- `阻抗EIS\20251106阻抗李永进\BOBC\EIS-2GOOD` (no suffix)
+- `阻抗EIS\20251106阻抗李永进\MOSE\EIS` (no suffix)
+- `阻抗EIS\308阻抗\MS\MS EIS.bin` (.bin)
+- `阻抗EIS\308阻抗\BOBC\EIS\BOBC.bin` (.bin)
+- `阻抗EIS\308阻抗\CWO\EIS\CWO EIS.bin` (.bin)
+- `阻抗EIS\308阻抗\CWO\EIS\CWOEIS2.bin` (.bin)
 
-Unsupported files in known folders: 2202
-- `03_光电流\20260109_光电流\26010964564\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\1-BOC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\2-MCS-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\3-BM-10-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\4-BOBC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\5-CWO-(OCP) .bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\6-BC-11-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\origin_project\SECOND.opju` matched `20260109 光电流` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\origin_project\光电流相应CWO+BOBC.opju` matched `20260109 光电流` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\raw_archives\2758_1774879987011_26032562524.zip` matched `20260109 光电流` but suffix `.zip` is unsupported
-- `03_光电流\光电流响应\raw_archives\2758_1776699905862_26041550465.zip` matched `20260109 光电流` but suffix `.zip` is unsupported
-- `03_光电流\光电流响应\reports_notes\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\origin_project\I-T BOBC+CWO 4.22.opju` matched `20260109 光电流` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\bicu\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\BOBC\1-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\CWO\2-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\4-BOBC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\5-CWO-(OCP) .bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\6-BC-11-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\1-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\2-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\1-BOC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\2-MCS-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\3-BM-10-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\4-BOBC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\5-CWO-(OCP) .bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\6-BC-11-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\origin_project\SECOND.opju` matched `20260109 光电流` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\origin_project\光电流相应CWO+BOBC.opju` matched `20260109 光电流` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\raw_archives\2758_1774879987011_26032562524.zip` matched `20260109 光电流` but suffix `.zip` is unsupported
-- `03_光电流\光电流响应\raw_archives\2758_1776699905862_26041550465.zip` matched `20260109 光电流` but suffix `.zip` is unsupported
-- `03_光电流\光电流响应\reports_notes\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\origin_project\I-T BOBC+CWO 4.22.opju` matched `20260109 光电流` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\bicu\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\BOBC\1-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\CWO\2-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\4-BOBC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\5-CWO-(OCP) .bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\6-BC-11-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\1-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\2-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\1-BOC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\2-MCS-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\3-BM-10-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\4-BOBC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\5-CWO-(OCP) .bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\20260109_光电流\26010964564\Photocurrent\6-BC-11-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\1-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\2-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
-- `09_BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\ZPF-LL-20260327-4-BOBC-BET\ZPF-LL-20260327-4-BOBC-BET.SMP` matched `BET` but suffix `.smp` is unsupported
-- `09_BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\XWM-LL-260428-1-BOBC-All Pore\origin_project\BOBC.opju` matched `BET` but suffix `.opju` is unsupported
-- `09_BET\XWM-LL-260428-1-BOBC-All Pore\processed_tables\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\XWM-LL-260428-1-BOBC-All Pore\processed_tables\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\XWM-LL-260428-1-BOBC-All Pore\raw_data\XWM-LL-260428-1-BOBC-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\origin_project\BET -BOBC为负数.opju` matched `BET` but suffix `.opju` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-1-BOBC-All Pore\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-1-BOBC-All Pore\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-1-BOBC-All Pore\XWM-LL-260421-1-BOBC-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-2-CWO-All Pore\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-2-CWO-All Pore\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-2-CWO-All Pore\XWM-LL-260421-2-CWO-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-3-BiCu-All Pore\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-3-BiCu-All Pore\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-3-BiCu-All Pore\XWM-LL-260421-3-BiCu-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\氮气吸附脱附等温曲线\raw_data\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\XWM-LL-260421-4-BOBC-4-XIN-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
-- `09_BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\ZPF-LL-20260327-4-BOBC-BET\ZPF-LL-20260327-4-BOBC-BET.SMP` matched `BET` but suffix `.smp` is unsupported
-- `09_BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `09_BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
-- `09_BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
-- `10_EPR_PL\EPR\origin_project\epr.opju` matched `EPR` but suffix `.opju` is unsupported
-- `10_EPR_PL\EPR\raw_archives\20260430-1.zip` matched `EPR` but suffix `.zip` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light3` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light4` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light5` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-dark2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light3` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-dark-none` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light3` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-OH-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-OH-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-dark-none` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-light2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-light-1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-light-2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-OH-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-OH-light` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-O2-light` matched `EPR` but suffix `.7%-o2-light` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-O2-light-2` matched `EPR` but suffix `.7%-o2-light-2` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-OH-dark` matched `EPR` but suffix `.7%-oh-dark` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-OH-light` matched `EPR` but suffix `.7%-oh-light` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-1min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-2min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-3min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-OH-light-1min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-OH-light-2min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-1min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-2min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-3min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-1min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-2min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-3min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\PL\origin_project\激发谱发射谱.opju` matched `EPR` but suffix `.opju` is unsupported
-- `10_EPR_PL\PL\raw_archives\3176_1775399174649_26032574877.zip` matched `EPR` but suffix `.zip` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EM-ex340nm.FS` matched `EPR` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EM-ex340nm.wmf` matched `EPR` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EX-em640nm.FS` matched `EPR` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EX-em640nm.wmf` matched `EPR` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EM-ex340nm.FS` matched `EPR` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EM-ex340nm.wmf` matched `EPR` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EX-em445nm.FS` matched `EPR` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EX-em445nm.wmf` matched `EPR` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EM-ex340nm.FS` matched `EPR` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EM-ex340nm.wmf` matched `EPR` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EX-em630nm.FS` matched `EPR` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EX-em630nm.wmf` matched `EPR` but suffix `.wmf` is unsupported
-- `10_EPR_PL\EPR\origin_project\epr.opju` matched `EPR` but suffix `.opju` is unsupported
-- `10_EPR_PL\EPR\raw_archives\20260430-1.zip` matched `EPR` but suffix `.zip` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light3` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light4` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light5` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-dark2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light3` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-dark-none` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light3` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-OH-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-OH-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-dark-none` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-light1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-light2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-light-1` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-light-2` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-OH-dark` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-OH-light` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-O2-light` matched `EPR` but suffix `.7%-o2-light` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-O2-light-2` matched `EPR` but suffix `.7%-o2-light-2` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-OH-dark` matched `EPR` but suffix `.7%-oh-dark` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-OH-light` matched `EPR` but suffix `.7%-oh-light` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-1min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-2min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-3min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-OH-light-1min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-OH-light-2min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-1min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-2min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-3min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-1min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-2min` matched `EPR` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-3min` matched `EPR` but suffix `none` is unsupported
-- `14_动力学\动力学\yue\EPR\SI Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf` matched `EPR` but suffix `.pdf` is unsupported
-- `14_动力学\动力学\yue\EPR\使用高级 EPR 探索 S 型异质结界面的电荷转移动力学.pdf` matched `EPR` but suffix `.pdf` is unsupported
-- `10_EPR_PL\EPR\origin_project\epr.opju` matched `PL` but suffix `.opju` is unsupported
-- `10_EPR_PL\EPR\raw_archives\20260430-1.zip` matched `PL` but suffix `.zip` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-dark` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light1` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light2` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light3` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light4` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-O3-light5` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-dark` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-dark2` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light1` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light2` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BC-OH-light3` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-dark` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-dark-none` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light1` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light2` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-O3-light3` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-OH-dark` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\BOBC-OH-light1` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-dark` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-dark-none` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-O3-light1` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-dark` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-light1` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260410-3\CWO-OH-light2` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-dark` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-light-1` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-O2-light-2` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-OH-dark` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\10%-OH-light` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-O2-light` matched `PL` but suffix `.7%-o2-light` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-O2-light-2` matched `PL` but suffix `.7%-o2-light-2` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-OH-dark` matched `PL` but suffix `.7%-oh-dark` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260421\6.7%-OH-light` matched `PL` but suffix `.7%-oh-light` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-1min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-2min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-O3-light-3min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-OH-light-1min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\1-OH-light-2min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-1min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-2min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-O3-light-3min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-1min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-2min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\EPR\raw_data\20260430-1\20260430-1\3-OH-light-3min` matched `PL` but suffix `none` is unsupported
-- `10_EPR_PL\PL\origin_project\激发谱发射谱.opju` matched `PL` but suffix `.opju` is unsupported
-- `10_EPR_PL\PL\raw_archives\3176_1775399174649_26032574877.zip` matched `PL` but suffix `.zip` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EM-ex340nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EM-ex340nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EX-em640nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EX-em640nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EM-ex340nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EM-ex340nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EX-em445nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EX-em445nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EM-ex340nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EM-ex340nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EX-em630nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EX-em630nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\origin_project\激发谱发射谱.opju` matched `PL` but suffix `.opju` is unsupported
-- `10_EPR_PL\PL\raw_archives\3176_1775399174649_26032574877.zip` matched `PL` but suffix `.zip` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EM-ex340nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EM-ex340nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EX-em640nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\1-EX-em640nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EM-ex340nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EM-ex340nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EX-em445nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\2-EX-em445nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EM-ex340nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EM-ex340nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EX-em630nm.FS` matched `PL` but suffix `.fs` is unsupported
-- `10_EPR_PL\PL\raw_data\bobc+cwo+bc\3-EX-em630nm.wmf` matched `PL` but suffix `.wmf` is unsupported
-- `02_XPS\origin_project\BC-OW.opju` matched `XPS` but suffix `.opju` is unsupported
-- `02_XPS\origin_project\bc-XPS.opju` matched `XPS` but suffix `.opju` is unsupported
-- `02_XPS\origin_project\bobc xps.opju` matched `XPS` but suffix `.opju` is unsupported
-- `02_XPS\origin_project\cwo xps.opju` matched `XPS` but suffix `.opju` is unsupported
-- `02_XPS\origin_project\CWO+BOBC VBXPS谱图.opju` matched `XPS` but suffix `.opju` is unsupported
-- `02_XPS\raw_archives\26010989730.rar` matched `XPS` but suffix `.rar` is unsupported
-- `02_XPS\raw_archives\原位XPS.zip` matched `XPS` but suffix `.zip` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\26010989730\BC-11\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BC-11\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BC-11\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BC-11\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BC-11\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BC-11\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BC-11\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BC-11\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BC-11\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BOBC\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BOBC\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BOBC\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BOBC\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BOBC\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BOBC\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\BOBC\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\CWO\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\CWO\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\CWO\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\CWO\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\CWO\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\26010989730\CWO\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\Valence_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BC拟合后\Data Grid.DATA\XPS Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\Valence_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\BOBC拟合后\Data Grid.DATA\XPS Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\Valence_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\CWO拟合后\Data Grid.DATA\XPS Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\origin_project\xps 全数据BI.opju` matched `XPS` but suffix `.opju` is unsupported
-- `02_XPS\电荷未矫正第一次\origin_project\xps全数据CU.opju` matched `XPS` but suffix `.opju` is unsupported
-- `02_XPS\电荷未矫正第一次\origin_project\xps全数据版.opju` matched `XPS` but suffix `.opju` is unsupported
-- `02_XPS\电荷未矫正第一次\processed_tables\dark拟合第一遍.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\电荷未矫正第一次\processed_tables\light拟合第一遍.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\dark拟合第一遍.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\电荷未矫正第一次\raw_data\light拟合第一遍.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.vgp` matched `XPS` but suffix `.vgp` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\DARK.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1-light.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `02_XPS\raw_data\原位XPS\26041816225\Processing View #1.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
-- `01_XRD\20251110\bobc shuirei.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\20251110\bobc shuirei2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\20251110\bobcshuirei+cwo15%.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\20251110\kit-6-1.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\20251110\kit-6-2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\20260326LL BOB BOC BCN\BICSNH4.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\20260326LL BOB BOC BCN\BICSNH4.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\20260326LL BOB BOC BCN\CL.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\20260326LL BOB BOC BCN\CL.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\20260326LL BOB BOC BCN\NH4.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\20260326LL BOB BOC BCN\NH4.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BOBC+MS\MS+BOBC.tif` matched `XRD` but suffix `.tif` is unsupported
-- `01_XRD\BPO\BPO+MS.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BPO\BPO.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BOBC+MS\250530\bm.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BOBC+MS\250530\BOBC.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BOBC+MS\251024\origin_project\20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\BOBC+MS\251024\processed_tables\mb9.jip` matched `XRD` but suffix `.jip` is unsupported
-- `01_XRD\BOBC+MS\251024\raw_data\bobc.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BOBC+MS\251024\raw_data\mb9.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BOBC+MS\251024\raw_data\MOSE2 10MIN.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\BOBC+MS\251024\raw_data\MOSE2 10MIN.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BOBC+MS\251024\raw_data\MOSE2 5MIN.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\BOBC+MS\251024\raw_data\MOSE2 5MIN.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BWO\origin_project\BWO.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\BWO\raw_data\A BWO.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\BWO\raw_data\M BWO.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\origin_project\CWO+BOBC+标卡.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\BOBC\BOBC.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\BOBC\BOBC.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\XRD2.tif` matched `XRD` but suffix `.tif` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo八面体\cwo 8.jip` matched `XRD` but suffix `.jip` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo八面体\cwo 8面体.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo沉淀法+合适的标准卡片\cwo.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo沉淀法+合适的标准卡片\cwo.jip` matched `XRD` but suffix `.jip` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo沉淀法+合适的标准卡片\cwo.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\BOBC\BOBC600度\BOBC600.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\BOBC\BOBC600度\BOBC600.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\BC-15\BOBC+BOBC15%.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\BC-15\BOBC+CWO15%.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\BC-30\BC30.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\CWO为主体\cwo10.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\CWO为主体\cwo15.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\CWO+BOBC\raw_data\cwo+bobc\CWO为主体\cwo5.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\KIT-6\exported_figures\kit-6.tif` matched `XRD` but suffix `.tif` is unsupported
-- `01_XRD\KIT-6\origin_project\kit-6.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\KIT-6\origin_project\KIT-6第二批.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\KIT-6\raw_data\kit-6bo.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\KIT-6\raw_data\kit-6bo2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\KIT-6\raw_data\kit-6fe.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\origin_project\BPO+MS.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\exported_figures\1mmolmose2的XRD.tif` matched `XRD` but suffix `.tif` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\MOSE2.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\MS.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\球磨第二批XRD.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose3.1.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose3.2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose4.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose4re.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose5.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD2.pdf` matched `XRD` but suffix `.pdf` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD同.pdf` matched `XRD` but suffix `.pdf` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\2h.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\6h.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\SHUIRE\mose new 啥也不是.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\SHUIRE\mose方法4，放大3bei.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\SHUIRE\re mose3bei.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO1.1.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO1.1.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO1.2.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO2.1.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO2.2.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\初版PEG\PEG\MS-200.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\初版PEG\PEG\MS200.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\初版PEG\PEG\MS400.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\研一上xrd数据及图片\origin_project\20241125XRD.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl-TiO2 2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl-TiO2.bc` matched `XRD` but suffix `.bc` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl-TiO2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\TiO2.bc` matched `XRD` but suffix `.bc` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\TiO2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\研一上xrd数据及图片\origin_project\20241125XRD.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl-TiO2 2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl-TiO2.bc` matched `XRD` but suffix `.bc` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl-TiO2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\BiOBrCl.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\TiO2.bc` matched `XRD` but suffix `.bc` is unsupported
-- `01_XRD\研一上xrd数据及图片\raw_data\TiO2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\exported_figures\1mmolmose2的XRD.tif` matched `XRD` but suffix `.tif` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\MOSE2.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\MS.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\球磨第二批XRD.opju` matched `XRD` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose3.1.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose3.2.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose4.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose4re.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\mose5.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD2.pdf` matched `XRD` but suffix `.pdf` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD同.pdf` matched `XRD` but suffix `.pdf` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\2h.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\6h.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\SHUIRE\mose new 啥也不是.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\SHUIRE\mose方法4，放大3bei.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\SHUIRE\re mose3bei.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO1.1.dql` matched `XRD` but suffix `.dql` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO1.1.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO1.2.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO2.1.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO2.2.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\初版PEG\PEG\MS-200.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\初版PEG\PEG\MS200.raw` matched `XRD` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\初版PEG\PEG\MS400.RAW` matched `XRD` but suffix `.raw` is unsupported
-- `08_固体紫外\exported_figures\CWO+BOBC紫外.tif` matched `固体紫外` but suffix `.tif` is unsupported
-- `08_固体紫外\exported_figures\CWO+BOBC紫外tacu.tif` matched `固体紫外` but suffix `.tif` is unsupported
-- `08_固体紫外\exported_figures\MS+BOBC固体紫外200-800.tif` matched `固体紫外` but suffix `.tif` is unsupported
-- `08_固体紫外\exported_figures\MS+BOBC固体紫外260-800.tif` matched `固体紫外` but suffix `.tif` is unsupported
-- `08_固体紫外\exported_figures\MS+BOBC固体紫外tacu.tif` matched `固体紫外` but suffix `.tif` is unsupported
-- `08_固体紫外\origin_project\BOBC+MS.opju` matched `固体紫外` but suffix `.opju` is unsupported
-- `08_固体紫外\raw_data\20251017-LL\20251017\bobc.UDS` matched `固体紫外` but suffix `.uds` is unsupported
-- `08_固体紫外\raw_data\20251017-LL\20251017\bobcms.UDS` matched `固体紫外` but suffix `.uds` is unsupported
-- `08_固体紫外\raw_data\20251017-LL\20251017\cwo.UDS` matched `固体紫外` but suffix `.uds` is unsupported
-- `08_固体紫外\raw_data\20251017-LL\20251017\cwobobc.UDS` matched `固体紫外` but suffix `.uds` is unsupported
-- `08_固体紫外\raw_data\20251017-LL\20251017\ms.UDS` matched `固体紫外` but suffix `.uds` is unsupported
-- `08_固体紫外\raw_data\20251017-LL\BOBC CWO10%(bc10%环己烷)\bc10-2.UDS` matched `固体紫外` but suffix `.uds` is unsupported
-- `08_固体紫外\raw_data\20251017-LL\BOBC CWO10%(bc10%环己烷)\bc10.UDS` matched `固体紫外` but suffix `.uds` is unsupported
-- `08_固体紫外\固体紫外CWO+BOBC\origin_project\BOBC+CWO.opju` matched `固体紫外` but suffix `.opju` is unsupported
-- `08_固体紫外\固体紫外CWO+BOBC\origin_project\BOBC+CWO.opju` matched `固体紫外` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\origin_project\SECOND.opju` matched `光电流响应` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\origin_project\光电流相应CWO+BOBC.opju` matched `光电流响应` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\raw_archives\2758_1774879987011_26032562524.zip` matched `光电流响应` but suffix `.zip` is unsupported
-- `03_光电流\光电流响应\raw_archives\2758_1776699905862_26041550465.zip` matched `光电流响应` but suffix `.zip` is unsupported
-- `03_光电流\光电流响应\reports_notes\光电流基线处理教程.pdf` matched `光电流响应` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\origin_project\I-T BOBC+CWO 4.22.opju` matched `光电流响应` but suffix `.opju` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\bicu\1-（OCP）.bin` matched `光电流响应` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\BOBC\1-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\1bobc+2cwo+3bicu-10\raw_data\CWO\2-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\4-BOBC-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\5-CWO-(OCP) .bin` matched `光电流响应` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第一次CWO BOBC BC数据\6-BC-11-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\光电流基线处理教程.pdf` matched `光电流响应` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\raw_data\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` matched `光电流响应` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\光电流基线处理教程.pdf` matched `光电流响应` but suffix `.pdf` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\1-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
-- `03_光电流\光电流响应\raw_data\第二次BOBC BC\26032562524\Photocurrent\2-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\exported_figures\BOBC+MS-FTRIR.tif` matched `红外` but suffix `.tif` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\origin_project\BOBC+MS.opju` matched `红外` but suffix `.opju` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM1.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM3.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM5.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM7.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM9.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM1.pdf` matched `红外` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM3.pdf` matched `红外` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM5.pdf` matched `红外` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM7.pdf` matched `红外` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM9.pdf` matched `红外` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM1.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM1.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM3.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM3.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM5.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM5.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM7.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM7.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM9.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM9.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BOBC.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BOBC.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\cwo+bobc\exported_figures\CWO+BOBC FTIR 2026018新制备.tif` matched `红外` but suffix `.tif` is unsupported
-- `06_红外\cwo+bobc\exported_figures\CWO+BOBC FTIR.tif` matched `红外` but suffix `.tif` is unsupported
-- `06_红外\cwo+bobc\exported_figures\FTIR2.tif` matched `红外` but suffix `.tif` is unsupported
-- `06_红外\cwo+bobc\exported_figures\hongwai.tif` matched `红外` but suffix `.tif` is unsupported
-- `06_红外\cwo+bobc\origin_project\CWO+BOBC红外.opju` matched `红外` but suffix `.opju` is unsupported
-- `06_红外\cwo+bobc\raw_data\BOBC.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\cwo+bobc\raw_data\CWO 15.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\cwo+bobc\raw_data\CWO 15.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\cwo+bobc\raw_data\CWO.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\cwo+bobc\raw_data\CWO.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\cwo+bobc\raw_data\cwo 20260128 李永进组\BC-10 环己烷.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\cwo+bobc\raw_data\cwo 20260128 李永进组\BC-10.0环己烷.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\origin_project\红外.opju` matched `红外` but suffix `.opju` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\3.bpo.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\3.bpo.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\4.ms-bpo.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\4.msF-bpo.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\5.ms.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\5.ms.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\origin_project\红外.opju` matched `红外` but suffix `.opju` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\3.bpo.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\3.bpo.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\4.ms-bpo.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\4.msF-bpo.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\5.ms.0` matched `红外` but suffix `.0` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\5.ms.0.dpt` matched `红外` but suffix `.dpt` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\SHUIRE\mose new 啥也不是.raw` matched `红外` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\SHUIRE\mose方法4，放大3bei.raw` matched `红外` but suffix `.raw` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\SHUIRE\re mose3bei.raw` matched `红外` but suffix `.raw` is unsupported
-- `07_拉曼\origin_project\cwo+bobc raman.opju` matched `拉曼` but suffix `.opju` is unsupported
-- `07_拉曼\20251021\exported_figures\ranman.tif` matched `拉曼` but suffix `.tif` is unsupported
-- `07_拉曼\20251021\origin_project\bobc+ms.opju` matched `拉曼` but suffix `.opju` is unsupported
-- `07_拉曼\raw_data\BC-30\bc30_1.l6s` matched `拉曼` but suffix `.l6s` is unsupported
-- `07_拉曼\老版本BOBC+MS+BPO\exported_figures\BOBC+MS-RAMAN.tif` matched `拉曼` but suffix `.tif` is unsupported
-- `07_拉曼\老版本BOBC+MS+BPO\origin_project\BOBC+MS+BPO.opju` matched `拉曼` but suffix `.opju` is unsupported
-- `07_拉曼\老版本BOBC+MS+BPO\origin_project\BOBC+MS.opju` matched `拉曼` but suffix `.opju` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC-2-3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\BOBC\BOBC3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO-2-1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO-2-2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO-2-2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO-2-3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO-2-3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO-2-4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO-2-4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO-2-5000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20251126\CWO\CWO3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\origin_project\BOBC.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\origin_project\CWO新.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\BOBC5000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO1000废.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO3500-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\20260121CWO+BOBC\raw_data\CWO5000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\BOBC\exported_figures\BOBCMOSE能带.tif` matched `莫特肖特基` but suffix `.tif` is unsupported
-- `04_莫特肖特基\BOBC\exported_figures\BOBC莫特肖特基.tif` matched `莫特肖特基` but suffix `.tif` is unsupported
-- `04_莫特肖特基\BOBC\exported_figures\CWO+BOBC莫特.tif` matched `莫特肖特基` but suffix `.tif` is unsupported
-- `04_莫特肖特基\BOBC\origin_project\bobc.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\BOBC\raw_data\BOBC1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\BOBC\raw_data\BOBC1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\BOBC\raw_data\BOBC2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\BOBC\raw_data\BOBC2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\BOBC\raw_data\BOBC3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\BOBC\raw_data\BOBC3500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\BOBC\raw_data\BOBC3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\BOBC\raw_data\BOBC4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\BOBC\raw_data\BOBC4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\origin_project\CWO MT-0.6.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\CWO\origin_project\CWO MT-2 +0.3.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT1\CWO3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO1500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO2000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO2500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO3000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO3500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\MT2\CWO3500 3.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\CWO莫特肖特基数据处理版\MS数据处理版\李霖25年11月20日.pptx` matched `莫特肖特基` but suffix `.pptx` is unsupported
-- `04_莫特肖特基\LL\BOBC\1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LL\BOBC\1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LL\BOBC\2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LL\BOBC\2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LL\BOBC\3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LL\BOBC\3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LL\BOBC\4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LL\bobc数据处理版本\origin_project\bobc.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\13MBEIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\13MBEIS2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1mbMT1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1msEIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT1000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT2000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT3000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT4000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT5000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\3mbEIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\5MB EIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\5MBEIS2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\7BMEIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bm.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bm2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt4000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\exported_figures\MOSE模特肖特基.tif` matched `莫特肖特基` but suffix `.tif` is unsupported
-- `04_莫特肖特基\MoSe2MT\origin_project\ms.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500  2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500  3.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500  4.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500 5.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS4000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\MoSe2MT\raw_data\MS5000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\BOBC\1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\BOBC\1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\BOBC\2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\BOBC\2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\BOBC\3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\BOBC\3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\BOBC\4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\bobc数据处理版本\origin_project\bobc.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\第一体系确定版本\bobc数据处理版本\origin_project\bobc格式美化版本.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\第一体系确定版本\MT2\origin_project\CWO MT-2 +0.3.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\第一体系确定版本\MT2\origin_project\CWO MT-2 +0.3数据美化版本.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO1500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO2000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO2500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO3000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO3500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\第一体系确定版本\MT2\raw_data\CWO3500 3.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
-- `04_莫特肖特基\CWO\raw_data\CWO莫特肖特基数据处理版\MS数据处理版\李霖25年11月20日.pptx` matched `莫特肖特基` but suffix `.pptx` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\11%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\5%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\7%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\9%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\2CH3.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\3CH3.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4BR.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4CH3.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4cl.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\KANG.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\LM.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\N8h.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\OCH3.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\S8h.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\SHUDINGJI.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqu` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqus` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fid` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\format.temp` matched `液相` but suffix `.temp` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fq1list` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\prosol_History` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pulseprogram` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\scon2` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\shimvalues` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\specpar` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.info` matched `液相` but suffix `.info` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.par` matched `液相` but suffix `.par` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1i` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1r` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\intrng` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\outd` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaklist.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peakrng` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaks` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\proc` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\procs` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\title` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqu` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqus` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fid` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\format.temp` matched `液相` but suffix `.temp` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fq1list` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\prosol_History` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pulseprogram` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\scon2` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\shimvalues` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\specpar` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.info` matched `液相` but suffix `.info` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.par` matched `液相` but suffix `.par` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1i` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1r` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\intrng` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\outd` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaklist.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peakrng` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaks` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\proc` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\procs` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\title` matched `液相` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\15%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\20%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\3%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\5%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\80%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\KANG.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\SHUDINGJI.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\desktop.ini` matched `液相` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\desktop.ini` matched `液相` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\desktop.ini` matched `液相` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\desktop.ini` matched `液相` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\desktop.ini` matched `液相` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\desktop.ini` matched `液相` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\2CH3.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\3CH3.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4BR.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4CH3.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4cl.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\OCH3.xps` matched `液相` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\AcqMethod.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Contents.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DefaultMassCal.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DeviceConfigInfo.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Devices.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSActualDefs.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSMassCal.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSPeriodicActuals.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSProfile.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.xsd` matched `液相` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSTS.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\sample_info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Worklist.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\191_1.stg` matched `液相` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\AcqMethod.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Contents.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DefaultMassCal.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DeviceConfigInfo.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Devices.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSActualDefs.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSMassCal.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSPeriodicActuals.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSProfile.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.xsd` matched `液相` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSTS.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\sample_info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Worklist.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\191_1.stg` matched `液相` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\AcqMethod.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Contents.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DefaultMassCal.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DeviceConfigInfo.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Devices.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSActualDefs.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSMassCal.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSPeriodicActuals.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSProfile.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.xsd` matched `液相` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSTS.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\sample_info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Worklist.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\191_1.stg` matched `液相` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\AcqMethod.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Contents.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DefaultMassCal.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DeviceConfigInfo.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Devices.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSActualDefs.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSMassCal.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSPeriodicActuals.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSProfile.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.xsd` matched `液相` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSTS.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\sample_info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Worklist.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\191_1.stg` matched `液相` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\AcqMethod.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Contents.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DefaultMassCal.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DeviceConfigInfo.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Devices.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSActualDefs.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSMassCal.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSPeriodicActuals.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSProfile.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.xsd` matched `液相` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSTS.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\sample_info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Worklist.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\191_1.stg` matched `液相` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\AcqMethod.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Contents.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DefaultMassCal.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DeviceConfigInfo.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Devices.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSActualDefs.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSMassCal.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSPeriodicActuals.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSProfile.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.bin` matched `液相` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.xsd` matched `液相` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSTS.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\sample_info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cd` matched `液相` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cg` matched `液相` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Worklist.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\191_1.stg` matched `液相` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `液相` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\11%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\5%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\7%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\9%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\15%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\20%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\3%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\5%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\80%.pdf` matched `液相` but suffix `.pdf` is unsupported
-- `05_阻抗EIS\20251106阻抗李永进.zip` matched `阻抗EIS` but suffix `.zip` is unsupported
-- `05_阻抗EIS\20260202.zip` matched `阻抗EIS` but suffix `.zip` is unsupported
-- `05_阻抗EIS\308阻抗.zip` matched `阻抗EIS` but suffix `.zip` is unsupported
-- `05_阻抗EIS\阻抗图.tif` matched `阻抗EIS` but suffix `.tif` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B11-2-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B11-2-Z` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B11-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3-Z` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3-Z.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-A` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-Z` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B9-2-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B9-2-Z` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B9-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-2-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-2-Z` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-2-Z.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-Z` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-A` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-Z` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20251106阻抗李永进\BOBC\EIS-1` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20251106阻抗李永进\BOBC\EIS-2GOOD` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20251106阻抗李永进\MOSE\EIS` matched `阻抗EIS` but suffix `none` is unsupported
-- `05_阻抗EIS\20260202\origin_project\eis图20260202.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
-- `05_阻抗EIS\20260202\origin_project\eis图BOBC+CWO.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
-- `05_阻抗EIS\20260202\raw_data\b11-2-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
-- `05_阻抗EIS\20260202\raw_data\b11-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
-- `05_阻抗EIS\20260202\raw_data\b3.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
-- `05_阻抗EIS\20260202\raw_data\b7.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
-- `05_阻抗EIS\20260202\raw_data\b9-2z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
-- `05_阻抗EIS\20260202\raw_data\b9-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
-- `05_阻抗EIS\20260202\raw_data\bobc-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
-- `05_阻抗EIS\20260202\raw_data\cwo-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\origin_project\2eis图20260202.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B11-2-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B11-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B7-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B9-2-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\B9-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\BOBC-2-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\BOBC-2-Z.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\BOBC-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\BOBC-Z3.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\20260203李永进CWO+BOBC\processed_tables\CWO-E.xlsm` matched `阻抗EIS` but suffix `.xlsm` is unsupported
-- `05_阻抗EIS\308阻抗\MS\MS EIS.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
-- `05_阻抗EIS\308阻抗\BOBC\EIS\BOBC.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
-- `05_阻抗EIS\308阻抗\CWO\EIS\CWO EIS.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
-- `05_阻抗EIS\308阻抗\CWO\EIS\CWOEIS2.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
-- `05_阻抗EIS\BM重新拟合版本\exported_figures\BM阻抗.tif` matched `阻抗EIS` but suffix `.tif` is unsupported
-- `05_阻抗EIS\BM重新拟合版本\origin_project\BM.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
-- `05_阻抗EIS\EIS-20251025拟合后师妹\exported_figures\LL-EIS-BM-X.png` matched `阻抗EIS` but suffix `.png` is unsupported
-- `05_阻抗EIS\EIS-20251025拟合后师妹\origin_project\BM-X.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
-- `05_阻抗EIS\EIS-20251025拟合后师妹\origin_project\拟合后BM-X.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
-- `05_阻抗EIS\EIS-20251025拟合后师妹\exported_figures\LL-EIS-BM-X.png` matched `阻抗EIS` but suffix `.png` is unsupported
-- `05_阻抗EIS\EIS-20251025拟合后师妹\origin_project\BM-X.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
-- `05_阻抗EIS\EIS-20251025拟合后师妹\origin_project\拟合后BM-X.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
-- `05_阻抗EIS\308阻抗\BOBC\EIS\BOBC.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
-- `05_阻抗EIS\308阻抗\CWO\EIS\CWO EIS.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
-- `05_阻抗EIS\308阻抗\CWO\EIS\CWOEIS2.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
-- `12_显微_SEM_TEM\SEM\ll20260126-eds\~$ 1_区 1_2026-01-26_10-04-27.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\ll20260126-eds\项目 1_区 1_2026-01-26_10-04-27.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\CWO-BOBC\EDS\LL-1.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\CWO-BOBC\EDS\LL.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.pdf` matched `SEM` but suffix `.pdf` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0001 - BC Camera 36000 x Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0002 - BC Camera 630 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0003 - BC Camera 630 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0004 - BC Camera 630 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0005 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0006 - BC Camera 46000 x Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0007 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0008 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0009 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0010 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0011 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0012 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0013 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0014 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0015 - BC Camera 74000 x Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0016 - BC Camera 74000 x Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0017 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0018 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0019 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0020 - BC Camera 58000 x Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0021 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0022 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0023 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0024 - BC Camera 820 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0025 - BC Camera 120 kx Ceta.emd` matched `SEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\Thumbs.db` matched `SEM` but suffix `.db` is unsupported
-- `12_显微_SEM_TEM\TEM\TEM\#20260326.mdb` matched `SEM` but suffix `.mdb` is unsupported
-- `12_显微_SEM_TEM\SEM\ll20260126-eds\~$ 1_区 1_2026-01-26_10-04-27.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\ll20260126-eds\项目 1_区 1_2026-01-26_10-04-27.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\CWO-BOBC\EDS\LL-1.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\CWO-BOBC\EDS\LL.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.docx` matched `SEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.pdf` matched `SEM` but suffix `.pdf` is unsupported
-- `12_显微_SEM_TEM\SEM\ll20260126-eds\~$ 1_区 1_2026-01-26_10-04-27.docx` matched `TEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\ll20260126-eds\项目 1_区 1_2026-01-26_10-04-27.docx` matched `TEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\CWO-BOBC\EDS\LL-1.docx` matched `TEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\CWO-BOBC\EDS\LL.docx` matched `TEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.docx` matched `TEM` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.pdf` matched `TEM` but suffix `.pdf` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0001 - BC Camera 36000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0002 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0003 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0004 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0005 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0006 - BC Camera 46000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0007 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0008 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0009 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0010 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0011 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0012 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0013 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0014 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0015 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0016 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0017 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0018 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0019 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0020 - BC Camera 58000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0021 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0022 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0023 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0024 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0025 - BC Camera 120 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\Thumbs.db` matched `TEM` but suffix `.db` is unsupported
-- `12_显微_SEM_TEM\TEM\TEM\#20260326.mdb` matched `TEM` but suffix `.mdb` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0001 - BC Camera 36000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0002 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0003 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0004 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0005 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0006 - BC Camera 46000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0007 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0008 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0009 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0010 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0011 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0012 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0013 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0014 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0015 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0016 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0017 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0018 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0019 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0020 - BC Camera 58000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0021 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0022 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0023 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0024 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0025 - BC Camera 120 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\Thumbs.db` matched `TEM` but suffix `.db` is unsupported
-- `12_显微_SEM_TEM\TEM\TEM\#20260326.mdb` matched `TEM` but suffix `.mdb` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0001 - BC Camera 36000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0002 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0003 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0004 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0005 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0006 - BC Camera 46000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0007 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0008 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0009 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0010 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0011 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0012 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0013 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0014 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0015 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0016 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0017 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0018 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0019 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0020 - BC Camera 58000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0021 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0022 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0023 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0024 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\0025 - BC Camera 120 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
-- `12_显微_SEM_TEM\TEM\HRTEM\Thumbs.db` matched `TEM` but suffix `.db` is unsupported
-- `12_显微_SEM_TEM\TEM\TEM\#20260326.mdb` matched `TEM` but suffix `.mdb` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\11%.pdf` matched `核磁` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\5%.pdf` matched `核磁` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\7%.pdf` matched `核磁` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\9%.pdf` matched `核磁` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\2CH3.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\3CH3.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4BR.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4CH3.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4cl.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\KANG.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\LM.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\N8h.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\OCH3.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\S8h.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\SHUDINGJI.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqu` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqus` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fid` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\format.temp` matched `核磁` but suffix `.temp` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fq1list` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\prosol_History` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pulseprogram` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\scon2` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\shimvalues` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\specpar` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.info` matched `核磁` but suffix `.info` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.par` matched `核磁` but suffix `.par` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1i` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1r` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\intrng` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\outd` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peakrng` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaks` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\proc` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\procs` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\title` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqu` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqus` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fid` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\format.temp` matched `核磁` but suffix `.temp` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fq1list` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\prosol_History` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pulseprogram` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\scon2` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\shimvalues` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\specpar` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.info` matched `核磁` but suffix `.info` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.par` matched `核磁` but suffix `.par` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1i` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1r` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\intrng` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\outd` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peakrng` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaks` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\proc` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\procs` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\title` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\15%.pdf` matched `核磁` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\20%.pdf` matched `核磁` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\3%.pdf` matched `核磁` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\5%.pdf` matched `核磁` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\80%.pdf` matched `核磁` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\KANG.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\SHUDINGJI.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\desktop.ini` matched `核磁` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\desktop.ini` matched `核磁` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\desktop.ini` matched `核磁` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\desktop.ini` matched `核磁` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\desktop.ini` matched `核磁` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\desktop.ini` matched `核磁` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\2CH3.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\3CH3.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4BR.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4CH3.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4cl.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\OCH3.xps` matched `核磁` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\AcqMethod.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Contents.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DefaultMassCal.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DeviceConfigInfo.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Devices.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSActualDefs.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSMassCal.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSPeriodicActuals.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSProfile.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.xsd` matched `核磁` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSTS.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\sample_info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Worklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\191_1.stg` matched `核磁` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\AcqMethod.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Contents.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DefaultMassCal.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DeviceConfigInfo.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Devices.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSActualDefs.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSMassCal.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSPeriodicActuals.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSProfile.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.xsd` matched `核磁` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSTS.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\sample_info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Worklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\191_1.stg` matched `核磁` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\AcqMethod.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Contents.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DefaultMassCal.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DeviceConfigInfo.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Devices.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSActualDefs.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSMassCal.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSPeriodicActuals.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSProfile.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.xsd` matched `核磁` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSTS.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\sample_info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Worklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\191_1.stg` matched `核磁` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\AcqMethod.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Contents.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DefaultMassCal.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DeviceConfigInfo.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Devices.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSActualDefs.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSMassCal.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSPeriodicActuals.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSProfile.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.xsd` matched `核磁` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSTS.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\sample_info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Worklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\191_1.stg` matched `核磁` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\AcqMethod.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Contents.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DefaultMassCal.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DeviceConfigInfo.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Devices.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSActualDefs.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSMassCal.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSPeriodicActuals.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSProfile.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.xsd` matched `核磁` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSTS.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\sample_info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Worklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\191_1.stg` matched `核磁` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\AcqMethod.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Contents.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DefaultMassCal.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DeviceConfigInfo.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Devices.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSActualDefs.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSMassCal.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSPeriodicActuals.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSProfile.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.bin` matched `核磁` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.xsd` matched `核磁` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSTS.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\sample_info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cd` matched `核磁` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cg` matched `核磁` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Worklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\191_1.stg` matched `核磁` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqu` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqus` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fid` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\format.temp` matched `核磁` but suffix `.temp` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fq1list` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\prosol_History` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pulseprogram` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\scon2` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\shimvalues` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\specpar` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.info` matched `核磁` but suffix `.info` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.par` matched `核磁` but suffix `.par` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1i` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1r` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\intrng` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\outd` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peakrng` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaks` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\proc` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\procs` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\title` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqu` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqus` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fid` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\format.temp` matched `核磁` but suffix `.temp` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fq1list` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\prosol_History` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pulseprogram` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\scon2` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\shimvalues` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\specpar` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.info` matched `核磁` but suffix `.info` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.par` matched `核磁` but suffix `.par` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1i` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1r` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\intrng` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\outd` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaklist.xml` matched `核磁` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peakrng` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaks` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\proc` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\procs` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\title` matched `核磁` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\11%.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\5%.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\7%.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\9%.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\2CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\3CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4BR.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4cl.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\KANG.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\LM.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\N8h.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\OCH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\S8h.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\SHUDINGJI.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqu` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\acqus` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fid` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\format.temp` matched `质谱` but suffix `.temp` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\fq1list` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\prosol_History` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pulseprogram` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\scon2` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\shimvalues` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\specpar` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.info` matched `质谱` but suffix `.info` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\uxnmr.par` matched `质谱` but suffix `.par` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1i` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\1r` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\intrng` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\outd` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peakrng` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\peaks` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\proc` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\procs` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-1\10\pdata\1\title` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqu` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\acqus` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fid` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\format.temp` matched `质谱` but suffix `.temp` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\fq1list` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\prosol_History` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pulseprogram` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\scon2` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\shimvalues` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\specpar` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.info` matched `质谱` but suffix `.info` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\uxnmr.par` matched `质谱` but suffix `.par` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1i` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\1r` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\intrng` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\outd` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peakrng` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\peaks` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\proc` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\procs` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\核磁\ZPF-LL-1125-2\10\pdata\1\title` matched `质谱` but suffix `none` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\15%.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\20%.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\3%.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\5%.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\液相\新建文件夹\80%.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\KANG.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\SHUDINGJI.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\2CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\3CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4BR.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4cl.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\OCH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `01_XRD\BOBC+MS\MS+BOBC.tif` matched `质谱` but suffix `.tif` is unsupported
-- `01_XRD\BOBC+MS\251024\origin_project\20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju` matched `质谱` but suffix `.opju` is unsupported
-- `01_XRD\BOBC+MS\251024\processed_tables\mb9.jip` matched `质谱` but suffix `.jip` is unsupported
-- `01_XRD\BOBC+MS\251024\raw_data\MOSE2 10MIN.dql` matched `质谱` but suffix `.dql` is unsupported
-- `01_XRD\BOBC+MS\251024\raw_data\MOSE2 5MIN.dql` matched `质谱` but suffix `.dql` is unsupported
-- `01_XRD\MS\origin_project\BPO+MS.opju` matched `质谱` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\exported_figures\1mmolmose2的XRD.tif` matched `质谱` but suffix `.tif` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\MOSE2.opju` matched `质谱` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\MS.opju` matched `质谱` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\球磨第二批XRD.opju` matched `质谱` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD2.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD同.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO1.1.dql` matched `质谱` but suffix `.dql` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\13MBEIS.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\13MBEIS2.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1mbMT1000.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1msEIS.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT1000-2.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT2000-2.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT3000-2.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT4000-2.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\1MT5000-2.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\3mbEIS.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\5MB EIS.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\5MBEIS2.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\7BMEIS.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bm.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bm2.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt2000.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt3000.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt4000-2.bin` matched `质谱` but suffix `.bin` is unsupported
-- `04_莫特肖特基\LLKT ms\20250905\LL\1bmmt4000.bin` matched `质谱` but suffix `.bin` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\exported_figures\BOBC+MS-FTRIR.tif` matched `质谱` but suffix `.tif` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\origin_project\BOBC+MS.opju` matched `质谱` but suffix `.opju` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM1.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM3.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM5.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM7.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\LL-BM9.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM1.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM3.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM5.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM7.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\reports_notes\LL-BM9.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM1.0` matched `质谱` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM1.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM3.0` matched `质谱` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM3.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM5.0` matched `质谱` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM5.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM7.0` matched `质谱` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM7.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM9.0` matched `质谱` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BM9.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BOBC.0` matched `质谱` but suffix `.0` is unsupported
-- `06_红外\BOBC+MS 以前水热的Mose\raw_data\李永进组版本\BOBC.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\origin_project\红外.opju` matched `质谱` but suffix `.opju` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\3.bpo.0` matched `质谱` but suffix `.0` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\3.bpo.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\4.ms-bpo.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\4.msF-bpo.0` matched `质谱` but suffix `.0` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\5.ms.0` matched `质谱` but suffix `.0` is unsupported
-- `06_红外\红外MS+BPO 暑期版本\raw_data\20250715-1\5.ms.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
-- `07_拉曼\老版本BOBC+MS+BPO\exported_figures\BOBC+MS-RAMAN.tif` matched `质谱` but suffix `.tif` is unsupported
-- `07_拉曼\老版本BOBC+MS+BPO\origin_project\BOBC+MS+BPO.opju` matched `质谱` but suffix `.opju` is unsupported
-- `07_拉曼\老版本BOBC+MS+BPO\origin_project\BOBC+MS.opju` matched `质谱` but suffix `.opju` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\2CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\3CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4BR.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\4cl.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\KANG.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\LM.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\N8h.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\OCH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\S8h.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\SHUDINGJI.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\KANG.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\糠胺叔丁基\SHUDINGJI.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\2CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\3CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4BR.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4CH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4cl.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\OCH3.xps` matched `质谱` but suffix `.xps` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
-- `13_反应产物分析_液相_质谱_核磁\质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
-- `01_XRD\MS\MSXRD\exported_figures\1mmolmose2的XRD.tif` matched `质谱` but suffix `.tif` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\MOSE2.opju` matched `质谱` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\MS.opju` matched `质谱` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\origin_project\球磨第二批XRD.opju` matched `质谱` but suffix `.opju` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD2.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\4种方法\XRD同.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `01_XRD\MS\MSXRD\raw_data\QIUMO\球磨第一次\QIUMO1.1.dql` matched `质谱` but suffix `.dql` is unsupported
-- `04_莫特肖特基\CWO\raw_data\CWO莫特肖特基数据处理版\MS数据处理版\李霖25年11月20日.pptx` matched `质谱` but suffix `.pptx` is unsupported
-- `05_阻抗EIS\308阻抗\MS\MS EIS.bin` matched `质谱` but suffix `.bin` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3001.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3002.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3003.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3004.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3005.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3006.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3007.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3008.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3009.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3010.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3011.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3012.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法3\MS_3013.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.docx` matched `质谱` but suffix `.docx` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\0416HOU.pdf` matched `质谱` but suffix `.pdf` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4001.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4002.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4003.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4004.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4005.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4006.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4007.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4008.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4009.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4010.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法4\MS_4011.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5001.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5002.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5003.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5004.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5005.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5006.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5007.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5008.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5009.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5010.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5011.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5012.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5013.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5014.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5015.tif` matched `质谱` but suffix `.tif` is unsupported
-- `12_显微_SEM_TEM\SEM\MOSE2\MS方法5\MS_5016.tif` matched `质谱` but suffix `.tif` is unsupported
+Unsupported files in known folders: 1149
+- `20260109 光电流\26010964564\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\1-BOC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\2-MCS-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\3-BM-10-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\4-BOBC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\5-CWO-(OCP) .bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\6-BC-11-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\2758_1774879987011_26032562524.zip` matched `20260109 光电流` but suffix `.zip` is unsupported
+- `光电流响应\2758_1776699905862_26041550465.zip` matched `20260109 光电流` but suffix `.zip` is unsupported
+- `光电流响应\SECOND.opju` matched `20260109 光电流` but suffix `.opju` is unsupported
+- `光电流响应\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
+- `光电流响应\光电流相应CWO+BOBC.opju` matched `20260109 光电流` but suffix `.opju` is unsupported
+- `光电流响应\1bobc+2cwo+3bicu-10\I-T BOBC+CWO 4.22.opju` matched `20260109 光电流` but suffix `.opju` is unsupported
+- `光电流响应\第一次CWO BOBC BC数据\4-BOBC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\第一次CWO BOBC BC数据\5-CWO-(OCP) .bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\第一次CWO BOBC BC数据\6-BC-11-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\1bobc+2cwo+3bicu-10\bicu\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\1bobc+2cwo+3bicu-10\BOBC\1-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\1bobc+2cwo+3bicu-10\CWO\2-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\第三次光电流补测\26041550465\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
+- `光电流响应\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\第二次BOBC BC\26032562524\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
+- `光电流响应\第二次BOBC BC\26032562524\Photocurrent\1-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\第二次BOBC BC\26032562524\Photocurrent\2-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\第三次光电流补测\26041550465\光电流基线处理教程.pdf` matched `20260109 光电流` but suffix `.pdf` is unsupported
+- `光电流响应\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\1-BOC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\2-MCS-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\3-BM-10-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\4-BOBC-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\5-CWO-(OCP) .bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `20260109 光电流\26010964564\Photocurrent\6-BC-11-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\第二次BOBC BC\26032562524\Photocurrent\1-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `光电流响应\第二次BOBC BC\26032562524\Photocurrent\2-(OCP).bin` matched `20260109 光电流` but suffix `.bin` is unsupported
+- `BET\XWM-LL-260428-1-BOBC-All Pore\BOBC.opju` matched `BET` but suffix `.opju` is unsupported
+- `BET\XWM-LL-260428-1-BOBC-All Pore\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\XWM-LL-260428-1-BOBC-All Pore\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\XWM-LL-260428-1-BOBC-All Pore\XWM-LL-260428-1-BOBC-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
+- `BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\ZPF-LL-20260327-4-BOBC-BET\ZPF-LL-20260327-4-BOBC-BET.SMP` matched `BET` but suffix `.smp` is unsupported
+- `BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\氮气吸附脱附等温曲线\BET -BOBC为负数.opju` matched `BET` but suffix `.opju` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-1-BOBC-All Pore\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-1-BOBC-All Pore\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-1-BOBC-All Pore\XWM-LL-260421-1-BOBC-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-2-CWO-All Pore\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-2-CWO-All Pore\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-2-CWO-All Pore\XWM-LL-260421-2-CWO-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-3-BiCu-All Pore\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-3-BiCu-All Pore\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-3-BiCu-All Pore\XWM-LL-260421-3-BiCu-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\氮气吸附脱附等温曲线\20260421\XWM-LL-260421-4-BOBC-4-XIN-All Pore\XWM-LL-260421-4-BOBC-4-XIN-All Pore.SMP` matched `BET` but suffix `.smp` is unsupported
+- `BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\ZPF-LL-20260327-4-BOBC-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\ZPF-LL-20260327-4-BOBC-BET\ZPF-LL-20260327-4-BOBC-BET.SMP` matched `BET` but suffix `.smp` is unsupported
+- `BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\ZPF-LL-20260327-7-CWO-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3` matched `BET` but suffix `.db3` is unsupported
+- `BET\ZPF-LL-20260327-8-BC-BET\MICDIR.DB3-journal` matched `BET` but suffix `.db3-journal` is unsupported
+- `EPR\20260430-1.zip` matched `EPR` but suffix `.zip` is unsupported
+- `EPR\epr.opju` matched `EPR` but suffix `.opju` is unsupported
+- `EPR\20260421\6.7%-O2-light` matched `EPR` but suffix `.7%-o2-light` is unsupported
+- `EPR\20260421\6.7%-O2-light-2` matched `EPR` but suffix `.7%-o2-light-2` is unsupported
+- `EPR\20260421\6.7%-OH-dark` matched `EPR` but suffix `.7%-oh-dark` is unsupported
+- `EPR\20260421\6.7%-OH-light` matched `EPR` but suffix `.7%-oh-light` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\EPR_OH_20260421_test.opju` matched `EPR` but suffix `.opju` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_10pct_dark_light_offset.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_10pct_dark_light_xy_pairs.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_10pct_dark_single.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_test.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_test_manifest.json` matched `EPR` but suffix `.json` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_test_offset.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\exports\EPR_OH_20260421_Test.png` matched `EPR` but suffix `.png` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\exports\EPR_OH_20260421_Test.tif` matched `EPR` but suffix `.tif` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\EPR_OH_20260421_test.opju` matched `EPR` but suffix `.opju` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_10pct_dark_light_offset.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_10pct_dark_light_xy_pairs.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_10pct_dark_single.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_test.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_test_manifest.json` matched `EPR` but suffix `.json` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\data\EPR_OH_20260421_test_offset.tsv` matched `EPR` but suffix `.tsv` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\exports\EPR_OH_20260421_Test.png` matched `EPR` but suffix `.png` is unsupported
+- `EPR\EPR_Origin_outputs_20260531\exports\EPR_OH_20260421_Test.tif` matched `EPR` but suffix `.tif` is unsupported
+- `动力学\yue\EPR\SI Advanced Materials - 2024 - Gu - Unveiling Charge Carrier Dynamics at Organic Inorganic S‐Scheme Heterojunction Interfaces .pdf` matched `EPR` but suffix `.pdf` is unsupported
+- `动力学\yue\EPR\使用高级 EPR 探索 S 型异质结界面的电荷转移动力学.pdf` matched `EPR` but suffix `.pdf` is unsupported
+- `PL\3176_1775399174649_26032574877.zip` matched `PL` but suffix `.zip` is unsupported
+- `PL\激发谱发射谱.opju` matched `PL` but suffix `.opju` is unsupported
+- `PL\bobc+cwo+bc\1-EM-ex340nm.FS` matched `PL` but suffix `.fs` is unsupported
+- `PL\bobc+cwo+bc\1-EM-ex340nm.wmf` matched `PL` but suffix `.wmf` is unsupported
+- `PL\bobc+cwo+bc\1-EX-em640nm.FS` matched `PL` but suffix `.fs` is unsupported
+- `PL\bobc+cwo+bc\1-EX-em640nm.wmf` matched `PL` but suffix `.wmf` is unsupported
+- `PL\bobc+cwo+bc\2-EM-ex340nm.FS` matched `PL` but suffix `.fs` is unsupported
+- `PL\bobc+cwo+bc\2-EM-ex340nm.wmf` matched `PL` but suffix `.wmf` is unsupported
+- `PL\bobc+cwo+bc\2-EX-em445nm.FS` matched `PL` but suffix `.fs` is unsupported
+- `PL\bobc+cwo+bc\2-EX-em445nm.wmf` matched `PL` but suffix `.wmf` is unsupported
+- `PL\bobc+cwo+bc\3-EM-ex340nm.FS` matched `PL` but suffix `.fs` is unsupported
+- `PL\bobc+cwo+bc\3-EM-ex340nm.wmf` matched `PL` but suffix `.wmf` is unsupported
+- `PL\bobc+cwo+bc\3-EX-em630nm.FS` matched `PL` but suffix `.fs` is unsupported
+- `PL\bobc+cwo+bc\3-EX-em630nm.wmf` matched `PL` but suffix `.wmf` is unsupported
+- `XPS\26010989730.rar` matched `XPS` but suffix `.rar` is unsupported
+- `XPS\BC-OW.opju` matched `XPS` but suffix `.opju` is unsupported
+- `XPS\bc-XPS.opju` matched `XPS` but suffix `.opju` is unsupported
+- `XPS\bobc xps.opju` matched `XPS` but suffix `.opju` is unsupported
+- `XPS\cwo xps.opju` matched `XPS` but suffix `.opju` is unsupported
+- `XPS\CWO+BOBC VBXPS谱图.opju` matched `XPS` but suffix `.opju` is unsupported
+- `XPS\原位XPS.zip` matched `XPS` but suffix `.zip` is unsupported
+- `XPS\BC拟合后\Data Grid.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\BOBC拟合后\Data Grid.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\CWO拟合后\Data Grid.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\原位XPS\DARK.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\电荷未矫正第一次\xps 全数据BI.opju` matched `XPS` but suffix `.opju` is unsupported
+- `XPS\电荷未矫正第一次\xps全数据CU.opju` matched `XPS` but suffix `.opju` is unsupported
+- `XPS\电荷未矫正第一次\xps全数据版.opju` matched `XPS` but suffix `.opju` is unsupported
+- `XPS\26010989730\BC-11\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BC-11\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BC-11\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BC-11\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BC-11\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BC-11\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BC-11\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BC-11\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BC-11\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BOBC\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BOBC\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BOBC\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BOBC\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BOBC\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BOBC\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\BOBC\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\CWO\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\CWO\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\CWO\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\CWO\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\CWO\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\26010989730\CWO\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\Valence_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BC拟合后\Data Grid.DATA\XPS Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\Valence_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\BOBC拟合后\Data Grid.DATA\XPS Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\Valence.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\Valence_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\XPS Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\CWO拟合后\Data Grid.DATA\XPS Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\原位XPS\DARK.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\dark拟合第一遍.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\电荷未矫正第一次\light拟合第一遍.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.vgp` matched `XPS` but suffix `.vgp` is unsupported
+- `XPS\原位XPS\DARK.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\DARK.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Bi4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Br3d Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\C1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cl2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Cu2p Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\O1s Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\Survey_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\light .vgp CU没有拟合.DATA\W4f Scan_0.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1-light.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Bi4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Br3d Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\C1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Cl2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Cu2p Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\O1s Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\Survey.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XPS\原位XPS\26041816225\Processing View #1.DATA\W4f Scan.VGD` matched `XPS` but suffix `.vgd` is unsupported
+- `XRD\20251110\bobc shuirei.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\20251110\bobc shuirei2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\20251110\bobcshuirei+cwo15%.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\20251110\kit-6-1.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\20251110\kit-6-2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\20260326LL BOB BOC BCN\BICSNH4.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\20260326LL BOB BOC BCN\BICSNH4.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\20260326LL BOB BOC BCN\CL.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\20260326LL BOB BOC BCN\CL.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\20260326LL BOB BOC BCN\NH4.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\20260326LL BOB BOC BCN\NH4.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BOBC+MS\MS+BOBC.tif` matched `XRD` but suffix `.tif` is unsupported
+- `XRD\BPO\BPO+MS.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BPO\BPO.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BWO\A BWO.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BWO\BWO.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\BWO\M BWO.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\CWO+BOBC+标卡.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\KIT-6\kit-6.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\KIT-6\kit-6.tif` matched `XRD` but suffix `.tif` is unsupported
+- `XRD\KIT-6\kit-6bo.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\KIT-6\kit-6bo2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\KIT-6\kit-6fe.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\KIT-6\KIT-6第二批.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\MS\BPO+MS.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\研一上xrd数据及图片\20241125XRD.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\研一上xrd数据及图片\BiOBrCl-TiO2 2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\研一上xrd数据及图片\BiOBrCl-TiO2.bc` matched `XRD` but suffix `.bc` is unsupported
+- `XRD\研一上xrd数据及图片\BiOBrCl-TiO2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\研一上xrd数据及图片\BiOBrCl.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\研一上xrd数据及图片\TiO2.bc` matched `XRD` but suffix `.bc` is unsupported
+- `XRD\研一上xrd数据及图片\TiO2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BOBC+MS\250530\bm.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BOBC+MS\250530\BOBC.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BOBC+MS\251024\20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\BOBC+MS\251024\bobc.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BOBC+MS\251024\mb9.jip` matched `XRD` but suffix `.jip` is unsupported
+- `XRD\BOBC+MS\251024\mb9.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BOBC+MS\251024\MOSE2 10MIN.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\BOBC+MS\251024\MOSE2 10MIN.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\BOBC+MS\251024\MOSE2 5MIN.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\BOBC+MS\251024\MOSE2 5MIN.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\BOBC\BOBC.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\CWO+BOBC\BOBC\BOBC.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\cwo+bobc\XRD2.tif` matched `XRD` but suffix `.tif` is unsupported
+- `XRD\CWO+BOBC\cwo八面体\cwo 8.jip` matched `XRD` but suffix `.jip` is unsupported
+- `XRD\CWO+BOBC\cwo八面体\cwo 8面体.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\cwo沉淀法+合适的标准卡片\cwo.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\CWO+BOBC\cwo沉淀法+合适的标准卡片\cwo.jip` matched `XRD` but suffix `.jip` is unsupported
+- `XRD\CWO+BOBC\cwo沉淀法+合适的标准卡片\cwo.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\BOBC\BOBC600度\BOBC600.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\CWO+BOBC\BOBC\BOBC600度\BOBC600.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\cwo+bobc\BC-15\BOBC+BOBC15%.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\cwo+bobc\BC-15\BOBC+CWO15%.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\cwo+bobc\BC-30\BC30.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\cwo+bobc\CWO为主体\cwo10.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\cwo+bobc\CWO为主体\cwo15.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\CWO+BOBC\cwo+bobc\CWO为主体\cwo5.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\1mmolmose2的XRD.tif` matched `XRD` but suffix `.tif` is unsupported
+- `XRD\MS\MSXRD\MOSE2.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\MS.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\球磨第二批XRD.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose3.1.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose3.2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose4.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose4re.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose5.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\XRD2.pdf` matched `XRD` but suffix `.pdf` is unsupported
+- `XRD\MS\MSXRD\4种方法\XRD同.pdf` matched `XRD` but suffix `.pdf` is unsupported
+- `XRD\MS\MSXRD\QIUMO\2h.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\6h.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\SHUIRE\mose new 啥也不是.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\SHUIRE\mose方法4，放大3bei.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\SHUIRE\re mose3bei.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO1.1.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO1.1.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO1.2.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO2.1.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO2.2.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\初版PEG\PEG\MS-200.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\初版PEG\PEG\MS200.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\初版PEG\PEG\MS400.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\研一上xrd数据及图片\20241125XRD.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\研一上xrd数据及图片\BiOBrCl-TiO2 2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\研一上xrd数据及图片\BiOBrCl-TiO2.bc` matched `XRD` but suffix `.bc` is unsupported
+- `XRD\研一上xrd数据及图片\BiOBrCl-TiO2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\研一上xrd数据及图片\BiOBrCl.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\研一上xrd数据及图片\TiO2.bc` matched `XRD` but suffix `.bc` is unsupported
+- `XRD\研一上xrd数据及图片\TiO2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\1mmolmose2的XRD.tif` matched `XRD` but suffix `.tif` is unsupported
+- `XRD\MS\MSXRD\MOSE2.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\MS.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\球磨第二批XRD.opju` matched `XRD` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose3.1.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose3.2.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose4.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose4re.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\mose5.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\4种方法\XRD2.pdf` matched `XRD` but suffix `.pdf` is unsupported
+- `XRD\MS\MSXRD\4种方法\XRD同.pdf` matched `XRD` but suffix `.pdf` is unsupported
+- `XRD\MS\MSXRD\QIUMO\2h.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\6h.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\SHUIRE\mose new 啥也不是.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\SHUIRE\mose方法4，放大3bei.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\SHUIRE\re mose3bei.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO1.1.dql` matched `XRD` but suffix `.dql` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO1.1.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO1.2.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO2.1.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO2.2.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\初版PEG\PEG\MS-200.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\初版PEG\PEG\MS200.raw` matched `XRD` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\初版PEG\PEG\MS400.RAW` matched `XRD` but suffix `.raw` is unsupported
+- `固体紫外\BOBC+MS.opju` matched `固体紫外` but suffix `.opju` is unsupported
+- `固体紫外\CWO+BOBC紫外.tif` matched `固体紫外` but suffix `.tif` is unsupported
+- `固体紫外\CWO+BOBC紫外tacu.tif` matched `固体紫外` but suffix `.tif` is unsupported
+- `固体紫外\MS+BOBC固体紫外200-800.tif` matched `固体紫外` but suffix `.tif` is unsupported
+- `固体紫外\MS+BOBC固体紫外260-800.tif` matched `固体紫外` but suffix `.tif` is unsupported
+- `固体紫外\MS+BOBC固体紫外tacu.tif` matched `固体紫外` but suffix `.tif` is unsupported
+- `固体紫外\固体紫外CWO+BOBC\BOBC+CWO.opju` matched `固体紫外` but suffix `.opju` is unsupported
+- `固体紫外\20251017-LL\20251017\bobc.UDS` matched `固体紫外` but suffix `.uds` is unsupported
+- `固体紫外\20251017-LL\20251017\bobcms.UDS` matched `固体紫外` but suffix `.uds` is unsupported
+- `固体紫外\20251017-LL\20251017\cwo.UDS` matched `固体紫外` but suffix `.uds` is unsupported
+- `固体紫外\20251017-LL\20251017\cwobobc.UDS` matched `固体紫外` but suffix `.uds` is unsupported
+- `固体紫外\20251017-LL\20251017\ms.UDS` matched `固体紫外` but suffix `.uds` is unsupported
+- `固体紫外\20251017-LL\BOBC CWO10%(bc10%环己烷)\bc10-2.UDS` matched `固体紫外` but suffix `.uds` is unsupported
+- `固体紫外\20251017-LL\BOBC CWO10%(bc10%环己烷)\bc10.UDS` matched `固体紫外` but suffix `.uds` is unsupported
+- `固体紫外\固体紫外CWO+BOBC\BOBC+CWO.opju` matched `固体紫外` but suffix `.opju` is unsupported
+- `光电流响应\2758_1774879987011_26032562524.zip` matched `光电流响应` but suffix `.zip` is unsupported
+- `光电流响应\2758_1776699905862_26041550465.zip` matched `光电流响应` but suffix `.zip` is unsupported
+- `光电流响应\SECOND.opju` matched `光电流响应` but suffix `.opju` is unsupported
+- `光电流响应\光电流基线处理教程.pdf` matched `光电流响应` but suffix `.pdf` is unsupported
+- `光电流响应\光电流相应CWO+BOBC.opju` matched `光电流响应` but suffix `.opju` is unsupported
+- `光电流响应\1bobc+2cwo+3bicu-10\I-T BOBC+CWO 4.22.opju` matched `光电流响应` but suffix `.opju` is unsupported
+- `光电流响应\第一次CWO BOBC BC数据\4-BOBC-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
+- `光电流响应\第一次CWO BOBC BC数据\5-CWO-(OCP) .bin` matched `光电流响应` but suffix `.bin` is unsupported
+- `光电流响应\第一次CWO BOBC BC数据\6-BC-11-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
+- `光电流响应\1bobc+2cwo+3bicu-10\bicu\1-（OCP）.bin` matched `光电流响应` but suffix `.bin` is unsupported
+- `光电流响应\1bobc+2cwo+3bicu-10\BOBC\1-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
+- `光电流响应\1bobc+2cwo+3bicu-10\CWO\2-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
+- `光电流响应\第三次光电流补测\26041550465\光电流基线处理教程.pdf` matched `光电流响应` but suffix `.pdf` is unsupported
+- `光电流响应\第三次光电流补测\26041550465\Photocurrent\1-（OCP）.bin` matched `光电流响应` but suffix `.bin` is unsupported
+- `光电流响应\第二次BOBC BC\26032562524\光电流基线处理教程.pdf` matched `光电流响应` but suffix `.pdf` is unsupported
+- `光电流响应\第二次BOBC BC\26032562524\Photocurrent\1-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
+- `光电流响应\第二次BOBC BC\26032562524\Photocurrent\2-(OCP).bin` matched `光电流响应` but suffix `.bin` is unsupported
+- `光反应的条件筛选\时间反应取样.opju` matched `光反应的条件筛选` but suffix `.opju` is unsupported
+- `光反应的条件筛选\溶剂筛选.opju` matched `光反应的条件筛选` but suffix `.opju` is unsupported
+- `光反应的条件筛选\自由基捕获.opju` matched `光反应的条件筛选` but suffix `.opju` is unsupported
+- `光反应的条件筛选\CL\催化剂筛选.opju` matched `光反应的条件筛选` but suffix `.opju` is unsupported
+- `光反应的条件筛选\CL\循环实验.opju` matched `光反应的条件筛选` but suffix `.opju` is unsupported
+- `光反应的条件筛选\CL\溶剂筛选.opju` matched `光反应的条件筛选` but suffix `.opju` is unsupported
+- `光反应的条件筛选\CL\自由基猝灭.opju` matched `光反应的条件筛选` but suffix `.opju` is unsupported
+- `光反应的条件筛选\标曲\BBAD1.opju` matched `光反应的条件筛选` but suffix `.opju` is unsupported
+- `光反应的条件筛选\标曲\BZA2.opju` matched `光反应的条件筛选` but suffix `.opju` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\BOBC+MS-FTRIR.tif` matched `红外` but suffix `.tif` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\BOBC+MS.opju` matched `红外` but suffix `.opju` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM1.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM1.pdf` matched `红外` but suffix `.pdf` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM3.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM3.pdf` matched `红外` but suffix `.pdf` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM5.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM5.pdf` matched `红外` but suffix `.pdf` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM7.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM7.pdf` matched `红外` but suffix `.pdf` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM9.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM9.pdf` matched `红外` but suffix `.pdf` is unsupported
+- `红外\cwo+bobc\BOBC.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\cwo+bobc\CWO 15.0` matched `红外` but suffix `.0` is unsupported
+- `红外\cwo+bobc\CWO 15.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\cwo+bobc\CWO+BOBC FTIR 2026018新制备.tif` matched `红外` but suffix `.tif` is unsupported
+- `红外\cwo+bobc\CWO+BOBC FTIR.tif` matched `红外` but suffix `.tif` is unsupported
+- `红外\cwo+bobc\CWO+BOBC红外.opju` matched `红外` but suffix `.opju` is unsupported
+- `红外\cwo+bobc\CWO.0` matched `红外` but suffix `.0` is unsupported
+- `红外\cwo+bobc\CWO.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\cwo+bobc\FTIR2.tif` matched `红外` but suffix `.tif` is unsupported
+- `红外\cwo+bobc\hongwai.tif` matched `红外` but suffix `.tif` is unsupported
+- `红外\红外MS+BPO 暑期版本\红外.opju` matched `红外` but suffix `.opju` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM1.0` matched `红外` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM1.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM3.0` matched `红外` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM3.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM5.0` matched `红外` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM5.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM7.0` matched `红外` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM7.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM9.0` matched `红外` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM9.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BOBC.0` matched `红外` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BOBC.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\cwo+bobc\cwo 20260128 李永进组\BC-10 环己烷.0` matched `红外` but suffix `.0` is unsupported
+- `红外\cwo+bobc\cwo 20260128 李永进组\BC-10.0环己烷.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\3.bpo.0` matched `红外` but suffix `.0` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\3.bpo.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\4.ms-bpo.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\4.msF-bpo.0` matched `红外` but suffix `.0` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\5.ms.0` matched `红外` but suffix `.0` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\5.ms.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\红外MS+BPO 暑期版本\红外.opju` matched `红外` but suffix `.opju` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\3.bpo.0` matched `红外` but suffix `.0` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\3.bpo.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\4.ms-bpo.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\4.msF-bpo.0` matched `红外` but suffix `.0` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\5.ms.0` matched `红外` but suffix `.0` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\5.ms.0.dpt` matched `红外` but suffix `.dpt` is unsupported
+- `XRD\MS\MSXRD\SHUIRE\mose new 啥也不是.raw` matched `红外` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\SHUIRE\mose方法4，放大3bei.raw` matched `红外` but suffix `.raw` is unsupported
+- `XRD\MS\MSXRD\SHUIRE\re mose3bei.raw` matched `红外` but suffix `.raw` is unsupported
+- `拉曼\cwo+bobc raman.opju` matched `拉曼` but suffix `.opju` is unsupported
+- `拉曼\20251021\bobc+ms.opju` matched `拉曼` but suffix `.opju` is unsupported
+- `拉曼\20251021\ranman.tif` matched `拉曼` but suffix `.tif` is unsupported
+- `拉曼\BC-30\bc30_1.l6s` matched `拉曼` but suffix `.l6s` is unsupported
+- `拉曼\老版本BOBC+MS+BPO\BOBC+MS+BPO.opju` matched `拉曼` but suffix `.opju` is unsupported
+- `拉曼\老版本BOBC+MS+BPO\BOBC+MS-RAMAN.tif` matched `拉曼` but suffix `.tif` is unsupported
+- `拉曼\老版本BOBC+MS+BPO\BOBC+MS.opju` matched `拉曼` but suffix `.opju` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\BOBC.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\BOBC2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\BOBC2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\BOBC3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\BOBC3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\BOBC4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\BOBC4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\BOBC5000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO1000废.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO3500-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO5000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20260121CWO+BOBC\CWO新.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\BOBC\bobc.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\BOBC\BOBC1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\BOBC\BOBC1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\BOBC\BOBC2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\BOBC\BOBC2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\BOBC\BOBC3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\BOBC\BOBC3500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\BOBC\BOBC3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\BOBC\BOBC4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\BOBC\BOBC4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\BOBC\BOBCMOSE能带.tif` matched `莫特肖特基` but suffix `.tif` is unsupported
+- `莫特肖特基\BOBC\BOBC莫特肖特基.tif` matched `莫特肖特基` but suffix `.tif` is unsupported
+- `莫特肖特基\BOBC\CWO+BOBC莫特.tif` matched `莫特肖特基` but suffix `.tif` is unsupported
+- `莫特肖特基\CWO\CWO MT-0.6.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\CWO\CWO MT-2 +0.3.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\MoSe2MT\MOSE模特肖特基.tif` matched `莫特肖特基` but suffix `.tif` is unsupported
+- `莫特肖特基\MoSe2MT\ms.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\MoSe2MT\MS1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS3500  2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS3500  3.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS3500  4.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS3500 5.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS4000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\MoSe2MT\MS5000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC-2-1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC-2-1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC-2-2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC-2-2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC-2-3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC-2-3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\BOBC\BOBC3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO-2-1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO-2-2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO-2-2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO-2-3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO-2-3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO-2-4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO-2-4500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO-2-5000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\20251126\CWO\CWO3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT1\CWO1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT1\CWO1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT1\CWO2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT1\CWO2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT1\CWO3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT2\CWO1500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT2\CWO2000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT2\CWO2500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT2\CWO3000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT2\CWO3500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\MT2\CWO3500 3.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\CWO莫特肖特基数据处理版\MS数据处理版\李霖25年11月20日.pptx` matched `莫特肖特基` but suffix `.pptx` is unsupported
+- `莫特肖特基\LL\BOBC\1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LL\BOBC\1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LL\BOBC\2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LL\BOBC\2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LL\BOBC\3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LL\BOBC\3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LL\BOBC\4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LL\bobc数据处理版本\bobc.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\LLKT ms\20250905\13MBEIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\13MBEIS2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1mbMT1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1msEIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT1000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT2000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT3000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT4000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT5000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\3mbEIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\5MB EIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\5MBEIS2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\7BMEIS.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bm.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bm2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt4000-2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\BOBC\1000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\BOBC\1500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\BOBC\2000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\BOBC\2500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\BOBC\3000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\BOBC\3500.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\BOBC\4000.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\bobc数据处理版本\bobc.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\第一体系确定版本\bobc数据处理版本\bobc格式美化版本.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\第一体系确定版本\MT2\CWO MT-2 +0.3.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\第一体系确定版本\MT2\CWO MT-2 +0.3数据美化版本.opju` matched `莫特肖特基` but suffix `.opju` is unsupported
+- `莫特肖特基\第一体系确定版本\MT2\CWO1500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\MT2\CWO2000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\MT2\CWO2500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\MT2\CWO3000 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\MT2\CWO3500 2.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\第一体系确定版本\MT2\CWO3500 3.bin` matched `莫特肖特基` but suffix `.bin` is unsupported
+- `莫特肖特基\CWO\CWO莫特肖特基数据处理版\MS数据处理版\李霖25年11月20日.pptx` matched `莫特肖特基` but suffix `.pptx` is unsupported
+- `液相\11%.pdf` matched `液相` but suffix `.pdf` is unsupported
+- `液相\5%.pdf` matched `液相` but suffix `.pdf` is unsupported
+- `液相\7%.pdf` matched `液相` but suffix `.pdf` is unsupported
+- `液相\9%.pdf` matched `液相` but suffix `.pdf` is unsupported
+- `液相\新建文件夹\15%.pdf` matched `液相` but suffix `.pdf` is unsupported
+- `液相\新建文件夹\20%.pdf` matched `液相` but suffix `.pdf` is unsupported
+- `液相\新建文件夹\3%.pdf` matched `液相` but suffix `.pdf` is unsupported
+- `液相\新建文件夹\5%.pdf` matched `液相` but suffix `.pdf` is unsupported
+- `液相\新建文件夹\80%.pdf` matched `液相` but suffix `.pdf` is unsupported
+- `阻抗EIS\20251106阻抗李永进.zip` matched `阻抗EIS` but suffix `.zip` is unsupported
+- `阻抗EIS\20260202.zip` matched `阻抗EIS` but suffix `.zip` is unsupported
+- `阻抗EIS\308阻抗.zip` matched `阻抗EIS` but suffix `.zip` is unsupported
+- `阻抗EIS\阻抗图.tif` matched `阻抗EIS` but suffix `.tif` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B11-2-Z` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B3-Z` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-A` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B7-Z` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\B9-2-Z` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-2-Z` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\BOBC-Z` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-A` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260121 李永进阻抗 CWO+BOBC\CWO-Z` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20260202\b11-2-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
+- `阻抗EIS\20260202\b11-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
+- `阻抗EIS\20260202\b3.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
+- `阻抗EIS\20260202\b7.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
+- `阻抗EIS\20260202\b9-2z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
+- `阻抗EIS\20260202\b9-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
+- `阻抗EIS\20260202\bobc-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
+- `阻抗EIS\20260202\cwo-z.lst` matched `阻抗EIS` but suffix `.lst` is unsupported
+- `阻抗EIS\20260202\eis图20260202.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
+- `阻抗EIS\20260202\eis图BOBC+CWO.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
+- `阻抗EIS\20260203李永进CWO+BOBC\2eis图20260202.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
+- `阻抗EIS\BM重新拟合版本\BM.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
+- `阻抗EIS\BM重新拟合版本\BM阻抗.tif` matched `阻抗EIS` but suffix `.tif` is unsupported
+- `阻抗EIS\EIS-20251025拟合后师妹\BM-X.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
+- `阻抗EIS\EIS-20251025拟合后师妹\LL-EIS-BM-X.png` matched `阻抗EIS` but suffix `.png` is unsupported
+- `阻抗EIS\EIS-20251025拟合后师妹\拟合后BM-X.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
+- `阻抗EIS\20251106阻抗李永进\BOBC\EIS-1` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20251106阻抗李永进\BOBC\EIS-2GOOD` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\20251106阻抗李永进\MOSE\EIS` matched `阻抗EIS` but suffix `none` is unsupported
+- `阻抗EIS\308阻抗\MS\MS EIS.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
+- `阻抗EIS\308阻抗\BOBC\EIS\BOBC.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
+- `阻抗EIS\308阻抗\CWO\EIS\CWO EIS.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
+- `阻抗EIS\308阻抗\CWO\EIS\CWOEIS2.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
+- `阻抗EIS\EIS-20251025拟合后师妹\BM-X.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
+- `阻抗EIS\EIS-20251025拟合后师妹\LL-EIS-BM-X.png` matched `阻抗EIS` but suffix `.png` is unsupported
+- `阻抗EIS\EIS-20251025拟合后师妹\拟合后BM-X.opju` matched `阻抗EIS` but suffix `.opju` is unsupported
+- `阻抗EIS\308阻抗\BOBC\EIS\BOBC.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
+- `阻抗EIS\308阻抗\CWO\EIS\CWO EIS.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
+- `阻抗EIS\308阻抗\CWO\EIS\CWOEIS2.bin` matched `阻抗EIS` but suffix `.bin` is unsupported
+- `SEM\ll20260126-eds\~$ 1_区 1_2026-01-26_10-04-27.docx` matched `SEM` but suffix `.docx` is unsupported
+- `SEM\ll20260126-eds\项目 1_区 1_2026-01-26_10-04-27.docx` matched `SEM` but suffix `.docx` is unsupported
+- `SEM\CWO-BOBC\EDS\LL-1.docx` matched `SEM` but suffix `.docx` is unsupported
+- `SEM\CWO-BOBC\EDS\LL.docx` matched `SEM` but suffix `.docx` is unsupported
+- `SEM\MOSE2\MS方法4\0416HOU.docx` matched `SEM` but suffix `.docx` is unsupported
+- `SEM\MOSE2\MS方法4\0416HOU.pdf` matched `SEM` but suffix `.pdf` is unsupported
+- `TEM\HRTEM\0001 - BC Camera 36000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0002 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0003 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0004 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0005 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0006 - BC Camera 46000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0007 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0008 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0009 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0010 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0011 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0012 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0013 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0014 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0015 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0016 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0017 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0018 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0019 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0020 - BC Camera 58000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0021 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0022 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0023 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0024 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0025 - BC Camera 120 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\Thumbs.db` matched `TEM` but suffix `.db` is unsupported
+- `TEM\TEM\#20260326.mdb` matched `TEM` but suffix `.mdb` is unsupported
+- `TEM\HRTEM\0001 - BC Camera 36000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0002 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0003 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0004 - BC Camera 630 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0005 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0006 - BC Camera 46000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0007 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0008 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0009 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0010 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0011 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0012 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0013 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0014 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0015 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0016 - BC Camera 74000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0017 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0018 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0019 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0020 - BC Camera 58000 x Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0021 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0022 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0023 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0024 - BC Camera 820 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\0025 - BC Camera 120 kx Ceta.emd` matched `TEM` but suffix `.emd` is unsupported
+- `TEM\HRTEM\Thumbs.db` matched `TEM` but suffix `.db` is unsupported
+- `TEM\TEM\#20260326.mdb` matched `TEM` but suffix `.mdb` is unsupported
+- `核磁\ZPF-LL-1125-1\10\acqu` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\acqus` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\fid` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\format.temp` matched `核磁` but suffix `.temp` is unsupported
+- `核磁\ZPF-LL-1125-1\10\fq1list` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\prosol_History` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pulseprogram` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\scon2` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\shimvalues` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\specpar` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\uxnmr.info` matched `核磁` but suffix `.info` is unsupported
+- `核磁\ZPF-LL-1125-1\10\uxnmr.par` matched `核磁` but suffix `.par` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\1i` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\1r` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\intrng` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\outd` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\peaklist.xml` matched `核磁` but suffix `.xml` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\peakrng` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\peaks` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\proc` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\procs` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-1\10\pdata\1\title` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\acqu` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\acqus` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\fid` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\format.temp` matched `核磁` but suffix `.temp` is unsupported
+- `核磁\ZPF-LL-1125-2\10\fq1list` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\prosol_History` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pulseprogram` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\scon2` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\shimvalues` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\specpar` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\uxnmr.info` matched `核磁` but suffix `.info` is unsupported
+- `核磁\ZPF-LL-1125-2\10\uxnmr.par` matched `核磁` but suffix `.par` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\1i` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\1r` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\intrng` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\outd` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\peaklist.xml` matched `核磁` but suffix `.xml` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\peakrng` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\peaks` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\proc` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\procs` matched `核磁` but suffix `none` is unsupported
+- `核磁\ZPF-LL-1125-2\10\pdata\1\title` matched `核磁` but suffix `none` is unsupported
+- `质谱\2CH3.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\3CH3.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\4BR.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\4CH3.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\4cl.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\KANG.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\LM.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\N8h.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\OCH3.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\S8h.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\SHUDINGJI.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\糠胺叔丁基\KANG.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\糠胺叔丁基\SHUDINGJI.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\desktop.ini` matched `质谱` but suffix `.ini` is unsupported
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\2CH3.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\3CH3.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4BR.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4CH3.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\4cl.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\底物拓展原文件\20260317-LL 2+3+4甲基，4CL、BR、甲氧基\OCH3.xps` matched `质谱` but suffix `.xps` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+2CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+3CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4BR3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4CL.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\AcqMethod.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\BinPump1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Contents.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DefaultMassCal.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\DeviceConfigInfo.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Devices.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSActualDefs.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSMassCal.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSPeriodicActuals.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSProfile.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.bin` matched `质谱` but suffix `.bin` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSScan.xsd` matched `质谱` but suffix `.xsd` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\MSTS.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\sample_info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cd` matched `质谱` but suffix `.cd` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\TCC1.cg` matched `质谱` but suffix `.cg` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\Worklist.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\191_1.stg` matched `质谱` but suffix `.stg` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\BinPump_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\HiP-ALS_1_Pretreatment.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\TCC_1_MethodMetaData.XML` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Qual\qualitative.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\info.xml` matched `质谱` but suffix `.xml` is unsupported
+- `质谱\底物拓展原文件\20260316+4OCH3.d\AcqData\JYH.m\DaMethod\Quant\method.xml` matched `质谱` but suffix `.xml` is unsupported
+- `XRD\BOBC+MS\MS+BOBC.tif` matched `质谱` but suffix `.tif` is unsupported
+- `XRD\BOBC+MS\251024\20251024 MOSE2的量需要更多更多，没有明显峰，标准卡片没有导入.opju` matched `质谱` but suffix `.opju` is unsupported
+- `XRD\BOBC+MS\251024\mb9.jip` matched `质谱` but suffix `.jip` is unsupported
+- `XRD\BOBC+MS\251024\MOSE2 10MIN.dql` matched `质谱` but suffix `.dql` is unsupported
+- `XRD\BOBC+MS\251024\MOSE2 5MIN.dql` matched `质谱` but suffix `.dql` is unsupported
+- `XRD\MS\BPO+MS.opju` matched `质谱` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\1mmolmose2的XRD.tif` matched `质谱` but suffix `.tif` is unsupported
+- `XRD\MS\MSXRD\MOSE2.opju` matched `质谱` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\MS.opju` matched `质谱` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\球磨第二批XRD.opju` matched `质谱` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\4种方法\XRD2.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `XRD\MS\MSXRD\4种方法\XRD同.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO1.1.dql` matched `质谱` but suffix `.dql` is unsupported
+- `拉曼\老版本BOBC+MS+BPO\BOBC+MS+BPO.opju` matched `质谱` but suffix `.opju` is unsupported
+- `拉曼\老版本BOBC+MS+BPO\BOBC+MS-RAMAN.tif` matched `质谱` but suffix `.tif` is unsupported
+- `拉曼\老版本BOBC+MS+BPO\BOBC+MS.opju` matched `质谱` but suffix `.opju` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\BOBC+MS-FTRIR.tif` matched `质谱` but suffix `.tif` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\BOBC+MS.opju` matched `质谱` but suffix `.opju` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM1.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM1.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM3.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM3.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM5.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM5.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM7.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM7.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM9.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\LL-BM9.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM1.0` matched `质谱` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM1.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM3.0` matched `质谱` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM3.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM5.0` matched `质谱` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM5.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM7.0` matched `质谱` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM7.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM9.0` matched `质谱` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BM9.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BOBC.0` matched `质谱` but suffix `.0` is unsupported
+- `红外\BOBC+MS 以前水热的Mose\李永进组版本\BOBC.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\红外MS+BPO 暑期版本\红外.opju` matched `质谱` but suffix `.opju` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\3.bpo.0` matched `质谱` but suffix `.0` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\3.bpo.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\4.ms-bpo.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\4.msF-bpo.0` matched `质谱` but suffix `.0` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\5.ms.0` matched `质谱` but suffix `.0` is unsupported
+- `红外\红外MS+BPO 暑期版本\20250715-1\5.ms.0.dpt` matched `质谱` but suffix `.dpt` is unsupported
+- `莫特肖特基\LLKT ms\20250905\13MBEIS.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\13MBEIS2.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1mbMT1000.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1msEIS.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT1000-2.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT2000-2.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT3000-2.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT4000-2.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\1MT5000-2.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\3mbEIS.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\5MB EIS.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\5MBEIS2.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\7BMEIS.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bm.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bm2.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt2000.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt3000.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt4000-2.bin` matched `质谱` but suffix `.bin` is unsupported
+- `莫特肖特基\LLKT ms\20250905\LL\1bmmt4000.bin` matched `质谱` but suffix `.bin` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3001.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3002.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3003.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3004.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3005.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3006.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3007.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3008.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3009.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3010.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3011.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3012.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法3\MS_3013.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\0416HOU.docx` matched `质谱` but suffix `.docx` is unsupported
+- `SEM\MOSE2\MS方法4\0416HOU.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4001.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4002.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4003.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4004.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4005.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4006.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4007.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4008.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4009.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4010.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法4\MS_4011.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5001.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5002.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5003.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5004.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5005.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5006.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5007.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5008.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5009.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5010.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5011.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5012.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5013.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5014.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5015.tif` matched `质谱` but suffix `.tif` is unsupported
+- `SEM\MOSE2\MS方法5\MS_5016.tif` matched `质谱` but suffix `.tif` is unsupported
+- `XRD\MS\MSXRD\1mmolmose2的XRD.tif` matched `质谱` but suffix `.tif` is unsupported
+- `XRD\MS\MSXRD\MOSE2.opju` matched `质谱` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\MS.opju` matched `质谱` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\球磨第二批XRD.opju` matched `质谱` but suffix `.opju` is unsupported
+- `XRD\MS\MSXRD\4种方法\XRD2.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `XRD\MS\MSXRD\4种方法\XRD同.pdf` matched `质谱` but suffix `.pdf` is unsupported
+- `XRD\MS\MSXRD\QIUMO\球磨第一次\QIUMO1.1.dql` matched `质谱` but suffix `.dql` is unsupported
+- `莫特肖特基\CWO\CWO莫特肖特基数据处理版\MS数据处理版\李霖25年11月20日.pptx` matched `质谱` but suffix `.pptx` is unsupported
+- `阻抗EIS\308阻抗\MS\MS EIS.bin` matched `质谱` but suffix `.bin` is unsupported

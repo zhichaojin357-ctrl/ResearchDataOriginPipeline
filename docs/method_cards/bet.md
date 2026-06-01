@@ -1,8 +1,9 @@
 # Method Card: BET
 
 ## Common File Formats
-- `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`, exported instrument reports.
+- `.csv`, `.txt`, `.tsv`, `.xlsx`, `.xls`, `.dat`, exported instrument reports.
 - Tables containing adsorption/desorption isotherms, pore distribution, or summary values.
+- Legacy OLE `.xls` files can be read through `xlrd` when available, or a private hidden Excel COM fallback on Windows.
 
 ## Automatic Recognition Signals
 - Folder/name keywords: `BET`, `surface area`, `adsorption`, `desorption`, `pore`.
@@ -32,6 +33,7 @@
 - Confirm units and STP conventions.
 - Confirm whether hysteresis interpretation is appropriate.
 - Confirm sample degassing conditions.
+- Confirm that legacy `.xls` exports were opened from trusted local instrument output.
 
 ## Forbidden Claims
 - Do not perform or claim rigorous BET fitting automatically.

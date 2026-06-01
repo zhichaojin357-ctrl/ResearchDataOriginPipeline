@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from src.core.runtime_paths import resolve_phase1_6_index, resolve_workspace_root
 
-DEFAULT_WORKSPACE_RELATIVE = Path("workspace_data") / "LL_detection_copy_20260530"
-PHASE1_6_PACKAGE_RELATIVE = Path("output") / "phase1_6_origin_results_20260531_041538"
+
 APPROVE_DECISION = "approve_for_no_origin_queue"
 SKIP_DECISIONS = {"reject", "keep_manual_review", "do_not_process"}
 HIGH_RISK_TYPES = {"XPS", "EPR", "XRD", "Mott-Schottky", "HPLC/LC exported data"}
@@ -21,6 +21,17 @@ FORBIDDEN_TYPES = {
     "SEM_image_data",
     "TEM_image_data",
     "reference_literature",
+    "kinetics",
+    "动力学",
+}
+FORBIDDEN_TYPE_TOKENS = {
+    "sem",
+    "tem",
+    "nmr",
+    "ms",
+    "sem-image-data",
+    "tem-image-data",
+    "reference-literature",
     "kinetics",
     "动力学",
 }
@@ -70,9 +81,15 @@ def run_reviewed_queue(project_root: Path, options: ReviewedQueueOptions) -> int
 def load_proposals(project_root: Path, proposals_path: Path) -> list[dict]:
     path = _resolve_existing_path(project_root, proposals_path)
     payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"proposal JSON must be an object with an items list: {path}")
     raw_items = payload.get("items", [])
+    if not isinstance(raw_items, list):
+        raise ValueError(f"proposal JSON items must be a list: {path}")
     proposals = []
     for index, item in enumerate(raw_items, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"proposal JSON item {index} must be an object: {path}")
         proposal = dict(item)
         proposal.setdefault("proposal_id", f"P18-{index:03d}")
         proposals.append(proposal)
@@ -94,6 +111,7 @@ def write_decision_template(project_root: Path, proposals: list[dict], options: 
 def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: ReviewedQueueOptions) -> dict:
     if options.decisions is None:
         raise ValueError("A decisions CSV is required for reviewed-queue dry-run planning.")
+    proposals_path = _resolve_existing_path(project_root, options.proposals)
     decisions_path = _resolve_existing_path(project_root, options.decisions)
     decision_rows = _read_decision_rows(decisions_path)
     decisions, duplicate_decision_ids = _decision_lookup(decision_rows)
@@ -136,8 +154,12 @@ def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: Revi
     plan = {
         "runner": "reviewed-queue",
         "created_at": datetime.now().isoformat(timespec="seconds"),
-        "proposals": str(_resolve_existing_path(project_root, options.proposals)),
+        "proposals": str(proposals_path),
         "decisions": str(decisions_path),
+        "input_hashes": {
+            "proposals_sha256": _file_sha256(proposals_path),
+            "decisions_sha256": _file_sha256(decisions_path),
+        },
         "options": {"dry_run": True, "write_template": options.write_template},
         "summary": {
             "total_proposals": len(proposals),
@@ -277,7 +299,44 @@ def _base_item(proposal: dict) -> dict[str, str]:
 
 def _read_decision_rows(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as handle:
-        return list(csv.DictReader(handle))
+        try:
+            reader = csv.reader(handle, strict=True)
+            header = next(reader, None)
+            if header is None:
+                raise ValueError("missing decision CSV headers")
+            _validate_decision_header(header)
+            rows: list[dict[str, str]] = []
+            for line_number, row in enumerate(reader, start=2):
+                if not row or not any(str(cell).strip() for cell in row):
+                    continue
+                if len(row) != len(header):
+                    raise ValueError(
+                        f"malformed decision CSV row {line_number}: expected {len(header)} columns, got {len(row)}"
+                    )
+                mapped = dict(zip(header, row, strict=True))
+                if not str(mapped.get("proposal_id", "")).strip():
+                    raise ValueError(f"blank proposal_id in decision CSV row {line_number}")
+                rows.append(mapped)
+            return rows
+        except csv.Error as exc:
+            raise ValueError(f"malformed decision CSV: {exc}") from exc
+
+
+def _validate_decision_header(header: list[str]) -> None:
+    normalized = [str(field).strip() for field in header]
+    if any(not field for field in normalized):
+        raise ValueError("blank decision CSV header")
+    duplicates = sorted({field for field in normalized if field and normalized.count(field) > 1})
+    if duplicates:
+        raise ValueError(f"duplicate decision CSV header: {', '.join(duplicates)}")
+    expected = set(TEMPLATE_FIELDS)
+    actual = set(normalized)
+    missing = sorted(expected - actual)
+    unknown = sorted(field for field in actual - expected if field)
+    if missing:
+        raise ValueError(f"missing decision CSV headers: {', '.join(missing)}")
+    if unknown:
+        raise ValueError(f"unknown decision CSV headers: {', '.join(unknown)}")
 
 
 def _decision_lookup(rows: list[dict[str, str]]) -> tuple[dict[str, dict[str, str]], set[str]]:
@@ -361,9 +420,7 @@ def _load_current_triage_items(project_root: Path, triage_manifest: Path | None 
 
 
 def _phase1_6_processed_hashes(project_root: Path, processed_index: Path | None = None) -> set[str]:
-    index_path = processed_index or project_root / PHASE1_6_PACKAGE_RELATIVE / "index.csv"
-    if not index_path.is_absolute():
-        index_path = project_root / index_path
+    index_path = resolve_phase1_6_index(project_root, processed_index)
     if not index_path.exists():
         return set()
     with index_path.open(encoding="utf-8-sig", newline="") as handle:
@@ -374,9 +431,7 @@ def _resolve_workspace_source(project_root: Path, relative_path: str, workspace_
     path = Path(relative_path)
     if not relative_path or path.is_absolute() or ".." in path.parts:
         return project_root, {"status": "BLOCKED_POLICY", "reason": "path_traversal_or_absolute_source_path"}
-    workspace_root = workspace_root_override or project_root / DEFAULT_WORKSPACE_RELATIVE
-    if not workspace_root.is_absolute():
-        workspace_root = project_root / workspace_root
+    workspace_root = resolve_workspace_root(project_root, workspace_root_override)
     workspace_root = workspace_root.resolve()
     candidate = (workspace_root / path).resolve()
     try:
@@ -395,8 +450,20 @@ def _risk_level(proposal: dict) -> str:
 
 
 def _is_forbidden_type(data_type: str) -> bool:
-    normalized = data_type.strip().casefold()
-    return any(normalized == item.casefold() for item in FORBIDDEN_TYPES)
+    normalized = _normalize_type_label(data_type)
+    if normalized in {_normalize_type_label(item) for item in FORBIDDEN_TYPES}:
+        return True
+    tokens = [
+        token.strip()
+        for part in normalized.replace("\\", "/").replace("|", "/").replace(",", "/").replace(";", "/").split("/")
+        for token in (part,)
+        if token.strip()
+    ]
+    return any(token in FORBIDDEN_TYPE_TOKENS for token in tokens)
+
+
+def _normalize_type_label(value: object) -> str:
+    return str(value or "").casefold().replace("_", "-").strip()
 
 
 def _forbidden_claims(data_type: str) -> list[str]:
@@ -453,6 +520,7 @@ def _is_under_or_equal(path: Path, parent: Path) -> bool:
 
 def _plan_markdown(plan: dict) -> str:
     summary = plan["summary"]
+    input_hashes = plan.get("input_hashes", {})
     lines = [
         "# Phase 1.8 Reviewed Queue Plan",
         "",
@@ -463,6 +531,8 @@ def _plan_markdown(plan: dict) -> str:
         f"- Blocked items: {summary['blocked_count']}",
         f"- Will launch Origin: {summary['will_launch_origin']}",
         f"- Will run process: {summary['will_run_process']}",
+        f"- Proposals SHA256: `{input_hashes.get('proposals_sha256', '')}`",
+        f"- Decisions SHA256: `{input_hashes.get('decisions_sha256', '')}`",
         "",
         "## Approved Queue Items",
     ]

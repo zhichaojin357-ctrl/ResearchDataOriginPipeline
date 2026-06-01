@@ -16,6 +16,7 @@ class TableReadResult:
 
 
 X_COLUMN_NEEDLES = [
+    "x",
     "2theta",
     "2θ",
     "two theta",
@@ -39,6 +40,7 @@ X_COLUMN_NEEDLES = [
     "磁场",
 ]
 Y_COLUMN_NEEDLES = [
+    "y",
     "intensity",
     "强度",
     "counts",
@@ -64,14 +66,22 @@ def read_table(path: Path) -> list[dict[str, str]]:
     return read_table_with_metadata(path).rows
 
 
-def read_table_with_metadata(path: Path) -> TableReadResult:
+def read_table_with_metadata(path: Path, *, allow_legacy_xls_com: bool = True) -> TableReadResult:
     suffix = path.suffix.lower()
-    if suffix in {".xlsx", ".xls"}:
+    if suffix in {".xlsx", ".xls", ".xlsm"}:
         try:
             import pandas as pd
         except ImportError as exc:
             raise RuntimeError("pandas is required to read Excel files") from exc
-        frame, sheet_name, header_row_index, sheet_scores = _best_excel_frame(pd.read_excel(path, sheet_name=None, header=None))
+        try:
+            frames = pd.read_excel(path, sheet_name=None, header=None)
+        except ImportError as exc:
+            if suffix == ".xls" and "xlrd" in str(exc).lower():
+                if not allow_legacy_xls_com:
+                    raise RuntimeError("legacy .xls requires xlrd or explicit Excel COM processing") from exc
+                return _read_legacy_xls_with_excel_com(path)
+            raise
+        frame, sheet_name, header_row_index, sheet_scores = _best_excel_frame(frames)
         rows = [
             {str(key): "" if value is None or pd.isna(value) else str(value) for key, value in row.items()}
             for row in frame.to_dict(orient="records")
@@ -89,9 +99,9 @@ def read_table_with_metadata(path: Path) -> TableReadResult:
     if numeric_rows:
         return TableReadResult(numeric_rows)
 
-    rows = list(csv.DictReader(text.splitlines(), dialect=dialect))
-    if rows and rows[0]:
-        return TableReadResult([{str(key): "" if value is None else str(value) for key, value in row.items()} for row in rows])
+    grid = [row for row in csv.reader(text.splitlines(), dialect=dialect)]
+    if grid:
+        return _table_result_from_excel_grids({"text": grid}, max_header_scan=_text_header_scan_limit(text))
 
     return TableReadResult(_numeric_rows_from_text(text))
 
@@ -151,22 +161,134 @@ def _best_excel_frame(frames: dict[str, object]):
     return best[6], str(best[5]), int(best[7]), sheet_scores
 
 
+def _read_legacy_xls_with_excel_com(path: Path) -> TableReadResult:
+    """Read legacy OLE `.xls` through a private hidden Excel instance when xlrd is absent."""
+    try:
+        import win32com.client
+    except ImportError as exc:
+        raise RuntimeError("xlrd or pywin32 Excel COM is required to read legacy .xls files") from exc
+
+    excel = None
+    workbook = None
+    try:
+        excel = win32com.client.DispatchEx("Excel.Application")
+        _configure_excel_for_safe_read(excel)
+        workbook = excel.Workbooks.Open(str(path.resolve()), ReadOnly=True, UpdateLinks=0)
+        grids = {}
+        for worksheet in workbook.Worksheets:
+            used = worksheet.UsedRange
+            values = used.Value
+            if values is None:
+                grids[str(worksheet.Name)] = []
+            elif not isinstance(values, tuple):
+                grids[str(worksheet.Name)] = [[values]]
+            elif values and not isinstance(values[0], tuple):
+                grids[str(worksheet.Name)] = [list(values)]
+            else:
+                grids[str(worksheet.Name)] = [list(row) for row in values]
+        return _table_result_from_excel_grids(grids, max_header_scan=20)
+    finally:
+        if workbook is not None:
+            workbook.Close(False)
+        if excel is not None:
+            excel.Quit()
+
+
+def _configure_excel_for_safe_read(excel: object) -> None:
+    _safe_set_com_attr(excel, "Visible", False)
+    _safe_set_com_attr(excel, "DisplayAlerts", False)
+    _safe_set_com_attr(excel, "EnableEvents", False)
+    _safe_set_com_attr(excel, "AskToUpdateLinks", False)
+    # Microsoft Office constant: msoAutomationSecurityForceDisable.
+    _safe_set_com_attr(excel, "AutomationSecurity", 3)
+
+
+def _safe_set_com_attr(obj: object, name: str, value: object) -> None:
+    try:
+        setattr(obj, name, value)
+    except Exception:
+        return
+
+
+def _table_result_from_excel_grids(grids: dict[str, list[list[object]]], *, max_header_scan: int = 10) -> TableReadResult:
+    scored = []
+    for order, (sheet_name, grid) in enumerate(grids.items()):
+        rows, header_row_index, numeric_rows, numeric_columns, header_bonus = _best_rows_from_grid(grid, max_header_scan=max_header_scan)
+        score = numeric_rows * max(numeric_columns, 1) + header_bonus * 10
+        scored.append((score, header_bonus, numeric_rows, numeric_columns, -order, str(sheet_name), rows, header_row_index))
+    if not scored:
+        return TableReadResult([])
+    best = max(scored, key=lambda item: (item[0], item[1], item[2], item[3], item[4]))
+    sheet_scores = {
+        item[5]: {
+            "score": item[0],
+            "header_bonus": item[1],
+            "numeric_rows": item[2],
+            "numeric_columns": item[3],
+            "header_row_index": item[7],
+        }
+        for item in scored
+    }
+    return TableReadResult(best[6], sheet_name=best[5], header_row_index=int(best[7]), sheet_scores=sheet_scores)
+
+
+def _best_rows_from_grid(grid: list[list[object]], *, max_header_scan: int = 10) -> tuple[list[dict[str, str]], int, int, int, int]:
+    if not grid:
+        return [], 0, 0, 0, 0
+    scored = []
+    max_header_scan = min(max_header_scan, len(grid))
+    for header_index in range(max_header_scan):
+        headers = _dedupe_headers([_header_value(value, index) for index, value in enumerate(grid[header_index])])
+        data_rows = []
+        for raw_row in grid[header_index + 1 :]:
+            if not raw_row or all(value is None or str(value).strip() == "" for value in raw_row):
+                continue
+            row = {
+                header: "" if value is None else str(value)
+                for header, value in zip(headers, raw_row)
+            }
+            data_rows.append(row)
+        numeric_rows = sum(1 for row in data_rows if any(_to_float(value) is not None for value in row.values()))
+        numeric_columns = sum(
+            1
+            for header in headers
+            if any(_to_float(row.get(header, "")) is not None for row in data_rows)
+        )
+        header_bonus = _header_bonus(headers)
+        score = numeric_rows * max(numeric_columns, 1) + header_bonus * 10 - _header_penalty(headers) * 5
+        scored.append((score, header_bonus, numeric_rows, numeric_columns, -header_index, data_rows, header_index))
+    best = max(scored, key=lambda item: (item[0], item[1], item[2], item[3], item[4]))
+    return best[5], int(best[6]), int(best[2]), int(best[3]), int(best[1])
+
+
 def _best_header_row(frame):
     scored = []
-    max_header_scan = min(10, len(frame.index))
+    max_header_scan = min(20, len(frame.index))
+    if max_header_scan == 0:
+        return frame.copy(), 0, 0, 0, 0
     for header_index in range(max_header_scan):
         header_values = list(frame.iloc[header_index].values)
-        headers = [_header_value(value, index) for index, value in enumerate(header_values)]
+        headers = _dedupe_headers([_header_value(value, index) for index, value in enumerate(header_values)])
         data = frame.iloc[header_index + 1 :].copy()
         data.columns = headers
         data = data.dropna(how="all")
         numeric_rows = sum(1 for _idx, row in data.iterrows() if any(_to_float(value) is not None for value in row))
         numeric_columns = sum(1 for column in data.columns if any(_to_float(value) is not None for value in data[column].tolist()))
         header_bonus = _header_bonus(headers)
-        score = numeric_rows * max(numeric_columns, 1) + header_bonus * 10
+        score = numeric_rows * max(numeric_columns, 1) + header_bonus * 10 - _header_penalty(headers) * 5
         scored.append((score, header_bonus, numeric_rows, numeric_columns, -header_index, data, header_index))
     best = max(scored, key=lambda item: (item[0], item[1], item[2], item[3], item[4]))
     return best[5], int(best[6]), int(best[2]), int(best[3]), int(best[1])
+
+
+def _dedupe_headers(headers: list[str]) -> list[str]:
+    counts: dict[str, int] = {}
+    output = []
+    for header in headers:
+        count = counts.get(header, 0)
+        counts[header] = count + 1
+        output.append(header if count == 0 else f"{header}.{count}")
+    return output
 
 
 def _header_value(value: object, index: int) -> str:
@@ -179,7 +301,17 @@ def _header_value(value: object, index: int) -> str:
 def _header_bonus(columns: list[str]) -> int:
     x_hit = _pick_column(columns, X_COLUMN_NEEDLES)
     y_hit = _pick_column(columns, Y_COLUMN_NEEDLES)
-    return int(bool(x_hit)) + int(bool(y_hit))
+    normalized = [_normalize_header(column) for column in columns]
+    summary_hits = {
+        "metric": any(value in {"metric", "parameter", "item"} for value in normalized),
+        "value": any(value in {"value", "reported"} for value in normalized),
+        "unit": any(value == "unit" for value in normalized),
+    }
+    return int(bool(x_hit)) + int(bool(y_hit)) + sum(int(hit) for hit in summary_hits.values())
+
+
+def _header_penalty(columns: list[str]) -> int:
+    return sum(1 for column in columns if _to_float(column) is not None)
 
 
 def _normalize_header(value: object) -> str:
@@ -204,6 +336,20 @@ def _read_text(path: Path) -> str:
         except UnicodeDecodeError:
             continue
     return path.read_text(encoding="utf-8-sig", errors="replace")
+
+
+def _text_header_scan_limit(text: str) -> int:
+    first_lines = "\n".join(text.splitlines()[:30]).casefold()
+    metadata_markers = (
+        "instrument model",
+        "impedance - potential",
+        "init e",
+        "final e",
+        "frequency (hz)",
+        "amplitude",
+        "quiet time",
+    )
+    return 30 if any(marker in first_lines for marker in metadata_markers) else 10
 
 
 def _headerless_numeric_rows(text: str) -> list[dict[str, str]]:

@@ -101,6 +101,7 @@
       "extensions": [
         ".csv",
         ".txt",
+        ".tsv",
         ".xlsx",
         ".xls",
         ".pdf",
@@ -133,6 +134,7 @@
         "ESR"
       ],
       "extensions": [
+        "",
         ".csv",
         ".txt",
         ".xlsx",
@@ -527,6 +529,7 @@
         ".txt",
         ".xlsx",
         ".xls",
+        ".xlsm",
         ".dat",
         ".z",
         ".mpt"

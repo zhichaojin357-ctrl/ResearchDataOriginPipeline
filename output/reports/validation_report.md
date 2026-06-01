@@ -7,8 +7,8 @@
 - Processor registry entries: 19
 - Phase 1 supported entries: 14
 - Processor registry required fields: pass
-- 动力学: reference_literature scan_only selected_processor none
-- SEM/TEM/核磁/质谱: deferred scan_only
+- Deferred/reference registry semantics: pass
+  - SEM=SEM_image_data, TEM=TEM_image_data, 核磁=NMR, 质谱=MS, 动力学=reference_literature
 - PPT forbidden paths: pass
 - Forbidden presentation artifacts: pass
 - Kinetics processor paths: pass

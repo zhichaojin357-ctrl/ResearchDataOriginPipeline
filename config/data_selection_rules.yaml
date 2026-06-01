@@ -1,4 +1,4 @@
-version: phase1_2_mixed_v1
+﻿version: phase1_2_mixed_v1
 source_policy:
   original_data_read_only: true
   do_not_write_to_raw_data: true
@@ -6,12 +6,14 @@ source_policy:
   current_workspace_copy: workspace_data/LL_detection_copy_20260530
   originally_requested_path: F:\课题\LL\检测中
   actual_copied_path: F:\课题\LL\检测
+
 triage_thresholds:
   auto_process_min_confidence: 0.75
   auto_process_min_validity: 0.75
   manual_review_below_auto_threshold: true
   exclude_empty_files: true
   suppress_exact_duplicates: true
+
 queue_rules:
   include_decisions:
     - AUTO_PROCESS
@@ -30,6 +32,7 @@ queue_rules:
     excluded: output/reports/excluded_files.md
     duplicates: output/reports/duplicate_candidates.md
     hash_index: output/reports/source_hash_index.json
+
 origin_policy:
   routine_tests_launch_origin: false
   queue_processing_default_no_origin: true

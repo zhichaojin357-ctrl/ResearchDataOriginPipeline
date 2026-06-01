@@ -4,14 +4,15 @@ import csv
 import json
 import re
 import subprocess
+import sys
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
 from src.core.origin_batch import plan_origin_batch, OriginBatchOptions
+from src.core.runtime_paths import resolve_optional_f_drive_backup, resolve_phase1_6_index, resolve_phase1_6_package, resolve_workspace_root
 
 
-PACKAGE_DIR_NAME = "phase1_6_origin_results_20260531_041538"
 EXPECTED_RESULT_COUNT = 167
 HIGH_RISK_TYPES = {"XPS", "EPR", "Mott-Schottky"}
 REVIEW_FOCUS = {
@@ -64,7 +65,7 @@ PATH_FIELDS = (
 
 
 def package_dir(project_root: Path) -> Path:
-    return project_root / "output" / PACKAGE_DIR_NAME
+    return resolve_phase1_6_package(project_root)
 
 
 def load_package_rows(package_root: Path) -> list[dict[str, str]]:
@@ -305,7 +306,7 @@ def write_override_decision_table(project_root: Path, rows: list[dict[str, str]]
 
 def write_manifest_runner_report(project_root: Path) -> dict:
     options = OriginBatchOptions(
-        manifest=Path("output") / PACKAGE_DIR_NAME / "index.csv",
+        manifest=resolve_phase1_6_index(project_root),
         dry_run=True,
         execute=False,
         with_origin=False,
@@ -343,7 +344,7 @@ def write_origin_com_isolation_proof(project_root: Path, *, run_single_instance:
         proof["notes"].append("Existing Origin process detected; no proof instance was started.")
     elif run_single_instance:
         result = subprocess.run(
-            [str(Path("D:/Python/python.exe")), "run.py", "origin-test"],
+            [sys.executable, "run.py", "origin-test"],
             cwd=project_root,
             text=True,
             capture_output=True,
@@ -369,9 +370,9 @@ def write_baseline_report(project_root: Path, instruction_sha: str, command_resu
         "",
         f"- Instruction SHA256: `{instruction_sha}`",
         f"- Append triage-recognition instruction SHA256: `{append_instruction_sha or 'not_present'}`",
-        f"- Current Python interpreter: `D:\\Python\\python.exe`",
-        f"- Workspace copy exists: {(project_root / 'workspace_data' / 'LL_detection_copy_20260530').exists()}",
-        f"- F drive backup exists: {Path('F:/课题/LL/检测').exists()}",
+        f"- Current Python interpreter: `{sys.executable}`",
+        f"- Workspace copy exists: {resolve_workspace_root(project_root).exists()}",
+        f"- F drive backup exists: {bool((backup := resolve_optional_f_drive_backup(project_root)) and backup.exists())}",
         f"- Phase 1.6 package exists: {package_dir(project_root).exists()}",
         f"- Phase 1.6 index.csv exists: {(package_dir(project_root) / 'index.csv').exists()}",
         f"- Phase 1.6 result_summary.json exists: {(package_dir(project_root) / 'result_summary.json').exists()}",

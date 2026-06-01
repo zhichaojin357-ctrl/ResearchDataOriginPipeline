@@ -25,7 +25,15 @@
 
 ## Folder Rename Status
 
-Windows refused a direct physical rename of:
+The user completed the physical folder rename manually after the temporary
+junction was removed.
+
+Current verified state:
+
+- `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`: missing
+- `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`: physical directory
+
+Earlier automated attempts to rename:
 
 `D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
 
@@ -33,15 +41,10 @@ to:
 
 `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
 
-The refusal was `Access is denied`, consistent with the active Codex workspace holding the old directory open. To avoid killing Codex or interrupting the current task, a temporary NTFS junction was created:
+The refusal was `Access is denied`, consistent with one or more active process
+handles holding the old directory open at the time.
 
-`D:\Codex Project\科研数据处理\ResearchDataOriginPipeline`
-
-pointing to:
-
-`D:\Codex Project\科研数据处理\GroupMeetingAutoPPT`
-
-This makes the new path usable immediately without copying or modifying raw data. A true physical rename can be completed after the active Codex workspace releases the old directory handle.
+No junction is currently required or expected.
 
 ## Safety Notes
 

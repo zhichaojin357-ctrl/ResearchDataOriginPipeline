@@ -24,9 +24,7 @@ export:
   compression: "lzw"
 origin_template:
   rules_skill_path: "D:\\CodexData\\.codex\\skills\\origin-plotting"
-  default_reference_project: "D:\\OriginFlies\\Manual Save\\CWO+BOBC+*.opju"
   default_graph_page: "Graph4"
-  reference_search_pattern: "D:\\OriginFlies\\Manual Save\\CWO+BOBC+*.opju"
   use_cached_graph4: true
   refresh_reference_style: false
   reuse_rule: "Follow D:\\CodexData\\.codex\\skills\\origin-plotting. Use the cached Graph4 snapshot by default; only pass a reference OPJU when explicitly refreshing the cached style."

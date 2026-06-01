@@ -74,17 +74,40 @@ def validate(project_root: Path) -> int:
     if incomplete_registry_entries:
         failures.append("registry entries missing required fields")
 
-    kinetics = [entry for entry in registry["entries"] if entry["folder_name"] == "动力学"]
-    if not kinetics or kinetics[0]["inferred_data_type"] != "reference_literature":
-        failures.append("动力学 is not reference_literature")
-    else:
-        lines.append("- 动力学: reference_literature scan_only selected_processor none")
-
-    for name in ["SEM", "TEM", "核磁", "质谱"]:
-        entry = [item for item in registry["entries"] if item["folder_name"] == name]
-        if not entry or entry[0]["special_handling"] != "scan_only" or entry[0]["supported_in_phase_1"]:
-            failures.append(f"{name} is not deferred scan_only")
-    lines.append("- SEM/TEM/核磁/质谱: deferred scan_only")
+    deferred_requirements = {
+        "SEM_image_data": {"folder_name": "SEM"},
+        "TEM_image_data": {"folder_name": "TEM"},
+        "NMR": {"folder_name": "核磁"},
+        "MS": {"folder_name": "质谱"},
+        "reference_literature": {"folder_name": "动力学"},
+    }
+    deferred_failures = []
+    deferred_seen = []
+    for inferred_type, expected in deferred_requirements.items():
+        matches = [
+            entry
+            for entry in registry["entries"]
+            if entry.get("inferred_data_type") == inferred_type
+            and (not expected.get("folder_name") or entry.get("folder_name") == expected["folder_name"])
+        ]
+        if not matches:
+            deferred_failures.append(f"{expected.get('folder_name', inferred_type)} missing")
+            continue
+        entry = matches[0]
+        deferred_seen.append(f"{entry.get('folder_name')}={inferred_type}")
+        if entry.get("supported_in_phase_1") is not False:
+            deferred_failures.append(f"{entry.get('folder_name')} supported_in_phase_1 must be false")
+        if entry.get("special_handling") != "scan_only":
+            deferred_failures.append(f"{entry.get('folder_name')} special_handling must be scan_only")
+        if entry.get("selected_processor") != "none":
+            deferred_failures.append(f"{entry.get('folder_name')} {inferred_type} selected_processor must be none")
+    lines.append(f"- Deferred/reference registry semantics: {'pass' if not deferred_failures else 'fail'}")
+    if deferred_seen:
+        lines.append("  - " + ", ".join(deferred_seen))
+    if deferred_failures:
+        for failure in deferred_failures:
+            lines.append(f"  - {failure}")
+        failures.append("deferred/reference registry semantics invalid")
 
     forbidden = ["src/ppt", "templates/ppt", "ppt_layout.yaml", "slide_plan.json", "presentation.pptx"]
     found = [path for path in forbidden if (project_root / path).exists()]

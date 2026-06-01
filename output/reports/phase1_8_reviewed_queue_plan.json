@@ -1,8 +1,12 @@
 {
   "runner": "reviewed-queue",
-  "created_at": "2026-05-31T12:18:55",
+  "created_at": "2026-06-01T08:25:28",
   "proposals": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_7_new_override_proposals_after_optimization.json",
   "decisions": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_8_review_decisions_template.csv",
+  "input_hashes": {
+    "proposals_sha256": "bb02770fbb18d4cc212ba900df1ed7a56a6fbab028d5a974771025e9e1945842",
+    "decisions_sha256": "46bef8ae78c8833b2fc722bdcc98d81c614b3cc3718555d61c62414275a461c1"
+  },
   "options": {
     "dry_run": true,
     "write_template": false

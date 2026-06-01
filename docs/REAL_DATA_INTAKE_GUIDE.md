@@ -19,7 +19,8 @@ Start with:
 - `output/reports/phase1_7_origin_preview_review_checklist.csv`
 - `output/reports/phase1_8_review_decisions_template.csv`
 - `output/reports/phase1_8_reviewed_queue_plan.md`
-- `output/reports/phase1_8_manual_review_required_after_ai.csv`
+- `output/reports/phase1_8_manual_review_required_filtered.xlsx`
+- `output/reports/phase1_8_new_auto_process_plan.md`
 
 Only rows explicitly approved in the Phase 1.8 decision CSV may become future no-Origin queue candidates.
 
@@ -49,9 +50,36 @@ D:\Python\python.exe run.py reviewed-queue --proposals output\reports\phase1_7_n
 
 The planner blocks stale proposals, hash mismatches, missing source files, missing approval metadata, high-risk rows without acknowledgement, already processed hashes, forbidden data types, and path traversal.
 
-## Manual Review After AI-Assisted Recognition
+## New AUTO_PROCESS Dry-Run Queue
 
-`output/reports/phase1_8_manual_review_required_after_ai.csv` is the current list of files still requiring user attention after rule-based recognition and Codex semantic review. It excludes files already represented in Phase 1.6 and duplicate-grouped files.
+Use this command to rebuild the current automatically recognized candidate queue without processing data:
+
+```powershell
+D:\Python\python.exe run.py auto-queue
+```
+
+Current generated files:
+
+- Plan: `output/reports/phase1_8_new_auto_process_plan.md`
+- Candidate queue: `output/reports/phase1_8_new_auto_process_queue.json`
+
+The latest plan accepts 105 new candidates after excluding 83 raw queue items already represented by the locked Phase 1.6 Origin package. It is still dry-run only: it does not call `process`, does not launch Origin, and is intended for a future explicit no-Origin batch after review.
+
+## Current Manual Review Workbook
+
+`output/reports/phase1_8_manual_review_required_filtered.xlsx` is the current list of files still requiring user attention after rule-based recognition, triage refresh, and same-data filtering. It excludes files already represented by a successful Phase 1.6 result or by another AUTO_PROCESS/DUPLICATE_SUPPRESSED format in the same data group.
+
+Current counts:
+
+- Latest `MANUAL_REVIEW`: 618
+- Excluded from main workbook because same data already has a representative: 125
+- Still requiring user review in the workbook: 493
+
+The older `output/reports/phase1_8_manual_review_required_after_ai.csv` is historical and should not be used as the current review list.
+
+## BET Status
+
+`D:\Codex Project\科研数据处理\数据\26.5.29\BET` already contains legacy BET OPJU/PNG/TSV/CSV outputs. Those files are preserved as existing work, but BET has not yet been incorporated into the locked Phase 1.6 standardized results package. Current triage still keeps BET in manual review/proposal mode until adsorption/desorption columns and source format handling are reviewed.
 
 ## Origin Policy
 

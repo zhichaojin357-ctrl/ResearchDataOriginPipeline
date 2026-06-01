@@ -70,8 +70,13 @@ def load_project_config(project_root: Path, config_path: Path | None) -> dict:
     if not path.is_absolute():
         path = project_root / path
     if not path.exists():
-        return {}
-    return _parse_simple_yaml(path.read_text(encoding="utf-8"))
+        config: dict = {}
+    else:
+        config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
+    local_path = project_root / "config" / "local.yaml"
+    if local_path.exists() and local_path != path:
+        config = _deep_merge(config, _parse_simple_yaml(local_path.read_text(encoding="utf-8")))
+    return config
 
 
 def configured_path(project_root: Path, config: dict, section: str, key: str, default: str) -> Path:
@@ -106,6 +111,17 @@ def _parse_simple_yaml(text: str) -> dict:
                 section[key] = parsed
         else:
             result[key] = parsed
+    return result
+
+
+def _deep_merge(base: dict, override: dict) -> dict:
+    result = dict(base)
+    for key, value in override.items():
+        existing = result.get(key)
+        if isinstance(existing, dict) and isinstance(value, dict):
+            result[key] = _deep_merge(existing, value)
+        else:
+            result[key] = value
     return result
 
 

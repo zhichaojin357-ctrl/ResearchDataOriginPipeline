@@ -1,0 +1,117 @@
+{
+  "report": "readiness",
+  "created_at": "2026-06-01T10:12:23",
+  "summary": {
+    "checks": 21,
+    "failures": 0,
+    "warnings": 0,
+    "ready": true
+  },
+  "checks": [
+    {
+      "name": "workspace_copy_exists",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\workspace_data\\LL_detection_copy_20260530"
+    },
+    {
+      "name": "f_drive_backup_exists",
+      "status": "pass",
+      "detail": "F:\\课题\\LL\\检测"
+    },
+    {
+      "name": "old_project_path_absent",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT"
+    },
+    {
+      "name": "active_project_name_references_current",
+      "status": "pass",
+      "detail": "no stale old project references in active docs"
+    },
+    {
+      "name": "phase1_6_index_count",
+      "status": "pass",
+      "detail": "167/167 rows in D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\phase1_6_origin_results_20260531_041538\\index.csv"
+    },
+    {
+      "name": "phase1_6_result_summary_exists",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\phase1_6_origin_results_20260531_041538\\result_summary.json"
+    },
+    {
+      "name": "phase1_6_result_summary_matches_index",
+      "status": "pass",
+      "detail": "index_rows=167; total_results=167; by_type_sum=167"
+    },
+    {
+      "name": "manual_review_filtered_csv_exists",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_8_manual_review_required_filtered.csv"
+    },
+    {
+      "name": "manual_review_filtered_xlsx_exists",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_8_manual_review_required_filtered.xlsx"
+    },
+    {
+      "name": "manual_review_filtered_report_exists",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_8_manual_review_required_filtered_report.md"
+    },
+    {
+      "name": "manual_review_outputs_consistent",
+      "status": "pass",
+      "detail": "csv_rows=493; xlsx_review_rows=493; report_rows=493"
+    },
+    {
+      "name": "auto_queue_plan_exists",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_8_new_auto_process_plan.json"
+    },
+    {
+      "name": "auto_queue_file_exists",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_8_new_auto_process_queue.json"
+    },
+    {
+      "name": "auto_queue_dry_run_flags",
+      "status": "pass",
+      "detail": "will_run_process=False; will_launch_origin=False"
+    },
+    {
+      "name": "auto_queue_plan_queue_consistent",
+      "status": "pass",
+      "detail": "accepted_count=105; queue_items=105; identity=match; origin_export_allowed=true count=0; dry_run_provenance=true"
+    },
+    {
+      "name": "reviewed_queue_plan_current",
+      "status": "pass",
+      "detail": "proposals=18; decision_rows=18; approved=0; blocked=0; input_hashes=match; will_launch_origin=false; will_run_process=false"
+    },
+    {
+      "name": "origin_batch_dry_run_plan_current",
+      "status": "pass",
+      "detail": "total=167; planned=0; skipped=167; blocked=0; will_launch_origin=false; execution.origin_launch=false"
+    },
+    {
+      "name": "validation_report_current",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\validation_report.md"
+    },
+    {
+      "name": "phase1_8_summary_current",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\reports\\phase1_8_final_summary.md; D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\docs\\agent_reports\\phase1_8_final_summary.md"
+    },
+    {
+      "name": "review_dashboard_current",
+      "status": "pass",
+      "detail": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\output\\review_dashboard\\index.md"
+    },
+    {
+      "name": "ppt_forbidden_paths_absent",
+      "status": "pass",
+      "detail": "none"
+    }
+  ]
+}

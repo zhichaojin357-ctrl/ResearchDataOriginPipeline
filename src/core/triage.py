@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.metadata import file_hash
 from src.core.project import load_json_compatible_yaml, output_dir, registry_path, report_path
 from src.core.table_reader import coerce_numeric_rows, read_table_with_metadata
@@ -24,7 +25,7 @@ DECISIONS = (
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".gif", ".webp"}
 DOC_EXTENSIONS = {".pdf", ".doc", ".docx", ".ppt", ".pptx", ".caj", ".ris", ".bib", ".enw", ".enl"}
-TABLE_EXTENSIONS = {".csv", ".txt", ".xlsx", ".xls", ".dat", ".xy", ".z", ".mpt"}
+TABLE_EXTENSIONS = {".csv", ".txt", ".tsv", ".xlsx", ".xls", ".xlsm", ".dat", ".xy", ".z", ".mpt"}
 ORIGIN_PROJECT_EXTENSIONS = {".opju", ".opj", ".ogwu", ".ogw", ".otpu"}
 BACKUP_PATTERNS = ("backup", "copy", "old", "temp", "tmp", "bak", "备份", "副本", "复件", "旧", "临时")
 TRACEABILITY_ROLE_FOLDERS = {
@@ -188,16 +189,23 @@ def _probe_parser(path: Path, suffix: str, size: int) -> dict:
         "header_quality": {},
         "recognition_fallbacks": [],
     }
-    if size == 0 or suffix not in TABLE_EXTENSIONS:
+    if size == 0:
         return result
     try:
-        table = read_table_with_metadata(path)
-        rows = table.rows
+        if suffix not in TABLE_EXTENSIONS and looks_like_jeol_cwesr_file(path):
+            rows = decode_jeol_cacqu_rows(path)
+            table = None
+            fallbacks = ["jeol_cacqu_epr_binary_decode"]
+        elif suffix in TABLE_EXTENSIONS:
+            table = read_table_with_metadata(path, allow_legacy_xls_com=False)
+            rows = table.rows
+            fallbacks = []
+        else:
+            return result
         headers = list(rows[0].keys()) if rows else []
         numeric = coerce_numeric_rows(rows)
         numeric_columns = _numeric_column_count(rows)
         header_quality = _header_quality(headers, rows)
-        fallbacks = []
         if header_quality["unnamed_column_count"]:
             fallbacks.append("unnamed_columns_with_numeric_data")
         if headers == ["x", "y"] and numeric:
@@ -205,14 +213,14 @@ def _probe_parser(path: Path, suffix: str, size: int) -> dict:
         result.update(
             {
                 "encoding_detected": "auto",
-                "sheet_name": table.sheet_name,
+                "sheet_name": table.sheet_name if table else None,
                 "parser_probe_status": "success",
                 "observed_column_headers": headers,
                 "column_role_candidates": _column_roles(headers),
                 "unit_candidates": _unit_candidates(headers),
                 "numeric_shape_hint": {"rows": len(numeric), "columns": len(headers), "numeric_columns": numeric_columns},
-                "sheet_scores": table.sheet_scores or {},
-                "header_row_index": table.header_row_index,
+                "sheet_scores": (table.sheet_scores or {}) if table else {},
+                "header_row_index": table.header_row_index if table else None,
                 "header_quality": header_quality,
                 "recognition_fallbacks": _fallback_levels(fallbacks, header_quality, parser_rows=len(numeric), numeric_columns=numeric_columns),
             }
@@ -352,6 +360,8 @@ def _traceability_role(raw_segments: list[str], normalized_segments: list[str], 
         return "document_or_report", None, [f"extension={suffix}"]
     if suffix in TABLE_EXTENSIONS:
         return "raw_or_exported_numeric_table", None, [f"extension={suffix}"]
+    if not suffix and any(segment in {"epr", "esr"} or "epr" in segment or "esr" in segment for segment in normalized_segments):
+        return "raw_or_exported_numeric_table", None, ["extension=none", "folder_hint=epr_esr"]
     if any(segment.endswith(".d") for segment in normalized_segments):
         return "vendor_bundle_member", None, ["vendor_bundle=.d"]
     return "auxiliary_file", None, [f"extension={suffix or 'none'}"]
@@ -537,7 +547,12 @@ def _header_type_scores(text: str) -> dict[str, int]:
     add("HPLC/LC exported data", int(_has(text, "retention", "保留")) + int(_has(text, "area", "面积", "mau", "peak height")))
     add("BET", int(_has(text, "relative pressure", "p p0", "p/p0")) + int(_has(text, "adsorbed", "desorption", "bet surface")))
     add("EPR", int(_has(text, "magnetic field", "磁场", "gauss", "mt")) + int(_has(text, "microwave", "intensity", "强度")))
-    add("Mott-Schottky", int(_has(text, "potential", "电位", "voltage", "ewe")) + int(_has(text, "1 c", "1/c", "1 c2", "1/c^2", "capacitance")))
+    add(
+        "Mott-Schottky",
+        int(_has(text, "potential", "电位", "voltage", "ewe"))
+        + int(_has(text, "1 c", "1/c", "1 c2", "1/c^2", "capacitance"))
+        + 2 * int(_has(text, "z'", "z real", "zreal", "z\"", "phase") and not _has(text, "frequency", "hz", "频率")),
+    )
     return scores
 
 
@@ -599,6 +614,8 @@ def _confidence_score(
     if header_entry and selected_entry and header_entry["inferred_data_type"] == selected_entry["inferred_data_type"]:
         score += 0.4
     if selected_entry and suffix in {ext.lower() for ext in selected_entry.get("extensions", [])}:
+        score += 0.1
+    if selected_entry and parser.get("recognition_fallbacks") and "jeol_cacqu_epr_binary_decode" in parser["recognition_fallbacks"]:
         score += 0.1
     if _safe_numeric_fallback_applies(suffix, folder_entry, filename_entry, header_entry, selected_entry, parser):
         score += 0.3
@@ -668,6 +685,8 @@ def _validity_score(parser: dict, data_type: str, suffix: str) -> float:
         score += 0.25
     if parser["column_role_candidates"]:
         score += 0.15
+    if "jeol_cacqu_epr_binary_decode" in parser.get("recognition_fallbacks", []):
+        score += 0.1
     return round(min(score, 1.0), 3)
 
 
