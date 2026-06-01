@@ -644,8 +644,8 @@ def set_label_style(label, size, color=1):
 
 
 op.set_show(False)
-    try:
-        headers, columns = read_columns(payload["plot_csv"])
+try:
+    headers, columns = read_columns(payload["plot_csv"])
     op.new()
     wks = op.new_sheet("w", payload["worksheet_name"])
     wks.cols = len(headers)

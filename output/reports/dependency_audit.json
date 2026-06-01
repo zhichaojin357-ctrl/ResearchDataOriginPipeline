@@ -58,9 +58,9 @@
     },
     "ixdat": {
       "module": "ixdat",
-      "available": false,
+      "available": true,
       "severity": "warning",
-      "status": "missing"
+      "status": "available"
     },
     "galvani": {
       "module": "galvani",
@@ -76,15 +76,45 @@
     },
     "pygaps": {
       "module": "pygaps",
-      "available": false,
+      "available": true,
       "severity": "warning",
-      "status": "missing"
+      "status": "available"
+    },
+    "nmrglue": {
+      "module": "nmrglue",
+      "available": true,
+      "severity": "warning",
+      "status": "available"
+    },
+    "tifffile": {
+      "module": "tifffile",
+      "available": true,
+      "severity": "warning",
+      "status": "available"
+    },
+    "pillow": {
+      "module": "PIL",
+      "available": true,
+      "severity": "warning",
+      "status": "available"
+    },
+    "scikit-image": {
+      "module": "skimage",
+      "available": true,
+      "severity": "warning",
+      "status": "available"
     },
     "lmfitxps": {
       "module": "lmfitxps",
-      "available": false,
+      "available": true,
       "severity": "warning",
-      "status": "missing"
+      "status": "available"
+    },
+    "vgd-reader": {
+      "module": "vgd_reader",
+      "available": true,
+      "severity": "warning",
+      "status": "available"
     },
     "ramanspy": {
       "module": "ramanspy",
@@ -112,9 +142,15 @@
     },
     "rainbow": {
       "module": "rainbow",
-      "available": false,
+      "available": true,
       "severity": "warning",
-      "status": "missing"
+      "status": "available"
+    },
+    "mocca2": {
+      "module": "mocca2",
+      "available": true,
+      "severity": "warning",
+      "status": "available"
     },
     "pymzml": {
       "module": "pymzml",
@@ -124,26 +160,27 @@
     },
     "pyteomics": {
       "module": "pyteomics",
-      "available": false,
+      "available": true,
       "severity": "warning",
-      "status": "missing"
+      "status": "available"
+    },
+    "cwepr": {
+      "module": "cwepr",
+      "available": true,
+      "severity": "warning",
+      "status": "available"
     }
   },
   "summary": {
     "status": "pass",
     "missing_core": [],
     "missing_optional": [
-      "ixdat",
       "galvani",
       "eclabfiles",
-      "pygaps",
-      "lmfitxps",
       "ramanspy",
       "rampy",
       "spectrochempy",
-      "hplc",
-      "rainbow",
-      "pyteomics"
+      "hplc"
     ]
   }
 }

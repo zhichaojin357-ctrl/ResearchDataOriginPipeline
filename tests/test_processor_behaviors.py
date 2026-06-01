@@ -413,6 +413,24 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertEqual(rows[0]["impedance_magnitude"], "5.0")
             self.assertEqual(rows[1]["impedance_magnitude"], "13.0")
 
+    def test_eis_accepts_common_chi_z_prime_and_z_double_prime_headers(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "eis_chi.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Freq/Hz", "Z'/ohm", 'Z"/ohm', "Phase/deg"])
+                writer.writerow([1000, 3, 4, -53.1])
+                writer.writerow([100, 5, 12, -67.4])
+
+            metadata = process_table_dataset(root, classification("EIS", "eis_processor"), source)
+
+            self.assertEqual(metadata["key_results"]["max_negative_imaginary_impedance"], 12.0)
+            rows = self._processed_rows(root, metadata)
+            self.assertEqual(set(rows[0]), {"frequency", "real_impedance", "neg_imag_impedance", "impedance_magnitude", "phase"})
+            self.assertEqual(rows[0]["real_impedance"], "3.0")
+            self.assertEqual(rows[0]["neg_imag_impedance"], "4.0")
+
     def test_pl_ftir_raman_output_peak_candidates(self):
         for data_type, processor in [
             ("PL", "pl_processor"),
@@ -436,6 +454,25 @@ class ProcessorBehaviorTest(unittest.TestCase):
                 self.assertEqual(metadata["key_results"]["integral_area_candidate"], 650.0)
                 rows = self._processed_rows(root, metadata)
                 self.assertIn("normalized_intensity", rows[0])
+
+    def test_spectral_processors_add_optional_pybaselines_corrected_signal(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "raman_baseline.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Raman shift", "intensity"])
+                writer.writerow([100, 10])
+                writer.writerow([200, 25])
+                writer.writerow([300, 11])
+
+            metadata = process_table_dataset(root, classification("Raman", "raman_processor"), source)
+
+            self.assertEqual(metadata["key_results"]["pybaselines_baseline_correction_available"], True)
+            self.assertEqual(metadata["key_results"]["pybaselines_method"], "asls_candidate")
+            rows = self._processed_rows(root, metadata)
+            self.assertIn("pybaselines_baseline_optional", rows[0])
+            self.assertIn("pybaselines_corrected_intensity_optional", rows[0])
 
     def test_ftir_outputs_valley_candidates_for_transmittance_spectra(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -522,6 +559,24 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertIn("envelope_optional", rows[0])
             self.assertIn("component_A_optional", rows[0])
             self.assertEqual(rows[0]["binding_energy_eV"], "284.0")
+
+    def test_xps_residuals_are_not_treated_as_fit_components(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "xps_fit_export_residuals.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["binding energy", "raw intensity", "background", "envelope", "Residuals", "component A"])
+                writer.writerow([284, 10, 1, 9, 0.1, 4])
+                writer.writerow([282, 20, 2, 18, -0.2, 12])
+                writer.writerow([280, 12, 1, 11, 0.1, 6])
+
+            metadata = process_table_dataset(root, classification("XPS", "xps_processor"), source)
+
+            self.assertEqual(metadata["key_results"]["xps_component_columns"], ["component A"])
+            self.assertEqual(metadata["key_results"]["xps_component_area_candidates"], {"component A": 34.0})
+            rows = self._processed_rows(root, metadata)
+            self.assertNotIn("Residuals_optional", rows[0])
 
     def test_xps_uses_numeric_fallback_for_unnamed_export_columns_without_nan_rows(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -683,6 +738,41 @@ class ProcessorBehaviorTest(unittest.TestCase):
             mott_rows = self._processed_rows(root, mott_meta)
             self.assertIn("one_over_c_squared", mott_rows[0])
             self.assertEqual(mott_rows[1]["one_over_c_squared"], "0.01")
+
+    def test_mott_schottky_does_not_treat_current_as_capacitance(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "mott_current_only.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Potential/V", "Current/A"])
+                writer.writerow([0.0, 2.0])
+                writer.writerow([0.1, 4.0])
+
+            metadata = process_table_dataset(root, classification("Mott-Schottky", "mott_schottky_processor"), source)
+
+            rows = self._processed_rows(root, metadata)
+            self.assertEqual(rows, [])
+            self.assertNotIn("linear_x_intercept_candidate", metadata["key_results"])
+
+    def test_metadata_records_algorithm_provenance_for_candidate_calculations(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "mott_linear.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["potential", "1/C^2"])
+                writer.writerow([-0.2, -1.0])
+                writer.writerow([0.0, 1.0])
+                writer.writerow([0.2, 3.0])
+
+            metadata = process_table_dataset(root, classification("Mott-Schottky", "mott_schottky_processor"), source)
+
+            provenance = metadata["parameters"]["algorithm_provenance"]
+            self.assertEqual(provenance["processor_name"], "mott_schottky_processor")
+            self.assertEqual(provenance["calculation_module"], "src.processors.calculations")
+            self.assertIn("linear_region_candidate", provenance["candidate_methods"])
+            self.assertEqual(provenance["fit_point_count"], 3)
 
     def test_bet_summary_table_extracts_surface_area_pore_volume_and_diameter_candidates(self):
         with tempfile.TemporaryDirectory() as tmpdir:

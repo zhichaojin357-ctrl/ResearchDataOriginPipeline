@@ -622,6 +622,16 @@ def _try_write_origin_project(
     except Exception as exc:
         write_origin_error(project_root, f"xps_in_situ_combined: {exc}")
         return {"requested": True, "ok": False, "origin_file": str(origin_file) if origin_file.exists() else None, "message": str(exc)}
+    preview_png = output_dir / "xps_in_situ_combined_origin_preview.png"
+    missing = [
+        str(path.name)
+        for path in (origin_file, preview_png)
+        if not path.exists() or path.stat().st_size <= 0
+    ]
+    if missing:
+        message = "Origin export missing or empty artifacts: " + ", ".join(missing)
+        write_origin_error(project_root, f"xps_in_situ_combined: {message}")
+        return {"requested": True, "ok": False, "origin_file": str(origin_file) if origin_file.exists() else None, "message": message}
     return {
         "requested": True,
         "ok": True,

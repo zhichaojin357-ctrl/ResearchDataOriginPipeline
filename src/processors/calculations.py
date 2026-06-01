@@ -23,6 +23,7 @@ def type_specific_results(
             "peak_intensity_candidate": max(y_values) if y_values else None,
             "integral_area_candidate": trapezoid_area(numeric),
             **spectral_auxiliary_results(rows),
+            **spectral_package_results(numeric),
         }
         if data_type == "FTIR":
             result["valley_position_candidates"] = local_valley_positions(numeric)
@@ -92,10 +93,10 @@ def build_processed_table(
         output = []
         for row in rows:
             frequency = first_numeric(row, ["frequency", "freq", "hz"])
-            real = first_numeric(row, ["re(z)", "real", "zreal"])
-            neg_imag = first_numeric(row, ["-im", "-im(z)", "negative imaginary", "zimag"])
+            real = first_numeric(row, ["re(z)", "real", "zreal", "z'", "z’", "z′", "zre"])
+            neg_imag = first_numeric(row, ["-im", "-im(z)", "negative imaginary", "-z\"", "-z''", "-z”", "zimag"])
             if neg_imag is None:
-                imag = first_numeric(row, ["im(z)", "imaginary", "zimag"])
+                imag = first_numeric(row, ["im(z)", "imaginary", "z\"", "z''", "z”", "zimag"])
                 neg_imag = abs(imag) if imag is not None else None
             magnitude = first_numeric(row, ["|z|", "zmod", "modulus", "magnitude"])
             phase = first_numeric(row, ["phase"])
@@ -111,17 +112,22 @@ def build_processed_table(
         valleys = set(local_valley_positions(numeric))
         auxiliary_columns = spectral_auxiliary_columns(rows)
         auxiliary_headers = [f"{safe_column_name(key)}_optional" for key in auxiliary_columns]
+        baseline_records = spectral_package_baseline_records(numeric)
+        baseline_headers = ["pybaselines_baseline_optional", "pybaselines_corrected_intensity_optional"] if baseline_records else []
         output = []
         for index, (x_value, y_value) in enumerate(numeric):
             normalized = y_value / max_y if max_y else None
             optional_values = spectral_auxiliary_values(rows, auxiliary_columns, index)
+            baseline_values: list[float | None] = []
+            if baseline_records:
+                baseline_values = [baseline_records[index][0], baseline_records[index][1]]
             if data_type == "FTIR":
-                output.append([x_value, y_value, normalized, 1 if x_value in valleys else 0, *optional_values])
+                output.append([x_value, y_value, normalized, 1 if x_value in valleys else 0, *optional_values, *baseline_values])
             else:
-                output.append([x_value, y_value, normalized, *optional_values])
+                output.append([x_value, y_value, normalized, *optional_values, *baseline_values])
         if data_type == "FTIR":
-            return ["x", "intensity", "normalized_intensity", "valley_candidate_flag", *auxiliary_headers], output
-        return ["x", "intensity", "normalized_intensity", *auxiliary_headers], output
+            return ["x", "intensity", "normalized_intensity", "valley_candidate_flag", *auxiliary_headers, *baseline_headers], output
+        return ["x", "intensity", "normalized_intensity", *auxiliary_headers, *baseline_headers], output
 
     if data_type in {"photocurrent", "photocurrent_response"}:
         return photocurrent_processed_table(numeric, rows)
@@ -166,6 +172,8 @@ def build_processed_table(
             if any(record[2] is not None for record in row_output):
                 return ["potential", "one_over_c_squared", "frequency_optional"], row_output
             return ["potential", "one_over_c_squared"], [record[:2] for record in row_output]
+        if rows:
+            return ["potential", "one_over_c_squared"], []
         output = [[potential, one_over_c2] for potential, one_over_c2 in mott_schottky_numeric(rows, numeric)]
         return ["potential", "one_over_c_squared"], output
 
@@ -204,7 +212,7 @@ def uvvis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]
 
 
 def eis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
-    neg_imaginary = column_values(rows, ["-im", "-im(z)", "negative imaginary", "zimag", "im(z)"])
+    neg_imaginary = eis_negative_imaginary_values(rows)
     frequency = column_values(rows, ["frequency", "freq", "hz"])
     return {
         "nyquist_points": len(numeric),
@@ -513,17 +521,21 @@ def epr_g_candidate(field_value: float, frequency_ghz: float | None) -> float | 
 def mott_schottky_linear_results(numeric: list[tuple[float, float]]) -> dict:
     if len(numeric) < 2:
         return {}
-    slope, intercept = linear_regression(numeric)
+    ordered = sorted(numeric, key=lambda item: item[0])
+    slope, intercept = linear_regression(ordered)
     result = {
-        "linear_interval_candidate": [numeric[0][0], numeric[-1][0]],
+        "linear_interval_candidate": [ordered[0][0], ordered[-1][0]],
         "linear_slope_candidate": slope,
         "linear_intercept_candidate": intercept,
+        "linear_fit_point_count": len(ordered),
         "linear_region_candidates": [
             {
-                "potential_interval": [numeric[0][0], numeric[-1][0]],
+                "potential_interval": [ordered[0][0], ordered[-1][0]],
                 "slope": slope,
                 "intercept": intercept,
-                "r_squared": linear_r_squared(numeric, slope, intercept),
+                "r_squared": linear_r_squared(ordered, slope, intercept),
+                "fit_point_count": len(ordered),
+                "fit_method": "ordinary_least_squares_candidate",
             }
         ],
     }
@@ -614,6 +626,9 @@ def condition_screening_records(rows: list[dict[str, str]]) -> list[tuple[str, f
 def local_peak_positions(numeric: list[tuple[float, float]]) -> list[float]:
     if len(numeric) < 3:
         return []
+    scipy_positions = scipy_peak_positions(numeric)
+    if scipy_positions:
+        return scipy_positions
     peaks = []
     for index in range(1, len(numeric) - 1):
         previous_y = numeric[index - 1][1]
@@ -622,6 +637,19 @@ def local_peak_positions(numeric: list[tuple[float, float]]) -> list[float]:
         if y_value >= previous_y and y_value >= next_y and (y_value > previous_y or y_value > next_y):
             peaks.append(float(x_value))
     return peaks
+
+
+def scipy_peak_positions(numeric: list[tuple[float, float]]) -> list[float]:
+    try:
+        from scipy.signal import find_peaks
+    except Exception:
+        return []
+    y_values = [y for _, y in numeric]
+    try:
+        peak_indices, _ = find_peaks(y_values)
+    except Exception:
+        return []
+    return [float(numeric[index][0]) for index in peak_indices]
 
 
 def local_valley_positions(numeric: list[tuple[float, float]]) -> list[float]:
@@ -669,6 +697,8 @@ def mott_schottky_numeric(rows: list[dict[str, str]], fallback: list[tuple[float
         potential, one_over_c2 = mott_schottky_row_values(row)
         if potential is not None and one_over_c2 is not None:
             output.append((potential, one_over_c2))
+    if rows:
+        return output
     return output or fallback
 
 
@@ -685,7 +715,8 @@ def mott_schottky_row_values(row: dict[str, str]) -> tuple[float | None, float |
     potential = first_numeric(row, ["potential", "voltage", "ewe", "v"])
     one_over_c2 = first_numeric(row, ["1/c2", "1/c^2", "one_over_c"])
     if one_over_c2 is None:
-        capacitance = first_numeric(row, ["capacitance", " c", "c/f"])
+        capacitance_key = capacitance_matching_key(row)
+        capacitance = to_float(row.get(capacitance_key, "")) if capacitance_key else None
         if capacitance and capacitance != 0:
             one_over_c2 = 1.0 / (capacitance * capacitance)
     return potential, one_over_c2
@@ -703,6 +734,29 @@ def column_values(rows: list[dict[str, str]], needles: list[str]) -> list[float]
     return values
 
 
+def eis_negative_imaginary_values(rows: list[dict[str, str]]) -> list[float]:
+    values = []
+    for row in rows:
+        value = first_numeric(row, ["-im", "-im(z)", "negative imaginary", "-z\"", "-z''", "-z”", "zimag"])
+        if value is None:
+            value = first_numeric(row, ["im(z)", "imaginary", "z\"", "z''", "z”", "zimag"])
+        if value is not None:
+            values.append(abs(value))
+    return values
+
+
+def capacitance_matching_key(row: dict[str, str]) -> str | None:
+    for key in row:
+        normalized = key.lower().replace(" ", "")
+        if "current" in normalized:
+            continue
+        if any(token in normalized for token in ["capacitance", "c/f", "c(f)", "cap/f"]):
+            return key
+        if normalized in {"c", "cf", "c_f"}:
+            return key
+    return None
+
+
 def spectral_auxiliary_results(rows: list[dict[str, str]]) -> dict[str, bool]:
     columns = spectral_auxiliary_columns(rows)
     if not columns:
@@ -715,6 +769,31 @@ def spectral_auxiliary_results(rows: list[dict[str, str]]) -> dict[str, bool]:
     if any(spectral_auxiliary_kind(key) == "raw" for key in columns):
         result["raw_signal_present"] = True
     return result
+
+
+def spectral_package_results(numeric: list[tuple[float, float]]) -> dict[str, str | bool]:
+    if spectral_package_baseline_records(numeric):
+        return {
+            "pybaselines_baseline_correction_available": True,
+            "pybaselines_method": "asls_candidate",
+        }
+    return {}
+
+
+def spectral_package_baseline_records(numeric: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    if len(numeric) < 3:
+        return []
+    try:
+        from pybaselines import Baseline
+    except Exception:
+        return []
+    x_values = [x for x, _ in numeric]
+    y_values = [y for _, y in numeric]
+    try:
+        baseline, _ = Baseline(x_values).asls(y_values, lam=1e5, p=0.01)
+    except Exception:
+        return []
+    return [(float(base), float(y - base)) for base, y in zip(baseline, y_values)]
 
 
 def spectral_auxiliary_columns(rows: list[dict[str, str]]) -> list[str]:
@@ -789,7 +868,7 @@ def light_states(rows: list[dict[str, str]]) -> list[str]:
 def xps_component_columns(rows: list[dict[str, str]]) -> list[str]:
     if not rows:
         return []
-    excluded = {"binding", "energy", "raw", "intensity", "counts", "background", "envelope", "fit"}
+    excluded = {"binding", "energy", "raw", "intensity", "counts", "background", "envelope", "fit", "residual", "residuals", "difference", "error"}
     components = []
     for key in rows[0]:
         normalized = key.lower().replace(" ", "")

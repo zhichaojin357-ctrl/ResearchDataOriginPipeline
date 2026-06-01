@@ -17,6 +17,7 @@ from src.core.xps_heterojunction import (
     run_xps_heterojunction_stacked,
     XpsComparison,
     XpsFitRecord,
+    _build_direct_origin_xps_script,
 )
 
 
@@ -283,6 +284,38 @@ def test_run_xps_heterojunction_stacked_with_origin_updates_artifact_paths(tmp_p
     assert figure["origin_file"].endswith(".opju")
     assert figure["figure_tif"].endswith(".tif")
     assert figure["preview_png"].endswith(".png")
+
+
+def test_direct_origin_xps_generated_script_compiles(tmp_path: Path) -> None:
+    plot_csv = tmp_path / "plot.csv"
+    plot_csv.write_text("binding_energy_eV,CWO measured,BC measured\n1,2,3\n", encoding="utf-8")
+
+    def record(sample: str) -> XpsFitRecord:
+        return XpsFitRecord(
+            sample=sample,
+            element="Cu",
+            region="Cu2p",
+            source_file=tmp_path / f"{sample}.xlsx",
+            sheet_name="Cu2p",
+            raw_label="measured",
+            background_label="Backgnd.",
+            envelope_label="Envelope",
+            residual_label=None,
+            component_labels=["c1"],
+            data=[{"binding_energy_eV": 1.0, "raw_intensity": 2.0, "background": 0.5, "envelope": 1.5, "c1": 0.8}],
+        )
+
+    script = _build_direct_origin_xps_script(
+        XpsComparison("XPS_Cu_CWO_vs_BC_stacked", "Cu", "CWO", "BC", record("CWO"), record("BC")),
+        plot_csv,
+        tmp_path / "out.opju",
+        tmp_path / "out.png",
+        tmp_path / "out.tif",
+        "Graph1",
+        [],
+    )
+
+    compile(script, "<generated_xps_origin_script>", "exec")
 
 
 def test_cli_xps_heterojunction_stacked_dry_run_uses_explicit_sample_paths(tmp_path: Path, monkeypatch) -> None:

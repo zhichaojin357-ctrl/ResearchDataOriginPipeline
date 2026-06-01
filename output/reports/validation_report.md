@@ -1,7 +1,7 @@
 # Validation Report
 
 - Dependency audit: pass
-- Origin callability: skip (Origin disabled by RESEARCHDATAORIGINPIPELINE_DISABLE_ORIGIN=1)
+- Origin callability: pass (originpro and win32com are importable)
 - Required output directories: pass
 - Required config files: pass
 - Processor registry entries: 19
@@ -19,6 +19,10 @@
 - Origin contract PNG preview inspection: pass
 - Origin contract explicit bold legend rows: pass
 - Origin contract line width 3: pass
+- Phase 1.9 plotting governance files: pass
+- Phase 1.9 plotting skill SHA256 recorded: pass
+- Phase 1.9 journal-ready index columns: pass
+- Phase 1.9 journal-ready index skill hash: pass
 - max_threads = 5
 - max_depth = 1
 - Claim policy forbidden claims: 14

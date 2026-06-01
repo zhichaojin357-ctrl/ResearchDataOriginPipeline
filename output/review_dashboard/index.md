@@ -53,3 +53,4 @@
 ## Safety
 
 Do not process the remaining MANUAL_REVIEW set in bulk. Use user-approved rows only. Do not run real Origin export from Phase 1.8 dry-run reports.
+- [Phase 1.9 Origin plotting governance](phase1_9_origin_plotting_governance.md)

@@ -1,5 +1,21 @@
 # Project Status
 
+## Phase 1.9 Status
+
+Phase 1.9 is active/completed for package integration, algorithm hardening, and journal-ready plotting governance. It did not process new real datasets and did not launch Origin.
+
+- Phase 1.9 instruction archive: `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_9_full_goal_instruction.md`
+- Baseline: `docs\agent_reports\phase1_9_baseline.md`
+- Bugfix report: `docs\agent_reports\phase1_9_bugfix_report.md`
+- Package integration report: `docs\agent_reports\phase1_9_package_integration_report.md`
+- Algorithm/coverage report: `docs\agent_reports\phase1_9_algorithm_upgrade_report.md`
+- Origin plotting skill snapshot: `docs\agent_reports\phase1_9_origin_plotting_skill_snapshot.md`
+- Journal-ready index: `output\reports\phase1_9_journal_ready_index.csv`
+- Journal figure QC: `output\reports\phase1_9_journal_figure_qc.md`
+- Final manual-review workbook: `output\reports\phase1_9_manual_review_required_final.xlsx`
+- Optional packages installed or verified: `nmrglue`, `pyteomics`, `pygaps`, `ixdat`, `rainbow-api`, `mocca2`, `cwepr`, `lmfitxps`, `vgd-reader`, plus existing `pybaselines`, `scipy`, `pymzml`, `tifffile`, `Pillow`, and `scikit-image`.
+- Algorithm fixes: EIS `Z'`/`Z"`/`Freq` aliases, Mott-Schottky capacitance-vs-current guard, XPS residual exclusion, metadata algorithm provenance, pybaselines/scipy spectral candidate helpers.
+
 ## Phase 1.8 Status
 
 Phase 1.8 is the current reviewed-queue safety gate. It turns Phase 1.7 review-only proposals into a user decision template and dry-run plan, but it does not run new real processing and does not launch Origin.

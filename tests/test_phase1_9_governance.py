@@ -1,0 +1,208 @@
+from __future__ import annotations
+
+import csv
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+from src.core.phase1_9 import REQUIRED_JOURNAL_INDEX_COLUMNS, run_phase1_9_governance
+from src.core.validate import validate
+
+
+def test_phase1_9_governance_generates_skill_snapshot_and_journal_index(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    package = project / "output" / "phase1_6_origin_results_20260531_041538"
+    skill_dir = tmp_path / "origin-plotting"
+    raw_source = project / "workspace_data" / "LL_detection_copy_20260530" / "source.csv"
+    raw_source.parent.mkdir(parents=True)
+    raw_source.write_text("x,y\n1,2\n", encoding="utf-8")
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text("Graph4\nY-axis title size 36\n", encoding="utf-8")
+    (skill_dir / "scripts").mkdir()
+    (skill_dir / "scripts" / "helper.ps1").write_text("# helper\n", encoding="utf-8")
+    package.mkdir(parents=True)
+    _write_package_index(package / "index.csv")
+
+    outputs = run_phase1_9_governance(project, skill_dir=skill_dir, package_dir=package)
+
+    assert outputs.snapshot_md.exists()
+    assert outputs.snapshot_json.exists()
+    assert outputs.journal_index_csv.exists()
+    snapshot = json.loads(outputs.snapshot_json.read_text(encoding="utf-8"))
+    assert snapshot["skill_sha256"] == outputs.skill_sha256
+    with outputs.journal_index_csv.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert len(rows) == 1
+    assert REQUIRED_JOURNAL_INDEX_COLUMNS.issubset(rows[0])
+    assert rows[0]["plotting_skill_sha256"] == outputs.skill_sha256
+    assert rows[0]["plot_style_profile"] == "origin-plotting Graph4 cached style"
+    assert rows[0]["y_tick_policy"] == "show_numeric_y_ticks"
+    assert raw_source.read_text(encoding="utf-8") == "x,y\n1,2\n"
+
+
+def test_validate_checks_phase1_9_governance_files_when_present(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    _write_minimal_validate_project(project)
+    package = project / "output" / "phase1_6_origin_results_20260531_041538"
+    skill_dir = tmp_path / "origin-plotting"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text("Graph4\n", encoding="utf-8")
+    package.mkdir(parents=True)
+    _write_package_index(package / "index.csv")
+    run_phase1_9_governance(project, skill_dir=skill_dir, package_dir=package)
+
+    validate(project)
+    report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+    assert "- Phase 1.9 plotting governance files: pass" in report
+    assert "- Phase 1.9 plotting skill SHA256 recorded: pass" in report
+    assert "- Phase 1.9 journal-ready index columns: pass" in report
+    assert "- Phase 1.9 journal-ready index skill hash: pass" in report
+
+
+def test_phase1_9_cli_help_documents_governance_command(project_root: Path):
+    result = subprocess.run(
+        [sys.executable, "run.py", "phase1-9-governance", "--help"],
+        cwd=project_root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 0
+    assert "--skill-dir" in result.stdout
+    assert "--package-dir" in result.stdout
+
+
+def _write_package_index(path: Path) -> None:
+    fields = [
+        "result_id",
+        "queue_id",
+        "data_type",
+        "source_file",
+        "source_hash",
+        "processed_csv",
+        "metadata",
+        "origin_file",
+        "figure_tif",
+        "preview_png",
+        "origin_status",
+        "qc_status",
+        "manual_check_required",
+        "forbidden_claims",
+        "notes",
+    ]
+    row = {
+        "result_id": "EIS_sample",
+        "queue_id": "queue-1",
+        "data_type": "EIS",
+        "source_file": "selected_source_data/EIS/sample.csv",
+        "source_hash": "a" * 64,
+        "processed_csv": "processed_tables/EIS/sample.csv",
+        "metadata": "metadata/EIS/sample_metadata.json",
+        "origin_file": "origin_files/EIS/sample.opju",
+        "figure_tif": "figures_tif/EIS/sample.tif",
+        "preview_png": "previews/origin/EIS/sample.png",
+        "origin_status": "success",
+        "qc_status": "QC_PASS",
+        "manual_check_required": "true",
+        "forbidden_claims": "do not infer mechanism automatically",
+        "notes": "copied_package",
+    }
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerow(row)
+
+
+def _write_minimal_validate_project(project: Path) -> None:
+    for rel in [
+        "config",
+        "output/origin_files",
+        "output/figures_tif",
+        "output/figures_preview",
+        "output/processed_data",
+        "output/metadata",
+        "output/reports",
+        "output/origin_jobs",
+        "output/review_dashboard",
+        "output/unclassified",
+        "src",
+    ]:
+        (project / rel).mkdir(parents=True, exist_ok=True)
+    for name in ["default.yaml", "plot_style.yaml", "sample_registry.yaml", "manual_overrides.yaml"]:
+        (project / "config" / name).write_text("{}\n", encoding="utf-8")
+    (project / "config" / "plot_style.yaml").write_text(
+        'format: "tif"\n'
+        "dpi: 600\n"
+        'default_graph_page: "Graph4"\n'
+        'automation_entrypoint: "Origin.Application"\n'
+        'avoid_entrypoint: "Origin.ApplicationSI"\n'
+        "Export PNG preview and visually inspect\n"
+        "explicit legend rows\n"
+        "line_width: 3\n"
+        "axis_line_width: 3\n",
+        encoding="utf-8",
+    )
+    (project / "config" / "claim_policy.yaml").write_text(
+        json.dumps({"forbidden_claims": ["do not infer mechanism automatically"]}),
+        encoding="utf-8",
+    )
+    entries = []
+    supported = [
+        "XRD",
+        "UV-vis DRS",
+        "photocurrent",
+        "photocurrent_response",
+        "PL",
+        "FTIR",
+        "Raman",
+        "BET",
+        "EPR",
+        "Mott-Schottky",
+        "XPS",
+        "reaction_condition_screening",
+        "HPLC/LC exported data",
+        "EIS",
+    ]
+    for data_type in supported:
+        entries.append(
+            {
+                "folder_name": data_type,
+                "inferred_data_type": data_type,
+                "supported_in_phase_1": True,
+                "selected_processor": "table",
+                "special_handling": "auto",
+            }
+        )
+    for folder, data_type in [
+        ("SEM", "SEM_image_data"),
+        ("TEM", "TEM_image_data"),
+        ("鏍哥", "NMR"),
+        ("璐ㄨ氨", "MS"),
+        ("鍔ㄥ姏瀛?", "reference_literature"),
+    ]:
+        entries.append(
+            {
+                "folder_name": folder,
+                "inferred_data_type": data_type,
+                "supported_in_phase_1": False,
+                "selected_processor": "none",
+                "special_handling": "scan_only",
+            }
+        )
+    (project / "config" / "processor_registry.yaml").write_text(
+        json.dumps(
+            {
+                "required_fields": [
+                    "folder_name",
+                    "inferred_data_type",
+                    "supported_in_phase_1",
+                    "selected_processor",
+                    "special_handling",
+                ],
+                "entries": entries,
+            }
+        ),
+        encoding="utf-8",
+    )

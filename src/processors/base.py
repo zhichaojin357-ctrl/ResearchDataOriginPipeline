@@ -139,6 +139,7 @@ def process_table_dataset(
         warnings=warnings,
         key_results=key_results,
         triage=triage,
+        parameters={"algorithm_provenance": _algorithm_provenance(data_type, processor_name, headers if numeric else [], key_results)},
     )
 
 
@@ -176,6 +177,40 @@ def _origin_axis_titles(headers: list[str]) -> tuple[str, str]:
     if len(headers) == 1:
         return headers[0], "signal"
     return "x", "y"
+
+
+def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str], key_results: dict) -> dict:
+    candidate_methods = []
+    if "peak_position_candidates" in key_results:
+        candidate_methods.append("local_neighbor_peak_candidates")
+    if "valley_position_candidates" in key_results:
+        candidate_methods.append("local_neighbor_valley_candidates")
+    if "integral_area_candidate" in key_results or "area_candidate" in key_results:
+        candidate_methods.append("trapezoid_area_candidate")
+    if "linear_region_candidates" in key_results:
+        candidate_methods.append("linear_region_candidate")
+    if "xps_component_area_candidates" in key_results:
+        candidate_methods.append("xps_component_trapezoid_area_candidate")
+    if data_type in {"photocurrent", "photocurrent_response"}:
+        candidate_methods.append("current_cycle_candidate_metrics")
+    if data_type == "BET":
+        candidate_methods.append("bet_exported_summary_or_isotherm_candidate")
+    if data_type == "EPR":
+        candidate_methods.append("field_intensity_extrema_candidate")
+
+    provenance = {
+        "processor_name": processor_name,
+        "calculation_module": "src.processors.calculations",
+        "processed_headers": headers,
+        "candidate_methods": candidate_methods,
+        "interpretation_policy": "candidate metrics only; scientific interpretation requires manual review",
+    }
+    if "linear_fit_point_count" in key_results:
+        provenance["fit_point_count"] = key_results["linear_fit_point_count"]
+        provenance["fit_method"] = "ordinary_least_squares_candidate"
+    if key_results.get("linear_region_candidates"):
+        provenance["fit_regions"] = key_results["linear_region_candidates"]
+    return provenance
 
 
 def _queue_dataset_suffix(triage: dict | None) -> str:

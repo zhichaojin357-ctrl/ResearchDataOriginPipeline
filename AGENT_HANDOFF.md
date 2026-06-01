@@ -1,6 +1,33 @@
 # Agent Handoff
 
-## Latest State: Phase 1.8
+## Latest State: Phase 1.9
+
+Read these first:
+
+- `docs/agent_reports/phase1_9_baseline.md`
+- `docs/agent_reports/phase1_9_bugfix_report.md`
+- `docs/agent_reports/phase1_9_package_integration_report.md`
+- `docs/agent_reports/phase1_9_algorithm_upgrade_report.md`
+- `docs/agent_reports/phase1_9_origin_plotting_skill_snapshot.md`
+- `output/reports/phase1_9_journal_ready_index.csv`
+- `output/reports/phase1_9_journal_figure_qc.md`
+- `output/reports/phase1_9_data_type_coverage_matrix.md`
+- `output/reports/phase1_9_manual_review_required_final.xlsx`
+
+Phase 1.9 did not process new real datasets and did not launch Origin. It hardened algorithms, installed/verified optional packages, generated journal-ready governance artifacts, and kept raw data read-only.
+
+New algorithm/package notes:
+
+- EIS now recognizes common `Z'`, `Z"`, unicode prime, and `Freq/Hz` style headers.
+- Mott-Schottky no longer treats `Current/A` as capacitance.
+- XPS residual/difference/error columns no longer enter component-area calculations.
+- Metadata records algorithm provenance and candidate-method details.
+- Raman/PL/FTIR processors add optional pybaselines ASLS baseline/corrected-intensity candidate columns when available.
+- Local peak candidates use scipy when available, with the existing fallback retained.
+- Installed/import-smoked optional packages are documented in `phase1_9_package_integration_report.md`.
+- GPL/expert-system packages remain reference-only and must not be imported into automatic processing.
+
+## Previous State: Phase 1.8
 
 Read these first:
 

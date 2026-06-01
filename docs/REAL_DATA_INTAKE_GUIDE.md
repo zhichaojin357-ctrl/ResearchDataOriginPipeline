@@ -1,6 +1,6 @@
 # Real Data Intake Guide
 
-Use this guide for Phase 1.8 reviewed decisions and the next explicitly approved processing phase.
+Use this guide for Phase 1.9 review artifacts, Phase 1.8 reviewed decisions, and the next explicitly approved processing phase.
 
 ## Principles
 
@@ -11,6 +11,7 @@ Use this guide for Phase 1.8 reviewed decisions and the next explicitly approved
 - Do not process all `MANUAL_REVIEW`.
 - Do not auto-apply manual override proposals.
 - Keep SEM, TEM, NMR, MS, and kinetics/reference folders scan-only.
+- Use `D:\CodexData\.codex\skills\origin-plotting\SKILL.md` as the plotting style authority for any future Origin export.
 
 ## Review Before Processing
 
@@ -21,8 +22,24 @@ Start with:
 - `output/reports/phase1_8_reviewed_queue_plan.md`
 - `output/reports/phase1_8_manual_review_required_filtered.xlsx`
 - `output/reports/phase1_8_new_auto_process_plan.md`
+- `output/reports/phase1_9_journal_ready_index.csv`
+- `output/reports/phase1_9_manual_review_required_final.xlsx`
+- `output/reports/phase1_9_data_type_coverage_matrix.md`
+- `docs/agent_reports/phase1_9_package_integration_report.md`
 
 Only rows explicitly approved in the Phase 1.8 decision CSV may become future no-Origin queue candidates.
+
+## Phase 1.9 Package and Algorithm Notes
+
+Phase 1.9 installed or verified optional packages for guarded readers and candidate calculations. They do not authorize automatic scientific interpretation. Review `docs/agent_reports/phase1_9_package_integration_report.md` before enabling any optional adapter for real data.
+
+Current safe automatic improvements:
+
+- EIS recognizes common `Z'`, `Z"`, and `Freq/Hz` headers.
+- Mott-Schottky avoids treating `Current/A` as capacitance.
+- XPS residual columns are excluded from component areas.
+- Spectral processors can add pybaselines ASLS baseline/corrected-intensity candidates.
+- Metadata records algorithm provenance.
 
 ## How To Fill The Phase 1.8 Decision CSV
 

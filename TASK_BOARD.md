@@ -1,5 +1,21 @@
 # Task Board
 
+## Phase 1.9 Completed
+
+- [x] Archived the Phase 1.9 full goal instruction.
+- [x] Generated Phase 1.9 baseline, bugfix, package integration, algorithm coverage, cleanup, and summary reports.
+- [x] Locked the `origin-plotting` skill snapshot and SHA256 for Origin/Graph4 style governance.
+- [x] Generated a journal-ready Phase 1.6 index with plotting skill hash, style profile, y-axis tick policy, and material color key fields.
+- [x] Generated journal figure QC and final manual-review workbook outputs.
+- [x] Installed/import-smoked selected optional scientific packages: `nmrglue`, `pyteomics`, `pygaps`, `ixdat`, `rainbow-api`, `mocca2`, `cwepr`, `lmfitxps`, `vgd-reader`.
+- [x] Preserved GPL/expert-system tools as reference-only and kept them out of automatic processing.
+- [x] Fixed EIS common CHI-style `Z'`, `Z"`, and `Freq` aliases.
+- [x] Fixed Mott-Schottky capacitance matching so `Current/A` is not treated as capacitance.
+- [x] Fixed XPS residual handling so residual columns do not enter component areas.
+- [x] Added algorithm provenance to metadata.
+- [x] Added pybaselines ASLS baseline/corrected-intensity candidate columns for spectral processors and scipy-backed peak detection.
+- [x] Added Phase 1.9 regression tests.
+
 ## Phase 1.8 Completed
 
 - [x] Archived Phase 1.8 instruction and SHA256.

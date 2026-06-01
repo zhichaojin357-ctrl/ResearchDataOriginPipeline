@@ -1,0 +1,346 @@
+{
+  "generated_at": "2026-06-02T00:22:54",
+  "installed_or_detected": [
+    {
+      "package": "pybaselines",
+      "module": "pybaselines",
+      "tier": "core_optional",
+      "data_types": [
+        "Raman",
+        "PL",
+        "FTIR",
+        "UV-vis DRS",
+        "EPR"
+      ],
+      "license_policy": "permissive",
+      "use": "baseline correction candidate",
+      "import_status": "ok",
+      "version": "1.2.1",
+      "license": "Development Status :: 5 - Production/Stable; Intended Audience :: Developers; Intended Audience :: Science/Research; Operating System :: OS Independent; Programming Language :: Pyt...",
+      "smoke_status": "ok",
+      "core_flow_allowed": true,
+      "adapter_policy": "allowed for candidate calculations without scientific conclusions"
+    },
+    {
+      "package": "scipy",
+      "module": "scipy",
+      "tier": "core",
+      "data_types": [
+        "spectra",
+        "all numeric"
+      ],
+      "license_policy": "permissive",
+      "use": "find_peaks and numeric routines",
+      "import_status": "ok",
+      "version": "1.17.1",
+      "license": "Copyright (c) 2001-2002 Enthought, Inc. 2003, SciPy Developers. All rights reserved. Redistribution and use in source and binary forms, with or without modification, are permitted ...",
+      "smoke_status": "ok",
+      "core_flow_allowed": true,
+      "adapter_policy": "allowed for candidate calculations without scientific conclusions"
+    },
+    {
+      "package": "vgd-reader",
+      "module": "vgd_reader",
+      "tier": "optional_adapter",
+      "data_types": [
+        "XPS"
+      ],
+      "license_policy": "permissive",
+      "use": "VGD reader probe",
+      "import_status": "ok",
+      "version": "0.1.0",
+      "license": "MIT",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "pygaps",
+      "module": "pygaps",
+      "tier": "optional_adapter",
+      "data_types": [
+        "BET"
+      ],
+      "license_policy": "permissive",
+      "use": "isotherm/BET candidate analysis",
+      "import_status": "ok",
+      "version": "4.6.1",
+      "license": "MIT License Copyright (c) 2022, Paul Iacomi Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"S...",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "nmrglue",
+      "module": "nmrglue",
+      "tier": "optional_adapter",
+      "data_types": [
+        "NMR"
+      ],
+      "license_policy": "permissive",
+      "use": "Bruker processed data reader",
+      "import_status": "ok",
+      "version": "0.11",
+      "license": "New BSD License",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "tifffile",
+      "module": "tifffile",
+      "tier": "core_optional",
+      "data_types": [
+        "SEM",
+        "TEM"
+      ],
+      "license_policy": "permissive",
+      "use": "image metadata and preview",
+      "import_status": "ok",
+      "version": "2026.3.3",
+      "license": "BSD-3-Clause",
+      "smoke_status": "ok",
+      "core_flow_allowed": true,
+      "adapter_policy": "allowed for candidate calculations without scientific conclusions"
+    },
+    {
+      "package": "pillow",
+      "module": "PIL",
+      "tier": "core_optional",
+      "data_types": [
+        "SEM",
+        "TEM",
+        "QC"
+      ],
+      "license_policy": "permissive",
+      "use": "image preview and DPI inspection",
+      "import_status": "ok",
+      "version": "12.2.0",
+      "license": "Development Status :: 6 - Mature; Programming Language :: Python :: 3 :: Only; Programming Language :: Python :: 3.10; Programming Language :: Python :: 3.11; Programming Language ...",
+      "smoke_status": "ok",
+      "core_flow_allowed": true,
+      "adapter_policy": "allowed for candidate calculations without scientific conclusions"
+    },
+    {
+      "package": "scikit-image",
+      "module": "skimage",
+      "tier": "optional_adapter",
+      "data_types": [
+        "SEM",
+        "TEM"
+      ],
+      "license_policy": "permissive",
+      "use": "image metadata/QC only",
+      "import_status": "ok",
+      "version": "0.26.0",
+      "license": "Files: * Copyright: 2009-2022 the scikit-image team License: BSD-3-Clause Files: doc/source/themes/scikit-image/layout.html Copyright: 2007-2010 the Sphinx team License: BSD-3-Clau...",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "ixdat",
+      "module": "ixdat",
+      "tier": "optional_adapter",
+      "data_types": [
+        "photocurrent",
+        "electrochemistry"
+      ],
+      "license_policy": "permissive",
+      "use": "electrochemical import abstraction",
+      "import_status": "ok",
+      "version": "0.3.0",
+      "license": "MIT",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "rainbow-api",
+      "module": "rainbow",
+      "tier": "optional_adapter",
+      "data_types": [
+        "HPLC/LC exported data"
+      ],
+      "license_policy": "LGPL_optional_boundary",
+      "use": "chromatography raw reader probe",
+      "import_status": "ok",
+      "version": "1.0.10",
+      "license": "COPYING.LESSER",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "mocca2",
+      "module": "mocca2",
+      "tier": "optional_adapter",
+      "data_types": [
+        "HPLC/LC exported data"
+      ],
+      "license_policy": "permissive",
+      "use": "baseline/peak candidate helper; no product assignment",
+      "import_status": "ok",
+      "version": "0.1.18",
+      "license": "Programming Language :: Python :: 3; License :: OSI Approved :: MIT License; Operating System :: OS Independent",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "pymzml",
+      "module": "pymzml",
+      "tier": "optional_adapter",
+      "data_types": [
+        "MS"
+      ],
+      "license_policy": "permissive",
+      "use": "mzML reader",
+      "import_status": "ok",
+      "version": "2.6.0",
+      "license": "The MIT license",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "pyteomics",
+      "module": "pyteomics",
+      "tier": "optional_adapter",
+      "data_types": [
+        "MS"
+      ],
+      "license_policy": "permissive",
+      "use": "mzML/mzXML/MGF/msp reader helpers",
+      "import_status": "ok",
+      "version": "5.0",
+      "license": "Intended Audience :: Science/Research; Programming Language :: Python :: 3; Topic :: Education; Topic :: Scientific/Engineering :: Bio-Informatics; Topic :: Scientific/Engineering ...",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "cwepr",
+      "module": "cwepr",
+      "tier": "optional_adapter",
+      "data_types": [
+        "EPR"
+      ],
+      "license_policy": "permissive",
+      "use": "cw-EPR processing helper; no radical assignment",
+      "import_status": "ok",
+      "version": "0.5.1",
+      "license": "BSD",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "lmfitxps",
+      "module": "lmfitxps",
+      "tier": "optional_adapter",
+      "data_types": [
+        "XPS"
+      ],
+      "license_policy": "permissive_with_review",
+      "use": "manual-review fitting helper; no valence assignment",
+      "import_status": "ok",
+      "version": "4.2.0",
+      "license": "MIT License Copyright (c) 2023 Julian-Hochhaus Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the...",
+      "smoke_status": "ok",
+      "core_flow_allowed": false,
+      "adapter_policy": "available only behind explicit optional adapter and manual-review guard"
+    },
+    {
+      "package": "galvani",
+      "module": "galvani",
+      "tier": "reference_only",
+      "data_types": [
+        "electrochemistry"
+      ],
+      "license_policy": "GPL_reference_only",
+      "use": "Bio-Logic reader reference only",
+      "import_status": "fail",
+      "version": null,
+      "license": "not installed",
+      "error": "ModuleNotFoundError(\"No module named 'galvani'\")",
+      "smoke_status": "not_run",
+      "core_flow_allowed": false,
+      "adapter_policy": "do not import in automatic processing; reference/report only"
+    },
+    {
+      "package": "eclabfiles",
+      "module": "eclabfiles",
+      "tier": "reference_only",
+      "data_types": [
+        "electrochemistry"
+      ],
+      "license_policy": "GPL_reference_only",
+      "use": "EC-Lab reader reference only",
+      "import_status": "fail",
+      "version": null,
+      "license": "not installed",
+      "error": "ModuleNotFoundError(\"No module named 'eclabfiles'\")",
+      "smoke_status": "not_run",
+      "core_flow_allowed": false,
+      "adapter_policy": "do not import in automatic processing; reference/report only"
+    },
+    {
+      "package": "pyopenms",
+      "module": "pyopenms",
+      "tier": "reference_only",
+      "data_types": [
+        "MS"
+      ],
+      "license_policy": "heavy_optional_reference",
+      "use": "full MS toolkit reference only",
+      "import_status": "fail",
+      "version": null,
+      "license": "not installed",
+      "error": "ModuleNotFoundError(\"No module named 'pyopenms'\")",
+      "smoke_status": "not_run",
+      "core_flow_allowed": false,
+      "adapter_policy": "do not import in automatic processing; reference/report only"
+    },
+    {
+      "package": "matchms",
+      "module": "matchms",
+      "tier": "reference_only",
+      "data_types": [
+        "MS"
+      ],
+      "license_policy": "optional_reference",
+      "use": "MS similarity reference only",
+      "import_status": "fail",
+      "version": null,
+      "license": "not installed",
+      "error": "ModuleNotFoundError(\"No module named 'matchms'\")",
+      "smoke_status": "not_run",
+      "core_flow_allowed": false,
+      "adapter_policy": "do not import in automatic processing; reference/report only"
+    },
+    {
+      "package": "pyimpspec",
+      "module": "pyimpspec",
+      "tier": "reference_only",
+      "data_types": [
+        "EIS"
+      ],
+      "license_policy": "GPL_reference_only",
+      "use": "EIS expert analysis reference only",
+      "import_status": "fail",
+      "version": null,
+      "license": "not installed",
+      "error": "ModuleNotFoundError(\"No module named 'pyimpspec'\")",
+      "smoke_status": "not_run",
+      "core_flow_allowed": false,
+      "adapter_policy": "do not import in automatic processing; reference/report only"
+    }
+  ],
+  "policy": {
+    "no_third_party_source_copied": true,
+    "gpl_packages_reference_only": true,
+    "expert_systems_reference_only": true,
+    "automatic_scientific_assignment_blocked": true
+  }
+}

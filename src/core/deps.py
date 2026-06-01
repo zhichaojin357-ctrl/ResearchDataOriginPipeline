@@ -24,14 +24,21 @@ OPTIONAL = {
     "galvani": "galvani",
     "eclabfiles": "eclabfiles",
     "pygaps": "pygaps",
+    "nmrglue": "nmrglue",
+    "tifffile": "tifffile",
+    "pillow": "PIL",
+    "scikit-image": "skimage",
     "lmfitxps": "lmfitxps",
+    "vgd-reader": "vgd_reader",
     "ramanspy": "ramanspy",
     "rampy": "rampy",
     "spectrochempy": "spectrochempy",
     "hplc": "hplc",
     "rainbow": "rainbow",
+    "mocca2": "mocca2",
     "pymzml": "pymzml",
     "pyteomics": "pyteomics",
+    "cwepr": "cwepr",
 }
 
 

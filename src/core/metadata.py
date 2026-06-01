@@ -34,6 +34,7 @@ def write_metadata(
     warnings: list[str],
     key_results: dict,
     triage: dict | None = None,
+    parameters: dict | None = None,
 ) -> dict:
     if processing_status == "success":
         required = {
@@ -87,7 +88,7 @@ def write_metadata(
         "manual_check_items": _manual_check_items(processing_status, manual_check_items, preview_png),
         "forbidden_claims": forbidden_claims or [],
         "warnings": warnings,
-        "parameters": {},
+        "parameters": parameters or {},
         "key_results": key_results,
         "triage": triage or {},
         "confidence_level": {

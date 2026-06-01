@@ -6,6 +6,7 @@ from pathlib import Path
 from src.core.deps import dependency_audit
 from src.core.auto_queue import AutoQueueOptions, run_auto_queue
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
+from src.core.phase1_9 import DEFAULT_ORIGIN_SKILL_DIR, DEFAULT_PHASE1_6_PACKAGE, run_phase1_9_governance
 from src.core.process import ProcessOptions, run_process
 from src.core.project import configured_path, load_project_config
 from src.core.readiness import ReadinessOptions, run_readiness
@@ -133,6 +134,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     readiness.add_argument("--report-json", type=Path)
     readiness.add_argument("--report-md", type=Path)
+
+    phase1_9 = subparsers.add_parser(
+        "phase1-9-governance",
+        help="generate Phase 1.9 Origin plotting skill snapshot, journal-ready index, and structure reports without processing data",
+    )
+    phase1_9.add_argument("--skill-dir", type=Path, default=DEFAULT_ORIGIN_SKILL_DIR)
+    phase1_9.add_argument("--package-dir", type=Path, default=DEFAULT_PHASE1_6_PACKAGE)
     return parser
 
 
@@ -263,6 +271,9 @@ def main(argv: list[str] | None = None) -> int:
                 report_md=args.report_md,
             ),
         )
+    if args.command == "phase1-9-governance":
+        run_phase1_9_governance(project_root, skill_dir=args.skill_dir, package_dir=args.package_dir)
+        return 0
     raise AssertionError(f"Unhandled command: {args.command}")
 
 

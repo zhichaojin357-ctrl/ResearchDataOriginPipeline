@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import csv
+import json
 from pathlib import Path
 
+from src.core.phase1_9 import REQUIRED_JOURNAL_INDEX_COLUMNS
 from src.core.deps import dependency_audit
 from src.core.project import (
     REQUIRED_OUTPUT_DIRS,
@@ -168,6 +171,38 @@ def validate(project_root: Path) -> int:
     failed_origin_contracts = [label for label, passed in origin_contract_checks.items() if not passed]
     if failed_origin_contracts:
         failures.append("Origin plotting contract invalid: " + ", ".join(failed_origin_contracts))
+
+    phase1_9_files = {
+        "snapshot_md": project_root / "docs" / "agent_reports" / "phase1_9_origin_plotting_skill_snapshot.md",
+        "snapshot_json": project_root / "output" / "reports" / "phase1_9_origin_plotting_skill_snapshot.json",
+        "journal_index": project_root / "output" / "reports" / "phase1_9_journal_ready_index.csv",
+    }
+    if any(path.exists() for path in phase1_9_files.values()):
+        missing_phase1_9 = [name for name, path in phase1_9_files.items() if not path.exists()]
+        lines.append(f"- Phase 1.9 plotting governance files: {'pass' if not missing_phase1_9 else 'fail'}")
+        if missing_phase1_9:
+            failures.append("missing Phase 1.9 plotting governance files: " + ", ".join(missing_phase1_9))
+        else:
+            snapshot = json.loads(phase1_9_files["snapshot_json"].read_text(encoding="utf-8"))
+            skill_hash = snapshot.get("skill_sha256")
+            snapshot_text = phase1_9_files["snapshot_md"].read_text(encoding="utf-8")
+            hash_ok = bool(skill_hash) and skill_hash in snapshot_text
+            lines.append(f"- Phase 1.9 plotting skill SHA256 recorded: {'pass' if hash_ok else 'fail'}")
+            if not hash_ok:
+                failures.append("Phase 1.9 plotting skill SHA256 not recorded consistently")
+            with phase1_9_files["journal_index"].open(encoding="utf-8-sig", newline="") as handle:
+                reader = csv.DictReader(handle)
+                headers = set(reader.fieldnames or [])
+                rows = list(reader)
+            missing_columns = sorted(REQUIRED_JOURNAL_INDEX_COLUMNS - headers)
+            lines.append(f"- Phase 1.9 journal-ready index columns: {'pass' if not missing_columns else 'fail'}")
+            if missing_columns:
+                failures.append("Phase 1.9 journal-ready index missing columns: " + ", ".join(missing_columns))
+            if rows:
+                skill_column_ok = all(row.get("plotting_skill_sha256") == skill_hash for row in rows)
+                lines.append(f"- Phase 1.9 journal-ready index skill hash: {'pass' if skill_column_ok else 'fail'}")
+                if not skill_column_ok:
+                    failures.append("Phase 1.9 journal-ready index contains inconsistent plotting skill hashes")
     lines.append("- max_threads = 5")
     lines.append("- max_depth = 1")
     lines.append(f"- Claim policy forbidden claims: {len(claim.get('forbidden_claims', []))}")

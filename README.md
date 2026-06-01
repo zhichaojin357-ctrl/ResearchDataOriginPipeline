@@ -1,10 +1,28 @@
 # ResearchDataOriginPipeline
 
-Current checkpoint: Phase 1.8 reviewed-queue safety gate and manual-review output.
+Current checkpoint: Phase 1.9 package integration, algorithm hardening, and journal-ready plotting governance.
 
 Latest locked Origin package: `output/phase1_6_origin_results_20260531_041538`
 
-Phase 1.6 produced 167 real Origin result sets. Phase 1.7 added preview review, manifest dry-run, Origin isolation proof, and triage-recognition reports. Phase 1.8 adds a user-reviewed queue gate and a filtered manual-review workbook; it does not process new real data and does not launch Origin.
+Phase 1.6 produced 167 real Origin result sets. Phase 1.7 added preview review, manifest dry-run, Origin isolation proof, and triage-recognition reports. Phase 1.8 added a user-reviewed queue gate and a filtered manual-review workbook. Phase 1.9 adds origin-plotting skill governance, package import/smoke reports, algorithm provenance, safer EIS/Mott-Schottky/XPS handling, and a journal-ready index without processing new real data or launching Origin.
+
+## Phase 1.9 Outputs
+
+- Origin plotting skill snapshot: `docs/agent_reports/phase1_9_origin_plotting_skill_snapshot.md`
+- Journal-ready index: `output/reports/phase1_9_journal_ready_index.csv`
+- Journal figure QC: `output/reports/phase1_9_journal_figure_qc.md`
+- Package integration report: `docs/agent_reports/phase1_9_package_integration_report.md`
+- Data type coverage matrix: `output/reports/phase1_9_data_type_coverage_matrix.md`
+- Final manual-review workbook: `output/reports/phase1_9_manual_review_required_final.xlsx`
+- Bugfix report: `docs/agent_reports/phase1_9_bugfix_report.md`
+
+Phase 1.9 uses `D:\CodexData\.codex\skills\origin-plotting\SKILL.md` as the only style authority for Origin/Graph4 canvas geometry, axis lengths, fonts, line widths, y-axis tick policy, color consistency, OPJU/TIF/PNG outputs, and QC expectations.
+
+## Phase 1.9 Package Policy
+
+Installed or verified optional packages include `nmrglue`, `pyteomics`, `pygaps`, `ixdat`, `rainbow-api`, `mocca2`, `cwepr`, `lmfitxps`, and `vgd-reader`; pre-existing usable packages include `pybaselines`, `scipy`, `pymzml`, `tifffile`, `Pillow`, and `scikit-image`. They are recorded in `phase1_9_package_integration_report.md`.
+
+Only low-risk candidate calculations enter the automatic flow. GPL or expert-system packages remain reference-only. XPS valence, EPR radical, XRD phase/plane, MS product, heterojunction mechanism, and SEM/TEM morphology/lattice conclusions remain blocked.
 
 ## Current Scope
 

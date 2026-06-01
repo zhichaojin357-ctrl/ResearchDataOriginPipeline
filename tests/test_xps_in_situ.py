@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
-from src.core.xps_in_situ import InSituRecordStatus, planned_panels, sample_from_path
+from src.core.xps_in_situ import InSituRecordStatus, _try_write_origin_project, planned_panels, sample_from_path
 
 
 def test_lingt_filename_maps_to_bc_light() -> None:
@@ -29,3 +31,20 @@ def test_planned_panels_skip_incomplete_fit_records() -> None:
     assert [panel.element for panel in panels] == ["Bi"]
     assert missing["W"] == ["BC Dark: missing fitted envelope"]
     assert missing["O"] == ["BC Light: missing component peaks"]
+
+
+def test_origin_export_reports_failure_when_expected_artifacts_are_missing() -> None:
+    with TemporaryDirectory() as tmpdir:
+        project = Path(tmpdir)
+        output_dir = project / "outputs"
+        output_dir.mkdir()
+
+        with patch("src.core.xps_in_situ.check_origin_available", return_value=(True, "ok")), patch(
+            "src.core.xps_in_situ._write_origin_project",
+            return_value=None,
+        ):
+            status = _try_write_origin_project(project, {}, output_dir)
+
+        assert status["requested"] is True
+        assert status["ok"] is False
+        assert "missing or empty" in status["message"]
