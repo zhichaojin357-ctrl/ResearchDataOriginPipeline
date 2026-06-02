@@ -151,6 +151,25 @@ D:\Python\python.exe run.py origin-batch --manifest output\phase1_6_origin_resul
 
 The runner reads the package manifest, verifies paths and hashes, skips completed outputs, writes a run plan, and does not launch Origin.
 
+## Phase 1.10 Manifest Stabilization
+
+Phase 1.10 keeps `output/phase1_6_origin_results_20260531_041538` as the canonical standard result package and writes a locked pointer manifest under `output/final_locked_results/freeze_*`.
+
+The latest material collection, `output/material_collections/cwo_bobc_bicu_with_xps_unprocessed_20260531_133711`, is a mixed material-selection package. It contains workspace copies, selected formats, historical Phase 1.6 artifacts, and unprocessed XPS files. Do not pass its raw `index.csv` directly to `origin-batch`.
+
+Use this normalization command for a controlled dry-run manifest:
+
+```powershell
+D:\Python\python.exe run.py manifest-normalize --manifest output\material_collections\cwo_bobc_bicu_with_xps_unprocessed_20260531_133711\index.csv
+D:\Python\python.exe run.py origin-batch --manifest output\reports\phase1_10_material_collection_normalized_manifest.csv --dry-run
+```
+
+The normalized material manifest is allowed to contain zero safe export items. In that case `origin-batch` exits cleanly, skips all rows, and launches no Origin instances.
+
+## Output Directory Governance
+
+`output/` is the primary project output root for canonical result packages, reports, manifests, dashboards, dry-run plans, and `final_locked_results`. `outputs/` is reserved for specialized or historical run outputs and is not raw data. Material collections are not standard result packages unless a normalizer report and dry-run prove compatibility.
+
 ## Why Remaining MANUAL_REVIEW Is Not Processed In Bulk
 
 The latest triage has 618 `MANUAL_REVIEW` items after parser and recognition improvements. The user-facing filtered workbook keeps 493 rows after excluding same-data items already represented by successful or processable formats. Many remaining items involve parser failures, proprietary/binary formats, duplicate ambiguity, folder/header conflicts, or scientific context. Do not use global `--include-ambiguous`.
@@ -178,3 +197,39 @@ D:\Python\python.exe run.py triage --input workspace_data\LL_detection_copy_2026
 - Do not write into workspace source folders or the F-drive backup.
 - Do not batch-process all `MANUAL_REVIEW`.
 - Do not auto-apply override proposals.
+
+## Phase 1.11 Release Freeze And Project Layout
+
+- Current canonical package: `output/phase1_6_origin_results_20260531_041538`
+- Current locked results: `output/final_locked_results/freeze_20260602_011419`
+- Locked results contain 167 items and are the current release baseline.
+- Material collection normalized manifest: `output/reports/phase1_10_material_collection_normalized_manifest.csv`; it has 1340 rows, 0 direct origin-batch rows, and 1340 safe-skip rows.
+- Phase 1.11 handoff: `docs/agent_reports/PHASE1_11_HANDOFF_TO_CHATGPT_FOR_NEXT_DECISION.md`
+- Report indexes: `docs/indexes/agent_reports_index.md`, `docs/indexes/output_reports_index.md`, `docs/indexes/scripts_index.md`, `docs/indexes/outputs_index.md`
+
+Project layout rules:
+
+- `src/`: source code and CLI-backed implementation.
+- `config/`: configuration; do not move config files without tests.
+- `scripts/maintenance/`: reusable maintenance helpers.
+- `scripts/one_off/`: one-time audit or migration helpers kept for traceability.
+- `scripts/archive/`: historical scripts after references are checked.
+- `docs/agent_reports/`: phase reports; keep for audit history.
+- `docs/indexes/`: generated indexes for reports, scripts, and outputs.
+- `output/`: primary output repository and canonical result packages.
+- `outputs/`: specialized or historical result outputs, not raw data.
+- `workspace_data/`: real copied data source; treat as read-only.
+
+Do not delete or move Phase 1.5/1.6 packages, locked results, OPJU/TIF/PNG previews, processed CSV, metadata, or report artifacts without an explicit user instruction.
+
+## Phase 1.12 Release Commit Preparation
+
+Phase 1.12 is commit-preparation only. `ALLOW_GIT_COMMIT=false`, so no `git add`, `git commit`, or `git tag` was executed.
+
+- Pre-commit validation: `docs/agent_reports/phase1_12_pre_commit_validation.md`
+- Git workspace audit: `docs/agent_reports/phase1_12_git_workspace_audit.md`
+- Staging strategy: `docs/agent_reports/phase1_12_staging_strategy.md`
+- Commit commands: `docs/agent_reports/phase1_12_commit_commands.md`
+- Final handoff: `docs/agent_reports/PHASE1_12_HANDOFF_TO_CHATGPT_FOR_NEXT_DECISION.md`
+
+Recommended default commit route is Scheme A: source/schema fixes, regression tests, governance docs, `.gitignore`, `docs/indexes`, and scripts directory README files. Do not stage raw data, workspace data, Phase result packages, OPJU/TIF/PNG artifacts, tmp files, pycache, or large binary outputs.

@@ -54,6 +54,17 @@ Phase 1.8 is the current reviewed-queue safety gate. It turns Phase 1.7 review-o
 - Material/color verification: PASS
 - XPS repair: 9 no-Origin success, 9 Origin success, 0 failure
 
+## Phase 1.10 Stabilization
+
+- Instruction archive: `D:\Codex Project\科研数据处理\指令归档\ResearchDataOriginPipeline_phase1_10_manifest_stabilization_and_freeze_instruction.md`
+- Canonical package remains: `output\phase1_6_origin_results_20260531_041538`
+- Final locked manifest root: `output\final_locked_results\freeze_*`
+- Material collection role: mixed secondary material-selection package, not canonical.
+- Material collection normalized manifest: `output\reports\phase1_10_material_collection_normalized_manifest.csv`
+- Normalized material dry-run: 1340 rows, 0 planned, 1340 skipped, 0 blocked, Origin launch false.
+- P1 material collection schema mismatch is resolved by explicit detection, clear mismatch reporting, and a normalizer that does not fabricate processed/Origin outputs.
+- No packages were installed, no real Origin export was run, no MANUAL_REVIEW processing was run, and no raw/workspace/F-drive data was modified.
+
 ## Separate XPS Figure Outputs
 
 - Phase 1.8 queue status does not include separate XPS figure-output workflows.
@@ -97,3 +108,24 @@ Phase 1.8 is the current reviewed-queue safety gate. It turns Phase 1.7 review-o
 ## Scope Guards
 
 PPT generation, kinetics processors, SEM/TEM/NMR/MS processors, automatic XPS valence assignment, EPR radical assignment, XRD phase assignment, and full MANUAL_REVIEW batch processing remain forbidden.
+
+## Phase 1.11 Release Freeze
+
+- Status: release-freeze reports and project hygiene indexes generated.
+- Canonical package: `output\phase1_6_origin_results_20260531_041538`
+- Locked results: `output\final_locked_results\freeze_20260602_011419`
+- Locked items: 167
+- Material normalized manifest: 1340 rows, 0 direct origin-batch rows, 1340 safe-skip rows.
+- Temporary files: retained and documented because current reports reference them; `.gitignore` now covers the explicit temporary names.
+- Git: still not committed automatically; use `docs\agent_reports\phase1_11_commit_ready_report.md` to decide staging.
+- No packages installed, no real Origin launched, no MANUAL_REVIEW processed, no raw/workspace/F-drive data modified.
+
+## Phase 1.12 Release Commit Preparation
+
+- Status: commit preparation completed; commit was not executed because `ALLOW_GIT_COMMIT=false`.
+- Recommended route: Scheme A minimal code and governance commit.
+- Command report: `docs\agent_reports\phase1_12_commit_commands.md`.
+- Staging strategy: `docs\agent_reports\phase1_12_staging_strategy.md`.
+- Final handoff: `docs\agent_reports\PHASE1_12_HANDOFF_TO_CHATGPT_FOR_NEXT_DECISION.md`.
+- Validation remains green: pytest, deps-audit, validate, readiness, and origin-batch dry-run passed.
+- Next decision: user can manually commit, enter PPT-ready asset checklist, or approve one small MANUAL_REVIEW batch.

@@ -31,6 +31,10 @@ New algorithm/package notes:
 
 Read these first:
 
+- `docs/agent_reports/PHASE1_10_HANDOFF_TO_CHATGPT_FOR_NEXT_DECISION.md`
+- `docs/agent_reports/phase1_10_final_validation.md`
+- `docs/agent_reports/phase1_10_canonical_freeze_report.md`
+- `docs/agent_reports/phase1_10_next_manual_review_batch_plan.md`
 - `docs/agent_reports/phase1_8_execution_plan.md`
 - `docs/agent_reports/phase1_8_reviewed_queue_report.md`
 - `docs/agent_reports/phase1_8_manual_review_required_filtered_report.md`
@@ -40,6 +44,16 @@ Read these first:
 - `output/reports/readiness_report.md`
 
 Latest locked Origin package: `output\phase1_6_origin_results_20260531_041538`.
+
+## Phase 1.10 Current State
+
+- Canonical package: `output\phase1_6_origin_results_20260531_041538`
+- Final locked manifest: `output\final_locked_results\freeze_*`
+- Material collection: `output\material_collections\cwo_bobc_bicu_with_xps_unprocessed_20260531_133711`
+- Material collection role: mixed secondary material-selection package. It is not canonical and should not be passed directly to `origin-batch`.
+- Normalized material manifest: `output\reports\phase1_10_material_collection_normalized_manifest.csv`
+- Normalized material dry-run result: 1340 skipped, 0 planned, 0 blocked, no Origin launch.
+- Phase 1.10 did not install packages, process MANUAL_REVIEW, launch real Origin export, or modify raw/workspace/F-drive source data.
 
 ## What Has Been Processed
 
@@ -109,3 +123,28 @@ Do not modify F-drive backup or workspace source files. Do not process all MANUA
 ## Phase 1.9 Suggestion
 
 Next no-Origin expansion can start from `output\reports\phase1_8_new_auto_process_queue.json` after reviewing the dry-run plan. User-approved manual-review rows remain separate and must go through `reviewed-queue`. Do not use `--include-ambiguous` globally. Origin export remains a later explicit step after no-Origin QC. BET should remain manual/proposal-only until its adsorption/desorption columns and standardized package strategy are reviewed.
+
+## Phase 1.11 Release Freeze And Hygiene Handoff
+
+- Canonical package: `output\phase1_6_origin_results_20260531_041538`
+- Locked results: `output\final_locked_results\freeze_20260602_011419`
+- Locked count: 167
+- Phase 1.11 handoff: `docs\agent_reports\PHASE1_11_HANDOFF_TO_CHATGPT_FOR_NEXT_DECISION.md`
+- Commit-ready report: `docs\agent_reports\phase1_11_commit_ready_report.md`
+- Package audit: `docs\agent_reports\phase1_11_final_package_integrity_audit.md`
+- Project hygiene audit: `docs\agent_reports\phase1_11_project_hygiene_audit.md`
+- Report/script/output indexes live under `docs\indexes\`.
+
+Future Codex agents should not put temporary scripts in the project root. Reusable maintenance scripts go in `scripts\maintenance`, one-off helpers go in `scripts\one_off`, and historical scripts go in `scripts\archive` only after reference checks. Do not move formal result packages, `workspace_data`, or F-drive backup data. Do not confuse `output` and `outputs`: `output` is the primary result repository, while `outputs` is specialized/historical output storage.
+
+## Phase 1.12 Commit Preparation Handoff
+
+- ALLOW_GIT_COMMIT was false.
+- No `git add`, `git commit`, or `git tag` was executed.
+- Pre-commit validation: `docs\agent_reports\phase1_12_pre_commit_validation.md`
+- Git workspace audit: `docs\agent_reports\phase1_12_git_workspace_audit.md`
+- Staging strategy: `docs\agent_reports\phase1_12_staging_strategy.md`
+- Commit commands: `docs\agent_reports\phase1_12_commit_commands.md`
+- Final handoff: `docs\agent_reports\PHASE1_12_HANDOFF_TO_CHATGPT_FOR_NEXT_DECISION.md`
+
+Recommended manual path is Scheme A unless the user explicitly wants audit reports in the commit. Never stage raw data, workspace source data, Phase result packages, OPJU/TIF/PNG artifacts, tmp files, `.pytest_cache`, `__pycache__`, or large binary outputs.

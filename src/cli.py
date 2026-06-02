@@ -5,6 +5,7 @@ from pathlib import Path
 
 from src.core.deps import dependency_audit
 from src.core.auto_queue import AutoQueueOptions, run_auto_queue
+from src.core.manifest_normalizer import normalize_material_collection_manifest
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
 from src.core.phase1_9 import DEFAULT_ORIGIN_SKILL_DIR, DEFAULT_PHASE1_6_PACKAGE, run_phase1_9_governance
 from src.core.process import ProcessOptions, run_process
@@ -71,6 +72,15 @@ def build_parser() -> argparse.ArgumentParser:
     origin_batch.add_argument("--only-missing", action="store_true", help="plan only entries missing Origin outputs")
     origin_batch.add_argument("--report-json", type=Path, help="optional JSON report path under output/ or docs/")
     origin_batch.add_argument("--report-md", type=Path, help="optional Markdown report path under output/ or docs/")
+
+    manifest_normalize = subparsers.add_parser(
+        "manifest-normalize",
+        help="normalize a material collection index into an origin-batch-compatible manifest without processing data",
+    )
+    manifest_normalize.add_argument("--manifest", type=Path, required=True, help="material collection index.csv")
+    manifest_normalize.add_argument("--output-csv", type=Path, default=Path("output/reports/phase1_10_material_collection_normalized_manifest.csv"))
+    manifest_normalize.add_argument("--output-json", type=Path, default=Path("output/reports/phase1_10_material_collection_normalized_manifest.json"))
+    manifest_normalize.add_argument("--output-md", type=Path, default=Path("output/reports/phase1_10_material_collection_normalized_manifest.md"))
 
     reviewed_queue = subparsers.add_parser(
         "reviewed-queue",
@@ -207,6 +217,15 @@ def main(argv: list[str] | None = None) -> int:
                 report_md=args.report_md,
             ),
         )
+    if args.command == "manifest-normalize":
+        normalize_material_collection_manifest(
+            args.manifest if args.manifest.is_absolute() else project_root / args.manifest,
+            project_root,
+            output_csv=args.output_csv,
+            output_json=args.output_json,
+            output_md=args.output_md,
+        )
+        return 0
     if args.command == "reviewed-queue":
         return run_reviewed_queue(
             project_root,

@@ -37,3 +37,6 @@ output/reports/_test_*
 *.log
 *.tmp
 *.bak
+tmp_cli_probe/
+tmp_malformed.csv
+tmp_out.txt

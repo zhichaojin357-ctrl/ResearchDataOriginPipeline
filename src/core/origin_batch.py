@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.core.manifest_schema import schema_mismatch_message
 from src.core.runtime_paths import resolve_workspace_root
 
 
@@ -29,9 +30,9 @@ REQUIRED_MANIFEST_HEADERS = {
     "origin_file",
     "figure_tif",
     "preview_png",
-    "origin_status",
     "qc_status",
 }
+ORIGIN_STATUS_HEADERS = {"origin_status", "origin_export_status"}
 SOURCE_LOCATOR_HEADERS = {"source_file", "source_copy", "selected_source_copy", "selected_source_data"}
 
 
@@ -76,6 +77,9 @@ def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
         if options.only_type and _normalize(data_type) != _normalize(options.only_type):
             skipped.append({**base_item, "reason": "only_type_filter"})
             continue
+        if _normalize(row.get("safe_for_origin_batch", "")) == "false":
+            skipped.append({**base_item, "reason": "not_safe_for_origin_batch", "details": row.get("notes", "")})
+            continue
 
         path_errors, resolved_artifacts = _resolve_artifact_paths(package_root, row)
         if path_errors:
@@ -105,14 +109,13 @@ def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
         if options.only_missing and not missing_outputs:
             skipped.append({**base_item, "reason": "not_missing_origin_outputs"})
             continue
-
         planned.append(
             {
                 **base_item,
                 "source_file": row.get("source_file", ""),
                 "source_hash": source_hash,
                 "missing_origin_outputs": missing_outputs,
-                "origin_status": row.get("origin_status", ""),
+                "origin_status": _origin_status(row),
                 "qc_status": row.get("qc_status", ""),
                 "action": "origin_export_candidate",
             }
@@ -235,8 +238,10 @@ def _validate_manifest_headers(fieldnames: list[str] | None, path: Path) -> list
         raise ValueError(f"manifest CSV duplicate header: {', '.join(duplicates)}: {path}")
     header_set = set(headers)
     missing = sorted(REQUIRED_MANIFEST_HEADERS - header_set)
+    if not header_set.intersection(ORIGIN_STATUS_HEADERS):
+        missing.append("origin_status")
     if missing:
-        raise ValueError(f"manifest CSV missing required headers: {', '.join(missing)}: {path}")
+        raise ValueError(f"manifest CSV missing required headers: {', '.join(missing)}: {path}; {schema_mismatch_message(path)}")
     if not header_set.intersection(SOURCE_LOCATOR_HEADERS):
         choices = ", ".join(sorted(SOURCE_LOCATOR_HEADERS))
         raise ValueError(f"manifest CSV must include one source locator header ({choices}): {path}")
@@ -357,11 +362,15 @@ def _missing_or_empty(paths: dict[str, Path], fields: tuple[str, ...]) -> list[s
 
 
 def _is_complete(row: dict[str, str], artifacts: dict[str, Path], missing_outputs: list[str]) -> bool:
-    status_ok = _normalize(row.get("origin_status", "")) == "success"
+    status_ok = _normalize(_origin_status(row)) == "success"
     qc_ok = _normalize(row.get("qc_status", "")) == "qc_pass"
     outputs_ok = not missing_outputs
     inputs_ok = not _missing_or_empty(artifacts, INPUT_ARTIFACT_FIELDS)
     return status_ok and qc_ok and outputs_ok and inputs_ok
+
+
+def _origin_status(row: dict[str, str]) -> str:
+    return row.get("origin_status") or row.get("origin_export_status", "")
 
 
 def _file_sha256(path: Path) -> str:

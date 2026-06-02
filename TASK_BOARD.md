@@ -68,6 +68,15 @@
 
 ## Still Open For User
 
+- [x] Phase 1.10: archived the manifest stabilization instruction.
+- [x] Phase 1.10: added canonical origin-batch manifest schema reporting.
+- [x] Phase 1.10: added material collection manifest detection and normalization.
+- [x] Phase 1.10: refreshed standard package origin-batch dry-run.
+- [x] Phase 1.10: generated `output/final_locked_results/freeze_*` canonical freeze manifest.
+- [x] Phase 1.10: documented output/outputs directory roles.
+- [x] Phase 1.10: generated the next MANUAL_REVIEW batch plan without processing data.
+- [x] Phase 1.10: generated scientific safety and reviewer reports.
+
 - [ ] Review 167 Phase 1.6 PNG previews: `output/reports/phase1_7_origin_preview_review_checklist.csv`.
 - [ ] Fill reviewed decisions only for files you approve: `output/reports/phase1_8_review_decisions_template.csv`.
 - [ ] Review unresolved files in the current filtered workbook: `output/reports/phase1_8_manual_review_required_filtered.xlsx`.
@@ -82,3 +91,38 @@
 ## Always Forbidden
 
 PPT generation, kinetics processor creation, SEM/TEM/NMR/MS processing, raw-data modification, F-drive modification, and unreviewed bulk MANUAL_REVIEW processing remain forbidden.
+
+## Phase 1.11 Completed
+
+- [x] Archived the Phase 1.11 release-freeze instruction.
+- [x] Archived the Phase 1.11 project-hygiene append instruction.
+- [x] Ran baseline validation and standard package origin-batch dry-run.
+- [x] Audited canonical package, locked results, and material normalized manifest.
+- [x] Audited known temporary files and retained them safely.
+- [x] Created report/script/output indexes under `docs\indexes`.
+- [x] Created scripts subdirectory READMEs without moving existing scripts.
+- [x] Generated commit-ready report without committing.
+- [x] Generated Phase 1.11 handoff for next decision.
+
+## Still Open After Phase 1.11
+
+- [ ] User decides whether to commit the selected Phase 1.10/1.11 code, docs, and reports.
+- [ ] User decides whether to enter PPT-ready asset checklist, still without generating PPT by default.
+- [ ] User decides whether any MANUAL_REVIEW type should be processed in a future explicit small batch.
+
+## Phase 1.12 Completed
+
+- [x] Archived the Phase 1.12 release commit preparation instruction.
+- [x] Ran pre-commit validation without processing data or launching Origin.
+- [x] Audited the git workspace.
+- [x] Classified dirty files into MUST_COMMIT, SHOULD_COMMIT, OPTIONAL_COMMIT, DO_NOT_COMMIT, and NEED_USER_CONFIRMATION.
+- [x] Audited `.gitignore`; no Phase 1.12 edit was required.
+- [x] Generated Scheme A/B/C commit commands without executing them.
+- [x] Updated project handoff documents.
+- [x] Confirmed no git add, commit, or tag was executed.
+
+## Still Open After Phase 1.12
+
+- [ ] User decides whether to run Scheme A manually.
+- [ ] User decides whether key audit reports should be included via Scheme B.
+- [ ] User decides whether to move next into PPT-ready asset checklist.
