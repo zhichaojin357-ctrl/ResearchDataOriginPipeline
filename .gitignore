@@ -24,12 +24,25 @@ output/phase1_*/
 output/unclassified/
 output/material_collections/
 output/xps_*/
+output/runs/
+output/regression/
+output/adapter_shadow_runs/
+output/bet_reference_compare/
+output/opju_exemplar_regression/
+output/final_locked_results/
 outputs/
 
 # Keep lightweight review/report outputs versioned
 !output/reports/
 !output/reports/**
 output/reports/_test_*
+output/reports/_tmp_*
+output/reports/tmp_*
+output/reports/*.png
+output/reports/*.zip
+output/reports/*.xlsx
+output/reports/xps_template_compare/
+output/reports/phase1_14_single_queues/
 !output/review_dashboard/
 !output/review_dashboard/**
 
