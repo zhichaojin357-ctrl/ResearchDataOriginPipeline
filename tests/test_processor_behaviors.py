@@ -335,7 +335,8 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertIn("on_off_ratio_candidate", metadata["key_results"])
             self.assertIn("light on/off intervals", " ".join(metadata["manual_check_items"]))
             rows = self._processed_rows(root, metadata)
-            self.assertEqual(set(rows[0]), {"time_s", "current", "cycle_candidate_id"})
+            self.assertEqual(set(rows[0]), {"time_s", "photocurrent_uA", "cycle_candidate_id"})
+            self.assertEqual(rows[1]["photocurrent_uA"], "300000.0")
 
     def test_photocurrent_response_outputs_peak_and_steady_current_candidates(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -372,9 +373,9 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertAlmostEqual(metadata["key_results"]["on_off_ratio_candidate"], 7.333333333333333)
             self.assertEqual(metadata["key_results"]["light_on_points"], 2)
             rows = self._processed_rows(root, metadata)
-            self.assertEqual(set(rows[0]), {"time_s", "current", "light_state", "cycle_candidate_id", "current_density_optional"})
+            self.assertEqual(set(rows[0]), {"time_s", "photocurrent_uA", "light_state", "cycle_candidate_id", "current_density_uA_cm2_optional"})
             self.assertEqual([row["cycle_candidate_id"] for row in rows], ["1", "1", "2", "2"])
-            self.assertEqual(rows[2]["current_density_optional"], "0.5")
+            self.assertEqual(rows[2]["current_density_uA_cm2_optional"], "500000.0")
 
     def test_rejects_scan_only_reference_literature_when_called_directly(self):
         with tempfile.TemporaryDirectory() as tmpdir:

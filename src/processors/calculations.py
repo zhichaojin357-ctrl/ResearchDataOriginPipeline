@@ -291,8 +291,8 @@ def photocurrent_processed_table(
     if not states:
         output = []
         for index, (time_value, current) in enumerate(numeric):
-            output.append([time_value, current, index // 2 + 1])
-        return ["time_s", "current", "cycle_candidate_id"], output
+            output.append([time_value, current * 1_000_000, index // 2 + 1])
+        return ["time_s", "photocurrent_uA", "cycle_candidate_id"], output
 
     output = []
     cycle = 1
@@ -304,8 +304,9 @@ def photocurrent_processed_table(
             previous = state
         area = first_numeric(rows[index], ["area_cm2", "area"]) if index < len(rows) else None
         density = current / area if area and area != 0 else None
-        output.append([time_value, current, state, cycle, density])
-    return ["time_s", "current", "light_state", "cycle_candidate_id", "current_density_optional"], output
+        density_uA = density * 1_000_000 if density is not None else None
+        output.append([time_value, current * 1_000_000, state, cycle, density_uA])
+    return ["time_s", "photocurrent_uA", "light_state", "cycle_candidate_id", "current_density_uA_cm2_optional"], output
 
 
 def xps_export_results(rows: list[dict[str, str]]) -> dict:
