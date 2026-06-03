@@ -14,7 +14,9 @@ from src.core.project import (
     registry_path,
     report_path,
 )
+from src.core.runtime_paths import resolve_workspace_root
 from src.origin.adapter import ORIGIN_DISABLE_ENV_VARS, check_origin_available
+from src.origin.plot_policy import all_plot_policies, validate_graph4_style_config
 
 
 def validate(project_root: Path) -> int:
@@ -164,11 +166,25 @@ def validate(project_root: Path) -> int:
         "avoid Origin.ApplicationSI": 'avoid_entrypoint: "Origin.ApplicationSI"' in text,
         "PNG preview inspection": "Export PNG preview and visually inspect" in text,
         "explicit bold legend rows": "explicit legend rows" in text,
+        "legend has no frame or fill": "legend_border: 0" in text and "legend_frame: 0" in text and "legend_fill: 0" in text,
+        "chemical formula subscripts": "chemical_formula_subscripts: true" in text,
         "line width 3": "line_width: 3" in text and "axis_line_width: 3" in text,
+        "axis title size 36": "axis_title_size: 36" in text,
+        "X tick label size 28": "x_tick_label_size: 28" in text,
+        "Y tick label size 36": "y_tick_label_size: 36" in text,
+        "legend font size 26": "legend_font_size: 26" in text,
+        "annotation font size 26": "annotation_font_size: 26" in text,
+        "bold font enabled": "font_bold: true" in text,
     }
     for label, passed in origin_contract_checks.items():
         lines.append(f"- Origin contract {label}: {'pass' if passed else 'fail'}")
     failed_origin_contracts = [label for label, passed in origin_contract_checks.items() if not passed]
+    try:
+        validate_graph4_style_config(plot_style)
+        lines.append("- Origin Graph4 fixed style values: pass")
+    except ValueError as exc:
+        lines.append(f"- Origin Graph4 fixed style values: fail ({exc})")
+        failed_origin_contracts.append("Graph4 fixed style values")
     if failed_origin_contracts:
         failures.append("Origin plotting contract invalid: " + ", ".join(failed_origin_contracts))
 
@@ -203,6 +219,17 @@ def validate(project_root: Path) -> int:
                 lines.append(f"- Phase 1.9 journal-ready index skill hash: {'pass' if skill_column_ok else 'fail'}")
                 if not skill_column_ok:
                     failures.append("Phase 1.9 journal-ready index contains inconsistent plotting skill hashes")
+                policy_field_failures = _phase1_9_journal_policy_field_failures(rows)
+                lines.append(
+                    f"- Phase 1.9 journal-ready index policy values: "
+                    f"{'pass' if not policy_field_failures else 'fail'}"
+                )
+                if policy_field_failures:
+                    for failure in policy_field_failures[:10]:
+                        lines.append(f"  - {failure}")
+                    if len(policy_field_failures) > 10:
+                        lines.append(f"  - ... {len(policy_field_failures) - 10} more")
+                    failures.append("Phase 1.9 journal-ready index policy values invalid")
     lines.append("- max_threads = 5")
     lines.append("- max_depth = 1")
     lines.append(f"- Claim policy forbidden claims: {len(claim.get('forbidden_claims', []))}")
@@ -218,6 +245,9 @@ def _is_allowed_source_artifact(project_root: Path, path: Path) -> bool:
         project_root / "workspace_data",
         project_root / "input" / "raw_data",
     ]
+    resolved_workspace = resolve_workspace_root(project_root)
+    if resolved_workspace not in allowed_roots:
+        allowed_roots.append(resolved_workspace)
     resolved = path.resolve()
     for root in allowed_roots:
         try:
@@ -226,3 +256,42 @@ def _is_allowed_source_artifact(project_root: Path, path: Path) -> bool:
         except ValueError:
             continue
     return False
+
+
+def _phase1_9_journal_policy_field_failures(rows: list[dict[str, str]]) -> list[str]:
+    bool_fields = ["y_axis_visible", "y_ticks_visible", "y_tick_values_visible"]
+    allowed_bool_values = {"true", "false"}
+    allowed_marker_modes = {
+        "none",
+        "markers_preferred",
+        "markers_required",
+        "markers_optional",
+        "markers_optional_for_sparse_points",
+        "symbols_required_for_branches",
+        "error_bars_when_available",
+        "sticks_required",
+        "not_applicable",
+        "review_required",
+    }
+    allowed_marker_modes.update(policy.marker_policy for policy in all_plot_policies().values())
+    failures: list[str] = []
+    for index, row in enumerate(rows, start=2):
+        result_id = row.get("result_id") or f"row {index}"
+        for field in [
+            "plot_primitive",
+            "marker_policy",
+            "plot_policy_reason",
+            "y_axis_visible",
+            "y_ticks_visible",
+            "y_tick_values_visible",
+        ]:
+            if not str(row.get(field, "")).strip():
+                failures.append(f"{result_id}: missing {field}")
+        for field in bool_fields:
+            value = str(row.get(field, "")).strip().casefold()
+            if value and value not in allowed_bool_values:
+                failures.append(f"{result_id}: {field} must be true/false, got {row.get(field)!r}")
+        marker = str(row.get("marker_policy", "")).strip()
+        if marker and marker not in allowed_marker_modes:
+            failures.append(f"{result_id}: unsupported marker_policy {marker!r}")
+    return failures

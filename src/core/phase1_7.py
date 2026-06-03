@@ -838,11 +838,19 @@ def _origin_processes() -> list[dict[str, str]]:
         "Get-Process | Where-Object { $_.ProcessName -match '^Origin|OriginPro|Origin64|origin' } "
         "| Select-Object Id,ProcessName,StartTime,MainWindowTitle | ConvertTo-Json -Depth 3"
     )
-    result = subprocess.run(["powershell", "-NoProfile", "-Command", command], text=True, capture_output=True, timeout=20)
-    if result.returncode != 0 or not result.stdout.strip():
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", command],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        timeout=20,
+    )
+    stdout = result.stdout or ""
+    if result.returncode != 0 or not stdout.strip():
         return []
     try:
-        payload = json.loads(result.stdout)
+        payload = json.loads(stdout)
     except json.JSONDecodeError:
         return []
     if isinstance(payload, dict):

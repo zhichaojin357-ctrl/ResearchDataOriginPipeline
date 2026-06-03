@@ -76,6 +76,7 @@ def test_material_collection_normalizer_marks_source_only_items_unsafe(tmp_path:
 
 
 def test_normalized_manifest_dry_run_is_controlled_with_zero_safe_items(tmp_path: Path, project_root: Path):
+    test_project = tmp_path / "project"
     collection = tmp_path / "collection"
     _write_material_collection_index(
         collection,
@@ -98,13 +99,14 @@ def test_normalized_manifest_dry_run_is_controlled_with_zero_safe_items(tmp_path
         ],
     )
     _write(collection / "workspace_matches" / "a.raw", "raw")
+    output_dir = test_project / "output" / "reports" / "phase1_10_normalized"
     normalized = normalize_material_collection_manifest(
         collection / "index.csv",
-        project_root,
-        output_dir=project_root / "output" / "reports" / "_test_phase1_10_normalized",
+        test_project,
+        output_dir=output_dir,
     )
 
-    plan = plan_origin_batch(project_root, OriginBatchOptions(manifest=normalized.csv_path))
+    plan = plan_origin_batch(test_project, OriginBatchOptions(manifest=normalized.csv_path))
 
     assert plan["summary"]["total_manifest_items"] == 1
     assert plan["summary"]["planned_count"] == 0
@@ -134,16 +136,19 @@ def test_origin_batch_cli_explains_material_collection_schema_mismatch(tmp_path:
 
 
 def test_manifest_normalize_cli_writes_origin_batch_compatible_outputs(tmp_path: Path, project_root: Path):
+    test_project = tmp_path / "project"
+    reports_dir = test_project / "output" / "reports"
+    reports_dir.mkdir(parents=True)
     collection = tmp_path / "collection"
     _write_material_collection_index(collection, [])
-    out_csv = project_root / "output" / "reports" / "_test_phase1_10_normalized_manifest.csv"
-    out_json = project_root / "output" / "reports" / "_test_phase1_10_normalized_manifest.json"
-    out_md = project_root / "output" / "reports" / "_test_phase1_10_normalized_manifest.md"
+    out_csv = reports_dir / "_test_phase1_10_normalized_manifest.csv"
+    out_json = reports_dir / "_test_phase1_10_normalized_manifest.json"
+    out_md = reports_dir / "_test_phase1_10_normalized_manifest.md"
 
     result = subprocess.run(
         [
             "D:\\Python\\python.exe",
-            "run.py",
+            str(project_root / "run.py"),
             "manifest-normalize",
             "--manifest",
             str(collection / "index.csv"),
@@ -154,7 +159,7 @@ def test_manifest_normalize_cli_writes_origin_batch_compatible_outputs(tmp_path:
             "--output-md",
             str(out_md),
         ],
-        cwd=project_root,
+        cwd=test_project,
         text=True,
         capture_output=True,
         timeout=20,

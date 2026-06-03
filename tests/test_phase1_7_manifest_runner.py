@@ -128,10 +128,13 @@ def test_manifest_runner_blocks_hash_mismatch(tmp_path: Path, project_root: Path
 
 
 def test_manifest_runner_writes_default_reports(tmp_path: Path, project_root: Path):
-    package = _make_manifest_package(tmp_path, project_root, complete=True)
-    report_json = project_root / "output" / "reports" / "_test_phase1_7_manifest_runner_plan.json"
-    report_md = project_root / "output" / "reports" / "_test_phase1_7_manifest_runner_plan.md"
-    code = run_origin_batch(project_root, OriginBatchOptions(manifest=package / "index.csv", report_json=report_json, report_md=report_md))
+    test_project = tmp_path / "project"
+    package = _make_manifest_package(tmp_path, test_project, complete=True)
+    reports_dir = test_project / "output" / "reports"
+    reports_dir.mkdir(parents=True)
+    report_json = reports_dir / "manifest_runner_plan.json"
+    report_md = reports_dir / "manifest_runner_plan.md"
+    code = run_origin_batch(test_project, OriginBatchOptions(manifest=package / "index.csv", report_json=report_json, report_md=report_md))
     assert code == 0
     payload = json.loads(report_json.read_text(encoding="utf-8"))
     assert payload["summary"]["will_launch_origin"] is False

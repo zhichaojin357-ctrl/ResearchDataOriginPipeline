@@ -6,6 +6,7 @@ import importlib
 import importlib.metadata as metadata
 import io
 import json
+import warnings
 from collections import Counter, defaultdict
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
@@ -13,27 +14,13 @@ from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from src.origin.plot_policy import GRAPH4_FIXED_STYLE, get_plot_policy
+
 
 DEFAULT_ORIGIN_SKILL_DIR = Path(r"D:\CodexData\.codex\skills\origin-plotting")
 DEFAULT_PHASE1_6_PACKAGE = Path("output/phase1_6_origin_results_20260531_041538")
 
 STYLE_PROFILE = "origin-plotting Graph4 cached style"
-Y_TICK_POLICY_BY_TYPE = {
-    "EIS": "show_numeric_y_ticks",
-    "photocurrent": "show_numeric_y_ticks",
-    "photocurrent_response": "show_numeric_y_ticks",
-    "Mott-Schottky": "show_numeric_y_ticks",
-    "BET": "show_numeric_y_ticks",
-    "UV-vis DRS": "show_numeric_y_ticks",
-    "reaction_condition_screening": "show_numeric_y_ticks",
-    "HPLC/LC exported data": "show_numeric_y_ticks",
-    "XPS": "hide_numeric_y_ticks_when_offset_or_normalized; record_no_valence_assignment",
-    "EPR": "hide_numeric_y_ticks_when_normalized; record_no_radical_assignment",
-    "Raman": "hide_numeric_y_ticks_when_normalized; record_no_defect_assignment",
-    "PL": "hide_numeric_y_ticks_when_normalized_or_offset; record_no_recombination_claim",
-    "FTIR": "hide_numeric_y_ticks_when_normalized_or_offset",
-    "XRD": "hide_numeric_y_ticks_when_normalized_or_offset; record_no_phase_assignment",
-}
 
 REQUIRED_JOURNAL_INDEX_COLUMNS = {
     "result_id",
@@ -49,6 +36,12 @@ REQUIRED_JOURNAL_INDEX_COLUMNS = {
     "plotting_skill_sha256",
     "plot_style_profile",
     "y_tick_policy",
+    "plot_primitive",
+    "y_axis_visible",
+    "y_ticks_visible",
+    "y_tick_values_visible",
+    "marker_policy",
+    "plot_policy_reason",
     "material_color_key",
 }
 
@@ -163,6 +156,8 @@ def write_origin_plotting_skill_snapshot(project_root: Path, skill_dir: Path) ->
             "x_axis_title_size": 36,
             "y_axis_title_size": 36,
             "legend_font_size": 26,
+            "annotation_font_size": GRAPH4_FIXED_STYLE.annotation_font_size,
+            "font_bold": GRAPH4_FIXED_STYLE.font_bold,
             "tif_dpi": 600,
             "outputs": ["OPJU", "TIF", "PNG preview"],
             "palette": "Okabe-Ito fallback unless skill or material color map overrides",
@@ -215,13 +210,20 @@ def write_journal_ready_index(project_root: Path, package_dir: Path, skill_paylo
         data_type = row.get("data_type", "")
         result_id = row.get("result_id", "")
         material_key = color_lookup.get(result_id) or _infer_material_key(row)
-        y_policy = Y_TICK_POLICY_BY_TYPE.get(data_type, "review_required")
+        plot_policy = get_plot_policy(data_type)
+        y_policy = _policy_y_tick_summary(plot_policy)
         enriched = dict(row)
         enriched.update(
             {
                 "plotting_skill_sha256": skill_payload["skill_sha256"],
                 "plot_style_profile": STYLE_PROFILE,
                 "y_tick_policy": y_policy,
+                "plot_primitive": plot_policy.plot_primitive,
+                "y_axis_visible": _bool_text(plot_policy.y_axis_visible),
+                "y_ticks_visible": _bool_text(plot_policy.y_ticks_visible),
+                "y_tick_values_visible": _bool_text(plot_policy.y_tick_values_visible),
+                "marker_policy": plot_policy.marker_policy,
+                "plot_policy_reason": plot_policy.plot_policy_reason,
                 "material_color_key": material_key,
                 "skill_rule_reference": "phase1_9_origin_plotting_skill_snapshot.md",
             }
@@ -261,6 +263,12 @@ def write_journal_ready_index(project_root: Path, package_dir: Path, skill_paylo
             "- `plotting_skill_sha256`",
             "- `plot_style_profile`",
             "- `y_tick_policy`",
+            "- `plot_primitive`",
+            "- `y_axis_visible`",
+            "- `y_ticks_visible`",
+            "- `y_tick_values_visible`",
+            "- `marker_policy`",
+            "- `plot_policy_reason`",
             "- `material_color_key`",
             "- `skill_rule_reference`",
             "",
@@ -401,13 +409,18 @@ def write_journal_figure_qc(project_root: Path, package_dir: Path, skill_payload
             checks[f"{key}_exists"] = path.exists()
             checks[f"{key}_nonempty"] = path.exists() and path.stat().st_size > 0
         status = "QC_PASS" if all(checks.values()) and row.get("qc_status") == "QC_PASS" else "QC_WARNING"
+        plot_policy = get_plot_policy(row.get("data_type", ""))
         qc_rows.append(
             {
                 "result_id": row.get("result_id"),
                 "data_type": row.get("data_type"),
                 "qc_status": status,
                 "plotting_skill_sha256": skill_payload["skill_sha256"],
-                "y_tick_policy": Y_TICK_POLICY_BY_TYPE.get(row.get("data_type", ""), "review_required"),
+                "y_tick_policy": _policy_y_tick_summary(plot_policy),
+                "plot_primitive": plot_policy.plot_primitive,
+                "y_axis_visible": plot_policy.y_axis_visible,
+                "y_ticks_visible": plot_policy.y_ticks_visible,
+                "y_tick_values_visible": plot_policy.y_tick_values_visible,
                 "checks": checks,
             }
         )
@@ -695,7 +708,22 @@ def _package_import_status(package: str, module: str) -> dict:
     except metadata.PackageNotFoundError:
         result["license"] = "not installed"
     try:
-        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        with warnings.catch_warnings(), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            warnings.filterwarnings(
+                "ignore",
+                message="Cython PyNumpress is not installed.*",
+                category=ImportWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="Plotly is required for plotting support.*",
+                category=ImportWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="Importing from numpy\\.matlib is deprecated.*",
+                category=PendingDeprecationWarning,
+            )
             importlib.import_module(module)
         result["import_status"] = "ok"
         result["smoke_status"] = _package_smoke(package)
@@ -754,6 +782,20 @@ def _infer_material_key(row: dict[str, str]) -> str:
         if token in haystack:
             return token
     return "manual_review"
+
+
+def _bool_text(value: bool) -> str:
+    return "true" if value else "false"
+
+
+def _policy_y_tick_summary(policy) -> str:
+    if not policy.y_axis_visible:
+        return "hide_y_axis_and_ticks"
+    if policy.y_ticks_visible and policy.y_tick_values_visible:
+        return "show_y_axis_ticks_and_numeric_values"
+    if policy.y_ticks_visible and not policy.y_tick_values_visible:
+        return "show_y_axis_and_tick_marks_hide_numeric_values"
+    return "show_y_axis_hide_tick_marks_and_numeric_values"
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:

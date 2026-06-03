@@ -37,7 +37,13 @@ def test_phase1_9_governance_generates_skill_snapshot_and_journal_index(tmp_path
     assert REQUIRED_JOURNAL_INDEX_COLUMNS.issubset(rows[0])
     assert rows[0]["plotting_skill_sha256"] == outputs.skill_sha256
     assert rows[0]["plot_style_profile"] == "origin-plotting Graph4 cached style"
-    assert rows[0]["y_tick_policy"] == "show_numeric_y_ticks"
+    assert rows[0]["y_tick_policy"] == "show_y_axis_ticks_and_numeric_values"
+    assert rows[0]["plot_primitive"] == "line+symbol"
+    assert rows[0]["y_axis_visible"] == "true"
+    assert rows[0]["y_ticks_visible"] == "true"
+    assert rows[0]["y_tick_values_visible"] == "true"
+    assert rows[0]["marker_policy"] == "markers_preferred"
+    assert rows[0]["plot_policy_reason"]
     assert raw_source.read_text(encoding="utf-8") == "x,y\n1,2\n"
 
 
@@ -58,6 +64,37 @@ def test_validate_checks_phase1_9_governance_files_when_present(tmp_path: Path):
     assert "- Phase 1.9 plotting skill SHA256 recorded: pass" in report
     assert "- Phase 1.9 journal-ready index columns: pass" in report
     assert "- Phase 1.9 journal-ready index skill hash: pass" in report
+    assert "- Phase 1.9 journal-ready index policy values: pass" in report
+
+
+def test_validate_rejects_invalid_phase1_9_journal_policy_values(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    _write_minimal_validate_project(project)
+    package = project / "output" / "phase1_6_origin_results_20260531_041538"
+    skill_dir = tmp_path / "origin-plotting"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text("Graph4\n", encoding="utf-8")
+    package.mkdir(parents=True)
+    _write_package_index(package / "index.csv")
+    run_phase1_9_governance(project, skill_dir=skill_dir, package_dir=package)
+
+    journal_csv = project / "output" / "reports" / "phase1_9_journal_ready_index.csv"
+    with journal_csv.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+        fields = list(rows[0].keys())
+    rows[0]["y_axis_visible"] = "maybe"
+    rows[0]["marker_policy"] = "unexpected_marker_mode"
+    with journal_csv.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    exit_code = validate(project)
+    report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+
+    assert exit_code == 1
+    assert "- Phase 1.9 journal-ready index policy values: fail" in report
+    assert "unexpected_marker_mode" in report
 
 
 def test_phase1_9_cli_help_documents_governance_command(project_root: Path):
@@ -138,6 +175,12 @@ def _write_minimal_validate_project(project: Path) -> None:
         'default_graph_page: "Graph4"\n'
         'automation_entrypoint: "Origin.Application"\n'
         'avoid_entrypoint: "Origin.ApplicationSI"\n'
+        "axis_title_size: 36\n"
+        "x_tick_label_size: 28\n"
+        "y_tick_label_size: 36\n"
+        "legend_font_size: 26\n"
+        "annotation_font_size: 26\n"
+        "font_bold: true\n"
         "Export PNG preview and visually inspect\n"
         "explicit legend rows\n"
         "line_width: 3\n"

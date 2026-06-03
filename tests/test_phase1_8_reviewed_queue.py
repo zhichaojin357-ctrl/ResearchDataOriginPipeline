@@ -29,11 +29,14 @@ class ReviewedQueueFixture:
 
 def test_reviewed_queue_template_generation_covers_all_proposals(tmp_path: Path, project_root: Path):
     fixture = _make_fixture(tmp_path)
-    proposals = load_proposals(project_root, fixture.proposals)
-    template = project_root / "output" / "reports" / "_test_phase1_8_template.csv"
+    test_project = tmp_path / "project"
+    proposals = load_proposals(test_project, fixture.proposals)
+    reports_dir = test_project / "output" / "reports"
+    reports_dir.mkdir(parents=True)
+    template = reports_dir / "review_template.csv"
 
     path = write_decision_template(
-        project_root,
+        test_project,
         proposals,
         ReviewedQueueOptions(proposals=fixture.proposals, write_template=True, template_out=template),
     )
@@ -301,7 +304,7 @@ def test_reviewed_queue_blocks_malformed_csv_as_parse_error(tmp_path: Path, proj
         _plan(project_root, fixture, decisions)
 
 
-def test_reviewed_queue_cli_help_and_blank_dry_run(project_root: Path):
+def test_reviewed_queue_cli_help_and_blank_dry_run(tmp_path: Path, project_root: Path):
     help_result = subprocess.run(
         ["D:\\Python\\python.exe", "run.py", "reviewed-queue", "--help"],
         cwd=project_root,
@@ -313,16 +316,26 @@ def test_reviewed_queue_cli_help_and_blank_dry_run(project_root: Path):
     assert "--write-template" in help_result.stdout
     assert "--decisions" in help_result.stdout
 
-    proposals = project_root / "output" / "reports" / "phase1_7_new_override_proposals_after_optimization.json"
-    if not proposals.exists():
-        return
-    template = project_root / "output" / "reports" / "_test_phase1_8_review_decisions_template.csv"
-    report_json = project_root / "output" / "reports" / "_test_phase1_8_reviewed_queue_plan.json"
-    report_md = project_root / "output" / "reports" / "_test_phase1_8_reviewed_queue_plan.md"
-    run_reviewed_queue(project_root, ReviewedQueueOptions(proposals=proposals, write_template=True, template_out=template))
+    fixture = _make_fixture(tmp_path)
+    test_project = tmp_path / "project"
+    proposals = fixture.proposals
+    reports_dir = test_project / "output" / "reports"
+    reports_dir.mkdir(parents=True)
+    template = reports_dir / "_test_phase1_8_review_decisions_template.csv"
+    report_json = reports_dir / "_test_phase1_8_reviewed_queue_plan.json"
+    report_md = reports_dir / "_test_phase1_8_reviewed_queue_plan.md"
+    run_reviewed_queue(test_project, ReviewedQueueOptions(proposals=proposals, write_template=True, template_out=template))
     code = run_reviewed_queue(
-        project_root,
-        ReviewedQueueOptions(proposals=proposals, decisions=template, report_json=report_json, report_md=report_md),
+        test_project,
+        ReviewedQueueOptions(
+            proposals=proposals,
+            decisions=template,
+            report_json=report_json,
+            report_md=report_md,
+            workspace_root=fixture.workspace_root,
+            triage_manifest=fixture.triage_manifest,
+            processed_index=fixture.processed_index,
+        ),
     )
     payload = json.loads(report_json.read_text(encoding="utf-8"))
     assert code == 0

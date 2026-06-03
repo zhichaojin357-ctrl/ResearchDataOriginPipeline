@@ -349,12 +349,25 @@ class Phase1ContractsTest(unittest.TestCase):
         self.assertIn("scan", result.stdout)
 
     def test_validate_reports_scope_guards_and_registry_semantics(self):
-        result = run_cli("validate")
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            (project / "config").mkdir()
+            for name in [
+                "default.yaml",
+                "processor_registry.yaml",
+                "claim_policy.yaml",
+                "plot_style.yaml",
+                "sample_registry.yaml",
+                "manual_overrides.yaml",
+            ]:
+                (project / "config" / name).write_text((ROOT / "config" / name).read_text(encoding="utf-8"), encoding="utf-8")
 
-        self.assertIn(result.returncode, (0, 1))
-        report = ROOT / "output" / "reports" / "validation_report.md"
-        self.assertTrue(report.exists())
-        text = report.read_text(encoding="utf-8")
+            result = run_cli("validate", cwd=project)
+
+            self.assertIn(result.returncode, (0, 1))
+            report = project / "output" / "reports" / "validation_report.md"
+            self.assertTrue(report.exists())
+            text = report.read_text(encoding="utf-8")
         self.assertIn("max_threads = 5", text)
         self.assertIn("动力学", text)
         self.assertIn("reference_literature", text)
@@ -368,6 +381,7 @@ class Phase1ContractsTest(unittest.TestCase):
         self.assertIn("Origin.Application", text)
         self.assertIn("PNG preview inspection", text)
         self.assertIn("explicit bold legend rows", text)
+        self.assertIn("legend has no frame or fill", text)
         self.assertIn("line width 3", text)
 
     def test_validate_rejects_forbidden_presentation_outputs_outside_exact_paths(self):
