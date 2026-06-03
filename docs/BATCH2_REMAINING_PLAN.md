@@ -6,9 +6,9 @@ This plan tracks source/config/test cleanup batches that remain after the automa
 
 ## Current Continuation State
 
-Continuation baseline after this GOAL source commit: `1fc9875 adapters: stabilize optional adapter bridge`.
+Continuation baseline after future output routing: `c9052f1 origin: accept run-scoped artifact paths`.
 
-Dirty count observed after the adapter bridge source commit and before this summary-doc edit: 291 items.
+Dirty count observed after the future output routing implementation commits and before this summary-doc edit: 291 items.
 
 Staged files after the adapter bridge source commit: 0.
 
@@ -33,6 +33,11 @@ Staged files after the adapter bridge source commit: 0.
 - `d5a24b1 processors: stabilize bet candidate extraction`
 - `823d093 docs: summarize bet candidate extraction micro-batch`
 - `1fc9875 adapters: stabilize optional adapter bridge`
+- `7ac2ab9 docs: summarize optional adapter bridge micro-batch`
+- `a114121 core: add run-scoped output path helpers`
+- `4c6ab10 core: route process artifacts into run outputs`
+- `49e207c core: route queue reports through run outputs`
+- `c9052f1 origin: accept run-scoped artifact paths`
 
 ## Remaining Source/Config/Test Review Order
 
@@ -45,8 +50,10 @@ Staged files after the adapter bridge source commit: 0.
    - Confirm whether any non-XPS source/test files remain after the adapter bridge commit.
    - Any remaining source change needs its own allowlist and targeted tests.
 
-3. Future output routing plan
-   - Output/report directories remain dirty and should be handled as a planning/governance batch before any large cleanup.
+3. Future output routing policy follow-up
+   - Core run-scoped output helpers and report/artifact path routing are implemented.
+   - CLI surfacing is not implemented because `src/cli.py` has unrelated XPS dirty content; handle that only after XPS preflight.
+   - Output/report directories remain dirty and should be handled as a later cleanup/governance batch.
    - Do not move, delete, or stage generated artifacts without a separate allowlist and review.
 
 4. Data-type plot fix sequence planning

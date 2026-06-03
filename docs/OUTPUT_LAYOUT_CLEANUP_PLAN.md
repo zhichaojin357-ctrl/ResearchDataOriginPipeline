@@ -165,6 +165,36 @@ output/
     workbooks/
 ```
 
+## Implemented Future Run Routing
+
+As of commit `c9052f1`, the project has code-level support for run-scoped output roots without moving legacy output:
+
+```text
+output/runs/YYYYMMDD_HHMMSS_<scope>/
+  processed_data/
+  metadata/
+  origin_files/
+  figures_tif/
+  figures_preview/
+  reports/
+  logs/
+  run_manifest.json
+```
+
+Implemented contracts:
+
+- `src/core/runtime_paths.py` creates run IDs, standard subdirectories, and `run_manifest.json`.
+- `src/core/project.py` supports optional `output_root` for future outputs while preserving legacy defaults.
+- process/scanner/metadata/processor paths can write generated no-Origin artifacts under a run root.
+- triage, auto-queue, reviewed-queue, and origin-batch planning reports can write under a run root.
+- Origin adapter path construction can target run `origin_files`, `figures_tif`, `figures_preview`, `logs/origin_jobs`, and `reports` without launching Origin.
+
+Not implemented in this section:
+
+- No old `output/` or `outputs/` content was moved.
+- No CLI flag was added for run output routing because `src/cli.py` has unrelated dirty XPS changes and needs its own preflight.
+- No generated artifacts were committed.
+
 If the existing layout is kept, future generated names should at least include:
 
 - date/time or phase

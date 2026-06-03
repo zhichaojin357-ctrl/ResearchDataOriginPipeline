@@ -23,6 +23,7 @@ Current branch/commit:
 - `run.py`: thin CLI wrapper; imports `src.cli.main`
 - `src/cli.py`: authoritative command surface
 - `src/core/process.py`: process orchestration and queue validation
+- `src/core/runtime_paths.py`: runtime path resolution, locked package lookup, and run-scoped output helpers
 - `src/core/triage.py`: current data triage/classification workflow
 - `src/core/auto_queue.py`: Phase 1.8 AUTO_PROCESS dry-run queue builder
 - `src/core/reviewed_queue.py`: user-reviewed proposal/decision dry-run planner
@@ -69,6 +70,16 @@ Use these as the supported command surface:
 - `validate`: project contract validation
 - `readiness`: current artifact and safety preflight
 - `phase1-9-governance`: governance/index report generation
+
+## Future Output Routing
+
+New code-level run output routing is documented in `docs/FUTURE_OUTPUT_ROUTING_GOAL_SUMMARY.md`.
+
+Future generated artifacts can be routed to:
+
+`output/runs/YYYYMMDD_HHMMSS_<scope>/`
+
+Supported core contracts now include process/no-Origin artifacts, metadata, scanner side reports, triage reports, auto-queue reports, reviewed-queue reports, origin-batch dry-run reports, and Origin adapter path construction. Legacy output paths remain readable and are preserved for historical traceability. No old `output/` or `outputs/` content has been moved by this routing work.
 
 ## Supported Data Types
 
