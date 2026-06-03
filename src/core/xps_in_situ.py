@@ -55,6 +55,14 @@ COMPONENT_COLORS = (
     "#9E8AC8",
     "#D8A15D",
 )
+OUTPUT_SUBDIRS = (
+    "figures_tif",
+    "figures_png",
+    "figures_pdf",
+    "origin_projects",
+    "reports",
+    "tables",
+)
 
 
 @dataclass(frozen=True)
@@ -140,6 +148,7 @@ def build_xps_in_situ_outputs(
     xps_root = resolve_workspace_root(project_root) / "XPS"
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    output_dirs = _output_subdirs(output_dir)
 
     sample_files, file_notes, scanned_files = discover_input_files(xps_root)
     records, manual_review = load_xps_fit_workbooks(sample_files)
@@ -153,7 +162,7 @@ def build_xps_in_situ_outputs(
 
     element_sources = _write_figures(panel_records, output_dir)
     peak_rows = _peak_summary_rows(panel_records)
-    _write_peak_summary(output_dir / "peak_positions_summary.xlsx", peak_rows)
+    _write_peak_summary(output_dirs["tables"] / "peak_positions_summary.xlsx", peak_rows)
 
     origin_status: dict[str, Any] = {"requested": with_origin, "ok": False, "message": "Origin export not requested"}
     if with_origin:
@@ -176,11 +185,12 @@ def build_xps_in_situ_outputs(
         origin_status=origin_status,
         quality_checks=quality_checks,
     )
-    (output_dir / "xps_data_mapping_report.md").write_text(report_text, encoding="utf-8")
-    (output_dir / "xps_in_situ_manifest.json").write_text(
+    (output_dirs["reports"] / "xps_data_mapping_report.md").write_text(report_text, encoding="utf-8")
+    (output_dirs["reports"] / "xps_in_situ_manifest.json").write_text(
         json.dumps(
             {
                 "output_dir": str(output_dir),
+                "output_dirs": {name: str(path) for name, path in output_dirs.items()},
                 "plotted_panels": [panel.__dict__ for panel in panels],
                 "missing": missing,
                 "element_sources": element_sources,
@@ -193,6 +203,13 @@ def build_xps_in_situ_outputs(
         encoding="utf-8",
     )
     return XpsInSituResult(output_dir, panels, missing, element_sources, origin_status, quality_checks)
+
+
+def _output_subdirs(output_dir: Path) -> dict[str, Path]:
+    dirs = {name: output_dir / name for name in OUTPUT_SUBDIRS}
+    for path in dirs.values():
+        path.mkdir(parents=True, exist_ok=True)
+    return dirs
 
 
 def discover_input_files(xps_root: Path) -> tuple[dict[str, list[Path]], list[dict[str, str]], list[Path]]:
