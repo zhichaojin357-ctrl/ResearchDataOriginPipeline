@@ -94,7 +94,7 @@ def process_table_dataset(
             warnings.append("Eg candidate requires configured Tauc interval selection.")
         if data_type == "HPLC/LC exported data" and key_results.get("lc_quantification_blocked_reason"):
             warnings.append(str(key_results["lc_quantification_blocked_reason"]))
-        x_title, y_title = _origin_axis_titles(headers)
+        x_title, y_title = _origin_axis_titles(headers, data_type)
         if no_origin:
             origin_result = None
             status = "processed_no_origin"
@@ -171,7 +171,21 @@ def _forbidden_claims(project_root: Path, data_type: str, profile: dict | None) 
     return deduped
 
 
-def _origin_axis_titles(headers: list[str]) -> tuple[str, str]:
+def _origin_axis_titles(headers: list[str], data_type: str = "") -> tuple[str, str]:
+    normalized = [header.strip().lower() for header in headers]
+    if normalized[:2] == ["relative_pressure_p_p0", "adsorbed_volume"]:
+        return "Relative Pressure (P/P0)", "Quantity Adsorbed (cm3/g STP)"
+    if normalized[:2] == ["time_s", "photocurrent_ua"]:
+        return "Time (s)", "Photocurrent (uA)"
+    axis_by_type = {
+        "Raman": ("Raman Shift (cm-1)", "Intensity (a.u.)"),
+        "FTIR": ("Wavenumber (cm-1)", "Intensity (a.u.)"),
+        "PL": ("Wavelength (nm)", "Intensity (a.u.)"),
+        "EPR": ("Magnetic Field (G)", "Intensity (a.u.)"),
+        "XRD": ("2theta (degree)", "Intensity (a.u.)"),
+    }
+    if data_type in axis_by_type and normalized[:2] in (["x", "intensity"], ["magnetic_field", "intensity"]):
+        return axis_by_type[data_type]
     if len(headers) >= 2:
         return headers[0], headers[1]
     if len(headers) == 1:
@@ -203,8 +217,25 @@ def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str
         "calculation_module": "src.processors.calculations",
         "processed_headers": headers,
         "candidate_methods": candidate_methods,
+        "adapter_layer": "src.adapters",
+        "adapter_policy": "lazy optional adapters with fallback; candidate metrics only",
         "interpretation_policy": "candidate metrics only; scientific interpretation requires manual review",
     }
+    adapters = []
+    if "peak_position_candidates" in key_results:
+        adapters.append("src.adapters.peak_detection_adapter")
+    if key_results.get("pybaselines_baseline_correction_available"):
+        adapters.append("src.adapters.baseline_adapter")
+    if data_type == "EIS":
+        adapters.append("src.adapters.eis_impedance_adapter")
+    if data_type == "BET":
+        adapters.append("src.adapters.bet_pygaps_adapter")
+    if data_type == "EPR":
+        adapters.append("src.adapters.epr_adapter")
+    if data_type == "XPS":
+        adapters.append("src.adapters.xps_lmfitxps_adapter")
+    if adapters:
+        provenance["candidate_adapters"] = adapters
     if "linear_fit_point_count" in key_results:
         provenance["fit_point_count"] = key_results["linear_fit_point_count"]
         provenance["fit_method"] = "ordinary_least_squares_candidate"
