@@ -106,6 +106,18 @@ class Phase11ProcessCliTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 run_process(project, raw, ProcessOptions(auto_select=True, from_queue=queue))
 
+    def test_process_from_queue_accepts_utf8_bom_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            raw = self._copy_project_inputs(project)
+            queue = project / "output" / "reports" / "processing_queue.json"
+            queue.parent.mkdir(parents=True, exist_ok=True)
+            queue.write_text('{"items": []}', encoding="utf-8-sig")
+
+            code = run_process(project, raw, ProcessOptions(from_queue=queue, no_origin=True, force=True))
+
+            self.assertEqual(code, 0)
+
     def test_cli_rejects_no_origin_with_origin_conflict(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)

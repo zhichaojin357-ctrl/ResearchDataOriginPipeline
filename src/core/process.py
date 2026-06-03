@@ -153,7 +153,7 @@ def _selected_queue_items(project_root: Path, input_path: Path, options: Process
     from src.core.project import load_json_compatible_yaml, registry_path
 
     queue_path = options.from_queue if options.from_queue.is_absolute() else project_root / options.from_queue
-    queue = json.loads(queue_path.read_text(encoding="utf-8"))
+    queue = json.loads(queue_path.read_text(encoding="utf-8-sig"))
     if not isinstance(queue, dict):
         raise ValueError(f"queue JSON must be an object with an items list: {queue_path}")
     queue_items = queue.get("items", [])
@@ -595,7 +595,7 @@ def _load_report_json(project_root: Path, name: str) -> dict:
     path = report_path(project_root, name)
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def _md_cell(value: object) -> str:
