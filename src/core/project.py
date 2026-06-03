@@ -38,12 +38,15 @@ def ensure_write_path_allowed(project_root: Path, path: Path) -> Path:
     return path
 
 
-def output_dir(project_root: Path, *parts: str) -> Path:
-    return ensure_dir(ensure_write_path_allowed(project_root, project_root / "output" / Path(*parts)))
+def output_dir(project_root: Path, *parts: str, output_root: Path | None = None) -> Path:
+    base = output_root if output_root is not None else project_root / "output"
+    if not base.is_absolute():
+        base = project_root / base
+    return ensure_dir(ensure_write_path_allowed(project_root, base / Path(*parts)))
 
 
-def report_path(project_root: Path, name: str) -> Path:
-    return output_dir(project_root, "reports") / name
+def report_path(project_root: Path, name: str, *, output_root: Path | None = None) -> Path:
+    return output_dir(project_root, "reports", output_root=output_root) / name
 
 
 def _is_under_or_equal(path: Path, parent: Path) -> bool:
@@ -60,9 +63,9 @@ def load_json_compatible_yaml(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def ensure_output_structure(project_root: Path) -> None:
+def ensure_output_structure(project_root: Path, *, output_root: Path | None = None) -> None:
     for name in REQUIRED_OUTPUT_DIRS:
-        output_dir(project_root, name)
+        output_dir(project_root, name, output_root=output_root)
 
 
 def load_project_config(project_root: Path, config_path: Path | None) -> dict:

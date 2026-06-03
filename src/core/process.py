@@ -22,6 +22,7 @@ class ProcessOptions:
     from_queue: Path | None = None
     auto_select: bool = False
     include_ambiguous: bool = False
+    output_root: Path | None = None
 
 
 def run_process(project_root: Path, input_path: Path, options: ProcessOptions | None = None) -> int:
@@ -42,8 +43,9 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
             only_folder=options.only_folder,
             fail_fast=options.fail_fast,
             force=options.force,
-            from_queue=report_path(project_root, "processing_queue.json"),
+            from_queue=report_path(project_root, "processing_queue.json", output_root=options.output_root),
             include_ambiguous=options.include_ambiguous,
+            output_root=options.output_root,
         )
     elif options.from_queue is not None and not options.with_origin:
         options = ProcessOptions(
@@ -56,8 +58,9 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
             from_queue=options.from_queue,
             auto_select=options.auto_select,
             include_ambiguous=options.include_ambiguous,
+            output_root=options.output_root,
         )
-    manifest = scan_raw_data(project_root, input_path)
+    manifest = scan_raw_data(project_root, input_path, output_root=options.output_root)
     results: list[dict] = []
     failures: list[dict] = []
 
@@ -83,6 +86,7 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
                 no_origin=options.no_origin,
                 force=options.force,
                 triage=triage_data,
+                output_root=options.output_root,
             )
             results.append(metadata)
             if metadata["processing_status"] not in {"success", "processed_no_origin"}:
@@ -110,14 +114,14 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
     ]
     for item in results:
         report.append(f"- `{item['dataset_id']}`: {item['processing_status']}")
-    report_path(project_root, "processing_report.md").write_text("\n".join(report) + "\n", encoding="utf-8")
-    report_path(project_root, "processing_report.json").write_text(
+    report_path(project_root, "processing_report.md", output_root=options.output_root).write_text("\n".join(report) + "\n", encoding="utf-8")
+    report_path(project_root, "processing_report.json", output_root=options.output_root).write_text(
         json.dumps({"results": results}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    _write_processing_failures(project_root, failures)
-    _write_processing_summary(project_root, manifest, results, failures)
-    _write_review_dashboard(project_root, manifest, results, failures)
+    _write_processing_failures(project_root, failures, output_root=options.output_root)
+    _write_processing_summary(project_root, manifest, results, failures, output_root=options.output_root)
+    _write_review_dashboard(project_root, manifest, results, failures, output_root=options.output_root)
     return 2 if failures else 0
 
 
@@ -441,8 +445,8 @@ def _manual_fix_hint(stage: str, data_type: str | None) -> str:
     return f"Check required columns and units for {data_type or 'this data type'} in docs/REAL_DATA_INTAKE_GUIDE.md."
 
 
-def _write_processing_failures(project_root: Path, failures: list[dict]) -> None:
-    report_path(project_root, "processing_failures.json").write_text(
+def _write_processing_failures(project_root: Path, failures: list[dict], *, output_root: Path | None = None) -> None:
+    report_path(project_root, "processing_failures.json", output_root=output_root).write_text(
         json.dumps({"failures": failures}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
@@ -460,10 +464,10 @@ def _write_processing_failures(project_root: Path, failures: list[dict]) -> None
                 **{key: _md_cell(value) for key, value in failure.items()}
             )
         )
-    report_path(project_root, "processing_failures.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    report_path(project_root, "processing_failures.md", output_root=output_root).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _write_processing_summary(project_root: Path, manifest: dict, results: list[dict], failures: list[dict]) -> None:
+def _write_processing_summary(project_root: Path, manifest: dict, results: list[dict], failures: list[dict], *, output_root: Path | None = None) -> None:
     type_stats: dict[str, dict[str, int]] = {}
     result_sources = set()
     for metadata in results:
@@ -517,7 +521,7 @@ def _write_processing_summary(project_root: Path, manifest: dict, results: list[
         "manual_check_required": manual_checks,
         "forbidden_claims": forbidden_claims,
     }
-    report_path(project_root, "processing_summary.json").write_text(
+    report_path(project_root, "processing_summary.json", output_root=output_root).write_text(
         json.dumps(summary, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
@@ -540,7 +544,7 @@ def _write_processing_summary(project_root: Path, manifest: dict, results: list[
     lines.extend(["", "## Manual Check Required"])
     for dataset_id in manual_checks:
         lines.append(f"- {dataset_id}")
-    report_path(project_root, "processing_summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    report_path(project_root, "processing_summary.md", output_root=output_root).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _artifact_missing(project_root: Path, metadata: dict, name: str) -> bool:
@@ -553,11 +557,11 @@ def _artifact_missing(project_root: Path, metadata: dict, name: str) -> bool:
     return not path.exists()
 
 
-def _write_review_dashboard(project_root: Path, manifest: dict, results: list[dict], failures: list[dict]) -> None:
-    summary = json.loads(report_path(project_root, "processing_summary.json").read_text(encoding="utf-8"))
-    dashboard = output_dir(project_root, "review_dashboard")
-    triage_manifest = _load_report_json(project_root, "data_triage_manifest.json")
-    processing_queue = _load_report_json(project_root, "processing_queue.json")
+def _write_review_dashboard(project_root: Path, manifest: dict, results: list[dict], failures: list[dict], *, output_root: Path | None = None) -> None:
+    summary = json.loads(report_path(project_root, "processing_summary.json", output_root=output_root).read_text(encoding="utf-8"))
+    dashboard = output_dir(project_root, "review_dashboard", output_root=output_root)
+    triage_manifest = _load_report_json(project_root, "data_triage_manifest.json", output_root=output_root)
+    processing_queue = _load_report_json(project_root, "processing_queue.json", output_root=output_root)
     lines = [
         "# Review Dashboard",
         "",
@@ -591,8 +595,8 @@ def _write_review_dashboard(project_root: Path, manifest: dict, results: list[di
     (dashboard / "index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _load_report_json(project_root: Path, name: str) -> dict:
-    path = report_path(project_root, name)
+def _load_report_json(project_root: Path, name: str, *, output_root: Path | None = None) -> dict:
+    path = report_path(project_root, name, output_root=output_root)
     if not path.exists():
         return {}
     return json.loads(path.read_text(encoding="utf-8-sig"))

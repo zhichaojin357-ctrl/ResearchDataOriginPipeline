@@ -37,6 +37,7 @@ def process_table_dataset(
     no_origin: bool = True,
     force: bool = True,
     triage: dict | None = None,
+    output_root: Path | None = None,
 ) -> dict:
     data_type = classification["inferred_data_type"]
     processor_name = classification["selected_processor"]
@@ -61,8 +62,8 @@ def process_table_dataset(
     output_slug = f"{source_slug}_{dataset_suffix}" if dataset_suffix else source_slug
     dataset_id = f"{safe_name(data_type)}_{output_slug}"
     profile = SUPPORTED_PROCESSOR_PROFILES.get(data_type)
-    processed_dir = output_dir(project_root, "processed_data", safe_name(data_type))
-    metadata_dir = output_dir(project_root, "metadata", safe_name(data_type))
+    processed_dir = output_dir(project_root, "processed_data", safe_name(data_type), output_root=output_root)
+    metadata_dir = output_dir(project_root, "metadata", safe_name(data_type), output_root=output_root)
     processed_csv = processed_dir / f"{output_slug}_processed.csv"
     if processed_csv.exists() and not force:
         raise FileExistsError(f"Output already exists; rerun with --force to overwrite: {processed_csv}")
@@ -140,6 +141,7 @@ def process_table_dataset(
         key_results=key_results,
         triage=triage,
         parameters={"algorithm_provenance": _algorithm_provenance(data_type, processor_name, headers if numeric else [], key_results)},
+        output_root=output_root,
     )
 
 
@@ -254,7 +256,7 @@ def _queue_dataset_suffix(triage: dict | None) -> str:
     return safe_name(f"q_{digest}")
 
 
-def process_supported(project_root: Path, manifest: dict, *, no_origin: bool = True, force: bool = True) -> list[dict]:
+def process_supported(project_root: Path, manifest: dict, *, no_origin: bool = True, force: bool = True, output_root: Path | None = None) -> list[dict]:
     results = []
     for classification in manifest["classifications"]:
         if not classification["supported_in_phase_1"]:
@@ -267,6 +269,7 @@ def process_supported(project_root: Path, manifest: dict, *, no_origin: bool = T
                     Path(file_name),
                     no_origin=no_origin,
                     force=force,
+                    output_root=output_root,
                 )
             )
     return results

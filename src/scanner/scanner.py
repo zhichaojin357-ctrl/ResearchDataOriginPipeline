@@ -65,8 +65,8 @@ def _matching_folders(raw_root: Path, entry: dict) -> list[Path]:
     return deduped
 
 
-def scan_raw_data(project_root: Path, input_path: Path) -> dict:
-    ensure_output_structure(project_root)
+def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | None = None) -> dict:
+    ensure_output_structure(project_root, output_root=output_root)
     registry = load_json_compatible_yaml(registry_path(project_root))
     input_path = input_path.absolute()
     classifications: list[Classification] = []
@@ -140,17 +140,17 @@ def scan_raw_data(project_root: Path, input_path: Path) -> dict:
         "unsupported_files_in_known_folders": unsupported_files_in_known_folders,
         "classifications": [item.as_dict() for item in classifications],
     }
-    reports = output_dir(project_root, "reports")
+    reports = output_dir(project_root, "reports", output_root=output_root)
     (reports / "inventory_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    _write_classification_report(project_root, manifest)
-    _write_unclassified_manifest(project_root, manifest)
+    _write_classification_report(project_root, manifest, output_root=output_root)
+    _write_unclassified_manifest(project_root, manifest, output_root=output_root)
     return manifest
 
 
-def _write_classification_report(project_root: Path, manifest: dict) -> None:
+def _write_classification_report(project_root: Path, manifest: dict, *, output_root: Path | None = None) -> None:
     lines = [
         "# Classification Report",
         "",
@@ -175,14 +175,14 @@ def _write_classification_report(project_root: Path, manifest: dict) -> None:
         lines.append(
             f"- `{item['relative_path']}` matched `{item['matched_folder_name']}` but suffix `{item['suffix'] or 'none'}` is unsupported"
         )
-    report_path(project_root, "classification_report.md").write_text(
+    report_path(project_root, "classification_report.md", output_root=output_root).write_text(
         "\n".join(lines) + "\n",
         encoding="utf-8",
     )
 
 
-def _write_unclassified_manifest(project_root: Path, manifest: dict) -> None:
-    unclassified_dir = output_dir(project_root, "unclassified")
+def _write_unclassified_manifest(project_root: Path, manifest: dict, *, output_root: Path | None = None) -> None:
+    unclassified_dir = output_dir(project_root, "unclassified", output_root=output_root)
     (unclassified_dir / "unclassified_manifest.json").write_text(
         json.dumps(
             {

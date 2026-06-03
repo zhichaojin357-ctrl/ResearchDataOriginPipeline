@@ -35,6 +35,7 @@ def write_metadata(
     key_results: dict,
     triage: dict | None = None,
     parameters: dict | None = None,
+    output_root: Path | None = None,
 ) -> dict:
     if processing_status == "success":
         required = {
@@ -72,6 +73,7 @@ def write_metadata(
     metadata = {
         "dataset_id": dataset_id,
         "metadata_path": render_path(path),
+        "run_output_root": render_path(output_root),
         "data_type": data_type,
         "subtype": data_type,
         "source_files": [render_path(source_file)],
