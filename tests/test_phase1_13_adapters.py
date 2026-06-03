@@ -20,7 +20,7 @@ from src.adapters import (
     xps_lmfitxps_adapter,
 )
 from src.adapters.common import contains_forbidden_claims
-from src.processors.calculations import local_peak_positions, spectral_package_baseline_records
+from src.processors.calculations import local_peak_positions, scipy_peak_positions, spectral_package_baseline_records
 
 
 def test_baseline_adapter_smoke_and_fallback(monkeypatch):
@@ -38,6 +38,70 @@ def test_peak_adapter_smoke_and_calculation_bridge():
     assert local_peak_positions([(0.0, 0.0), (1.0, 2.0), (2.0, 0.0)])
     baseline = spectral_package_baseline_records([(float(i), float(i % 3)) for i in range(8)])
     assert len(baseline) in {0, 8}
+
+
+def test_processor_peak_bridge_uses_adapter_candidates(monkeypatch):
+    def fake_process_or_analyze(x_values, y_values, **_kwargs):
+        return {
+            "ok": True,
+            "candidate_peaks": [{"index": 1, "x": x_values[1], "y": y_values[1]}],
+            "metadata_provenance": {"adapter": "peak_detection_adapter"},
+        }
+
+    monkeypatch.setattr(peak_detection_adapter, "process_or_analyze", fake_process_or_analyze)
+
+    peaks = scipy_peak_positions([(0.0, 0.0), (1.0, 2.5), (2.0, 0.0)])
+
+    assert peaks == [1.0]
+
+
+def test_processor_peak_bridge_falls_back_without_adapter_candidates(monkeypatch):
+    monkeypatch.setattr(
+        peak_detection_adapter,
+        "process_or_analyze",
+        lambda *_args, **_kwargs: {"ok": False, "candidate_peaks": []},
+    )
+
+    peaks = scipy_peak_positions([(0.0, 0.0), (1.0, 0.0)])
+
+    assert peaks == []
+
+
+def test_processor_baseline_bridge_uses_adapter_corrected_signal(monkeypatch):
+    def fake_process_or_analyze(x_values, y_values, **kwargs):
+        assert kwargs["lam"] == 1e5
+        assert kwargs["p"] == 0.01
+        assert list(x_values) == [0.0, 1.0, 2.0]
+        assert list(y_values) == [1.0, 2.0, 3.0]
+        return {
+            "ok": True,
+            "baseline": [0.1, 0.2, 0.3],
+            "corrected_signal": [0.9, 1.8, 2.7],
+            "metadata_provenance": {"adapter": "baseline_adapter"},
+        }
+
+    monkeypatch.setattr(baseline_adapter, "process_or_analyze", fake_process_or_analyze)
+
+    records = spectral_package_baseline_records([(0.0, 1.0), (1.0, 2.0), (2.0, 3.0)])
+
+    assert records == [(0.1, 0.9), (0.2, 1.8), (0.3, 2.7)]
+
+
+def test_processor_baseline_bridge_returns_empty_when_adapter_unavailable(monkeypatch):
+    monkeypatch.setattr(
+        baseline_adapter,
+        "process_or_analyze",
+        lambda *_args, **_kwargs: {
+            "ok": False,
+            "fallback_reason": "simulated missing",
+            "baseline": [],
+            "corrected_signal": [],
+        },
+    )
+
+    records = spectral_package_baseline_records([(0.0, 1.0), (1.0, 2.0), (2.0, 3.0)])
+
+    assert records == []
 
 
 def test_eis_adapters_do_not_claim_circuits():

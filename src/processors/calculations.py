@@ -777,11 +777,17 @@ def local_peak_positions(numeric: list[tuple[float, float]]) -> list[float]:
 
 
 def scipy_peak_positions(numeric: list[tuple[float, float]]) -> list[float]:
+    from src.adapters import peak_detection_adapter
+
+    x_values = [x for x, _ in numeric]
+    y_values = [y for _, y in numeric]
+    result = peak_detection_adapter.process_or_analyze(x_values, y_values)
+    if result.get("candidate_peaks"):
+        return [float(item["x"]) for item in result["candidate_peaks"]]
     try:
         from scipy.signal import find_peaks
     except Exception:
         return []
-    y_values = [y for _, y in numeric]
     try:
         peak_indices, _ = find_peaks(y_values)
     except Exception:
@@ -920,17 +926,16 @@ def spectral_package_results(numeric: list[tuple[float, float]]) -> dict[str, st
 def spectral_package_baseline_records(numeric: list[tuple[float, float]]) -> list[tuple[float, float]]:
     if len(numeric) < 3:
         return []
-    try:
-        from pybaselines import Baseline
-    except Exception:
-        return []
+    from src.adapters import baseline_adapter
+
     x_values = [x for x, _ in numeric]
     y_values = [y for _, y in numeric]
-    try:
-        baseline, _ = Baseline(x_values).asls(y_values, lam=1e5, p=0.01)
-    except Exception:
+    result = baseline_adapter.process_or_analyze(x_values, y_values, lam=1e5, p=0.01)
+    baseline = result.get("baseline", [])
+    corrected = result.get("corrected_signal", [])
+    if not result.get("ok") or len(baseline) != len(y_values) or len(corrected) != len(y_values):
         return []
-    return [(float(base), float(y - base)) for base, y in zip(baseline, y_values)]
+    return [(float(base), float(value)) for base, value in zip(baseline, corrected)]
 
 
 def spectral_auxiliary_columns(rows: list[dict[str, str]]) -> list[str]:
