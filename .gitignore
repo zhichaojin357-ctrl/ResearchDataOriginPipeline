@@ -48,6 +48,24 @@ output/reports/*.csv
 output/reports/**/*.csv
 output/reports/*.txt
 output/reports/**/*.txt
+output/reports/PHASE1_*_HANDOFF_TO_CHATGPT_FOR_NEXT_DECISION.md
+output/reports/*_files.md
+output/reports/classification_report.md
+output/reports/data_triage_report.md
+output/reports/dependency_audit.md
+output/reports/origin_errors.md
+output/reports/pending_cleanup_candidates.md
+output/reports/processing_*.md
+output/reports/readiness_report*.md
+output/reports/traceability_groups.md
+output/reports/validation_report.md
+output/reports/phase1_*.md
+output/reports/bet_*.md
+output/reports/epr_*.md
+output/reports/jeol_epr_*.md
+output/reports/non_xrd_*.md
+output/reports/project_cleanup_*.md
+output/reports/xrd_*.md
 output/reports/phase1_13_pip_*.txt
 output/reports/*_temp_*_deleted_items_*.json
 # Generated machine-readable reports. Markdown reports stay visible for user review.
