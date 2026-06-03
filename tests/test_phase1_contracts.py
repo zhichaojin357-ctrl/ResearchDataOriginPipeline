@@ -273,7 +273,10 @@ class Phase1ContractsTest(unittest.TestCase):
             )
 
             self.assertEqual(metadata["preview_png"], "output/figures_preview/sample.png")
-            self.assertIn("PNG preview", " ".join(metadata["manual_check_items"]))
+            manual_items = " ".join(metadata["manual_check_items"])
+            self.assertIn("PNG preview", manual_items)
+            self.assertIn("frame/fill box", manual_items)
+            self.assertIn("chemical formula subscripts", manual_items)
             self.assertEqual(metadata["confidence_level"]["plotting"], "medium")
 
     def test_success_metadata_rejects_artifacts_outside_output_directory(self):

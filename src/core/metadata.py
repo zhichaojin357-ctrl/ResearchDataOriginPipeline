@@ -108,7 +108,7 @@ def write_metadata(
 def _manual_check_items(processing_status: str, items: list[str], preview_png: Path | None) -> list[str]:
     output = list(items)
     if processing_status == "success" and preview_png is not None:
-        preview_item = "Inspect PNG preview for Graph4 style match, explicit bold legend rows, curve width 3, and no template residue."
+        preview_item = "Inspect PNG preview for Graph4 style match, explicit bold legend rows without a frame/fill box, chemical formula subscripts, curve width 3, and no template residue."
         if preview_item not in output:
             output.append(preview_item)
     return output
