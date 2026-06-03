@@ -29,6 +29,8 @@ X_COLUMN_NEEDLES = [
     "电位",
     "voltage",
     "frequency",
+    "freq",
+    "hz",
     "频率",
     "time",
     "时间",
@@ -54,6 +56,11 @@ Y_COLUMN_NEEDLES = [
     "transmittance",
     "透过率",
     "phase",
+    "z'",
+    "zreal",
+    "re z",
+    "re(z)",
+    "real impedance",
     "area",
     "面积",
     "height",
@@ -94,6 +101,14 @@ def read_table_with_metadata(path: Path, *, allow_legacy_xls_com: bool = True) -
         dialect = csv.Sniffer().sniff(sample, delimiters=",\t; ")
     except csv.Error:
         dialect = csv.excel
+
+    zplotw_result = _zplotw_table_result(text)
+    if zplotw_result is not None:
+        return zplotw_result
+
+    bracketed_result = _bracketed_data_table_result(text)
+    if bracketed_result is not None:
+        return bracketed_result
 
     numeric_rows = _headerless_numeric_rows(text)
     if numeric_rows:
@@ -350,6 +365,97 @@ def _text_header_scan_limit(text: str) -> int:
         "quiet time",
     )
     return 30 if any(marker in first_lines for marker in metadata_markers) else 10
+
+
+def _zplotw_table_result(text: str) -> TableReadResult | None:
+    lines = text.splitlines()
+    first_block = "\n".join(lines[:20]).casefold()
+    if "zplotw data file" not in first_block and not any("freq(hz)" in line.casefold() for line in lines[:30]):
+        return None
+
+    header_index = None
+    headers: list[str] = []
+    for index, line in enumerate(lines[:80]):
+        cleaned = line.strip().strip('"').strip()
+        lowered = cleaned.casefold()
+        if "freq(hz)" in lowered and "z'" in lowered and "z''" in lowered:
+            header_index = index
+            headers = _dedupe_headers([part for part in re.split(r"\s+", cleaned) if part])
+            break
+    if header_index is None or len(headers) < 3:
+        return None
+
+    rows: list[dict[str, str]] = []
+    for raw_line in lines[header_index + 1 :]:
+        stripped = raw_line.strip().strip('"').strip()
+        if not stripped:
+            continue
+        parts = [part.strip() for part in stripped.split(",")]
+        if len(parts) < len(headers):
+            continue
+        if _to_float(parts[0]) is None:
+            continue
+        rows.append({header: parts[idx] if idx < len(parts) else "" for idx, header in enumerate(headers)})
+    if not rows:
+        return None
+    numeric_columns = sum(
+        1
+        for header in headers
+        if any(_to_float(row.get(header, "")) is not None for row in rows)
+    )
+    return TableReadResult(
+        rows,
+        sheet_name="ZPlotW",
+        header_row_index=header_index,
+        sheet_scores={
+            "ZPlotW": {
+                "score": len(rows) * max(numeric_columns, 1),
+                "header_bonus": _header_bonus(headers),
+                "numeric_rows": len(rows),
+                "numeric_columns": numeric_columns,
+                "header_row_index": header_index,
+            }
+        },
+    )
+
+
+def _bracketed_data_table_result(text: str) -> TableReadResult | None:
+    lines = text.splitlines()
+    data_index = None
+    for index, line in enumerate(lines):
+        if line.strip().casefold() == "[data]":
+            data_index = index
+            break
+    if data_index is None:
+        return None
+
+    section_lines: list[str] = []
+    for line in lines[data_index + 1 :]:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("[") and stripped.endswith("]"):
+            break
+        section_lines.append(line)
+    if len(section_lines) < 2:
+        return None
+
+    try:
+        dialect = csv.Sniffer().sniff("\n".join(section_lines[:10]), delimiters=",\t; ")
+    except csv.Error:
+        dialect = csv.excel
+    grid = [row for row in csv.reader(section_lines, dialect=dialect) if any(str(value).strip() for value in row)]
+    if len(grid) < 2:
+        return None
+    result = _table_result_from_excel_grids({"Data": grid}, max_header_scan=min(5, len(grid)))
+    if not result.rows or len(coerce_numeric_rows(result.rows)) < 2:
+        return None
+    return TableReadResult(
+        result.rows,
+        sheet_name="Data",
+        header_row_index=(data_index + 1 + (result.header_row_index or 0)),
+        sheet_scores=result.sheet_scores,
+    )
 
 
 def _headerless_numeric_rows(text: str) -> list[dict[str, str]]:

@@ -73,6 +73,37 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertEqual(result.rows[0]["Potential/V"], "1.700e-1")
             self.assertEqual(result.rows[0]["Z'/ohm"], " 3.754e+1")
 
+    def test_text_reader_accepts_zplotw_eis_export(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "bobc-z.txt"
+            source.write_text(
+                "\n".join(
+                    [
+                        '"ZPlotW Data File: Version 2.70"',
+                        '"Modified Data"',
+                        '"Sweep Frequency: Control Voltage"',
+                        '"Date: 2-2-2026     Time: 10:57:9"',
+                        '""',
+                        '"Frequency"',
+                        "0,2,0,1,0.001,1000000",
+                        "101",
+                        '"  Freq(Hz)    Ampl     Bias   Time(Sec)   Z\'(a)    Z\'\'(b)    GD   Err   Range"',
+                        "1.000000E+06, 0.0000E+00, 0.0000E+00, 1.000000E+00, 6.1320E+01, -2.7362E-03, 0.0000E+00, 0, 0",
+                        "8.128305E+05, 0.0000E+00, 0.0000E+00, 2.000000E+00, 6.1321E+01, -3.2932E-03, 0.0000E+00, 0, 0",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = read_table_with_metadata(source)
+
+            self.assertEqual(result.header_row_index, 8)
+            self.assertEqual(len(result.rows), 2)
+            self.assertIn("Freq(Hz)", result.rows[0])
+            self.assertIn("Z'(a)", result.rows[0])
+            self.assertIn("Z''(b)", result.rows[0])
+            self.assertEqual(coerce_numeric_rows(result.rows), [(1000000.0, 61.32), (812830.5, 61.321)])
+
     def test_generic_reader_accepts_xlsm_workbooks_without_excel_com(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             source = Path(tmpdir) / "eis.xlsm"
@@ -205,6 +236,33 @@ class ProcessorBehaviorTest(unittest.TestCase):
             rows = self._processed_rows(root, metadata)
             self.assertEqual(set(rows[0]), {"two_theta_deg", "intensity", "normalized_intensity", "peak_candidate_flag"})
             self.assertEqual(rows[1]["peak_candidate_flag"], "1")
+
+    def test_xrd_reads_raw4_text_data_section(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "xrd_raw4.txt"
+            source.write_text(
+                "\n".join(
+                    [
+                        ";RAW4.00",
+                        "[RawHeader]",
+                        "Date=04/03/2025",
+                        "[Data]",
+                        "     Angle,       PSD,",
+                        "         5,      2014,",
+                        "   5.01946,      1943,",
+                        "   5.03892,      2012,",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            metadata = process_table_dataset(root, classification("XRD", "xrd_processor"), source)
+
+            self.assertEqual(metadata["key_results"]["point_count"], 3)
+            rows = self._processed_rows(root, metadata)
+            self.assertEqual(rows[0]["two_theta_deg"], "5.0")
+            self.assertEqual(rows[0]["intensity"], "2014.0")
 
     def test_reviewed_queue_same_stem_uses_unique_output_suffixes(self):
         with tempfile.TemporaryDirectory() as tmpdir:
