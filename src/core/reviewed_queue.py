@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from src.core.project import report_path
 from src.core.runtime_paths import resolve_phase1_6_index, resolve_workspace_root
 
 
@@ -62,6 +63,7 @@ class ReviewedQueueOptions:
     template_out: Path | None = None
     report_json: Path | None = None
     report_md: Path | None = None
+    output_root: Path | None = None
     workspace_root: Path | None = None
     triage_manifest: Path | None = None
     processed_index: Path | None = None
@@ -97,7 +99,11 @@ def load_proposals(project_root: Path, proposals_path: Path) -> list[dict]:
 
 
 def write_decision_template(project_root: Path, proposals: list[dict], options: ReviewedQueueOptions) -> Path:
-    template_path = options.template_out or project_root / "output" / "reports" / "phase1_8_review_decisions_template.csv"
+    template_path = options.template_out or report_path(
+        project_root,
+        "phase1_8_review_decisions_template.csv",
+        output_root=options.output_root,
+    )
     _guard_output_path(project_root, template_path)
     rows = [_template_row(proposal) for proposal in proposals]
     template_path.parent.mkdir(parents=True, exist_ok=True)
@@ -115,7 +121,7 @@ def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: Revi
     decisions_path = _resolve_existing_path(project_root, options.decisions)
     decision_rows = _read_decision_rows(decisions_path)
     decisions, duplicate_decision_ids = _decision_lookup(decision_rows)
-    triage_items = _load_current_triage_items(project_root, options.triage_manifest)
+    triage_items = _load_current_triage_items(project_root, options.triage_manifest, options.output_root)
     processed_hashes = _phase1_6_processed_hashes(project_root, options.processed_index)
     planned = []
     skipped = []
@@ -179,17 +185,25 @@ def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: Revi
 
 
 def write_reviewed_queue_reports(project_root: Path, plan: dict, options: ReviewedQueueOptions) -> tuple[Path, Path]:
-    reports_dir = project_root / "output" / "reports"
-    json_path = options.report_json or reports_dir / "phase1_8_reviewed_queue_plan.json"
-    md_path = options.report_md or reports_dir / "phase1_8_reviewed_queue_plan.md"
+    json_path = options.report_json or report_path(
+        project_root,
+        "phase1_8_reviewed_queue_plan.json",
+        output_root=options.output_root,
+    )
+    md_path = options.report_md or report_path(
+        project_root,
+        "phase1_8_reviewed_queue_plan.md",
+        output_root=options.output_root,
+    )
     _guard_output_path(project_root, json_path)
     _guard_output_path(project_root, md_path)
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     md_path.write_text(_plan_markdown(plan), encoding="utf-8")
-    agent_report = project_root / "docs" / "agent_reports" / "phase1_8_reviewed_queue_report.md"
-    agent_report.parent.mkdir(parents=True, exist_ok=True)
-    agent_report.write_text(_plan_markdown(plan), encoding="utf-8")
+    if options.output_root is None:
+        agent_report = project_root / "docs" / "agent_reports" / "phase1_8_reviewed_queue_report.md"
+        agent_report.parent.mkdir(parents=True, exist_ok=True)
+        agent_report.write_text(_plan_markdown(plan), encoding="utf-8")
     return json_path, md_path
 
 
@@ -403,8 +417,12 @@ def _current_triage_state_block(proposal: dict, triage_item: dict) -> dict | Non
     return None
 
 
-def _load_current_triage_items(project_root: Path, triage_manifest: Path | None = None) -> dict[tuple[str, str], dict]:
-    manifest_path = triage_manifest or project_root / "output" / "reports" / "data_triage_manifest.json"
+def _load_current_triage_items(
+    project_root: Path,
+    triage_manifest: Path | None = None,
+    output_root: Path | None = None,
+) -> dict[tuple[str, str], dict]:
+    manifest_path = triage_manifest or report_path(project_root, "data_triage_manifest.json", output_root=output_root)
     if not manifest_path.is_absolute():
         manifest_path = project_root / manifest_path
     if not manifest_path.exists():

@@ -4,8 +4,13 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+from src.core.auto_queue import AutoQueueOptions, run_auto_queue
 from src.core.process import ProcessOptions, run_process
+from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
 from src.core.runtime_paths import create_run_output_layout
+from src.core.triage import TriageOptions, run_triage
+from src.core.origin_batch import OriginBatchOptions, run_origin_batch
+from src.core.metadata import file_hash
 
 
 def test_create_run_output_layout_creates_standard_dirs_and_manifest(tmp_path: Path):
@@ -79,3 +84,155 @@ def test_run_process_can_route_no_origin_artifacts_into_run_root(tmp_path: Path)
     assert metadata["processing_status"] == "processed_no_origin"
     assert metadata["run_output_root"] == "output/runs/20260603_120001_process_no_origin"
     assert metadata["processed_data"].startswith("output/runs/20260603_120001_process_no_origin/processed_data/")
+
+
+def test_run_triage_can_route_reports_into_run_root(tmp_path: Path):
+    source = tmp_path / "input" / "raw_data" / "XRD" / "sample.csv"
+    source.parent.mkdir(parents=True)
+    source.write_text("2theta,intensity\n10,1\n20,4\n30,2\n40,3\n", encoding="utf-8")
+    layout = create_run_output_layout(
+        tmp_path,
+        scope="triage",
+        command="triage",
+        mode="dry_run_false",
+        input_paths=[tmp_path / "input" / "raw_data"],
+        timestamp="20260603_120002",
+        dry_run=False,
+    )
+
+    result = run_triage(
+        tmp_path,
+        tmp_path / "input" / "raw_data",
+        TriageOptions(force_refresh=True, output_root=layout.root),
+    )
+
+    assert result["summary"]["total_files"] == 1
+    assert (layout.reports / "data_triage_manifest.json").exists()
+    assert (layout.reports / "processing_queue.json").exists()
+    assert (layout.reports / "triage_index.md").exists()
+    assert not (tmp_path / "output" / "reports").exists()
+    assert not (tmp_path / "output" / "review_dashboard").exists()
+
+
+def test_auto_queue_can_route_reports_into_run_root_without_agent_report(tmp_path: Path):
+    source = tmp_path / "input" / "raw_data" / "XRD" / "sample.csv"
+    source.parent.mkdir(parents=True)
+    source.write_text("2theta,intensity\n10,1\n20,4\n30,2\n40,3\n", encoding="utf-8")
+    layout = create_run_output_layout(
+        tmp_path,
+        scope="auto_queue",
+        command="auto-queue",
+        mode="dry_run",
+        input_paths=[source],
+        timestamp="20260603_120003",
+        dry_run=True,
+    )
+    queue_path = layout.reports / "processing_queue.json"
+    queue_path.write_text(
+        json.dumps(
+            {
+                "items": [
+                    {
+                        "queue_id": "q1",
+                        "relative_path": "input/raw_data/XRD/sample.csv",
+                        "source_hash": file_hash(source),
+                        "data_type": "XRD",
+                        "decision": "AUTO_PROCESS",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    code = run_auto_queue(
+        tmp_path,
+        AutoQueueOptions(
+            queue=queue_path,
+            workspace_root=tmp_path,
+            processed_index=tmp_path / "missing_phase1_6.csv",
+            output_root=layout.root,
+        ),
+    )
+
+    assert code == 0
+    assert (layout.reports / "phase1_8_new_auto_process_plan.json").exists()
+    assert (layout.reports / "phase1_8_new_auto_process_plan.md").exists()
+    assert (layout.reports / "phase1_8_new_auto_process_queue.json").exists()
+    assert not (tmp_path / "docs" / "agent_reports").exists()
+
+
+def test_reviewed_queue_template_can_route_into_run_root_without_agent_report(tmp_path: Path):
+    layout = create_run_output_layout(
+        tmp_path,
+        scope="reviewed_queue",
+        command="reviewed-queue",
+        mode="template",
+        timestamp="20260603_120004",
+        dry_run=True,
+    )
+    proposals_path = layout.reports / "proposals.json"
+    proposals_path.write_text(
+        json.dumps(
+            {
+                "items": [
+                    {
+                        "proposal_id": "P1",
+                        "relative_path": "input/raw_data/XRD/sample.csv",
+                        "source_hash": "abc",
+                        "proposed_data_type": "XRD",
+                        "proposed_processor": "xrd",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    code = run_reviewed_queue(
+        tmp_path,
+        ReviewedQueueOptions(proposals=proposals_path, write_template=True, output_root=layout.root),
+    )
+
+    assert code == 0
+    assert (layout.reports / "phase1_8_review_decisions_template.csv").exists()
+    assert not (tmp_path / "docs" / "agent_reports").exists()
+
+
+def test_origin_batch_dry_run_reports_can_route_into_run_root(tmp_path: Path):
+    package = tmp_path / "package"
+    (package / "processed_data").mkdir(parents=True)
+    (package / "metadata").mkdir(parents=True)
+    source = package / "source.csv"
+    processed = package / "processed_data" / "sample_processed.csv"
+    metadata = package / "metadata" / "sample_metadata.json"
+    source.write_text("x,y\n1,2\n", encoding="utf-8")
+    processed.write_text("x,y\n1,2\n", encoding="utf-8")
+    metadata.write_text("{}", encoding="utf-8")
+    manifest = package / "index.csv"
+    manifest.write_text(
+        "\n".join(
+            [
+                "result_id,data_type,source_hash,processed_csv,metadata,origin_file,figure_tif,preview_png,qc_status,origin_status,source_copy",
+                f"r1,XRD,{file_hash(source)},processed_data/sample_processed.csv,metadata/sample_metadata.json,origin_files/sample.opju,figures_tif/sample.tif,figures_preview/sample.png,pending,pending,source.csv",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    layout = create_run_output_layout(
+        tmp_path,
+        scope="origin_batch_dry_run",
+        command="origin-batch",
+        mode="dry_run",
+        input_paths=[manifest],
+        timestamp="20260603_120005",
+        dry_run=True,
+    )
+
+    code = run_origin_batch(tmp_path, OriginBatchOptions(manifest=manifest, output_root=layout.root))
+
+    assert code == 0
+    assert (layout.reports / "phase1_7_manifest_runner_plan.json").exists()
+    assert (layout.reports / "phase1_7_manifest_runner_plan.md").exists()
+    assert not (tmp_path / "output" / "reports").exists()

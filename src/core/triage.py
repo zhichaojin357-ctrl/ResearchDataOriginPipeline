@@ -66,6 +66,7 @@ class TriageOptions:
     explain: bool = False
     force_refresh: bool = False
     dry_run: bool = False
+    output_root: Path | None = None
 
 
 def run_triage(project_root: Path, input_path: Path, options: TriageOptions | None = None) -> dict:
@@ -95,7 +96,7 @@ def run_triage(project_root: Path, input_path: Path, options: TriageOptions | No
         "queue": queue,
     }
     if not options.dry_run:
-        _write_outputs(project_root, result)
+        _write_outputs(project_root, result, output_root=options.output_root)
     return result
 
 
@@ -889,9 +890,13 @@ def _summary(items: list[dict]) -> dict:
     return {"total_files": len(items), "decision_counts": counts}
 
 
-def _write_outputs(project_root: Path, result: dict) -> None:
-    reports = output_dir(project_root, "reports")
-    dashboard = output_dir(project_root, "review_dashboard")
+def _write_outputs(project_root: Path, result: dict, *, output_root: Path | None = None) -> None:
+    reports = output_dir(project_root, "reports", output_root=output_root)
+    dashboard_path = (
+        reports / "triage_index.md"
+        if output_root is not None
+        else output_dir(project_root, "review_dashboard") / "triage_index.md"
+    )
     items = result["items"]
     queue = result["queue"]
     _write_json(reports / "data_triage_manifest.json", {key: value for key, value in result.items() if key != "queue"})
@@ -908,7 +913,7 @@ def _write_outputs(project_root: Path, result: dict) -> None:
     _write_item_report(reports / "excluded_files.md", "Excluded Files", _items_by_decision(items, "EXCLUDE_INVALID") + _items_by_decision(items, "AUXILIARY_ONLY"))
     _write_item_report(reports / "duplicate_candidates.md", "Duplicate Candidates", _items_by_decision(items, "DUPLICATE_SUPPRESSED"))
     _write_traceability_group_report(reports / "traceability_groups.md", traceability_groups)
-    _write_triage_dashboard(dashboard / "triage_index.md", result)
+    _write_triage_dashboard(dashboard_path, result)
 
 
 def _traceability_groups(items: list[dict]) -> list[dict]:

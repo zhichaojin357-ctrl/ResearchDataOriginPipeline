@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.core.manifest_schema import schema_mismatch_message
+from src.core.project import report_path
 from src.core.runtime_paths import resolve_workspace_root
 
 
@@ -46,6 +47,7 @@ class OriginBatchOptions:
     only_missing: bool = False
     report_json: Path | None = None
     report_md: Path | None = None
+    output_root: Path | None = None
 
 
 def run_origin_batch(project_root: Path, options: OriginBatchOptions) -> int:
@@ -161,10 +163,16 @@ def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
 
 
 def write_origin_batch_reports(project_root: Path, plan: dict, options: OriginBatchOptions) -> tuple[Path, Path]:
-    reports_dir = project_root / "output" / "reports"
-    reports_dir.mkdir(parents=True, exist_ok=True)
-    json_path = options.report_json or reports_dir / "phase1_7_manifest_runner_plan.json"
-    md_path = options.report_md or reports_dir / "phase1_7_manifest_runner_plan.md"
+    json_path = options.report_json or report_path(
+        project_root,
+        "phase1_7_manifest_runner_plan.json",
+        output_root=options.output_root,
+    )
+    md_path = options.report_md or report_path(
+        project_root,
+        "phase1_7_manifest_runner_plan.md",
+        output_root=options.output_root,
+    )
     _guard_output_path(project_root, json_path)
     _guard_output_path(project_root, md_path)
     json_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
