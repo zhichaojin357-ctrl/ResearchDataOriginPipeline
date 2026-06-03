@@ -46,6 +46,8 @@ output/reports/*.json
 output/reports/**/*.json
 output/reports/*.csv
 output/reports/**/*.csv
+output/reports/*.txt
+output/reports/**/*.txt
 output/reports/phase1_13_pip_*.txt
 output/reports/*_temp_*_deleted_items_*.json
 # Generated machine-readable reports. Markdown reports stay visible for user review.
