@@ -7,7 +7,7 @@ from src.core.project import load_project_config
 
 
 LEGACY_PHASE1_6_PACKAGE = Path("output") / "phase1_6_origin_results_20260531_041538"
-LEGACY_WORKSPACE_ROOT = Path("workspace_data") / "LL_detection_copy_20260530"
+LEGACY_WORKSPACE_ROOT = Path("D:/Codex Project/科研数据处理/数据/workspace_data/LL_detection_copy_20260530")
 LEGACY_F_DRIVE_BACKUP = Path("F:/课题/LL/检测")
 LEGACY_ORIGIN_HELPER = Path(r"D:\CodexData\.codex\skills\origin-plotting\scripts\origin_plot_from_template.ps1")
 LEGACY_ORIGIN_REFERENCE_PATTERN = r"D:\OriginFlies\Manual Save\CWO+BOBC+*.opju"

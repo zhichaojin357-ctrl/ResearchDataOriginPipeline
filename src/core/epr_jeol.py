@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import math
 import struct
 from dataclasses import dataclass
 from pathlib import Path
 
+from openpyxl import Workbook, load_workbook
+
 
 DATA_OFFSET_CACQU = 9500
-DEFAULT_EXPORT_POINTS = 4096
+DEFAULT_EXPORT_POINTS = 4096  # Verified JEOL cAcqu export default.
 JEOL_PROCESS_TYPES = {"cAcqu", "spin", "endor", "pAcqu", "cidep", "sod", "iso", "ani"}
 
 
@@ -107,7 +110,10 @@ def read_jeol_cacqu(path: Path) -> JeolEprDecodeResult:
 
 
 def decode_jeol_cacqu_rows(path: Path, *, points: int = DEFAULT_EXPORT_POINTS) -> list[dict[str, str]]:
-    """Decode JEOL cAcqu CH1 to the project's two-column EPR table shape."""
+    """Decode JEOL cAcqu CH1 to the project's two-column EPR table shape.
+
+    The default point count matches the verified JEOL cAcqu Excel export size.
+    """
     decoded = read_jeol_cacqu(path)
     x_values, y_values = to_export_series(decoded, points=points)
     return [
@@ -116,10 +122,156 @@ def decode_jeol_cacqu_rows(path: Path, *, points: int = DEFAULT_EXPORT_POINTS) -
     ]
 
 
+def decode_jeol_cacqu_series(path: Path, *, points: int = DEFAULT_EXPORT_POINTS) -> tuple[list[float], list[float]]:
+    """Decode JEOL cAcqu CH1 to rounded field/intensity series used by JEOL Excel export.
+
+    ``points`` controls the export grid size. The default mirrors the verified JEOL
+    cAcqu export point count, but callers may request another grid when the raw data
+    length is compatible.
+    """
+    decoded = read_jeol_cacqu(path)
+    x_values, y_values = to_export_series(decoded, points=points)
+    return [round(value, 4) for value in x_values], [round(value, 3) for value in y_values]
+
+
+def write_data_xlsx(path: Path, x_values: list[float], y_values: list[float]) -> None:
+    """Write the skill-compatible data-only workbook: two columns and no header row."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    workbook = Workbook(write_only=True)
+    worksheet = workbook.create_sheet()
+    for x_value, y_value in zip(x_values, y_values):
+        worksheet.append([round(x_value, 4), round(y_value, 3)])
+    workbook.save(path)
+
+
+def read_xy_xlsx(path: Path) -> tuple[list[float], list[float]]:
+    workbook = load_workbook(path, read_only=True, data_only=True)
+    try:
+        worksheet = workbook.active
+        x_values: list[float] = []
+        y_values: list[float] = []
+        for row in worksheet.iter_rows(values_only=True):
+            if not row or row[0] is None:
+                continue
+            x_values.append(float(row[0]))
+            y_values.append(float(row[1]))
+        return x_values, y_values
+    finally:
+        workbook.close()
+
+
+def collect_raw_files(roots: list[Path]) -> list[tuple[Path, Path]]:
+    """Collect JEOL-like raw files after checking the processType header."""
+    pairs: list[tuple[Path, Path]] = []
+    for root in roots:
+        for path in sorted(root.rglob("*")):
+            if looks_like_jeol_cwesr_file(path):
+                pairs.append((root, path))
+    return pairs
+
+
+def destination_for(source: Path, source_root: Path, output_root: Path) -> Path:
+    relative = source.relative_to(source_root)
+    return output_root / source_root.name / relative.parent / f"{relative.name}.xlsx"
+
+
+def export_data(roots: list[Path], output_root: Path) -> dict[str, tuple[Path, list[float], list[float]]]:
+    """Export verified JEOL cAcqu files to data-only Excel tables."""
+    exported: dict[str, tuple[Path, list[float], list[float]]] = {}
+    for source_root, source in collect_raw_files(roots):
+        x_values, y_values = decode_jeol_cacqu_series(source)
+        destination = destination_for(source, source_root, output_root)
+        write_data_xlsx(destination, x_values, y_values)
+        exported[source.name] = (destination, x_values, y_values)
+    return exported
+
+
+def write_compare_report(
+    reference_dir: Path,
+    exported: dict[str, tuple[Path, list[float], list[float]]],
+    report_xlsx: Path,
+) -> None:
+    """Write an optional comparison workbook against known JEOL Excel exports."""
+    workbook = Workbook()
+    same_sheet = workbook.active
+    same_sheet.title = "same_name_compare"
+    same_sheet.append(
+        [
+            "reference",
+            "same_name_export",
+            "ref_rows",
+            "export_rows",
+            "same_max_x",
+            "same_max_y",
+            "same_rms_y",
+            "same_result",
+        ]
+    )
+    cross_sheet = workbook.create_sheet("best_crossmatch")
+    cross_sheet.append(["reference", "best_export", "best_max_x", "best_max_y", "best_rms_y"])
+
+    for reference in sorted(reference_dir.glob("*.xlsx")):
+        ref_x, ref_y = read_xy_xlsx(reference)
+        same = exported.get(reference.stem)
+        if same:
+            destination, export_x, export_y = same
+            same_max_x = max_abs_delta(ref_x, export_x)
+            same_max_y = max_abs_delta(ref_y, export_y)
+            same_rms_y = rms_delta(ref_y, export_y)
+            result = "PASS" if len(ref_x) == len(export_x) and same_max_x == 0 and same_max_y == 0 else "DIFF"
+            same_sheet.append([reference.name, destination.name, len(ref_x), len(export_x), same_max_x, same_max_y, same_rms_y, result])
+        else:
+            same_sheet.append([reference.name, "", len(ref_x), "", "", "", "", "MISSING"])
+
+        best: list[tuple[float, float, float, Path]] = []
+        for destination, export_x, export_y in exported.values():
+            if len(ref_x) != len(export_x):
+                continue
+            best.append((max_abs_delta(ref_y, export_y), max_abs_delta(ref_x, export_x), rms_delta(ref_y, export_y), destination))
+        if best:
+            best.sort(key=lambda item: item[0])
+            best_max_y, best_max_x, best_rms_y, best_destination = best[0]
+            cross_sheet.append([reference.name, best_destination.name, best_max_x, best_max_y, best_rms_y])
+
+    report_xlsx.parent.mkdir(parents=True, exist_ok=True)
+    workbook.save(report_xlsx)
+
+
+def export_jeol_cwesr_to_xlsx(
+    roots: list[Path],
+    output_root: Path,
+    *,
+    reference_dir: Path | None = None,
+    report_xlsx: Path | None = None,
+) -> dict[str, object]:
+    exported = export_data(roots, output_root)
+    if reference_dir is not None and report_xlsx is not None:
+        write_compare_report(reference_dir, exported, report_xlsx)
+    return {
+        "exported_xlsx": len(exported),
+        "output_root": str(output_root),
+        "reference_dir": str(reference_dir) if reference_dir else None,
+        "report_xlsx": str(report_xlsx) if report_xlsx else None,
+        "files": [str(item[0]) for item in exported.values()],
+    }
+
+
+def max_abs_delta(left: list[float], right: list[float]) -> float:
+    if len(left) != len(right) or not left:
+        return math.inf
+    return max(abs(a - b) for a, b in zip(left, right))
+
+
+def rms_delta(left: list[float], right: list[float]) -> float:
+    if len(left) != len(right) or not left:
+        return math.inf
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(left, right)) / len(left))
+
+
 def to_export_series(decoded: JeolEprDecodeResult, *, points: int = DEFAULT_EXPORT_POINTS) -> tuple[list[float], list[float]]:
     raw_points = decoded.header.data_length
     if raw_points % points:
-        raise ValueError(f"JEOL EPR dataLength {raw_points} is not divisible by export point count {points}")
+        raise ValueError(f"JEOL EPR raw_points {raw_points} must be divisible by export points {points}")
     repeats = raw_points // points
     y_values = [
         sum(decoded.ch1[index * repeats + offset] for offset in range(repeats)) / repeats

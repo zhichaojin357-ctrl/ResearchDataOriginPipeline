@@ -3,9 +3,9 @@ project:
   phase: phase1
 paths:
   raw_data: input/raw_data
-  workspace_data: workspace_data
-  phase1_2_source_copy: workspace_data/LL_detection_copy_20260530
-  workspace_root: workspace_data/LL_detection_copy_20260530
+  workspace_data: D:/Codex Project/科研数据处理/数据/workspace_data
+  phase1_2_source_copy: D:/Codex Project/科研数据处理/数据/workspace_data/LL_detection_copy_20260530
+  workspace_root: D:/Codex Project/科研数据处理/数据/workspace_data/LL_detection_copy_20260530
   phase1_6_origin_results: output/phase1_6_origin_results_20260531_041538
   output: output
   processed_data: output/processed_data

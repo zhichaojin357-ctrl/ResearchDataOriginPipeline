@@ -5,6 +5,8 @@ from pathlib import Path
 
 from src.core.deps import dependency_audit
 from src.core.auto_queue import AutoQueueOptions, run_auto_queue
+from src.core.epr_jeol import export_jeol_cwesr_to_xlsx
+from src.core.epr_overlay import EprOverlayOptions, run_epr_overlay
 from src.core.manifest_normalizer import normalize_material_collection_manifest
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
 from src.core.phase1_9 import DEFAULT_ORIGIN_SKILL_DIR, DEFAULT_PHASE1_6_PACKAGE, run_phase1_9_governance
@@ -118,6 +120,29 @@ def build_parser() -> argparse.ArgumentParser:
     xps_origin.add_argument("--dry-run", action="store_true", help="parse data, write tables/reports, but do not launch Origin")
     xps_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin and export OPJU/TIF/PNG")
     xps_stacked.add_argument("--no-bc-candidate", action="store_true", help="do not use the detected BC candidate Excel outside the official BC folder")
+
+    jeol_epr = subparsers.add_parser(
+        "jeol-epr-decode",
+        help="decode verified JEOL JES-FA/JES-X3 cAcqu cwESR files to data-only .xlsx tables",
+    )
+    jeol_epr.add_argument("--out", required=True, type=Path, help="output root for data-only .xlsx files")
+    jeol_epr.add_argument("--reference-dir", type=Path, help="optional directory of known decoded .xlsx files")
+    jeol_epr.add_argument("--report-xlsx", type=Path, help="optional comparison report path")
+    jeol_epr.add_argument("roots", nargs="+", type=Path, help="raw JEOL EPR folders to scan recursively")
+
+    epr_overlay = subparsers.add_parser(
+        "epr-overlay",
+        help="build JEOL EPR condition-group overlay tables and optional Origin figures from verified Excel exports",
+    )
+    epr_overlay.add_argument("--reference-dir", type=Path, help="directory of verified JEOL EPR Excel exports")
+    epr_overlay.add_argument("--group", choices=["all", "OH", "O3"], default="all")
+    epr_overlay.add_argument("--with-origin", action="store_true", help="explicitly export OPJU/TIF/PNG through Origin")
+    epr_overlay.add_argument("--normalize", action="store_true", help="max-abs normalize each trace before offsetting; off by default")
+    epr_overlay.add_argument("--smooth-window", type=int, default=0, help="optional odd moving-average smoothing window; default 0 preserves raw shape")
+    epr_overlay.add_argument("--background", choices=["none", "matched_dark"], default="none", help="optional explicit dark/background subtraction mode")
+    epr_overlay.add_argument("--force", action="store_true", help="overwrite existing EPR overlay outputs")
+    epr_overlay.add_argument("--report-json", type=Path)
+    epr_overlay.add_argument("--report-md", type=Path)
 
     subparsers.add_parser("deps-audit")
     subparsers.add_parser("validate")
@@ -271,6 +296,34 @@ def main(argv: list[str] | None = None) -> int:
             pre_manual_review=notes,
         )
         return 0
+    if args.command == "jeol-epr-decode":
+        output_root = args.out if args.out.is_absolute() else project_root / args.out
+        reference_dir = args.reference_dir if args.reference_dir is None or args.reference_dir.is_absolute() else project_root / args.reference_dir
+        report_xlsx = args.report_xlsx if args.report_xlsx is None or args.report_xlsx.is_absolute() else project_root / args.report_xlsx
+        result = export_jeol_cwesr_to_xlsx(
+            args.roots,
+            output_root,
+            reference_dir=reference_dir,
+            report_xlsx=report_xlsx,
+        )
+        print(f"exported_xlsx={result['exported_xlsx']}")
+        return 0
+    if args.command == "epr-overlay":
+        reference_dir = args.reference_dir if args.reference_dir is None or args.reference_dir.is_absolute() else project_root / args.reference_dir
+        return run_epr_overlay(
+            project_root,
+            EprOverlayOptions(
+                reference_dir=reference_dir,
+                group=args.group,
+                with_origin=bool(args.with_origin),
+                force=bool(args.force),
+                normalize=bool(args.normalize),
+                smooth_window=int(args.smooth_window),
+                background=None if args.background == "none" else args.background,
+                report_json=args.report_json,
+                report_md=args.report_md,
+            ),
+        )
     if args.command == "deps-audit":
         code, _ = dependency_audit(project_root)
         return code
