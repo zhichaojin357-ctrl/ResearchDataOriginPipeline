@@ -49,7 +49,21 @@ def type_specific_results(
         values = [record[1] for record in records] if records else y_values
         return {"best_condition_value_candidate": max(values) if values else None}
     if data_type == "BET":
-        return {"isotherm_points": len(numeric), **bet_summary_results(rows)}
+        isotherm = bet_isotherm_rows(rows)
+        pore_distribution = bet_pore_distribution_rows(rows)
+        summary = bet_summary_results(rows)
+        result = {**summary}
+        if isotherm:
+            result["isotherm_points"] = len(isotherm)
+            result["bet_table_kind_candidate"] = "isotherm"
+        elif pore_distribution:
+            result["pore_distribution_points"] = len(pore_distribution)
+            result["bet_table_kind_candidate"] = "pore_distribution"
+        elif summary:
+            result["bet_table_kind_candidate"] = "summary_only"
+        if pore_distribution:
+            result["pore_distribution_points"] = len(pore_distribution)
+        return result
     if data_type == "EPR":
         return {
             "peak_position_candidates": local_peak_positions(numeric),
@@ -409,6 +423,12 @@ def lc_quantification_blocked_reason(rows: list[dict[str, str]]) -> str | None:
 
 
 def bet_numeric(rows: list[dict[str, str]], fallback: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    isotherm = bet_isotherm_rows(rows)
+    if isotherm:
+        return [(float(row[0]), float(row[1])) for row in isotherm if row[0] is not None and row[1] is not None]
+    pore_distribution = bet_pore_distribution_rows(rows)
+    if pore_distribution:
+        return [(float(row[0]), float(row[1])) for row in pore_distribution if row[0] is not None and row[1] is not None]
     summary = bet_summary_results(rows)
     if summary and not fallback:
         return [(float(index + 1), value) for index, value in enumerate(summary.values())]
@@ -453,6 +473,14 @@ def bet_metric_summary_results(rows: list[dict[str, str]], metric_key: str, valu
 
 
 def bet_processed_table(rows: list[dict[str, str]]) -> tuple[list[str], list[list[float | str | None]]]:
+    isotherm = bet_isotherm_rows(rows)
+    if isotherm:
+        return ["relative_pressure_p_p0", "adsorbed_volume", "desorption_volume_optional"], isotherm
+
+    pore_distribution = bet_pore_distribution_rows(rows)
+    if pore_distribution:
+        return ["pore_size_nm", "pore_volume_cm3_g"], pore_distribution
+
     summary = bet_summary_results(rows)
     if summary and not any(matching_key(row, ["relative pressure", "p/p0", "p/p"]) for row in rows):
         headers = [
@@ -462,6 +490,14 @@ def bet_processed_table(rows: list[dict[str, str]]) -> tuple[list[str], list[lis
         ]
         return headers, [[summary.get(header) for header in headers]]
 
+    return ["bet_surface_area_m2_g_candidate", "pore_volume_cm3_g_candidate", "average_pore_diameter_nm_candidate"], []
+
+
+def bet_isotherm_rows(rows: list[dict[str, str]]) -> list[list[float | str | None]]:
+    vendor_isotherm = bet_vendor_isotherm_rows(rows)
+    if vendor_isotherm:
+        return vendor_isotherm
+
     output = []
     for row in rows:
         pressure = first_numeric(row, ["relative pressure", "p/p0", "p/p"])
@@ -469,9 +505,109 @@ def bet_processed_table(rows: list[dict[str, str]]) -> tuple[list[str], list[lis
         desorption = first_numeric(row, ["desorption"])
         if pressure is not None and adsorbed is not None:
             output.append([pressure, adsorbed, desorption])
-    if output:
-        return ["relative_pressure_p_p0", "adsorbed_volume", "desorption_volume_optional"], output
-    return ["bet_surface_area_m2_g_candidate", "pore_volume_cm3_g_candidate", "average_pore_diameter_nm_candidate"], []
+    return output if len(output) >= 2 else []
+
+
+def bet_pore_distribution_rows(rows: list[dict[str, str]]) -> list[list[float | str | None]]:
+    output: list[list[float | str | None]] = []
+    for row in rows:
+        pore_size = first_numeric(row, ["pore size", "pore diameter", "pore width", "diameter/nm", "width/nm"])
+        pore_volume = first_numeric(
+            row,
+            [
+                "dV/dlog",
+                "dV",
+                "differential pore volume",
+                "pore volume distribution",
+                "differential volume",
+            ],
+        )
+        if pore_size is None or pore_volume is None:
+            continue
+        if pore_size > 0 and isfinite(pore_volume):
+            output.append([pore_size, pore_volume])
+    return output if len(output) >= 2 else []
+
+
+def bet_vendor_isotherm_rows(rows: list[dict[str, str]]) -> list[list[float | str | None]]:
+    """Extract adsorption/desorption branches from wide vendor BET report sheets.
+
+    Some instrument exports are a single wide Excel report with repeated
+    subreports. The workbook header is metadata, while the real isotherm table is
+    embedded later as adjacent "Relative Pressure (P/Po)" / "Quantity Adsorbed"
+    column pairs. Prefer those pairs over summary-only candidate fields.
+    """
+    if not rows:
+        return []
+    row_values = [list(row.values()) for row in rows]
+    for header_index, values in enumerate(row_values):
+        pair_indices = []
+        for index in range(len(values) - 1):
+            left = str(values[index]).casefold()
+            right = str(values[index + 1]).casefold()
+            if _is_bet_relative_pressure_label(left) and _is_bet_quantity_adsorbed_label(right):
+                pair_indices.append((index, index + 1))
+        if len(pair_indices) < 2:
+            continue
+
+        branches: list[list[tuple[float, float]]] = []
+        for x_index, y_index in pair_indices:
+            branch: list[tuple[float, float]] = []
+            for data_values in row_values[header_index + 1 :]:
+                if x_index >= len(data_values) or y_index >= len(data_values):
+                    continue
+                pressure = to_float(data_values[x_index])
+                quantity = to_float(data_values[y_index])
+                if pressure is None or quantity is None:
+                    continue
+                if 0 <= pressure <= 1.05 and isfinite(quantity):
+                    branch.append((pressure, quantity))
+            if len(branch) >= 5:
+                branches.append(branch)
+
+        if len(branches) >= 2:
+            adsorption = sorted(_dedupe_points(branches[0]), key=lambda item: item[0])
+            desorption = sorted(_dedupe_points(branches[1]), key=lambda item: item[0])
+            if len(adsorption) < 5 or len(desorption) < 5:
+                continue
+            return [
+                [pressure, adsorbed, _interpolated_y(desorption, pressure)]
+                for pressure, adsorbed in adsorption
+            ]
+    return []
+
+
+def _is_bet_relative_pressure_label(value: str) -> bool:
+    return "relative pressure" in value or "p/po" in value or "p/p0" in value
+
+
+def _is_bet_quantity_adsorbed_label(value: str) -> bool:
+    return "quantity adsorbed" in value or "adsorbed" in value
+
+
+def _dedupe_points(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    deduped: dict[float, float] = {}
+    for x_value, y_value in points:
+        deduped[float(x_value)] = float(y_value)
+    return [(x_value, deduped[x_value]) for x_value in deduped]
+
+
+def _interpolated_y(points: list[tuple[float, float]], x_value: float) -> float | None:
+    if not points:
+        return None
+    if x_value <= points[0][0]:
+        return points[0][1]
+    if x_value >= points[-1][0]:
+        return points[-1][1]
+    for left, right in zip(points, points[1:]):
+        x0, y0 = left
+        x1, y1 = right
+        if x0 <= x_value <= x1:
+            if x1 == x0:
+                return y0
+            ratio = (x_value - x0) / (x1 - x0)
+            return y0 + ratio * (y1 - y0)
+    return None
 
 
 def epr_extrema_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:

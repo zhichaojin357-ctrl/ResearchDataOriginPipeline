@@ -847,6 +847,9 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertEqual(metadata["key_results"]["bet_surface_area_m2_g_candidate"], 58.2)
             self.assertEqual(metadata["key_results"]["pore_volume_cm3_g_candidate"], 0.18)
             self.assertEqual(metadata["key_results"]["average_pore_diameter_nm_candidate"], 12.4)
+            self.assertEqual(metadata["key_results"]["bet_table_kind_candidate"], "summary_only")
+            self.assertNotIn("isotherm_points", metadata["key_results"])
+            self.assertNotIn("pore_distribution_points", metadata["key_results"])
             rows = self._processed_rows(root, metadata)
             self.assertEqual(
                 set(rows[0]),
@@ -869,7 +872,96 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertEqual(metadata["key_results"]["bet_surface_area_m2_g_candidate"], 52.3)
             self.assertEqual(metadata["key_results"]["pore_volume_cm3_g_candidate"], 0.18)
             self.assertEqual(metadata["key_results"]["average_pore_diameter_nm_candidate"], 14.2)
+            self.assertEqual(metadata["key_results"]["bet_table_kind_candidate"], "summary_only")
+            self.assertNotIn("isotherm_points", metadata["key_results"])
+            self.assertNotIn("pore_distribution_points", metadata["key_results"])
             self.assertNotIn("bet_fit", metadata["key_results"])
+
+    def test_bet_summary_like_multirow_table_does_not_become_pore_distribution(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            bet = root / "bet_sample_summary_rows.csv"
+            with bet.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["sample", "average pore diameter", "total pore volume"])
+                writer.writerow(["A", 12.4, 0.18])
+                writer.writerow(["B", 15.2, 0.20])
+                writer.writerow(["C", 18.1, 0.24])
+
+            metadata = process_table_dataset(root, classification("BET", "bet_processor"), bet)
+
+            self.assertEqual(metadata["key_results"]["bet_table_kind_candidate"], "summary_only")
+            self.assertNotIn("isotherm_points", metadata["key_results"])
+            self.assertNotIn("pore_distribution_points", metadata["key_results"])
+            rows = self._processed_rows(root, metadata)
+            self.assertEqual(
+                set(rows[0]),
+                {"bet_surface_area_m2_g_candidate", "pore_volume_cm3_g_candidate", "average_pore_diameter_nm_candidate"},
+            )
+
+    def test_bet_vendor_report_extracts_isotherm_branches_instead_of_summary_point(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            bet = root / "vendor_bet_report.csv"
+            with bet.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["report_a", "report_b", "report_c", "report_d", "report_e"])
+                writer.writerow(["Sample:", "BOBC", "", "", ""])
+                writer.writerow(
+                    [
+                        "Relative Pressure (P/Po)",
+                        "Quantity Adsorbed (cm³/g STP)",
+                        "Relative Pressure (P/Po)",
+                        "Quantity Adsorbed (cm³/g STP)",
+                        "",
+                    ]
+                )
+                for pressure, adsorbed, des_pressure, desorbed in [
+                    (0.01, 0.8, 0.99, 16.0),
+                    (0.10, 1.0, 0.90, 3.4),
+                    (0.30, 1.2, 0.70, 1.9),
+                    (0.60, 1.6, 0.40, 1.4),
+                    (0.90, 3.0, 0.10, 1.0),
+                    (0.99, 16.0, 0.01, 0.8),
+                ]:
+                    writer.writerow([pressure, adsorbed, des_pressure, desorbed, ""])
+
+            metadata = process_table_dataset(root, classification("BET", "bet_processor"), bet)
+
+            rows = self._processed_rows(root, metadata)
+            self.assertGreaterEqual(len(rows), 6)
+            self.assertEqual(
+                set(rows[0]),
+                {"relative_pressure_p_p0", "adsorbed_volume", "desorption_volume_optional"},
+            )
+            self.assertEqual(rows[0]["relative_pressure_p_p0"], "0.01")
+            self.assertEqual(rows[-1]["relative_pressure_p_p0"], "0.99")
+            self.assertNotIn("bet_surface_area_m2_g_candidate", rows[0])
+            self.assertEqual(metadata["key_results"]["bet_table_kind_candidate"], "isotherm")
+            self.assertEqual(metadata["key_results"]["isotherm_points"], 6)
+            self.assertNotIn("pore_distribution_points", metadata["key_results"])
+
+    def test_bet_pore_distribution_table_extracts_curve_not_summary_point(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            bet = root / "bet_pore_distribution.csv"
+            with bet.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["pore size (nm)", "dV/dlog(D) pore volume (cm3/g)", "BET surface area"])
+                writer.writerow([2.0, 0.01, 52.3])
+                writer.writerow([8.0, 0.12, 52.3])
+                writer.writerow([20.0, 0.03, 52.3])
+
+            metadata = process_table_dataset(root, classification("BET", "bet_processor"), bet)
+
+            rows = self._processed_rows(root, metadata)
+            self.assertEqual(set(rows[0]), {"pore_size_nm", "pore_volume_cm3_g"})
+            self.assertEqual(rows[0]["pore_size_nm"], "2.0")
+            self.assertEqual(rows[1]["pore_volume_cm3_g"], "0.12")
+            self.assertEqual(metadata["key_results"]["bet_table_kind_candidate"], "pore_distribution")
+            self.assertEqual(metadata["key_results"]["pore_distribution_points"], 3)
+            self.assertNotIn("isotherm_points", metadata["key_results"])
+            self.assertNotIn("bet_surface_area_m2_g_candidate", rows[0])
 
     def test_epr_reports_extrema_and_g_candidate_when_microwave_frequency_is_exported(self):
         with tempfile.TemporaryDirectory() as tmpdir:
