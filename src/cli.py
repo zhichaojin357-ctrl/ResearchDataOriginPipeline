@@ -118,7 +118,7 @@ def build_parser() -> argparse.ArgumentParser:
     xps_stacked.add_argument("--output-dir", type=Path, default=Path("output/xps_heterojunction_stacked"))
     xps_origin = xps_stacked.add_mutually_exclusive_group()
     xps_origin.add_argument("--dry-run", action="store_true", help="parse data, write tables/reports, but do not launch Origin")
-    xps_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin and export OPJU/TIF/PNG")
+    xps_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF")
     xps_stacked.add_argument("--no-bc-candidate", action="store_true", help="do not use the detected BC candidate Excel outside the official BC folder")
 
     jeol_epr = subparsers.add_parser(
