@@ -254,7 +254,7 @@ def test_run_xps_heterojunction_stacked_dry_run_writes_reports_and_tables(tmp_pa
     assert "no mechanism conclusion is generated" in summary
 
 
-def test_run_xps_heterojunction_stacked_with_origin_updates_artifact_paths(tmp_path: Path) -> None:
+def test_run_xps_heterojunction_stacked_with_origin_updates_required_artifact_paths(tmp_path: Path) -> None:
     project_root = tmp_path / "project"
     project_root.mkdir()
     bobc = tmp_path / "BOBCfit.xlsx"
@@ -263,12 +263,12 @@ def test_run_xps_heterojunction_stacked_with_origin_updates_artifact_paths(tmp_p
     _write_xps_workbook(bc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
 
     def fake_export(_project_root: Path, comparison, plot_csv: Path, output_dirs: dict[str, Path], peak_details):
+        assert "figures_preview" not in output_dirs
         origin = output_dirs["origin_projects"] / f"{comparison.name}.opju"
         tif = output_dirs["figures_tif"] / f"{comparison.name}.tif"
-        png = output_dirs["figures_preview"] / f"{comparison.name}.png"
-        for path in (origin, tif, png):
+        for path in (origin, tif):
             path.write_text("artifact", encoding="utf-8")
-        return {"ok": True, "origin_file": origin, "figure_tif": tif, "preview_png": png, "message": "fake"}
+        return {"ok": True, "origin_file": origin, "figure_tif": tif, "preview_png": None, "message": "fake"}
 
     with patch("src.core.xps_heterojunction._export_origin_for_comparison", side_effect=fake_export) as export:
         result = run_xps_heterojunction_stacked(
@@ -283,7 +283,7 @@ def test_run_xps_heterojunction_stacked_with_origin_updates_artifact_paths(tmp_p
     assert figure["status"] == "success"
     assert figure["origin_file"].endswith(".opju")
     assert figure["figure_tif"].endswith(".tif")
-    assert figure["preview_png"].endswith(".png")
+    assert figure["preview_png"] == ""
 
 
 def test_direct_origin_xps_generated_script_compiles(tmp_path: Path) -> None:
