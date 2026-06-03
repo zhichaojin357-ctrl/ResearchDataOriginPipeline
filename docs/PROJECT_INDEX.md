@@ -1,5 +1,15 @@
 # Project Index
 
+MEGA update: 2026-06-04.
+
+This file still preserves the 2026-06-03 structure map below. For current Git and dirty counts, use `docs/MEGA_CONVERGENCE_FINAL_SELF_AUDIT.md` after it is generated. Current MEGA convergence changed the repository policy state:
+
+- generated `output/reports` JSON/CSV/TXT and generated Markdown report families are no longer tracked by default;
+- `docs/agent_reports` is formal documentation/provenance and is clean after the MEGA agent-report commit;
+- `src/config/tests/scripts` remains clean;
+- `output/reports/README.md`, `output/review_dashboard`, and any remaining documentation edits require explicit policy or user decisions;
+- data-type plotting/visual acceptance still requires future no-Origin planning or explicit Origin/visual goals.
+
 This index maps the current repository by role. It is based on the current disk state on 2026-06-03, not only on the latest git commit.
 
 ## Repository Root
@@ -12,7 +22,7 @@ Primary command:
 
 `D:\Python\python.exe run.py <command>`
 
-Current branch/commit:
+Historical branch/commit from the 2026-06-03 snapshot:
 
 - Branch: `master`
 - HEAD: `116b393 Phase 1.10-1.11: stabilize manifests and freeze release baseline`

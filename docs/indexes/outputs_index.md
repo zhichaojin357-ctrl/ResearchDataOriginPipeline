@@ -16,6 +16,4 @@
 | `output\review_dashboard` | primary result repository child | False | False |
 | `output\unclassified` | primary result repository child | False | False |
 | `output\xps_heterojunction_stacked` | primary result repository child | False | False |
-| `output\xps_origin_direct_probe` | primary result repository child | False | False |
-| `output\xps_origin_fill_probe` | primary result repository child | False | False |
 | `outputs\xps_in_situ_20260506` | specialized/historical outputs repository child | False | False |

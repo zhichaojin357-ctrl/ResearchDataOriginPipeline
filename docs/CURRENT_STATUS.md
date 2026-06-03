@@ -1,5 +1,25 @@
 # Current Status
 
+MEGA update: 2026-06-04.
+
+The sections below preserve the 2026-06-03 audit snapshot. For the current MEGA convergence state, use these newer documents first:
+
+- `docs/MEGA_CONVERGENCE_START_SNAPSHOT.md`
+- `docs/OUTPUT_REPORTS_FULL_POLICY_REVIEW.md`
+- `docs/OUTPUT_REPORTS_KEEP_AND_USER_DECISION.md`
+- `docs/AGENT_REPORTS_POLICY_REVIEW.md`
+- `docs/ROOT_AND_PROJECT_DOCS_CONSISTENCY_REVIEW.md`
+- `docs/MEGA_CONVERGENCE_FINAL_SELF_AUDIT.md` after it is generated
+
+Current MEGA facts before final self-audit:
+
+- `src/config/tests/scripts` is clean.
+- XPS source/test files are clean.
+- `docs/agent_reports` has been committed as formal documentation/provenance.
+- Generated `output/reports` JSON, CSV, TXT, and generated Markdown report families are now ignored/untracked by policy.
+- The remaining visible `output/reports` item is `output/reports/README.md`, a tracked modified user-decision item.
+- Origin, real-data processing, OPJU/TIF/PNG/PDF/XLSX generation, and visual acceptance remain blocked unless a future explicit goal permits them.
+
 Audit time: 2026-06-03 15:13:54 +08:00.
 
 Scope: status audit only. No source code was changed, no files were deleted, and no git staging or commit was performed. This audit read the current working tree, git state, source entry points, configs, and latest reports. The validation/readiness reports were not regenerated during this audit; the latest existing reports from 2026-06-03 were used as evidence to avoid adding extra generated-report churn.

@@ -15,7 +15,7 @@
 2. Extract adsorption/desorption isotherm columns when present.
 3. Extract pore-size distribution columns when present.
 4. Collect instrument-reported BET surface area, pore volume, and average pore diameter.
-5. Plot isotherm and optional pore distribution in Origin.
+5. Plot isotherm and optional pore distribution in Origin only when a real curve X column is present.
 6. Save `.opju`, 600 dpi `.tif`, processed CSV, and `metadata.json`.
 
 ## Automatic Calculations Allowed
@@ -25,8 +25,14 @@
 - Summary table extraction from reports.
 
 ## Recommended Origin Plot Type
-- Scatter-line isotherm plot: adsorbed quantity versus relative pressure.
-- Secondary line/bar plot for pore-size distribution when provided.
+- Line+symbol isotherm plot: `Quantity Adsorbed (cm3/g STP)` versus `Relative Pressure (P/Po)`.
+- Adsorption and desorption branches must be plotted as branch curves, not collapsed into a single summary point.
+- Pore-size distribution uses line or line+symbol with quantitative axes when exported pore-diameter/pore-volume columns exist.
+- Summary-only tables containing BET surface area, pore volume, or average pore diameter are metadata/report outputs; do not send them to Origin as XY curves.
+
+## Local OPJU Exemplar Notes
+- `F:\课题\LL\检测\BET` contains local OPJU exemplars. The BET target page is the multi-branch adsorption/desorption isotherm equivalent to the exported `Graph5`: relative pressure on X, quantity adsorbed on Y, line+symbol branches, visible numeric X/Y ticks, and explicit branch/sample legend rows.
+- Exemplar pages using row number as X, or pages that only visualize report metrics, are treated as intermediate/error pages and must not drive automatic plotting.
 
 ## Manual Checks Required
 - Confirm BET fitting range and correlation quality in source report.

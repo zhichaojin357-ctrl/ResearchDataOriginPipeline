@@ -1,6 +1,6 @@
 # Real Data Compatibility Matrix
 
-Current workspace copy: `workspace_data\LL_detection_copy_20260530`.
+Current workspace copy: `D:\Codex Project\科研数据处理\数据\workspace_data\LL_detection_copy_20260530`.
 
 | data_type | AUTO_PROCESS | MANUAL_REVIEW | Phase 1.6 Origin | Phase 1.8 status | next action |
 |---|---:|---:|---:|---|---|

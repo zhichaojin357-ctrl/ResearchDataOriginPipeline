@@ -1,17 +1,19 @@
 # Output Reports Index
 
+MEGA update: 2026-06-04.
+
+This index is retained as a historical inventory. The `keep` column below was generated before the MEGA output-report policy. Current policy is documented in:
+
+- `docs/OUTPUT_REPORTS_FULL_POLICY_REVIEW.md`
+- `docs/OUTPUT_REPORTS_UNTRACK_JSON_REVIEW.md`
+- `docs/OUTPUT_REPORTS_UNTRACK_CSV_REVIEW.md`
+- `docs/OUTPUT_REPORTS_MARKDOWN_POLICY_REVIEW.md`
+- `docs/OUTPUT_REPORTS_KEEP_AND_USER_DECISION.md`
+
+Generated JSON, CSV, TXT, and generated Markdown report families under `output/reports` are now ignored/untracked by policy. `output/reports/README.md` remains the visible tracked user-decision item.
+
 | path | phase | relevance | keep |
 |---|---|---|---|
-| `output\reports\_phase1_9_generate_handoff_audit.py` | Phase 1.9 | historical | True |
-| `output\reports\_test_phase1_10_normalized_manifest.csv` | Phase 1.10 | current | True |
-| `output\reports\_test_phase1_10_normalized_manifest.json` | Phase 1.10 | current | True |
-| `output\reports\_test_phase1_10_normalized_manifest.md` | Phase 1.10 | current | True |
-| `output\reports\_test_phase1_7_manifest_runner_plan.json` | Phase 1.7 | historical | True |
-| `output\reports\_test_phase1_7_manifest_runner_plan.md` | Phase 1.7 | historical | True |
-| `output\reports\_test_phase1_8_review_decisions_template.csv` | Phase 1.8 | historical | True |
-| `output\reports\_test_phase1_8_reviewed_queue_plan.json` | Phase 1.8 | historical | True |
-| `output\reports\_test_phase1_8_reviewed_queue_plan.md` | Phase 1.8 | historical | True |
-| `output\reports\_test_phase1_8_template.csv` | Phase 1.8 | historical | True |
 | `output\reports\ambiguous_files.json` | misc / unknown | historical | True |
 | `output\reports\ambiguous_files.md` | misc / unknown | historical | True |
 | `output\reports\auto_queue_forbidden_type_guard_20260531.md` | misc / unknown | historical | True |
@@ -51,7 +53,6 @@
 | `output\reports\phase1_10_origin_batch_manifest_schema.json` | Phase 1.10 | current | True |
 | `output\reports\phase1_10_output_outputs_role_governance.json` | Phase 1.10 | current | True |
 | `output\reports\phase1_10_output_outputs_role_governance.md` | Phase 1.10 | current | True |
-| `output\reports\phase1_10_readiness_stdout.txt` | Phase 1.10 | current | True |
 | `output\reports\phase1_10_reviewer_report.json` | Phase 1.10 | current | True |
 | `output\reports\phase1_10_scientific_safety_review.json` | Phase 1.10 | current | True |
 | `output\reports\phase1_10_scientific_safety_review.md` | Phase 1.10 | current | True |

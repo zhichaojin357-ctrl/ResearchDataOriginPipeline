@@ -2,7 +2,7 @@
 
 Each method card describes the data source, reader or adapter, processing algorithm, review items, and forbidden claims for one data type.
 
-Current Origin plotting skill SHA256: `b48812c2082ae58d21ff38db8ceffddacd7bb355c9eddcfbd67998da54fba6d4`
+Current Origin plotting skill SHA256: `75b75fba5f796ed81e64e3f39fd3e64017d884f1c7d31aacaf0502247041df67`
 
 | Data type | Method card |
 | --- | --- |

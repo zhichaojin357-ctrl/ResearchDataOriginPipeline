@@ -2,26 +2,23 @@
 
 Date: 2026-06-04
 
-This queue reflects the current repository state after the whole-project convergence audit. It supersedes older recommendations that still treated XPS no-artifact test design as unfinished.
+This queue reflects the current repository state after the MEGA convergence work. It supersedes older recommendations that still treated XPS no-artifact test design, broad output report policy, or `docs/agent_reports` classification as unfinished.
 
 ## A. Automatically Safe To Continue
 
-### 1. GOAL: Remaining Documentation Dirty Review
+### 1. GOAL: Review Dashboard Policy Decision
 
 Purpose:
 
-- review `AGENTS.md`, root docs, compatibility/intake docs, indexes, method cards, and the existing untracked root doc;
-- commit only reviewed, lightweight, formal documentation;
-- do not bulk stage `docs/agent_reports/`;
+- decide whether `output/review_dashboard` remains tracked output content, gets untracked as generated dashboard artifacts, or is represented by docs-only policy;
 - do not touch output content.
 
-### 2. GOAL: Output Reports Markdown And Baseline Policy Decision
+### 2. GOAL: Remaining Output README Decision
 
 Purpose:
 
-- decide whether tracked modified `output/reports` baseline reports should be restored, committed as formal lightweight evidence, or kept dirty;
-- decide whether untracked Markdown reports under `output/reports` should be moved into docs, committed, ignored, or left visible;
-- keep generated machine-readable JSON/CSV report families ignored unless the user asks to track a specific one.
+- decide whether `output/reports/README.md` should remain tracked and be reviewed, be restored in a future cleanup, or be represented by docs and later untracked with explicit approval;
+- do not commit output content under a no-output-content goal.
 
 ### 3. GOAL: Data-Type Plot Fix Sequence Planning
 
@@ -33,21 +30,12 @@ Purpose:
 
 ## B. Needs User Manual Confirmation
 
-### `docs/agent_reports`
-
-User decisions needed:
-
-- whether historical phase agent reports should be committed, archived, ignored, or kept dirty;
-- whether the newer untracked handoff documents are formal docs or session outputs;
-- whether modified existing agent reports should be accepted.
-
 ### `output/reports`
 
 User decisions needed:
 
-- whether tracked modified JSON/MD/CSV baseline reports should remain tracked;
-- whether untracked Markdown reports are formal evidence or generated report artifacts;
-- whether any additional generated report files should be untracked with explicit paths.
+- whether `output/reports/README.md` should remain as tracked output content;
+- whether clean historical tracked report files should remain tracked or be handled by a future explicit policy batch.
 
 ### Old Output Cleanup
 
@@ -72,20 +60,21 @@ Do not run these under a no-Origin/no-artifact goal:
 ## Recommended Next GOAL
 
 ```text
-GOAL: Remaining Documentation Dirty Review
+GOAL: Review Dashboard Policy Decision
 ```
 
 Reason:
 
 - source/config/tests/scripts are clean;
-- generated machine-readable output reports are now covered by narrow ignore rules;
-- the largest remaining non-output surface is `docs/agent_reports` plus formal documentation changes;
+- `docs/agent_reports` is clean and committed;
+- generated output report policy has been executed;
+- the remaining output-facing dirty surface is the review dashboard plus `output/reports/README.md`;
 - this can proceed without Origin, real data, or generated artifacts.
 
-If the user wants an output policy step first, use:
+If the user wants docs-only follow-up first, use:
 
 ```text
-GOAL: Output Reports Markdown And Baseline Policy Decision
+GOAL: Final Documentation Pointer Polish
 ```
 
 If the user wants XPS next, use:

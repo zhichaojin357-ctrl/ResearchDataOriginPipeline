@@ -5,7 +5,7 @@ Use this guide for Phase 1.9 review artifacts, Phase 1.8 reviewed decisions, and
 ## Principles
 
 - Do not modify, move, delete, or rename original raw data.
-- Do not write outputs into `workspace_data\LL_detection_copy_20260530` source folders.
+- Do not write outputs into `D:\Codex Project\科研数据处理\数据\workspace_data\LL_detection_copy_20260530` source folders.
 - Do not write into `F:\课题\LL\检测`.
 - Use scan and triage first.
 - Do not process all `MANUAL_REVIEW`.
@@ -97,6 +97,16 @@ The older `output/reports/phase1_8_manual_review_required_after_ai.csv` is histo
 ## BET Status
 
 `D:\Codex Project\科研数据处理\数据\26.5.29\BET` already contains legacy BET OPJU/PNG/TSV/CSV outputs. Those files are preserved as existing work, but BET has not yet been incorporated into the locked Phase 1.6 standardized results package. Current triage still keeps BET in manual review/proposal mode until adsorption/desorption columns and source format handling are reviewed.
+
+## Phase 1.13 Package Adapter Policy
+
+External packages are accessed through lazy adapters under `src/adapters/`. They can improve candidate baseline correction, peak detection, import probes, and metadata provenance, but they do not authorize automatic scientific interpretation. GPL or license-unclear packages are reference-only/opt-in and must not be used in the default automatic flow.
+
+Useful reports:
+
+- `docs/agent_reports/phase1_13_package_installation_report.md`
+- `docs/agent_reports/phase1_13_adapter_ab_comparison.md`
+- `docs/agent_reports/phase1_13_real_sample_shadow_mode_report.md`
 
 ## Origin Policy
 
