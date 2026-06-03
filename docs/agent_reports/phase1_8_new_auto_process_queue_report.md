@@ -1,10 +1,10 @@
 # Phase 1.8 New AUTO_PROCESS Queue Plan
 
-- Created at: 2026-05-31T20:54:31
+- Created at: 2026-06-03T13:59:16
 - Source queue: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\reports\processing_queue.json`
 - Candidate queue: `D:\Codex Project\科研数据处理\ResearchDataOriginPipeline\output\reports\phase1_8_new_auto_process_queue.json`
-- Source queue items: 188
-- Accepted new candidates: 105
+- Source queue items: 209
+- Accepted new candidates: 126
 - Skipped: 83
 - Blocked: 0
 - Phase 1.6 processed hashes: 167
@@ -15,9 +15,9 @@
 
 | data_type | count |
 |---|---:|
+| EIS | 45 |
 | EPR | 44 |
 | Mott-Schottky | 32 |
-| EIS | 24 |
 | photocurrent | 5 |
 
 ## Skipped / Blocked Reasons

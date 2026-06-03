@@ -26,6 +26,13 @@ Same inferred material/sample key uses the same Origin curve color across Phase 
 
 | dataset_id | curve | label | key | color | confidence | review |
 |---|---:|---|---|---|---:|---|
+| `BET_XWM-LL-1-260522-BiCu-All_Pore_q_df0456f26b55` | 1 | `Quantity Adsorbed` | `ADSORPTION_BRANCH` | black `#000000` | 1.0 | False |
+| `BET_XWM-LL-260421-1-BOBC-All_Pore_q_ed9d57aec403` | 1 | `Quantity Adsorbed` | `ADSORPTION_BRANCH` | black `#000000` | 1.0 | False |
+| `BET_XWM-LL-260421-2-CWO-All_Pore_q_c02c6f72143d` | 1 | `Quantity Adsorbed` | `ADSORPTION_BRANCH` | black `#000000` | 1.0 | False |
+| `BET_XWM-LL-260421-3-BiCu-All_Pore_q_39fa5a2f8cb9` | 1 | `Quantity Adsorbed` | `ADSORPTION_BRANCH` | black `#000000` | 1.0 | False |
+| `BET_XWM-LL-260421-4-BOBC-4-XIN-All_Pore_q_a4427ef6f72a` | 1 | `Quantity Adsorbed` | `ADSORPTION_BRANCH` | black `#000000` | 1.0 | False |
+| `BET_XWM-LL-260428-1-BOBC-All_Pore_q_9899fc463cd6` | 1 | `Quantity Adsorbed` | `ADSORPTION_BRANCH` | black `#000000` | 1.0 | False |
+| `BET_bet_bobc_all_pore_q_72e137157e0c` | 1 | `Quantity Adsorbed` | `ADSORPTION_BRANCH` | black `#000000` | 1.0 | False |
 | `EIS_EIS_7cbc05bc` | 1 | `EIS` | `BC` | teal `#44AA99` | 0.8 | False |
 | `EPR_BC-O3-dark_c31da11b` | 1 | `BC-O3-dark intensity` | `BC` | teal `#44AA99` | 0.8 | False |
 | `EPR_BC-O3-dark_c31da11b` | 2 | `BC-O3-dark normalized_intensity` | `BC` | teal `#44AA99` | 0.8 | False |
@@ -35,6 +42,8 @@ Same inferred material/sample key uses the same Origin curve color across Phase 
 | `EPR_BC-OH-dark_fd428908` | 2 | `BC-OH-dark normalized_intensity` | `BC` | teal `#44AA99` | 0.8 | False |
 | `EPR_BC-OH-light2_f784cbc6` | 1 | `BC-OH-light2 intensity` | `BC` | teal `#44AA99` | 0.8 | False |
 | `EPR_BC-OH-light2_f784cbc6` | 2 | `BC-OH-light2 normalized_intensity` | `BC` | teal `#44AA99` | 0.8 | False |
+| `EPR_O3_overlay` | 1 | `BC` | `BC` | teal `#44AA99` | 0.8 | False |
+| `EPR_OH_overlay` | 1 | `BC` | `BC` | teal `#44AA99` | 0.8 | False |
 | `Raman_MS2_1980bc76` | 1 | `MS2 intensity` | `BC` | teal `#44AA99` | 0.8 | False |
 | `Raman_MS2_1980bc76` | 2 | `MS2 normalized_intensity` | `BC` | teal `#44AA99` | 0.8 | False |
 | `Raman_bc30_1_db02678d` | 1 | `bc30 1 intensity` | `BC` | teal `#44AA99` | 0.8 | False |
@@ -69,6 +78,7 @@ Same inferred material/sample key uses the same Origin curve color across Phase 
 | `EIS_EIS-1_c56761c5` | 1 | `EIS-1` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `EIS_EIS-2GOOD_13d173c9` | 1 | `EIS-2GOOD` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `EIS_EIS-2GOOD_c8ad68bd` | 1 | `EIS-2GOOD` | `BOBC` | orange `#E69F00` | 0.95 | False |
+| `EIS_eis_bobc_z_q_adb8f4f5d72e` | 1 | `neg_imag_impedance` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `EPR_BOBC-O3-dark_844d0c49` | 1 | `BOBC-O3-dark intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `EPR_BOBC-O3-dark_844d0c49` | 2 | `BOBC-O3-dark normalized_intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `EPR_BOBC-O3-light1_214a2913` | 1 | `BOBC-O3-light1 intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
@@ -79,6 +89,8 @@ Same inferred material/sample key uses the same Origin curve color across Phase 
 | `EPR_BOBC-O3-light3_a8822fa8` | 2 | `BOBC-O3-light3 normalized_intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `EPR_BOBC-OH-light1_304a8e49` | 1 | `BOBC-OH-light1 intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `EPR_BOBC-OH-light1_304a8e49` | 2 | `BOBC-OH-light1 normalized_intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
+| `EPR_O3_overlay` | 3 | `BOBC` | `BOBC` | orange `#E69F00` | 0.95 | False |
+| `EPR_OH_overlay` | 3 | `BOBC` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Mott-Schottky_BOBC-2-1000_7c5dc649` | 1 | `BOBC-2-1000` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Mott-Schottky_BOBC-2-1500_8972c187` | 1 | `BOBC-2-1500` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Mott-Schottky_BOBC-2-2000_e02b5efd` | 1 | `BOBC-2-2000` | `BOBC` | orange `#E69F00` | 0.95 | False |
@@ -107,10 +119,15 @@ Same inferred material/sample key uses the same Origin curve color across Phase 
 | `Mott-Schottky_BOBC4500_b5be0901` | 1 | `BOBC4500` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Mott-Schottky_BOBC5000_89bf7d26` | 1 | `BOBC5000` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Mott-Schottky_BOBC6000_0f326a89` | 1 | `BOBC6000` | `BOBC` | orange `#E69F00` | 0.95 | False |
+| `Mott-Schottky_mott_bobc_2000_q_24de08b022ce` | 1 | `mott bobc 2000` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Raman_BOBC1_23209fa2` | 1 | `BOBC1 intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Raman_BOBC1_23209fa2` | 2 | `BOBC1 normalized_intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Raman_BOBC_2e5505e9` | 1 | `BOBC intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Raman_BOBC_2e5505e9` | 2 | `BOBC normalized_intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
+| `Raman_raman_bobc_q_8a64099ed434` | 1 | `raman bobc` | `BOBC` | orange `#E69F00` | 0.95 | False |
+| `Raman_raman_bobc_q_8a64099ed434` | 2 | `normalized_intensity` | `BOBC` | orange `#E69F00` | 0.95 | False |
+| `Raman_raman_bobc_q_8a64099ed434` | 3 | `pybaselines_corrected_intensity_optional` | `BOBC` | orange `#E69F00` | 0.95 | False |
+| `photocurrent_response_photocurrent_bobc_ocp_q_dc02528f6e57` | 1 | `photocurrent bobc ocp` | `BOBC` | orange `#E69F00` | 0.95 | False |
 | `Raman_BOBCMS9_7b496d5c` | 1 | `BOBCMS9 intensity` | `BOBCMS` | wine `#882255` | 0.8 | False |
 | `Raman_BOBCMS9_7b496d5c` | 2 | `BOBCMS9 normalized_intensity` | `BOBCMS` | wine `#882255` | 0.8 | False |
 | `photocurrent_1-BOC-_OCP_82c78732` | 1 | `1-BOC` | `BOC` | sky_blue `#56B4E9` | 0.95 | False |
@@ -143,6 +160,10 @@ Same inferred material/sample key uses the same Origin curve color across Phase 
 | `EPR_CWO-OH-dark_7d9cbbf8` | 2 | `CWO-OH-dark normalized_intensity` | `CWO` | blue `#0072B2` | 0.95 | False |
 | `EPR_CWO-OH-light2_19bac433` | 1 | `CWO-OH-light2 intensity` | `CWO` | blue `#0072B2` | 0.95 | False |
 | `EPR_CWO-OH-light2_19bac433` | 2 | `CWO-OH-light2 normalized_intensity` | `CWO` | blue `#0072B2` | 0.95 | False |
+| `EPR_O3_overlay` | 2 | `CWO` | `CWO` | blue `#0072B2` | 0.95 | False |
+| `EPR_OH_overlay` | 2 | `CWO` | `CWO` | blue `#0072B2` | 0.95 | False |
+| `FTIR_ftir_cwo_q_1a338b85d831` | 1 | `ftir cwo intensity` | `CWO` | blue `#0072B2` | 0.95 | False |
+| `FTIR_ftir_cwo_q_1a338b85d831` | 2 | `ftir cwo normalized_intensity` | `CWO` | blue `#0072B2` | 0.95 | False |
 | `Mott-Schottky_CWO-2-1500_a1afe40c` | 1 | `CWO-2-1500` | `CWO` | blue `#0072B2` | 0.95 | False |
 | `Mott-Schottky_CWO-2-2000_e64e42db` | 1 | `CWO-2-2000` | `CWO` | blue `#0072B2` | 0.95 | False |
 | `Mott-Schottky_CWO-2-2500_50ed256b` | 1 | `CWO-2-2500` | `CWO` | blue `#0072B2` | 0.95 | False |
@@ -177,6 +198,13 @@ Same inferred material/sample key uses the same Origin curve color across Phase 
 | `Raman_CWO_BOBC_3_197bcf8f` | 2 | `CWO+BOBC+3 normalized_intensity` | `CWO+BOBC` | bluish_green `#009E73` | 0.95 | False |
 | `Raman_CWO_BOBC_f23c5be4` | 1 | `CWO+BOBC intensity` | `CWO+BOBC` | bluish_green `#009E73` | 0.95 | False |
 | `Raman_CWO_BOBC_f23c5be4` | 2 | `CWO+BOBC normalized_intensity` | `CWO+BOBC` | bluish_green `#009E73` | 0.95 | False |
+| `BET_XWM-LL-1-260522-BiCu-All_Pore_q_df0456f26b55` | 2 | `Quantity Desorption` | `DESORPTION_BRANCH` | vermillion `#D55E00` | 1.0 | False |
+| `BET_XWM-LL-260421-1-BOBC-All_Pore_q_ed9d57aec403` | 2 | `Quantity Desorption` | `DESORPTION_BRANCH` | vermillion `#D55E00` | 1.0 | False |
+| `BET_XWM-LL-260421-2-CWO-All_Pore_q_c02c6f72143d` | 2 | `Quantity Desorption` | `DESORPTION_BRANCH` | vermillion `#D55E00` | 1.0 | False |
+| `BET_XWM-LL-260421-3-BiCu-All_Pore_q_39fa5a2f8cb9` | 2 | `Quantity Desorption` | `DESORPTION_BRANCH` | vermillion `#D55E00` | 1.0 | False |
+| `BET_XWM-LL-260421-4-BOBC-4-XIN-All_Pore_q_a4427ef6f72a` | 2 | `Quantity Desorption` | `DESORPTION_BRANCH` | vermillion `#D55E00` | 1.0 | False |
+| `BET_XWM-LL-260428-1-BOBC-All_Pore_q_9899fc463cd6` | 2 | `Quantity Desorption` | `DESORPTION_BRANCH` | vermillion `#D55E00` | 1.0 | False |
+| `BET_bet_bobc_all_pore_q_72e137157e0c` | 2 | `Quantity Desorption` | `DESORPTION_BRANCH` | vermillion `#D55E00` | 1.0 | False |
 | `Mott-Schottky_11MB_EIS_c4762e80` | 1 | `11MB EIS` | `MB` | olive `#999933` | 0.8 | False |
 | `Mott-Schottky_11MB_EIS_ed0e4640` | 1 | `11MB EIS` | `MB` | olive `#999933` | 0.8 | False |
 | `Mott-Schottky_13MBEIS2_20ea92af` | 1 | `13MBEIS2` | `MB` | olive `#999933` | 0.8 | False |
@@ -235,4 +263,16 @@ Same inferred material/sample key uses the same Origin curve color across Phase 
 | `XPS_LIGHT_bf658e4e` | 1 | `LIGHT` | `SAMPLE:LIGHT` | fallback_purple `#AA4499` | 0.4 | True |
 | `XPS_LINGT-20260506_5dde5fe2` | 1 | `LINGT-20260506` | `SAMPLE:LINGT-20260506` | fallback_teal `#44AA99` | 0.4 | True |
 | `XPS_Microsoft_Excel_c402d286` | 1 | `新建 Microsoft Excel 工作表` | `SAMPLE:Microsoft_Excel` | fallback_dark_blue `#332288` | 0.4 | True |
+| `epr_20260519_1_selected_1ohlight1min_2ohlight3_3ohlight_origin_overlay` | 1 | `1-OH-light-1min` | `SAMPLE:epr_20260519_1_selected_1ohlight1min_2ohlight3_3ohlight_origin_overlay_detail` | fallback_bluish_green `#009E73` | 0.4 | True |
+| `epr_20260519_1_selected_1ohlight1min_2ohlight3_3ohlight_origin_overlay` | 2 | `2-OH-light-3` | `SAMPLE:epr_20260519_1_selected_1ohlight1min_2ohlight3_3ohlight_origin_overlay_detail` | fallback_bluish_green `#009E73` | 0.4 | True |
+| `epr_20260519_1_selected_1ohlight1min_2ohlight3_3ohlight_origin_overlay` | 3 | `3-OH-light` | `SAMPLE:epr_20260519_1_selected_1ohlight1min_2ohlight3_3ohlight_origin_overlay_detail` | fallback_bluish_green `#009E73` | 0.4 | True |
+| `epr_20260601_2_selected_1light3_2light1_3light1_origin_overlay` | 1 | `1-light-3` | `SAMPLE:epr_20260601_2_selected_1light3_2light1_3light1_origin_overlay_detail` | fallback_blue `#0072B2` | 0.4 | True |
+| `epr_20260601_2_selected_1light3_2light1_3light1_origin_overlay` | 2 | `2-light-1` | `SAMPLE:epr_20260601_2_selected_1light3_2light1_3light1_origin_overlay_detail` | fallback_blue `#0072B2` | 0.4 | True |
+| `epr_20260601_2_selected_1light3_2light1_3light1_origin_overlay` | 3 | `3-light-1` | `SAMPLE:epr_20260601_2_selected_1light3_2light1_3light1_origin_overlay_detail` | fallback_blue `#0072B2` | 0.4 | True |
+| `EPR_epr_oh_dark_q_cc7c99f7dbd9` | 1 | `epr oh dark` | `SAMPLE:epr_oh_dark` | fallback_brown `#661100` | 0.4 | True |
+| `EPR_epr_oh_dark_q_cc7c99f7dbd9` | 2 | `epr oh dark normalized_intensity` | `SAMPLE:epr_oh_dark` | fallback_brown `#661100` | 0.4 | True |
 | `XPS_light_a0ea8cb1` | 1 | `light拟合第一遍` | `SAMPLE:light` | fallback_reddish_purple `#CC79A7` | 0.4 | True |
+| `PL_pl_em_ex340_q_71aaf864d941` | 1 | `pl em ex340 intensity` | `SAMPLE:pl_em_ex340` | fallback_sky_blue `#56B4E9` | 0.4 | True |
+| `PL_pl_em_ex340_q_71aaf864d941` | 2 | `pl em ex340 normalized_intensity` | `SAMPLE:pl_em_ex340` | fallback_sky_blue `#56B4E9` | 0.4 | True |
+| `XRD_xrd_bwo_a_q_817dee06aa36` | 1 | `xrd bwo a` | `SAMPLE:xrd_bwo_a` | fallback_dark_blue `#332288` | 0.4 | True |
+| `XRD_xrd_bwo_m_q_e5ff93abb2a4` | 1 | `xrd bwo m` | `SAMPLE:xrd_bwo_m` | fallback_brown `#661100` | 0.4 | True |

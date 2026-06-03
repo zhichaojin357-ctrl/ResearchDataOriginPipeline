@@ -21,8 +21,8 @@
 | `pyteomics` | 5.0 | ok | optional_adapter | permissive | MS | mzML/mzXML/MGF/msp reader helpers |
 | `cwepr` | 0.5.1 | ok | optional_adapter | permissive | EPR | cw-EPR processing helper; no radical assignment |
 | `lmfitxps` | 4.2.0 | ok | optional_adapter | permissive_with_review | XPS | manual-review fitting helper; no valence assignment |
-| `galvani` |  | fail | reference_only | GPL_reference_only | electrochemistry | Bio-Logic reader reference only |
-| `eclabfiles` |  | fail | reference_only | GPL_reference_only | electrochemistry | EC-Lab reader reference only |
+| `galvani` | 0.5.0 | ok | reference_only | GPL_reference_only | electrochemistry | Bio-Logic reader reference only |
+| `eclabfiles` | 0.4.1 | ok | reference_only | GPL_reference_only | electrochemistry | EC-Lab reader reference only |
 | `pyopenms` |  | fail | reference_only | heavy_optional_reference | MS | full MS toolkit reference only |
 | `matchms` |  | fail | reference_only | optional_reference | MS | MS similarity reference only |
-| `pyimpspec` |  | fail | reference_only | GPL_reference_only | EIS | EIS expert analysis reference only |
+| `pyimpspec` | 5.1.3 | ok | reference_only | GPL_reference_only | EIS | EIS expert analysis reference only |

@@ -1,0 +1,22 @@
+# Phase 1.9 Scientific Safety and Claims Review
+
+Generated: 2026-06-02T00:50:48
+
+- forbidden claims found count: 0
+- suspicious claims count: 0
+- manual check recommended: False
+
+|severity|category|file|snippet|
+|---|---|---|---|
+|pass|photocurrent carrier separation|docs\method_cards\photocurrent.md| - Confirm whether samples are directly comparable.  ## Forbidden Claims - Do not state that higher photocurrent proves better carrier separation. - Do not infer mechanism, charge-transfer direction, or heterojunction type. - Do not rank final p|
+|pass|PL recombination|docs\method_cards\pl.md|ity of sample concentration, loading, and test conditions.  ## Forbidden Claims - Do not state that PL decrease proves lower recombination. - Do not infer charge-transfer mechanism from PL alone. - Do not assign emission origin automatica|
+|pass|photocurrent carrier separation|output\reports\phase1_5_batch_B_processing_report.json|perimental kinetics data",         "do not create kinetics processor",         "do not claim higher photocurrent proves better carrier separation"       ],       "warnings": [         "Origin export skipped by --no-origin."       ],       "param|
+|pass|photocurrent carrier separation|output\reports\phase1_6_no_origin_result_consistency.json|perimental kinetics data",         "do not create kinetics processor",         "do not claim higher photocurrent proves better carrier separation"       ],       "forbidden_claim_count": 15,       "preview_quality": {         "openable": true,  |
+|pass|photocurrent carrier separation|output\reports\phase1_7_origin_preview_review_checklist.csv|inetics folder as experimental kinetics data; do not create kinetics processor; do not claim higher photocurrent proves better carrier separation,check_photocurrent_light_cycles,,, P17-157,photocurrent,photocurrent_2-MCS-_OCP_7a8c1a77,2-MCS-(OCP|
+|pass|photocurrent carrier separation|output\reports\phase1_7_success_pattern_library.json|perimental kinetics data",         "do not create kinetics processor",         "do not claim higher photocurrent proves better carrier separation"       ]     }   ] }|
+|pass|photocurrent carrier separation|output\reports\phase1_9_journal_ready_index.csv|inetics folder as experimental kinetics data; do not create kinetics processor; do not claim higher photocurrent proves better carrier separation,copied_package; Origin Graph4 export; scientific interpretation still requires manual check,b48812c|
+|pass|photocurrent carrier separation|output\reports\phase1_6_origin_queues\phase1_6_origin_queue_all.json|perimental kinetics data",         "do not create kinetics processor",         "do not claim higher photocurrent proves better carrier separation"       ],       "origin_export_allowed": true,       "origin_export_risk_level": "low",       "orig|
+|pass|photocurrent carrier separation|output\reports\phase1_6_origin_queues\phase1_6_origin_queue_photocurrent.json|perimental kinetics data",         "do not create kinetics processor",         "do not claim higher photocurrent proves better carrier separation"       ],       "origin_export_allowed": true,       "origin_export_risk_level": "low",       "orig|
+|pass|photocurrent carrier separation|output\metadata\photocurrent\1-BOC-_OCP_82c78732\metadata.json|er as experimental kinetics data",     "do not create kinetics processor",     "do not claim higher photocurrent proves better carrier separation"   ],   "warnings": [],   "parameters": {},   "key_results": {     "point_count": 2600,     "x_min"|
+|pass|photocurrent carrier separation|output\metadata\photocurrent\2-MCS-_OCP_7a8c1a77\metadata.json|er as experimental kinetics data",     "do not create kinetics processor",     "do not claim higher photocurrent proves better carrier separation"   ],   "warnings": [],   "parameters": {},   "key_results": {     "point_count": 2600,     "x_min"|
+|pass|photocurrent carrier separation|output\metadata\photocurrent\3-BM-10-_OCP_28eda5d6\metadata.json|er as experimental kinetics data",     "do not create kinetics processor",     "do not claim higher photocurrent proves better carrier separation"   ],   "warnings": [],   "parameters": {},   "key_results": {     "point_count": 2600,     "x_min"|
