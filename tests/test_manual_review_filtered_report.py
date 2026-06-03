@@ -6,7 +6,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-from scripts.regenerate_manual_review_filtered import build_rows, main as regenerate_main, write_csv, write_xlsx
+from scripts.reports.regenerate_manual_review_filtered import build_rows, main as regenerate_main, write_csv, write_xlsx
 
 
 def _item(relative_path: str, decision: str, *, data_type: str = "Mott-Schottky", suffix: str = ".csv") -> dict:
