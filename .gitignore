@@ -42,6 +42,8 @@ output/reports/*.png
 output/reports/*.zip
 output/reports/*.xlsx
 output/reports/PHASE1_*_HANDOFF_TO_CHATGPT_FOR_NEXT_DECISION.json
+output/reports/*.json
+output/reports/**/*.json
 output/reports/phase1_13_pip_*.txt
 output/reports/*_temp_*_deleted_items_*.json
 # Generated machine-readable reports. Markdown reports stay visible for user review.
