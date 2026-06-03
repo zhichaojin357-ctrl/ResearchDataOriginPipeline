@@ -4,30 +4,17 @@ Date: 2026-06-03
 
 This file records Batch 2 source/config/test changes that were intentionally not auto-committed during the autonomous stabilization GOAL.
 
-## Governance / Validation
+## Resolved: Governance / Validation
 
-Files:
+Resolved by:
 
-- `src/core/phase1_7.py`
-- `src/core/phase1_9.py`
-- `src/core/validate.py`
-- `tests/test_phase1_7_manifest_runner.py`
-- `tests/test_phase1_8_reviewed_queue.py`
-- `tests/test_phase1_9_governance.py`
-- `tests/test_phase1_10_manifest_normalizer.py`
-- `tests/test_phase1_contracts.py`
+- `dbe0a58 core: isolate governance report tests`
 
-Reason blocked:
+Resolution:
 
-- The source diffs are coherent but the targeted test set includes tests using the repository-root `project_root` fixture.
-- Several modified tests create temporary `_test_*` files or folders under the real `output/reports` tree before cleanup.
-- The current GOAL hard rule says not to modify `output/` or `outputs/`, so this batch was not validated or committed.
-
-Recommended next review:
-
-- `Batch 2E Governance Output-Safe Review`
-- First decide whether temporary repository `output/reports/_test_*` writes are acceptable when cleaned in `finally` blocks.
-- If not acceptable, refactor tests in a separate allowlist so they operate entirely under `tmp_path`.
+- Governance tests that previously wrote temporary files under repository `output/reports` now use temporary project roots under `tmp_path`.
+- Targeted pytest passed: `73 passed in 18.71s`.
+- No repository `output/reports/_test_*` files were created.
 
 ## Processor / Table Reader
 
