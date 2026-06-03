@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import os
+import re
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
+from src.core.project import ensure_write_path_allowed
 from src.core.project import load_project_config
 
 
@@ -17,11 +21,95 @@ WORKSPACE_ROOT_ENV = "RESEARCHDATAORIGINPIPELINE_WORKSPACE_ROOT"
 F_DRIVE_BACKUP_ENV = "RESEARCHDATAORIGINPIPELINE_F_DRIVE_BACKUP"
 ORIGIN_HELPER_ENV = "RESEARCHDATAORIGINPIPELINE_ORIGIN_HELPER"
 ORIGIN_REFERENCE_PATTERN_ENV = "RESEARCHDATAORIGINPIPELINE_ORIGIN_REFERENCE_PATTERN"
+RUN_OUTPUT_SUBDIRS = (
+    "processed_data",
+    "metadata",
+    "origin_files",
+    "figures_tif",
+    "figures_preview",
+    "reports",
+    "logs",
+)
+
+
+@dataclass(frozen=True)
+class RunOutputLayout:
+    run_id: str
+    root: Path
+    processed_data: Path
+    metadata: Path
+    origin_files: Path
+    figures_tif: Path
+    figures_preview: Path
+    reports: Path
+    logs: Path
+    manifest: Path
 
 
 def resolve_project_path(project_root: Path, value: str | Path) -> Path:
     path = Path(str(value))
     return path if path.is_absolute() else project_root / path
+
+
+def create_run_output_layout(
+    project_root: Path,
+    *,
+    scope: str,
+    command: str,
+    mode: str,
+    input_paths: list[Path] | tuple[Path, ...] | None = None,
+    timestamp: str | None = None,
+    no_origin: bool | None = None,
+    dry_run: bool | None = None,
+    output_base: Path | None = None,
+    warnings: list[str] | None = None,
+    compatibility_mode: str = "run_scoped",
+) -> RunOutputLayout:
+    normalized_scope = _safe_run_scope(scope)
+    run_timestamp = timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_id = f"{run_timestamp}_{normalized_scope}"
+    base = output_base or project_root / "output" / "runs"
+    root = base / run_id
+    ensure_write_path_allowed(project_root, root)
+    directories = {name: root / name for name in RUN_OUTPUT_SUBDIRS}
+    for directory in directories.values():
+        directory.mkdir(parents=True, exist_ok=True)
+    manifest_path = root / "run_manifest.json"
+    manifest_payload = {
+        "run_id": run_id,
+        "timestamp": run_timestamp,
+        "command": command,
+        "mode": mode,
+        "scope": normalized_scope,
+        "project_root": str(project_root),
+        "output_root": str(root),
+        "input_paths": [str(path) for path in input_paths or []],
+        "no_origin": no_origin,
+        "dry_run": dry_run,
+        "produced_artifact_directories": {name: str(path) for name, path in directories.items()},
+        "warnings": list(warnings or []),
+        "compatibility_mode": compatibility_mode,
+    }
+    import json
+
+    manifest_path.write_text(json.dumps(manifest_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return RunOutputLayout(
+        run_id=run_id,
+        root=root,
+        processed_data=directories["processed_data"],
+        metadata=directories["metadata"],
+        origin_files=directories["origin_files"],
+        figures_tif=directories["figures_tif"],
+        figures_preview=directories["figures_preview"],
+        reports=directories["reports"],
+        logs=directories["logs"],
+        manifest=manifest_path,
+    )
+
+
+def _safe_run_scope(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip().casefold())
+    return cleaned.strip("_") or "run"
 
 
 def resolve_phase1_6_package(project_root: Path, override: str | Path | None = None) -> Path:
