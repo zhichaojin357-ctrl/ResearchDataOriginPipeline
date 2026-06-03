@@ -10,7 +10,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from src.core.project import _parse_simple_yaml
+from src.core.project import _parse_simple_yaml, output_dir
 from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern
 from src.origin.plot_policy import Graph4FixedStyle, PlotPolicy, all_plot_policies, get_plot_policy, validate_graph4_style_config
 
@@ -219,9 +219,8 @@ def check_origin_available() -> tuple[bool, str]:
     return True, "originpro and win32com are importable"
 
 
-def write_origin_error(project_root: Path, message: str) -> None:
-    reports = project_root / "output" / "reports"
-    reports.mkdir(parents=True, exist_ok=True)
+def write_origin_error(project_root: Path, message: str, *, output_root: Path | None = None) -> None:
+    reports = output_dir(project_root, "reports", output_root=output_root)
     path = reports / "origin_errors.md"
     existing = path.read_text(encoding="utf-8") if path.exists() else "# Origin Errors\n\n"
     line = f"- {message}"
@@ -240,9 +239,8 @@ def write_origin_error(project_root: Path, message: str) -> None:
     path.write_text("# Origin Errors\n\n" + body + ("\n" if body else ""), encoding="utf-8")
 
 
-def write_origin_success(project_root: Path) -> None:
-    reports = project_root / "output" / "reports"
-    reports.mkdir(parents=True, exist_ok=True)
+def write_origin_success(project_root: Path, *, output_root: Path | None = None) -> None:
+    reports = output_dir(project_root, "reports", output_root=output_root)
     (reports / "origin_errors.md").write_text("# Origin Errors\n\nNo current Origin errors.\n", encoding="utf-8")
 
 
@@ -436,6 +434,8 @@ def build_bet_combined_origin_job(
     project_root: Path,
     dataset_id: str,
     sources: list[BetCombinedSource] | tuple[BetCombinedSource, ...],
+    *,
+    output_root: Path | None = None,
 ) -> BetCombinedOriginJob:
     source_tuple = tuple(sources)
     if not source_tuple:
@@ -445,11 +445,12 @@ def build_bet_combined_origin_job(
         ("BET_primary_materials", primary),
         ("BET_additional_materials", remaining),
     ]
-    job_dir = project_root / "output" / "origin_jobs"
-    origin_dir = project_root / "output" / "origin_files"
-    preview_dir = project_root / "output" / "figures_preview"
-    for directory in (job_dir, origin_dir, preview_dir):
-        directory.mkdir(parents=True, exist_ok=True)
+    if output_root is not None:
+        job_dir = output_dir(project_root, "logs", "origin_jobs", output_root=output_root)
+    else:
+        job_dir = output_dir(project_root, "origin_jobs")
+    origin_dir = output_dir(project_root, "origin_files", output_root=output_root)
+    preview_dir = output_dir(project_root, "figures_preview", output_root=output_root)
     groups: list[BetCombinedGroup] = []
     for page_name, group_sources in groups_raw:
         if not group_sources:
@@ -804,11 +805,16 @@ def _color_assignments(
     return tuple(assignments)
 
 
-def _write_material_color_report(project_root: Path, assignments: tuple[dict[str, object], ...]) -> None:
-    reports = project_root / "output" / "reports"
+def _write_material_color_report(
+    project_root: Path,
+    assignments: tuple[dict[str, object], ...],
+    *,
+    output_root: Path | None = None,
+) -> None:
+    reports = output_dir(project_root, "reports", output_root=output_root)
     docs = project_root / "docs" / "agent_reports"
-    reports.mkdir(parents=True, exist_ok=True)
-    docs.mkdir(parents=True, exist_ok=True)
+    if output_root is None:
+        docs.mkdir(parents=True, exist_ok=True)
     json_path = reports / "phase1_6_material_color_map.json"
     existing: dict[str, object] = {}
     if json_path.exists():
@@ -872,7 +878,8 @@ def _write_material_color_report(project_root: Path, assignments: tuple[dict[str
         )
     text = "\n".join(lines) + "\n"
     (reports / "phase1_6_material_color_map.md").write_text(text, encoding="utf-8")
-    (docs / "phase1_6_material_color_map.md").write_text(text, encoding="utf-8")
+    if output_root is None:
+        (docs / "phase1_6_material_color_map.md").write_text(text, encoding="utf-8")
 
 
 def build_origin_plot_job(
@@ -883,9 +890,13 @@ def build_origin_plot_job(
     y_title: str,
     data_type: str = "generic",
     source_file: Path | None = None,
+    *,
+    output_root: Path | None = None,
 ) -> OriginPlotJob:
-    job_dir = project_root / "output" / "origin_jobs"
-    job_dir.mkdir(parents=True, exist_ok=True)
+    if output_root is not None:
+        job_dir = output_dir(project_root, "logs", "origin_jobs", output_root=output_root)
+    else:
+        job_dir = output_dir(project_root, "origin_jobs")
     plot_csv = job_dir / f"{dataset_id}_plot_input.csv"
     header = _write_plot_csv(processed_csv, plot_csv, data_type)
     column_count = max(2, len(header))
@@ -896,11 +907,9 @@ def build_origin_plot_job(
     color_assignments = _color_assignments(dataset_id, data_type, labels, source_file, processed_csv)
     curve_colors = tuple(int(item["origin_ocolor"]) for item in color_assignments)
 
-    origin_dir = project_root / "output" / "origin_files"
-    tif_dir = project_root / "output" / "figures_tif"
-    preview_dir = project_root / "output" / "figures_preview"
-    for directory in (origin_dir, tif_dir, preview_dir, job_dir):
-        directory.mkdir(parents=True, exist_ok=True)
+    origin_dir = output_dir(project_root, "origin_files", output_root=output_root)
+    tif_dir = output_dir(project_root, "figures_tif", output_root=output_root)
+    preview_dir = output_dir(project_root, "figures_preview", output_root=output_root)
 
     reference_search_pattern = resolve_origin_reference_pattern(project_root)
     refresh_reference_style = _read_plot_style_value(project_root, "refresh_reference_style", "false").casefold() == "true"
@@ -1080,46 +1089,57 @@ def export_plot(
     y_title: str,
     data_type: str = "generic",
     source_file: Path | None = None,
+    *,
+    output_root: Path | None = None,
 ) -> OriginResult:
-    job = build_origin_plot_job(project_root, dataset_id, processed_csv, x_title, y_title, data_type, source_file=source_file)
+    job = build_origin_plot_job(
+        project_root,
+        dataset_id,
+        processed_csv,
+        x_title,
+        y_title,
+        data_type,
+        source_file=source_file,
+        output_root=output_root,
+    )
     ok, message = check_origin_available()
     if not ok:
-        write_origin_error(project_root, f"{dataset_id}: {message}")
+        write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
         return OriginResult(False, None, None, None, f"Origin unavailable: {message}")
     try:
         _remove_stale_artifacts(job)
         if not _wait_for_no_origin_process():
             message = "Origin is still running before starting export; aborting to avoid attaching to an unsafe session."
-            write_origin_error(project_root, f"{dataset_id}: {message}")
+            write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
         completed = _run_origin_job(job)
         if completed.returncode:
             details = (completed.stderr or completed.stdout or "Origin helper failed").strip()
-            write_origin_error(project_root, f"{dataset_id}: {details}")
+            write_origin_error(project_root, f"{dataset_id}: {details}", output_root=output_root)
             return OriginResult(False, None, None, None, f"Origin export failed: {details}")
         if not job.figure_tif.exists():
             _export_tif_with_originpro(job)
         _ensure_tif_600_dpi(job.figure_tif, job.fixed_style)
         if not job.origin_file.exists() or not job.figure_tif.exists() or not job.preview_png.exists():
             message = "Origin helper did not produce required .opju, .tif, and PNG preview outputs."
-            write_origin_error(project_root, f"{dataset_id}: {message}")
+            write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
         if job.origin_file.stat().st_size == 0:
             message = "OPJU output was empty; Origin export evidence is missing."
-            write_origin_error(project_root, f"{dataset_id}: {message}")
+            write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
         if job.figure_tif.stat().st_size == 0:
             message = "TIF export was empty; print-quality figure evidence is missing."
-            write_origin_error(project_root, f"{dataset_id}: {message}")
+            write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
         if job.preview_png.stat().st_size == 0:
             message = "PNG preview was empty; visual verification evidence is missing."
-            write_origin_error(project_root, f"{dataset_id}: {message}")
+            write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
-        _write_material_color_report(project_root, job.color_assignments)
+        _write_material_color_report(project_root, job.color_assignments, output_root=output_root)
         return OriginResult(True, job.origin_file, job.figure_tif, job.preview_png, "Origin export succeeded with Graph4 template workflow")
     except Exception as exc:
-        write_origin_error(project_root, f"{dataset_id}: {exc}")
+        write_origin_error(project_root, f"{dataset_id}: {exc}", output_root=output_root)
         return OriginResult(False, None, None, None, f"Origin export failed: {exc}")
 
 

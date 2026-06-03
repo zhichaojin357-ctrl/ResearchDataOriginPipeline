@@ -109,6 +109,7 @@ def process_table_dataset(
                 y_title,
                 data_type=data_type,
                 source_file=source_file,
+                output_root=output_root,
             )
             status = "success" if origin_result.ok else "fail"
             if not origin_result.ok:

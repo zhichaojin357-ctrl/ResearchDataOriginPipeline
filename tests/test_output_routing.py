@@ -11,6 +11,7 @@ from src.core.runtime_paths import create_run_output_layout
 from src.core.triage import TriageOptions, run_triage
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
 from src.core.metadata import file_hash
+from src.origin.adapter import build_origin_plot_job, export_plot
 
 
 def test_create_run_output_layout_creates_standard_dirs_and_manifest(tmp_path: Path):
@@ -235,4 +236,60 @@ def test_origin_batch_dry_run_reports_can_route_into_run_root(tmp_path: Path):
     assert code == 0
     assert (layout.reports / "phase1_7_manifest_runner_plan.json").exists()
     assert (layout.reports / "phase1_7_manifest_runner_plan.md").exists()
+    assert not (tmp_path / "output" / "reports").exists()
+
+
+def test_origin_job_paths_can_route_into_run_root_without_origin(tmp_path: Path):
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,y\n1,2\n", encoding="utf-8")
+    layout = create_run_output_layout(
+        tmp_path,
+        scope="process_with_origin",
+        command="process",
+        mode="with_origin",
+        input_paths=[processed],
+        timestamp="20260603_120006",
+        no_origin=False,
+        dry_run=False,
+    )
+
+    job = build_origin_plot_job(
+        tmp_path,
+        "dataset",
+        processed,
+        "x",
+        "y",
+        "XRD",
+        output_root=layout.root,
+    )
+
+    assert job.plot_csv.parent == layout.logs / "origin_jobs"
+    assert job.job_script.parent == layout.logs / "origin_jobs"
+    assert job.origin_file.parent == layout.origin_files
+    assert job.figure_tif.parent == layout.figures_tif
+    assert job.preview_png.parent == layout.figures_preview
+    assert not (tmp_path / "output" / "origin_files").exists()
+    assert not (tmp_path / "output" / "figures_tif").exists()
+    assert not (tmp_path / "output" / "figures_preview").exists()
+
+
+def test_export_plot_origin_unavailable_reports_into_run_root(tmp_path: Path, monkeypatch):
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,y\n1,2\n", encoding="utf-8")
+    layout = create_run_output_layout(
+        tmp_path,
+        scope="process_with_origin",
+        command="process",
+        mode="with_origin",
+        input_paths=[processed],
+        timestamp="20260603_120007",
+        no_origin=False,
+        dry_run=False,
+    )
+    monkeypatch.setenv("RESEARCHDATAORIGINPIPELINE_DISABLE_ORIGIN", "1")
+
+    result = export_plot(tmp_path, "dataset", processed, "x", "y", "XRD", output_root=layout.root)
+
+    assert result.ok is False
+    assert (layout.reports / "origin_errors.md").exists()
     assert not (tmp_path / "output" / "reports").exists()
