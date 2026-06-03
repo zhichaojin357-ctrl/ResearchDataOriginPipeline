@@ -2,79 +2,61 @@
 
 Date: 2026-06-03
 
-This plan lists source/config/test changes intentionally left out of the automatic Batch 2 commits.
+This plan tracks source/config/test cleanup batches that remain after the automatic Batch 2 stabilization commits. It does not cover `output/`, `outputs/`, Origin-generated artifacts, or bulk reports.
 
 ## Current Continuation State
 
-Continuation baseline: `209d9f3 deps: record optional adapter metadata`.
+Continuation baseline after this GOAL source commit: `1fc9875 adapters: stabilize optional adapter bridge`.
 
-Current dirty count at GOAL Phase 0: 327 items.
+Dirty count observed after the adapter bridge source commit and before this summary-doc edit: 291 items.
 
-Staged files at GOAL Phase 0: 0.
+Staged files after the adapter bridge source commit: 0.
 
-Already completed in Batch 2:
+## Completed Batch 2 Items
 
 - `fb152fc core: accept utf-8-sig process json`
 - `209d9f3 deps: record optional adapter metadata`
+- `0d316a9 docs: record batch2 source review progress`
 - `76c3c5c origin: stabilize plotting policy helpers`
 - `cc2e13e epr: stabilize jeol decode and overlay workflows`
 - `f09fcf3 adapters: add optional scientific adapter shims`
 - `b860453 tests: update manual review generator import`
+- `1fb85f0 docs: summarize batch2 autonomous stabilization`
 - `dbe0a58 core: isolate governance report tests`
 - `a0cedbe docs: sync script layout references`
+- `18bb19e docs: summarize governance and script consistency goal`
+- `d8f54e5 core: stabilize table reader contracts`
+- `3e46e5e core: add metadata preview checklist`
+- `bdeff29 processors: tighten processor base contracts`
+- `870d088 processors: preserve photocurrent microamp outputs`
+- `e3360e3 docs: summarize processor table reader stabilization`
+- `d5a24b1 processors: stabilize bet candidate extraction`
+- `823d093 docs: summarize bet candidate extraction micro-batch`
+- `1fc9875 adapters: stabilize optional adapter bridge`
 
-The remaining plan below excludes those solved changes and focuses on source/config/test work still present in the working tree.
+## Remaining Source/Config/Test Review Order
 
-## Remaining Review Order
+1. XPS workflow preflight
+   - Files currently known dirty: `src/cli.py`, `src/core/xps_heterojunction.py`, `src/core/xps_in_situ.py`, `tests/test_xps_heterojunction_stacked.py`.
+   - Boundary: review path/CLI/contract behavior only; do not run Origin, do not generate XPS outputs, and do not claim valence or mechanism conclusions.
 
-1. Processor calculations and table reader review
-   - Files: `src/processors/base.py`, `src/processors/calculations.py`, `src/core/table_reader.py`, `tests/test_processor_behaviors.py`.
-   - Reason: includes BET, photocurrent, spectral baseline, and other data-type behavior changes.
-   - Required boundary: do not characterize this as a plotting fix until rerun from raw inputs and reviewed.
+2. Remaining source dirty triage
+   - Re-run a narrow `git status --short -- src config tests pyproject.toml optional_requirements.txt`.
+   - Confirm whether any non-XPS source/test files remain after the adapter bridge commit.
+   - Any remaining source change needs its own allowlist and targeted tests.
 
-2. XPS helper review
-   - Files: `src/core/xps_heterojunction.py`, `src/core/xps_in_situ.py`, `tests/test_xps_heterojunction_stacked.py`.
-   - Reason: large generated Origin-script and artifact-path changes; keep separate from general source cleanup.
+3. Future output routing plan
+   - Output/report directories remain dirty and should be handled as a planning/governance batch before any large cleanup.
+   - Do not move, delete, or stage generated artifacts without a separate allowlist and review.
 
-3. CLI XPS help-text hunk
-   - File: `src/cli.py`.
-   - Reason: one remaining unstaged hunk changes XPS `--with-origin` help text; keep with XPS helper review rather than EPR.
-
-## Completed Review Order Items
-
-1. Origin adapter and plot policy preflight
-   - Files: `config/plot_style.yaml`, `src/origin/*`, `tests/test_origin_*`.
-   - Completed by `76c3c5c`.
-   - Validation: py_compile for Origin helper modules and targeted Origin helper pytest, without live Origin.
-
-2. JEOL EPR decode and EPR overlay review
-   - Files: `config/default.yaml`, `config/data_selection_rules.yaml`, `src/cli.py`, `src/core/epr_jeol.py`, `src/core/epr_overlay.py`, `src/core/runtime_paths.py`, related tests.
-   - Completed by `cc2e13e`.
-   - Validation: py_compile for EPR modules/CLI and targeted JEOL/EPR overlay pytest, without live Origin.
-
-3. Optional adapter package review
-   - Files: `src/adapters/`, `tests/test_phase1_13_adapters.py`.
-   - Completed by `f09fcf3`.
-   - Validation: py_compile for adapter modules and targeted adapter pytest, without live Origin.
-
-4. Manual review generator test import cleanup
-   - Files: `tests/test_manual_review_filtered_report.py`.
-   - Completed by `b860453`.
-   - Validation: py_compile for the targeted test and targeted pytest using `tmp_path`, without repository-output writes.
-
-5. Governance and validation output-safe review
-   - Files: `src/core/phase1_7.py`, `src/core/phase1_9.py`, `src/core/validate.py`, `tests/test_phase1_7_manifest_runner.py`, `tests/test_phase1_8_reviewed_queue.py`, `tests/test_phase1_9_governance.py`, `tests/test_phase1_10_manifest_normalizer.py`, `tests/test_phase1_contracts.py`.
-   - Completed by `dbe0a58`.
-   - Validation: source/test py_compile and targeted pytest, `73 passed`, without repository `output/reports/_test_*` writes.
-
-6. Script layout consistency sync
-   - Files: script README files, `docs/indexes/scripts_index.md`, `docs/SCRIPT_LAYOUT_CONSISTENCY_REVIEW.md`, `docs/SCRIPT_LAYOUT_REMAINING_PLAN.md`.
-   - Completed by `a0cedbe`.
-   - Validation: docs/index-only `git diff --check`; no `.py` scripts moved or edited.
+4. Data-type plot fix sequence planning
+   - Start only after output routing boundaries and XPS workflow preflight are clear.
+   - Each data type fix must enter the formal code path, rerun from original/synthetic inputs as appropriate, and provide focused verification.
 
 ## Global Rules
 
 - Do not stage `output/`, `outputs/`, OPJU, TIF, PNG, XLSX, ZIP, or large JSON files.
 - Do not run Origin during cleanup reviews.
+- Do not install optional packages during source cleanup.
 - Do not use directory-level staging.
 - Each remaining batch needs its own allowlist, targeted checks, and post-stage verification.
