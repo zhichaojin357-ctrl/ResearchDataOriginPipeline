@@ -12,6 +12,7 @@ from pathlib import Path
 
 from src.core.project import _parse_simple_yaml
 from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern
+from src.origin.plot_policy import Graph4FixedStyle, PlotPolicy, all_plot_policies, get_plot_policy, validate_graph4_style_config
 
 
 ORIGIN_DISABLE_ENV_VARS = (
@@ -50,6 +51,8 @@ class OriginPlotJob:
     line_width: float
     axis_line_width: float
     plot_type_code: str
+    plot_policy: PlotPolicy
+    fixed_style: Graph4FixedStyle
     page_name: str
     column_count: int
     labels: tuple[str, ...]
@@ -59,15 +62,52 @@ class OriginPlotJob:
     y_title: str
 
 
+@dataclass(frozen=True)
+class BetCombinedSource:
+    dataset_id: str
+    processed_csv: Path
+    source_file: Path
+
+
+@dataclass(frozen=True)
+class BetCombinedGroup:
+    page_name: str
+    plot_csv: Path
+    labels: tuple[str, ...]
+    curve_colors: tuple[int, ...]
+    column_count: int
+
+
+@dataclass(frozen=True)
+class BetCombinedOriginJob:
+    dataset_id: str
+    origin_file: Path
+    preview_dir: Path
+    helper_script: Path
+    reference_graph: str
+    automation_entrypoint: str
+    avoid_entrypoint: str
+    groups: tuple[BetCombinedGroup, ...]
+
+
 LINE_PLOT_TYPE = "200"
+LINE_SYMBOL_PLOT_TYPE = "202"
 COLUMN_PLOT_TYPE = "203"
 MAX_ORIGIN_PAGE_NAME = 24
+BET_PRIMARY_MATERIAL_ORDER = ("CWO", "BICU", "BOBC")
+BET_MATERIAL_DISPLAY_NAMES = {
+    "CWO": "CuWO4",
+    "BICU": "BiCu-10",
+    "BC": "BiCu-10",
+    "BOBC": "BiOBrCl",
+}
 GENERIC_SERIES_LABELS = {
     "y",
     "signal",
     "intensity",
     "normalized_intensity",
     "current",
+    "photocurrent_ua",
     "one_over_c_squared",
     "raw_intensity",
 }
@@ -77,9 +117,38 @@ NON_PLOT_COLUMN_TOKENS = (
     "optional",
     "cycle",
     "state",
+    "residual",
+    "metadata",
+    "comment",
+    "note",
     "photon_energy",
     "reflectance_fraction",
     "kubelka",
+)
+NON_PLOT_COLUMN_TOKENS_FOR_PREFERRED_SERIES = tuple(
+    token for token in NON_PLOT_COLUMN_TOKENS if token != "optional"
+)
+XRD_NON_RAW_COLUMN_TOKENS = (
+    "reference",
+    "referencecard",
+    "standard",
+    "standardcard",
+    "jcpds",
+    "pdf",
+    "hkl",
+    "phase",
+    "plane",
+    "crystal",
+    "dspacing",
+    "normalized",
+    "candidate",
+    "flag",
+    "optional",
+    "card",
+    "标卡",
+    "标准卡",
+    "晶面",
+    "物相",
 )
 
 
@@ -101,6 +170,10 @@ CURVE_COLOR_PALETTE = (
     {"key": "MT", "role": "sample_series", "name": "brown", "rgb": (102, 17, 0), "origin_ocolor": 16781670},
 )
 COLOR_BY_KEY = {str(item["key"]): item for item in CURVE_COLOR_PALETTE}
+BRANCH_COLOR_BY_LABEL = {
+    "adsorption": {"key": "ADSORPTION_BRANCH", "role": "branch", "name": "black", "rgb": (0, 0, 0), "origin_ocolor": 16777216},
+    "desorption": {"key": "DESORPTION_BRANCH", "role": "branch", "name": "vermillion", "rgb": (213, 94, 0), "origin_ocolor": 16801493},
+}
 FALLBACK_COLOR_SEQUENCE = tuple(int(item["origin_ocolor"]) for item in CURVE_COLOR_PALETTE)
 MATERIAL_PATTERNS = (
     ("CWO+BOBC", re.compile(r"CWO\s*[\+_\-\s]\s*BOBC")),
@@ -120,23 +193,15 @@ MATERIAL_PATTERNS = (
     ("MT", re.compile(r"(?<![A-Z])MT(?=[A-Z0-9_\-\s]|$)")),
 )
 
+BET_MATERIAL_PATTERNS = (
+    ("BOBC", re.compile(r"BOBC", re.IGNORECASE)),
+    ("CWO", re.compile(r"CWO", re.IGNORECASE)),
+    ("BICU", re.compile(r"BiCu|BiCu-?10", re.IGNORECASE)),
+    ("BC", re.compile(r"(?<![A-Z])BC(?=[A-Z0-9_\-\s]|$)", re.IGNORECASE)),
+)
 
-PLOT_TYPE_CODES = {
-    "XRD": LINE_PLOT_TYPE,
-    "UV-vis DRS": LINE_PLOT_TYPE,
-    "EIS": LINE_PLOT_TYPE,
-    "photocurrent": LINE_PLOT_TYPE,
-    "photocurrent_response": LINE_PLOT_TYPE,
-    "XPS": LINE_PLOT_TYPE,
-    "PL": LINE_PLOT_TYPE,
-    "FTIR": LINE_PLOT_TYPE,
-    "Raman": LINE_PLOT_TYPE,
-    "HPLC/LC exported data": LINE_PLOT_TYPE,
-    "BET": LINE_PLOT_TYPE,
-    "EPR": LINE_PLOT_TYPE,
-    "Mott-Schottky": LINE_PLOT_TYPE,
-    "reaction_condition_screening": COLUMN_PLOT_TYPE,
-}
+
+PLOT_TYPE_CODES = {data_type: policy.origin_plot_code for data_type, policy in all_plot_policies().items()}
 
 
 def check_origin_available() -> tuple[bool, str]:
@@ -267,6 +332,29 @@ def _fallback_color_for_key(key: str) -> dict[str, object]:
     }
 
 
+def _bet_material_key(text: str) -> str | None:
+    for key, pattern in BET_MATERIAL_PATTERNS:
+        if pattern.search(text):
+            return key
+    return None
+
+
+def _bet_material_display_name(text: str) -> str:
+    key = _bet_material_key(text)
+    if key is None:
+        cleaned = re.sub(r"[_\s]+", " ", Path(text).stem if any(sep in text for sep in ("/", "\\")) else text)
+        return cleaned.strip() or "Unknown sample"
+    return BET_MATERIAL_DISPLAY_NAMES[key]
+
+
+def _bet_material_color(material_key: str | None) -> int:
+    if material_key == "BICU":
+        return int(COLOR_BY_KEY["BC"]["origin_ocolor"])
+    if material_key and material_key in COLOR_BY_KEY:
+        return int(COLOR_BY_KEY[material_key]["origin_ocolor"])
+    return int(FALLBACK_COLOR_SEQUENCE[0])
+
+
 def _source_label(source_file: Path | None, dataset_id: str) -> str:
     value = source_file.stem if source_file else dataset_id
     value = re.sub(r"\((?:OCP|ocp)\)", "", value)
@@ -274,15 +362,193 @@ def _source_label(source_file: Path | None, dataset_id: str) -> str:
     return value or dataset_id
 
 
+def _split_bet_combined_sources(sources: tuple[BetCombinedSource, ...]) -> tuple[tuple[BetCombinedSource, ...], tuple[BetCombinedSource, ...]]:
+    keyed = [(source, _bet_material_key(" ".join((source.dataset_id, str(source.source_file))))) for source in sources]
+    selected_indexes: set[int] = set()
+    primary: list[BetCombinedSource] = []
+    for wanted_key in BET_PRIMARY_MATERIAL_ORDER:
+        for index, (source, key) in enumerate(keyed):
+            if index in selected_indexes or key != wanted_key:
+                continue
+            primary.append(source)
+            selected_indexes.add(index)
+            break
+    remaining = [source for index, (source, _key) in enumerate(keyed) if index not in selected_indexes]
+    return tuple(primary), tuple(remaining)
+
+
+def _read_bet_plot_rows(path: Path) -> dict[float, tuple[float | None, float | None]]:
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        rows: dict[float, tuple[float | None, float | None]] = {}
+        for row in reader:
+            x = _float_or_none(row.get("relative_pressure_p_p0"))
+            if x is None:
+                continue
+            adsorption = _float_or_none(row.get("adsorbed_volume"))
+            desorption = _float_or_none(row.get("desorption_volume_optional") or row.get("desorption_volume"))
+            rows[x] = (adsorption, desorption)
+        return rows
+
+
+def _float_or_none(value: object) -> float | None:
+    try:
+        text = str(value).strip()
+        if not text:
+            return None
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_float(value: float | None) -> str:
+    if value is None:
+        return ""
+    return f"{value:.12g}"
+
+
+def _write_bet_combined_group_csv(plot_csv: Path, sources: tuple[BetCombinedSource, ...]) -> tuple[tuple[str, ...], tuple[int, ...]]:
+    labels: list[str] = []
+    curve_colors: list[int] = []
+    source_rows: list[dict[float, tuple[float | None, float | None]]] = []
+    for source in sources:
+        material_text = " ".join((source.dataset_id, str(source.source_file)))
+        material_key = _bet_material_key(material_text)
+        material_label = _bet_material_display_name(material_text)
+        labels.extend((f"{material_label} adsorption", f"{material_label} desorption"))
+        curve_colors.extend((_bet_material_color(material_key), _bet_material_color(material_key)))
+        source_rows.append(_read_bet_plot_rows(source.processed_csv))
+    x_values = sorted({x for rows in source_rows for x in rows})
+    plot_csv.parent.mkdir(parents=True, exist_ok=True)
+    with plot_csv.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["relative_pressure_p_p0", *labels])
+        for x in x_values:
+            row = [_format_float(x)]
+            for rows in source_rows:
+                adsorption, desorption = rows.get(x, (None, None))
+                row.extend((_format_float(adsorption), _format_float(desorption)))
+            writer.writerow(row)
+    return tuple(labels), tuple(curve_colors)
+
+
+def build_bet_combined_origin_job(
+    project_root: Path,
+    dataset_id: str,
+    sources: list[BetCombinedSource] | tuple[BetCombinedSource, ...],
+) -> BetCombinedOriginJob:
+    source_tuple = tuple(sources)
+    if not source_tuple:
+        raise ValueError("BET combined Origin job requires at least one source.")
+    primary, remaining = _split_bet_combined_sources(source_tuple)
+    groups_raw = [
+        ("BET_primary_materials", primary),
+        ("BET_additional_materials", remaining),
+    ]
+    job_dir = project_root / "output" / "origin_jobs"
+    origin_dir = project_root / "output" / "origin_files"
+    preview_dir = project_root / "output" / "figures_preview"
+    for directory in (job_dir, origin_dir, preview_dir):
+        directory.mkdir(parents=True, exist_ok=True)
+    groups: list[BetCombinedGroup] = []
+    for page_name, group_sources in groups_raw:
+        if not group_sources:
+            continue
+        plot_csv = job_dir / f"{dataset_id}_{page_name}_plot_input.csv"
+        labels, curve_colors = _write_bet_combined_group_csv(plot_csv, group_sources)
+        groups.append(
+            BetCombinedGroup(
+                page_name=page_name,
+                plot_csv=plot_csv,
+                labels=labels,
+                curve_colors=curve_colors,
+                column_count=len(labels) + 1,
+            )
+        )
+    return BetCombinedOriginJob(
+        dataset_id=dataset_id,
+        origin_file=origin_dir / f"{safe_origin_file_name(dataset_id)}.opju",
+        preview_dir=preview_dir,
+        helper_script=resolve_origin_helper(project_root),
+        reference_graph=_read_plot_style_value(project_root, "default_graph_page", "Graph4"),
+        automation_entrypoint=_read_plot_style_value(project_root, "automation_entrypoint", "Origin.Application"),
+        avoid_entrypoint=_read_plot_style_value(project_root, "avoid_entrypoint", "Origin.ApplicationSI"),
+        groups=tuple(groups),
+    )
+
+
+def safe_origin_file_name(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip()).strip("_") or "origin_output"
+
+
+def build_bet_combined_origin_invocation_script(job: BetCombinedOriginJob) -> str:
+    policy = get_plot_policy("BET")
+    group_blocks = []
+    for group in job.groups:
+        group_blocks.append(
+            "@{\n"
+            f"  DataFile = {_ps_quote(group.plot_csv)}\n"
+            f"  PageName = {_ps_quote(group.page_name)}\n"
+            f"  ColumnCount = {group.column_count}\n"
+            f"  Labels = {_ps_array(group.labels)}\n"
+            f"  Palette = {_ps_int_array(group.curve_colors)}\n"
+            f"  PlotType = {_ps_quote(policy.origin_plot_code)}\n"
+            f"  PlotPrimitive = {_ps_quote(policy.plot_primitive)}\n"
+            f"  MarkerMode = {_ps_quote(policy.marker_policy)}\n"
+            f"  FitOverlayMode = {_ps_quote(policy.fit_overlay_condition)}\n"
+            f"  ShowYAxis = ${str(policy.y_axis_visible).lower()}\n"
+            f"  ShowYTicks = ${str(policy.y_ticks_visible).lower()}\n"
+            f"  ShowYTickValues = ${str(policy.y_tick_values_visible).lower()}\n"
+            f"  ShowXTickValues = ${str(policy.x_tick_values_visible).lower()}\n"
+            "  XTitle = 'Relative Pressure (P/P0)'\n"
+            "  YTitle = 'Quantity Adsorbed (cm3/g STP)'\n"
+            "}"
+        )
+    lines = [
+        "$ErrorActionPreference = 'Stop'",
+        "$groups = @(" + ", ".join(group_blocks) + ")",
+        f"& {_ps_quote(job.helper_script)} -ReferenceGraph {_ps_quote(job.reference_graph)} "
+        f"-OutputOpju {_ps_quote(job.origin_file)} -ExportDir {_ps_quote(job.preview_dir)} "
+        "-Groups $groups -Headless -CloseOrigin",
+    ]
+    script = "\n".join(lines) + "\n"
+    if job.avoid_entrypoint in script:
+        raise ValueError(f"BET combined Origin job script unexpectedly uses forbidden entrypoint {job.avoid_entrypoint}")
+    return script
+
+
 def _select_plot_columns(header: list[str], data_type: str) -> tuple[int, list[int]]:
     normalized = [item.strip().lower() for item in header]
     if len(header) < 2:
         return 0, [1]
+    if data_type == "XRD":
+        return _select_xrd_plot_columns(header)
+    if data_type == "BET":
+        return _select_bet_plot_columns(header)
     if data_type == "EIS" and "real_impedance" in normalized and "neg_imag_impedance" in normalized:
         return normalized.index("real_impedance"), [normalized.index("neg_imag_impedance")]
+    exact_preferred_by_type = {
+        "photocurrent": ("current_density_uA_cm2_optional", "photocurrent_uA", "current_density", "current"),
+        "photocurrent_response": ("current_density_uA_cm2_optional", "photocurrent_uA", "current_density", "current"),
+        "EPR": ("intensity",),
+        "Raman": ("intensity",),
+        "PL": ("intensity",),
+        "FTIR": ("intensity", "absorbance", "transmittance"),
+        "XRD": ("intensity",),
+        "XPS": ("raw_intensity", "intensity"),
+        "Mott-Schottky": ("one_over_c_squared",),
+        "BET": ("adsorbed_volume", "desorption_volume_optional"),
+        "HPLC/LC exported data": ("signal",),
+    }
+    exact_y_indices = []
+    for name in exact_preferred_by_type.get(data_type, ()):
+        if name in normalized and normalized.index(name) != 0:
+            exact_y_indices.append(normalized.index(name))
+    if exact_y_indices:
+        return 0, exact_y_indices
     preferred_by_type = {
-        "photocurrent": ("current_density", "current"),
-        "photocurrent_response": ("current_density", "current"),
+        "photocurrent": ("current_density_uA", "photocurrent_uA", "current_density", "current"),
+        "photocurrent_response": ("current_density_uA", "photocurrent_uA", "current_density", "current"),
         "EPR": ("intensity",),
         "Raman": ("intensity",),
         "PL": ("intensity",),
@@ -292,11 +558,19 @@ def _select_plot_columns(header: list[str], data_type: str) -> tuple[int, list[i
         "Mott-Schottky": ("one_over_c_squared",),
         "BET": ("adsorbed_volume", "desorption_volume"),
         "HPLC/LC exported data": ("signal",),
+        "XPS fitted": ("raw_intensity", "intensity", "background", "envelope", "component"),
+        "EIS Bode": ("magnitude", "phase"),
+        "BET pore distribution": ("pore_volume", "dv", "dV"),
+        "calibration_curve": ("peak_area", "area"),
     }
     y_indices: list[int] = []
     for token in preferred_by_type.get(data_type, ()):
         for index, name in enumerate(normalized[1:], start=1):
-            if token in name and index not in y_indices and not any(aux in name for aux in NON_PLOT_COLUMN_TOKENS):
+            if (
+                token in name
+                and index not in y_indices
+                and not any(aux in name for aux in NON_PLOT_COLUMN_TOKENS_FOR_PREFERRED_SERIES)
+            ):
                 y_indices.append(index)
     if not y_indices:
         for index, name in enumerate(normalized[1:], start=1):
@@ -306,6 +580,117 @@ def _select_plot_columns(header: list[str], data_type: str) -> tuple[int, list[i
     if not y_indices:
         y_indices = [1]
     return 0, y_indices
+
+
+def _select_xrd_plot_columns(header: list[str]) -> tuple[int, list[int]]:
+    normalized = [_normalized_column_name(item) for item in header]
+    x_index = 0
+    x_tokens = ("twothetadeg", "twotheta", "2theta", "angle", "角度")
+    for index, name in enumerate(normalized):
+        if any(token in name for token in x_tokens):
+            x_index = index
+            break
+
+    exact_raw_y = ("intensity", "counts", "rawintensity", "rawcounts", "y", "signal")
+    y_indices = [
+        index
+        for index, name in enumerate(normalized)
+        if index != x_index and name in exact_raw_y and not _is_xrd_non_raw_column(name)
+    ]
+    if y_indices:
+        return x_index, y_indices
+
+    for index, name in enumerate(normalized):
+        if index == x_index or _is_xrd_non_raw_column(name):
+            continue
+        if "intensity" in name or "counts" in name:
+            y_indices.append(index)
+    if y_indices:
+        return x_index, y_indices
+
+    fallback_y_indices = [
+        index
+        for index, name in enumerate(normalized)
+        if index != x_index and not _is_xrd_non_raw_column(name)
+    ]
+    if fallback_y_indices:
+        return x_index, fallback_y_indices
+
+    raise ValueError(
+        "XRD plot requires a raw pattern intensity/counts column; reference-card, hkl, phase, plane, "
+        "normalized, and peak-candidate columns are not plotted automatically."
+    )
+
+
+def _select_bet_plot_columns(header: list[str]) -> tuple[int, list[int]]:
+    normalized = [_normalized_column_name(item) for item in header]
+    x_tokens = (
+        "relativepressurepp0",
+        "relativepressureppo",
+        "relativepressurep/po",
+        "relativepressurep/p0",
+        "relativepressure",
+        "pp0",
+        "ppo",
+    )
+    x_index = next((index for index, name in enumerate(normalized) if any(token in name for token in x_tokens)), None)
+
+    branch_tokens = (
+        "adsorbedvolume",
+        "quantityadsorbed",
+        "adsorptionvolume",
+        "desorptionvolume",
+        "quantitydesorption",
+        "quantitydesorbed",
+    )
+    if x_index is not None:
+        y_indices = [
+            index
+            for index, name in enumerate(normalized)
+            if index != x_index and any(token in name for token in branch_tokens) and not _is_bet_non_curve_column(name)
+        ]
+        if len(y_indices) >= 1:
+            return x_index, y_indices
+
+    pore_x_tokens = ("poresize", "porediameter", "porewidth")
+    pore_y_tokens = ("porevolume", "dv", "dvpore", "dvlog", "differentialporevolume")
+    pore_x_index = next((index for index, name in enumerate(normalized) if any(token in name for token in pore_x_tokens)), None)
+    if pore_x_index is not None:
+        y_indices = [
+            index
+            for index, name in enumerate(normalized)
+            if index != pore_x_index and any(token in name for token in pore_y_tokens) and not _is_bet_non_curve_column(name)
+        ]
+        if y_indices:
+            return pore_x_index, y_indices
+
+    raise ValueError(
+        "BET Origin plot requires relative-pressure isotherm or pore-size distribution curve columns; "
+        "summary metrics such as surface area, pore volume, and pore diameter are metadata only."
+    )
+
+
+def _normalized_column_name(value: str) -> str:
+    return re.sub(r"[\s_\-()/%#.]+", "", value.strip().casefold())
+
+
+def _is_bet_non_curve_column(normalized_name: str) -> bool:
+    non_curve_tokens = (
+        "betsurfacearea",
+        "surfacearea",
+        "averageporediameter",
+        "porediametercandidate",
+        "porevolumecandidate",
+        "candidate",
+        "summary",
+        "metric",
+        "unit",
+    )
+    return any(token in normalized_name for token in non_curve_tokens)
+
+
+def _is_xrd_non_raw_column(normalized_name: str) -> bool:
+    return any(token in normalized_name for token in XRD_NON_RAW_COLUMN_TOKENS)
 
 
 def _write_plot_csv(source_csv: Path, plot_csv: Path, data_type: str) -> list[str]:
@@ -326,12 +711,31 @@ def _write_plot_csv(source_csv: Path, plot_csv: Path, data_type: str) -> list[st
 
 def _series_labels(raw_labels: tuple[str, ...], dataset_id: str, source_file: Path | None) -> tuple[str, ...]:
     source = _source_label(source_file, dataset_id)
+    raw_labels = tuple(_pretty_series_label(label) for label in raw_labels)
     normalized = [label.strip().lower() for label in raw_labels]
     if len(raw_labels) == 1 and normalized[0] in GENERIC_SERIES_LABELS:
         return (source,)
     if normalized and all(label in GENERIC_SERIES_LABELS for label in normalized):
         return tuple(f"{source} {label}" for label in raw_labels)
     return raw_labels
+
+
+def _pretty_series_label(label: str) -> str:
+    normalized = label.strip().lower()
+    if normalized in {"adsorbed_volume", "quantity_adsorbed"}:
+        return "Quantity Adsorbed"
+    if normalized in {"desorption_volume_optional", "desorption_volume", "quantity_desorption"}:
+        return "Quantity Desorption"
+    return label
+
+
+def _branch_color_for_label(label: str) -> dict[str, object] | None:
+    normalized = label.strip().casefold()
+    if "desorption" in normalized:
+        return BRANCH_COLOR_BY_LABEL["desorption"]
+    if "adsorption" in normalized or "adsorbed" in normalized:
+        return BRANCH_COLOR_BY_LABEL["adsorption"]
+    return None
 
 
 def _color_assignments(
@@ -344,6 +748,29 @@ def _color_assignments(
     assignments: list[dict[str, object]] = []
     source_text = str(source_file) if source_file else ""
     for index, label in enumerate(labels):
+        branch_color = _branch_color_for_label(label)
+        if data_type == "BET" and branch_color is not None:
+            rgb = tuple(int(value) for value in branch_color["rgb"])  # type: ignore[index]
+            assignments.append(
+                {
+                    "dataset_id": dataset_id,
+                    "data_type": data_type,
+                    "curve_index": index + 1,
+                    "curve_label": label,
+                    "material_key": branch_color["key"],
+                    "material_role": branch_color["role"],
+                    "inference_confidence": 1.0,
+                    "color_name": branch_color["name"],
+                    "rgb": list(rgb),
+                    "hex": "#{:02X}{:02X}{:02X}".format(*rgb),
+                    "origin_ocolor": int(branch_color["origin_ocolor"]),
+                    "source_file": str(source_file) if source_file else None,
+                    "processed_csv": str(processed_csv),
+                    "evidence": "BET adsorption/desorption branch color; branch is not treated as material identity",
+                    "requires_user_review": False,
+                }
+            )
+            continue
         material_key, role, confidence = _infer_material_key(label, dataset_id)
         if not material_key and source_text:
             material_key, role, confidence = _infer_material_key(source_text)
@@ -477,10 +904,12 @@ def build_origin_plot_job(
 
     reference_search_pattern = resolve_origin_reference_pattern(project_root)
     refresh_reference_style = _read_plot_style_value(project_root, "refresh_reference_style", "false").casefold() == "true"
-    line_width = float(_read_plot_style_value(project_root, "line_width", "3"))
-    axis_line_width = float(_read_plot_style_value(project_root, "axis_line_width", "3"))
-    if line_width != 3 or axis_line_width != 3:
+    fixed_style = validate_graph4_style_config(project_root / "config" / "plot_style.yaml")
+    line_width = float(_read_plot_style_value(project_root, "line_width", str(fixed_style.line_width)))
+    axis_line_width = float(_read_plot_style_value(project_root, "axis_line_width", str(fixed_style.axis_line_width)))
+    if line_width != fixed_style.line_width or axis_line_width != fixed_style.axis_line_width:
         raise ValueError("Origin Graph4 contract requires line_width and axis_line_width to be 3.")
+    plot_policy = get_plot_policy(data_type)
 
     page_name = _safe_origin_name(dataset_id)
     return OriginPlotJob(
@@ -502,7 +931,9 @@ def build_origin_plot_job(
         font_family=_read_plot_style_value(project_root, "font_family", "Arial"),
         line_width=line_width,
         axis_line_width=axis_line_width,
-        plot_type_code=PLOT_TYPE_CODES.get(data_type, LINE_PLOT_TYPE),
+        plot_type_code=plot_policy.origin_plot_code,
+        plot_policy=plot_policy,
+        fixed_style=fixed_style,
         page_name=page_name,
         column_count=column_count,
         labels=labels,
@@ -522,6 +953,13 @@ def build_origin_invocation_script(job: OriginPlotJob) -> str:
         f"  Labels = {_ps_array(job.labels)}\n"
         f"  Palette = {_ps_int_array(job.curve_colors)}\n"
         f"  PlotType = {_ps_quote(job.plot_type_code)}\n"
+        f"  PlotPrimitive = {_ps_quote(job.plot_policy.plot_primitive)}\n"
+        f"  MarkerMode = {_ps_quote(job.plot_policy.marker_policy)}\n"
+        f"  FitOverlayMode = {_ps_quote(job.plot_policy.fit_overlay_condition)}\n"
+        f"  ShowYAxis = ${str(job.plot_policy.y_axis_visible).lower()}\n"
+        f"  ShowYTicks = ${str(job.plot_policy.y_ticks_visible).lower()}\n"
+        f"  ShowYTickValues = ${str(job.plot_policy.y_tick_values_visible).lower()}\n"
+        f"  ShowXTickValues = ${str(job.plot_policy.x_tick_values_visible).lower()}\n"
         f"  XTitle = {_ps_quote(job.x_title)}\n"
         f"  YTitle = {_ps_quote(job.y_title)}\n"
         "}"
@@ -572,7 +1010,7 @@ def _remove_stale_artifacts(job: OriginPlotJob) -> None:
             artifact.unlink()
 
 
-def _wait_for_no_origin_process(timeout_seconds: float = 90.0) -> bool:
+def _wait_for_no_origin_process(timeout_seconds: float = 5.0) -> bool:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
         running = subprocess.run(
@@ -604,15 +1042,34 @@ def _export_tif_with_originpro(job: OriginPlotJob) -> None:
             raise RuntimeError(f"Generated OPJU did not contain graph page {job.page_name}")
         job.figure_tif.parent.mkdir(parents=True, exist_ok=True)
         tif_path = str(job.figure_tif)
-        result = graph.save_fig(tif_path, type="tif", replace=True)
+        result = graph.save_fig(tif_path, type="tif", replace=True, width=int(job.fixed_style.page_width))
         if not result or not job.figure_tif.exists() or job.figure_tif.stat().st_size == 0:
             raise RuntimeError("originpro GPage.save_fig did not create the TIF output.")
+        _ensure_tif_600_dpi(job.figure_tif, job.fixed_style)
     finally:
         try:
             op.exit()
         except Exception:
             pass
         _wait_for_no_origin_process()
+
+
+def _ensure_tif_600_dpi(path: Path, fixed_style: Graph4FixedStyle = Graph4FixedStyle()) -> None:
+    """Normalize Origin TIF evidence to the Graph4 600 dpi bitmap contract when Pillow can read it."""
+    try:
+        from PIL import Image
+    except Exception:
+        return
+    try:
+        with Image.open(path) as image:
+            output = image.copy()
+    except Exception:
+        return
+    target_width = int(fixed_style.page_width)
+    if output.width < target_width:
+        target_height = max(1, round(output.height * (target_width / output.width)))
+        output = output.resize((target_width, target_height))
+    output.save(path, format="TIFF", dpi=(600, 600), compression="tiff_lzw")
 
 
 def export_plot(
@@ -642,6 +1099,7 @@ def export_plot(
             return OriginResult(False, None, None, None, f"Origin export failed: {details}")
         if not job.figure_tif.exists():
             _export_tif_with_originpro(job)
+        _ensure_tif_600_dpi(job.figure_tif, job.fixed_style)
         if not job.origin_file.exists() or not job.figure_tif.exists() or not job.preview_png.exists():
             message = "Origin helper did not produce required .opju, .tif, and PNG preview outputs."
             write_origin_error(project_root, f"{dataset_id}: {message}")

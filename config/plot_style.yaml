@@ -1,7 +1,16 @@
 font_family: "Arial"
+axis_title_size: 36
 axis_label_size: 36
+x_tick_label_size: 28
+y_tick_label_size: 36
 tick_label_size: 36
 legend_font_size: 26
+legend_border: 0
+legend_frame: 0
+legend_fill: 0
+annotation_font_size: 26
+font_bold: true
+chemical_formula_subscripts: true
 line_width: 3
 marker_size: 6
 curve_palette:
@@ -32,6 +41,7 @@ origin_template:
   avoid_entrypoint: "Origin.ApplicationSI"
   validation_required:
     - "Clean old template residue before final output."
-    - "Apply Arial bold text, explicit legend rows, reference tick directions, and sample curve line width 3."
+    - "Apply Arial bold text, explicit legend rows without legend border/frame/fill, reference tick directions, and sample curve line width 3."
+    - "Render chemical formula digits as Origin rich-text subscripts in labels, legends, annotations, and axis titles."
     - "Save .opju and export .tif for final outputs."
     - "Export PNG preview and visually inspect it before claiming the Origin graph is correct."
