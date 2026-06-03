@@ -88,6 +88,7 @@ output/reports/xps_template_compare/
 output/reports/phase1_14_single_queues/
 !output/review_dashboard/
 !output/review_dashboard/**
+output/review_dashboard/*.md
 
 # Temporary logs and scratch
 *.log
