@@ -39,6 +39,7 @@ OPTIONAL = {
     "pymzml": "pymzml",
     "pyteomics": "pyteomics",
     "cwepr": "cwepr",
+    "EPRpy": "eprpy",
 }
 
 

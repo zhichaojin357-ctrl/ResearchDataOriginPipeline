@@ -1,7 +1,7 @@
 # Optional dependency candidates only.
 # Missing optional dependencies must warn, not fail.
-# Do not install without user confirmation.
-# Do not use these to expand Phase 1 scope.
+# Phase 1.13 allows these as optional/reference adapters only.
+# Do not use these to expand Phase 1 scope or make scientific assignments.
 impedance
 pyimpspec
 ixdat
@@ -17,18 +17,21 @@ rainbow-api
 mocca
 pymzML
 pyteomics
-matchms
 nmrglue
 hyperspy
 exspy
 scikit-image
+EPRpy
+cwepr
 
 # Additional optional candidates from the Phase 1 goal need package-name
 # and license verification before they become installable requirement lines:
 # DearEIS
 # EPyR Tools
-# cwepr
-# eprpy
 # CustomXepr
 # absorption_tauc_plot
 # xrdfit
+#
+# Blocked in Phase 1.13:
+# matchms: dry-run would change core numpy/scipy versions; keep out until a
+# separate environment or explicit core-dependency upgrade is approved.
