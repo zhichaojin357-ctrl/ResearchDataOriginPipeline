@@ -44,6 +44,21 @@ output/reports/*.xlsx
 output/reports/PHASE1_*_HANDOFF_TO_CHATGPT_FOR_NEXT_DECISION.json
 output/reports/phase1_13_pip_*.txt
 output/reports/*_temp_*_deleted_items_*.json
+# Generated machine-readable reports. Markdown reports stay visible for user review.
+output/reports/bet_*.json
+output/reports/epr_*.json
+output/reports/jeol_epr_*.json
+output/reports/non_xrd_*.json
+output/reports/origin_operations_*.json
+output/reports/phase1_9_*.json
+output/reports/phase1_10_*.json
+output/reports/phase1_10_*.csv
+output/reports/phase1_11_*.json
+output/reports/phase1_12*.json
+output/reports/phase1_13_*.json
+output/reports/phase1_14_*.json
+output/reports/project_cleanup_*.json
+output/reports/xrd_*.json
 output/reports/xps_template_compare/
 output/reports/phase1_14_single_queues/
 !output/review_dashboard/
