@@ -1,5 +1,9 @@
 # Project Status
 
+## Current Status Pointer
+
+For the current repository state, use `docs/CURRENT_STATUS.md` and `docs/PROJECT_INDEX.md` as the status authority. Phase 1.6 is the locked canonical result package, not the current engineering phase. This file is an entry pointer, not the latest full status source; check the current status/index/cleanup docs before further changes.
+
 ## Phase 1.9 Status
 
 Phase 1.9 is active/completed for package integration, algorithm hardening, and journal-ready plotting governance. It did not process new real datasets and did not launch Origin.

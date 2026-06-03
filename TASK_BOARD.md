@@ -1,5 +1,9 @@
 # Task Board
 
+## Current Status Pointer
+
+For the current repository state, use `docs/CURRENT_STATUS.md` and `docs/PROJECT_INDEX.md` as the status authority. Phase 1.6 is the locked canonical result package, not the current engineering phase. This board is an entry pointer, not the latest full status source; check the current status/index/cleanup docs before further changes.
+
 ## Phase 1.9 Completed
 
 - [x] Archived the Phase 1.9 full goal instruction.

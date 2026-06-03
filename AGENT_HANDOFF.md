@@ -1,5 +1,9 @@
 # Agent Handoff
 
+## Current Status Pointer
+
+For the current repository state, use `docs/CURRENT_STATUS.md` and `docs/PROJECT_INDEX.md` as the status authority. Phase 1.6 is the locked canonical result package, not the current engineering phase. This handoff is an entry pointer, not the latest full status source; check the current status/index/cleanup docs before further changes.
+
 ## Latest State: Phase 1.9
 
 Read these first:
