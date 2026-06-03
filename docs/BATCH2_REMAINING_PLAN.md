@@ -16,37 +16,58 @@ Already completed in Batch 2:
 
 - `fb152fc core: accept utf-8-sig process json`
 - `209d9f3 deps: record optional adapter metadata`
+- `76c3c5c origin: stabilize plotting policy helpers`
+- `cc2e13e epr: stabilize jeol decode and overlay workflows`
+- `f09fcf3 adapters: add optional scientific adapter shims`
+- `b860453 tests: update manual review generator import`
 
 The remaining plan below excludes those solved changes and focuses on source/config/test work still present in the working tree.
 
 ## Remaining Review Order
 
-1. Origin adapter and plot policy preflight
-   - Files: `config/plot_style.yaml`, `src/origin/*`, `tests/test_origin_*`.
-   - Reason: changes plotting contracts, Graph4 policy fields, Origin job behavior, and image/export behavior.
-   - Required boundary: no Origin run until the review explicitly authorizes a live smoke test.
-
-2. JEOL EPR decode and EPR overlay review
-   - Files: `config/default.yaml`, `config/data_selection_rules.yaml`, `src/cli.py`, `src/core/epr_jeol.py`, `src/core/epr_overlay.py`, `src/core/runtime_paths.py`, related tests.
-   - Reason: promotes formal CLI entry points and workspace path routing.
-   - Required boundary: no output generation except tempdir-based tests.
-
-3. Optional adapter package review
-   - Files: `src/adapters/`, `tests/test_phase1_13_adapters.py`, and only the minimal processor bridge files if justified.
-   - Reason: adapter tests reference processor-calculation bridge behavior; do not commit adapters without the bridge they require.
-
-4. Processor calculations and table reader review
+1. Processor calculations and table reader review
    - Files: `src/processors/base.py`, `src/processors/calculations.py`, `src/core/table_reader.py`, `tests/test_processor_behaviors.py`.
    - Reason: includes BET, photocurrent, spectral baseline, and other data-type behavior changes.
    - Required boundary: do not characterize this as a plotting fix until rerun from raw inputs and reviewed.
 
-5. Phase governance and validation review
+2. Phase governance and validation review
    - Files: `src/core/phase1_7.py`, `src/core/phase1_9.py`, `src/core/validate.py`, phase-specific tests.
    - Reason: governance changes are coupled to Origin plot policy fields and test output cleanup.
 
-6. XPS helper review
+3. XPS helper review
    - Files: `src/core/xps_heterojunction.py`, `src/core/xps_in_situ.py`, `tests/test_xps_heterojunction_stacked.py`.
    - Reason: large generated Origin-script and artifact-path changes; keep separate from general source cleanup.
+
+4. CLI XPS help-text hunk
+   - File: `src/cli.py`.
+   - Reason: one remaining unstaged hunk changes XPS `--with-origin` help text; keep with XPS helper review rather than EPR.
+
+5. Governance and manifest test cleanup
+   - Files: `tests/test_phase1_7_manifest_runner.py`, `tests/test_phase1_8_reviewed_queue.py`, `tests/test_phase1_10_manifest_normalizer.py`.
+   - Reason: these diffs reduce stale `_test_*` report leakage, but their tests create temporary files under repository `output/reports` before cleanup.
+   - Required boundary: run only after approving that temporary repository-output writes are acceptable for that review.
+
+## Completed Review Order Items
+
+1. Origin adapter and plot policy preflight
+   - Files: `config/plot_style.yaml`, `src/origin/*`, `tests/test_origin_*`.
+   - Completed by `76c3c5c`.
+   - Validation: py_compile for Origin helper modules and targeted Origin helper pytest, without live Origin.
+
+2. JEOL EPR decode and EPR overlay review
+   - Files: `config/default.yaml`, `config/data_selection_rules.yaml`, `src/cli.py`, `src/core/epr_jeol.py`, `src/core/epr_overlay.py`, `src/core/runtime_paths.py`, related tests.
+   - Completed by `cc2e13e`.
+   - Validation: py_compile for EPR modules/CLI and targeted JEOL/EPR overlay pytest, without live Origin.
+
+3. Optional adapter package review
+   - Files: `src/adapters/`, `tests/test_phase1_13_adapters.py`.
+   - Completed by `f09fcf3`.
+   - Validation: py_compile for adapter modules and targeted adapter pytest, without live Origin.
+
+4. Manual review generator test import cleanup
+   - Files: `tests/test_manual_review_filtered_report.py`.
+   - Completed by `b860453`.
+   - Validation: py_compile for the targeted test and targeted pytest using `tmp_path`, without repository-output writes.
 
 ## Global Rules
 

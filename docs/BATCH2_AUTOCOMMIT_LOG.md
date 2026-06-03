@@ -198,3 +198,158 @@ Continuation safety state:
 - No Origin was run.
 - No `output/` or `outputs/` file was modified by this continuation audit.
 - No generated OPJU/TIF/PNG/XLSX/ZIP/large JSON file was staged.
+
+## GOAL Commit: Batch 2A
+
+Committed: yes.
+
+Commit:
+
+- `76c3c5c origin: stabilize plotting policy helpers`
+
+Files committed:
+
+- `config/plot_style.yaml`
+- `docs/BATCH2A_REVIEW.md`
+- `src/origin/__init__.py`
+- `src/origin/adapter.py`
+- `src/origin/operations.py`
+- `src/origin/plot_policy.py`
+- `src/origin/text_format.py`
+- `tests/test_origin_adapter.py`
+- `tests/test_origin_operations.py`
+- `tests/test_origin_plot_policy.py`
+
+Checks run:
+
+- `git diff --stat -- config/plot_style.yaml src/origin/__init__.py src/origin/adapter.py src/origin/operations.py src/origin/plot_policy.py src/origin/text_format.py tests/test_origin_adapter.py tests/test_origin_operations.py tests/test_origin_plot_policy.py docs/BATCH2A_REVIEW.md`
+- `git diff --check -- config/plot_style.yaml src/origin/__init__.py src/origin/adapter.py src/origin/operations.py src/origin/plot_policy.py src/origin/text_format.py tests/test_origin_adapter.py tests/test_origin_operations.py tests/test_origin_plot_policy.py docs/BATCH2A_REVIEW.md`
+- `D:\Python\python.exe -m py_compile src/origin/adapter.py src/origin/operations.py src/origin/plot_policy.py src/origin/text_format.py`
+- `D:\Python\python.exe -m pytest tests/test_origin_adapter.py tests/test_origin_operations.py tests/test_origin_plot_policy.py -q`
+
+Result:
+
+- py_compile passed.
+- Targeted pytest passed: `45 passed, 7 subtests passed in 0.64s`.
+- `git diff --cached --check` passed.
+- Staged files strictly matched the Batch 2A allowlist.
+- No live Origin run was performed.
+
+## GOAL Commit: Batch 2B
+
+Committed: yes.
+
+Commit:
+
+- `cc2e13e epr: stabilize jeol decode and overlay workflows`
+
+Files committed:
+
+- `config/data_selection_rules.yaml`
+- `config/default.yaml`
+- `docs/BATCH2B_REVIEW.md`
+- `src/cli.py`
+- `src/core/epr_jeol.py`
+- `src/core/epr_overlay.py`
+- `src/core/runtime_paths.py`
+- `tests/test_epr_overlay.py`
+- `tests/test_jeol_epr_decode.py`
+
+Checks run:
+
+- `git diff --stat -- config/data_selection_rules.yaml config/default.yaml src/cli.py src/core/epr_jeol.py src/core/epr_overlay.py src/core/runtime_paths.py tests/test_jeol_epr_decode.py tests/test_epr_overlay.py docs/BATCH2B_REVIEW.md`
+- `git diff --check -- config/data_selection_rules.yaml config/default.yaml src/cli.py src/core/epr_jeol.py src/core/epr_overlay.py src/core/runtime_paths.py tests/test_jeol_epr_decode.py tests/test_epr_overlay.py docs/BATCH2B_REVIEW.md`
+- `D:\Python\python.exe -m py_compile src/cli.py src/core/epr_jeol.py src/core/epr_overlay.py src/core/runtime_paths.py`
+- `D:\Python\python.exe -m pytest tests/test_jeol_epr_decode.py tests/test_epr_overlay.py -q`
+
+Result:
+
+- py_compile passed.
+- Targeted pytest passed: `12 passed in 8.94s`.
+- `git diff --cached --check` passed.
+- Staged files strictly matched the Batch 2B allowlist.
+- `src/cli.py` was partially staged: EPR CLI import/parser/dispatch hunks were committed, while the unrelated XPS help-text change remains unstaged.
+- No live Origin run was performed.
+- No radical species or mechanism assignment was made.
+
+## GOAL Commit: Batch 2F Adapters
+
+Committed: yes.
+
+Commit:
+
+- `f09fcf3 adapters: add optional scientific adapter shims`
+
+Files committed:
+
+- `docs/BATCH2F_ADAPTERS_REVIEW.md`
+- `src/adapters/__init__.py`
+- `src/adapters/baseline_adapter.py`
+- `src/adapters/bet_pygaps_adapter.py`
+- `src/adapters/common.py`
+- `src/adapters/eis_impedance_adapter.py`
+- `src/adapters/eis_pyimpspec_adapter.py`
+- `src/adapters/electrochem_import_adapter.py`
+- `src/adapters/epr_adapter.py`
+- `src/adapters/hplc_adapter.py`
+- `src/adapters/image_metadata_adapter.py`
+- `src/adapters/ms_adapter.py`
+- `src/adapters/nmr_adapter.py`
+- `src/adapters/peak_detection_adapter.py`
+- `src/adapters/raman_adapter.py`
+- `src/adapters/xps_lmfitxps_adapter.py`
+- `tests/test_phase1_13_adapters.py`
+
+Checks run:
+
+- `git diff --check -- src/adapters/__init__.py src/adapters/baseline_adapter.py src/adapters/bet_pygaps_adapter.py src/adapters/common.py src/adapters/eis_impedance_adapter.py src/adapters/eis_pyimpspec_adapter.py src/adapters/electrochem_import_adapter.py src/adapters/epr_adapter.py src/adapters/hplc_adapter.py src/adapters/image_metadata_adapter.py src/adapters/ms_adapter.py src/adapters/nmr_adapter.py src/adapters/peak_detection_adapter.py src/adapters/raman_adapter.py src/adapters/xps_lmfitxps_adapter.py tests/test_phase1_13_adapters.py docs/BATCH2F_ADAPTERS_REVIEW.md`
+- `D:\Python\python.exe -m py_compile src/adapters/__init__.py src/adapters/baseline_adapter.py src/adapters/bet_pygaps_adapter.py src/adapters/common.py src/adapters/eis_impedance_adapter.py src/adapters/eis_pyimpspec_adapter.py src/adapters/electrochem_import_adapter.py src/adapters/epr_adapter.py src/adapters/hplc_adapter.py src/adapters/image_metadata_adapter.py src/adapters/ms_adapter.py src/adapters/nmr_adapter.py src/adapters/peak_detection_adapter.py src/adapters/raman_adapter.py src/adapters/xps_lmfitxps_adapter.py`
+- `D:\Python\python.exe -m pytest tests/test_phase1_13_adapters.py -q`
+
+Result:
+
+- py_compile passed.
+- Targeted pytest passed: `6 passed in 2.59s`.
+- Fix round used: one allowlist-only whitespace cleanup after `git diff --cached --check` reported blank lines at EOF.
+- `git diff --cached --check` passed after the fix.
+- Staged files strictly matched the Batch 2F adapter allowlist.
+- No live Origin run was performed.
+- No real data processing or generated output cleanup was performed.
+
+## GOAL Commit: Batch 2 Script Test Path
+
+Committed: yes.
+
+Commit:
+
+- `b860453 tests: update manual review generator import`
+
+Files committed:
+
+- `docs/BATCH2_SCRIPT_TEST_PATH_REVIEW.md`
+- `tests/test_manual_review_filtered_report.py`
+
+Checks run:
+
+- `git diff --check -- tests/test_manual_review_filtered_report.py docs/BATCH2_SCRIPT_TEST_PATH_REVIEW.md`
+- `D:\Python\python.exe -m py_compile tests/test_manual_review_filtered_report.py`
+- `D:\Python\python.exe -m pytest tests/test_manual_review_filtered_report.py -q`
+
+Result:
+
+- py_compile passed.
+- Targeted pytest passed: `4 passed in 0.26s`.
+- `git diff --cached --check` passed.
+- Staged files strictly matched the Batch 2 script test path allowlist.
+- No live Origin run was performed.
+- The test uses `tmp_path` and did not write into the repository `output/` tree.
+
+## Stop Decision Before Final Docs Commit
+
+Automatic source/config/test commits stopped after five GOAL commits because the remaining candidate batches are not safe under the current GOAL boundaries:
+
+- Governance/validation tests include repository-root `project_root` fixtures that create temporary files under the real `output/reports` tree before cleanup.
+- Processor/table-reader changes include data-type behavior for BET, photocurrent, XRD raw text, EIS text parsing, and optional adapter bridges.
+- XPS changes include generated Origin script behavior, artifact routing, labels, and TIF/export semantics.
+
+These remaining batches should receive separate review runs with explicit user approval for their validation scope.
