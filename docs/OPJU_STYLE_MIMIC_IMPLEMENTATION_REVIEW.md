@@ -12,8 +12,12 @@ snapshot, and applies numeric layout values to a new graph.
 - Layer geometry.
 - Axis line thickness.
 - Tick-label point sizes.
+- Axis/title/legend/tick visibility values.
+- Legend coordinates when present.
+- Axis/title/legend font names and sizes when Origin exposes them.
 - Plot count.
 - Plot line-width, color, marker-shape, and marker-size readbacks when Origin exposes plot names.
+- Graph-page list and layer count for multi-panel review.
 
 ## Safety Boundary
 

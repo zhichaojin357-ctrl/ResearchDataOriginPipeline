@@ -18,5 +18,6 @@ SPEC = TypeMimicSpec(
     reference_policy_notes=(
         "Raw pattern or stacked visual style only.",
         "Reference-card content in an exemplar is recorded for review, not copied.",
+        "reference_card_present_in_exemplar_not_copied",
     ),
 )

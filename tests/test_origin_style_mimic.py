@@ -19,8 +19,13 @@ def test_extract_style_snapshot_reads_layout_and_plot_style_without_visible_text
 
     assert snapshot.status == "extracted"
     assert snapshot.graph_page == "Graph1"
+    assert snapshot.graph_pages == ["Graph1"]
     assert snapshot.layout_values["page.width"] == 720
     assert snapshot.layout_values["layer.width"] == 60
+    assert snapshot.layer_count == 1
+    assert snapshot.audit_numeric_values["legend.x"] == 42
+    assert snapshot.audit_numeric_values["title.show"] == 0
+    assert snapshot.audit_string_values["xb.font$"] == "Arial"
     assert snapshot.plot_count == 2
     assert snapshot.plot_line_widths == [15.0, 20.0]
     assert snapshot.plot_colors == [2.0, 4.0]
@@ -77,6 +82,31 @@ class _FakeStyleOps:
             "layer.y.thickness": 3,
             "layer.x.label.pt": 24,
             "layer.y.label.pt": 24,
+            "page.nlayers": 1,
+            "layer.x.ticks": 1,
+            "layer.y.ticks": 1,
+            "layer.x.label.show": 1,
+            "layer.y.label.show": 1,
+            "layer.x.showLabels": 1,
+            "layer.y.showLabels": 1,
+            "xb.show": 1,
+            "yl.show": 1,
+            "xb.fsize": 36,
+            "yl.fsize": 36,
+            "xb.bold": 1,
+            "yl.bold": 1,
+            "legend.show": 0,
+            "legend.x": 42,
+            "legend.y": 84,
+            "legend.fsize": 18,
+            "legend.bold": 0,
+            "title.show": 0,
+            "title.fsize": 18,
+            "title.bold": 0,
+            "xb.font$": "Arial",
+            "yl.font$": "Arial",
+            "legend.font$": "Arial",
+            "title.font$": "Arial",
             "__style_mimic_w_1": 15.0,
             "__style_mimic_w_2": 20.0,
             "__style_mimic_c_1": 2.0,

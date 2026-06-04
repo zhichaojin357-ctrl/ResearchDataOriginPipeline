@@ -198,6 +198,10 @@ def run_opju_product_pilot(
             products.append(
                 {
                     "product_key": product.product_key,
+                    "data_root_label": product.pairing.data_root_label,
+                    "selected_data_relative_paths": _selected_relative_paths(product.pairing, "selected_data_relative_paths"),
+                    "opju_root_label": product.pairing.opju_root_label,
+                    "selected_opju_relative_path": _selected_relative_paths(product.pairing, "selected_opju_relative_path"),
                     "processed_data": str(product.processed_data),
                     "origin_file": str(product.origin_file),
                     "figure_tif": str(product.figure_tif),
@@ -217,8 +221,10 @@ def run_opju_product_pilot(
 
     skipped = _skipped_pairing_items(options.pairing_path)
     _write_manual_checklist(layout.root, products, failures, skipped)
-    _write_summary(layout.root, products, failures, skipped, bool(options.with_origin))
-    _write_no_label_audit(layout.root)
+    label_audit = _write_no_label_audit(layout.root)
+    _write_summary(layout.root, products, failures, skipped, bool(options.with_origin), label_audit)
+    label_audit = _write_no_label_audit(layout.root)
+    _write_summary(layout.root, products, failures, skipped, bool(options.with_origin), label_audit)
     return {
         "run_root": str(layout.root),
         "summary": {
@@ -526,6 +532,10 @@ def _write_product_metadata(run_root: Path, product: ProductContext, export_stat
         "product_key": product.product_key,
         "data_type": product.pairing.data_type,
         "xps_subtype": product.pairing.xps_subtype,
+        "data_root_label": product.pairing.data_root_label,
+        "selected_data_relative_paths": _selected_relative_paths(product.pairing, "selected_data_relative_paths"),
+        "opju_root_label": product.pairing.opju_root_label,
+        "selected_opju_relative_path": _selected_relative_paths(product.pairing, "selected_opju_relative_path"),
         "source_files": [str(path) for path in product.pairing.data_paths],
         "input_copies": [str(path) for path in product.input_copies],
         "reference_opju": str(product.pairing.reference_opju),
@@ -539,6 +549,7 @@ def _write_product_metadata(run_root: Path, product: ProductContext, export_stat
         "manual_check_required": True,
         "manual_check_items": _manual_items(product.product_key),
         "forbidden_claims": _forbidden_claims(product.product_key),
+        "reference_policy_notes": _reference_policy_notes(product.product_key),
         "notes": product.notes,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -567,6 +578,12 @@ def _write_per_type_report(run_root: Path, product: ProductContext, export_statu
         "",
         "## Forbidden scientific claims avoided",
         *[f"- {item}" for item in _forbidden_claims(product.product_key)],
+        "",
+        "## Reference policy notes",
+        *[f"- {item}" for item in _reference_policy_notes(product.product_key)],
+        "",
+        "## Visible-label audit",
+        "- Result is recorded in the run-level visible-label audit report.",
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
@@ -613,6 +630,7 @@ def _write_summary(
     failures: list[dict[str, str]],
     skipped: list[dict[str, str]],
     with_origin: bool,
+    label_audit: dict[str, object],
 ) -> None:
     payload = {
         "with_origin": with_origin,
@@ -621,6 +639,7 @@ def _write_summary(
         "skipped": skipped,
         "product_count": len(products),
         "failure_count": len(failures),
+        "visible_label_audit": label_audit,
     }
     reports = run_root / "reports"
     reports.mkdir(parents=True, exist_ok=True)
@@ -635,6 +654,8 @@ def _write_summary(
         f"- Products prepared: {len(products)}",
         f"- Failures: {len(failures)}",
         f"- Origin requested: {with_origin}",
+        f"- Visible-label audit result: {'pass' if int(label_audit.get('hit_count', 0)) == 0 else 'fail'}",
+        f"- Visible-label audit hit count: {label_audit.get('hit_count', 0)}",
         "- F-drive files modified: no",
         "- Original OPJU/OPJ files modified: no",
         "- Output products committed: no",
@@ -642,14 +663,25 @@ def _write_summary(
         "## Products",
     ]
     for product in products:
+        key = str(product["product_key"])
+        source_rel = [str(item) for item in product.get("selected_data_relative_paths", []) if str(item)]
+        opju_rel = [str(item) for item in product.get("selected_opju_relative_path", []) if str(item)]
         final_lines.extend(
             [
-                f"### {product['product_key']}",
+                f"### {key}",
                 f"- Status: {product['status']}",
+                f"- Failure reason: {product['origin_message'] or 'none'}",
+                f"- Selected data root label: {product.get('data_root_label', 'see metadata')}",
+                f"- Selected data: {', '.join(source_rel) if source_rel else 'see metadata'}",
+                f"- Selected OPJU root label: {product.get('opju_root_label', 'see metadata')}",
+                f"- Selected OPJU: {', '.join(opju_rel) if opju_rel else 'see metadata'}",
                 f"- Generated OPJU: {_relative_to_run(run_root, Path(str(product['origin_file'])))}",
                 f"- Generated TIF: {_relative_to_run(run_root, Path(str(product['figure_tif'])))}",
                 f"- Generated PNG preview: {_relative_to_run(run_root, Path(str(product['preview_png'])))}",
                 f"- Manual review report: {_relative_to_run(run_root, Path(str(product['report'])))}",
+                f"- Manual review needs: {'; '.join(_manual_items(key))}",
+                f"- Forbidden scientific claims avoided: {'; '.join(_forbidden_claims(key))}",
+                f"- Visible-label audit result: {'pass' if int(label_audit.get('hit_count', 0)) == 0 else 'fail'}",
                 "",
             ]
         )
@@ -680,7 +712,7 @@ def _write_summary(
             )
 
 
-def _write_no_label_audit(run_root: Path) -> None:
+def _write_no_label_audit(run_root: Path) -> dict[str, object]:
     hits = []
     self_audit_names = {"product_no_codex_label_audit.md"}
     for path in run_root.rglob("*"):
@@ -716,6 +748,7 @@ def _write_no_label_audit(run_root: Path) -> None:
     else:
         lines.append("- none")
     (run_root / "reports" / "product_no_codex_label_audit.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return audit
 
 
 def _selected_relative_paths(pairing: TargetPairing, key: str) -> list[str]:
@@ -773,6 +806,13 @@ def _forbidden_claims(product_key: str) -> list[str]:
         "XRD": ["no automatic phase assignment", "no automatic crystal-plane assignment"],
         "EPR": ["no automatic radical species assignment"],
     }.get(product_key, ["no scientific interpretation without manual review"])
+
+
+def _reference_policy_notes(product_key: str) -> list[str]:
+    spec = TYPE_MIMIC_SPECS.get(product_key)
+    if spec is not None:
+        return list(spec.reference_policy_notes)
+    return ["Reference OPJU is used only as a visual exemplar for manual calibration."]
 
 
 def _target_product_key(item: dict[str, Any]) -> str | None:

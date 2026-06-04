@@ -10,6 +10,7 @@ SPEC = TypeMimicSpec(
         "Confirm BOBC, dark, and light sample mapping.",
         "Confirm binding-energy calibration and display direction.",
         "Confirm fitted component/background/envelope/residual roles manually.",
+        "Panel grouping is reported as a pilot overlay and must be manually checked before final layout use.",
     ),
     forbidden_claims_avoided=(
         "no valence assignment",
@@ -19,5 +20,6 @@ SPEC = TypeMimicSpec(
     reference_policy_notes=(
         "In-situ XPS stays separate from non-in-situ XPS.",
         "Reference OPJU is only a visual exemplar for manual calibration.",
+        "Panel grouping information is metadata for review, not a scientific conclusion.",
     ),
 )

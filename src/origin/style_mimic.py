@@ -21,6 +21,37 @@ STYLE_LAYOUT_FIELDS = (
     "layer.y.label.pt",
 )
 
+STYLE_AUDIT_NUMERIC_FIELDS = (
+    "page.nlayers",
+    "layer.x.ticks",
+    "layer.y.ticks",
+    "layer.x.label.show",
+    "layer.y.label.show",
+    "layer.x.showLabels",
+    "layer.y.showLabels",
+    "xb.show",
+    "yl.show",
+    "xb.fsize",
+    "yl.fsize",
+    "xb.bold",
+    "yl.bold",
+    "legend.show",
+    "legend.x",
+    "legend.y",
+    "legend.fsize",
+    "legend.bold",
+    "title.show",
+    "title.fsize",
+    "title.bold",
+)
+
+STYLE_AUDIT_STRING_FIELDS = (
+    "xb.font$",
+    "yl.font$",
+    "legend.font$",
+    "title.font$",
+)
+
 FORBIDDEN_EXEMPLAR_TEXT_CATEGORIES = (
     "peak assignments",
     "crystal-plane labels",
@@ -38,7 +69,11 @@ class OpjuStyleSnapshot:
     source_opju: str
     status: str
     graph_page: str | None = None
+    graph_pages: list[str] = field(default_factory=list)
     layout_values: dict[str, float] = field(default_factory=dict)
+    audit_numeric_values: dict[str, float] = field(default_factory=dict)
+    audit_string_values: dict[str, str] = field(default_factory=dict)
+    layer_count: int = 0
     plot_count: int = 0
     plot_line_widths: list[float] = field(default_factory=list)
     plot_colors: list[float] = field(default_factory=list)
@@ -52,7 +87,11 @@ class OpjuStyleSnapshot:
             "source_opju": self.source_opju,
             "status": self.status,
             "graph_page": self.graph_page,
+            "graph_pages": list(self.graph_pages),
             "layout_values": dict(self.layout_values),
+            "audit_numeric_values": dict(self.audit_numeric_values),
+            "audit_string_values": dict(self.audit_string_values),
+            "layer_count": self.layer_count,
             "plot_count": self.plot_count,
             "plot_line_widths": list(self.plot_line_widths),
             "plot_colors": list(self.plot_colors),
@@ -81,6 +120,9 @@ def extract_style_snapshot(operations: object, reference_opju: Path) -> OpjuStyl
     graph_page = graph_pages[0]
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_page)}";')
     layout_values = _read_numeric_fields(operations, STYLE_LAYOUT_FIELDS)
+    audit_numeric_values = _read_numeric_fields(operations, STYLE_AUDIT_NUMERIC_FIELDS)
+    audit_string_values = _read_string_fields(operations, STYLE_AUDIT_STRING_FIELDS)
+    layer_count = int(audit_numeric_values.get("page.nlayers", 0))
     plot_names = _plot_names(operations, graph_page)
     plot_line_widths = _read_plot_properties(operations, plot_names, "-w")
     plot_colors = _read_plot_properties(operations, plot_names, "-c")
@@ -90,7 +132,11 @@ def extract_style_snapshot(operations: object, reference_opju: Path) -> OpjuStyl
         source_opju=str(reference_opju),
         status="extracted",
         graph_page=graph_page,
+        graph_pages=graph_pages,
         layout_values=layout_values,
+        audit_numeric_values=audit_numeric_values,
+        audit_string_values=audit_string_values,
+        layer_count=layer_count,
         plot_count=len(plot_names),
         plot_line_widths=plot_line_widths,
         plot_colors=plot_colors,
@@ -128,6 +174,19 @@ def _read_numeric_fields(operations: object, fields: tuple[str, ...]) -> dict[st
         value = _to_float(getattr(read, "payload", {}).get("value"))
         if value is not None and math.isfinite(value):
             values[field_name] = value
+    return values
+
+
+def _read_string_fields(operations: object, fields: tuple[str, ...]) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for field_name in fields:
+        try:
+            read = operations.get_labtalk_variable(field_name)
+        except Exception:
+            continue
+        value = getattr(read, "payload", {}).get("value")
+        if value is not None and str(value).strip():
+            values[field_name] = str(value)
     return values
 
 
