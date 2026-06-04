@@ -1,0 +1,163 @@
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from src.origin.operations import quote_labtalk
+
+
+STYLE_LAYOUT_FIELDS = (
+    "page.width",
+    "page.height",
+    "layer.left",
+    "layer.top",
+    "layer.width",
+    "layer.height",
+    "layer.x.thickness",
+    "layer.y.thickness",
+    "layer.x.label.pt",
+    "layer.y.label.pt",
+)
+
+FORBIDDEN_EXEMPLAR_TEXT_CATEGORIES = (
+    "peak assignments",
+    "crystal-plane labels",
+    "phase labels",
+    "XPS valence labels",
+    "mechanism arrows or text",
+    "EPR radical labels",
+    "product identity labels",
+    "conversion/selectivity/yield text",
+)
+
+
+@dataclass(frozen=True)
+class OpjuStyleSnapshot:
+    source_opju: str
+    status: str
+    graph_page: str | None = None
+    layout_values: dict[str, float] = field(default_factory=dict)
+    plot_count: int = 0
+    plot_line_widths: list[float] = field(default_factory=list)
+    plot_colors: list[float] = field(default_factory=list)
+    marker_shapes: list[float] = field(default_factory=list)
+    marker_sizes: list[float] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    copied_visible_text: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "source_opju": self.source_opju,
+            "status": self.status,
+            "graph_page": self.graph_page,
+            "layout_values": dict(self.layout_values),
+            "plot_count": self.plot_count,
+            "plot_line_widths": list(self.plot_line_widths),
+            "plot_colors": list(self.plot_colors),
+            "marker_shapes": list(self.marker_shapes),
+            "marker_sizes": list(self.marker_sizes),
+            "warnings": list(self.warnings),
+            "copied_visible_text": self.copied_visible_text,
+            "forbidden_visible_text_categories": list(FORBIDDEN_EXEMPLAR_TEXT_CATEGORIES),
+        }
+
+
+def extract_style_snapshot(operations: object, reference_opju: Path) -> OpjuStyleSnapshot:
+    load_result = operations.load_project(reference_opju)
+    if not getattr(load_result, "ok", False):
+        return OpjuStyleSnapshot(str(reference_opju), "load_failed", warnings=[str(getattr(load_result, "message", ""))])
+
+    pages_result = operations.list_worksheets()
+    graph_pages = [
+        str(item["name"])
+        for item in getattr(pages_result, "payload", {}).get("pages", [])
+        if item.get("type") == "graph"
+    ]
+    if not graph_pages:
+        return OpjuStyleSnapshot(str(reference_opju), "no_graph_pages", warnings=["No graph pages were available in the copied exemplar."])
+
+    graph_page = graph_pages[0]
+    operations.run_labtalk(f'win -a "{quote_labtalk(graph_page)}";')
+    layout_values = _read_numeric_fields(operations, STYLE_LAYOUT_FIELDS)
+    plot_names = _plot_names(operations, graph_page)
+    plot_line_widths = _read_plot_properties(operations, plot_names, "-w")
+    plot_colors = _read_plot_properties(operations, plot_names, "-c")
+    marker_shapes = _read_plot_properties(operations, plot_names, "-k")
+    marker_sizes = _read_plot_properties(operations, plot_names, "-z")
+    return OpjuStyleSnapshot(
+        source_opju=str(reference_opju),
+        status="extracted",
+        graph_page=graph_page,
+        layout_values=layout_values,
+        plot_count=len(plot_names),
+        plot_line_widths=plot_line_widths,
+        plot_colors=plot_colors,
+        marker_shapes=marker_shapes,
+        marker_sizes=marker_sizes,
+        warnings=[
+            "Visible scientific annotations are not copied from the exemplar.",
+            "Series line width is later overridden by the product policy when required.",
+        ],
+    )
+
+
+def apply_style_snapshot(operations: object, graph_name: str, snapshot: OpjuStyleSnapshot | dict[str, Any]) -> bool:
+    layout_values = snapshot.layout_values if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("layout_values", {})
+    if not isinstance(layout_values, dict) or not layout_values:
+        return False
+    commands = []
+    for key, value in layout_values.items():
+        number = _to_float(value)
+        if number is not None and math.isfinite(number):
+            commands.append(f"{key}={number};")
+    if not commands:
+        return False
+    operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    operations.run_labtalk("page.kar=0; page.customwidth=1; page.customheight=1; " + " ".join(commands))
+    if hasattr(operations, "set_graph_font"):
+        operations.set_graph_font(graph_name)
+    return True
+
+
+def _read_numeric_fields(operations: object, fields: tuple[str, ...]) -> dict[str, float]:
+    values: dict[str, float] = {}
+    for field_name in fields:
+        read = operations.get_labtalk_variable(field_name)
+        value = _to_float(getattr(read, "payload", {}).get("value"))
+        if value is not None and math.isfinite(value):
+            values[field_name] = value
+    return values
+
+
+def _plot_names(operations: object, graph_name: str) -> list[str]:
+    getter = getattr(operations, "_plot_names", None)
+    if getter is None:
+        return []
+    try:
+        return [str(name) for name in getter(graph_name)]
+    except Exception:
+        return []
+
+
+def _read_plot_properties(operations: object, plot_names: list[str], option: str) -> list[float]:
+    values: list[float] = []
+    for index, plot_name in enumerate(plot_names, start=1):
+        variable = f"__style_mimic_{option.strip('-')}_{index}"
+        operations.run_labtalk(f"get {plot_name} {option} {variable};")
+        read = operations.get_labtalk_variable(variable)
+        value = _to_float(getattr(read, "payload", {}).get("value"))
+        if value is not None and math.isfinite(value):
+            values.append(value)
+    return values
+
+
+def _to_float(value: object) -> float | None:
+    try:
+        if value is None or value == "":
+            return None
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
