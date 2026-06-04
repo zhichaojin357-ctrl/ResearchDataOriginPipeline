@@ -22,7 +22,7 @@ def ensure_dir(path: Path) -> Path:
     return path
 
 
-def ensure_write_path_allowed(project_root: Path, path: Path) -> Path:
+def ensure_write_path_allowed(project_root: Path, path: Path, *, output_root: Path | None = None) -> Path:
     resolved_project = project_root.resolve()
     resolved_path = path.resolve()
     allowed_roots = [
@@ -33,6 +33,9 @@ def ensure_write_path_allowed(project_root: Path, path: Path) -> Path:
         resolved_project / "config",
         resolved_project / ".codex",
     ]
+    if output_root is not None:
+        resolved_output_root = output_root if output_root.is_absolute() else resolved_project / output_root
+        allowed_roots.append(resolved_output_root.resolve())
     if not any(_is_under_or_equal(resolved_path, root) for root in allowed_roots):
         raise ValueError(f"Refusing to write outside allowed project areas: {path}")
     return path
@@ -42,7 +45,7 @@ def output_dir(project_root: Path, *parts: str, output_root: Path | None = None)
     base = output_root if output_root is not None else project_root / "output"
     if not base.is_absolute():
         base = project_root / base
-    return ensure_dir(ensure_write_path_allowed(project_root, base / Path(*parts)))
+    return ensure_dir(ensure_write_path_allowed(project_root, base / Path(*parts), output_root=base))
 
 
 def report_path(project_root: Path, name: str, *, output_root: Path | None = None) -> Path:

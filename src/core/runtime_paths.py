@@ -8,6 +8,7 @@ from pathlib import Path
 
 from src.core.project import ensure_write_path_allowed
 from src.core.project import load_project_config
+from src.core.project import _parse_simple_yaml
 
 
 LEGACY_PHASE1_6_PACKAGE = Path("output") / "phase1_6_origin_results_20260531_041538"
@@ -21,6 +22,8 @@ WORKSPACE_ROOT_ENV = "RESEARCHDATAORIGINPIPELINE_WORKSPACE_ROOT"
 F_DRIVE_BACKUP_ENV = "RESEARCHDATAORIGINPIPELINE_F_DRIVE_BACKUP"
 ORIGIN_HELPER_ENV = "RESEARCHDATAORIGINPIPELINE_ORIGIN_HELPER"
 ORIGIN_REFERENCE_PATTERN_ENV = "RESEARCHDATAORIGINPIPELINE_ORIGIN_REFERENCE_PATTERN"
+OUTPUT_ROOT_ENV = "RESEARCH_PIPELINE_OUTPUT_ROOT"
+OUTPUT_ROOT_COMPAT_ENV = "RESEARCHDATAORIGINPIPELINE_OUTPUT_ROOT"
 RUN_OUTPUT_SUBDIRS = (
     "processed_data",
     "metadata",
@@ -51,6 +54,33 @@ def resolve_project_path(project_root: Path, value: str | Path) -> Path:
     return path if path.is_absolute() else project_root / path
 
 
+def resolve_output_root(
+    project_root: Path,
+    explicit: str | Path | None = None,
+    *,
+    config_path: str | Path | None = None,
+) -> Path:
+    explicit_value = str(explicit).strip() if explicit is not None else ""
+    if explicit_value:
+        return resolve_project_path(project_root, explicit_value)
+
+    local_path = project_root / "config" / "local.yaml"
+    value = _config_file_value(local_path, "paths", "output_root")
+    if value:
+        return resolve_project_path(project_root, value)
+
+    value = _first_nonempty(os.environ.get(OUTPUT_ROOT_ENV), os.environ.get(OUTPUT_ROOT_COMPAT_ENV))
+    if value:
+        return resolve_project_path(project_root, value)
+
+    default_path = Path(config_path) if config_path is not None else Path("config/default.yaml")
+    value = _first_nonempty(
+        _config_file_value(_resolve_config_path(project_root, default_path), "paths", "output_root"),
+        _config_file_value(_resolve_config_path(project_root, default_path), "paths", "output"),
+    )
+    return resolve_project_path(project_root, value or "output")
+
+
 def create_run_output_layout(
     project_root: Path,
     *,
@@ -68,9 +98,9 @@ def create_run_output_layout(
     normalized_scope = _safe_run_scope(scope)
     run_timestamp = timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
     run_id = f"{run_timestamp}_{normalized_scope}"
-    base = output_base or project_root / "output" / "runs"
+    base = output_base or resolve_output_root(project_root) / "runs"
     root = base / run_id
-    ensure_write_path_allowed(project_root, root)
+    ensure_write_path_allowed(project_root, root, output_root=base)
     directories = {name: root / name for name in RUN_OUTPUT_SUBDIRS}
     for directory in directories.values():
         directory.mkdir(parents=True, exist_ok=True)
@@ -200,8 +230,6 @@ def _plot_style_value(project_root: Path, key: str) -> str | None:
     path = project_root / "config" / "plot_style.yaml"
     if not path.exists():
         return None
-    from src.core.project import _parse_simple_yaml
-
     config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
     value = config.get(key)
     if value is None and isinstance(config.get("origin_template"), dict):
@@ -215,3 +243,17 @@ def _first_nonempty(*values: str | None) -> str | None:
         if value is not None and str(value).strip():
             return str(value).strip()
     return None
+
+
+def _resolve_config_path(project_root: Path, path: Path) -> Path:
+    return path if path.is_absolute() else project_root / path
+
+
+def _config_file_value(path: Path, section: str, key: str) -> str | None:
+    if not path.exists():
+        return None
+    config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
+    section_value = config.get(section)
+    value = section_value.get(key) if isinstance(section_value, dict) else None
+    text = str(value).strip() if value is not None else ""
+    return text or None

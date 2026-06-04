@@ -7,6 +7,7 @@ paths:
   phase1_2_source_copy: D:/Codex Project/科研数据处理/数据/workspace_data/LL_detection_copy_20260530
   workspace_root: D:/Codex Project/科研数据处理/数据/workspace_data/LL_detection_copy_20260530
   phase1_6_origin_results: output/phase1_6_origin_results_20260531_041538
+  output_root: output
   output: output
   processed_data: output/processed_data
   origin_files: output/origin_files

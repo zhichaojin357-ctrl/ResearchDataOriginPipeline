@@ -14,6 +14,7 @@ from src.core.process import ProcessOptions, run_process
 from src.core.project import configured_path, load_project_config
 from src.core.readiness import ReadinessOptions, run_readiness
 from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
+from src.core.runtime_paths import resolve_output_root
 from src.core.triage import TriageOptions, run_triage
 from src.core.validate import validate
 from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
@@ -27,10 +28,12 @@ def build_parser() -> argparse.ArgumentParser:
     scan = subparsers.add_parser("scan")
     scan.add_argument("--input")
     scan.add_argument("--config", default="config/default.yaml")
+    scan.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
 
     process = subparsers.add_parser("process")
     process.add_argument("--input")
     process.add_argument("--config", default="config/default.yaml")
+    process.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
     origin_mode = process.add_mutually_exclusive_group()
     origin_mode.add_argument("--no-origin", action="store_true", help="process tables and metadata without launching Origin")
     origin_mode.add_argument("--with-origin", action="store_true", help="explicitly allow Origin export for this processing run")
@@ -53,6 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     triage = subparsers.add_parser("triage")
     triage.add_argument("--input")
     triage.add_argument("--config", default="config/default.yaml")
+    triage.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
     triage.add_argument("--only-type")
     triage.add_argument("--only-folder")
     triage.add_argument("--min-confidence", type=float, default=0.75)
@@ -74,6 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     origin_batch.add_argument("--only-missing", action="store_true", help="plan only entries missing Origin outputs")
     origin_batch.add_argument("--report-json", type=Path, help="optional JSON report path under output/ or docs/")
     origin_batch.add_argument("--report-md", type=Path, help="optional Markdown report path under output/ or docs/")
+    origin_batch.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
 
     manifest_normalize = subparsers.add_parser(
         "manifest-normalize",
@@ -95,6 +100,7 @@ def build_parser() -> argparse.ArgumentParser:
     reviewed_queue.add_argument("--template-out", type=Path, help="optional template CSV path under output/ or docs/")
     reviewed_queue.add_argument("--report-json", type=Path, help="optional JSON report path under output/ or docs/")
     reviewed_queue.add_argument("--report-md", type=Path, help="optional Markdown report path under output/ or docs/")
+    reviewed_queue.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
 
     auto_queue = subparsers.add_parser(
         "auto-queue",
@@ -107,6 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
     auto_queue.add_argument("--report-json", type=Path)
     auto_queue.add_argument("--report-md", type=Path)
     auto_queue.add_argument("--queue-out", type=Path)
+    auto_queue.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
 
     xps_stacked = subparsers.add_parser(
         "xps-heterojunction-stacked",
@@ -187,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         config = load_project_config(project_root, Path(args.config))
         input_path = Path(args.input) if args.input else configured_path(project_root, config, "paths", "raw_data", "input/raw_data")
         _validate_input_directory(input_path)
-        scan_raw_data(project_root, input_path)
+        scan_raw_data(project_root, input_path, output_root=_resolve_cli_output_root(project_root, args))
         return 0
     if args.command == "process":
         config = load_project_config(project_root, Path(args.config))
@@ -206,6 +213,7 @@ def main(argv: list[str] | None = None) -> int:
                 from_queue=args.from_queue,
                 auto_select=args.auto_select,
                 include_ambiguous=args.include_ambiguous,
+                output_root=_resolve_cli_output_root(project_root, args),
             ),
         )
     if args.command == "triage":
@@ -222,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
                 explain=args.explain,
                 force_refresh=args.force_refresh,
                 dry_run=args.dry_run,
+                output_root=_resolve_cli_output_root(project_root, args),
             ),
         )
         return 0
@@ -240,6 +249,7 @@ def main(argv: list[str] | None = None) -> int:
                 only_missing=args.only_missing,
                 report_json=args.report_json,
                 report_md=args.report_md,
+                output_root=_resolve_cli_output_root(project_root, args),
             ),
         )
     if args.command == "manifest-normalize":
@@ -262,6 +272,7 @@ def main(argv: list[str] | None = None) -> int:
                 template_out=args.template_out,
                 report_json=args.report_json,
                 report_md=args.report_md,
+                output_root=_resolve_cli_output_root(project_root, args),
             ),
         )
     if args.command == "auto-queue":
@@ -275,6 +286,7 @@ def main(argv: list[str] | None = None) -> int:
                 report_md=args.report_md,
                 queue_out=args.queue_out,
                 only_type=args.only_type,
+                output_root=_resolve_cli_output_root(project_root, args),
             ),
         )
     if args.command == "xps-heterojunction-stacked":
@@ -363,3 +375,8 @@ def _validate_input_directory(input_path: Path) -> None:
         raise ValueError(f"input directory does not exist: {input_path}")
     if not input_path.is_dir():
         raise ValueError(f"input path is not a directory: {input_path}")
+
+
+def _resolve_cli_output_root(project_root: Path, args: argparse.Namespace) -> Path:
+    config_path = Path(getattr(args, "config", "config/default.yaml"))
+    return resolve_output_root(project_root, explicit=getattr(args, "output_root", None), config_path=config_path)

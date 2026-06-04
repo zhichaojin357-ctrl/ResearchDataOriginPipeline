@@ -9,7 +9,8 @@ from unittest.mock import patch
 from src.core.auto_queue import AutoQueueOptions, plan_auto_queue
 from src.core.project import load_project_config
 from src.core.readiness import ReadinessOptions, run_readiness
-from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern, resolve_phase1_6_index
+from src.core.runtime_paths import create_run_output_layout
+from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern, resolve_output_root, resolve_phase1_6_index
 from src.core.xps_heterojunction import discover_default_xps_sample_files
 from src.origin.adapter import build_origin_plot_job
 
@@ -23,6 +24,46 @@ def test_phase16_index_auto_discovers_latest_package(tmp_path: Path):
     (newer / "index.csv").write_text("source_hash\nnew\n", encoding="utf-8")
 
     assert resolve_phase1_6_index(tmp_path) == newer / "index.csv"
+
+
+def test_output_root_resolution_priority_uses_explicit_then_local_then_env(tmp_path: Path, monkeypatch):
+    config = tmp_path / "config"
+    config.mkdir()
+    local_root = tmp_path.parent / f"{tmp_path.name}_local_output"
+    env_root = tmp_path.parent / f"{tmp_path.name}_env_output"
+    explicit_root = tmp_path.parent / f"{tmp_path.name}_explicit_output"
+    (config / "default.yaml").write_text("paths:\n  output_root: output/default-root\n", encoding="utf-8")
+    (config / "local.yaml").write_text(f"paths:\n  output_root: {local_root}\n", encoding="utf-8")
+    monkeypatch.setenv("RESEARCH_PIPELINE_OUTPUT_ROOT", str(env_root))
+
+    assert resolve_output_root(tmp_path, explicit=explicit_root) == explicit_root
+    assert resolve_output_root(tmp_path) == local_root
+
+    (config / "local.yaml").unlink()
+    assert resolve_output_root(tmp_path) == env_root
+
+
+def test_create_run_output_layout_uses_configured_external_output_root(tmp_path: Path):
+    config = tmp_path / "config"
+    config.mkdir()
+    external_root = tmp_path.parent / f"{tmp_path.name}_external_output"
+    (config / "default.yaml").write_text(f"paths:\n  output_root: {external_root}\n", encoding="utf-8")
+
+    layout = create_run_output_layout(
+        tmp_path,
+        scope="external pilot",
+        command="process",
+        mode="no_origin",
+        timestamp="20260604_120000",
+        no_origin=True,
+        dry_run=False,
+    )
+
+    assert layout.root == external_root / "runs" / "20260604_120000_external_pilot"
+    assert layout.reports.is_dir()
+    assert not (tmp_path / "output").exists()
+    manifest = json.loads(layout.manifest.read_text(encoding="utf-8"))
+    assert manifest["output_root"] == str(layout.root)
 
 
 def test_auto_queue_uses_env_phase16_package_when_processed_index_not_explicit(tmp_path: Path, monkeypatch):

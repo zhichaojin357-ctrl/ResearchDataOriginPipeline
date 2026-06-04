@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.core.auto_queue import AutoQueueOptions, run_auto_queue
+from src.core.project import output_dir
 from src.core.process import ProcessOptions, run_process
 from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
 from src.core.runtime_paths import create_run_output_layout
@@ -47,6 +48,16 @@ def test_create_run_output_layout_creates_standard_dirs_and_manifest(tmp_path: P
     assert manifest["output_root"] == str(layout.root)
     assert manifest["produced_artifact_directories"]["processed_data"] == str(layout.processed_data)
     assert manifest["input_paths"] == [str(tmp_path / "input" / "raw_data")]
+
+
+def test_output_dir_allows_explicit_external_output_root(tmp_path: Path):
+    external_root = tmp_path.parent / f"{tmp_path.name}_external_output"
+
+    reports = output_dir(tmp_path, "reports", output_root=external_root)
+
+    assert reports == external_root / "reports"
+    assert reports.is_dir()
+    assert not (tmp_path / "output").exists()
 
 
 def test_run_process_can_route_no_origin_artifacts_into_run_root(tmp_path: Path):
