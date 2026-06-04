@@ -236,34 +236,31 @@ def eis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) 
 
 
 def lc_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
-    mode = lc_export_mode(rows)
+    mode = classify_hplc_lc_exported_table(rows)
     result = {
         "lc_export_mode": mode,
     }
     if mode == "ambiguous":
+        review = build_hplc_lc_manual_review_reason(rows)
         result.update(
             {
-                "lc_manual_review_required": True,
-                "lc_missing_fields": lc_missing_fields(rows),
-                "lc_plot_intent": {
-                    "candidate": False,
-                    "reason": "ambiguous_exported_table",
-                },
+                "lc_manual_review_required": review["manual_review_required"],
+                "lc_missing_fields": review["missing_fields"],
+                "lc_plot_intent": build_hplc_lc_plot_intent(mode),
             }
         )
         return result
 
     if mode == "calibration_curve":
+        candidate = extract_hplc_lc_calibration_candidate(rows)
         result.update(
             {
-                "lc_plot_intent": {
-                    "candidate": True,
-                    "plot_type": "calibration_curve",
-                    "x_axis": "concentration",
-                    "y_axis": "response",
-                    "manual_check_required": True,
+                "lc_plot_intent": candidate["plot_intent"],
+                "lc_calibration_candidate": {
+                    key: value
+                    for key, value in candidate.items()
+                    if key not in {"candidate", "mode", "plot_intent", "requires_manual_mapping"}
                 },
-                "lc_calibration_candidate": lc_calibration_candidate(rows),
             }
         )
         return result
@@ -271,29 +268,18 @@ def lc_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -
     result["retention_time_range"] = [numeric[0][0], numeric[-1][0]] if numeric else []
     if mode == "peak_table":
         areas = column_values(rows, ["area", "peak area"])
+        candidate = extract_hplc_lc_peak_table_candidate(rows)
         result.update(
             {
                 "peak_area_total_candidate": sum(areas) if areas else None,
-                "lc_candidate_peaks": lc_candidate_peak_rows(rows),
+                "lc_candidate_peaks": candidate["peaks"],
                 "lc_requires_manual_calibration": True,
                 "lc_quantification_boundary": "requires_manual_calibration",
-                "lc_plot_intent": {
-                    "candidate": True,
-                    "plot_type": "peak_table_summary",
-                    "x_axis": "retention_time_min",
-                    "y_axis": "peak_area_optional",
-                    "manual_check_required": True,
-                },
+                "lc_plot_intent": candidate["plot_intent"],
             }
         )
     else:
-        result["lc_plot_intent"] = {
-            "candidate": True,
-            "plot_type": "chromatogram",
-            "x_axis": "retention_time_min",
-            "y_axis": "signal",
-            "manual_check_required": True,
-        }
+        result["lc_plot_intent"] = extract_hplc_lc_chromatogram_candidate(rows)["plot_intent"]
     blocked_reason = lc_quantification_blocked_reason(rows)
     if blocked_reason:
         result["lc_quantification_blocked_reason"] = blocked_reason
@@ -485,6 +471,132 @@ def lc_export_mode(rows: list[dict[str, str]]) -> str:
     if matching_key(rows[0], ["retention", "rt", "time"]) and matching_key(rows[0], ["intensity", "absorbance", "signal", "mau"]):
         return "chromatogram"
     return "ambiguous"
+
+
+def classify_hplc_lc_exported_table(table: object) -> str:
+    return lc_export_mode(hplc_lc_table_rows(table))
+
+
+def extract_hplc_lc_chromatogram_candidate(table: object) -> dict[str, object]:
+    rows = hplc_lc_table_rows(table)
+    points = hplc_lc_chromatogram_points(rows)
+    return {
+        "candidate": True,
+        "mode": "chromatogram",
+        "point_count": len(points),
+        "retention_time_range": [points[0][0], points[-1][0]] if points else [],
+        "x_axis": "retention_time_min",
+        "y_axis": "signal",
+        "manual_check_required": True,
+        "forbidden_claims": hplc_lc_forbidden_candidate_claims(),
+        "plot_intent": build_hplc_lc_plot_intent("chromatogram"),
+    }
+
+
+def extract_hplc_lc_peak_table_candidate(table: object) -> dict[str, object]:
+    rows = hplc_lc_table_rows(table)
+    peaks = lc_candidate_peak_rows(rows)
+    areas = [float(peak["area"]) for peak in peaks if peak.get("area") is not None]
+    return {
+        "candidate": True,
+        "mode": "peak_table",
+        "peaks": peaks,
+        "peak_count": len(peaks),
+        "peak_area_total_candidate": sum(areas) if areas else None,
+        "requires_manual_calibration": True,
+        "requires_manual_mapping": True,
+        "manual_check_required": True,
+        "forbidden_claims": hplc_lc_forbidden_candidate_claims(),
+        "plot_intent": build_hplc_lc_plot_intent("peak_table"),
+    }
+
+
+def extract_hplc_lc_calibration_candidate(table: object) -> dict[str, object]:
+    rows = hplc_lc_table_rows(table)
+    candidate = lc_calibration_candidate(rows)
+    return {
+        "candidate": True,
+        "mode": "calibration_curve",
+        **candidate,
+        "requires_manual_mapping": True,
+        "forbidden_claims": hplc_lc_forbidden_candidate_claims(),
+        "plot_intent": build_hplc_lc_plot_intent("calibration_curve"),
+    }
+
+
+def build_hplc_lc_manual_review_reason(table: object) -> dict[str, object]:
+    rows = hplc_lc_table_rows(table)
+    return {
+        "manual_review_required": True,
+        "reason": "ambiguous_exported_table",
+        "missing_fields": lc_missing_fields(rows),
+    }
+
+
+def build_hplc_lc_plot_intent(mode: str) -> dict[str, object]:
+    if mode == "chromatogram":
+        return {
+            "candidate": True,
+            "plot_type": "chromatogram",
+            "x_axis": "retention_time_min",
+            "y_axis": "signal",
+            "manual_check_required": True,
+        }
+    if mode == "peak_table":
+        return {
+            "candidate": True,
+            "plot_type": "peak_table_summary",
+            "x_axis": "retention_time_min",
+            "y_axis": "peak_area_optional",
+            "manual_check_required": True,
+        }
+    if mode == "calibration_curve":
+        return {
+            "candidate": True,
+            "plot_type": "calibration_curve",
+            "x_axis": "concentration",
+            "y_axis": "response",
+            "manual_check_required": True,
+        }
+    return {
+        "candidate": False,
+        "reason": "ambiguous_exported_table",
+    }
+
+
+def hplc_lc_table_rows(table: object) -> list[dict[str, str]]:
+    if table is None:
+        return []
+    if isinstance(table, list):
+        raw_rows = table
+    elif hasattr(table, "to_dict"):
+        raw_rows = table.to_dict(orient="records")  # type: ignore[call-arg]
+    else:
+        raw_rows = list(table) if not isinstance(table, (str, bytes)) else []
+    rows: list[dict[str, str]] = []
+    for row in raw_rows:
+        if not isinstance(row, dict):
+            continue
+        rows.append({str(key): "" if value is None else str(value) for key, value in row.items()})
+    return rows
+
+
+def hplc_lc_chromatogram_points(rows: list[dict[str, str]]) -> list[tuple[float, float]]:
+    points = []
+    for row in rows:
+        retention_time = first_numeric(row, ["retention", "rt", "time"])
+        signal = first_numeric(row, ["intensity", "absorbance", "signal", "mau"])
+        if retention_time is not None and signal is not None:
+            points.append((retention_time, signal))
+    return points
+
+
+def hplc_lc_forbidden_candidate_claims() -> list[str]:
+    return [
+        "no_peak_identity_assignment",
+        "no_product_identity_assignment",
+        "no_conversion_selectivity_yield_without_calibration_mapping",
+    ]
 
 
 def lc_quantification_blocked_reason(rows: list[dict[str, str]]) -> str | None:

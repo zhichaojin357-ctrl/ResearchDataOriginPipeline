@@ -7,6 +7,14 @@ from unittest.mock import patch
 
 from src.core.runtime_paths import create_run_output_layout
 from src.processors.base import process_table_dataset
+from src.processors.calculations import (
+    build_hplc_lc_manual_review_reason,
+    build_hplc_lc_plot_intent,
+    classify_hplc_lc_exported_table,
+    extract_hplc_lc_calibration_candidate,
+    extract_hplc_lc_chromatogram_candidate,
+    extract_hplc_lc_peak_table_candidate,
+)
 
 
 def _classification() -> dict:
@@ -65,6 +73,42 @@ def test_chromatogram_export_returns_candidate_without_conversion(tmp_path: Path
     assert set(rows[0]) == {"retention_time_min", "signal"}
 
 
+def test_hplc_lc_helper_api_classifies_dataframe_and_extracts_chromatogram_candidate():
+    import pandas as pd
+
+    frame = pd.DataFrame(
+        [
+            {"retention time min": 0.0, "absorbance mAU": 1.0},
+            {"retention time min": 0.5, "absorbance mAU": 4.0},
+        ]
+    )
+
+    assert classify_hplc_lc_exported_table(frame) == "chromatogram"
+    candidate = extract_hplc_lc_chromatogram_candidate(frame)
+
+    assert candidate == {
+        "candidate": True,
+        "mode": "chromatogram",
+        "point_count": 2,
+        "retention_time_range": [0.0, 0.5],
+        "x_axis": "retention_time_min",
+        "y_axis": "signal",
+        "manual_check_required": True,
+        "forbidden_claims": [
+            "no_peak_identity_assignment",
+            "no_product_identity_assignment",
+            "no_conversion_selectivity_yield_without_calibration_mapping",
+        ],
+        "plot_intent": {
+            "candidate": True,
+            "plot_type": "chromatogram",
+            "x_axis": "retention_time_min",
+            "y_axis": "signal",
+            "manual_check_required": True,
+        },
+    }
+
+
 def test_peak_table_export_preserves_candidates_without_product_identity(tmp_path: Path):
     source = tmp_path / "input" / "synthetic_lc_peak_table.csv"
     _write_csv(
@@ -109,6 +153,29 @@ def test_peak_table_export_preserves_candidates_without_product_identity(tmp_pat
     assert rows[1]["peak_name_optional"] == "target?"
 
 
+def test_hplc_lc_peak_helper_never_treats_peak_name_or_retention_time_as_identity():
+    rows = [
+        {"retention time": "2.50", "area": "1200", "height": "60", "peak name": "desired product"},
+        {"retention time": "3.10", "area": "300", "height": "20", "peak name": "substrate"},
+    ]
+
+    assert classify_hplc_lc_exported_table(rows) == "peak_table"
+    candidate = extract_hplc_lc_peak_table_candidate(rows)
+
+    assert candidate["candidate"] is True
+    assert candidate["mode"] == "peak_table"
+    assert candidate["requires_manual_calibration"] is True
+    assert candidate["requires_manual_mapping"] is True
+    assert candidate["plot_intent"]["plot_type"] == "peak_table_summary"
+    assert "product_identity_candidate" not in candidate
+    assert "retention_time_identity_candidate" not in candidate
+    assert [peak["identity_assignment"] for peak in candidate["peaks"]] == [
+        "unassigned_manual_mapping_required",
+        "unassigned_manual_mapping_required",
+    ]
+    assert [peak["peak_name"] for peak in candidate["peaks"]] == ["desired product", "substrate"]
+
+
 def test_calibration_table_returns_manual_check_linear_candidate(tmp_path: Path):
     source = tmp_path / "input" / "synthetic_lc_calibration.csv"
     _write_csv(
@@ -134,6 +201,27 @@ def test_calibration_table_returns_manual_check_linear_candidate(tmp_path: Path)
 
     rows = _processed_rows(tmp_path, metadata)
     assert set(rows[0]) == {"concentration", "response", "analyte_optional", "manual_check_required"}
+
+
+def test_hplc_lc_calibration_helper_is_candidate_only_and_manual_check():
+    rows = [
+        {"manual mapping": "standard_A", "concentration": "0", "response": "1"},
+        {"manual mapping": "standard_A", "concentration": "1", "response": "3"},
+        {"manual mapping": "standard_A", "concentration": "2", "response": "5"},
+    ]
+
+    assert classify_hplc_lc_exported_table(rows) == "calibration_curve"
+    candidate = extract_hplc_lc_calibration_candidate(rows)
+
+    assert candidate["candidate"] is True
+    assert candidate["mode"] == "calibration_curve"
+    assert candidate["manual_check_required"] is True
+    assert candidate["requires_manual_mapping"] is True
+    assert candidate["fit_method"] == "ordinary_least_squares_candidate"
+    assert candidate["slope"] == 2.0
+    assert candidate["intercept"] == 1.0
+    assert candidate["r_squared"] == 1.0
+    assert "final_quantification" not in candidate
 
 
 def test_peak_table_without_calibration_blocks_conversion_selectivity_yield(tmp_path: Path):
@@ -174,6 +262,27 @@ def test_ambiguous_exported_table_requires_manual_review_without_plot_candidate(
     }
     assert "time_or_retention_time" in metadata["key_results"]["lc_missing_fields"]
     assert "signal_or_peak_area_or_calibration_response" in metadata["key_results"]["lc_missing_fields"]
+
+
+def test_hplc_lc_manual_review_and_plot_intent_helpers_for_ambiguous_table():
+    rows = [{"sample": "A", "value": "10"}]
+
+    assert classify_hplc_lc_exported_table(rows) == "ambiguous"
+    reason = build_hplc_lc_manual_review_reason(rows)
+    intent = build_hplc_lc_plot_intent("ambiguous")
+
+    assert reason == {
+        "manual_review_required": True,
+        "reason": "ambiguous_exported_table",
+        "missing_fields": [
+            "time_or_retention_time",
+            "signal_or_peak_area_or_calibration_response",
+        ],
+    }
+    assert intent == {
+        "candidate": False,
+        "reason": "ambiguous_exported_table",
+    }
 
 
 def test_hplc_lc_metadata_and_plot_intent_route_into_tmp_run_root(tmp_path: Path):
