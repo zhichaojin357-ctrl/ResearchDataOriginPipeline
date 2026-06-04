@@ -2,7 +2,7 @@
 
 ## Final Run
 
-- Run root: `D:\Codex Project\科研数据处理\输出\runs\20260604_225804_real_opju_product_pilot_xps_xrd_epr_bet`
+- Run root: `D:\Codex Project\科研数据处理\输出\runs\20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet`
 - Product count: 5
 - Failure count: 0
 - F-drive files modified: no
@@ -26,4 +26,6 @@
 - Curve width: Origin readback width `30.0`, corresponding to 3 pt.
 - Axis titles: bold rich text `\b(...)` for both x and y titles.
 - Preview edge check: all five PNG previews have zero non-white pixels on image borders.
+- Supplementary completion audit: run reports now include selected data, selected OPJU exemplar, manual review needs, forbidden scientific claims avoided, and visible-label audit status per type.
+- Verification reports: `reports\origin_style_verification.json`, `reports\origin_visible_text_label_audit.json`, and `reports\preview_edge_check.json`.
 - HPLC/LC: deferred; no Origin product, no conversion/selectivity/yield, and no product identity assignment.
