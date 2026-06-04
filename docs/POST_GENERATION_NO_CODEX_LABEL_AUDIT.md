@@ -1,0 +1,93 @@
+# Post-generation no-Codex-label audit
+
+- Product-visible hit count: 0
+- Allowed/path-only hit count: 248
+- Result: pass
+
+## Product-visible hits
+
+- none
+
+## Allowed/path-only hits
+
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:7: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:8: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:10: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:13: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:14: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:15: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:16: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:17: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:18: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:19: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:23: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:24: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:30: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:31: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:32: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:33: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:34: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:35: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / run_manifest.json:36: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:14: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:15: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:16: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:17: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:18: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:19: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:20: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:21: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:35: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:36: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:37: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:38: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:39: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:40: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:41: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:42: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:59: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:60: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:61: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:62: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:63: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:64: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:65: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:66: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:82: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:83: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:84: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:85: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:86: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:87: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:88: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:89: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:103: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:104: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:105: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:106: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:107: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:108: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:109: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/opju_product_pilot_summary.json:110: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/origin_style_verification.json:2: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/origin_style_verification.json:15: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/origin_style_verification.json:49: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/origin_style_verification.json:81: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/origin_style_verification.json:123: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/origin_style_verification.json:161: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/preview_edge_check.json:2: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/preview_edge_check.json:9: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/preview_edge_check.json:21: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/preview_edge_check.json:33: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/preview_edge_check.json:45: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/preview_edge_check.json:57: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / reports/product_no_codex_label_audit.md: required audit filename
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / BET/metadata/BET_BOBC_exemplar_pilot.json:17: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / BET/metadata/BET_BOBC_exemplar_pilot.json:20: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / BET/metadata/BET_BOBC_exemplar_pilot.json:21: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / BET/metadata/BET_BOBC_exemplar_pilot.json:22: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / BET/metadata/BET_BOBC_exemplar_pilot.json:23: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / BET/metadata/BET_BOBC_exemplar_pilot.json:24: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / BET/metadata/BET_BOBC_exemplar_pilot.json:25: absolute workspace/output path contains Codex Project
+- 20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet / BET/metadata/BET_BOBC_exemplar_pilot.json:30: absolute workspace/output path contains Codex Project
+- Additional allowed/path-only hits omitted from this summary: 168
