@@ -22,6 +22,46 @@ from src.origin.adapter import (
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE
 
 
+class _FakeOperationResult:
+    def __init__(self, ok: bool = True, message: str = "ok", payload: dict | None = None) -> None:
+        self.ok = ok
+        self.message = message
+        self.payload = payload or {}
+
+
+class _FakeOriginOperations:
+    def __init__(self) -> None:
+        self.closed = False
+        self.axis_labels: list[tuple[str, str, str, str]] = []
+
+    def new_project(self) -> _FakeOperationResult:
+        return _FakeOperationResult()
+
+    def import_csv_to_worksheet(self, _path: Path, book_name: str = "", delimiter: str = ",") -> _FakeOperationResult:
+        return _FakeOperationResult(payload={"book_name": book_name or "Book1"})
+
+    def create_graph(self, graph_name: str, *_args, **_kwargs) -> _FakeOperationResult:
+        return _FakeOperationResult(payload={"graph_name": graph_name})
+
+    def set_axis_labels(self, graph_name: str, x_label: str = "", y_label: str = "", title: str = "") -> _FakeOperationResult:
+        self.axis_labels.append((graph_name, x_label, y_label, title))
+        return _FakeOperationResult()
+
+    def save_project(self, path: Path) -> _FakeOperationResult:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("opju", encoding="utf-8")
+        return _FakeOperationResult()
+
+    def export_graph(self, _graph_name: str, path: Path, _format: str) -> _FakeOperationResult:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("figure", encoding="utf-8")
+        return _FakeOperationResult()
+
+    def close(self) -> _FakeOperationResult:
+        self.closed = True
+        return _FakeOperationResult()
+
+
 class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
     def test_phase1_plot_types_are_explicitly_mapped(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -565,6 +605,28 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
                 "# Origin Errors\n\n- originpro unavailable: No module named 'originpro'\n",
             )
             self.assertFalse((project_root / "output" / "processed_data").exists())
+
+    def test_origin_smoke_test_uses_isolated_operations_export(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            fake = _FakeOriginOperations()
+
+            with patch("src.origin.adapter.check_origin_available", return_value=(True, "origin available")):
+                with patch("src.origin.adapter.connect_origin", return_value=fake) as connect_origin:
+                    result = origin_smoke_test(project_root)
+
+            self.assertTrue(result.ok)
+            self.assertEqual(result.message, "Origin isolated operations smoke test succeeded")
+            connect_origin.assert_called_once_with(entrypoint="Origin.Application", isolated=True, visible=False)
+            self.assertTrue(fake.closed)
+            self.assertEqual(fake.axis_labels, [("origin_smoke_test", "x", "y", "")])
+            self.assertTrue((project_root / "output" / "origin_files" / "origin_smoke_test.opju").exists())
+            self.assertTrue((project_root / "output" / "figures_tif" / "origin_smoke_test.tif").exists())
+            self.assertTrue((project_root / "output" / "figures_preview" / "origin_smoke_test.png").exists())
+            self.assertEqual(
+                (project_root / "output" / "reports" / "origin_errors.md").read_text(encoding="utf-8"),
+                "# Origin Errors\n\nNo current Origin errors.\n",
+            )
 
     def test_check_origin_available_honors_test_disable_guard(self) -> None:
         with patch.dict(

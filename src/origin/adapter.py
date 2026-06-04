@@ -12,6 +12,7 @@ from pathlib import Path
 
 from src.core.project import _parse_simple_yaml, output_dir
 from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern
+from src.origin.operations import connect_origin
 from src.origin.plot_policy import Graph4FixedStyle, PlotPolicy, all_plot_policies, get_plot_policy, validate_graph4_style_config
 
 
@@ -1152,7 +1153,41 @@ def origin_smoke_test(project_root: Path) -> OriginResult:
     data_dir.mkdir(parents=True, exist_ok=True)
     csv_path = data_dir / "origin_smoke_test.csv"
     csv_path.write_text("x,y\n0,0\n1,1\n", encoding="utf-8")
-    result = export_plot(project_root, "origin_smoke_test", csv_path, "x", "y")
-    if result.ok:
+    origin_file = project_root / "output" / "origin_files" / "origin_smoke_test.opju"
+    figure_tif = project_root / "output" / "figures_tif" / "origin_smoke_test.tif"
+    preview_png = project_root / "output" / "figures_preview" / "origin_smoke_test.png"
+    operations = None
+    try:
+        operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
+        created = operations.new_project()
+        if not created.ok:
+            raise RuntimeError(created.message)
+        imported = operations.import_csv_to_worksheet(csv_path, book_name="origin_smoke_test")
+        if not imported.ok:
+            raise RuntimeError(imported.message)
+        book_name = str(imported.payload["book_name"])
+        graph = operations.create_graph("origin_smoke_test", book_name, "Sheet1", 1, 2, plot_type="line")
+        if not graph.ok:
+            raise RuntimeError(graph.message)
+        graph_name = str(graph.payload["graph_name"])
+        operations.set_axis_labels(graph_name, "x", "y", "")
+        origin_file.parent.mkdir(parents=True, exist_ok=True)
+        saved = operations.save_project(origin_file)
+        if not saved.ok:
+            raise RuntimeError(saved.message)
+        png = operations.export_graph(graph_name, preview_png, "png")
+        tif = operations.export_graph(graph_name, figure_tif, "tif")
+        if not png.ok or not tif.ok:
+            raise RuntimeError(f"{png.message}; {tif.message}")
+        missing = [path for path in (origin_file, figure_tif, preview_png) if not path.exists() or path.stat().st_size == 0]
+        if missing:
+            raise RuntimeError("missing smoke test artifacts: " + "; ".join(str(path) for path in missing))
         write_origin_success(project_root)
-    return result
+        return OriginResult(True, origin_file, figure_tif, preview_png, "Origin isolated operations smoke test succeeded")
+    except Exception as exc:
+        message = f"Origin isolated operations smoke test failed: {exc}"
+        write_origin_error(project_root, message)
+        return OriginResult(False, None, None, None, message)
+    finally:
+        if operations is not None:
+            operations.close()
