@@ -244,10 +244,10 @@ def test_export_product_with_origin_creates_output_parents_before_saving(tmp_pat
     assert any("xb.bold=1" in script and "yl.bold=1" in script for script in fake.labtalk_scripts)
     assert fake.app.objects["XB"].Text == r"\b(x)"
     assert fake.app.objects["YL"].Text == r"\b(y)"
-    assert fake.app.objects["XB"].props["fsize"] == 36
+    assert fake.app.objects["XB"].props["fsize"] == 28
     assert fake.app.objects["YL"].props["bold"] == 1
     assert fake.app.objects["YL"].Top >= 120
-    assert fake.app.objects["XB"].Top <= 2750
+    assert fake.app.objects["XB"].Top <= 3200
 
 
 def test_no_label_audit_ignores_absolute_path_values_in_metadata(tmp_path: Path) -> None:

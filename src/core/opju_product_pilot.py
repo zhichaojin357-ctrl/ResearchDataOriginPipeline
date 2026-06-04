@@ -895,7 +895,7 @@ def _set_bold_axis_title_objects(operations: object, graph_name: str, x_label: s
             obj.Text = origin_bold_text(text)
         except Exception:
             pass
-        for prop, value in (("font", 67), ("fsize", 36), ("bold", 1)):
+        for prop, value in (("font", 67), ("fsize", 28), ("bold", 1)):
             try:
                 obj.SetNumProp(prop, value)
             except Exception:
@@ -908,8 +908,8 @@ def _set_bold_axis_title_objects(operations: object, graph_name: str, x_label: s
                 pass
         if object_name == "XB":
             try:
-                if float(obj.Top) > 2750:
-                    obj.Top = 2750
+                if float(obj.Top) > 3200:
+                    obj.Top = 3200
             except Exception:
                 pass
 
