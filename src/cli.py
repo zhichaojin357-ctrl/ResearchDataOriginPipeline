@@ -14,6 +14,7 @@ from src.core.phase1_9 import DEFAULT_ORIGIN_SKILL_DIR, DEFAULT_PHASE1_6_PACKAGE
 from src.core.process import ProcessOptions, run_process
 from src.core.project import configured_path, load_project_config
 from src.core.readiness import ReadinessOptions, run_readiness
+from src.core.remaining_opju_product_drafts import RemainingOpjuProductDraftOptions, run_remaining_opju_product_drafts
 from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
 from src.core.runtime_paths import resolve_output_root
 from src.core.triage import TriageOptions, run_triage
@@ -75,6 +76,16 @@ def build_parser() -> argparse.ArgumentParser:
     opju_product_pilot.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
     opju_product_pilot.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
     opju_product_pilot.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+
+    remaining_opju = subparsers.add_parser(
+        "remaining-opju-product-drafts",
+        help="generate remaining OPJU-backed draft products for manual review",
+    )
+    remaining_opju.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
+    remaining_opju.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    remaining_opju.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
+    remaining_opju.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    remaining_opju.add_argument("--previous-run-root", type=Path, help="previous completed BET/XPS/XRD/EPR run root for report links")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
@@ -260,6 +271,21 @@ def main(argv: list[str] | None = None) -> int:
         print(f"run_root={result['run_root']}")
         print(f"product_count={result['summary']['product_count']}")
         return 0 if not result.get("failures") else 1
+    if args.command == "remaining-opju-product-drafts":
+        result = run_remaining_opju_product_drafts(
+            project_root,
+            RemainingOpjuProductDraftOptions(
+                pairing_path=args.pairing,
+                output_root=args.output_root,
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+                previous_run_root=args.previous_run_root,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"product_count={result['summary']['product_count']}")
+        print(f"skipped_count={result['summary']['skipped_count']}")
+        return 0 if result["summary"]["product_count"] > 0 and not result.get("failures") else 1
     if args.command == "origin-batch":
         return run_origin_batch(
             project_root,

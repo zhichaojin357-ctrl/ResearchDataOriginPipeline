@@ -22,7 +22,7 @@ from src.core.xps_heterojunction import (
 from src.origin.operations import connect_origin, quote_labtalk
 from src.origin.style_mimic import apply_style_snapshot, extract_style_snapshot
 from src.origin.text_format import origin_bold_text
-from src.origin.type_mimic import TYPE_MIMIC_SPECS
+from src.origin.type_mimic import ALL_TYPE_MIMIC_SPECS, TYPE_MIMIC_SPECS
 from src.processors.base import safe_name
 from src.processors.calculations import bet_processed_table
 
@@ -768,7 +768,7 @@ def _relative_to_run(run_root: Path, path: Path) -> str:
 
 
 def _manual_items(product_key: str) -> list[str]:
-    spec = TYPE_MIMIC_SPECS.get(product_key)
+    spec = ALL_TYPE_MIMIC_SPECS.get(product_key)
     if spec is not None:
         return list(spec.manual_review_items)
     return {
@@ -796,7 +796,7 @@ def _manual_items(product_key: str) -> list[str]:
 
 
 def _forbidden_claims(product_key: str) -> list[str]:
-    spec = TYPE_MIMIC_SPECS.get(product_key)
+    spec = ALL_TYPE_MIMIC_SPECS.get(product_key)
     if spec is not None:
         return list(spec.forbidden_claims_avoided)
     return {
@@ -809,7 +809,7 @@ def _forbidden_claims(product_key: str) -> list[str]:
 
 
 def _reference_policy_notes(product_key: str) -> list[str]:
-    spec = TYPE_MIMIC_SPECS.get(product_key)
+    spec = ALL_TYPE_MIMIC_SPECS.get(product_key)
     if spec is not None:
         return list(spec.reference_policy_notes)
     return ["Reference OPJU is used only as a visual exemplar for manual calibration."]
