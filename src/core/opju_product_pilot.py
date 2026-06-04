@@ -682,7 +682,7 @@ def _write_summary(
 
 def _write_no_label_audit(run_root: Path) -> None:
     hits = []
-    self_audit_names = {"product_no_codex_label_audit.json", "product_no_codex_label_audit.md"}
+    self_audit_names = {"product_no_codex_label_audit.md"}
     for path in run_root.rglob("*"):
         if not path.is_file():
             continue
@@ -700,9 +700,8 @@ def _write_no_label_audit(run_root: Path) -> None:
         for label in FORBIDDEN_LABELS:
             if label.casefold() in text.casefold():
                 hits.append({"path": str(path), "location": "text", "label": label})
-    audit = {"forbidden_labels": list(FORBIDDEN_LABELS), "hit_count": len(hits), "hits": hits}
+    audit = {"policy": "forbidden visible product labels checked", "hit_count": len(hits), "hits": hits}
     (run_root / "reports" / "product_no_label_audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
-    (run_root / "reports" / "product_no_codex_label_audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     lines = [
         "# Product visible-label audit",
         "",
@@ -909,8 +908,8 @@ def _set_bold_axis_title_objects(operations: object, graph_name: str, x_label: s
                 pass
         if object_name == "XB":
             try:
-                if float(obj.Top) > 2950:
-                    obj.Top = 2950
+                if float(obj.Top) > 2750:
+                    obj.Top = 2750
             except Exception:
                 pass
 

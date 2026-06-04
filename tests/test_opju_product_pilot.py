@@ -247,7 +247,7 @@ def test_export_product_with_origin_creates_output_parents_before_saving(tmp_pat
     assert fake.app.objects["XB"].props["fsize"] == 36
     assert fake.app.objects["YL"].props["bold"] == 1
     assert fake.app.objects["YL"].Top >= 120
-    assert fake.app.objects["XB"].Top <= 2950
+    assert fake.app.objects["XB"].Top <= 2750
 
 
 def test_no_label_audit_ignores_absolute_path_values_in_metadata(tmp_path: Path) -> None:
@@ -259,6 +259,8 @@ def test_no_label_audit_ignores_absolute_path_values_in_metadata(tmp_path: Path)
 
     audit = json.loads((run_root / "reports" / "product_no_label_audit.json").read_text(encoding="utf-8"))
     assert audit["hit_count"] == 0
+    assert "forbidden_labels" not in audit
+    assert not (run_root / "reports" / "product_no_codex_label_audit.json").exists()
 
 
 def test_cli_opju_product_pilot_passes_pairing_output_root_and_origin_flag(tmp_path: Path, monkeypatch) -> None:
