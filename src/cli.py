@@ -9,6 +9,7 @@ from src.core.epr_jeol import export_jeol_cwesr_to_xlsx
 from src.core.epr_overlay import EprOverlayOptions, run_epr_overlay
 from src.core.manifest_normalizer import normalize_material_collection_manifest
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
+from src.core.opju_product_pilot import OpjuProductPilotOptions, run_opju_product_pilot
 from src.core.phase1_9 import DEFAULT_ORIGIN_SKILL_DIR, DEFAULT_PHASE1_6_PACKAGE, run_phase1_9_governance
 from src.core.process import ProcessOptions, run_process
 from src.core.project import configured_path, load_project_config
@@ -65,6 +66,15 @@ def build_parser() -> argparse.ArgumentParser:
     triage.add_argument("--dry-run", action="store_true")
 
     subparsers.add_parser("origin-test")
+
+    opju_product_pilot = subparsers.add_parser(
+        "opju-product-pilot",
+        help="generate scoped OPJU/TIF/PNG pilot products from reviewed OPJU/data pairings",
+    )
+    opju_product_pilot.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
+    opju_product_pilot.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    opju_product_pilot.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
+    opju_product_pilot.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
@@ -237,6 +247,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "origin-test":
         result = origin_smoke_test(project_root)
         return 0 if result.ok else 1
+    if args.command == "opju-product-pilot":
+        result = run_opju_product_pilot(
+            project_root,
+            OpjuProductPilotOptions(
+                pairing_path=args.pairing,
+                output_root=args.output_root,
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"product_count={result['summary']['product_count']}")
+        return 0 if not result.get("failures") else 1
     if args.command == "origin-batch":
         return run_origin_batch(
             project_root,
