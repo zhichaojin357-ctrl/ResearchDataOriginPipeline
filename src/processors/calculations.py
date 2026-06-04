@@ -236,13 +236,64 @@ def eis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) 
 
 
 def lc_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
-    areas = column_values(rows, ["area", "peak area"])
     mode = lc_export_mode(rows)
     result = {
         "lc_export_mode": mode,
-        "retention_time_range": [numeric[0][0], numeric[-1][0]] if numeric else [],
-        "peak_area_total_candidate": sum(areas) if areas else None,
     }
+    if mode == "ambiguous":
+        result.update(
+            {
+                "lc_manual_review_required": True,
+                "lc_missing_fields": lc_missing_fields(rows),
+                "lc_plot_intent": {
+                    "candidate": False,
+                    "reason": "ambiguous_exported_table",
+                },
+            }
+        )
+        return result
+
+    if mode == "calibration_curve":
+        result.update(
+            {
+                "lc_plot_intent": {
+                    "candidate": True,
+                    "plot_type": "calibration_curve",
+                    "x_axis": "concentration",
+                    "y_axis": "response",
+                    "manual_check_required": True,
+                },
+                "lc_calibration_candidate": lc_calibration_candidate(rows),
+            }
+        )
+        return result
+
+    result["retention_time_range"] = [numeric[0][0], numeric[-1][0]] if numeric else []
+    if mode == "peak_table":
+        areas = column_values(rows, ["area", "peak area"])
+        result.update(
+            {
+                "peak_area_total_candidate": sum(areas) if areas else None,
+                "lc_candidate_peaks": lc_candidate_peak_rows(rows),
+                "lc_requires_manual_calibration": True,
+                "lc_quantification_boundary": "requires_manual_calibration",
+                "lc_plot_intent": {
+                    "candidate": True,
+                    "plot_type": "peak_table_summary",
+                    "x_axis": "retention_time_min",
+                    "y_axis": "peak_area_optional",
+                    "manual_check_required": True,
+                },
+            }
+        )
+    else:
+        result["lc_plot_intent"] = {
+            "candidate": True,
+            "plot_type": "chromatogram",
+            "x_axis": "retention_time_min",
+            "y_axis": "signal",
+            "manual_check_required": True,
+        }
     blocked_reason = lc_quantification_blocked_reason(rows)
     if blocked_reason:
         result["lc_quantification_blocked_reason"] = blocked_reason
@@ -383,6 +434,24 @@ def xps_processed_table(
 
 def lc_processed_table(rows: list[dict[str, str]]) -> tuple[list[str], list[list[float | str | None]]]:
     mode = lc_export_mode(rows)
+    if mode == "ambiguous":
+        return (
+            ["manual_review_reason", "missing_fields"],
+            [["ambiguous_exported_table", ";".join(lc_missing_fields(rows))]],
+        )
+    if mode == "calibration_curve":
+        output = []
+        analyte_key = lc_analyte_key(rows)
+        for row in rows:
+            concentration = first_numeric(row, ["concentration", "standard concentration"])
+            response = first_numeric(row, ["response", "peak area", "area"])
+            if concentration is None or response is None:
+                continue
+            analyte = str(row.get(analyte_key, "")).strip() if analyte_key else ""
+            output.append([concentration, response, analyte or None, True])
+        return ["concentration", "response", "analyte_optional", "manual_check_required"], output
+
+    peak_name_key = lc_peak_name_key(rows) if mode == "peak_table" else None
     output = []
     for row in rows:
         retention_time = first_numeric(row, ["retention", "rt", "time"])
@@ -392,18 +461,30 @@ def lc_processed_table(rows: list[dict[str, str]]) -> tuple[list[str], list[list
         if retention_time is None:
             continue
         if mode == "peak_table":
-            output.append([retention_time, signal, area, height])
+            record: list[float | str | None] = [retention_time, signal, area, height]
+            if peak_name_key:
+                record.append(str(row.get(peak_name_key, "")).strip() or None)
+            output.append(record)
         else:
             output.append([retention_time, signal])
     if mode == "peak_table":
-        return ["retention_time_min", "signal", "peak_area_optional", "peak_height_optional"], output
+        headers = ["retention_time_min", "signal", "peak_area_optional", "peak_height_optional"]
+        if peak_name_key:
+            headers.append("peak_name_optional")
+        return headers, output
     return ["retention_time_min", "signal"], output
 
 
 def lc_export_mode(rows: list[dict[str, str]]) -> str:
-    if rows and matching_key(rows[0], ["area", "peak area", "height", "peak height"]):
+    if not rows:
+        return "ambiguous"
+    if lc_has_calibration_table(rows):
+        return "calibration_curve"
+    if matching_key(rows[0], ["area", "peak area", "height", "peak height"]):
         return "peak_table"
-    return "chromatogram"
+    if matching_key(rows[0], ["retention", "rt", "time"]) and matching_key(rows[0], ["intensity", "absorbance", "signal", "mau"]):
+        return "chromatogram"
+    return "ambiguous"
 
 
 def lc_quantification_blocked_reason(rows: list[dict[str, str]]) -> str | None:
@@ -411,7 +492,7 @@ def lc_quantification_blocked_reason(rows: list[dict[str, str]]) -> str | None:
         return None
     has_quantification_or_identity = matching_key(
         rows[0],
-        ["concentration", "amount", "conversion", "selectivity", "product", "identity"],
+        ["concentration", "amount", "conversion", "selectivity", "yield", "product", "identity"],
     )
     has_calibration_evidence = matching_key(
         rows[0],
@@ -420,6 +501,105 @@ def lc_quantification_blocked_reason(rows: list[dict[str, str]]) -> str | None:
     if has_quantification_or_identity and not has_calibration_evidence:
         return "LC quantification/product-identity fields require calibration evidence and manual confirmation; no conversion/selectivity/product candidates were computed."
     return None
+
+
+def lc_has_calibration_table(rows: list[dict[str, str]]) -> bool:
+    if not rows:
+        return False
+    first = rows[0]
+    return bool(
+        matching_key(first, ["concentration", "standard concentration"])
+        and matching_key(first, ["response", "peak area", "area"])
+        and lc_analyte_key(rows)
+    )
+
+
+def lc_analyte_key(rows: list[dict[str, str]]) -> str | None:
+    if not rows:
+        return None
+    return matching_key(rows[0], ["analyte", "manual mapping", "compound", "standard name"])
+
+
+def lc_peak_name_key(rows: list[dict[str, str]]) -> str | None:
+    if not rows:
+        return None
+    return matching_key(rows[0], ["peak name"])
+
+
+def lc_missing_fields(rows: list[dict[str, str]]) -> list[str]:
+    if not rows:
+        return ["time_or_retention_time", "signal_or_peak_area_or_calibration_response"]
+    first = rows[0]
+    missing = []
+    if not matching_key(first, ["retention", "rt", "time"]) and not matching_key(first, ["concentration", "standard concentration"]):
+        missing.append("time_or_retention_time")
+    if not (
+        matching_key(first, ["intensity", "absorbance", "signal", "mau"])
+        or matching_key(first, ["area", "peak area", "height", "peak height", "response"])
+    ):
+        missing.append("signal_or_peak_area_or_calibration_response")
+    if matching_key(first, ["concentration", "standard concentration"]) and not lc_analyte_key(rows):
+        missing.append("analyte_or_manual_mapping")
+    return missing or ["unrecognized_hplc_lc_export_shape"]
+
+
+def lc_candidate_peak_rows(rows: list[dict[str, str]]) -> list[dict[str, float | str | None]]:
+    peak_name_key = lc_peak_name_key(rows)
+    candidates = []
+    for row in rows:
+        retention_time = first_numeric(row, ["retention", "rt", "time"])
+        area = first_numeric(row, ["area", "peak area"])
+        height = first_numeric(row, ["height", "peak height"])
+        if retention_time is None:
+            continue
+        peak_name = str(row.get(peak_name_key, "")).strip() if peak_name_key else None
+        candidates.append(
+            {
+                "retention_time": retention_time,
+                "area": area,
+                "height": height,
+                "peak_name": peak_name or None,
+                "identity_assignment": "unassigned_manual_mapping_required",
+            }
+        )
+    return candidates
+
+
+def lc_calibration_candidate(rows: list[dict[str, str]]) -> dict[str, float | int | str | bool | None]:
+    points = []
+    for row in rows:
+        concentration = first_numeric(row, ["concentration", "standard concentration"])
+        response = first_numeric(row, ["response", "peak area", "area"])
+        if concentration is not None and response is not None:
+            points.append((concentration, response))
+
+    analyte = None
+    analyte_key = lc_analyte_key(rows)
+    if analyte_key:
+        for row in rows:
+            value = str(row.get(analyte_key, "")).strip()
+            if value:
+                analyte = value
+                break
+
+    candidate: dict[str, float | int | str | bool | None] = {
+        "fit_method": "ordinary_least_squares_candidate",
+        "point_count": len(points),
+        "analyte": analyte,
+        "manual_check_required": True,
+    }
+    if len(points) >= 2:
+        slope, intercept = linear_regression(points)
+        candidate.update(
+            {
+                "slope": slope,
+                "intercept": intercept,
+                "r_squared": linear_r_squared(points, slope, intercept),
+            }
+        )
+    else:
+        candidate.update({"slope": None, "intercept": None, "r_squared": None})
+    return candidate
 
 
 def bet_numeric(rows: list[dict[str, str]], fallback: list[tuple[float, float]]) -> list[tuple[float, float]]:

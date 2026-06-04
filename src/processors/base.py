@@ -70,7 +70,21 @@ def process_table_dataset(
 
     warnings = list(input_warnings)
     key_results = {}
-    if not numeric:
+    processed_headers: list[str] = []
+    if data_type == "HPLC/LC exported data":
+        key_results = type_specific_results(data_type, numeric, rows)
+
+    if data_type == "HPLC/LC exported data" and key_results.get("lc_export_mode") == "ambiguous":
+        headers, processed_rows = build_processed_table(data_type, numeric, rows)
+        processed_headers = headers
+        with processed_csv.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(headers)
+            writer.writerows(processed_rows)
+        warnings.append("HPLC/LC exported table is ambiguous; manual review required before plot or quantification.")
+        origin_result = None
+        status = "manual_review"
+    elif not numeric:
         warnings.append("No two-column numeric data could be read.")
         processed_csv.write_text("x,y\n", encoding="utf-8")
         origin_result = None
@@ -78,6 +92,7 @@ def process_table_dataset(
     else:
         numeric = sorted(numeric, key=lambda item: item[0], reverse=data_type in {"XPS", "FTIR"})
         headers, processed_rows = build_processed_table(data_type, numeric, rows)
+        processed_headers = headers
         with processed_csv.open("w", encoding="utf-8", newline="") as handle:
             writer = csv.writer(handle)
             writer.writerow(headers)
@@ -90,7 +105,10 @@ def process_table_dataset(
             "y_min": min(y_values),
             "y_max": max(y_values),
         }
-        key_results.update(type_specific_results(data_type, numeric, rows))
+        if data_type == "HPLC/LC exported data":
+            key_results.update(type_specific_results(data_type, numeric, rows))
+        else:
+            key_results.update(type_specific_results(data_type, numeric, rows))
         if data_type == "UV-vis DRS":
             warnings.append("Eg candidate requires configured Tauc interval selection.")
         if data_type == "HPLC/LC exported data" and key_results.get("lc_quantification_blocked_reason"):
@@ -122,7 +140,7 @@ def process_table_dataset(
         else MANUAL_CHECK_ITEMS.get(data_type, ("manual_check_required by Phase 1 policy",))
     )
     forbidden_claims = _forbidden_claims(project_root, data_type, profile)
-    plot_type = str(profile["plot_type_hints"][0] if profile else "line")
+    plot_type = _metadata_plot_type(data_type, key_results, profile)
     return write_metadata(
         project_root=project_root,
         path=metadata_path,
@@ -141,7 +159,7 @@ def process_table_dataset(
         warnings=warnings,
         key_results=key_results,
         triage=triage,
-        parameters={"algorithm_provenance": _algorithm_provenance(data_type, processor_name, headers if numeric else [], key_results)},
+        parameters={"algorithm_provenance": _algorithm_provenance(data_type, processor_name, processed_headers, key_results)},
         output_root=output_root,
     )
 
@@ -214,6 +232,12 @@ def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str
         candidate_methods.append("bet_exported_summary_or_isotherm_candidate")
     if data_type == "EPR":
         candidate_methods.append("field_intensity_extrema_candidate")
+    if data_type == "HPLC/LC exported data":
+        candidate_methods.append("lc_exported_table_contract_classification")
+        if key_results.get("lc_calibration_candidate"):
+            candidate_methods.append("lc_calibration_linear_fit_candidate")
+        if key_results.get("lc_candidate_peaks"):
+            candidate_methods.append("lc_peak_table_candidate_rows")
 
     provenance = {
         "processor_name": processor_name,
@@ -245,6 +269,18 @@ def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str
     if key_results.get("linear_region_candidates"):
         provenance["fit_regions"] = key_results["linear_region_candidates"]
     return provenance
+
+
+def _metadata_plot_type(data_type: str, key_results: dict, profile: dict | None) -> str:
+    if data_type == "HPLC/LC exported data":
+        intent = key_results.get("lc_plot_intent")
+        if isinstance(intent, dict):
+            if intent.get("candidate") is False:
+                return "manual_review"
+            plot_type = intent.get("plot_type")
+            if plot_type:
+                return str(plot_type)
+    return str(profile["plot_type_hints"][0] if profile else "line")
 
 
 def _queue_dataset_suffix(triage: dict | None) -> str:
