@@ -70,6 +70,16 @@ def test_apply_resolved_style_overrides_emits_line_width_and_bold_axis_policy() 
     assert "yl.bold=1" in joined
 
 
+def test_apply_resolved_style_overrides_targets_the_named_graph_for_every_script() -> None:
+    fake = _FakeOps()
+    style = resolve_user_plot_style("EIS", user_config={"global": {"line_width_pt": 3.0, "font_bold": True}})
+
+    apply_resolved_style_overrides(fake, "Graph_Target", style)
+
+    assert fake.scripts
+    assert all('win -a "Graph_Target"' in script for script in fake.scripts)
+
+
 class _FakeOps:
     def __init__(self) -> None:
         self.scripts: list[str] = []

@@ -82,16 +82,17 @@ def resolve_user_plot_style(
 
 
 def apply_resolved_style_overrides(operations: object, graph_name: str, style: ResolvedPlotStyle) -> None:
+    graph_activation = f'win -a "{graph_name}"; '
     operations.run_labtalk(
-        f'win -a "{graph_name}"; '
+        graph_activation +
         f"layer.x.thickness={style.axis_line_width_pt}; layer.y.thickness={style.axis_line_width_pt}; "
         f"layer.x.label.pt={style.tick_label_font_size}; layer.y.label.pt={style.tick_label_font_size}; "
         f"xb.fsize={style.axis_title_font_size}; yl.fsize={style.axis_title_font_size}; "
         f"legend.fsize={style.legend_font_size}; title.fsize={style.title_font_size};"
     )
     if style.font_bold:
-        operations.run_labtalk("xb.bold=1; yl.bold=1; layer.x.label.bold=1; layer.y.label.bold=1; legend.bold=1;")
-    operations.run_labtalk(f"doc -e DY {{set %C -w {int(style.line_width_pt * 10)}; set %C -z {style.marker_size};}}")
+        operations.run_labtalk(graph_activation + "xb.bold=1; yl.bold=1; layer.x.label.bold=1; layer.y.label.bold=1; legend.bold=1;")
+    operations.run_labtalk(graph_activation + f"doc -e DY {{set %C -w {int(style.line_width_pt * 10)}; set %C -z {style.marker_size};}}")
 
 
 def _style_from_exemplar(exemplar: OpjuStyleSnapshot | dict[str, Any] | None) -> dict[str, object]:

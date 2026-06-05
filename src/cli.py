@@ -27,6 +27,7 @@ from src.core.v2_exemplar_conformance import (
     run_unified_v2_exemplar_conformance_products,
     run_v2_exemplar_conformance_products,
 )
+from src.core.v3_real_template_rebuild import V3RealTemplateRebuildOptions, run_v3_real_template_rebuild_all_types
 from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
 from src.origin.adapter import origin_smoke_test
 from src.scanner.scanner import scan_raw_data
@@ -130,6 +131,17 @@ def build_parser() -> argparse.ArgumentParser:
     unified_v2.add_argument("--remaining-run-root", type=Path, help="v1 remaining-products run root")
     unified_v2.add_argument("--eis-v2-run-root", type=Path, help="completed EIS Randles-CPE v2 run root to import")
     unified_v2.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
+
+    unified_v3 = subparsers.add_parser(
+        "unified-v3-real-template-rebuild-all-types",
+        help="rebuild all v3 products from F-drive real OPJU templates with strict accepted/blocked statuses",
+    )
+    unified_v3.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
+    unified_v3.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    unified_v3.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
+    unified_v3.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    unified_v3.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan")
+    unified_v3.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
@@ -382,6 +394,24 @@ def main(argv: list[str] | None = None) -> int:
         print(f"failure_count={result['summary']['failure_count']}")
         print(f"eis_imported={result['summary'].get('eis_imported', False)}")
         return 0 if result["summary"]["product_count"] == 11 and not result.get("failures") else 1
+    if args.command == "unified-v3-real-template-rebuild-all-types":
+        result = run_v3_real_template_rebuild_all_types(
+            project_root,
+            V3RealTemplateRebuildOptions(
+                pairing_path=args.pairing,
+                output_root=args.output_root,
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+                f_drive_template_root=args.f_drive_template_root,
+                user_style_path=args.user_style,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"product_count={result['summary']['product_count']}")
+        print(f"accepted_count={result['summary']['accepted_count']}")
+        print(f"blocked_count={result['summary']['blocked_count']}")
+        print(f"failed_count={result['summary']['failed_count']}")
+        return 0 if result["summary"]["product_count"] == 11 and result["summary"]["failed_count"] == 0 else 1
     if args.command == "origin-batch":
         return run_origin_batch(
             project_root,
