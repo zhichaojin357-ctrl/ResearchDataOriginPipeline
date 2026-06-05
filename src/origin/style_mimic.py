@@ -158,12 +158,16 @@ def extract_style_snapshot(operations: object, reference_opju: Path) -> OpjuStyl
     if not graph_pages:
         return OpjuStyleSnapshot(str(reference_opju), "no_graph_pages", warnings=["No graph pages were available in the copied exemplar."])
 
-    return read_graph_style_snapshot(
-        operations,
-        graph_pages[0],
-        source_label=str(reference_opju),
-        graph_pages=graph_pages,
-    )
+    snapshots = [
+        read_graph_style_snapshot(
+            operations,
+            graph_page,
+            source_label=str(reference_opju),
+            graph_pages=graph_pages,
+        )
+        for graph_page in graph_pages
+    ]
+    return max(snapshots, key=_graph_page_selection_score)
 
 
 def read_graph_style_snapshot(
@@ -301,6 +305,39 @@ def _read_graph_object_positions(operations: object) -> dict[str, dict[str, floa
         if values:
             positions[name] = values
     return positions
+
+
+def _graph_page_selection_score(snapshot: OpjuStyleSnapshot) -> tuple[float, str]:
+    name = str(snapshot.graph_page or "")
+    normalized_name = name.casefold()
+    score = 0.0
+    if normalized_name.startswith("sparkline"):
+        score -= 100.0
+    else:
+        score += 100.0
+    if normalized_name.startswith("graph"):
+        score += 30.0
+    score += min(snapshot.plot_count, 10) * 8.0
+    score += min(len(snapshot.plot_colors), 10) * 2.0
+    if _has_real_axis_title(snapshot.audit_string_values.get("xb.text$", "")):
+        score += 20.0
+    if _has_real_axis_title(snapshot.audit_string_values.get("yl.text$", "")):
+        score += 20.0
+    if snapshot.audit_numeric_values.get("xb.show", 0.0) > 0:
+        score += 5.0
+    if snapshot.audit_numeric_values.get("yl.show", 0.0) > 0:
+        score += 5.0
+    if snapshot.layout_values.get("layer.width", 0.0) >= 20.0 and snapshot.layout_values.get("layer.height", 0.0) >= 20.0:
+        score += 5.0
+    return (score, name)
+
+
+def _has_real_axis_title(value: object) -> bool:
+    text = str(value or "").strip()
+    if not text:
+        return False
+    placeholders = {"%(?x)", "%(?y)", "%(?xl)", "%(?yl)"}
+    return text.casefold() not in placeholders
 
 
 def _to_float(value: object) -> float | None:

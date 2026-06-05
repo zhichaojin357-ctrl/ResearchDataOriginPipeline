@@ -33,6 +33,31 @@ def test_extract_style_snapshot_reads_layout_and_plot_style_without_visible_text
     assert "phase labels" in FORBIDDEN_EXEMPLAR_TEXT_CATEGORIES
 
 
+def test_extract_style_snapshot_prefers_main_graph_over_sparkline_pages(tmp_path: Path) -> None:
+    reference = tmp_path / "reference.opju"
+    reference.write_text("reference", encoding="utf-8")
+    fake = _FakeStyleOps(
+        graph_pages=["sparkline", "sparkline1", "Graph1"],
+        plot_names_by_graph={
+            "sparkline": ["SparkPlot"],
+            "sparkline1": ["SparkPlot"],
+            "Graph1": ["Nyquist1", "Nyquist2", "Nyquist3"],
+        },
+        values_by_graph={
+            "sparkline": {"xb.text$": "%(?X)", "yl.text$": "%(?Y)"},
+            "sparkline1": {"xb.text$": "%(?X)", "yl.text$": "%(?Y)"},
+            "Graph1": {"xb.text$": "Z' (kOhm)", "yl.text$": "-Z'' (kOhm)"},
+        },
+    )
+
+    snapshot = extract_style_snapshot(fake, reference)
+
+    assert snapshot.graph_page == "Graph1"
+    assert snapshot.plot_count == 3
+    assert snapshot.audit_string_values["xb.text$"] == "Z' (kOhm)"
+    assert snapshot.audit_string_values["yl.text$"] == "-Z'' (kOhm)"
+
+
 def test_apply_style_snapshot_replays_only_numeric_layout_values() -> None:
     fake = _FakeStyleOps()
     snapshot = OpjuStyleSnapshot(
@@ -68,9 +93,19 @@ class _FakeResult:
 
 
 class _FakeStyleOps:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        graph_pages: list[str] | None = None,
+        plot_names_by_graph: dict[str, list[str]] | None = None,
+        values_by_graph: dict[str, dict[str, object]] | None = None,
+    ) -> None:
         self.labtalk_scripts: list[str] = []
         self.font_calls: list[str] = []
+        self.graph_pages = graph_pages or ["Graph1"]
+        self.plot_names_by_graph = plot_names_by_graph or {"Graph1": ["Plot1", "Plot2"]}
+        self.values_by_graph = values_by_graph or {}
+        self.active_graph = self.graph_pages[0]
         self.values = {
             "page.width": 720,
             "page.height": 540,
@@ -121,17 +156,20 @@ class _FakeStyleOps:
         return _FakeResult()
 
     def list_worksheets(self) -> _FakeResult:
-        return _FakeResult(payload={"pages": [{"name": "Graph1", "type": "graph"}]})
+        return _FakeResult(payload={"pages": [{"name": name, "type": "graph"} for name in self.graph_pages]})
 
     def run_labtalk(self, script: str) -> _FakeResult:
         self.labtalk_scripts.append(script)
+        if script.startswith('win -a "'):
+            self.active_graph = script.split('"', 2)[1]
         return _FakeResult()
 
     def get_labtalk_variable(self, name: str) -> _FakeResult:
-        return _FakeResult(payload={"value": self.values.get(name)})
+        graph_values = self.values_by_graph.get(self.active_graph, {})
+        return _FakeResult(payload={"value": graph_values.get(name, self.values.get(name))})
 
-    def _plot_names(self, _graph_name: str) -> list[str]:
-        return ["Plot1", "Plot2"]
+    def _plot_names(self, graph_name: str) -> list[str]:
+        return self.plot_names_by_graph.get(graph_name, [])
 
     def set_graph_font(self, graph_name: str) -> _FakeResult:
         self.font_calls.append(graph_name)
