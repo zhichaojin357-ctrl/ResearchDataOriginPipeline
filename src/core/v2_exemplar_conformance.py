@@ -343,8 +343,11 @@ def export_v2_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         if not created.ok:
             return {"ok": False, "message": created.message, "exemplar_style": exemplar_style}
         graph_name = str(created.payload["graph_name"])
-        for column_index in range(3, min(len(headers), 10) + 1):
-            operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
+        if product.product_key == "EIS" and len(headers) >= 4:
+            operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 3, 4, plot_type=product.plot_type)
+        else:
+            for column_index in range(3, min(len(headers), 10) + 1):
+                operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
         if not apply_style_snapshot(operations, graph_name, exemplar_snapshot):
             operations.apply_graph4_fixed_style(graph_name)
         operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
@@ -365,7 +368,8 @@ def export_v2_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         legend_visible = False if product.product_key == "EIS" else bool(exemplar_snapshot.audit_numeric_values.get("legend.show", 0))
         operations.set_legend(graph_name, visible=legend_visible, entries=product.legend_entries)
         operations.run_labtalk("title.show=0;")
-        _style_v2_series(operations, graph_name, product, len(headers) - 1, style)
+        series_count = 2 if product.product_key == "EIS" and len(headers) >= 4 else len(headers) - 1
+        _style_v2_series(operations, graph_name, product, series_count, style)
         product_snapshot = read_graph_style_snapshot(operations, graph_name, source_label=str(product.origin_file))
         conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
         product.origin_file.parent.mkdir(parents=True, exist_ok=True)
@@ -426,11 +430,11 @@ def _build_v2_eis_table(pairing: TargetPairing, type_root: Path) -> tuple[list[s
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metadata_path.write_text(json.dumps(eis_metadata, ensure_ascii=False, indent=2), encoding="utf-8")
     return (
-        ["z_real_ohm", "cleaned_minus_z_imag_ohm", "draft_fit_minus_z_imag_ohm"],
-        eis_plot_rows(cleaning.cleaned_points, fit),
+        ["cleaned_z_real_kohm", "cleaned_minus_z_imag_kohm", "fit_z_real_kohm", "draft_fit_minus_z_imag_kohm"],
+        eis_plot_rows(cleaning.cleaned_points, fit, scale=0.001),
         {
-            "x_label": "Z' (ohm)",
-            "y_label": "-Z'' (ohm)",
+            "x_label": "Z' (kOhm)",
+            "y_label": "-Z'' (kOhm)",
             "title": "EIS v2 draft",
             "plot_type": "line+symbol",
             "notes": "draft fit for visualization/manual review only\nDefault fit model is Rs + (Rct || CPE); equivalent-circuit interpretation remains blocked for manual review.",
@@ -440,8 +444,12 @@ def _build_v2_eis_table(pairing: TargetPairing, type_root: Path) -> tuple[list[s
 
 
 def _apply_v2_axis_range(operations: object, graph_name: str, product: ProductContext) -> None:
-    x_min, x_max = _csv_x_bounds(product.processed_data)
-    y_min, y_max = _csv_y_bounds(product.processed_data)
+    if product.product_key == "EIS":
+        x_min, x_max = _csv_bounds_for_columns(product.processed_data, (0, 2))
+        y_min, y_max = _csv_bounds_for_columns(product.processed_data, (1, 3))
+    else:
+        x_min, x_max = _csv_x_bounds(product.processed_data)
+        y_min, y_max = _csv_y_bounds(product.processed_data)
     if x_min is not None and x_max is not None:
         operations.set_axis_range(graph_name, x_min=x_max if product.x_descending else x_min, x_max=x_min if product.x_descending else x_max)
     if y_min is not None and y_max is not None and y_max > y_min:
@@ -1019,6 +1027,23 @@ def _csv_y_bounds(path: Path) -> tuple[float | None, float | None]:
             for cell in row[1:]:
                 try:
                     value = float(cell)
+                except (TypeError, ValueError):
+                    continue
+                values.append(value)
+    return (min(values), max(values)) if values else (None, None)
+
+
+def _csv_bounds_for_columns(path: Path, column_indexes: tuple[int, ...]) -> tuple[float | None, float | None]:
+    values = []
+    with path.open(encoding="utf-8", newline="") as handle:
+        reader = csv.reader(handle)
+        next(reader, None)
+        for row in reader:
+            for index in column_indexes:
+                if index >= len(row):
+                    continue
+                try:
+                    value = float(row[index])
                 except (TypeError, ValueError):
                     continue
                 values.append(value)

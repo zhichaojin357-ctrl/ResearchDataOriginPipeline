@@ -149,13 +149,17 @@ def draft_fit_eis_randles_cpe(points: list[EisPoint], *, fit_points: int = 240) 
             warning="Randles-CPE least-squares did not converge; fallback curve is diagnostic only.",
         )
     rs, rct, q_value, n_value = [float(value) for value in best.x]
-    smooth_freq = np.logspace(math.log10(float(freq.max())), math.log10(float(freq.min())), max(fit_points, len(points)))
+    smooth_min_freq = max(float(freq.min()) * 1e-6, 1e-12)
+    smooth_freq = np.logspace(math.log10(float(freq.max())), math.log10(smooth_min_freq), max(fit_points, len(points)))
     fit_complex = randles_cpe_impedance(smooth_freq, rs, rct, q_value, n_value)
     fit_points_xy = [(float(value.real), float(-value.imag)) for value in fit_complex]
     predicted = randles_cpe_impedance(freq, rs, rct, q_value, n_value)
     residual = np.concatenate(((predicted.real - measured.real) / modulus, ((-predicted.imag) - minus_z_imag) / modulus))
     sse = float(np.sum(residual * residual))
     classification = "near-ideal semicircle candidate" if n_value >= 0.95 else "depressed semicircle candidate"
+    warning = ""
+    if rct >= float(upper[1]) * 0.98:
+        warning = "Rct reached the bounded search ceiling; draft fit is under-constrained by the available cleaned branch and requires manual review."
     return EisFitResult(
         "least_squares_randles_cpe",
         fit_points_xy,
@@ -163,6 +167,7 @@ def draft_fit_eis_randles_cpe(points: list[EisPoint], *, fit_points: int = 240) 
         residual_sse=sse,
         robust_cost=float(best.cost),
         semicircle_classification=classification,
+        warning=warning,
     )
 
 
@@ -205,18 +210,21 @@ def write_eis_fit_csv(path: Path, fit: EisFitResult) -> None:
         writer.writerows(fit.points)
 
 
-def eis_plot_rows(cleaned: list[EisPoint], fit: EisFitResult) -> list[list[float | None]]:
-    if not cleaned:
-        return []
-    by_x = sorted(cleaned, key=lambda item: item.z_real_ohm)
-    if not fit.points:
-        return [[point.z_real_ohm, point.minus_z_imag_ohm, None] for point in by_x]
-    fit_sorted = sorted(fit.points)
-    fit_x = [point[0] for point in fit_sorted]
-    fit_y = [point[1] for point in fit_sorted]
-    output = []
-    for point in by_x:
-        output.append([point.z_real_ohm, point.minus_z_imag_ohm, _interp(point.z_real_ohm, fit_x, fit_y)])
+def eis_plot_rows(cleaned: list[EisPoint], fit: EisFitResult, *, scale: float = 1.0) -> list[list[float | None]]:
+    measured = sorted(cleaned, key=lambda item: (item.z_real_ohm, item.minus_z_imag_ohm))
+    fit_points = sorted(fit.points)
+    output: list[list[float | None]] = []
+    for index in range(max(len(measured), len(fit_points))):
+        measured_point = measured[index] if index < len(measured) else None
+        fit_point = fit_points[index] if index < len(fit_points) else None
+        output.append(
+            [
+                measured_point.z_real_ohm * scale if measured_point else None,
+                measured_point.minus_z_imag_ohm * scale if measured_point else None,
+                fit_point[0] * scale if fit_point else None,
+                fit_point[1] * scale if fit_point else None,
+            ]
+        )
     return output
 
 
@@ -224,11 +232,16 @@ def _remove_obvious_outliers(points: list[EisPoint]) -> tuple[list[EisPoint], li
     ignored_by_index: dict[int, str] = {}
     y_values = [point.minus_z_imag_ohm for point in points]
     mostly_positive = sum(1 for value in y_values if value >= 0) >= max(2, int(0.8 * len(y_values)))
-    for point in points:
-        if point.z_real_ohm < 0:
-            ignored_by_index[point.source_index] = "invalid_negative_z_real_unstable_low_frequency_tail"
-        if mostly_positive and point.minus_z_imag_ohm < 0:
-            ignored_by_index[point.source_index] = "sign_flip_negative_minus_z_imag_unstable_low_frequency_tail"
+    hard_invalid_indexes: set[int] = set()
+    for index, point in enumerate(points):
+        reason = _hard_invalid_eis_reason(point, mostly_positive)
+        if reason:
+            _add_ignored_reason(ignored_by_index, point.source_index, reason)
+            hard_invalid_indexes.add(index)
+    first_tail_index = _first_low_frequency_invalid_index(points, hard_invalid_indexes)
+    if first_tail_index is not None:
+        for index in range(first_tail_index, len(points)):
+            _add_ignored_reason(ignored_by_index, points[index].source_index, "unstable_low_frequency_tail_after_first_invalid")
     step_distances = [
         _distance(points[index - 1], points[index])
         for index in range(1, len(points))
@@ -238,20 +251,13 @@ def _remove_obvious_outliers(points: list[EisPoint]) -> tuple[list[EisPoint], li
     median_step = statistics.median(positive_steps) if positive_steps else 0.0
     jump_threshold = max(median_step * 6.0, 1e-9)
     if jump_threshold > 0 and len(points) >= 5:
-        for index in range(1, len(points)):
+        start_index = first_tail_index if first_tail_index is not None else int(len(points) * 0.85)
+        for index in range(max(1, start_index), len(points)):
             prev_distance = _distance(points[index - 1], points[index])
             next_distance = _distance(points[index], points[index + 1]) if index < len(points) - 1 else 0.0
-            tail_like = _is_lower_frequency(points[index], points[index - 1]) or index >= int(len(points) * 0.7)
+            tail_like = first_tail_index is not None or _is_lower_frequency(points[index], points[index - 1]) or index >= int(len(points) * 0.85)
             if prev_distance > jump_threshold and (next_distance > jump_threshold or tail_like):
-                ignored_by_index.setdefault(points[index].source_index, "large_jump_unstable_low_frequency_tail")
-    radial_distances = _radial_distances(points)
-    if len(radial_distances) >= 5:
-        median_radial = statistics.median(radial_distances)
-        mad = statistics.median(abs(value - median_radial) for value in radial_distances) or median_step or 1.0
-        radial_threshold = median_radial + 6.0 * mad
-        for point, distance in zip(points, radial_distances):
-            if distance > radial_threshold and point not in (points[0], points[-1]):
-                ignored_by_index.setdefault(point.source_index, "far_from_main_trajectory")
+                _add_ignored_reason(ignored_by_index, points[index].source_index, "large_jump_unstable_low_frequency_tail")
     ignored = [
         EisIgnoredPoint(point, ignored_by_index[point.source_index])
         for point in points
@@ -272,7 +278,7 @@ def _randles_cpe_residual(params: np.ndarray, freq: np.ndarray, measured: np.nda
 def _randles_cpe_upper_bounds(z_real: np.ndarray, minus_z_imag: np.ndarray) -> np.ndarray:
     max_impedance = max(float(np.nanmax(np.abs(z_real))), float(np.nanmax(np.abs(minus_z_imag))), 1.0)
     span = max(float(np.nanmax(z_real) - np.nanmin(z_real)), 1.0)
-    return np.array([max_impedance * 2.0, max(span * 4.0, max_impedance * 1.2), 1e3, 1.0], dtype=float)
+    return np.array([max_impedance * 2.0, max(span * 10.0, max_impedance * 4.0), 1e3, 1.0], dtype=float)
 
 
 def _randles_cpe_initial_guesses(freq: np.ndarray, z_real: np.ndarray, minus_z_imag: np.ndarray) -> list[tuple[float, float, float, float]]:
@@ -293,6 +299,30 @@ def _is_lower_frequency(point: EisPoint, previous: EisPoint) -> bool:
     if point.frequency_hz is None or previous.frequency_hz is None:
         return False
     return point.frequency_hz < previous.frequency_hz
+
+
+def _hard_invalid_eis_reason(point: EisPoint, mostly_positive: bool) -> str:
+    if point.z_real_ohm < 0:
+        return "invalid_negative_z_real_unstable_low_frequency_tail"
+    if mostly_positive and point.minus_z_imag_ohm < 0:
+        return "sign_flip_negative_minus_z_imag_unstable_low_frequency_tail"
+    return ""
+
+
+def _add_ignored_reason(ignored_by_index: dict[int, str], source_index: int, reason: str) -> None:
+    existing = ignored_by_index.get(source_index, "")
+    parts = [part for part in existing.split(";") if part]
+    if reason not in parts:
+        parts.append(reason)
+    ignored_by_index[source_index] = ";".join(parts)
+
+
+def _first_low_frequency_invalid_index(points: list[EisPoint], hard_invalid_indexes: set[int]) -> int | None:
+    if not hard_invalid_indexes:
+        return None
+    low_frequency_floor = max(1, int(len(points) * 0.5))
+    candidates = [index for index in sorted(hard_invalid_indexes) if index >= low_frequency_floor]
+    return candidates[0] if candidates else None
 
 
 def _pick_eis_columns(columns: list[str]) -> dict[str, str]:
