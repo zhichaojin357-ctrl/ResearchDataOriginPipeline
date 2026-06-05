@@ -1395,6 +1395,7 @@ print(json.dumps(snapshot.to_dict(), ensure_ascii=False))
             cwd=Path(__file__).resolve().parents[2],
             text=True,
             encoding="utf-8",
+            errors="replace",
             capture_output=True,
             timeout=timeout_seconds,
         )
