@@ -1,0 +1,23 @@
+global:
+  line_width_pt: 3.0
+  axis_line_width_pt: 2.0
+  tick_width_pt: 1.5
+  axis_title_font_size: 28
+  tick_label_font_size: 24
+  legend_font_size: 22
+  title_font_size: 28
+  font_bold: true
+  export_dpi: 600
+
+eis:
+  line_width_pt: 3.0
+  marker_size: 8
+  axis_title_font_size: 28
+  tick_label_font_size: 24
+
+xps:
+  axis_title_font_size: 24
+  tick_label_font_size: 20
+
+xrd:
+  line_width_pt: 3.0

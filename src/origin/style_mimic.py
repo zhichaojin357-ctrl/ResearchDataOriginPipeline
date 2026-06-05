@@ -11,14 +11,49 @@ from src.origin.operations import quote_labtalk
 STYLE_LAYOUT_FIELDS = (
     "page.width",
     "page.height",
+    "page.kar",
     "layer.left",
     "layer.top",
     "layer.width",
     "layer.height",
+    "layer.x.from",
+    "layer.x.to",
+    "layer.y.from",
+    "layer.y.to",
     "layer.x.thickness",
     "layer.y.thickness",
+    "layer.x.ticks",
+    "layer.y.ticks",
+    "layer.x.majorLen",
+    "layer.y.majorLen",
+    "layer.x.minor",
+    "layer.y.minor",
     "layer.x.label.pt",
     "layer.y.label.pt",
+    "layer.x.label.bold",
+    "layer.y.label.bold",
+    "layer.x.label.offset",
+    "layer.y.label.offset",
+    "xb.show",
+    "yl.show",
+    "xb.fsize",
+    "yl.fsize",
+    "xb.bold",
+    "yl.bold",
+    "xb.x",
+    "xb.y",
+    "yl.x",
+    "yl.y",
+    "legend.show",
+    "legend.x",
+    "legend.y",
+    "legend.fsize",
+    "legend.bold",
+    "title.show",
+    "title.x",
+    "title.y",
+    "title.fsize",
+    "title.bold",
 )
 
 STYLE_AUDIT_NUMERIC_FIELDS = (
@@ -79,6 +114,7 @@ class OpjuStyleSnapshot:
     plot_colors: list[float] = field(default_factory=list)
     marker_shapes: list[float] = field(default_factory=list)
     marker_sizes: list[float] = field(default_factory=list)
+    graph_object_positions: dict[str, dict[str, float]] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
     copied_visible_text: bool = False
 
@@ -97,6 +133,9 @@ class OpjuStyleSnapshot:
             "plot_colors": list(self.plot_colors),
             "marker_shapes": list(self.marker_shapes),
             "marker_sizes": list(self.marker_sizes),
+            "graph_object_positions": {
+                name: dict(values) for name, values in self.graph_object_positions.items()
+            },
             "warnings": list(self.warnings),
             "copied_visible_text": self.copied_visible_text,
             "forbidden_visible_text_categories": list(FORBIDDEN_EXEMPLAR_TEXT_CATEGORIES),
@@ -117,7 +156,21 @@ def extract_style_snapshot(operations: object, reference_opju: Path) -> OpjuStyl
     if not graph_pages:
         return OpjuStyleSnapshot(str(reference_opju), "no_graph_pages", warnings=["No graph pages were available in the copied exemplar."])
 
-    graph_page = graph_pages[0]
+    return read_graph_style_snapshot(
+        operations,
+        graph_pages[0],
+        source_label=str(reference_opju),
+        graph_pages=graph_pages,
+    )
+
+
+def read_graph_style_snapshot(
+    operations: object,
+    graph_page: str,
+    *,
+    source_label: str = "",
+    graph_pages: list[str] | None = None,
+) -> OpjuStyleSnapshot:
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_page)}";')
     layout_values = _read_numeric_fields(operations, STYLE_LAYOUT_FIELDS)
     audit_numeric_values = _read_numeric_fields(operations, STYLE_AUDIT_NUMERIC_FIELDS)
@@ -129,10 +182,10 @@ def extract_style_snapshot(operations: object, reference_opju: Path) -> OpjuStyl
     marker_shapes = _read_plot_properties(operations, plot_names, "-k")
     marker_sizes = _read_plot_properties(operations, plot_names, "-z")
     return OpjuStyleSnapshot(
-        source_opju=str(reference_opju),
+        source_opju=source_label,
         status="extracted",
         graph_page=graph_page,
-        graph_pages=graph_pages,
+        graph_pages=list(graph_pages or [graph_page]),
         layout_values=layout_values,
         audit_numeric_values=audit_numeric_values,
         audit_string_values=audit_string_values,
@@ -142,6 +195,7 @@ def extract_style_snapshot(operations: object, reference_opju: Path) -> OpjuStyl
         plot_colors=plot_colors,
         marker_shapes=marker_shapes,
         marker_sizes=marker_sizes,
+        graph_object_positions=_read_graph_object_positions(operations),
         warnings=[
             "Visible scientific annotations are not copied from the exemplar.",
             "Series line width is later overridden by the product policy when required.",
@@ -210,6 +264,41 @@ def _read_plot_properties(operations: object, plot_names: list[str], option: str
         if value is not None and math.isfinite(value):
             values.append(value)
     return values
+
+
+def _read_graph_object_positions(operations: object) -> dict[str, dict[str, float]]:
+    app = getattr(operations, "app", None)
+    if app is None:
+        return {}
+    try:
+        layer = app.ActiveLayer()
+    except Exception:
+        return {}
+    graph_objects = getattr(layer, "GraphObjects", None)
+    if graph_objects is None:
+        return {}
+    try:
+        count = int(graph_objects.Count)
+    except Exception:
+        return {}
+    positions: dict[str, dict[str, float]] = {}
+    for index in range(count):
+        try:
+            obj = graph_objects.Item(index)
+        except Exception:
+            continue
+        name = str(getattr(obj, "Name", "") or f"object_{index + 1}")
+        values: dict[str, float] = {}
+        for attr in ("Left", "Top", "Width", "Height"):
+            try:
+                number = _to_float(getattr(obj, attr))
+            except Exception:
+                number = None
+            if number is not None:
+                values[attr.casefold()] = number
+        if values:
+            positions[name] = values
+    return positions
 
 
 def _to_float(value: object) -> float | None:

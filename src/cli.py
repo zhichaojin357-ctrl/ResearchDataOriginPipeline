@@ -19,6 +19,12 @@ from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
 from src.core.runtime_paths import resolve_output_root
 from src.core.triage import TriageOptions, run_triage
 from src.core.validate import validate
+from src.core.v2_exemplar_conformance import (
+    EisRandlesCpeV2Options,
+    V2ExemplarConformanceOptions,
+    run_eis_randles_cpe_v2,
+    run_v2_exemplar_conformance_products,
+)
 from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
 from src.origin.adapter import origin_smoke_test
 from src.scanner.scanner import scan_raw_data
@@ -86,6 +92,29 @@ def build_parser() -> argparse.ArgumentParser:
     remaining_opju.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
     remaining_opju.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
     remaining_opju.add_argument("--previous-run-root", type=Path, help="previous completed BET/XPS/XRD/EPR run root for report links")
+
+    v2_products = subparsers.add_parser(
+        "v2-exemplar-conformance-products",
+        help="regenerate all completed OPJU-backed products with v2 exemplar conformance checks",
+    )
+    v2_products.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
+    v2_products.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    v2_products.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
+    v2_products.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    v2_products.add_argument("--first-run-root", type=Path, help="v1 BET/XPS/XRD/EPR run root")
+    v2_products.add_argument("--remaining-run-root", type=Path, help="v1 remaining-products run root")
+    v2_products.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
+
+    eis_v2 = subparsers.add_parser(
+        "eis-randles-cpe-v2",
+        help="regenerate only the EIS v2 product with Randles-CPE cleaning/fitting",
+    )
+    eis_v2.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
+    eis_v2.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    eis_v2.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
+    eis_v2.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    eis_v2.add_argument("--previous-eis-run-root", type=Path, help="v1 remaining-products run root containing EIS")
+    eis_v2.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
@@ -286,6 +315,39 @@ def main(argv: list[str] | None = None) -> int:
         print(f"product_count={result['summary']['product_count']}")
         print(f"skipped_count={result['summary']['skipped_count']}")
         return 0 if result["summary"]["product_count"] > 0 and not result.get("failures") else 1
+    if args.command == "v2-exemplar-conformance-products":
+        result = run_v2_exemplar_conformance_products(
+            project_root,
+            V2ExemplarConformanceOptions(
+                pairing_path=args.pairing,
+                output_root=args.output_root,
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+                first_run_root=args.first_run_root,
+                remaining_run_root=args.remaining_run_root,
+                user_style_path=args.user_style,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"product_count={result['summary']['product_count']}")
+        print(f"failure_count={result['summary']['failure_count']}")
+        return 0 if result["summary"]["product_count"] == 11 and not result.get("failures") else 1
+    if args.command == "eis-randles-cpe-v2":
+        result = run_eis_randles_cpe_v2(
+            project_root,
+            EisRandlesCpeV2Options(
+                pairing_path=args.pairing,
+                output_root=args.output_root,
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+                previous_eis_run_root=args.previous_eis_run_root,
+                user_style_path=args.user_style,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"product_count={result['summary']['product_count']}")
+        print(f"failure_count={result['summary']['failure_count']}")
+        return 0 if result["summary"]["product_count"] == 1 and not result.get("failures") else 1
     if args.command == "origin-batch":
         return run_origin_batch(
             project_root,
