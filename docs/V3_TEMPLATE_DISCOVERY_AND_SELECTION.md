@@ -27,22 +27,16 @@
 | D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Cu_W.opju | extracted | W_4f | 1 | 21 | graph/layer/plot object readback succeeded |
 
 ## XPS_non_in_situ
-- Candidate count: 8
+- Candidate count: 2
 - Final selection status: selected
-- Selected template: F:\课题\LL\检测\XPS\CWO+BOBC VBXPS谱图.opju
-- Selected graph/layer: Graph2
+- Selected template: D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Bi_Cl_Br.opju
+- Selected graph/layer: Cl_2p
 - Selection reason: Selected highest-scoring validated F-drive graph template.
 
 | Candidate | Open Status | Graph | Layers | Plots | Reason |
 |---|---:|---|---:|---:|---|
-| F:\课题\LL\检测\XPS\BC-OW.opju | extracted | Graph1 | 1 | 5 | graph/layer/plot object readback succeeded |
-| F:\课题\LL\检测\XPS\bc-XPS.opju | extracted | cu-1 | 1 | 8 | graph/layer/plot object readback succeeded |
-| F:\课题\LL\检测\XPS\bobc xps.opju | extracted | O1 | 1 | 5 | graph/layer/plot object readback succeeded |
-| F:\课题\LL\检测\XPS\cwo xps.opju | extracted | Cu2 | 1 | 8 | graph/layer/plot object readback succeeded |
-| F:\课题\LL\检测\XPS\CWO+BOBC VBXPS谱图.opju | extracted | Graph2 | 1 | 3 | graph/layer/plot object readback succeeded |
-| F:\课题\LL\检测\XPS\电荷未矫正第一次\xps 全数据BI.opju | not_opened_lower_priority_candidate |  | 0 | 0 | Recorded during F-drive scan but not opened because higher-priority candidates were validated first. |
-| F:\课题\LL\检测\XPS\电荷未矫正第一次\xps全数据CU.opju | not_opened_lower_priority_candidate |  | 0 | 0 | Recorded during F-drive scan but not opened because higher-priority candidates were validated first. |
-| F:\课题\LL\检测\XPS\电荷未矫正第一次\xps全数据版.opju | not_opened_lower_priority_candidate |  | 0 | 0 | Recorded during F-drive scan but not opened because higher-priority candidates were validated first. |
+| D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Bi_Cl_Br.opju | extracted | Cl_2p | 1 | 21 | graph/layer/plot object readback succeeded |
+| D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Cu_W.opju | extracted | W_4f | 1 | 21 | graph/layer/plot object readback succeeded |
 
 ## XRD
 - Candidate count: 10
@@ -90,10 +84,10 @@
 | F:\课题\LL\检测\阻抗EIS\BM重新拟合版本\BM.opju | extracted | Graph1 | 1 | 5 | graph/layer/plot object readback succeeded |
 | F:\课题\LL\检测\阻抗EIS\EIS-20251025拟合后师妹\BM-X.opju | load_failed |  | 0 | 0 | Traceback (most recent call last):
   File "<string>", line 10, in <module>
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1955: illegal multibyte sequence |
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1962: illegal multibyte sequence |
 | F:\课题\LL\检测\阻抗EIS\EIS-20251025拟合后师妹\拟合后BM-X.opju | load_failed |  | 0 | 0 | Traceback (most recent call last):
   File "<string>", line 10, in <module>
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1953: illegal multibyte sequence |
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1960: illegal multibyte sequence |
 
 ## Raman
 - Candidate count: 4
@@ -107,7 +101,7 @@ UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1953
 | F:\课题\LL\检测\拉曼\20251021\bobc+ms.opju | extracted | Graph2 | 3 | 1 | graph/layer/plot object readback succeeded |
 | F:\课题\LL\检测\拉曼\cwo+bobc raman.opju | load_failed |  | 0 | 0 | Traceback (most recent call last):
   File "<string>", line 10, in <module>
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1989: illegal multibyte sequence |
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1996: illegal multibyte sequence |
 | F:\课题\LL\检测\拉曼\老版本BOBC+MS+BPO\BOBC+MS+BPO.opju | extracted | Graph1 | 1 | 1 | graph/layer/plot object readback succeeded |
 | F:\课题\LL\检测\拉曼\老版本BOBC+MS+BPO\BOBC+MS.opju | extracted | Graph4 | 1 | 3 | graph/layer/plot object readback succeeded |
 
@@ -159,5 +153,5 @@ UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1989
 | F:\课题\LL\检测\红外\BOBC+MS 以前水热的Mose\BOBC+MS.opju | extracted | Graph1 | 1 | 6 | graph/layer/plot object readback succeeded |
 | F:\课题\LL\检测\红外\cwo+bobc\CWO+BOBC红外.opju | load_failed |  | 0 | 0 | Traceback (most recent call last):
   File "<string>", line 10, in <module>
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1943: illegal multibyte sequence |
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1950: illegal multibyte sequence |
 | F:\课题\LL\检测\红外\红外MS+BPO 暑期版本\红外.opju | extracted | Graph1 | 1 | 3 | graph/layer/plot object readback succeeded |

@@ -165,6 +165,9 @@ class V3RealTemplateRebuildOptions:
     product_slug_version: str = "v3"
     global_style_override: dict[str, object] | None = None
     eis_strict_semicircle_branch: bool = False
+    xps_reference_templates_for_all_xps: bool = False
+    xps_templates_from_reference_only: bool = False
+    cleanup_empty_run_layout_dirs: bool = False
 
 
 def classify_v3_template_candidates(paths: list[Path], *, f_drive_root: Path) -> list[V3TemplateCandidate]:
@@ -189,24 +192,57 @@ def classify_v3_template_candidates(paths: list[Path], *, f_drive_root: Path) ->
     return candidates
 
 
-def classify_v3_xps_reference_candidates(paths: list[Path], *, reference_root: Path) -> list[V3TemplateCandidate]:
+def classify_v3_xps_reference_candidates(
+    paths: list[Path],
+    *,
+    reference_root: Path,
+    include_all_xps_types: bool = False,
+) -> list[V3TemplateCandidate]:
     candidates: list[V3TemplateCandidate] = []
     for path in paths:
         if path.suffix.casefold() not in {".opju", ".opj"}:
             continue
         if not _is_relative_to(path, reference_root):
             continue
-        if not _has_in_situ_token(str(path).casefold()):
+        if not include_all_xps_types and not _has_in_situ_token(str(path).casefold()):
             continue
-        candidates.append(
-            V3TemplateCandidate(
-                product_key="XPS_in_situ",
-                path=path,
-                source="xps_reference_scan",
-                path_score=_template_path_score("XPS_in_situ", path) + 15,
-                reason="classified by XPS reference root in-situ filename",
+        product_keys = ("XPS_in_situ", "XPS_non_in_situ") if include_all_xps_types else ("XPS_in_situ",)
+        for product_key in product_keys:
+            candidates.append(
+                V3TemplateCandidate(
+                    product_key=product_key,
+                    path=path,
+                    source="xps_reference_scan",
+                    path_score=_template_path_score(product_key, path) + 15 + _xps_reference_path_score_bonus(product_key, path),
+                    reason=(
+                        "classified by XPS reference root for all XPS subtypes"
+                        if include_all_xps_types
+                        else "classified by XPS reference root in-situ filename"
+                    ),
+                )
             )
+    return candidates
+
+
+def build_v3_template_candidate_pool(
+    f_drive_paths: list[Path],
+    xps_reference_paths: list[Path],
+    *,
+    f_drive_root: Path,
+    xps_reference_root: Path,
+    xps_reference_templates_for_all_xps: bool = False,
+    xps_templates_from_reference_only: bool = False,
+) -> list[V3TemplateCandidate]:
+    candidates = classify_v3_template_candidates(f_drive_paths, f_drive_root=f_drive_root)
+    if xps_templates_from_reference_only:
+        candidates = [candidate for candidate in candidates if not candidate.product_key.startswith("XPS")]
+    candidates.extend(
+        classify_v3_xps_reference_candidates(
+            xps_reference_paths,
+            reference_root=xps_reference_root,
+            include_all_xps_types=xps_reference_templates_for_all_xps,
         )
+    )
     return candidates
 
 
@@ -397,9 +433,15 @@ def run_v3_real_template_rebuild_all_types(
     f_drive_root = options.f_drive_template_root or Path("F:/") / "\u8bfe\u9898" / "LL" / "\u68c0\u6d4b"
     xps_reference_root = options.xps_reference_template_root or roots.get("workspace_xps_reference") or (project_root.parent / "xps\u53c2\u8003\u56fe\u50cf")
     opju_paths = scan_v3_f_drive_template_paths(f_drive_root)
-    candidates = classify_v3_template_candidates(opju_paths, f_drive_root=f_drive_root)
     xps_reference_paths = scan_v3_optional_template_paths(xps_reference_root)
-    candidates.extend(classify_v3_xps_reference_candidates(xps_reference_paths, reference_root=xps_reference_root))
+    candidates = build_v3_template_candidate_pool(
+        opju_paths,
+        xps_reference_paths,
+        f_drive_root=f_drive_root,
+        xps_reference_root=xps_reference_root,
+        xps_reference_templates_for_all_xps=options.xps_reference_templates_for_all_xps,
+        xps_templates_from_reference_only=options.xps_templates_from_reference_only,
+    )
     layout = create_run_output_layout(
         project_root,
         scope=options.run_scope,
@@ -462,6 +504,8 @@ def run_v3_real_template_rebuild_all_types(
     products = [_with_label_audit_status(product, label_audit) for product in products]
     _write_v3_run_reports(layout.root, products, failures, selections, label_audit)
     _write_v3_docs(project_root, layout.root, products, failures, selections, label_audit)
+    if options.cleanup_empty_run_layout_dirs:
+        _cleanup_empty_run_layout_dirs(layout)
     return {
         "run_root": str(layout.root),
         "products": products,
@@ -1525,6 +1569,25 @@ def _template_path_score(product_key: str, path: Path) -> int:
     if product_key == "XPS_in_situ" and _has_in_situ_token(text):
         score += 20
     return score
+
+
+def _xps_reference_path_score_bonus(product_key: str, path: Path) -> int:
+    text = str(path).casefold()
+    if product_key == "XPS_in_situ" and ("cu" in text or "w" in text):
+        return 10
+    if product_key == "XPS_non_in_situ" and any(token in text for token in ("bi", "cl", "br")):
+        return 10
+    return 0
+
+
+def _cleanup_empty_run_layout_dirs(layout: object) -> None:
+    for name in ("processed_data", "metadata", "origin_files", "figures_tif", "figures_preview", "logs"):
+        directory = getattr(layout, name, None)
+        if not isinstance(directory, Path) or not directory.exists() or not directory.is_dir():
+            continue
+        if any(directory.rglob("*")):
+            continue
+        directory.rmdir()
 
 
 def _is_relative_to(path: Path, root: Path) -> bool:

@@ -29,6 +29,10 @@ from src.core.v2_exemplar_conformance import (
 )
 from src.core.v3_real_template_rebuild import V3RealTemplateRebuildOptions, run_v3_real_template_rebuild_all_types
 from src.core.v4_exemplar_conformance import V4ExemplarConformanceOptions, run_v4_exemplar_conformance_all_types
+from src.core.v4_strict_template_conformance import (
+    V4StrictTemplateConformanceOptions,
+    run_v4_strict_template_conformance_all_types,
+)
 from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
 from src.origin.adapter import origin_smoke_test
 from src.scanner.scanner import scan_raw_data
@@ -156,6 +160,18 @@ def build_parser() -> argparse.ArgumentParser:
     unified_v4.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan")
     unified_v4.add_argument("--xps-reference-template-root", type=Path, help="optional XPS OPJU/OPJ reference root, e.g. xps参考图像")
     unified_v4.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
+
+    unified_v4_strict = subparsers.add_parser(
+        "unified-v4-strict-template-conformance-all-types",
+        help="rebuild all v4 strict products with XPS templates restricted to the XPS reference root",
+    )
+    unified_v4_strict.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
+    unified_v4_strict.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    unified_v4_strict.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
+    unified_v4_strict.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    unified_v4_strict.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan for non-XPS types")
+    unified_v4_strict.add_argument("--xps-reference-template-root", type=Path, help="XPS OPJU/OPJ reference root, e.g. xps参考图像")
+    unified_v4_strict.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
@@ -446,6 +462,30 @@ def main(argv: list[str] | None = None) -> int:
         print(f"blocked_count={result['summary']['blocked_count']}")
         print(f"failed_count={result['summary']['failed_count']}")
         return 0 if result["summary"]["product_count"] == 11 and result["summary"]["failed_count"] == 0 else 1
+    if args.command == "unified-v4-strict-template-conformance-all-types":
+        result = run_v4_strict_template_conformance_all_types(
+            project_root,
+            V4StrictTemplateConformanceOptions(
+                pairing_path=args.pairing,
+                output_root=args.output_root,
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+                f_drive_template_root=args.f_drive_template_root,
+                xps_reference_template_root=args.xps_reference_template_root,
+                user_style_path=args.user_style,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"product_count={result['summary']['product_count']}")
+        print(f"success_count={result['summary']['success_count']}")
+        print(f"blocked_count={result['summary']['blocked_count']}")
+        print(f"failed_count={result['summary']['failed_count']}")
+        return 0 if (
+            result["summary"]["product_count"] == 11
+            and result["summary"]["success_count"] == 11
+            and result["summary"]["blocked_count"] == 0
+            and result["summary"]["failed_count"] == 0
+        ) else 1
     if args.command == "origin-batch":
         return run_origin_batch(
             project_root,
