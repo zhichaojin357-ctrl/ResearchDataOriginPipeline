@@ -141,6 +141,7 @@ def build_parser() -> argparse.ArgumentParser:
     unified_v3.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
     unified_v3.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
     unified_v3.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan")
+    unified_v3.add_argument("--xps-reference-template-root", type=Path, help="optional XPS OPJU/OPJ reference root, e.g. xps参考图像")
     unified_v3.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
 
     origin_batch = subparsers.add_parser(
@@ -403,6 +404,7 @@ def main(argv: list[str] | None = None) -> int:
                 with_origin=bool(args.with_origin),
                 timestamp=args.timestamp,
                 f_drive_template_root=args.f_drive_template_root,
+                xps_reference_template_root=args.xps_reference_template_root,
                 user_style_path=args.user_style,
             ),
         )

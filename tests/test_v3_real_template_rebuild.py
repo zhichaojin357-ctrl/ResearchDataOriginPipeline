@@ -10,6 +10,7 @@ from src.core.v3_real_template_rebuild import (
     V3RealTemplateRebuildOptions,
     V3_TARGET_TYPES,
     V3TemplateCandidate,
+    classify_v3_xps_reference_candidates,
     classify_v3_template_candidates,
     clip_eis_fit_to_measured_range,
     select_v3_template,
@@ -43,6 +44,30 @@ def test_classify_v3_templates_uses_f_drive_type_paths_and_separates_xps_subtype
     assert [item.path.name for item in classified if item.product_key == "XPS_in_situ"] == ["insitu.opju"]
     assert [item.path.name for item in classified if item.product_key == "XPS_non_in_situ"] == ["bobc xps.opju"]
     assert tuple(V3_TARGET_TYPES) == tuple(V3_ACCEPTED_TYPES)
+
+
+def test_classify_v3_xps_reference_root_uses_in_situ_reference_opjus(tmp_path: Path) -> None:
+    reference_root = tmp_path / "xps参考图像"
+    reference_root.mkdir()
+    bi_cl_br = reference_root / "xps_in_situ_Bi_Cl_Br.opju"
+    cu_w = reference_root / "xps_in_situ_Cu_W.opju"
+    non_in_situ = reference_root / "xps_non_in_situ_overview.opju"
+    note = reference_root / "notes.txt"
+    for path in (bi_cl_br, cu_w, non_in_situ, note):
+        path.write_text("placeholder", encoding="utf-8")
+
+    classified = classify_v3_xps_reference_candidates(
+        [bi_cl_br, cu_w, non_in_situ, note],
+        reference_root=reference_root,
+    )
+
+    assert [item.path.name for item in classified] == [
+        "xps_in_situ_Bi_Cl_Br.opju",
+        "xps_in_situ_Cu_W.opju",
+    ]
+    assert {item.product_key for item in classified} == {"XPS_in_situ"}
+    assert {item.source for item in classified} == {"xps_reference_scan"}
+    assert all(item.path_score > 30 for item in classified)
 
 
 def test_select_v3_template_blocks_missing_or_data_only_candidates() -> None:
@@ -130,6 +155,7 @@ def test_cli_unified_v3_passes_template_root_and_output_options(tmp_path: Path, 
     pairing.write_text("[]", encoding="utf-8")
     output_root = tmp_path / "external"
     f_root = tmp_path / "f_drive"
+    xps_reference_root = tmp_path / "xps参考图像"
     captured: dict[str, object] = {}
 
     def fake_run(project: Path, options: V3RealTemplateRebuildOptions) -> dict[str, object]:
@@ -156,6 +182,8 @@ def test_cli_unified_v3_passes_template_root_and_output_options(tmp_path: Path, 
             "20260605_180000",
             "--f-drive-template-root",
             str(f_root),
+            "--xps-reference-template-root",
+            str(xps_reference_root),
         ]
     )
 
@@ -168,3 +196,4 @@ def test_cli_unified_v3_passes_template_root_and_output_options(tmp_path: Path, 
     assert options.with_origin is True
     assert options.timestamp == "20260605_180000"
     assert options.f_drive_template_root == f_root
+    assert options.xps_reference_template_root == xps_reference_root

@@ -157,6 +157,7 @@ class V3RealTemplateRebuildOptions:
     with_origin: bool = False
     timestamp: str | None = None
     f_drive_template_root: Path | None = None
+    xps_reference_template_root: Path | None = None
     user_style_path: Path | None = None
 
 
@@ -182,11 +183,40 @@ def classify_v3_template_candidates(paths: list[Path], *, f_drive_root: Path) ->
     return candidates
 
 
+def classify_v3_xps_reference_candidates(paths: list[Path], *, reference_root: Path) -> list[V3TemplateCandidate]:
+    candidates: list[V3TemplateCandidate] = []
+    for path in paths:
+        if path.suffix.casefold() not in {".opju", ".opj"}:
+            continue
+        if not _is_relative_to(path, reference_root):
+            continue
+        if not _has_in_situ_token(str(path).casefold()):
+            continue
+        candidates.append(
+            V3TemplateCandidate(
+                product_key="XPS_in_situ",
+                path=path,
+                source="xps_reference_scan",
+                path_score=_template_path_score("XPS_in_situ", path) + 15,
+                reason="classified by XPS reference root in-situ filename",
+            )
+        )
+    return candidates
+
+
 def scan_v3_f_drive_template_paths(f_drive_root: Path) -> list[Path]:
     if not f_drive_root.exists():
         raise FileNotFoundError(f"F-drive template root not found: {f_drive_root}")
     return sorted(
         path for path in f_drive_root.rglob("*") if path.is_file() and path.suffix.casefold() in {".opju", ".opj"}
+    )
+
+
+def scan_v3_optional_template_paths(template_root: Path | None) -> list[Path]:
+    if template_root is None or not template_root.exists():
+        return []
+    return sorted(
+        path for path in template_root.rglob("*") if path.is_file() and path.suffix.casefold() in {".opju", ".opj"}
     )
 
 
@@ -359,14 +389,17 @@ def run_v3_real_template_rebuild_all_types(
     output_root = resolve_output_root(project_root, explicit=options.output_root)
     timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
     f_drive_root = options.f_drive_template_root or Path("F:/") / "\u8bfe\u9898" / "LL" / "\u68c0\u6d4b"
+    xps_reference_root = options.xps_reference_template_root or roots.get("workspace_xps_reference") or (project_root.parent / "xps\u53c2\u8003\u56fe\u50cf")
     opju_paths = scan_v3_f_drive_template_paths(f_drive_root)
     candidates = classify_v3_template_candidates(opju_paths, f_drive_root=f_drive_root)
+    xps_reference_paths = scan_v3_optional_template_paths(xps_reference_root)
+    candidates.extend(classify_v3_xps_reference_candidates(xps_reference_paths, reference_root=xps_reference_root))
     layout = create_run_output_layout(
         project_root,
         scope="unified_v3_real_template_rebuild_all_types",
         command="unified-v3-real-template-rebuild-all-types",
         mode="with_origin" if options.with_origin else "no_origin",
-        input_paths=[options.pairing_path, f_drive_root],
+        input_paths=[options.pairing_path, f_drive_root, xps_reference_root],
         timestamp=timestamp,
         no_origin=not options.with_origin,
         dry_run=False,
@@ -1286,6 +1319,8 @@ def _product_key_from_f_drive_path(path: Path) -> str | None:
 
 def _has_in_situ_token(text: str) -> bool:
     compact = text.replace("_", "").replace("-", "").replace(" ", "")
+    if "noninsitu" in compact or "non in situ" in text:
+        return False
     return "原位" in text or "insitu" in compact or "insitu" in text or "in situ" in text
 
 
