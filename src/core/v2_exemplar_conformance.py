@@ -529,7 +529,7 @@ def _write_imported_eis_report(
     lines = [
         "# EIS unified v2 import report",
         "",
-        f"- Source EIS v2 run: {source_run_root}",
+        f"- Source EIS v2 run: {source_run_root.name}",
         "- Import policy: copied from the completed Randles-CPE v2 run; EIS was not refitted.",
         "- Default model retained: Model A, Rs + (Rct || CPE)",
         "- Model B status: diagnostic fallback only, not used as the default figure model",
