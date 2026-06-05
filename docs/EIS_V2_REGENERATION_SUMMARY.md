@@ -1,0 +1,26 @@
+# EIS v2 regeneration summary
+
+- Run root: D:\Codex Project\科研数据处理\输出\runs\20260605_125416_eis_randles_cpe_v2
+- Previous EIS run: D:\Codex Project\科研数据处理\输出\runs\20260605_000310_remaining_opju_product_drafts
+- Default model: Model A, Rs + (Rct || CPE)
+- Model B: not used for the default plot; diagnostic fallback only
+- Warburg tail: not included
+- Raw points: 71
+- Cleaned points: 62
+- Ignored points: 9
+- Cleaned data: D:\Codex Project\科研数据处理\输出\runs\20260605_125416_eis_randles_cpe_v2\EIS\processed_data\cleaned_eis_data.csv
+- Ignored points table: D:\Codex Project\科研数据处理\输出\runs\20260605_125416_eis_randles_cpe_v2\EIS\processed_data\ignored_eis_points.csv
+- Fit curve: D:\Codex Project\科研数据处理\输出\runs\20260605_125416_eis_randles_cpe_v2\EIS\processed_data\eis_randles_cpe_fit_curve.csv
+- Fitted parameters Rs/Rct/Q/n: {'Rs': 8.72681344826923, 'Rct': 46525.708925066436, 'Q': 0.00013615677344406643, 'n': 0.8054177975139813}
+- Residual SSE: 0.5498679257264858
+- Semicircle classification: depressed semicircle candidate
+- OPJU: D:\Codex Project\科研数据处理\输出\runs\20260605_125416_eis_randles_cpe_v2\EIS\origin_files\EIS_BOBC_exemplar_v2.opju
+- TIF: D:\Codex Project\科研数据处理\输出\runs\20260605_125416_eis_randles_cpe_v2\EIS\figures_tif\EIS_BOBC_exemplar_v2.tif
+- PNG preview: D:\Codex Project\科研数据处理\输出\runs\20260605_125416_eis_randles_cpe_v2\EIS\figures_preview\EIS_BOBC_exemplar_v2_preview.png
+- Exemplar conformance status: review
+- Product visible-label audit: pass
+- Original data modified: no
+- Original OPJU modified: no
+- Output products committed: no
+- Final equivalent-circuit or mechanism conclusion: avoided
+- Circuit ambiguity: manual review required
