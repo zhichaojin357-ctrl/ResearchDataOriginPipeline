@@ -21,8 +21,10 @@ from src.core.triage import TriageOptions, run_triage
 from src.core.validate import validate
 from src.core.v2_exemplar_conformance import (
     EisRandlesCpeV2Options,
+    UnifiedV2ExemplarConformanceOptions,
     V2ExemplarConformanceOptions,
     run_eis_randles_cpe_v2,
+    run_unified_v2_exemplar_conformance_products,
     run_v2_exemplar_conformance_products,
 )
 from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
@@ -115,6 +117,19 @@ def build_parser() -> argparse.ArgumentParser:
     eis_v2.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
     eis_v2.add_argument("--previous-eis-run-root", type=Path, help="v1 remaining-products run root containing EIS")
     eis_v2.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
+
+    unified_v2 = subparsers.add_parser(
+        "unified-v2-exemplar-conformance-all-types",
+        help="regenerate unified v2 products while importing the completed EIS Randles-CPE v2 product without refitting",
+    )
+    unified_v2.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
+    unified_v2.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    unified_v2.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export non-EIS OPJU/TIF/PNG")
+    unified_v2.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    unified_v2.add_argument("--first-run-root", type=Path, help="v1 BET/XPS/XRD/EPR run root")
+    unified_v2.add_argument("--remaining-run-root", type=Path, help="v1 remaining-products run root")
+    unified_v2.add_argument("--eis-v2-run-root", type=Path, help="completed EIS Randles-CPE v2 run root to import")
+    unified_v2.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
@@ -348,6 +363,25 @@ def main(argv: list[str] | None = None) -> int:
         print(f"product_count={result['summary']['product_count']}")
         print(f"failure_count={result['summary']['failure_count']}")
         return 0 if result["summary"]["product_count"] == 1 and not result.get("failures") else 1
+    if args.command == "unified-v2-exemplar-conformance-all-types":
+        result = run_unified_v2_exemplar_conformance_products(
+            project_root,
+            UnifiedV2ExemplarConformanceOptions(
+                pairing_path=args.pairing,
+                output_root=args.output_root,
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+                first_run_root=args.first_run_root,
+                remaining_run_root=args.remaining_run_root,
+                eis_v2_run_root=args.eis_v2_run_root,
+                user_style_path=args.user_style,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"product_count={result['summary']['product_count']}")
+        print(f"failure_count={result['summary']['failure_count']}")
+        print(f"eis_imported={result['summary'].get('eis_imported', False)}")
+        return 0 if result["summary"]["product_count"] == 11 and not result.get("failures") else 1
     if args.command == "origin-batch":
         return run_origin_batch(
             project_root,

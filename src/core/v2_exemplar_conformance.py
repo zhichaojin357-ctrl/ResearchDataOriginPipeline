@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import shutil
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -105,6 +106,24 @@ FORBIDDEN_PRODUCT_LABELS = (
     "AI生成",
 )
 
+UNIFIED_V2_SKIPPED_TYPES = (
+    {
+        "data_type": "HPLC/LC",
+        "decision": "deferred",
+        "reason": "No reviewed OPJU exemplar is available; no conversion/selectivity/yield or product identity call is made.",
+    },
+    {
+        "data_type": "Mott-Schottky",
+        "decision": "deferred",
+        "reason": "The previously reviewed exemplar mismatch remains blocked for manual confirmation.",
+    },
+    {
+        "data_type": "reaction_condition_screening",
+        "decision": "deferred",
+        "reason": "No clear reviewed data table and OPJU exemplar pair is available for this run.",
+    },
+)
+
 
 @dataclass(frozen=True)
 class V2ExemplarConformanceOptions:
@@ -114,6 +133,18 @@ class V2ExemplarConformanceOptions:
     timestamp: str | None = None
     first_run_root: Path | None = None
     remaining_run_root: Path | None = None
+    user_style_path: Path | None = None
+
+
+@dataclass(frozen=True)
+class UnifiedV2ExemplarConformanceOptions:
+    pairing_path: Path
+    output_root: Path | None = None
+    with_origin: bool = False
+    timestamp: str | None = None
+    first_run_root: Path | None = None
+    remaining_run_root: Path | None = None
+    eis_v2_run_root: Path | None = None
     user_style_path: Path | None = None
 
 
@@ -200,6 +231,96 @@ def run_v2_exemplar_conformance_products(
             "failure_count": len(failures),
             "with_origin": bool(options.with_origin),
             "label_audit_pass": int(label_audit.get("hit_count", 0)) == 0,
+        },
+    }
+
+
+def run_unified_v2_exemplar_conformance_products(
+    project_root: Path,
+    options: UnifiedV2ExemplarConformanceOptions,
+    *,
+    root_map: dict[str, Path] | None = None,
+    origin_exporter: OriginExporter | None = None,
+) -> dict[str, object]:
+    project_root = project_root.resolve()
+    roots = root_map or build_default_root_map(project_root)
+    output_root = resolve_output_root(project_root, explicit=options.output_root)
+    first_run = options.first_run_root or output_root / "runs" / "20260604_231317_real_opju_product_pilot_xps_xrd_epr_bet"
+    remaining_run = options.remaining_run_root or output_root / "runs" / "20260605_000310_remaining_opju_product_drafts"
+    eis_v2_run = options.eis_v2_run_root or output_root / "runs" / "20260605_125416_eis_randles_cpe_v2"
+    timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    layout = create_run_output_layout(
+        project_root,
+        scope="unified_v2_exemplar_conformance_all_types",
+        command="unified-v2-exemplar-conformance-all-types",
+        mode="with_origin" if options.with_origin else "no_origin",
+        input_paths=[options.pairing_path, first_run, remaining_run, eis_v2_run],
+        timestamp=timestamp,
+        no_origin=not options.with_origin,
+        dry_run=False,
+        output_base=output_root / "runs",
+    )
+    for product_key in V2_TARGET_TYPES:
+        _ensure_type_dirs(layout.root / V2_TYPE_DIRS[product_key])
+
+    docs = project_root / "docs"
+    docs.mkdir(parents=True, exist_ok=True)
+    baseline_records = build_v2_baseline_records(first_run, remaining_run)
+    _write_baseline_audit_doc(docs / "UNIFIED_V2_EXEMPLAR_CONFORMANCE_BASELINE_AUDIT.md", baseline_records)
+
+    user_config = load_user_plot_style(project_root, options.user_style_path)
+    exporter = origin_exporter or (lambda product, style: export_v2_product_with_origin(product, style))
+    first_pairings = {item.product_key: item for item in load_target_pairings(options.pairing_path, roots)}
+    remaining_pairings = {item.product_key: item for item in load_remaining_pairings(options.pairing_path, roots)}
+    products: list[dict[str, object]] = []
+    failures: list[dict[str, str]] = []
+    eis_cleaning: dict[str, object] = {}
+    eis_imported = False
+
+    for product_key in V2_TARGET_TYPES:
+        if product_key == "EIS":
+            try:
+                product_summary, eis_cleaning = _import_completed_eis_v2_product(layout.root, eis_v2_run)
+                products.append(product_summary)
+                eis_imported = True
+            except Exception as exc:
+                failures.append({"product_key": product_key, "message": str(exc)})
+            continue
+
+        pairing = first_pairings.get(product_key) or remaining_pairings.get(product_key)
+        if pairing is None:
+            failures.append({"product_key": product_key, "message": "No reviewed pairing found."})
+            continue
+        try:
+            product, extra = prepare_v2_product(layout.root, pairing)
+            style = resolve_user_plot_style(product_key, user_config=user_config)
+            export_status: dict[str, object] = {"ok": False, "message": "Origin export skipped"}
+            if options.with_origin:
+                export_status = exporter(product, style)
+            metadata = _write_v2_product_metadata(layout.root, product, export_status, style, extra)
+            report = _write_v2_per_type_report(layout.root, product, export_status, style, extra)
+            products.append(_product_summary(product, export_status, metadata, report))
+            if options.with_origin and not bool(export_status.get("ok")):
+                failures.append({"product_key": product_key, "message": str(export_status.get("message") or "Origin export failed")})
+        except Exception as exc:
+            failures.append({"product_key": product_key, "message": str(exc)})
+
+    label_audit = _write_v2_no_label_audit(layout.root)
+    _write_v2_run_reports(layout.root, first_run, remaining_run, products, failures, label_audit, eis_cleaning)
+    _write_unified_v2_reports(layout.root, eis_v2_run, products, failures, label_audit, eis_cleaning)
+    _write_unified_v2_docs(project_root, layout.root, first_run, remaining_run, eis_v2_run, products, failures, label_audit, eis_cleaning)
+    return {
+        "run_root": str(layout.root),
+        "products": products,
+        "failures": failures,
+        "skipped": list(UNIFIED_V2_SKIPPED_TYPES),
+        "summary": {
+            "product_count": len(products),
+            "failure_count": len(failures),
+            "with_origin": bool(options.with_origin),
+            "label_audit_pass": int(label_audit.get("hit_count", 0)) == 0,
+            "eis_imported": eis_imported,
+            "eis_v2_run_root": str(eis_v2_run),
         },
     }
 
@@ -323,6 +444,107 @@ def prepare_v2_product(run_root: Path, pairing: TargetPairing) -> tuple[ProductC
         notes=labels.get("notes", "").splitlines() if labels.get("notes") else [],
     )
     return product, extra
+
+
+def _import_completed_eis_v2_product(run_root: Path, eis_v2_run_root: Path) -> tuple[dict[str, object], dict[str, object]]:
+    source_type_root = eis_v2_run_root / "EIS"
+    target_type_root = run_root / "EIS"
+    _ensure_type_dirs(target_type_root)
+    required = [
+        "processed_data/raw_eis_data.csv",
+        "processed_data/cleaned_eis_data.csv",
+        "processed_data/ignored_eis_points.csv",
+        "processed_data/eis_randles_cpe_fit_curve.csv",
+        "processed_data/EIS_BOBC_exemplar_v2.csv",
+        "metadata/eis_cleaning_and_fit_metadata.json",
+        "metadata/EIS_BOBC_exemplar_v2.json",
+        "origin_files/EIS_BOBC_exemplar_v2.opju",
+        "figures_tif/EIS_BOBC_exemplar_v2.tif",
+        "figures_preview/EIS_BOBC_exemplar_v2_preview.png",
+        "reports/EIS_BOBC_exemplar_v2_report.md",
+    ]
+    missing = [relative for relative in required if not (source_type_root / relative).exists()]
+    if missing:
+        raise FileNotFoundError("completed EIS v2 run is missing required files: " + "; ".join(missing))
+    shutil.copytree(source_type_root, target_type_root, dirs_exist_ok=True)
+
+    eis_cleaning = _rewrite_imported_eis_cleaning_metadata(target_type_root)
+    product_metadata = _rewrite_imported_eis_product_metadata(target_type_root, eis_v2_run_root)
+    import_report = _write_imported_eis_report(target_type_root, eis_v2_run_root, eis_cleaning, product_metadata)
+    origin_status = product_metadata.get("origin_status") if isinstance(product_metadata.get("origin_status"), dict) else {}
+    conformance = origin_status.get("conformance") if isinstance(origin_status.get("conformance"), dict) else {}
+    product_summary = {
+        "product_key": "EIS",
+        "origin_file": str(target_type_root / "origin_files" / "EIS_BOBC_exemplar_v2.opju"),
+        "figure_tif": str(target_type_root / "figures_tif" / "EIS_BOBC_exemplar_v2.tif"),
+        "preview_png": str(target_type_root / "figures_preview" / "EIS_BOBC_exemplar_v2_preview.png"),
+        "processed_data": str(target_type_root / "processed_data" / "EIS_BOBC_exemplar_v2.csv"),
+        "metadata": str(target_type_root / "metadata" / "EIS_BOBC_exemplar_v2.json"),
+        "report": str(import_report),
+        "status": "success",
+        "message": "imported from completed Randles-CPE v2 run without refitting",
+        "conformance": conformance or {},
+    }
+    return product_summary, eis_cleaning
+
+
+def _rewrite_imported_eis_cleaning_metadata(type_root: Path) -> dict[str, object]:
+    metadata_path = type_root / "metadata" / "eis_cleaning_and_fit_metadata.json"
+    payload = _read_json(metadata_path)
+    payload["raw_data"] = str(type_root / "processed_data" / "raw_eis_data.csv")
+    payload["cleaned_data"] = str(type_root / "processed_data" / "cleaned_eis_data.csv")
+    payload["ignored_points"] = str(type_root / "processed_data" / "ignored_eis_points.csv")
+    payload["fit_curve"] = str(type_root / "processed_data" / "eis_randles_cpe_fit_curve.csv")
+    payload["unified_v2_import_policy"] = "Imported from the completed EIS Randles-CPE v2 run; no EIS cleaning or fitting was rerun."
+    metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return payload
+
+
+def _rewrite_imported_eis_product_metadata(type_root: Path, source_run_root: Path) -> dict[str, object]:
+    metadata_path = type_root / "metadata" / "EIS_BOBC_exemplar_v2.json"
+    payload = _read_json(metadata_path)
+    payload["input_copies"] = _safe_metadata_paths([str(path) for path in sorted((type_root / "input_copies").glob("*"))])
+    payload["reference_opju_copy"] = _safe_metadata_path(_first_file(type_root / "reference_opju", "*.opj*") or type_root / "reference_opju")
+    payload["processed_data"] = _safe_metadata_path(type_root / "processed_data" / "EIS_BOBC_exemplar_v2.csv")
+    payload["origin_file"] = _safe_metadata_path(type_root / "origin_files" / "EIS_BOBC_exemplar_v2.opju")
+    payload["figure_tif"] = _safe_metadata_path(type_root / "figures_tif" / "EIS_BOBC_exemplar_v2.tif")
+    payload["preview_png"] = _safe_metadata_path(type_root / "figures_preview" / "EIS_BOBC_exemplar_v2_preview.png")
+    payload["unified_v2_imported_from"] = str(source_run_root)
+    payload["unified_v2_import_policy"] = "OPJU/TIF/PNG/processed EIS files were copied from the completed Randles-CPE v2 run without refitting."
+    metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return payload
+
+
+def _write_imported_eis_report(
+    type_root: Path,
+    source_run_root: Path,
+    eis_cleaning: dict[str, object],
+    product_metadata: dict[str, object],
+) -> Path:
+    path = type_root / "reports" / "EIS_BOBC_exemplar_v2_import_report.md"
+    cleaning = eis_cleaning.get("cleaning", {}) if isinstance(eis_cleaning, dict) else {}
+    fit = eis_cleaning.get("fit", {}) if isinstance(eis_cleaning, dict) else {}
+    origin_status = product_metadata.get("origin_status") if isinstance(product_metadata.get("origin_status"), dict) else {}
+    conformance = origin_status.get("conformance") if isinstance(origin_status.get("conformance"), dict) else {}
+    lines = [
+        "# EIS unified v2 import report",
+        "",
+        f"- Source EIS v2 run: {source_run_root}",
+        "- Import policy: copied from the completed Randles-CPE v2 run; EIS was not refitted.",
+        "- Default model retained: Model A, Rs + (Rct || CPE)",
+        "- Model B status: diagnostic fallback only, not used as the default figure model",
+        "- Warburg status: not included",
+        f"- Raw points: {cleaning.get('raw_point_count', 0)}",
+        f"- Cleaned points: {cleaning.get('cleaned_point_count', 0)}",
+        f"- Ignored points: {cleaning.get('ignored_point_count', 0)}",
+        f"- Fitted parameters Rs/Rct/Q/n: {fit.get('parameters', {})}",
+        f"- Semicircle classification: {fit.get('semicircle_classification', 'manual_review')}",
+        f"- Conformance status inherited from source v2 run: {conformance.get('status', 'not_read_back')}",
+        "- Final equivalent-circuit or mechanism conclusion: avoided",
+        "- Manual review remains required.",
+    ]
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return path
 
 
 def export_v2_product_with_origin(product: ProductContext, style: ResolvedPlotStyle) -> dict[str, object]:
@@ -627,6 +849,148 @@ def _write_v2_docs(
     _write_eis_summary(docs / "EIS_V2_REGENERATION_SUMMARY.md", run_root, eis_cleaning)
     _write_manual_review(docs / "V2_MANUAL_CALIBRATION_ENTRYPOINT.md", run_root, products, failures)
     _write_no_label_doc(docs / "V2_PRODUCT_NO_CODEX_LABEL_AUDIT.md", label_audit)
+
+
+def _write_unified_v2_reports(
+    run_root: Path,
+    eis_v2_run: Path,
+    products: list[dict[str, object]],
+    failures: list[dict[str, str]],
+    label_audit: dict[str, object],
+    eis_cleaning: dict[str, object],
+) -> None:
+    reports = run_root / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    _write_unified_v2_summary(
+        reports / "unified_v2_product_summary.md",
+        run_root,
+        eis_v2_run,
+        products,
+        failures,
+        label_audit,
+        eis_cleaning,
+        relative=True,
+    )
+    _write_unified_v2_skipped_types(reports / "unified_v2_skipped_types.md")
+
+
+def _write_unified_v2_docs(
+    project_root: Path,
+    run_root: Path,
+    first_run: Path,
+    remaining_run: Path,
+    eis_v2_run: Path,
+    products: list[dict[str, object]],
+    failures: list[dict[str, str]],
+    label_audit: dict[str, object],
+    eis_cleaning: dict[str, object],
+) -> None:
+    docs = project_root / "docs"
+    docs.mkdir(parents=True, exist_ok=True)
+    _write_unified_v2_summary(
+        docs / "UNIFIED_V2_PRODUCT_SUMMARY.md",
+        run_root,
+        eis_v2_run,
+        products,
+        failures,
+        label_audit,
+        eis_cleaning,
+        relative=False,
+    )
+    _write_manual_review(docs / "UNIFIED_V2_MANUAL_CALIBRATION_ENTRYPOINT.md", run_root, products, failures)
+    _write_no_label_doc(docs / "UNIFIED_V2_PRODUCT_NO_LABEL_AUDIT.md", label_audit)
+    _write_conformance_summary(docs / "UNIFIED_V2_EXEMPLAR_CONFORMANCE_AUDIT.md", run_root, products)
+    _write_unified_v2_skipped_types(docs / "UNIFIED_V2_SKIPPED_TYPES.md")
+    _write_eis_summary(docs / "UNIFIED_V2_EIS_IMPORT_SUMMARY.md", run_root, eis_cleaning)
+    _write_unified_v2_sources_doc(docs / "UNIFIED_V2_INPUT_SOURCE_AUDIT.md", first_run, remaining_run, eis_v2_run)
+
+
+def _write_unified_v2_summary(
+    path: Path,
+    run_root: Path,
+    eis_v2_run: Path,
+    products: list[dict[str, object]],
+    failures: list[dict[str, str]],
+    label_audit: dict[str, object],
+    eis_cleaning: dict[str, object],
+    *,
+    relative: bool,
+) -> None:
+    root_text = run_root.name if relative else str(run_root)
+    cleaning = eis_cleaning.get("cleaning", {}) if isinstance(eis_cleaning, dict) else {}
+    fit = eis_cleaning.get("fit", {}) if isinstance(eis_cleaning, dict) else {}
+    lines = [
+        "# Unified V2 product summary",
+        "",
+        f"- Unified run root: {root_text}",
+        f"- EIS source v2 run: {eis_v2_run.name if relative else eis_v2_run}",
+        f"- Products: {len(products)}",
+        f"- Failures: {len(failures)}",
+        f"- Product visible-label audit: {'pass' if int(label_audit.get('hit_count', 0)) == 0 else 'fail'}",
+        "- F-drive files modified: no",
+        "- Original OPJU/OPJ files modified: no",
+        "- Output products committed: no",
+        "- EIS handling: imported from completed Randles-CPE v2 run; no EIS cleaning or fitting rerun",
+        "",
+        "## Products",
+    ]
+    for product in products:
+        opju = _relative_to_run(run_root, Path(str(product["origin_file"]))) if relative else str(product["origin_file"])
+        tif = _relative_to_run(run_root, Path(str(product["figure_tif"]))) if relative else str(product["figure_tif"])
+        png = _relative_to_run(run_root, Path(str(product["preview_png"]))) if relative else str(product["preview_png"])
+        conformance = product.get("conformance") if isinstance(product.get("conformance"), dict) else {}
+        lines.extend(
+            [
+                f"### {product['product_key']}",
+                f"- Status: {product.get('status', '')}",
+                f"- OPJU: {opju}",
+                f"- TIF: {tif}",
+                f"- PNG preview: {png}",
+                f"- Conformance status: {conformance.get('status', 'not_read_back')}",
+                "",
+            ]
+        )
+    if failures:
+        lines.extend(["## Failures", ""])
+        for failure in failures:
+            lines.append(f"- {failure['product_key']}: {failure['message']}")
+        lines.append("")
+    lines.extend(
+        [
+            "## EIS",
+            f"- Cleaned data: {eis_cleaning.get('cleaned_data', '') if not relative else _relative_to_run(run_root, Path(str(eis_cleaning.get('cleaned_data', ''))))}",
+            f"- Ignored points: {cleaning.get('ignored_point_count', 0)}",
+            f"- Fit model: {fit.get('model', 'Model A: Rs + (Rct || CPE)')}",
+            f"- Fitted parameters: {fit.get('parameters', {})}",
+            f"- Semicircle classification: {fit.get('semicircle_classification', 'manual_review')}",
+            f"- Fit curve: {eis_cleaning.get('fit_curve', '') if not relative else _relative_to_run(run_root, Path(str(eis_cleaning.get('fit_curve', ''))))}",
+            "- Final equivalent-circuit or mechanism conclusion: avoided",
+            "",
+            "## Deferred or skipped",
+        ]
+    )
+    for item in UNIFIED_V2_SKIPPED_TYPES:
+        lines.append(f"- {item['data_type']}: {item['decision']} - {item['reason']}")
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+
+def _write_unified_v2_skipped_types(path: Path) -> None:
+    lines = ["# Unified V2 skipped types", ""]
+    for item in UNIFIED_V2_SKIPPED_TYPES:
+        lines.append(f"- {item['data_type']}: {item['decision']} - {item['reason']}")
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+
+def _write_unified_v2_sources_doc(path: Path, first_run: Path, remaining_run: Path, eis_v2_run: Path) -> None:
+    lines = [
+        "# Unified V2 input source audit",
+        "",
+        f"- First batch v1 run: {first_run}",
+        f"- Remaining v1 run: {remaining_run}",
+        f"- Completed EIS v2 run: {eis_v2_run}",
+        "- EIS policy: copy completed EIS v2 files into the unified run and retain fitted values; do not rerun fitting.",
+    ]
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
 def _write_eis_only_reports(
