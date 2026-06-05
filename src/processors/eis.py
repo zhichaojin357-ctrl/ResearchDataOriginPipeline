@@ -272,7 +272,7 @@ def _randles_cpe_residual(params: np.ndarray, freq: np.ndarray, measured: np.nda
 def _randles_cpe_upper_bounds(z_real: np.ndarray, minus_z_imag: np.ndarray) -> np.ndarray:
     max_impedance = max(float(np.nanmax(np.abs(z_real))), float(np.nanmax(np.abs(minus_z_imag))), 1.0)
     span = max(float(np.nanmax(z_real) - np.nanmin(z_real)), 1.0)
-    return np.array([max_impedance * 2.0, max(span * 20.0, max_impedance * 2.0), 1e3, 1.0], dtype=float)
+    return np.array([max_impedance * 2.0, max(span * 4.0, max_impedance * 1.2), 1e3, 1.0], dtype=float)
 
 
 def _randles_cpe_initial_guesses(freq: np.ndarray, z_real: np.ndarray, minus_z_imag: np.ndarray) -> list[tuple[float, float, float, float]]:

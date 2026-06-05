@@ -361,7 +361,8 @@ def export_v2_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         _apply_v2_axis_range(operations, graph_name, product)
         operations.set_tick_style(graph_name)
         operations.set_axis_and_tick_visibility(graph_name, y_axis=True, y_ticks=product.y_ticks, y_tick_values=product.y_tick_values)
-        legend_visible = product.product_key == "EIS" or bool(exemplar_snapshot.audit_numeric_values.get("legend.show", 0))
+        _position_axis_titles_outside_plot(operations, graph_name)
+        legend_visible = False if product.product_key == "EIS" else bool(exemplar_snapshot.audit_numeric_values.get("legend.show", 0))
         operations.set_legend(graph_name, visible=legend_visible, entries=product.legend_entries)
         operations.run_labtalk("title.show=0;")
         _style_v2_series(operations, graph_name, product, len(headers) - 1, style)
@@ -458,7 +459,18 @@ def _style_v2_series(operations: object, graph_name: str, product: ProductContex
     if product.product_key == "EIS" and series_count >= 2:
         plot_names = getattr(operations, "_plot_names", lambda _name: [])(graph_name)
         if len(plot_names) >= 2:
-            operations.run_labtalk(f"set {plot_names[1]} -k 0; set {plot_names[1]} -l 1;")
+            operations.run_labtalk(f"set {plot_names[0]} -l 0; set {plot_names[0]} -z {style.marker_size};")
+            operations.run_labtalk(f"set {plot_names[1]} -k 0; set {plot_names[1]} -l 1; set {plot_names[1]} -z 0;")
+
+
+def _position_axis_titles_outside_plot(operations: object, graph_name: str) -> None:
+    operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    operations.run_labtalk(
+        "xb.x=(layer.x.from+layer.x.to)/2; "
+        "xb.y=layer.y.from-0.16*(layer.y.to-layer.y.from); "
+        "yl.x=layer.x.from-0.13*(layer.x.to-layer.x.from); "
+        "yl.y=(layer.y.from+layer.y.to)/2;"
+    )
 
 
 def _write_v2_product_metadata(

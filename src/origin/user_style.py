@@ -70,6 +70,8 @@ def resolve_user_plot_style(
     user_config: dict[str, Any] | None = None,
 ) -> ResolvedPlotStyle:
     values: dict[str, object] = dict(DEFAULT_USER_STYLE)
+    if _style_key(product_key) == "eis":
+        values.update({"marker_size": 8})
     values.update(_style_from_exemplar(exemplar))
     config = user_config or {}
     global_values = config.get("global") if isinstance(config.get("global"), dict) else {}
