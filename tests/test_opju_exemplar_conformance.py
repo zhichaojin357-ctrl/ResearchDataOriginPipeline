@@ -60,3 +60,23 @@ def test_conformance_comparison_flags_non_3pt_width_and_nonbold_axis_titles() ->
     assert report.status == "fail"
     assert any(issue.field == "plot[1].line_width" for issue in report.issues)
     assert any(issue.field == "axis_title.bold" for issue in report.issues)
+
+
+def test_conformance_accepts_origin_rich_text_bold_axis_titles() -> None:
+    exemplar = OpjuStyleSnapshot(
+        source_opju="reference.opju",
+        status="extracted",
+        audit_numeric_values={"xb.bold": 1, "yl.bold": 1, "xb.fsize": 28, "yl.fsize": 28},
+    )
+    product = OpjuStyleSnapshot(
+        source_opju="product.opju",
+        status="extracted",
+        audit_numeric_values={"xb.bold": 0, "yl.bold": 0, "xb.fsize": 28, "yl.fsize": 28},
+        audit_string_values={"xb.text$": "\\b(Z' (ohm))", "yl.text$": "\\b(-Z'' (ohm))"},
+        plot_line_widths=[30.0],
+    )
+
+    report = compare_style_snapshots(exemplar, product)
+
+    assert report.axis_title_bold is True
+    assert not any(issue.field == "axis_title.bold" for issue in report.issues)

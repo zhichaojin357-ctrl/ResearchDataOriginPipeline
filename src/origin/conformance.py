@@ -242,7 +242,12 @@ def _plot_widths(snapshot: OpjuStyleSnapshot | dict[str, Any]) -> list[float]:
 
 def _axis_titles_bold(snapshot: OpjuStyleSnapshot | dict[str, Any]) -> bool:
     values = _combined_numeric_values(snapshot)
-    return values.get("xb.bold") == 1.0 and values.get("yl.bold") == 1.0
+    strings = snapshot.audit_string_values if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("audit_string_values", {})
+    xb_text = str(strings.get("xb.text$", "")) if isinstance(strings, dict) else ""
+    yl_text = str(strings.get("yl.text$", "")) if isinstance(strings, dict) else ""
+    xb_bold = values.get("xb.bold") == 1.0 or "\\b(" in xb_text
+    yl_bold = values.get("yl.bold") == 1.0 or "\\b(" in yl_text
+    return xb_bold and yl_bold
 
 
 def _axis_title_overlap_status(snapshot: OpjuStyleSnapshot | dict[str, Any]) -> str:

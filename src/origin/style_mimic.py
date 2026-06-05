@@ -83,6 +83,8 @@ STYLE_AUDIT_NUMERIC_FIELDS = (
 STYLE_AUDIT_STRING_FIELDS = (
     "xb.font$",
     "yl.font$",
+    "xb.text$",
+    "yl.text$",
     "legend.font$",
     "title.font$",
 )
