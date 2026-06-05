@@ -15,6 +15,7 @@ from src.core.table_reader import read_table
 from src.core.xps_heterojunction import (
     XpsFitRecord,
     XpsHeterojunctionOptions,
+    _component_key,
     _select_best_records,
     build_comparison_plan,
     load_xps_fit_workbooks,
@@ -394,7 +395,7 @@ def _build_xps_in_situ_table(paths: list[Path]) -> tuple[list[str], list[list[fl
         raise ValueError(f"No complete in-situ XPS element found for BOBC/Dark/Light; manual_review={manual_review}")
     element = "Bi" if "Bi" in common_elements else common_elements[0]
     table_records = [selected[(sample, element)] for sample in wanted_samples]
-    headers, rows = _xps_records_to_offset_table(table_records, include_envelope=True)
+    headers, rows = _xps_records_to_offset_table(table_records, include_envelope=True, include_components=True)
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
         "y_label": "Intensity (a.u.)",
@@ -414,7 +415,7 @@ def _build_xps_non_in_situ_table(paths: list[Path]) -> tuple[list[str], list[lis
     if not plan.comparisons:
         raise ValueError(f"No non-in-situ XPS comparison was planned; manual_review={plan.manual_review}")
     comparison = next((item for item in plan.comparisons if item.name == "XPS_Bi_BOBC_vs_BC_stacked"), plan.comparisons[0])
-    headers, rows = _xps_records_to_offset_table([comparison.record_a, comparison.record_b], include_envelope=True)
+    headers, rows = _xps_records_to_offset_table([comparison.record_a, comparison.record_b], include_envelope=True, include_components=True)
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
         "y_label": "Intensity (a.u.)",
@@ -427,7 +428,7 @@ def _build_xps_non_in_situ_table(paths: list[Path]) -> tuple[list[str], list[lis
     }
 
 
-def _xps_records_to_offset_table(records: list[XpsFitRecord], *, include_envelope: bool) -> tuple[list[str], list[list[float | str | None]]]:
+def _xps_records_to_offset_table(records: list[XpsFitRecord], *, include_envelope: bool, include_components: bool = False) -> tuple[list[str], list[list[float | str | None]]]:
     if not records:
         raise ValueError("No XPS records to plot")
     point_count = min(len(record.data) for record in records)
@@ -443,6 +444,12 @@ def _xps_records_to_offset_table(records: list[XpsFitRecord], *, include_envelop
             if any(value is not None for value in envelope):
                 record_series.append(envelope)
                 headers.append(f"{_series_sample_name(record.sample)}_envelope")
+        if include_components:
+            for component_index, label in enumerate(record.component_labels, start=1):
+                component = _normalized_record_series_any(record, (_component_key(label), label), offset, point_count)
+                if any(value is not None for value in component):
+                    record_series.append(component)
+                    headers.append(f"{_series_sample_name(record.sample)}_component_{component_index}")
         series_by_record.append(record_series)
     rows: list[list[float | str | None]] = []
     for index in range(point_count):
@@ -465,6 +472,14 @@ def _normalized_record_series(record: XpsFitRecord, key: str, offset: float, poi
     if span <= 0:
         return [offset if value is not None else None for value in raw]
     return [((value - minimum) / span + offset) if value is not None else None for value in raw]
+
+
+def _normalized_record_series_any(record: XpsFitRecord, keys: Iterable[str], offset: float, point_count: int) -> list[float | None]:
+    for key in keys:
+        series = _normalized_record_series(record, key, offset, point_count)
+        if any(value is not None for value in series):
+            return series
+    return [None] * point_count
 
 
 def _xps_in_situ_sample_files(paths: list[Path]) -> dict[str, list[Path]]:

@@ -10,34 +10,39 @@ from src.origin.style_mimic import OpjuStyleSnapshot
 
 
 DEFAULT_USER_STYLE: dict[str, object] = {
+    "font_family": "Arial",
     "line_width_pt": 3.0,
     "axis_line_width_pt": 2.0,
     "tick_width_pt": 1.5,
-    "axis_title_font_size": 28,
+    "axis_title_font_size": 36,
     "tick_label_font_size": 24,
     "legend_font_size": 22,
     "title_font_size": 28,
     "marker_size": 6,
     "font_bold": True,
+    "legend_no_frame": True,
     "export_dpi": 600,
 }
 
 
 @dataclass(frozen=True)
 class ResolvedPlotStyle:
+    font_family: str = "Arial"
     line_width_pt: float = 3.0
     axis_line_width_pt: float = 2.0
     tick_width_pt: float = 1.5
-    axis_title_font_size: int = 28
+    axis_title_font_size: int = 36
     tick_label_font_size: int = 24
     legend_font_size: int = 22
     title_font_size: int = 28
     marker_size: int = 6
     font_bold: bool = True
+    legend_no_frame: bool = True
     export_dpi: int = 600
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "font_family": self.font_family,
             "line_width_pt": self.line_width_pt,
             "axis_line_width_pt": self.axis_line_width_pt,
             "tick_width_pt": self.tick_width_pt,
@@ -47,6 +52,7 @@ class ResolvedPlotStyle:
             "title_font_size": self.title_font_size,
             "marker_size": self.marker_size,
             "font_bold": self.font_bold,
+            "legend_no_frame": self.legend_no_frame,
             "export_dpi": self.export_dpi,
         }
 
@@ -87,11 +93,14 @@ def apply_resolved_style_overrides(operations: object, graph_name: str, style: R
         graph_activation +
         f"layer.x.thickness={style.axis_line_width_pt}; layer.y.thickness={style.axis_line_width_pt}; "
         f"layer.x.label.pt={style.tick_label_font_size}; layer.y.label.pt={style.tick_label_font_size}; "
+        f"xb.font$=\"{style.font_family}\"; yl.font$=\"{style.font_family}\"; legend.font$=\"{style.font_family}\"; "
         f"xb.fsize={style.axis_title_font_size}; yl.fsize={style.axis_title_font_size}; "
         f"legend.fsize={style.legend_font_size}; title.fsize={style.title_font_size};"
     )
     if style.font_bold:
         operations.run_labtalk(graph_activation + "xb.bold=1; yl.bold=1; layer.x.label.bold=1; layer.y.label.bold=1; legend.bold=1;")
+    if style.legend_no_frame:
+        operations.run_labtalk(graph_activation + "legend.border=0; legend.frame=0; legend.fill=0;")
     operations.run_labtalk(graph_activation + f"doc -e DY {{set %C -w {int(style.line_width_pt * 10)}; set %C -z {style.marker_size};}}")
 
 
@@ -126,6 +135,8 @@ def _coerce_style(values: dict[str, object]) -> ResolvedPlotStyle:
         raw = values.get(field_name, default)
         if isinstance(default, bool):
             style = replace(style, **{field_name: _to_bool(raw)})
+        elif isinstance(default, str):
+            style = replace(style, **{field_name: str(raw)})
         elif isinstance(default, int):
             style = replace(style, **{field_name: int(round(float(raw)))})
         else:

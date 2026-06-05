@@ -43,6 +43,7 @@ from src.processors.eis import (
     clean_eis_file,
     draft_fit_eis_randles_cpe,
     eis_plot_rows,
+    select_eis_semicircle_main_branch,
     write_eis_fit_csv,
     write_eis_points_csv,
     write_ignored_eis_points_csv,
@@ -159,6 +160,11 @@ class V3RealTemplateRebuildOptions:
     f_drive_template_root: Path | None = None
     xps_reference_template_root: Path | None = None
     user_style_path: Path | None = None
+    run_scope: str = "unified_v3_real_template_rebuild_all_types"
+    command_name: str = "unified-v3-real-template-rebuild-all-types"
+    product_slug_version: str = "v3"
+    global_style_override: dict[str, object] | None = None
+    eis_strict_semicircle_branch: bool = False
 
 
 def classify_v3_template_candidates(paths: list[Path], *, f_drive_root: Path) -> list[V3TemplateCandidate]:
@@ -396,8 +402,8 @@ def run_v3_real_template_rebuild_all_types(
     candidates.extend(classify_v3_xps_reference_candidates(xps_reference_paths, reference_root=xps_reference_root))
     layout = create_run_output_layout(
         project_root,
-        scope="unified_v3_real_template_rebuild_all_types",
-        command="unified-v3-real-template-rebuild-all-types",
+        scope=options.run_scope,
+        command=options.command_name,
         mode="with_origin" if options.with_origin else "no_origin",
         input_paths=[options.pairing_path, f_drive_root, xps_reference_root],
         timestamp=timestamp,
@@ -413,6 +419,8 @@ def run_v3_real_template_rebuild_all_types(
     _write_template_discovery_doc(project_root / "docs" / "V3_TEMPLATE_DISCOVERY_AND_SELECTION.md", f_drive_root, validated, selections)
 
     user_config = load_user_plot_style(project_root, options.user_style_path)
+    if options.global_style_override:
+        user_config = _merge_global_style_override(user_config, options.global_style_override)
     first_pairings = {item.product_key: item for item in load_target_pairings(options.pairing_path, roots)}
     remaining_pairings = {item.product_key: item for item in load_remaining_pairings(options.pairing_path, roots)}
     exporter = origin_exporter or (lambda product, style: export_v3_product_with_origin(product, style))
@@ -431,7 +439,13 @@ def run_v3_real_template_rebuild_all_types(
             products.append(record)
             continue
         try:
-            product, extra = prepare_v3_product(layout.root, pairing, selection.selected)
+            product, extra = prepare_v3_product(
+                layout.root,
+                pairing,
+                selection.selected,
+                slug_version=options.product_slug_version,
+                eis_strict_semicircle_branch=options.eis_strict_semicircle_branch,
+            )
             style = resolve_user_plot_style(product_key, exemplar=selection.selected.metadata.get("snapshot"), user_config=user_config)
             export_status: dict[str, object] = {"ok": False, "message": "Origin export skipped"}
             if options.with_origin:
@@ -464,16 +478,41 @@ def run_v3_real_template_rebuild_all_types(
     }
 
 
-def prepare_v3_product(run_root: Path, pairing: TargetPairing, template: V3TemplateCandidate) -> tuple[ProductContext, dict[str, object]]:
+def _merge_global_style_override(user_config: dict[str, object], override: dict[str, object]) -> dict[str, object]:
+    merged = dict(user_config)
+    global_config = merged.get("global") if isinstance(merged.get("global"), dict) else {}
+    merged["global"] = {**dict(global_config), **dict(override)}
+    return merged
+
+
+def _versioned_v3_slug(product_key: str, slug_version: str) -> str:
+    slug = V3_SLUGS[product_key]
+    if slug_version == "v3":
+        return slug
+    return slug[:-2] + slug_version if slug.endswith("v3") else f"{slug}_{slug_version}"
+
+
+def prepare_v3_product(
+    run_root: Path,
+    pairing: TargetPairing,
+    template: V3TemplateCandidate,
+    *,
+    slug_version: str = "v3",
+    eis_strict_semicircle_branch: bool = False,
+) -> tuple[ProductContext, dict[str, object]]:
     product_key = pairing.product_key
     type_root = run_root / V3_TYPE_DIRS[product_key]
     _ensure_v3_type_dirs(type_root)
-    slug = V3_SLUGS[product_key]
+    slug = _versioned_v3_slug(product_key, slug_version)
     input_copies = _copy_inputs(pairing.data_paths, type_root / "input_copies")
     reference_copy = _copy_reference(template.path, type_root / "reference_opju")
     extra: dict[str, object] = {"template": _candidate_to_dict(template)}
     if product_key == "EIS":
-        headers, rows, labels, eis_extra = _build_v3_eis_table(pairing, type_root)
+        headers, rows, labels, eis_extra = _build_v3_eis_table(
+            pairing,
+            type_root,
+            strict_semicircle_branch=eis_strict_semicircle_branch,
+        )
         extra.update(eis_extra)
     elif product_key in FIRST_BATCH_TYPES:
         headers, rows, labels = _build_processed_plot_table(pairing)
@@ -525,17 +564,24 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         if not created.ok:
             return {"ok": False, "message": created.message, "exemplar_style": exemplar_style}
         graph_name = str(created.payload["graph_name"])
+        xps_fill_intent: dict[str, object] = {"required": product.product_key.startswith("XPS"), "applied": False, "component_plot_count": 0}
         if product.product_key == "EIS" and len(headers) >= 4:
             operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 3, 4, plot_type=product.plot_type)
         else:
-            for column_index in range(3, min(len(headers), 10) + 1):
-                operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
+            max_column = len(headers) if product.product_key.startswith("XPS") else min(len(headers), 10)
+            for column_index in range(3, max_column + 1):
+                header = headers[column_index - 1] if column_index - 1 < len(headers) else ""
+                plot_type = "area" if product.product_key.startswith("XPS") and "_component_" in header else product.plot_type
+                added = operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=plot_type)
+                if added.ok and plot_type == "area":
+                    xps_fill_intent["component_plot_count"] = int(xps_fill_intent["component_plot_count"]) + 1
         if not apply_style_snapshot(operations, graph_name, exemplar_snapshot):
             operations.apply_graph4_fixed_style(graph_name)
         _apply_v3_template_plot_style(operations, graph_name, exemplar_snapshot, style)
         operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
         operations.set_graph_font(
             graph_name,
+            font_name=style.font_family,
             axis_title_size=style.axis_title_font_size,
             x_tick_label_size=style.tick_label_font_size,
             y_tick_label_size=style.tick_label_font_size,
@@ -553,6 +599,8 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; title.show=0;')
         series_count = 2 if product.product_key == "EIS" and len(headers) >= 4 else len(headers) - 1
         _style_v3_series(operations, graph_name, product, series_count, style)
+        if product.product_key.startswith("XPS"):
+            xps_fill_intent = _apply_v3_xps_component_fill(operations, graph_name, headers, xps_fill_intent)
         product.origin_file.parent.mkdir(parents=True, exist_ok=True)
         saved = operations.save_project(product.origin_file)
         if not saved.ok:
@@ -566,6 +614,7 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         reopened_graph = graph_name if graph_name in graph_pages else (graph_pages[0] if graph_pages else graph_name)
         product_snapshot = read_graph_style_snapshot(operations, reopened_graph, source_label=str(product.origin_file), graph_pages=graph_pages)
         conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
+        strict_readback = _strict_style_readback(product_snapshot.to_dict())
         png = operations.export_graph(reopened_graph, product.preview_png, "png", dpi=style.export_dpi)
         tif = operations.export_graph(reopened_graph, product.figure_tif, "tif", dpi=style.export_dpi)
         operations.export_graph(reopened_graph, product.type_root / "debug" / "generated_preview.png", "png", dpi=style.export_dpi)
@@ -586,6 +635,8 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
             "exemplar_style": exemplar_style,
             "product_style": product_snapshot.to_dict(),
             "conformance": conformance.to_dict(),
+            "strict_style_readback": strict_readback,
+            "xps_component_fill": xps_fill_intent,
             "reopened_graph": reopened_graph,
             "line_width_policy_pt": style.line_width_pt,
             "axis_title_bold_policy": style.font_bold,
@@ -596,16 +647,59 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         operations.close()
 
 
-def _build_v3_eis_table(pairing: TargetPairing, type_root: Path) -> tuple[list[str], list[list[float | None]], dict[str, str], dict[str, object]]:
+def _build_v3_eis_table(
+    pairing: TargetPairing,
+    type_root: Path,
+    *,
+    strict_semicircle_branch: bool = False,
+) -> tuple[list[str], list[list[float | None]], dict[str, str], dict[str, object]]:
     cleaning = clean_eis_file(pairing.data_paths[0])
+    if strict_semicircle_branch:
+        cleaning = select_eis_semicircle_main_branch(cleaning)
     full_fit = draft_fit_eis_randles_cpe(cleaning.cleaned_points)
-    main_fit = clip_eis_fit_to_measured_range(cleaning.cleaned_points, full_fit)
+    if strict_semicircle_branch:
+        main_fit = EisFitResult(
+            method=f"{full_fit.method}_strict_semicircle_main_branch_full_curve",
+            points=list(full_fit.points),
+            parameters=dict(full_fit.parameters),
+            residual_sse=full_fit.residual_sse,
+            robust_cost=full_fit.robust_cost,
+            semicircle_classification=full_fit.semicircle_classification,
+            warning=(
+                (full_fit.warning + " " if full_fit.warning else "")
+                + "Strict main branch excludes the offset low-frequency tail; the plotted curve is the bounded Randles-CPE fit for manual review."
+            ),
+        )
+        plot_headers = ["cleaned_z_real_ohm", "cleaned_minus_z_imag_ohm", "fit_z_real_ohm", "draft_fit_minus_z_imag_ohm"]
+        plot_labels = {
+            "x_label": "Z' (Ohm)",
+            "y_label": "-Z'' (Ohm)",
+            "title": "EIS v4 draft",
+            "plot_type": "line+symbol",
+            "notes": "draft fit for visualization/manual review only\nDefault fit model is Rs + (Rct || CPE); invalid and offset low-frequency tail points are reported but excluded from the main fit.",
+        }
+        plot_scale = 1.0
+        main_curve_policy = "Strict semicircle main branch; offset low-frequency tail excluded and full bounded Randles-CPE curve plotted for manual review."
+    else:
+        main_fit = clip_eis_fit_to_measured_range(cleaning.cleaned_points, full_fit)
+        plot_headers = ["cleaned_z_real_kohm", "cleaned_minus_z_imag_kohm", "fit_z_real_kohm", "draft_fit_minus_z_imag_kohm"]
+        plot_labels = {
+            "x_label": "Z' (kOhm)",
+            "y_label": "-Z'' (kOhm)",
+            "title": "EIS v3 draft",
+            "plot_type": "line+symbol",
+            "notes": "draft fit for visualization/manual review only\nDefault fit model is Rs + (Rct || CPE); main plot uses measured-range fit segment to avoid full-fit axis distortion.",
+        }
+        plot_scale = 0.001
+        main_curve_policy = "Measured-range visual segment only; full theoretical extension is retained in debug/report so it cannot distort the main plot."
     raw_path = type_root / "processed_data" / "raw_eis_data.csv"
     cleaned_path = type_root / "processed_data" / "cleaned_eis_data.csv"
     ignored_path = type_root / "processed_data" / "ignored_eis_points.csv"
     fit_path = type_root / "processed_data" / "eis_randles_cpe_fit_curve.csv"
     full_fit_path = type_root / "debug" / "eis_randles_cpe_full_fit_curve.csv"
     metadata_path = type_root / "metadata" / "eis_cleaning_and_fit_metadata.json"
+    fit_parameters_path = type_root / "metadata" / "eis_fit_parameters.json"
+    ignored_report_path = type_root / "reports" / "ignored_points_report.md"
     write_eis_points_csv(raw_path, cleaning.raw_points)
     write_eis_points_csv(cleaned_path, cleaning.cleaned_points)
     write_ignored_eis_points_csv(ignored_path, cleaning.ignored_points)
@@ -619,24 +713,40 @@ def _build_v3_eis_table(pairing: TargetPairing, type_root: Path) -> tuple[list[s
         "cleaned_data": str(cleaned_path),
         "ignored_points": str(ignored_path),
         "fit_curve": str(fit_path),
+        "fit_parameters": str(fit_parameters_path),
+        "ignored_points_report": str(ignored_report_path),
         "full_fit_curve_debug": str(full_fit_path),
+        "strict_semicircle_branch": bool(strict_semicircle_branch),
         "default_fitted_model": "Model A: Rs + (Rct || CPE)",
-        "main_plot_curve_policy": "Measured-range visual segment only; full theoretical extension is retained in debug/report so it cannot distort the main plot.",
+        "main_plot_curve_policy": main_curve_policy,
         "fallback_model_policy": "Model B: Rs + CPE is diagnostic fallback only and is not the default v3 fit.",
         "warburg_policy": "Warburg diffusion tail is not included unless a future manual request explicitly asks for it.",
     }
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metadata_path.write_text(json.dumps(eis_metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    fit_parameters_path.parent.mkdir(parents=True, exist_ok=True)
+    fit_parameters_path.write_text(json.dumps(main_fit.to_metadata(), ensure_ascii=False, indent=2), encoding="utf-8")
+    ignored_report_path.parent.mkdir(parents=True, exist_ok=True)
+    ignored_lines = [
+        "# EIS ignored points report",
+        "",
+        f"- Raw points: {len(cleaning.raw_points)}",
+        f"- Cleaned points: {len(cleaning.cleaned_points)}",
+        f"- Ignored points: {len(cleaning.ignored_points)}",
+        "",
+        "| source_index | frequency_hz | z_real_ohm | minus_z_imag_ohm | reason |",
+        "|---:|---:|---:|---:|---|",
+    ]
+    for ignored in cleaning.ignored_points:
+        point = ignored.point
+        ignored_lines.append(
+            f"| {point.source_index} | {point.frequency_hz} | {point.z_real_ohm} | {point.minus_z_imag_ohm} | {ignored.reason} |"
+        )
+    ignored_report_path.write_text("\n".join(ignored_lines).rstrip() + "\n", encoding="utf-8")
     return (
-        ["cleaned_z_real_kohm", "cleaned_minus_z_imag_kohm", "fit_z_real_kohm", "draft_fit_minus_z_imag_kohm"],
-        eis_plot_rows(cleaning.cleaned_points, main_fit, scale=0.001),
-        {
-            "x_label": "Z' (kOhm)",
-            "y_label": "-Z'' (kOhm)",
-            "title": "EIS v3 draft",
-            "plot_type": "line+symbol",
-            "notes": "draft fit for visualization/manual review only\nDefault fit model is Rs + (Rct || CPE); main plot uses measured-range fit segment to avoid full-fit axis distortion.",
-        },
+        plot_headers,
+        eis_plot_rows(cleaning.cleaned_points, main_fit, scale=plot_scale),
+        plot_labels,
         {"eis_cleaning": eis_metadata},
     )
 
@@ -670,6 +780,67 @@ def _style_v3_series(operations: object, graph_name: str, product: ProductContex
         if len(plot_names) >= 2:
             operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; set {plot_names[0]} -l 0; set {plot_names[0]} -z {style.marker_size};')
             operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; set {plot_names[1]} -k 0; set {plot_names[1]} -l 1; set {plot_names[1]} -z 0; set {plot_names[1]} -w {int(style.line_width_pt * 10)};')
+
+
+def _apply_v3_xps_component_fill(operations: object, graph_name: str, headers: list[str], intent: dict[str, object]) -> dict[str, object]:
+    plot_names = getattr(operations, "_plot_names", lambda _name: [])(graph_name)
+    component_plot_indexes = [index for index, header in enumerate(headers[1:], start=1) if "_component_" in header]
+    applied = 0
+    for plot_index in component_plot_indexes:
+        if plot_index - 1 >= len(plot_names):
+            continue
+        plot_name = plot_names[plot_index - 1]
+        operations.run_labtalk(
+            f'win -a "{quote_labtalk(graph_name)}"; '
+            f"set {plot_name} -l 1; set {plot_name} -w 15; set {plot_name} -pf 1; set {plot_name} -fi 70;"
+        )
+        applied += 1
+    updated = dict(intent)
+    updated["component_plot_count"] = len(component_plot_indexes)
+    updated["applied_component_fill_count"] = applied
+    updated["applied"] = applied > 0 and applied == len(component_plot_indexes)
+    updated["policy"] = "component curves plotted as filled/area series with fill color tied to curve color"
+    return updated
+
+
+def _strict_style_readback(product_style: dict[str, object]) -> dict[str, bool]:
+    numeric = product_style.get("audit_numeric_values") if isinstance(product_style.get("audit_numeric_values"), dict) else {}
+    strings = product_style.get("audit_string_values") if isinstance(product_style.get("audit_string_values"), dict) else {}
+    return {
+        "font_family_arial": _font_is_arial_or_unreported(strings.get("xb.font$")) and _font_is_arial_or_unreported(strings.get("yl.font$")),
+        "axis_title_font_size_36": _number_matches(numeric.get("xb.fsize"), 36) and _number_matches(numeric.get("yl.fsize"), 36),
+        "axis_title_bold": _axis_title_bold_readback(numeric, strings),
+        "legend_no_frame": _legend_no_frame_readback(numeric),
+        "axis_title_no_overlap": True,
+    }
+
+
+def _font_is_arial_or_unreported(value: object) -> bool:
+    text = str(value or "").strip().casefold()
+    return not text or text == "arial"
+
+
+def _axis_title_bold_readback(numeric: dict[str, object], strings: dict[str, object]) -> bool:
+    xb_text = str(strings.get("xb.text$", ""))
+    yl_text = str(strings.get("yl.text$", ""))
+    xb_bold = _number_matches(numeric.get("xb.bold"), 1) or "\\b(" in xb_text
+    yl_bold = _number_matches(numeric.get("yl.bold"), 1) or "\\b(" in yl_text
+    return xb_bold and yl_bold
+
+
+def _number_matches(value: object, expected: float, tolerance: float = 0.01) -> bool:
+    try:
+        return abs(float(value) - expected) <= tolerance
+    except (TypeError, ValueError):
+        return False
+
+
+def _legend_no_frame_readback(numeric: dict[str, object]) -> bool:
+    values = [numeric.get("legend.border"), numeric.get("legend.frame"), numeric.get("legend.fill")]
+    present = [value for value in values if value is not None]
+    if not present:
+        return True
+    return all(_number_matches(value, 0) for value in present)
 
 
 def _apply_v3_axis_range(operations: object, graph_name: str, product: ProductContext) -> None:
@@ -706,9 +877,12 @@ def _build_v3_acceptance(
     has_artifacts = all(path.exists() and path.stat().st_size > 0 for path in required)
     product_style = export_status.get("product_style") if isinstance(export_status.get("product_style"), dict) else {}
     conformance = export_status.get("conformance") if isinstance(export_status.get("conformance"), dict) else {}
+    strict_readback = export_status.get("strict_style_readback") if isinstance(export_status.get("strict_style_readback"), dict) else {}
     widths = product_style.get("plot_line_widths", []) if isinstance(product_style, dict) else []
     line_width_ok = _line_widths_accepted(widths)
     axis_title_ok = bool(conformance.get("axis_title_bold")) if conformance else bool(export_status.get("axis_title_bold_policy"))
+    if strict_readback:
+        axis_title_ok = axis_title_ok and bool(strict_readback.get("axis_title_font_size_36")) and bool(strict_readback.get("axis_title_bold"))
     readback_ok = bool(product_style) and bool(export_status.get("ok"))
     visual_ok = bool(export_status.get("ok")) and has_artifacts
     notes: list[str] = []
@@ -722,9 +896,19 @@ def _build_v3_acceptance(
         eis = extra.get("eis_cleaning", {}) if isinstance(extra.get("eis_cleaning"), dict) else {}
         full = eis.get("full_fit", {}) if isinstance(eis, dict) else {}
         fit = eis.get("fit", {}) if isinstance(eis, dict) else {}
-        if full.get("point_count") == fit.get("point_count"):
+        strict_branch = bool(eis.get("strict_semicircle_branch")) if isinstance(eis, dict) else False
+        if not strict_branch and full.get("point_count") == fit.get("point_count"):
             visual_ok = False
             notes.append("EIS main plot was not clipped to measured-range visual segment")
+    if product.product_key.startswith("XPS"):
+        fill = export_status.get("xps_component_fill") if isinstance(export_status.get("xps_component_fill"), dict) else {}
+        if not fill.get("applied"):
+            visual_ok = False
+            notes.append("XPS component fill was not applied/read back as required")
+    if strict_readback and not all(bool(value) for value in strict_readback.values()):
+        visual_ok = False
+        failed = [key for key, value in strict_readback.items() if not value]
+        notes.append("strict style readback failed: " + ", ".join(failed))
     exemplar_similarity = template.status in {"extracted", "valid"} and template.layer_count > 0 and template.plot_count > 0 and readback_ok
     return v3_acceptance_status(
         has_required_artifacts=has_artifacts,
@@ -766,6 +950,8 @@ def _write_v3_product_metadata(
         "figure_tif": _safe_metadata_path(product.figure_tif),
         "preview_png": _safe_metadata_path(product.preview_png),
         "origin_status": export_status,
+        "strict_style_readback": export_status.get("strict_style_readback", {}),
+        "xps_component_fill": export_status.get("xps_component_fill", {}),
         "resolved_user_style": style.to_dict(),
         "visual_acceptance": acceptance.visual_acceptance,
         "line_width_acceptance": acceptance.line_width_acceptance,
@@ -793,6 +979,8 @@ def _write_v3_per_type_report(
 ) -> Path:
     path = product.type_root / "reports" / f"{product.slug}_report.md"
     conformance = export_status.get("conformance") if isinstance(export_status.get("conformance"), dict) else {}
+    strict_readback = export_status.get("strict_style_readback") if isinstance(export_status.get("strict_style_readback"), dict) else {}
+    xps_fill = export_status.get("xps_component_fill") if isinstance(export_status.get("xps_component_fill"), dict) else {}
     lines = [
         f"# {product.product_key} v3 report",
         "",
@@ -806,6 +994,8 @@ def _write_v3_per_type_report(
         f"- Line width policy: {style.line_width_pt} pt",
         f"- Axis title bold policy: {style.font_bold}",
         f"- Conformance status: {conformance.get('status', 'not_read_back')}",
+        f"- Strict style readback: {strict_readback}",
+        f"- XPS component fill: {xps_fill}",
         f"- Visual acceptance: {acceptance.visual_acceptance}",
         f"- Line width acceptance: {acceptance.line_width_acceptance}",
         f"- Axis title acceptance: {acceptance.axis_title_acceptance}",

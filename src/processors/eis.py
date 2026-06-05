@@ -110,6 +110,45 @@ def clean_eis_file(path: Path) -> EisCleaningResult:
     return EisCleaningResult(points, cleaned, ignored, selected, warnings)
 
 
+def select_eis_semicircle_main_branch(
+    cleaning: EisCleaningResult,
+    *,
+    ratio_threshold: float = 1.2,
+    min_prefix_points: int = 4,
+) -> EisCleaningResult:
+    """Keep the main semicircle-like branch before the low-frequency offset tail."""
+    if len(cleaning.cleaned_points) <= max(min_prefix_points, 4):
+        return cleaning
+    cutoff_index: int | None = None
+    for index, point in enumerate(cleaning.cleaned_points):
+        if index < min_prefix_points:
+            continue
+        denominator = max(point.z_real_ohm, 1e-9)
+        if point.minus_z_imag_ohm / denominator > ratio_threshold:
+            cutoff_index = index
+            break
+    if cutoff_index is None or cutoff_index < 4:
+        return cleaning
+    kept = cleaning.cleaned_points[:cutoff_index]
+    tail = cleaning.cleaned_points[cutoff_index:]
+    ignored = list(cleaning.ignored_points)
+    ignored.extend(
+        EisIgnoredPoint(point, "offset_tail_beyond_semicircle_main_branch")
+        for point in tail
+    )
+    warnings = list(cleaning.warnings)
+    warnings.append(
+        "Low-frequency offset tail was excluded from the strict semicircle main-branch draft fit."
+    )
+    return EisCleaningResult(
+        raw_points=list(cleaning.raw_points),
+        cleaned_points=kept,
+        ignored_points=ignored,
+        selected_columns=dict(cleaning.selected_columns),
+        warnings=warnings,
+    )
+
+
 def draft_fit_eis_randles_cpe(points: list[EisPoint], *, fit_points: int = 240) -> EisFitResult:
     fit_points_input = [point for point in points if point.frequency_hz is not None and point.frequency_hz > 0]
     if len(fit_points_input) < 4:

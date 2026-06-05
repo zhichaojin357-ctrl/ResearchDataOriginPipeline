@@ -9,6 +9,7 @@ from src.processors.eis import (
     draft_fit_eis_randles_cpe,
     eis_plot_rows,
     randles_cpe_impedance,
+    select_eis_semicircle_main_branch,
 )
 
 
@@ -107,6 +108,20 @@ def test_plot_intent_keeps_full_fit_curve_independent_from_measured_x(tmp_path: 
     assert len(fit_rows) == len(fit.points)
     assert len(fit_rows) > len(measured_rows)
     assert any(row[2] != row[0] for row in rows if row[0] is not None and row[2] is not None)
+
+
+def test_strict_semicircle_branch_removes_offset_tail_before_fit(tmp_path: Path) -> None:
+    source = _write_positive_branch_then_sign_flip_tail(tmp_path)
+    cleaned = clean_eis_file(source)
+
+    strict = select_eis_semicircle_main_branch(cleaned, ratio_threshold=1.2)
+    fit = draft_fit_eis_randles_cpe(strict.cleaned_points)
+
+    assert len(strict.cleaned_points) < len(cleaned.cleaned_points)
+    assert len(strict.ignored_points) > len(cleaned.ignored_points)
+    assert any("offset_tail_beyond_semicircle_main_branch" in item.reason for item in strict.ignored_points)
+    assert max(point.minus_z_imag_ohm / max(point.z_real_ohm, 1e-9) for point in strict.cleaned_points) <= 1.2
+    assert fit.parameters["Rct"] < 1000
 
 
 def _write_semicircle_with_bad_tail(tmp_path: Path) -> Path:
