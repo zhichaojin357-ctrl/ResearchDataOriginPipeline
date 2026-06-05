@@ -4,6 +4,8 @@ import csv
 import json
 import math
 import shutil
+import subprocess
+import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -188,49 +190,61 @@ def scan_v3_f_drive_template_paths(f_drive_root: Path) -> list[Path]:
     )
 
 
-def validate_v3_template_candidates(candidates: list[V3TemplateCandidate], scan_copy_root: Path) -> list[V3TemplateCandidate]:
+def validate_v3_template_candidates(candidates: list[V3TemplateCandidate], scan_copy_root: Path, *, max_per_type: int = 5) -> list[V3TemplateCandidate]:
     if not candidates:
         return []
     scan_copy_root.mkdir(parents=True, exist_ok=True)
-    operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
     validated: list[V3TemplateCandidate] = []
-    try:
-        for index, candidate in enumerate(candidates, start=1):
-            copied = _copy_template_for_scan(candidate.path, scan_copy_root, index)
-            try:
-                snapshot = extract_style_snapshot(operations, copied)
-                status = _candidate_status_from_snapshot(snapshot)
-                validated.append(
-                    V3TemplateCandidate(
-                        product_key=candidate.product_key,
-                        path=candidate.path,
-                        source=candidate.source,
-                        path_score=candidate.path_score,
-                        status=status,
-                        graph_page=str(snapshot.graph_page or ""),
-                        layer_count=snapshot.layer_count,
-                        plot_count=snapshot.plot_count,
-                        reason=_candidate_reason(snapshot),
-                        metadata={
-                            "scan_copy": str(copied),
-                            "snapshot": snapshot.to_dict(),
-                        },
-                    )
+    validation_targets = _prioritized_template_validation_targets(candidates, max_per_type=max_per_type)
+    target_ids = {id(candidate) for candidate in validation_targets}
+    copy_index = 1
+    for candidate in candidates:
+        if id(candidate) not in target_ids:
+            validated.append(
+                V3TemplateCandidate(
+                    product_key=candidate.product_key,
+                    path=candidate.path,
+                    source=candidate.source,
+                    path_score=candidate.path_score,
+                    status="not_opened_lower_priority_candidate",
+                    reason="Recorded during F-drive scan but not opened because higher-priority candidates were validated first.",
                 )
-            except Exception as exc:
-                validated.append(
-                    V3TemplateCandidate(
-                        product_key=candidate.product_key,
-                        path=candidate.path,
-                        source=candidate.source,
-                        path_score=candidate.path_score,
-                        status="load_failed",
-                        reason=str(exc),
-                        metadata={"scan_copy": str(copied)},
-                    )
+            )
+            continue
+        copied = _copy_template_for_scan(candidate.path, scan_copy_root, copy_index)
+        copy_index += 1
+        try:
+            snapshot_payload = _extract_template_snapshot_in_isolated_process(copied)
+            status = _candidate_status_from_snapshot_payload(snapshot_payload)
+            validated.append(
+                V3TemplateCandidate(
+                    product_key=candidate.product_key,
+                    path=candidate.path,
+                    source=candidate.source,
+                    path_score=candidate.path_score,
+                    status=status,
+                    graph_page=str(snapshot_payload.get("graph_page") or ""),
+                    layer_count=int(snapshot_payload.get("layer_count") or 0),
+                    plot_count=int(snapshot_payload.get("plot_count") or 0),
+                    reason=_candidate_reason_from_payload(snapshot_payload),
+                    metadata={
+                        "scan_copy": str(copied),
+                        "snapshot": snapshot_payload,
+                    },
                 )
-    finally:
-        operations.close()
+            )
+        except Exception as exc:
+            validated.append(
+                V3TemplateCandidate(
+                    product_key=candidate.product_key,
+                    path=candidate.path,
+                    source=candidate.source,
+                    path_score=candidate.path_score,
+                    status="load_failed",
+                    reason=str(exc),
+                    metadata={"scan_copy": str(copied)},
+                )
+            )
     return validated
 
 
@@ -1327,12 +1341,101 @@ def _candidate_status_from_snapshot(snapshot: OpjuStyleSnapshot) -> str:
     return "extracted"
 
 
+def _candidate_status_from_snapshot_payload(snapshot: dict[str, object]) -> str:
+    status = str(snapshot.get("status") or "")
+    if status != "extracted":
+        return status or "load_failed"
+    if int(snapshot.get("layer_count") or 0) <= 0 or int(snapshot.get("plot_count") or 0) <= 0 or not snapshot.get("graph_page"):
+        return "data_only"
+    return "extracted"
+
+
 def _candidate_reason(snapshot: OpjuStyleSnapshot) -> str:
     if snapshot.status != "extracted":
         return "; ".join(snapshot.warnings) or snapshot.status
     if snapshot.layer_count <= 0 or snapshot.plot_count <= 0:
         return "data-only or incomplete graph object"
     return "graph/layer/plot object readback succeeded"
+
+
+def _candidate_reason_from_payload(snapshot: dict[str, object]) -> str:
+    status = str(snapshot.get("status") or "")
+    warnings = snapshot.get("warnings") if isinstance(snapshot.get("warnings"), list) else []
+    if status != "extracted":
+        return "; ".join(str(item) for item in warnings) or status
+    if int(snapshot.get("layer_count") or 0) <= 0 or int(snapshot.get("plot_count") or 0) <= 0:
+        return "data-only or incomplete graph object"
+    return "graph/layer/plot object readback succeeded"
+
+
+def _prioritized_template_validation_targets(candidates: list[V3TemplateCandidate], *, max_per_type: int) -> list[V3TemplateCandidate]:
+    targets: list[V3TemplateCandidate] = []
+    for product_key in V3_TARGET_TYPES:
+        scoped = [candidate for candidate in candidates if candidate.product_key == product_key]
+        targets.extend(sorted(scoped, key=lambda item: (item.path_score, -len(str(item.path))), reverse=True)[:max_per_type])
+    return targets
+
+
+def _extract_template_snapshot_in_isolated_process(opju_copy: Path, *, timeout_seconds: int = 75) -> dict[str, object]:
+    before_pids = _origin_process_ids()
+    code = r"""
+import json
+import sys
+from pathlib import Path
+from src.origin.operations import connect_origin
+from src.origin.style_mimic import extract_style_snapshot
+
+ops = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
+snapshot = extract_style_snapshot(ops, Path(sys.argv[1]))
+print(json.dumps(snapshot.to_dict(), ensure_ascii=False))
+"""
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code, str(opju_copy)],
+            cwd=Path(__file__).resolve().parents[2],
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            timeout=timeout_seconds,
+        )
+        if result.returncode != 0:
+            raise RuntimeError((result.stderr or result.stdout or "Origin snapshot helper failed").strip())
+        lines = [line for line in result.stdout.splitlines() if line.strip()]
+        if not lines:
+            raise RuntimeError("Origin snapshot helper returned no JSON payload")
+        return json.loads(lines[-1])
+    finally:
+        _kill_new_origin_processes(before_pids)
+
+
+def _origin_process_ids() -> set[int]:
+    result = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Origin64.exe' -and $_.CommandLine -like '*-Embedding*' } | ForEach-Object { $_.ProcessId }",
+        ],
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+    )
+    pids: set[int] = set()
+    for line in result.stdout.splitlines():
+        try:
+            pids.add(int(line.strip()))
+        except ValueError:
+            continue
+    return pids
+
+
+def _kill_new_origin_processes(before_pids: set[int]) -> None:
+    for pid in sorted(_origin_process_ids() - before_pids):
+        subprocess.run(
+            ["powershell", "-NoProfile", "-Command", f"Stop-Process -Id {pid} -Force -ErrorAction SilentlyContinue"],
+            text=True,
+            capture_output=True,
+        )
 
 
 def _candidate_to_dict(candidate: V3TemplateCandidate) -> dict[str, object]:
