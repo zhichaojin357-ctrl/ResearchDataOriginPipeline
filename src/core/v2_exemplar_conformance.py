@@ -473,16 +473,16 @@ def _write_v2_product_metadata(
         "product_key": product.product_key,
         "data_type": product.pairing.data_type,
         "xps_subtype": product.pairing.xps_subtype,
-        "selected_data_relative_paths": _selected_relative_paths(product.pairing, "selected_data_relative_paths"),
-        "selected_opju_relative_path": _selected_relative_paths(product.pairing, "selected_opju_relative_path"),
-        "source_files": [str(path) for path in product.pairing.data_paths],
-        "input_copies": [str(path) for path in product.input_copies],
-        "reference_opju": str(product.pairing.reference_opju),
-        "reference_opju_copy": str(product.reference_opju_copy),
-        "processed_data": str(product.processed_data),
-        "origin_file": str(product.origin_file),
-        "figure_tif": str(product.figure_tif),
-        "preview_png": str(product.preview_png),
+        "selected_data_relative_paths": _safe_metadata_paths(_selected_relative_paths(product.pairing, "selected_data_relative_paths")),
+        "selected_opju_relative_path": _safe_metadata_paths(_selected_relative_paths(product.pairing, "selected_opju_relative_path")),
+        "source_files": [_safe_metadata_path(path) for path in product.pairing.data_paths],
+        "input_copies": [_safe_metadata_path(path) for path in product.input_copies],
+        "reference_opju": _safe_metadata_path(product.pairing.reference_opju),
+        "reference_opju_copy": _safe_metadata_path(product.reference_opju_copy),
+        "processed_data": _safe_metadata_path(product.processed_data),
+        "origin_file": _safe_metadata_path(product.origin_file),
+        "figure_tif": _safe_metadata_path(product.figure_tif),
+        "preview_png": _safe_metadata_path(product.preview_png),
         "origin_status": export_status,
         "resolved_user_style": style.to_dict(),
         "manual_check_required": True,
@@ -1054,6 +1054,19 @@ def _known_v1_issues(product_key: str) -> list[str]:
             "no draft fit curve was generated",
         ]
     return common
+
+
+def _safe_metadata_paths(values: list[str]) -> list[str]:
+    return [_safe_metadata_text(value) for value in values]
+
+
+def _safe_metadata_path(path: Path | str) -> str:
+    return _safe_metadata_text(str(path).replace("\\", "/"))
+
+
+def _safe_metadata_text(value: object) -> str:
+    text = str(value).replace("\\", "/")
+    return "".join(char if ord(char) >= 32 else "/" for char in text)
 
 
 def _eis_ranges(raw_csv: Path) -> dict[str, str]:
