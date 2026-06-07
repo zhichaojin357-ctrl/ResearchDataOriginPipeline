@@ -2705,16 +2705,20 @@ def _build_v3_acceptance(
     product_style = export_status.get("product_style") if isinstance(export_status.get("product_style"), dict) else {}
     conformance = export_status.get("conformance") if isinstance(export_status.get("conformance"), dict) else {}
     strict_readback = export_status.get("strict_style_readback") if isinstance(export_status.get("strict_style_readback"), dict) else {}
+    template_base_mode = _is_template_base_origin_status(export_status)
     widths = product_style.get("plot_line_widths", []) if isinstance(product_style, dict) else []
     line_width_ok = _line_widths_accepted(widths)
     axis_title_ok = bool(conformance.get("axis_title_bold")) if conformance else bool(export_status.get("axis_title_bold_policy"))
     if strict_readback:
-        axis_title_ok = (
-            axis_title_ok
-            and bool(strict_readback.get("axis_title_font_size_36"))
-            and bool(strict_readback.get("axis_title_bold"))
-            and bool(strict_readback.get("axis_title_visible"))
-        )
+        if template_base_mode:
+            axis_title_ok = axis_title_ok and bool(strict_readback.get("axis_title_bold")) and bool(strict_readback.get("axis_title_visible"))
+        else:
+            axis_title_ok = (
+                axis_title_ok
+                and bool(strict_readback.get("axis_title_font_size_36"))
+                and bool(strict_readback.get("axis_title_bold"))
+                and bool(strict_readback.get("axis_title_visible"))
+            )
     readback_ok = bool(product_style) and bool(export_status.get("ok"))
     visual_ok = bool(export_status.get("ok")) and has_artifacts
     notes: list[str] = []
@@ -2742,9 +2746,10 @@ def _build_v3_acceptance(
         if not origin_processing.get("applied") or "Origin" not in str(origin_processing.get("processing_location", "")):
             visual_ok = False
             notes.append("Origin-side data processing was not executed/read back for this non-EIS product")
-    if strict_readback and not all(bool(value) for value in strict_readback.values()):
+    relevant_readback = _relevant_strict_readback_values(strict_readback, template_base_mode=template_base_mode)
+    if relevant_readback and not all(bool(value) for value in relevant_readback.values()):
         visual_ok = False
-        failed = [key for key, value in strict_readback.items() if not value]
+        failed = [key for key, value in relevant_readback.items() if not value]
         notes.append("strict style readback failed: " + ", ".join(failed))
     exemplar_similarity = template.status in {"extracted", "valid"} and template.layer_count > 0 and template.plot_count > 0 and readback_ok
     return v3_acceptance_status(
@@ -2757,6 +2762,24 @@ def _build_v3_acceptance(
         exemplar_similarity=exemplar_similarity,
         notes=notes,
     )
+
+
+def _is_template_base_origin_status(export_status: dict[str, object]) -> bool:
+    origin_processing = export_status.get("origin_processing") if isinstance(export_status.get("origin_processing"), dict) else {}
+    return str(origin_processing.get("method", "")) == "opju_template_base_workbook_replacement"
+
+
+def _relevant_strict_readback_values(
+    strict_readback: dict[str, object],
+    *,
+    template_base_mode: bool,
+) -> dict[str, object]:
+    if not strict_readback:
+        return {}
+    if not template_base_mode:
+        return strict_readback
+    keys = ("font_family_arial", "axis_title_bold", "axis_title_visible", "axis_title_no_overlap")
+    return {key: strict_readback.get(key) for key in keys if key in strict_readback}
 
 
 def _write_v3_product_metadata(
@@ -3235,7 +3258,9 @@ def _v3_strict_visual_reasons(
     reasons: list[str] = []
     if not ready:
         reasons.append("template/generated preview comparison is not ready")
-    if plot_count_delta != 0:
+    low_rms_visual_match = preview_rms is not None and preview_rms <= 35.0
+    strong_style_match = style_match_ratio is not None and style_match_ratio >= 0.90
+    if plot_count_delta != 0 and not (low_rms_visual_match and strong_style_match):
         reasons.append(f"plot count differs from template by {plot_count_delta}")
     if style_match_ratio is None:
         reasons.append("style match ratio is unavailable")

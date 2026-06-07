@@ -102,21 +102,59 @@ def test_apply_template_base_data_replacement_reads_multiple_template_layers(tmp
     assert ops.replaced == {"Book1": {0: [0.0, 1.0], 1: [10.0, 11.0]}, "Book2": {0: [0.0, 1.0], 1: [20.0, 21.0]}}
 
 
-def test_template_base_global_policy_writes_bold_axis_title_text(tmp_path: Path) -> None:
+def test_epr_template_replacement_uses_template_bottom_to_top_series_order(tmp_path: Path) -> None:
+    class EprOps(_FakeTemplateOps):
+        def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+            if layer_index != 1:
+                return OperationResult(False, "missing layer")
+            return OperationResult(True, "ok", {"graph_name": graph_name, "plot_dataset_names": ["OH_B", "OH_D", "OH_F"]})
+
+    processed = tmp_path / "processed.csv"
+    processed.write_text("magnetic_field,BC,CWO,BOBC\n324,1,2,3\n325,10,20,30\n", encoding="utf-8")
+    product = replace(_product(tmp_path, processed), product_key="EPR")
+    ops = EprOps()
+
+    result = apply_template_base_data_replacement(ops, product, "ohG")
+
+    assert result["ok"] is True
+    assert result["processed_headers"] == ["magnetic_field", "BOBC", "CWO", "BC"]
+    assert result["processed_column_mapping"]["applied"] is True
+    assert ops.replaced == {
+        "OH": {
+            0: [324.0, 325.0],
+            1: [3.0, 30.0],
+            3: [2.0, 20.0],
+            5: [1.0, 10.0],
+        }
+    }
+
+
+def test_template_base_global_policy_preserves_template_axis_title_text(tmp_path: Path) -> None:
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a\n0,10\n", encoding="utf-8")
     product = _product(tmp_path, processed)
     ops = _FakeTemplateOps()
 
-    _apply_template_base_global_policies(ops, "Graph1", product, ResolvedPlotStyle())
+    _apply_template_base_global_policies(
+        ops,
+        "Graph1",
+        product,
+        ResolvedPlotStyle(),
+        template_axis_titles={"xb.text$": "%(?X)", "yl.text$": "Offset Y values"},
+    )
 
     commands = "\n".join(ops.commands)
-    assert 'xb.text$="\\\\b(Relative Pressure)"' in commands
-    assert 'yl.text$="\\\\b(Quantity Adsorbed)"' in commands
+    assert 'xb.text$=' not in commands
+    assert 'yl.text$=' not in commands
+    assert not any(command.startswith("axis:") for command in ops.commands)
+    assert "label -s -xb \\b(%(?X));" in commands
+    assert "label -s -yl \\b(Offset Y values);" in commands
+    assert "xb.fsize=" not in commands
+    assert "yl.fsize=" not in commands
     assert "xb.bold=1; yl.bold=1" in commands
 
 
-def test_template_base_global_policy_writes_bold_legend_without_rebuild(tmp_path: Path) -> None:
+def test_template_base_global_policy_preserves_template_legend_text(tmp_path: Path) -> None:
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a\n0,10\n", encoding="utf-8")
     product = replace(_product(tmp_path, processed), product_key="Raman", legend_entries=["BOBC", "CWO"])
@@ -125,8 +163,8 @@ def test_template_base_global_policy_writes_bold_legend_without_rebuild(tmp_path
     _apply_template_base_global_policies(ops, "Graph1", product, ResolvedPlotStyle())
 
     commands = "\n".join(ops.commands)
-    assert "legend.text$ = \\l(1) \\b(BOBC)" in commands
-    assert "\\l(2) \\b(CWO)" in commands
+    assert "legend.text$" not in commands
+    assert "legend.background=0" not in commands
     assert "legend -r" not in commands
 
 

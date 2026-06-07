@@ -18,7 +18,7 @@ from src.origin.operations import connect_origin, quote_labtalk
 from src.origin.style_mimic import extract_style_snapshot, read_graph_style_snapshot
 from src.origin.template_format import build_template_dataset_updates, build_template_format_plan
 from src.origin.text_format import origin_bold_text
-from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overrides
+from src.origin.user_style import ResolvedPlotStyle
 
 
 TEMPLATE_FORMAT_SCOPE = "unified_v5_template_format_conformance_all_types"
@@ -98,6 +98,7 @@ def apply_template_base_data_replacement(operations: object, product: ProductCon
         return {"ok": False, "message": str(plot_names_result.get("message") or "plot dataset read failed")}
     plot_dataset_names = list(plot_names_result["plot_dataset_names"])
     headers, rows = _read_processed_csv(product.processed_data)
+    headers, rows, column_mapping = _template_base_ordered_processed_table(product, headers, rows)
     updates = build_template_dataset_updates(plot_dataset_names, headers, rows, allow_partial=True)
     if updates.status not in {"ready", "partial"}:
         return {
@@ -118,7 +119,36 @@ def apply_template_base_data_replacement(operations: object, product: ProductCon
         "template_dataset_updates": updates.to_dict(),
         "replace_result": getattr(replaced, "payload", {}),
         "processed_headers": headers,
+        "processed_column_mapping": column_mapping,
         "template_plot_layers_read": plot_names_result["layers_read"],
+    }
+
+
+def _template_base_ordered_processed_table(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+) -> tuple[list[str], list[list[object]], dict[str, object]]:
+    if product.product_key != "EPR":
+        return headers, rows, {"applied": False, "method": "csv_header_order"}
+    preferred_order = ["BOBC", "CWO", "BC"]
+    header_map = {str(header).strip().casefold(): index for index, header in enumerate(headers)}
+    if not headers or not all(name.casefold() in header_map for name in preferred_order):
+        return headers, rows, {
+            "applied": False,
+            "method": "csv_header_order",
+            "reason": "EPR preferred template-stack headers were not all present.",
+            "preferred_order": preferred_order,
+        }
+    indices = [0] + [header_map[name.casefold()] for name in preferred_order]
+    reordered_headers = [headers[index] for index in indices]
+    reordered_rows = [[row[index] if index < len(row) else "" for index in indices] for row in rows]
+    return reordered_headers, reordered_rows, {
+        "applied": True,
+        "method": "epr_template_bottom_to_top_plot_order",
+        "preferred_order": preferred_order,
+        "source_headers": headers,
+        "output_headers": reordered_headers,
     }
 
 
@@ -191,7 +221,13 @@ def export_template_base_product_with_origin(product: ProductContext, style: Res
                 "exemplar_style": exemplar_style,
             }
 
-        _apply_template_base_global_policies(operations, graph_name, product, style)
+        _apply_template_base_global_policies(
+            operations,
+            graph_name,
+            product,
+            style,
+            template_axis_titles=exemplar_snapshot.audit_string_values,
+        )
         product.origin_file.parent.mkdir(parents=True, exist_ok=True)
         saved = operations.save_project(product.origin_file)
         if not getattr(saved, "ok", False):
@@ -263,38 +299,36 @@ def _apply_template_base_global_policies(
     graph_name: str,
     product: ProductContext,
     style: ResolvedPlotStyle,
+    template_axis_titles: dict[str, object] | None = None,
 ) -> None:
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
-    if hasattr(operations, "set_axis_labels"):
-        operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
-    if hasattr(operations, "set_graph_font"):
-        operations.set_graph_font(
-            graph_name,
-            font_name=style.font_family,
-            axis_title_size=style.axis_title_font_size,
-            x_tick_label_size=style.tick_label_font_size,
-            y_tick_label_size=style.tick_label_font_size,
-            legend_font_size=style.legend_font_size,
-            annotation_font_size=style.title_font_size,
-            target="all",
-        )
-    x_title = quote_labtalk(origin_bold_text(product.x_label))
-    y_title = quote_labtalk(origin_bold_text(product.y_label))
-    operations.run_labtalk(
-        f'win -a "{quote_labtalk(graph_name)}"; '
-        f'xb.text$="{x_title}"; yl.text$="{y_title}"; xb.bold=1; yl.bold=1; xb.show=1; yl.show=1;'
-    )
-    legend_text = _origin_bold_legend_text(product.legend_entries)
-    if legend_text and not product.product_key.startswith("XPS") and product.product_key != "EIS":
-        operations.run_labtalk(
-            f'win -a "{quote_labtalk(graph_name)}"; legend.text$ = {legend_text}; legend.bold=1; legend.color=color(black);'
-        )
-    apply_resolved_style_overrides(operations, graph_name, style)
+    axis_commands = _bold_template_axis_title_commands(template_axis_titles or {})
+    if axis_commands:
+        operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; {axis_commands}')
+    operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; xb.bold=1; yl.bold=1; xb.show=1; yl.show=1;')
     operations.run_labtalk(
         f'win -a "{quote_labtalk(graph_name)}"; '
         f"doc -e DY {{set %C -wp {float(style.line_width_pt):g}; set %C -lw {float(style.line_width_pt):g};}} "
         "xb.bold=1; yl.bold=1; xb.show=1; yl.show=1;"
     )
+
+
+def _bold_template_axis_title_commands(axis_titles: dict[str, object]) -> str:
+    x_title = _bold_axis_title_message(axis_titles.get("xb.text$"))
+    y_title = _bold_axis_title_message(axis_titles.get("yl.text$"))
+    commands: list[str] = []
+    if x_title:
+        commands.append(f"label -s -xb {x_title};")
+    if y_title:
+        commands.append(f"label -s -yl {y_title};")
+    return " ".join(commands)
+
+
+def _bold_axis_title_message(value: object) -> str:
+    text = str(value or "").replace(";", ",").replace("\r", " ").replace("\n", " ").strip()
+    if not text:
+        return ""
+    return origin_bold_text(text)
 
 
 def _template_base_xps_fill_intent(product: ProductContext, replacement: dict[str, object]) -> dict[str, object]:
@@ -307,15 +341,6 @@ def _template_base_xps_fill_intent(product: ProductContext, replacement: dict[st
         "component_plot_count": updates.get("visual_plot_count", 0) if required else 0,
         "unique_dataset_count": updates.get("unique_dataset_count", 0) if required else 0,
     }
-
-
-def _origin_bold_legend_text(entries: list[str]) -> str:
-    lines: list[str] = []
-    for index, entry in enumerate(entries, start=1):
-        text = str(origin_bold_text(entry)).replace(";", ",").replace("\r", " ").replace("\n", " ").strip()
-        if text:
-            lines.append(f"\\l({index}) {text}")
-    return "\n".join(lines)
 
 
 def _read_processed_csv(path: Path) -> tuple[list[str], list[list[object]]]:

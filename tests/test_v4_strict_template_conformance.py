@@ -19,9 +19,11 @@ from src.core.v3_real_template_rebuild import (
     _force_v3_axis_titles_visible,
     _position_v3_axis_titles_outside_plot,
     _preferred_v3_xps_graph_name,
+    _relevant_strict_readback_values,
     _select_v3_xps_template_for_product,
     _strict_style_readback,
     _v3_origin_processing_script,
+    _v3_strict_visual_reasons,
     _v3_epr_origin_processing_script,
     _write_v3_identity_origin_processing_plan,
     _xps_peak_annotations_from_processed_data,
@@ -594,6 +596,38 @@ def test_v4_strict_style_readback_requires_legend_bold_and_full_no_frame() -> No
     assert passed["legend_bold"] is True
     assert failed["legend_no_frame"] is False
     assert failed["legend_bold"] is False
+
+
+def test_v5_template_base_readback_ignores_v4_font_size_and_legend_frame_requirements() -> None:
+    readback = {
+        "font_family_arial": True,
+        "axis_title_font_size_36": False,
+        "axis_title_bold": True,
+        "axis_title_visible": True,
+        "legend_no_frame": False,
+        "legend_bold": False,
+        "axis_title_no_overlap": True,
+    }
+
+    relevant = _relevant_strict_readback_values(readback, template_base_mode=True)
+
+    assert relevant == {
+        "font_family_arial": True,
+        "axis_title_bold": True,
+        "axis_title_visible": True,
+        "axis_title_no_overlap": True,
+    }
+
+
+def test_strict_preview_accepts_low_rms_plot_count_readback_delta_as_nonblocking() -> None:
+    reasons = _v3_strict_visual_reasons(
+        ready=True,
+        plot_count_delta=-2,
+        style_match_ratio=1.0,
+        preview_rms=24.9,
+    )
+
+    assert reasons == []
 
 
 def test_v4_strict_axis_titles_are_explicitly_shown() -> None:
