@@ -44,6 +44,7 @@ def build_v4_strict_v3_options(options: V4StrictTemplateConformanceOptions) -> V
         eis_strict_semicircle_branch=True,
         xps_reference_templates_for_all_xps=True,
         xps_templates_from_reference_only=True,
+        xps_smooth_gradient_fill=True,
         cleanup_empty_run_layout_dirs=True,
     )
 

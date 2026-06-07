@@ -348,7 +348,11 @@ def _ensure_type_product_dirs(type_root: Path) -> None:
         (type_root / name).mkdir(parents=True, exist_ok=True)
 
 
-def _build_processed_plot_table(pairing: TargetPairing) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
+def _build_processed_plot_table(
+    pairing: TargetPairing,
+    *,
+    xps_component_fill_mode: str = "plain",
+) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
     if pairing.product_key == "BET":
         rows = read_table(pairing.data_paths[0])
         headers, processed_rows = bet_processed_table(rows)
@@ -379,13 +383,17 @@ def _build_processed_plot_table(pairing: TargetPairing) -> tuple[list[str], list
             "notes": "Y-axis ticks and numeric labels are hidden by default for EPR overlays.",
         }
     if pairing.product_key == "XPS_in_situ":
-        return _build_xps_in_situ_table(pairing.data_paths)
+        return _build_xps_in_situ_table(pairing.data_paths, component_fill_mode=xps_component_fill_mode)
     if pairing.product_key == "XPS_non_in_situ":
-        return _build_xps_non_in_situ_table(pairing.data_paths)
+        return _build_xps_non_in_situ_table(pairing.data_paths, component_fill_mode=xps_component_fill_mode)
     raise ValueError(f"Unsupported product key: {pairing.product_key}")
 
 
-def _build_xps_in_situ_table(paths: list[Path]) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
+def _build_xps_in_situ_table(
+    paths: list[Path],
+    *,
+    component_fill_mode: str = "plain",
+) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
     sample_files = _xps_in_situ_sample_files(paths)
     records, manual_review = load_xps_fit_workbooks(sample_files)
     selected = _select_best_records(records)
@@ -395,7 +403,12 @@ def _build_xps_in_situ_table(paths: list[Path]) -> tuple[list[str], list[list[fl
         raise ValueError(f"No complete in-situ XPS element found for BOBC/Dark/Light; manual_review={manual_review}")
     element = "Bi" if "Bi" in common_elements else common_elements[0]
     table_records = [selected[(sample, element)] for sample in wanted_samples]
-    headers, rows = _xps_records_to_offset_table(table_records, include_envelope=True, include_components=True)
+    headers, rows = _xps_records_to_offset_table(
+        table_records,
+        include_envelope=True,
+        include_components=True,
+        component_fill_mode=component_fill_mode,
+    )
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
         "y_label": "Intensity (a.u.)",
@@ -408,14 +421,23 @@ def _build_xps_in_situ_table(paths: list[Path]) -> tuple[list[str], list[list[fl
     }
 
 
-def _build_xps_non_in_situ_table(paths: list[Path]) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
+def _build_xps_non_in_situ_table(
+    paths: list[Path],
+    *,
+    component_fill_mode: str = "plain",
+) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
     sample_files = _xps_non_in_situ_sample_files(paths)
     records, manual_review = load_xps_fit_workbooks(sample_files)
     plan = build_comparison_plan(records, manual_review, XpsHeterojunctionOptions(output_dir=Path("_unused"), with_origin=False))
     if not plan.comparisons:
         raise ValueError(f"No non-in-situ XPS comparison was planned; manual_review={plan.manual_review}")
     comparison = next((item for item in plan.comparisons if item.name == "XPS_Bi_BOBC_vs_BC_stacked"), plan.comparisons[0])
-    headers, rows = _xps_records_to_offset_table([comparison.record_a, comparison.record_b], include_envelope=True, include_components=True)
+    headers, rows = _xps_records_to_offset_table(
+        [comparison.record_a, comparison.record_b],
+        include_envelope=True,
+        include_components=True,
+        component_fill_mode=component_fill_mode,
+    )
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
         "y_label": "Intensity (a.u.)",
@@ -428,7 +450,13 @@ def _build_xps_non_in_situ_table(paths: list[Path]) -> tuple[list[str], list[lis
     }
 
 
-def _xps_records_to_offset_table(records: list[XpsFitRecord], *, include_envelope: bool, include_components: bool = False) -> tuple[list[str], list[list[float | str | None]]]:
+def _xps_records_to_offset_table(
+    records: list[XpsFitRecord],
+    *,
+    include_envelope: bool,
+    include_components: bool = False,
+    component_fill_mode: str = "plain",
+) -> tuple[list[str], list[list[float | str | None]]]:
     if not records:
         raise ValueError("No XPS records to plot")
     point_count = min(len(record.data) for record in records)
@@ -436,20 +464,25 @@ def _xps_records_to_offset_table(records: list[XpsFitRecord], *, include_envelop
     series_by_record: list[list[list[float | None]]] = []
     for record_index, record in enumerate(records):
         offset = record_index * 1.35
-        measured = _normalized_record_series(record, "raw_intensity", offset, point_count)
+        common_scale = _xps_record_common_scale(record, point_count) if component_fill_mode == "template_line_fill" else None
+        measured = _normalized_record_series_for_xps_mode(record, "raw_intensity", offset, point_count, common_scale)
         record_series = [measured]
         headers.append(f"{_series_sample_name(record.sample)}_measured")
         if include_envelope:
-            envelope = _normalized_record_series(record, "envelope", offset, point_count)
+            envelope = _normalized_record_series_for_xps_mode(record, "envelope", offset, point_count, common_scale)
             if any(value is not None for value in envelope):
                 record_series.append(envelope)
                 headers.append(f"{_series_sample_name(record.sample)}_envelope")
         if include_components:
+            baseline = _xps_template_fill_baseline(record, offset, point_count, common_scale)
             for component_index, label in enumerate(record.component_labels, start=1):
-                component = _normalized_record_series_any(record, (_component_key(label), label), offset, point_count)
+                component = _normalized_record_series_any_for_xps_mode(record, (_component_key(label), label), offset, point_count, common_scale)
                 if any(value is not None for value in component):
                     record_series.append(component)
                     headers.append(f"{_series_sample_name(record.sample)}_component_{component_index}")
+                    if component_fill_mode == "template_line_fill":
+                        record_series.append(_mask_series_to_reference(baseline, component))
+                        headers.append(f"{_series_sample_name(record.sample)}_component_{component_index}_fill_baseline")
         series_by_record.append(record_series)
     rows: list[list[float | str | None]] = []
     for index in range(point_count):
@@ -480,6 +513,71 @@ def _normalized_record_series_any(record: XpsFitRecord, keys: Iterable[str], off
         if any(value is not None for value in series):
             return series
     return [None] * point_count
+
+
+def _normalized_record_series_for_xps_mode(
+    record: XpsFitRecord,
+    key: str,
+    offset: float,
+    point_count: int,
+    common_scale: tuple[float, float] | None,
+) -> list[float | None]:
+    if common_scale is None:
+        return _normalized_record_series(record, key, offset, point_count)
+    return _normalized_record_series_with_scale(record, key, offset, point_count, common_scale)
+
+
+def _normalized_record_series_any_for_xps_mode(
+    record: XpsFitRecord,
+    keys: Iterable[str],
+    offset: float,
+    point_count: int,
+    common_scale: tuple[float, float] | None,
+) -> list[float | None]:
+    for key in keys:
+        series = _normalized_record_series_for_xps_mode(record, key, offset, point_count, common_scale)
+        if any(value is not None for value in series):
+            return series
+    return [None] * point_count
+
+
+def _normalized_record_series_with_scale(
+    record: XpsFitRecord,
+    key: str,
+    offset: float,
+    point_count: int,
+    scale: tuple[float, float],
+) -> list[float | None]:
+    minimum, span = scale
+    raw = [_to_float(row.get(key)) for row in record.data[:point_count]]
+    return [((value - minimum) / span + offset) if value is not None else None for value in raw]
+
+
+def _xps_record_common_scale(record: XpsFitRecord, point_count: int) -> tuple[float, float]:
+    values = [_to_float(row.get("raw_intensity")) for row in record.data[:point_count]]
+    finite = [value for value in values if value is not None and math.isfinite(value)]
+    if not finite:
+        return (0.0, 1.0)
+    minimum = min(finite)
+    span = max(finite) - minimum
+    return (minimum, span if span > 0 else 1.0)
+
+
+def _xps_template_fill_baseline(
+    record: XpsFitRecord,
+    offset: float,
+    point_count: int,
+    common_scale: tuple[float, float] | None,
+) -> list[float | None]:
+    background_keys = tuple(key for key in ("background", record.background_label, "Backgnd.", "Background") if key)
+    baseline = _normalized_record_series_any_for_xps_mode(record, background_keys, offset, point_count, common_scale)
+    if any(value is not None for value in baseline):
+        return baseline
+    return [offset] * point_count
+
+
+def _mask_series_to_reference(series: list[float | None], reference: list[float | None]) -> list[float | None]:
+    return [value if ref_value is not None else None for value, ref_value in zip(series, reference)]
 
 
 def _xps_in_situ_sample_files(paths: list[Path]) -> dict[str, list[Path]]:

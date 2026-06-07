@@ -152,7 +152,7 @@ def compare_style_snapshots(
                 )
 
     line_widths = _plot_widths(product)
-    expected_origin_width = required_line_width_pt * 10.0
+    expected_origin_width = required_line_width_pt * 500.0
     for index, value in enumerate(line_widths, start=1):
         if not _within_tolerance(expected_origin_width, value, 0.02):
             issues.append(

@@ -65,9 +65,11 @@ def test_apply_resolved_style_overrides_emits_line_width_and_bold_axis_policy() 
     apply_resolved_style_overrides(fake, "Graph1", style)
 
     joined = "\n".join(fake.scripts)
-    assert "set %C -w 30" in joined
+    assert "set %C -wp 3" in joined
     assert "xb.bold=1" in joined
     assert "yl.bold=1" in joined
+    assert "legend.background=0" in joined
+    assert "legend.lineWidth=0" in joined
 
 
 def test_apply_resolved_style_overrides_targets_the_named_graph_for_every_script() -> None:

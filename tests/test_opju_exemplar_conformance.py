@@ -21,21 +21,21 @@ def test_conformance_comparison_checks_layout_axis_plot_width_and_bold_titles() 
             "layer.y.label.pt": 24,
         },
         audit_numeric_values={"xb.fsize": 28, "yl.fsize": 28, "xb.bold": 1, "yl.bold": 1},
-        plot_line_widths=[30.0],
+        plot_line_widths=[1500.0],
     )
     product = OpjuStyleSnapshot(
         source_opju="product.opju",
         status="extracted",
         layout_values=dict(exemplar.layout_values),
         audit_numeric_values=dict(exemplar.audit_numeric_values),
-        plot_line_widths=[30.0],
+        plot_line_widths=[1500.0],
     )
 
     report = compare_style_snapshots(exemplar, product)
 
     assert report.status == "pass"
     assert report.matched_fields == report.compared_fields
-    assert report.plot_line_width_origin_units == [30.0]
+    assert report.plot_line_width_origin_units == [1500.0]
     assert report.axis_title_bold is True
 
 
@@ -45,14 +45,14 @@ def test_conformance_comparison_flags_non_3pt_width_and_nonbold_axis_titles() ->
         status="extracted",
         layout_values={"page.width": 720, "page.height": 540},
         audit_numeric_values={"xb.bold": 1, "yl.bold": 1, "xb.fsize": 28, "yl.fsize": 28},
-        plot_line_widths=[30.0],
+        plot_line_widths=[1500.0],
     )
     product = OpjuStyleSnapshot(
         source_opju="product.opju",
         status="extracted",
         layout_values={"page.width": 720, "page.height": 540},
         audit_numeric_values={"xb.bold": 1, "yl.bold": 0, "xb.fsize": 28, "yl.fsize": 28},
-        plot_line_widths=[15.0],
+        plot_line_widths=[750.0],
     )
 
     report = compare_style_snapshots(exemplar, product)
@@ -73,7 +73,7 @@ def test_conformance_accepts_origin_rich_text_bold_axis_titles() -> None:
         status="extracted",
         audit_numeric_values={"xb.bold": 0, "yl.bold": 0, "xb.fsize": 28, "yl.fsize": 28},
         audit_string_values={"xb.text$": "\\b(Z' (ohm))", "yl.text$": "\\b(-Z'' (ohm))"},
-        plot_line_widths=[30.0],
+        plot_line_widths=[1500.0],
     )
 
     report = compare_style_snapshots(exemplar, product)

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE, Graph4FixedStyle
-from src.origin.text_format import origin_chemical_subscripts
+from src.origin.text_format import origin_bold_text, origin_chemical_subscripts
 
 
 PLOT_TYPES = {
@@ -238,6 +238,38 @@ class OriginOperations:
         columns = [[row[index] for row in rows] for index in range(column_count)]
         return OperationResult(True, "Worksheet data read", {"target": target, "columns": columns})
 
+    def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+        layer = self.app.FindGraphLayer(f"[{graph_name}]Layer{int(layer_index)}")
+        if not layer:
+            return OperationResult(False, f"Graph layer not found: [{graph_name}]Layer{int(layer_index)}")
+        data_plots = layer.DataPlots
+        names = [str(data_plots.Item(index).Name) for index in range(data_plots.Count)]
+        return OperationResult(
+            True,
+            "Graph plot dataset names read",
+            {"graph_name": graph_name, "layer_index": int(layer_index), "plot_dataset_names": names},
+        )
+
+    def replace_template_workbook_columns(self, workbook_columns: dict[str, dict[int, Iterable[float]]]) -> OperationResult:
+        updated: list[dict[str, object]] = []
+        for book_name, columns in workbook_columns.items():
+            if not book_name or not columns:
+                continue
+            target = f"[{book_name}]Sheet1"
+            for column_index, values in sorted(columns.items()):
+                column_values = [float(value) for value in values]
+                self.app.PutWorksheet(target, column_values, 0, int(column_index))
+                updated.append(
+                    {
+                        "book_name": str(book_name),
+                        "column_index": int(column_index),
+                        "rows": len(column_values),
+                    }
+                )
+        if not updated:
+            return OperationResult(False, "No template workbook columns were provided")
+        return OperationResult(True, "Template workbook columns replaced", {"updated_columns": updated})
+
     def import_csv_to_worksheet(self, file_path: str | Path, book_name: str = "", delimiter: str = ",") -> OperationResult:
         path = Path(file_path)
         if not path.exists():
@@ -414,7 +446,7 @@ class OriginOperations:
             if color_code is None:
                 return OperationResult(False, f"Unsupported color: {color}")
             self.run_labtalk(f"set {plot_name} -c {color_code};")
-        self.run_labtalk(f"set {plot_name} -w {int(line_width * 10)};")
+        self.run_labtalk(f"set {plot_name} -wp {float(line_width):g};")
         self.run_labtalk(f"set {plot_name} -k {symbol_shape or SYMBOL_SHAPES.get(plot_index, 2)};")
         self.run_labtalk(f"set {plot_name} -z {symbol_size};")
         self.run_labtalk(f"set {plot_name} -l 1;")
@@ -439,7 +471,12 @@ class OriginOperations:
             self.run_labtalk(f"layer.x.label.pt = {x_tick_label_size}; layer.y.label.pt = {y_tick_label_size};")
             self.run_labtalk("layer.x.label.bold = 1; layer.y.label.bold = 1;")
         if target in {"all", "legend"}:
-            self.run_labtalk(f'legend.font$ = "{quote_labtalk(font_name)}"; legend.fsize = {legend_font_size}; legend.bold = 1;')
+            self.run_labtalk(
+                f'legend.font$ = "{quote_labtalk(font_name)}"; '
+                f"legend.font = font({quote_labtalk(font_name)}); "
+                f"legend.fsize = {legend_font_size}; "
+                "legend.bold = 1; legend.color = color(black);"
+            )
             self._disable_legend_box()
         if target in {"all", "annotation"}:
             self.run_labtalk(f'doc -e O {{if(object.type==4) {{object.font$="{quote_labtalk(font_name)}"; object.fsize={annotation_font_size}; object.bold=1;}}}}')
@@ -521,8 +558,10 @@ class OriginOperations:
             return OperationResult(True, "Legend hidden", {"graph_name": graph_name})
         self.run_labtalk("legend -r;")
         if entries:
-            for index, entry in enumerate(entries, start=1):
-                self.run_labtalk(f'legend.text{index}$ = "{quote_origin_text(entry)}";')
+            legend_text = _legend_text_from_entries(list(entries))
+            if legend_text:
+                self.run_labtalk(f"legend.text$ = {legend_text};")
+        self.run_labtalk("legend.bold = 1; legend.color = color(black);")
         self._disable_legend_box()
         fractions = {
             "top-left": (0.05, 0.85),
@@ -600,4 +639,21 @@ class OriginOperations:
         return OperationResult(True, "Publication-style operation bundle applied", {"graph_name": graph_name})
 
     def _disable_legend_box(self) -> None:
-        self.run_labtalk("legend.border = 0; legend.frame = 0; legend.fill = 0;")
+        self.run_labtalk(
+            "legend.background = 0; legend.border = 0; legend.frame = 0; legend.fill = 0; "
+            "legend.fillColor = 0; legend.borderColor = 0; legend.lineWidth = 0;"
+        )
+
+
+def _legend_text_from_entries(entries: list[str]) -> str:
+    lines = []
+    for index, entry in enumerate(entries, start=1):
+        text = _legend_entry_text(entry)
+        if text:
+            lines.append(f"\\l({index}) {text}")
+    return "\n".join(lines)
+
+
+def _legend_entry_text(entry: object) -> str:
+    text = origin_bold_text(entry)
+    return str(text).replace(";", ",").replace("\r", " ").replace("\n", " ").strip()

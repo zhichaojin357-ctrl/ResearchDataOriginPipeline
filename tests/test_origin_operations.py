@@ -151,6 +151,28 @@ class OriginOperationsSmokeTest(unittest.TestCase):
             self.assertTrue(imported.ok)
             self.assertEqual(imported.payload["columns"], 2)
 
+    def test_template_workbook_column_replacement_operations(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+
+        names = ops.get_graph_plot_dataset_names("Fig1")
+        self.assertTrue(names.ok)
+        self.assertEqual(names.payload["plot_dataset_names"], ["Book1_B", "Book1_C"])
+
+        replaced = ops.replace_template_workbook_columns(
+            {
+                "Book1": {
+                    0: [0.0, 1.0],
+                    1: [10.0, 11.0],
+                    2: [20.0, 21.0],
+                }
+            }
+        )
+
+        self.assertTrue(replaced.ok)
+        self.assertEqual(app.worksheets["[Book1]Sheet1"], [[0.0, 10.0, 20.0], [1.0, 11.0, 21.0]])
+        self.assertIn({"book_name": "Book1", "column_index": 2, "rows": 2}, replaced.payload["updated_columns"])
+
     def test_graph_style_and_export_operations(self):
         app = FakeOriginApp()
         ops = OriginOperations(app)
@@ -181,6 +203,12 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertIn("layer.x.label.pt = 28", command_text)
         self.assertIn("layer.y.label.pt = 36", command_text)
         self.assertIn("legend.fsize = 26", command_text)
+        self.assertIn("legend.font = font(Arial)", command_text)
+        self.assertIn("legend.bold = 1", command_text)
+        self.assertIn("legend.color = color(black)", command_text)
+        self.assertIn("legend.text$ = \\l(1) \\b(A)\n\\l(2) \\b(B);", command_text)
+        self.assertNotIn("legend.text1$", command_text)
+        self.assertIn("legend.background = 0", command_text)
         self.assertIn("legend.border = 0", command_text)
         self.assertIn("legend.frame = 0", command_text)
         self.assertIn("legend.fill = 0", command_text)

@@ -24,8 +24,11 @@ def test_extract_style_snapshot_reads_layout_and_plot_style_without_visible_text
     assert snapshot.layout_values["layer.width"] == 60
     assert snapshot.layer_count == 1
     assert snapshot.audit_numeric_values["legend.x"] == 42
+    assert snapshot.audit_numeric_values["legend.background"] == 0
+    assert snapshot.audit_numeric_values["legend.lineWidth"] == 0
     assert snapshot.audit_numeric_values["title.show"] == 0
     assert snapshot.audit_string_values["xb.font$"] == "Arial"
+    assert snapshot.audit_string_values["legend.text$"] == "\\l(1) \\b(BC)"
     assert snapshot.plot_count == 2
     assert snapshot.plot_line_widths == [15.0, 20.0]
     assert snapshot.plot_colors == [2.0, 4.0]
@@ -133,14 +136,17 @@ class _FakeStyleOps:
             "legend.show": 0,
             "legend.x": 42,
             "legend.y": 84,
+            "legend.background": 0,
             "legend.fsize": 18,
             "legend.bold": 0,
+            "legend.lineWidth": 0,
             "title.show": 0,
             "title.fsize": 18,
             "title.bold": 0,
             "xb.font$": "Arial",
             "yl.font$": "Arial",
             "legend.font$": "Arial",
+            "legend.text$": "\\l(1) \\b(BC)",
             "title.font$": "Arial",
             "__style_mimic_w_1": 15.0,
             "__style_mimic_w_2": 20.0,

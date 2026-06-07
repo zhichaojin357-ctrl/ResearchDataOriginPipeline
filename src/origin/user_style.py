@@ -100,8 +100,12 @@ def apply_resolved_style_overrides(operations: object, graph_name: str, style: R
     if style.font_bold:
         operations.run_labtalk(graph_activation + "xb.bold=1; yl.bold=1; layer.x.label.bold=1; layer.y.label.bold=1; legend.bold=1;")
     if style.legend_no_frame:
-        operations.run_labtalk(graph_activation + "legend.border=0; legend.frame=0; legend.fill=0;")
-    operations.run_labtalk(graph_activation + f"doc -e DY {{set %C -w {int(style.line_width_pt * 10)}; set %C -z {style.marker_size};}}")
+        operations.run_labtalk(
+            graph_activation
+            + "legend.background=0; legend.border=0; legend.frame=0; legend.fill=0; "
+            + "legend.fillColor=0; legend.borderColor=0; legend.lineWidth=0;"
+        )
+    operations.run_labtalk(graph_activation + f"doc -e DY {{set %C -wp {float(style.line_width_pt):g}; set %C -z {style.marker_size};}}")
 
 
 def _style_from_exemplar(exemplar: OpjuStyleSnapshot | dict[str, Any] | None) -> dict[str, object]:

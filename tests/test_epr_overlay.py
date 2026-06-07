@@ -52,3 +52,44 @@ def test_epr_overlay_requires_common_grid_but_not_4096_points(tmp_path: Path) ->
         assert "different row counts" in str(exc)
     else:
         raise AssertionError("Expected common-grid validation failure")
+
+
+def test_epr_overlay_writes_baseline_smoothing_detail_to_requested_output_dir(tmp_path: Path) -> None:
+    ref = tmp_path / "refs"
+    out = tmp_path / "run" / "EPR" / "processed_data"
+    ref.mkdir()
+    _write_xlsx(ref / "BC-OH-light2.xlsx", [10, 12, 16, 18, 20])
+    _write_xlsx(ref / "CWO-OH-light2.xlsx", [20, 24, 32, 36, 40])
+    _write_xlsx(ref / "BOBC-OH-light1.xlsx", [30, 36, 48, 54, 60])
+
+    result = build_epr_condition_overlay(
+        tmp_path,
+        ref,
+        "OH",
+        with_origin=False,
+        normalize=False,
+        smooth_window=3,
+        output_data_dir=out,
+    )
+
+    assert result["smoothing"] == "moving_average_window_3"
+    assert Path(result["processed_csv"]).parent == out
+    assert Path(result["detail_csv"]).parent == out
+    with Path(result["detail_csv"]).open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.reader(handle))
+    assert rows[0] == [
+        "magnetic_field",
+        "BC_raw",
+        "BC_baseline",
+        "BC_baseline_corrected",
+        "BC_offset",
+        "CWO_raw",
+        "CWO_baseline",
+        "CWO_baseline_corrected",
+        "CWO_offset",
+        "BOBC_raw",
+        "BOBC_baseline",
+        "BOBC_baseline_corrected",
+        "BOBC_offset",
+    ]
+    assert any(float(row[2]) != 0.0 for row in rows[1:])

@@ -87,6 +87,7 @@ def build_epr_condition_overlay(
     normalize: bool = False,
     smooth_window: int = 0,
     background: str | None = None,
+    output_data_dir: Path | None = None,
 ) -> dict:
     entries = DEFAULT_EPR_GROUPS[group_name]
     background_map = _background_map(background, group_name)
@@ -131,7 +132,7 @@ def build_epr_condition_overlay(
     step = _offset_step([trace["centered"] for trace in traces])
     offsets = {trace["label"]: (len(traces) - index - 1) * step for index, trace in enumerate(traces)}
 
-    data_dir = output_dir(project_root, "processed_data", "EPR")
+    data_dir = output_data_dir or output_dir(project_root, "processed_data", "EPR")
     data_dir.mkdir(parents=True, exist_ok=True)
     slug = f"epr_{group_name.lower()}_overlay"
     plot_csv = data_dir / f"{slug}_processed.csv"

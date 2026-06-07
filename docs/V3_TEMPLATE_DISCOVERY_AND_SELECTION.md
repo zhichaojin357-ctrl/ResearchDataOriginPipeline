@@ -27,16 +27,25 @@
 | D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Cu_W.opju | extracted | W_4f | 1 | 21 | graph/layer/plot object readback succeeded |
 
 ## XPS_non_in_situ
-- Candidate count: 2
+- Candidate count: 11
 - Final selection status: selected
-- Selected template: D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Bi_Cl_Br.opju
-- Selected graph/layer: Cl_2p
+- Selected template: D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_Bi_BOBC_vs_BC_stacked.opju
+- Selected graph/layer: XPS_Bi_BOBC_vs_c890fa98
 - Selection reason: Selected highest-scoring validated F-drive graph template.
 
 | Candidate | Open Status | Graph | Layers | Plots | Reason |
 |---|---:|---|---:|---:|---|
-| D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Bi_Cl_Br.opju | extracted | Cl_2p | 1 | 21 | graph/layer/plot object readback succeeded |
-| D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Cu_W.opju | extracted | W_4f | 1 | 21 | graph/layer/plot object readback succeeded |
+| D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Bi_Cl_Br.opju | not_opened_lower_priority_candidate |  | 0 | 0 | Recorded during F-drive scan but not opened because higher-priority candidates were validated first. |
+| D:\Codex Project\科研数据处理\xps参考图像\xps_in_situ_Cu_W.opju | not_opened_lower_priority_candidate |  | 0 | 0 | Recorded during F-drive scan but not opened because higher-priority candidates were validated first. |
+| D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_Bi_BOBC_vs_BC_stacked.opju | extracted | XPS_Bi_BOBC_vs_c890fa98 | 1 | 18 | graph/layer/plot object readback succeeded |
+| D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_Br_BOBC_vs_BC_stacked.opju | extracted | XPS_Br_BOBC_vs_833e7b0a | 1 | 18 | graph/layer/plot object readback succeeded |
+| D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_C_BOBC_vs_BC_stacked.opju | extracted | XPS_C_BOBC_vs_B_4159eece | 1 | 15 | graph/layer/plot object readback succeeded |
+| D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_C_CWO_vs_BC_stacked.opju | not_opened_lower_priority_candidate |  | 0 | 0 | Recorded during F-drive scan but not opened because higher-priority candidates were validated first. |
+| D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_Cl_BOBC_vs_BC_stacked.opju | extracted | XPS_Cl_BOBC_vs_2b8d8766 | 1 | 18 | graph/layer/plot object readback succeeded |
+| D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_Cu_CWO_vs_BC_stacked.opju | not_opened_lower_priority_candidate |  | 0 | 0 | Recorded during F-drive scan but not opened because higher-priority candidates were validated first. |
+| D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_O_BOBC_vs_BC_stacked.opju | extracted | XPS_O_BOBC_vs_B_f812b077 | 1 | 18 | graph/layer/plot object readback succeeded |
+| D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_O_CWO_vs_BC_stacked.opju | not_opened_lower_priority_candidate |  | 0 | 0 | Recorded during F-drive scan but not opened because higher-priority candidates were validated first. |
+| D:\Codex Project\科研数据处理\26.6.3组会数据\结果汇总\XPS\xps_heterojunction_stacked\origin_projects\XPS_W_CWO_vs_BC_stacked.opju | not_opened_lower_priority_candidate |  | 0 | 0 | Recorded during F-drive scan but not opened because higher-priority candidates were validated first. |
 
 ## XRD
 - Candidate count: 10
@@ -84,10 +93,10 @@
 | F:\课题\LL\检测\阻抗EIS\BM重新拟合版本\BM.opju | extracted | Graph1 | 1 | 5 | graph/layer/plot object readback succeeded |
 | F:\课题\LL\检测\阻抗EIS\EIS-20251025拟合后师妹\BM-X.opju | load_failed |  | 0 | 0 | Traceback (most recent call last):
   File "<string>", line 10, in <module>
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1962: illegal multibyte sequence |
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 2188: illegal multibyte sequence |
 | F:\课题\LL\检测\阻抗EIS\EIS-20251025拟合后师妹\拟合后BM-X.opju | load_failed |  | 0 | 0 | Traceback (most recent call last):
   File "<string>", line 10, in <module>
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1960: illegal multibyte sequence |
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 2186: illegal multibyte sequence |
 
 ## Raman
 - Candidate count: 4
@@ -101,7 +110,7 @@ UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1960
 | F:\课题\LL\检测\拉曼\20251021\bobc+ms.opju | extracted | Graph2 | 3 | 1 | graph/layer/plot object readback succeeded |
 | F:\课题\LL\检测\拉曼\cwo+bobc raman.opju | load_failed |  | 0 | 0 | Traceback (most recent call last):
   File "<string>", line 10, in <module>
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1996: illegal multibyte sequence |
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 2222: illegal multibyte sequence |
 | F:\课题\LL\检测\拉曼\老版本BOBC+MS+BPO\BOBC+MS+BPO.opju | extracted | Graph1 | 1 | 1 | graph/layer/plot object readback succeeded |
 | F:\课题\LL\检测\拉曼\老版本BOBC+MS+BPO\BOBC+MS.opju | extracted | Graph4 | 1 | 3 | graph/layer/plot object readback succeeded |
 
@@ -153,5 +162,5 @@ UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1996
 | F:\课题\LL\检测\红外\BOBC+MS 以前水热的Mose\BOBC+MS.opju | extracted | Graph1 | 1 | 6 | graph/layer/plot object readback succeeded |
 | F:\课题\LL\检测\红外\cwo+bobc\CWO+BOBC红外.opju | load_failed |  | 0 | 0 | Traceback (most recent call last):
   File "<string>", line 10, in <module>
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 1950: illegal multibyte sequence |
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2212' in position 2176: illegal multibyte sequence |
 | F:\课题\LL\检测\红外\红外MS+BPO 暑期版本\红外.opju | extracted | Graph1 | 1 | 3 | graph/layer/plot object readback succeeded |

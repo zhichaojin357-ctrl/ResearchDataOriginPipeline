@@ -17,6 +17,7 @@ from src.core.readiness import ReadinessOptions, run_readiness
 from src.core.remaining_opju_product_drafts import RemainingOpjuProductDraftOptions, run_remaining_opju_product_drafts
 from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
 from src.core.runtime_paths import resolve_output_root
+from src.core.template_format_executor import TemplateFormatExecutorOptions, run_template_format_executor
 from src.core.triage import TriageOptions, run_triage
 from src.core.validate import validate
 from src.core.v2_exemplar_conformance import (
@@ -147,6 +148,7 @@ def build_parser() -> argparse.ArgumentParser:
     unified_v3.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
     unified_v3.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan")
     unified_v3.add_argument("--xps-reference-template-root", type=Path, help="optional XPS OPJU/OPJ reference root, e.g. xps参考图像")
+    unified_v3.add_argument("--xps-non-in-situ-template-root", type=Path, help="optional non-in-situ stacked XPS OPJU template root")
     unified_v3.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
 
     unified_v4 = subparsers.add_parser(
@@ -172,6 +174,19 @@ def build_parser() -> argparse.ArgumentParser:
     unified_v4_strict.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan for non-XPS types")
     unified_v4_strict.add_argument("--xps-reference-template-root", type=Path, help="XPS OPJU/OPJ reference root, e.g. xps参考图像")
     unified_v4_strict.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
+
+    unified_v5_template_format = subparsers.add_parser(
+        "unified-v5-template-format-conformance-all-types",
+        help="rebuild all products using OPJU template-base workbook replacement instead of parameter-only style mimicry",
+    )
+    unified_v5_template_format.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
+    unified_v5_template_format.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    unified_v5_template_format.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
+    unified_v5_template_format.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    unified_v5_template_format.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan for non-XPS types")
+    unified_v5_template_format.add_argument("--xps-reference-template-root", type=Path, help="XPS OPJU/OPJ reference root, e.g. xps参考图像")
+    unified_v5_template_format.add_argument("--xps-non-in-situ-template-root", type=Path, help="optional non-in-situ stacked XPS OPJU template root")
+    unified_v5_template_format.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
@@ -434,6 +449,7 @@ def main(argv: list[str] | None = None) -> int:
                 timestamp=args.timestamp,
                 f_drive_template_root=args.f_drive_template_root,
                 xps_reference_template_root=args.xps_reference_template_root,
+                xps_non_in_situ_template_root=args.xps_non_in_situ_template_root,
                 user_style_path=args.user_style,
             ),
         )
@@ -486,6 +502,26 @@ def main(argv: list[str] | None = None) -> int:
             and result["summary"]["blocked_count"] == 0
             and result["summary"]["failed_count"] == 0
         ) else 1
+    if args.command == "unified-v5-template-format-conformance-all-types":
+        result = run_template_format_executor(
+            project_root,
+            TemplateFormatExecutorOptions(
+                pairing_path=args.pairing,
+                output_root=args.output_root,
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+                f_drive_template_root=args.f_drive_template_root,
+                xps_reference_template_root=args.xps_reference_template_root,
+                xps_non_in_situ_template_root=args.xps_non_in_situ_template_root,
+                user_style_path=args.user_style,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"product_count={result['summary']['product_count']}")
+        print(f"success_count={result['summary'].get('success_count', result['summary'].get('accepted_count', 0))}")
+        print(f"blocked_count={result['summary']['blocked_count']}")
+        print(f"failed_count={result['summary']['failed_count']}")
+        return 0 if result["summary"]["product_count"] == 11 and result["summary"]["failed_count"] == 0 else 1
     if args.command == "origin-batch":
         return run_origin_batch(
             project_root,
