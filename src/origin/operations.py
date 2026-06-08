@@ -402,6 +402,28 @@ class OriginOperations:
             return OperationResult(False, f"No exported file produced at {output_path}", {"file_path": str(output_path)})
         return OperationResult(True, "Graph exported", {"graph_name": graph_name, "file_path": str(output_path)})
 
+    def save_graph_template(
+        self,
+        graph_name: str,
+        file_path: str | Path,
+        timeout_seconds: float = 8.0,
+    ) -> OperationResult:
+        output_path = Path(file_path)
+        if output_path.suffix.casefold() != ".otpu":
+            output_path = output_path.with_suffix(".otpu")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        if output_path.exists():
+            output_path.unlink()
+        graph = quote_labtalk(graph_name)
+        target = quote_labtalk(to_origin_path(output_path))
+        self.run_labtalk(f'win -a "{graph}";')
+        ok = self.run_labtalk(f'save -t {graph} "{target}";')
+        if not ok.ok:
+            return OperationResult(False, f"Origin save -t failed for {graph_name}", {"file_path": str(output_path)})
+        if not _wait_for_file(output_path, timeout_seconds):
+            return OperationResult(False, f"No graph template produced at {output_path}", {"file_path": str(output_path)})
+        return OperationResult(True, "Graph template saved", {"graph_name": graph_name, "file_path": str(output_path)})
+
     def export_all_graphs(self, output_dir: str | Path, export_format: str = "tif", dpi: int = 600) -> OperationResult:
         pages = self.list_worksheets()
         graph_pages = [item["name"] for item in pages.payload.get("pages", []) if item.get("type") == "graph"]

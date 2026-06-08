@@ -9,6 +9,7 @@ from src.core.epr_jeol import export_jeol_cwesr_to_xlsx
 from src.core.epr_overlay import EprOverlayOptions, run_epr_overlay
 from src.core.manifest_normalizer import normalize_material_collection_manifest
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
+from src.core.origin_style_assets import export_origin_style_assets
 from src.core.opju_product_pilot import OpjuProductPilotOptions, run_opju_product_pilot
 from src.core.phase1_9 import DEFAULT_ORIGIN_SKILL_DIR, DEFAULT_PHASE1_6_PACKAGE, run_phase1_9_governance
 from src.core.process import ProcessOptions, run_process
@@ -187,6 +188,14 @@ def build_parser() -> argparse.ArgumentParser:
     unified_v5_template_format.add_argument("--xps-reference-template-root", type=Path, help="XPS OPJU/OPJ reference root, e.g. xps参考图像")
     unified_v5_template_format.add_argument("--xps-non-in-situ-template-root", type=Path, help="optional non-in-situ stacked XPS OPJU template root")
     unified_v5_template_format.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
+
+    origin_style_assets = subparsers.add_parser(
+        "export-origin-style-assets",
+        help="export project-local Origin .otpu style assets from an accepted V5 product run",
+    )
+    origin_style_assets.add_argument("--run-root", type=Path, required=True, help="accepted V5 run root to harvest")
+    origin_style_assets.add_argument("--asset-root", type=Path, help="style asset root; defaults to templates/origin_styles")
+    origin_style_assets.add_argument("--with-origin", action="store_true", help="launch isolated Origin and create .otpu files")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
@@ -522,6 +531,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"blocked_count={result['summary']['blocked_count']}")
         print(f"failed_count={result['summary']['failed_count']}")
         return 0 if result["summary"]["product_count"] == 11 and result["summary"]["failed_count"] == 0 else 1
+    if args.command == "export-origin-style-assets":
+        result = export_origin_style_assets(
+            project_root,
+            args.run_root,
+            asset_root=args.asset_root,
+            with_origin=bool(args.with_origin),
+        )
+        print(f"asset_root={result['asset_root']}")
+        print(f"manifest={result['manifest']}")
+        print(f"planned_count={result['planned_count']}")
+        print(f"exported_count={result['exported_count']}")
+        print(f"failure_count={result['failure_count']}")
+        return 0 if result["planned_count"] > 0 and result["planned_count"] == result["exported_count"] and result["failure_count"] == 0 else 1
     if args.command == "origin-batch":
         return run_origin_batch(
             project_root,

@@ -41,3 +41,14 @@ For existing OPJU templates, `FindGraphLayer("[Graph]Layer1").DataPlots.Item(i).
 V5 must not claim one-to-one replication merely because a template or style package exists. The claim is allowed only after exported template preview and product preview comparison, plot count checks, style readback, and manual calibration gates pass.
 
 If neither an OPJU exemplar nor a saved Theme/Graph Template/style package is available, V5 must block plotting instead of falling back to parameter-only mimicry.
+
+## Project-local style assets
+
+The final accepted V5 run has been harvested into project-local Origin graph templates:
+
+```text
+templates/origin_styles/manifest.json
+templates/origin_styles/graph_templates/*.otpu
+```
+
+These `.otpu` files are the saved style-package fallback for future runs when external OPJU exemplars are unavailable. They remove the dependency on F-drive OPJU style sources for style discovery, while preserving the rule that any regenerated product must still pass exported preview comparison before one-to-one status is claimed.

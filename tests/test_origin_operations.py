@@ -70,6 +70,11 @@ class FakeOriginApp:
             if folder and filename and export_type:
                 Path(folder).mkdir(parents=True, exist_ok=True)
                 (Path(folder) / f"{filename}.{export_type}").write_bytes(b"fake exported image")
+        if "save -t" in script:
+            template_path = _between(script, ' "', '"')
+            if template_path:
+                Path(template_path).parent.mkdir(parents=True, exist_ok=True)
+                Path(template_path).write_bytes(b"fake graph template")
         return True
 
     def PutWorksheet(self, target: str, values: list[float], row: int, col: int):
@@ -228,6 +233,19 @@ class OriginOperationsSmokeTest(unittest.TestCase):
             all_exported = ops.export_all_graphs(tmpdir, "tif", dpi=600)
             self.assertTrue(all_exported.ok)
             self.assertEqual(len(all_exported.payload["exported"]), 1)
+
+    def test_save_graph_template_uses_labtalk_save_t(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "GraphStyle.otpu"
+            result = ops.save_graph_template("Graph1", template_path)
+
+        self.assertTrue(result.ok)
+        command_text = "\n".join(app.commands)
+        self.assertIn('win -a "Graph1"', command_text)
+        self.assertIn("save -t Graph1", command_text)
+        self.assertIn("GraphStyle.otpu", command_text)
 
     def test_helpers_and_connect_origin_dispatch_mode(self):
         self.assertEqual(safe_origin_name("123 unsafe name"), "Page_123_unsafe_name")
