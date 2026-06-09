@@ -6,4 +6,5 @@ General maintenance, report, Origin, packaging, and migration helpers should sta
 
 Current data-type folders:
 
+- `hplc_lc/`: HPLC/LC-only calibration and exported-data helpers.
 - `xps/`: XPS-only historical/helper scripts.

@@ -30,6 +30,8 @@ output/adapter_shadow_runs/
 output/bet_reference_compare/
 output/opju_exemplar_regression/
 output/final_locked_results/
+output/hplc_calibration_origin*/
+output/hplc_template_inspect*/
 outputs/
 
 # Keep lightweight review/report outputs versioned

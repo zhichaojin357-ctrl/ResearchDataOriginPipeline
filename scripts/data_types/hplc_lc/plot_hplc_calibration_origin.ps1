@@ -1,0 +1,455 @@
+﻿param(
+  [string]$TemplateOpju = 'D:\Codex Project\科研数据处理\数据\26.5.30\HPLC_calibration_origin\HPLC_calibration_curves_20260530_230503.opju',
+  [string]$OutputDir = '',
+  [string]$Stamp = '',
+  [bool]$Headless = $true,
+  [bool]$CloseOrigin = $true,
+  [bool]$ExportTemplateComparison = $true,
+  [bool]$EnforceTemplateComparison = $true,
+  [double]$ComparisonMeanTolerance = 3.0,
+  [double]$ComparisonMaxTolerance = 80.0,
+  [switch]$KeepIntermediate
+)
+
+$ErrorActionPreference = 'Stop'
+
+function To-OriginPath([string]$Path) {
+  return ($Path -replace '\\', '/')
+}
+
+function Resolve-RunPath([string]$Path, [string]$BaseDir) {
+  if ([System.IO.Path]::IsPathRooted($Path)) {
+    return [System.IO.Path]::GetFullPath($Path)
+  }
+  return [System.IO.Path]::GetFullPath((Join-Path $BaseDir $Path))
+}
+
+function Write-Utf8Lines([string]$Path, [string[]]$Lines) {
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllLines($Path, $Lines, $utf8NoBom)
+}
+
+function Write-Log([string]$Message) {
+  Add-Content -LiteralPath $script:LogPath -Encoding UTF8 -Value $Message
+}
+
+function Wait-ForOutputFile([string]$Path, [int]$TimeoutSeconds = 20) {
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  while ((Get-Date) -lt $deadline) {
+    if ((Test-Path -LiteralPath $Path) -and ((Get-Item -LiteralPath $Path).Length -gt 0)) {
+      return
+    }
+    Start-Sleep -Milliseconds 250
+  }
+  throw "Expected output file was not created or was empty: $Path"
+}
+
+function Get-OriginProcessIds() {
+  return @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | ForEach-Object { [int]$_.Id })
+}
+
+function Close-OriginProcessesStartedByScript([int[]]$BeforePids) {
+  $known = @{}
+  foreach ($pidValue in $BeforePids) { $known[$pidValue] = $true }
+  $deadline = (Get-Date).AddSeconds(20)
+  while ((Get-Date) -lt $deadline) {
+    $newProcesses = @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | Where-Object { -not $known.ContainsKey([int]$_.Id) })
+    if ($newProcesses.Count -eq 0) { return }
+    Start-Sleep -Milliseconds 500
+  }
+  $newProcesses = @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | Where-Object { -not $known.ContainsKey([int]$_.Id) })
+  foreach ($process in $newProcesses) {
+    Write-Log ('Forcing leftover script-owned Origin process to close: PID=' + $process.Id)
+    try { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue } catch {}
+  }
+}
+
+function Normalize-TifDpi([string]$Path, [int]$Dpi) {
+  if (-not (Test-Path -LiteralPath $Path)) { return }
+  try {
+    Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+    $source = [System.Drawing.Image]::FromFile($Path)
+    $bitmap = $null
+    $graphics = $null
+    try {
+      $bitmap = New-Object System.Drawing.Bitmap $source.Width, $source.Height
+      $bitmap.SetResolution($Dpi, $Dpi)
+      $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+      $graphics.DrawImage($source, 0, 0, $source.Width, $source.Height)
+      $tmpPath = $Path + '.tmp.tif'
+      if (Test-Path -LiteralPath $tmpPath) { Remove-Item -LiteralPath $tmpPath -Force }
+      $bitmap.Save($tmpPath, [System.Drawing.Imaging.ImageFormat]::Tiff)
+    }
+    finally {
+      if ($graphics) { $graphics.Dispose() }
+      if ($bitmap) { $bitmap.Dispose() }
+      if ($source) { $source.Dispose() }
+    }
+    Move-Item -LiteralPath $tmpPath -Destination $Path -Force
+  }
+  catch {
+    Write-Log ("TIF DPI normalization skipped for " + $Path + ": " + $_.Exception.Message)
+  }
+}
+
+function Export-GraphPng($App, [string]$PageName, [string]$Directory, [string]$BaseName) {
+  New-Item -ItemType Directory -Path $Directory -Force | Out-Null
+  $path = Join-Path $Directory ($BaseName + '.png')
+  if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+  $App.Execute('win -a ' + $PageName + '; expGraph type:=png path:="' + (To-OriginPath $Directory) + '" filename:="' + $BaseName + '" overwrite:=replace;') | Out-Null
+  Wait-ForOutputFile $path
+  return $path
+}
+
+function Export-GraphTif($App, [string]$PageName, [string]$Directory, [string]$BaseName, [int]$ExportDpi) {
+  New-Item -ItemType Directory -Path $Directory -Force | Out-Null
+  $path = Join-Path $Directory ($BaseName + '.tif')
+  if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+  $App.Execute('win -a ' + $PageName + '; expGraph type:=tif path:="' + (To-OriginPath $Directory) + '" filename:="' + $BaseName + '" overwrite:=replace;') | Out-Null
+  Wait-ForOutputFile $path
+  Normalize-TifDpi $path $ExportDpi
+  return $path
+}
+
+function Sanitize-Graph($App, [string]$PageName) {
+  $App.Execute('win -a ' + $PageName + ';') | Out-Null
+  $layerCount = [int]$App.Evaluate('page.nlayers')
+  while ($layerCount -gt 1) {
+    $App.Execute('layer -d ' + $layerCount + ';') | Out-Null
+    $layerCount = [int]$App.Evaluate('page.nlayers')
+  }
+
+  $layer = $App.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $App.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { return }
+
+  $keep = @('YR', 'XT', 'YL', 'XB', '3D', '__BCO2', '__FRAMESRCDATAINFOS', 'Legend')
+  for ($i = $layer.GraphObjects.Count - 1; $i -ge 0; $i--) {
+    $obj = $layer.GraphObjects.Item($i)
+    $name = ''
+    try { $name = $obj.Name } catch {}
+    if ($keep -notcontains $name) {
+      try { $obj.Destroy() | Out-Null } catch {}
+    }
+  }
+}
+
+function Apply-HplcYAxisStyle($App, [string]$PageName) {
+  $yTitle = '\b(Peak area \(40)10\+(3) mAU*s\(41))'
+  $App.Execute('win -a ' + $PageName + ';') | Out-Null
+  $App.Execute('layer.y.label.divideBy=1000; layer.y.ticks=2; layer.y.ticklength=8; layer.y.tickthickness=3; layer.y.label.pt=22; layer.y.label.bold=1; layer.y.showLabels=1; layer.y.showAxes=3; layer.y2.ticks=0;') | Out-Null
+  $App.Execute('label -yl "' + $yTitle + '";') | Out-Null
+}
+
+function Assert-HplcYAxisStyle($App, [string]$PageName) {
+  $App.Execute('win -a ' + $PageName + ';') | Out-Null
+  $divideBy = [double]$App.Evaluate('layer.y.label.divideby')
+  $ticks = [int]$App.Evaluate('layer.y.ticks')
+  if ([Math]::Abs($divideBy - 1000) -gt 0.001) {
+    throw "HPLC Y-axis divideBy was not applied on $PageName; expected 1000, got $divideBy"
+  }
+  if ($ticks -ne 2) {
+    throw "HPLC Y-axis outward ticks were not applied on $PageName; expected ticks=2, got $ticks"
+  }
+}
+
+function Set-Legend($App, [string]$PageName, [string]$Substance, [double]$Slope, [double]$Intercept, [double]$R2) {
+  $App.Execute('win -a ' + $PageName + ';') | Out-Null
+  $layer = $App.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $App.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { return }
+
+  $rows = @(
+    ('\l(1) \b( ' + $Substance + ')'),
+    ('\b(y = ' + $Slope.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + 'x + ' + $Intercept.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + ')'),
+    ('\b(R\+(2) = ' + $R2.ToString('0.000000', [Globalization.CultureInfo]::InvariantCulture) + ')')
+  )
+
+  for ($i = 0; $i -lt $layer.GraphObjects.Count; $i++) {
+    $obj = $layer.GraphObjects.Item($i)
+    $name = ''
+    try { $name = $obj.Name } catch {}
+    if ($name -eq 'Legend') {
+      $obj.Text = ($rows -join "`r`n")
+      try {
+        $obj.Left = 2300
+        $obj.Top = 760
+        $obj.Width = 2450
+        $obj.Height = 980
+      } catch {}
+    }
+  }
+}
+
+function Import-And-PlotCalibration(
+  $App,
+  [string]$Template,
+  [string]$DataFile,
+  [string]$PageName,
+  [string]$Substance,
+  [string]$XTitle,
+  [string]$YTitle,
+  [double]$YTo,
+  [double]$YInc
+) {
+  $axis_title_size=36
+  $App.Execute('newbook name:="' + $PageName + '_Data";') | Out-Null
+  $App.Execute('impASC fname:="' + (To-OriginPath $DataFile) + '";') | Out-Null
+  $App.Execute('wks.col1.type=4; wks.col2.type=1; wks.col3.type=1;') | Out-Null
+  $App.Execute('wks.ncols=3; wks.col1.lname$="Concentration_mM"; wks.col2.lname$="Measured"; wks.col3.lname$="Origin_Linear_Fit";') | Out-Null
+  $App.Execute('fitlr iy:=(1,2) oy:=(1,3);') | Out-Null
+  $intercept = [double]$App.Evaluate('fitlr.a')
+  $slope = [double]$App.Evaluate('fitlr.b')
+  $r = [double]$App.Evaluate('fitlr.r')
+  $r2 = $r * $r
+
+  $plotCmd = 'worksheet -s 1 2; plotxy iy:=(1,2) plot:=202 ogl:=[<new template:="' + (To-OriginPath $Template) + '" name:="' + $PageName + '">];'
+  $App.Execute($plotCmd) | Out-Null
+  $App.Execute('win -a ' + $PageName + '; page.longname$="' + $Substance + ' calibration curve"; page.width=6432; page.height=4923;') | Out-Null
+  $App.Execute('layer -b s 0;') | Out-Null
+  $App.Execute('layer.left=17.89; layer.top=11.6; layer.width=68.19; layer.height=71.81; layer -a; layer.x.from=0; layer.x.to=2.1; layer.x.inc=0.5; layer.y.from=0; layer.y.to=' + $YTo + '; layer.y.inc=' + $YInc + ';') | Out-Null
+  $App.Execute('layer.x.label.pt=28; layer.y.label.pt=22; layer.x.title.pt=' + $axis_title_size + '; layer.y.title.pt=' + $axis_title_size + ';') | Out-Null
+  $App.Execute('axis -ps Y A 3; axis -ps Y L 1; layer.y.showAxes=3; layer.y.showLabels=1; layer.y.opposite=1; layer.y.showopposite=1; layer.y.label.dir=1; layer.y.label.rotate=0; layer.y.label.pt=22; layer.y.label.bold=1; layer.y.ticks=2; layer.y.tickthickness=3; layer.y.ticklength=8; layer.y.label.divideBy=1000; layer.y2.ticks=0; layer.x.thickness=3; layer.y.thickness=3; layer.y2.thickness=3; doc -e DY {set %C -c color(255,128,0);};') | Out-Null
+  $App.Execute('label -xb "\b(' + $XTitle + ')"; label -yl "\b(' + $YTitle + ')";') | Out-Null
+  Apply-HplcYAxisStyle $App $PageName
+  $App.Execute('legendupdate mode:=lname; doc -e DY {set %C -sx 0; set %C -sy 0; set %C -sxs 1; set %C -sys 1; set %C -lw 3; set %C -z 7;};') | Out-Null
+  Sanitize-Graph $App $PageName
+  Set-Legend $App $PageName $Substance $slope $intercept $r2
+  Apply-HplcYAxisStyle $App $PageName
+  Assert-HplcYAxisStyle $App $PageName
+  return @{
+    Slope = $slope
+    Intercept = $intercept
+    R2 = $r2
+  }
+}
+
+function Compare-ImageFiles([string]$TemplatePath, [string]$GeneratedPath, [double]$MeanTolerance, [double]$MaxTolerance) {
+  if (-not (Test-Path -LiteralPath $TemplatePath)) { throw "Template image missing: $TemplatePath" }
+  if (-not (Test-Path -LiteralPath $GeneratedPath)) { throw "Generated image missing: $GeneratedPath" }
+  Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+  $templateImage = [System.Drawing.Bitmap]::FromFile($TemplatePath)
+  $generatedImage = [System.Drawing.Bitmap]::FromFile($GeneratedPath)
+  try {
+    $sameSize = ($templateImage.Width -eq $generatedImage.Width) -and ($templateImage.Height -eq $generatedImage.Height)
+    if (-not $sameSize) {
+      return [pscustomobject]@{
+        Pass = $false
+        TemplateWidth = $templateImage.Width
+        TemplateHeight = $templateImage.Height
+        GeneratedWidth = $generatedImage.Width
+        GeneratedHeight = $generatedImage.Height
+        Samples = 0
+        MeanAbsDelta = ''
+        MaxAbsDelta = ''
+        Status = 'dimension_mismatch'
+      }
+    }
+    $sampleColumns = [Math]::Min(101, $templateImage.Width)
+    $sampleRows = [Math]::Min(101, $templateImage.Height)
+    $sampleCount = 0
+    $sumDelta = 0.0
+    $maxDelta = 0
+    for ($iy = 0; $iy -lt $sampleRows; $iy++) {
+      if ($sampleRows -eq 1) { $y = 0 } else { $y = [int][Math]::Round($iy * ($templateImage.Height - 1) / ($sampleRows - 1)) }
+      for ($ix = 0; $ix -lt $sampleColumns; $ix++) {
+        if ($sampleColumns -eq 1) { $x = 0 } else { $x = [int][Math]::Round($ix * ($templateImage.Width - 1) / ($sampleColumns - 1)) }
+        $a = $templateImage.GetPixel($x, $y)
+        $b = $generatedImage.GetPixel($x, $y)
+        foreach ($delta in @([Math]::Abs($a.R - $b.R), [Math]::Abs($a.G - $b.G), [Math]::Abs($a.B - $b.B))) {
+          $sumDelta += $delta
+          if ($delta -gt $maxDelta) { $maxDelta = $delta }
+        }
+        $sampleCount += 1
+      }
+    }
+    $meanDelta = $sumDelta / ($sampleCount * 3)
+    $passed = ($meanDelta -le $MeanTolerance) -and ($maxDelta -le $MaxTolerance)
+    return [pscustomobject]@{
+      Pass = $passed
+      TemplateWidth = $templateImage.Width
+      TemplateHeight = $templateImage.Height
+      GeneratedWidth = $generatedImage.Width
+      GeneratedHeight = $generatedImage.Height
+      Samples = $sampleCount
+      MeanAbsDelta = $meanDelta.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture)
+      MaxAbsDelta = $maxDelta
+      Status = if ($passed) { 'pass' } else { 'pixel_delta_exceeds_tolerance' }
+    }
+  }
+  finally {
+    $templateImage.Dispose()
+    $generatedImage.Dispose()
+  }
+}
+
+$projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+if ([string]::IsNullOrWhiteSpace($OutputDir)) {
+  $OutputDir = Join-Path $projectRoot 'output\hplc_calibration_origin'
+}
+$OutputDir = Resolve-RunPath $OutputDir $projectRoot
+if ([string]::IsNullOrWhiteSpace($Stamp)) {
+  $Stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+}
+
+$ExportDpi = 600
+$templateOpjuPath = Resolve-RunPath $TemplateOpju $projectRoot
+if (-not (Test-Path -LiteralPath $templateOpjuPath)) {
+  throw "HPLC calibration template OPJU not found: $templateOpjuPath"
+}
+
+$dataDir = Join-Path $OutputDir 'processed_data'
+$originDir = Join-Path $OutputDir 'origin_files'
+$previewDir = Join-Path $OutputDir 'figures_preview'
+$tifDir = Join-Path $OutputDir 'figures_tif'
+$templateDir = Join-Path $OutputDir 'origin_templates'
+$comparisonDir = Join-Path $OutputDir 'template_comparison'
+$templatePreviewDir = Join-Path $comparisonDir 'template_preview'
+$templateTifDir = Join-Path $comparisonDir 'template_tif'
+$logDir = Join-Path $OutputDir 'logs'
+New-Item -ItemType Directory -Path $dataDir, $originDir, $previewDir, $tifDir, $templateDir, $comparisonDir, $logDir -Force | Out-Null
+
+$script:LogPath = Join-Path $logDir 'origin_run_log.txt'
+if (Test-Path -LiteralPath $script:LogPath) { Remove-Item -LiteralPath $script:LogPath -Force }
+
+$workingTemplate = Join-Path $templateDir ('template_working_copy_' + $Stamp + '.opju')
+$outputOpju = Join-Path $originDir ('HPLC_calibration_curves_' + $Stamp + '.opju')
+$comparisonReport = Join-Path $comparisonDir 'comparison_report.tsv'
+if (Test-Path -LiteralPath $outputOpju) { Remove-Item -LiteralPath $outputOpju -Force }
+if (Test-Path -LiteralPath $comparisonReport) { Remove-Item -LiteralPath $comparisonReport -Force }
+
+$points = @(
+  @{ Point='S1'; X=0.05; Sulfoxide=67.848; Sulfone=22.553; Sulfide=504.621 },
+  @{ Point='S2'; X=0.10; Sulfoxide=145.164; Sulfone=47.271; Sulfide=1054.405 },
+  @{ Point='S3'; X=0.25; Sulfoxide=379.292; Sulfone=127.723; Sulfide=2863.680 },
+  @{ Point='S4'; X=0.50; Sulfoxide=755.397; Sulfone=252.807; Sulfide=5612.688 },
+  @{ Point='S5'; X=1.00; Sulfoxide=1505.311; Sulfone=502.702; Sulfide=11264.664 },
+  @{ Point='S6'; X=1.50; Sulfoxide=2208.395; Sulfone=739.446; Sulfide=16408.434 },
+  @{ Point='S7'; X=2.00; Sulfoxide=2959.872; Sulfone=991.845; Sulfide=21670.291 }
+)
+
+$series = @(
+  @{ Key='Sulfoxide'; Page='Cal_Sulfoxide'; TemplateGraph='Cal_Sulfoxide'; Name='Anisole sulfoxide'; YTo=3200; YInc=500 },
+  @{ Key='Sulfone'; Page='Cal_Sulfone'; TemplateGraph='Cal_Sulfone'; Name='Anisole sulfone'; YTo=1100; YInc=200 },
+  @{ Key='Sulfide'; Page='Cal_Sulfide'; TemplateGraph='Cal_Sulfide'; Name='Anisole sulfide'; YTo=23000; YInc=5000 }
+)
+
+$masterHeader = 'Point' + "`t" + 'Concentration_mM' + "`t" + 'Sulfoxide_area_mAU_s' + "`t" + 'Sulfone_area_mAU_s' + "`t" + 'Sulfide_area_mAU_s'
+$masterLines = @($masterHeader)
+foreach ($p in $points) {
+  $masterLines += ($p.Point + "`t" + $p.X.ToString('0.00', [Globalization.CultureInfo]::InvariantCulture) + "`t" + $p.Sulfoxide.ToString('0.000', [Globalization.CultureInfo]::InvariantCulture) + "`t" + $p.Sulfone.ToString('0.000', [Globalization.CultureInfo]::InvariantCulture) + "`t" + $p.Sulfide.ToString('0.000', [Globalization.CultureInfo]::InvariantCulture))
+}
+Write-Utf8Lines (Join-Path $dataDir 'final_calibration_data.tsv') $masterLines
+
+foreach ($s in $series) {
+  $lines = @()
+  foreach ($p in $points) {
+    $x = [double]$p.X
+    $y = [double]$p[$s.Key]
+    $lines += ($x.ToString('0.00', [Globalization.CultureInfo]::InvariantCulture) + "`t" + $y.ToString('0.000', [Globalization.CultureInfo]::InvariantCulture))
+  }
+  Write-Utf8Lines (Join-Path $dataDir ($s.Key + '_plot_data.tsv')) $lines
+}
+
+Copy-Item -LiteralPath $templateOpjuPath -Destination $workingTemplate -Force
+
+$templatePreviewMap = @{}
+$generatedPreviewMap = @{}
+$generatedTifMap = @{}
+$fitMap = @{}
+$originPidsBefore = Get-OriginProcessIds
+
+$app = New-Object -ComObject Origin.Application
+$app.Visible = if ($Headless) { 0 } else { 1 }
+try {
+  Write-Log 'Origin.Application launched'
+  Write-Log ('TemplateOpju=' + $templateOpjuPath)
+  Write-Log ('OutputDir=' + $OutputDir)
+  $app.Load($workingTemplate) | Out-Null
+
+  foreach ($s in $series) {
+    $templateBase = 'hplc_' + $s.TemplateGraph + '_' + $Stamp
+    $templatePath = Join-Path $templateDir ($templateBase + '.otpu')
+    $app.Execute('win -a ' + $s.TemplateGraph + ';') | Out-Null
+    Apply-HplcYAxisStyle $app $s.TemplateGraph
+    foreach ($expr in @('page.width', 'page.height', 'page.nlayers', 'layer.left', 'layer.top', 'layer.width', 'layer.height', 'layer.x.thickness', 'layer.y.thickness')) {
+      ($s.TemplateGraph + ':' + $expr + '=' + $app.Evaluate($expr)) | Add-Content -LiteralPath $script:LogPath -Encoding UTF8
+    }
+    if (Test-Path -LiteralPath $templatePath) { Remove-Item -LiteralPath $templatePath -Force }
+    $app.Execute('template_saveas pg:=' + $s.TemplateGraph + ' category:="CodexOrigin" template:="' + $templateBase + '" filepath:="' + (To-OriginPath $templateDir) + '" emf:=0 bmp:=1 loadsys:=0;') | Out-Null
+    Wait-ForOutputFile $templatePath
+    $s.TemplatePath = $templatePath
+    if ($ExportTemplateComparison) {
+      $templatePreviewMap[$s.Page] = Export-GraphPng $app $s.TemplateGraph $templatePreviewDir ($s.Page + '_template')
+      Export-GraphTif $app $s.TemplateGraph $templateTifDir ($s.Page + '_template') $ExportDpi | Out-Null
+    }
+  }
+
+  $app.NewProject() | Out-Null
+  $xTitle = 'Concentration (mM)'
+  $yTitle = '\p70(Peak area (mAU*s))'
+  foreach ($s in $series) {
+    $dataFile = Join-Path $dataDir ($s.Key + '_plot_data.tsv')
+    $fitMap[$s.Page] = Import-And-PlotCalibration $app $s.TemplatePath $dataFile $s.Page $s.Name $xTitle $yTitle $s.YTo $s.YInc
+  }
+
+  $app.Save($outputOpju) | Out-Null
+  Wait-ForOutputFile $outputOpju
+  foreach ($s in $series) {
+    $baseName = $s.Page + '_' + $Stamp
+    $generatedPreviewMap[$s.Page] = Export-GraphPng $app $s.Page $previewDir $baseName
+    $generatedTifMap[$s.Page] = Export-GraphTif $app $s.Page $tifDir $baseName $ExportDpi
+  }
+}
+finally {
+  if ($CloseOrigin) {
+    try { $app.Exit() | Out-Null } catch {}
+    Close-OriginProcessesStartedByScript $originPidsBefore
+  }
+}
+
+if ($ExportTemplateComparison) {
+  $comparisonLines = @(
+    'Page' + "`t" + 'TemplatePng' + "`t" + 'GeneratedPng' + "`t" + 'TemplateWidth' + "`t" + 'TemplateHeight' + "`t" + 'GeneratedWidth' + "`t" + 'GeneratedHeight' + "`t" + 'SampleCount' + "`t" + 'MeanAbsDelta' + "`t" + 'MaxAbsDelta' + "`t" + 'Status'
+  )
+  $failedComparisons = @()
+  foreach ($s in $series) {
+    $result = Compare-ImageFiles $templatePreviewMap[$s.Page] $generatedPreviewMap[$s.Page] $ComparisonMeanTolerance $ComparisonMaxTolerance
+    $comparisonLines += (
+      $s.Page + "`t" +
+      $templatePreviewMap[$s.Page] + "`t" +
+      $generatedPreviewMap[$s.Page] + "`t" +
+      $result.TemplateWidth + "`t" +
+      $result.TemplateHeight + "`t" +
+      $result.GeneratedWidth + "`t" +
+      $result.GeneratedHeight + "`t" +
+      $result.Samples + "`t" +
+      $result.MeanAbsDelta + "`t" +
+      $result.MaxAbsDelta + "`t" +
+      $result.Status
+    )
+    if (-not $result.Pass) { $failedComparisons += $s.Page + ':' + $result.Status }
+  }
+  Write-Utf8Lines $comparisonReport $comparisonLines
+  if ($EnforceTemplateComparison -and $failedComparisons.Count -gt 0) {
+    throw ("Template comparison failed: " + ($failedComparisons -join '; '))
+  }
+}
+
+if (-not $KeepIntermediate) {
+  try { Remove-Item -LiteralPath $workingTemplate -Force -ErrorAction SilentlyContinue } catch {}
+}
+
+Write-Output "OUTPUT_DIR=$OutputDir"
+Write-Output "OPJU=$outputOpju"
+Write-Output "DATA=$(Join-Path $dataDir 'final_calibration_data.tsv')"
+Write-Output "LOG=$script:LogPath"
+if ($ExportTemplateComparison) {
+  Write-Output "COMPARISON_REPORT=$comparisonReport"
+}
+foreach ($s in $series) {
+  $fit = $fitMap[$s.Page]
+  Write-Output ("PNG=" + $generatedPreviewMap[$s.Page])
+  Write-Output ("TIF=" + $generatedTifMap[$s.Page])
+  Write-Output ($s.Page + "_FIT=slope=" + $fit.Slope.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + ";intercept=" + $fit.Intercept.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + ";r2=" + $fit.R2.ToString('0.000000', [Globalization.CultureInfo]::InvariantCulture))
+}
