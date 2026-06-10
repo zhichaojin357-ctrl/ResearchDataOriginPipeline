@@ -169,6 +169,15 @@ def _read_processor_rows(source_file: Path, data_type: str) -> tuple[list[dict[s
         return decode_jeol_cacqu_rows(source_file), [
             "Decoded JEOL JES-FA/JES-X3 cAcqu EPR raw file to field-intensity table; radical assignment remains blocked.",
         ]
+    if data_type == "XPS" and source_file.suffix.casefold() in {".vgd", ".vgp"}:
+        from src.adapters import xps_vgd_reader_adapter
+
+        result = xps_vgd_reader_adapter.read_vgd_rows(source_file)
+        if result.rows:
+            return result.rows, [
+                "Read Thermo VGD XPS spectrum through vgd-reader; peak assignment and valence interpretation remain blocked.",
+                *result.warnings,
+            ]
     return read_table(source_file), []
 
 
@@ -231,7 +240,12 @@ def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str
     if data_type == "BET":
         candidate_methods.append("bet_exported_summary_or_isotherm_candidate")
     if data_type == "EPR":
-        candidate_methods.append("field_intensity_extrema_candidate")
+        if key_results.get("adapter_results", {}).get("EPR"):
+            candidate_methods.append("epr_adapter_field_intensity_candidate_metrics")
+        else:
+            candidate_methods.append("field_intensity_extrema_candidate")
+    if data_type == "XPS" and key_results.get("adapter_results", {}).get("XPS"):
+        candidate_methods.append("xps_lmfitxps_existing_curve_summary")
     if data_type == "HPLC/LC exported data":
         candidate_methods.append("lc_exported_table_contract_classification")
         if key_results.get("lc_calibration_candidate"):
@@ -261,8 +275,11 @@ def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str
         adapters.append("src.adapters.epr_adapter")
     if data_type == "XPS":
         adapters.append("src.adapters.xps_lmfitxps_adapter")
+        adapters.append("src.adapters.xps_vgd_reader_adapter")
     if adapters:
         provenance["candidate_adapters"] = adapters
+    if key_results.get("adapter_results"):
+        provenance["adapter_results"] = key_results["adapter_results"]
     if "linear_fit_point_count" in key_results:
         provenance["fit_point_count"] = key_results["linear_fit_point_count"]
         provenance["fit_method"] = "ordinary_least_squares_candidate"

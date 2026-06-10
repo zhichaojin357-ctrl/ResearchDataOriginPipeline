@@ -7,6 +7,7 @@ __all__ = [
     "eis_pyimpspec_adapter",
     "bet_pygaps_adapter",
     "xps_lmfitxps_adapter",
+    "xps_vgd_reader_adapter",
     "epr_adapter",
     "raman_adapter",
     "electrochem_import_adapter",

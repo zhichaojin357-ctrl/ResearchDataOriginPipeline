@@ -65,12 +65,34 @@ def type_specific_results(
             result["pore_distribution_points"] = len(pore_distribution)
         return result
     if data_type == "EPR":
-        return {
+        result = {
             "peak_position_candidates": local_peak_positions(numeric),
             "peak_intensity_candidate": max(y_values) if y_values else None,
-            "peak_to_peak_intensity_candidate": (max(y_values) - min(y_values)) if y_values else None,
-            **epr_extrema_results(numeric, rows),
         }
+        adapter = epr_package_results(numeric, rows)
+        if adapter.get("ok"):
+            result.update(
+                {
+                    key: value
+                    for key, value in adapter.items()
+                    if key
+                    in {
+                        "peak_to_peak_intensity_candidate",
+                        "minimum_intensity_field",
+                        "maximum_intensity_field",
+                        "g_candidate_at_max_intensity",
+                    }
+                }
+            )
+            result["adapter_results"] = {"EPR": adapter}
+        else:
+            result.update(
+                {
+                    "peak_to_peak_intensity_candidate": (max(y_values) - min(y_values)) if y_values else None,
+                    **epr_extrema_results(numeric, rows),
+                }
+            )
+        return result
     if data_type == "Mott-Schottky":
         mott_numeric = mott_schottky_numeric(rows, numeric)
         linear = mott_schottky_linear_results(mott_numeric)
@@ -362,16 +384,49 @@ def photocurrent_processed_table(
 
 def xps_export_results(rows: list[dict[str, str]]) -> dict:
     components = xps_component_columns(rows)
+    adapter = xps_package_results(rows)
+    if adapter.get("ok") and adapter.get("component_labels"):
+        components = [str(label) for label in adapter["component_labels"]]
     result = {
-        "xps_background_preserved": bool(rows and matching_key(rows[0], ["background"])),
+        "xps_background_preserved": bool(rows and matching_key(rows[0], ["background", "backgnd"])),
         "xps_envelope_preserved": bool(rows and matching_key(rows[0], ["envelope", "fit"])),
     }
     if components:
         result["xps_component_columns"] = components
+        result["xps_component_count"] = len(components)
         component_areas = xps_component_area_candidates(rows, components)
         if component_areas:
             result["xps_component_area_candidates"] = component_areas
+    if adapter.get("ok"):
+        result["adapter_results"] = {"XPS": adapter}
     return result
+
+
+def xps_package_results(rows: list[dict[str, str]]) -> dict:
+    if not rows:
+        return {}
+    from src.adapters import xps_lmfitxps_adapter
+
+    result = xps_lmfitxps_adapter.process_or_analyze(xps_numeric_curves(rows))
+    return result if result.get("ok") else {}
+
+
+def xps_numeric_curves(rows: list[dict[str, str]]) -> dict[str, list[float]]:
+    if not rows:
+        return {}
+    binding_key = matching_key(rows[0], ["binding energy", "bindingenergy"])
+    curves: dict[str, list[float]] = {}
+    for key in rows[0]:
+        if key == binding_key:
+            continue
+        values = []
+        for row in rows:
+            value = first_numeric(row, [key])
+            if value is not None:
+                values.append(float(value))
+        if values:
+            curves[key] = values
+    return curves
 
 
 def xps_processed_table(
@@ -916,6 +971,22 @@ def epr_extrema_results(numeric: list[tuple[float, float]], rows: list[dict[str,
     if g_value is not None:
         result["g_candidate_at_max_intensity"] = g_value
     return result
+
+
+def epr_package_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
+    if not numeric:
+        return {}
+    from src.adapters import epr_adapter
+
+    fields = [field for field, _ in numeric]
+    intensities = [intensity for _, intensity in numeric]
+    frequencies = [epr_frequency_for_field(rows, field) for field in fields]
+    result = epr_adapter.process_or_analyze(
+        fields,
+        intensities,
+        microwave_frequency_ghz=frequencies if any(value is not None for value in frequencies) else None,
+    )
+    return result if result.get("ok") else {}
 
 
 def epr_numeric(rows: list[dict[str, str]], fallback: list[tuple[float, float]]) -> list[tuple[float, float]]:

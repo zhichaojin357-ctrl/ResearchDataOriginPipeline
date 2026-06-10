@@ -47,6 +47,14 @@ Optional dependencies must remain optional:
 - Optional libraries must not expand Phase 1 scope. For example, an EIS fitting library does not permit automatic equivalent-circuit fitting in Phase 1.
 - Optional packages that parse proprietary vendor formats should only be enabled after format-specific tests and license review.
 
+## Current EIS/EPR/XPS Adapter Decisions
+
+- `impedance` 1.7.1 reports MIT metadata and is allowed only through `src.adapters.eis_impedance_adapter`; its CustomCircuit Rs+(Rct||CPE) output is a draft visualization candidate, not an equivalent-circuit conclusion.
+- `pyimpspec` 5.1.3 reports GPLv3 metadata and remains reference-only/import-smoke. It must not be placed in the default automated EIS processing path without explicit owner approval.
+- `cwepr` 0.5.1 reports BSD metadata and `eprpy` 0.9.0b2 reports MIT metadata. They may support EPR candidate metrics through `src.adapters.epr_adapter`, with radical assignment still blocked.
+- `vgd-reader` 0.1.0 reports MIT metadata and may parse Thermo VGD XPS spectra through `src.adapters.xps_vgd_reader_adapter`; parsed spectra remain unassigned XPS tables.
+- `lmfitxps` 4.2.0 reports an MIT package license with internal third-party license caveats, including GPL text for some background implementations. The current adapter uses import/provenance and existing-curve summarization only; do not call background or fitting routines in automatic Phase 1 output without a focused license and method review.
+
 ## Origin Tools And Manual References
 
 OriginPro is already installed on the target machine. This project may test Python/COM automation and may save `.opju` files and export `.tif` figures through Origin.
@@ -63,14 +71,13 @@ License boundaries:
 The following candidates should remain optional until package metadata and project terms are verified:
 
 - `originpro`
-- `impedance`
-- `pyimpspec`
+- `pyimpspec` (verified GPLv3; reference-only unless approved)
 - `DearEIS`
 - `ixdat`
 - `galvani`
 - `eclabfiles`
 - `pyGAPS`
-- `lmfitxps`
+- `lmfitxps` advanced fitting/background routines
 - `RamanSPy`
 - `RamPy`
 - `SpectroChemPy`
@@ -78,8 +85,6 @@ The following candidates should remain optional until package metadata and proje
 - `rainbow-api`
 - `MOCCA`
 - `EPyR Tools`
-- `cwepr`
-- `eprpy`
 - `CustomXepr`
 - `absorption_tauc_plot`
 - `xrdfit`

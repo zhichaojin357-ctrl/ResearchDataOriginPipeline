@@ -15,12 +15,14 @@
 | `pillow` | 12.2.0 | ok | core_optional | permissive | SEM, TEM, QC | image preview and DPI inspection |
 | `scikit-image` | 0.26.0 | ok | optional_adapter | permissive | SEM, TEM | image metadata/QC only |
 | `ixdat` | 0.3.0 | ok | optional_adapter | permissive | photocurrent, electrochemistry | electrochemical import abstraction |
+| `impedance` | 1.7.1 | ok | optional_adapter | MIT | EIS | CustomCircuit draft fit candidate; no circuit conclusion |
 | `rainbow-api` | 1.0.10 | ok | optional_adapter | LGPL_optional_boundary | HPLC/LC exported data | chromatography raw reader probe |
 | `mocca2` | 0.1.18 | ok | optional_adapter | permissive | HPLC/LC exported data | baseline/peak candidate helper; no product assignment |
 | `pymzml` | 2.6.0 | ok | optional_adapter | permissive | MS | mzML reader |
 | `pyteomics` | 5.0 | ok | optional_adapter | permissive | MS | mzML/mzXML/MGF/msp reader helpers |
-| `cwepr` | 0.5.1 | ok | optional_adapter | permissive | EPR | cw-EPR processing helper; no radical assignment |
-| `lmfitxps` | 4.2.0 | ok | optional_adapter | permissive_with_review | XPS | manual-review fitting helper; no valence assignment |
+| `cwepr` | 0.5.1 | ok | optional_adapter | BSD | EPR | cw-EPR candidate metrics; no radical assignment |
+| `eprpy` | 0.9.0b2 | ok | optional_adapter | MIT | EPR | EPR candidate metrics fallback; no radical assignment |
+| `lmfitxps` | 4.2.0 | ok | optional_adapter | MIT_with_internal_license_review | XPS | existing fitted-curve summary only; no automatic fitting or valence assignment |
 | `galvani` | 0.5.0 | ok | reference_only | GPL_reference_only | electrochemistry | Bio-Logic reader reference only |
 | `eclabfiles` | 0.4.1 | ok | reference_only | GPL_reference_only | electrochemistry | EC-Lab reader reference only |
 | `pyopenms` |  | fail | reference_only | heavy_optional_reference | MS | full MS toolkit reference only |

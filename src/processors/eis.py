@@ -66,9 +66,10 @@ class EisFitResult:
     robust_cost: float = math.nan
     semicircle_classification: str = "manual_review"
     warning: str = ""
+    adapter_provenance: dict[str, object] = field(default_factory=dict)
 
     def to_metadata(self) -> dict[str, object]:
-        return {
+        payload = {
             "method": self.method,
             "model": "Model A: Rs + (Rct || CPE)",
             "point_count": len(self.points),
@@ -84,6 +85,9 @@ class EisFitResult:
                 "no electrochemical mechanism conclusion",
             ],
         }
+        if self.adapter_provenance:
+            payload["adapter_provenance"] = dict(self.adapter_provenance)
+        return payload
 
 
 def clean_eis_file(path: Path) -> EisCleaningResult:
@@ -151,6 +155,9 @@ def select_eis_semicircle_main_branch(
 
 def draft_fit_eis_randles_cpe(points: list[EisPoint], *, fit_points: int = 240) -> EisFitResult:
     fit_points_input = [point for point in points if point.frequency_hz is not None and point.frequency_hz > 0]
+    adapter = _draft_fit_with_impedance_adapter(fit_points_input, fit_points=fit_points)
+    if adapter is not None:
+        return adapter
     if len(fit_points_input) < 4:
         ordered = sorted(points, key=lambda item: item.z_real_ohm)
         return EisFitResult(
@@ -212,6 +219,31 @@ def draft_fit_eis_randles_cpe(points: list[EisPoint], *, fit_points: int = 240) 
 
 def draft_fit_eis_arc(points: list[EisPoint], *, fit_points: int = 240) -> EisFitResult:
     return draft_fit_eis_randles_cpe(points, fit_points=fit_points)
+
+
+def _draft_fit_with_impedance_adapter(points: list[EisPoint], *, fit_points: int) -> EisFitResult | None:
+    if len(points) < 4:
+        return None
+    from src.adapters import eis_impedance_adapter
+
+    result = eis_impedance_adapter.fit_randles_cpe_candidate(
+        [float(point.frequency_hz or 0.0) for point in points],
+        [point.z_real_ohm for point in points],
+        [point.minus_z_imag_ohm for point in points],
+        fit_points=fit_points,
+    )
+    if not result.get("ok"):
+        return None
+    return EisFitResult(
+        str(result.get("method") or "impedance_custom_circuit_R0_p_R1_CPE1_candidate"),
+        [(float(x_value), float(y_value)) for x_value, y_value in result.get("fit_points", [])],
+        {str(key): float(value) for key, value in dict(result.get("parameters", {})).items()},
+        residual_sse=float(result.get("residual_sse", math.nan)),
+        robust_cost=float(result.get("robust_cost", math.nan)),
+        semicircle_classification=str(result.get("semicircle_classification") or "manual_review"),
+        warning=str(result.get("warning") or ""),
+        adapter_provenance=dict(result.get("metadata_provenance", {})),
+    )
 
 
 def randles_cpe_impedance(frequency_hz: np.ndarray | list[float], rs: float, rct: float, q_value: float, n_value: float) -> np.ndarray:

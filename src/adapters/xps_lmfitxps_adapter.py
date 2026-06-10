@@ -30,11 +30,7 @@ def capabilities() -> dict[str, object]:
 def process_or_analyze(curves: Mapping[str, Sequence[float]]) -> dict[str, Any]:
     module, error = import_optional(MODULE)
     labels = [str(label) for label in curves]
-    components = [
-        label
-        for label in labels
-        if label.casefold() not in {"raw", "raw_intensity", "background", "backgnd.", "envelope", "residuals", "residual"}
-    ]
+    components = [label for label in labels if not _is_non_component_curve(label)]
     residuals = [label for label in labels if "residual" in label.casefold()]
     fallback_reason = None if module is not None else f"{PACKAGE} unavailable: {error}"
     return {
@@ -58,3 +54,20 @@ def process_or_analyze(curves: Mapping[str, Sequence[float]]) -> dict[str, Any]:
 def smoke_test() -> dict[str, object]:
     result = process_or_analyze({"raw_intensity": [1, 2], "Backgnd.": [0, 0], "Envelope": [1, 1], "Residuals": [0.1, -0.1], "C1s A": [0.5, 0.7]})
     return {"ok": result["ok"] and result["component_count"] == 1 and result["residual_labels_excluded"], "result": result}
+
+
+def _is_non_component_curve(label: str) -> bool:
+    normalized = label.casefold().replace(" ", "").replace("_", "")
+    return normalized in {
+        "raw",
+        "rawintensity",
+        "counts",
+        "intensity",
+        "background",
+        "backgnd.",
+        "backgnd",
+        "envelope",
+        "fit",
+        "residuals",
+        "residual",
+    }

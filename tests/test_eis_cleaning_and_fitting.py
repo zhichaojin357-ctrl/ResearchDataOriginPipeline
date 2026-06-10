@@ -52,7 +52,8 @@ def test_randles_cpe_fit_returns_finite_parameters_and_curve(tmp_path: Path) -> 
 
     fit = draft_fit_eis_randles_cpe(cleaned.cleaned_points)
 
-    assert fit.method == "least_squares_randles_cpe"
+    assert fit.method == "impedance_custom_circuit_R0_p_R1_CPE1_candidate"
+    assert fit.adapter_provenance["adapter"] == "eis_impedance_adapter"
     assert set(fit.parameters) == {"Rs", "Rct", "Q", "n"}
     assert fit.parameters["Rs"] > 0
     assert fit.parameters["Rct"] > 0
