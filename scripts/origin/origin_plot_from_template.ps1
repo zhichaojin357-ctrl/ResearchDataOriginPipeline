@@ -802,7 +802,10 @@ try {
     $app.Execute('template_saveas pg:=' + $ReferenceGraph + ' category:="ResearchDataOrigin" template:="' + $templateName + '" filepath:="' + (To-OriginPath $templateDir) + '" emf:=0 bmp:=1 loadsys:=0;') | Out-Null
     Sanitize-ProjectPages $app
     $app.Save($referenceWorkingCopy) | Out-Null
-    Require-File $template
+    if (-not (Test-Path -LiteralPath $template)) {
+      Write-Output ("REFERENCE_TEMPLATE_SAVE_FAILED_USING_EXTRACTED_STYLE=" + $template)
+      $template = $null
+    }
   }
 
   $app.NewProject() | Out-Null

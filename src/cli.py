@@ -35,6 +35,7 @@ from src.core.v4_strict_template_conformance import (
     V4StrictTemplateConformanceOptions,
     run_v4_strict_template_conformance_all_types,
 )
+from src.core.xrd_overlay import XrdOverlayOptions, run_xrd_overlay
 from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
 from src.origin.adapter import origin_smoke_test
 from src.scanner.scanner import scan_raw_data
@@ -258,6 +259,26 @@ def build_parser() -> argparse.ArgumentParser:
     xps_origin.add_argument("--dry-run", action="store_true", help="parse data, write tables/reports, but do not launch Origin")
     xps_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF")
     xps_stacked.add_argument("--no-bc-candidate", action="store_true", help="do not use the detected BC candidate Excel outside the official BC folder")
+
+    xrd_overlay = subparsers.add_parser(
+        "xrd-overlay",
+        help="build a user-reviewed XRD overlay with BiCu-10, BiOBr0.5Cl0.5, CuWO4, and CuWO4 reference-card sticks",
+    )
+    xrd_overlay.add_argument("--bicu-source", type=Path, required=True, help="RAW4/TXT source for BiCu-10")
+    xrd_overlay.add_argument("--bobc-source", type=Path, required=True, help="RAW4/TXT source for BiOBr0.5Cl0.5")
+    xrd_overlay.add_argument("--cwo-source", type=Path, required=True, help="RAW4/TXT source for CuWO4")
+    xrd_overlay.add_argument("--cwo-card", type=Path, required=True, help="CuWO4 PDF/JCPDS text card")
+    xrd_overlay.add_argument(
+        "--reference-opju",
+        type=Path,
+        default=Path(r"D:\OriginFlies\Manual Save\CWO+BOBC+标卡.opju"),
+        help="Origin OPJU reference whose Graph4 style is used",
+    )
+    xrd_overlay.add_argument("--output-root", type=Path, help="optional output root; defaults to configured output root")
+    xrd_origin = xrd_overlay.add_mutually_exclusive_group()
+    xrd_origin.add_argument("--dry-run", action="store_true", help="write processed table, metadata, and report without launching Origin")
+    xrd_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF/PNG")
+    xrd_overlay.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
 
     jeol_epr = subparsers.add_parser(
         "jeol-epr-decode",
@@ -615,6 +636,27 @@ def main(argv: list[str] | None = None) -> int:
             pre_manual_review=notes,
         )
         return 0
+    if args.command == "xrd-overlay":
+        result = run_xrd_overlay(
+            project_root,
+            XrdOverlayOptions(
+                bicu_source=args.bicu_source,
+                bobc_source=args.bobc_source,
+                cwo_source=args.cwo_source,
+                cwo_card=args.cwo_card,
+                reference_opju=args.reference_opju,
+                output_root=_resolve_cli_output_root(project_root, args),
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"processed_data={result['processed_data']}")
+        print(f"metadata={result['metadata']}")
+        print(f"origin_file={result['origin_file']}")
+        print(f"figure_tif={result['figure_tif']}")
+        print(f"preview_png={result['preview_png']}")
+        return 0 if (not args.with_origin or bool(result["origin_status"].get("ok"))) else 1
     if args.command == "jeol-epr-decode":
         output_root = args.out if args.out.is_absolute() else project_root / args.out
         reference_dir = args.reference_dir if args.reference_dir is None or args.reference_dir.is_absolute() else project_root / args.reference_dir

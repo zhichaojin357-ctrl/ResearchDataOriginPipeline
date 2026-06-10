@@ -74,6 +74,7 @@ Use these as the supported command surface:
 - `reviewed-queue`: build user-reviewed no-Origin queue plans
 - `auto-queue`: build current no-Origin AUTO_PROCESS candidate queues after Phase 1.6 exclusion
 - `xps-heterojunction-stacked`: dedicated fitted XPS stacked comparison output
+- `xrd-overlay`: dedicated reviewed XRD overlay with CuWO4 reference-card sticks
 - `jeol-epr-decode`: verified JEOL cAcqu cwESR decode to data-only Excel tables
 - `epr-overlay`: JEOL EPR condition overlay tables and optional Origin figures
 - `deps-audit`: dependency availability report

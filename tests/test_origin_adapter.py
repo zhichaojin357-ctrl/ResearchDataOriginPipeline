@@ -315,6 +315,12 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "XRD plot requires a raw pattern"):
                 build_origin_plot_job(project_root, "xrd_reference_only", data, "2theta", "Intensity", "XRD")
 
+    def test_origin_helper_falls_back_to_extracted_reference_style_when_template_save_missing(self) -> None:
+        helper = Path("scripts/origin/origin_plot_from_template.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("REFERENCE_TEMPLATE_SAVE_FAILED_USING_EXTRACTED_STYLE", helper)
+        self.assertIn("$template = $null", helper)
+
     def test_builds_graph4_helper_job_without_forbidden_entrypoint(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
