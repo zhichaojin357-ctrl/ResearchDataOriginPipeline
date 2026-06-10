@@ -162,7 +162,7 @@ class OpjuStyleSnapshot:
 def extract_style_snapshot(operations: object, reference_opju: Path) -> OpjuStyleSnapshot:
     load_result = operations.load_project(reference_opju)
     if not getattr(load_result, "ok", False):
-        return OpjuStyleSnapshot(str(reference_opju), "load_failed", warnings=[str(getattr(load_result, "message", ""))])
+        return OpjuStyleSnapshot(reference_opju.name, "load_failed", warnings=[str(getattr(load_result, "message", ""))])
 
     pages_result = operations.list_worksheets()
     graph_pages = [
@@ -171,13 +171,13 @@ def extract_style_snapshot(operations: object, reference_opju: Path) -> OpjuStyl
         if item.get("type") == "graph"
     ]
     if not graph_pages:
-        return OpjuStyleSnapshot(str(reference_opju), "no_graph_pages", warnings=["No graph pages were available in the copied exemplar."])
+        return OpjuStyleSnapshot(reference_opju.name, "no_graph_pages", warnings=["No graph pages were available in the copied exemplar."])
 
     snapshots = [
         read_graph_style_snapshot(
             operations,
             graph_page,
-            source_label=str(reference_opju),
+            source_label=reference_opju.name,
             graph_pages=graph_pages,
         )
         for graph_page in graph_pages

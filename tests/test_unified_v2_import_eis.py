@@ -106,7 +106,8 @@ def test_unified_v2_imports_completed_eis_without_refitting(tmp_path: Path, monk
     )
     assert imported_eis_meta["cleaning"]["ignored_point_count"] == 9
     assert imported_eis_meta["fit"]["parameters"]["n"] == 0.8054177975139813
-    assert Path(imported_eis_meta["fit_curve"]) == run_root / "EIS" / "processed_data" / "eis_randles_cpe_fit_curve.csv"
+    assert not Path(imported_eis_meta["fit_curve"]).is_absolute()
+    assert run_root / Path(imported_eis_meta["fit_curve"]) == run_root / "EIS" / "processed_data" / "eis_randles_cpe_fit_curve.csv"
     import_report = run_root / "EIS" / "reports" / "EIS_BOBC_exemplar_v2_import_report.md"
     assert "not refitted" in import_report.read_text(encoding="utf-8")
     assert (project_root / "docs" / "UNIFIED_V2_PRODUCT_SUMMARY.md").exists()

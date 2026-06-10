@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 from src.core.project import _parse_simple_yaml, output_dir
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern
 from src.origin.operations import connect_origin
 from src.origin.plot_policy import Graph4FixedStyle, PlotPolicy, all_plot_policies, get_plot_policy, validate_graph4_style_config
@@ -224,7 +225,7 @@ def write_origin_error(project_root: Path, message: str, *, output_root: Path | 
     reports = output_dir(project_root, "reports", output_root=output_root)
     path = reports / "origin_errors.md"
     existing = path.read_text(encoding="utf-8") if path.exists() else "# Origin Errors\n\n"
-    line = f"- {message}"
+    line = f"- {scrub_output_text(message, project_root=project_root, output_root=output_root)}"
     error_lines = []
     seen = set()
     for existing_line in existing.splitlines():
@@ -766,8 +767,8 @@ def _color_assignments(
                     "rgb": list(rgb),
                     "hex": "#{:02X}{:02X}{:02X}".format(*rgb),
                     "origin_ocolor": int(branch_color["origin_ocolor"]),
-                    "source_file": str(source_file) if source_file else None,
-                    "processed_csv": str(processed_csv),
+                    "source_file": render_output_path(source_file) if source_file else None,
+                    "processed_csv": render_output_path(processed_csv),
                     "evidence": "BET adsorption/desorption branch color; branch is not treated as material identity",
                     "requires_user_review": False,
                 }
@@ -797,8 +798,8 @@ def _color_assignments(
                 "rgb": list(rgb),
                 "hex": "#{:02X}{:02X}{:02X}".format(*rgb),
                 "origin_ocolor": int(color["origin_ocolor"]),
-                "source_file": str(source_file) if source_file else None,
-                "processed_csv": str(processed_csv),
+                "source_file": render_output_path(source_file) if source_file else None,
+                "processed_csv": render_output_path(processed_csv),
                 "evidence": "matched label/dataset/source path token" if material_key in COLOR_BY_KEY else "fallback sample key; material not confidently inferred",
                 "requires_user_review": material_key not in COLOR_BY_KEY,
             }
@@ -824,12 +825,12 @@ def _write_material_color_report(
         except json.JSONDecodeError:
             existing = {}
     assignment_map = {
-        f"{item['dataset_id']}::{item['curve_index']}": item
+        f"{item['dataset_id']}::{item['curve_index']}": _sanitize_report_payload(item)
         for item in existing.get("assignments", [])
         if isinstance(item, dict) and "dataset_id" in item and "curve_index" in item
     }
     for item in assignments:
-        assignment_map[f"{item['dataset_id']}::{item['curve_index']}"] = item
+        assignment_map[f"{item['dataset_id']}::{item['curve_index']}"] = _sanitize_report_payload(item)
     material_colors = [
         {
             "material_key": item["key"],
@@ -881,6 +882,20 @@ def _write_material_color_report(
     (reports / "phase1_6_material_color_map.md").write_text(text, encoding="utf-8")
     if output_root is None:
         (docs / "phase1_6_material_color_map.md").write_text(text, encoding="utf-8")
+
+
+def _sanitize_report_payload(value: object) -> object:
+    if isinstance(value, Path):
+        return render_output_path(value)
+    if isinstance(value, dict):
+        return {str(key): _sanitize_report_payload(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_sanitize_report_payload(item) for item in value]
+    if isinstance(value, str):
+        if re.search(r"^[A-Za-z]:[\\/]|^[\\/]{2}", value):
+            return render_output_path(value)
+        return scrub_output_text(value)
+    return value
 
 
 def build_origin_plot_job(
@@ -1142,6 +1157,12 @@ def export_plot(
     except Exception as exc:
         write_origin_error(project_root, f"{dataset_id}: {exc}", output_root=output_root)
         return OriginResult(False, None, None, None, f"Origin export failed: {exc}")
+    finally:
+        try:
+            if job.job_script.exists():
+                job.job_script.unlink()
+        except OSError:
+            pass
 
 
 def origin_smoke_test(project_root: Path) -> OriginResult:

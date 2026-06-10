@@ -9,6 +9,7 @@ from pathlib import Path
 
 from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.metadata import file_hash
+from src.core.output_sanitizer import render_output_path
 from src.core.project import load_json_compatible_yaml, output_dir, registry_path, report_path
 from src.core.table_reader import coerce_numeric_rows, read_table_with_metadata
 
@@ -86,11 +87,11 @@ def run_triage(project_root: Path, input_path: Path, options: TriageOptions | No
         items.append(item)
 
     _suppress_exact_duplicates(items)
-    queue = _build_queue(input_path, options.min_confidence, items)
+    queue = _build_queue(project_root, input_path, options.min_confidence, items, options.output_root)
     result = {
         "triage_version": "1.0",
         "created_at": _now(),
-        "source_root": str(input_path),
+        "source_root": render_output_path(input_path, project_root=project_root, output_root=options.output_root),
         "summary": _summary(items),
         "items": items,
         "queue": queue,
@@ -125,7 +126,7 @@ def _triage_file(project_root: Path, root: Path, path: Path, entries: list[dict]
     return {
         "file_id": file_id,
         "relative_path": relative_path,
-        "absolute_path": str(path),
+        "absolute_path": render_output_path(path, project_root=project_root, output_root=options.output_root),
         "absolute_path_hash": hashlib.sha256(str(path.resolve()).encode("utf-8", errors="replace")).hexdigest(),
         "source_hash": source_hash,
         "file_name": path.name,
@@ -832,7 +833,13 @@ def _suppress_exact_duplicates(items: list[dict]) -> None:
             item["manual_check_items"] = _manual_check_items(item["data_type_candidate"], "DUPLICATE_SUPPRESSED")
 
 
-def _build_queue(source_root: Path, min_confidence: float, items: list[dict]) -> dict:
+def _build_queue(
+    project_root: Path,
+    source_root: Path,
+    min_confidence: float,
+    items: list[dict],
+    output_root: Path | None,
+) -> dict:
     queue_items = []
     for item in items:
         if item["decision"] != "AUTO_PROCESS":
@@ -869,7 +876,7 @@ def _build_queue(source_root: Path, min_confidence: float, items: list[dict]) ->
         "created_at": _now(),
         "config_hash": "phase1_2_rules_v1",
         "min_confidence": min_confidence,
-        "source_root": str(source_root),
+        "source_root": render_output_path(source_root, project_root=project_root, output_root=output_root),
         "items": queue_items,
         "excluded_counts": _decision_count(items, "EXCLUDE_INVALID"),
         "ambiguous_counts": _decision_count(items, "MANUAL_REVIEW"),

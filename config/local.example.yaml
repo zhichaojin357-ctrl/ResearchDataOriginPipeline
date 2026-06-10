@@ -1,5 +1,5 @@
 paths:
-  output_root: D:/Codex Project/科研数据处理/输出
+  output_root: output
   f_drive_backup: F:/课题/LL/检测
 xps_heterojunction:
   bobc_input_dir: F:/课题/LL/检测/XPS/BOBC拟合后
@@ -7,6 +7,6 @@ xps_heterojunction:
   bc_input_dir: F:/课题/LL/检测/XPS/BC拟合后
   bc_candidate_files: F:/课题/LL/检测/XPS/26010989730/BC-11/bc拟合后的数据.xlsx;F:/课题/LL/检测/XPS/26010989730/bc拟合后的数据.xlsx
 origin_template:
-  helper_script: D:/CodexData/.codex/skills/origin-plotting/scripts/origin_plot_from_template.ps1
+  helper_script: scripts/origin/origin_plot_from_template.ps1
   default_reference_project: D:/OriginFlies/Manual Save/CWO+BOBC+*.opju
   reference_search_pattern: D:/OriginFlies/Manual Save/CWO+BOBC+*.opju

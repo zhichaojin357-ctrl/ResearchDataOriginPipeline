@@ -1,5 +1,6 @@
 ﻿param(
-  [string]$TemplateOpju = 'D:\Codex Project\科研数据处理\数据\26.5.30\HPLC_calibration_origin\HPLC_calibration_curves_20260530_230503.opju',
+  [Parameter(Mandatory=$true)]
+  [string]$TemplateOpju,
   [string]$OutputDir = '',
   [string]$Stamp = '',
   [bool]$Headless = $true,
@@ -22,6 +23,28 @@ function Resolve-RunPath([string]$Path, [string]$BaseDir) {
     return [System.IO.Path]::GetFullPath($Path)
   }
   return [System.IO.Path]::GetFullPath((Join-Path $BaseDir $Path))
+}
+
+function To-RunRelativePath([string]$Path, [string]$Root) {
+  $full = [System.IO.Path]::GetFullPath($Path)
+  $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
+  if ($full.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+    return ($full.Substring($rootFull.Length).TrimStart('\', '/') -replace '\\', '/')
+  }
+  return [System.IO.Path]::GetFileName($full)
+}
+
+function Convert-ToSafeOriginName([string]$Name, [string]$Fallback = 'Data') {
+  $clean = ([regex]::Replace($Name, '[^A-Za-z0-9_]+', '_')).Trim('_')
+  if ([string]::IsNullOrWhiteSpace($clean)) { $clean = $Fallback }
+  if ($clean[0] -match '[0-9]') { $clean = $Fallback + '_' + $clean }
+  if ($clean.Length -gt 24) { $clean = $clean.Substring(0, 24).Trim('_') }
+  if ([string]::IsNullOrWhiteSpace($clean)) { $clean = $Fallback }
+  return $clean
+}
+
+function Escape-OriginText([string]$Text) {
+  return $Text.Replace('"', '\"').Replace("`r", ' ').Replace("`n", ' ')
 }
 
 function Write-Utf8Lines([string]$Path, [string[]]$Lines) {
@@ -181,22 +204,50 @@ function Set-Legend($App, [string]$PageName, [string]$Substance, [double]$Slope,
   }
 }
 
+function Set-OriginWorksheetColumn($App, [int]$ColumnIndex, [double[]]$Values) {
+  for ($rowIndex = 0; $rowIndex -lt $Values.Count; $rowIndex++) {
+    $rowNumber = $rowIndex + 1
+    $value = ([double]$Values[$rowIndex]).ToString('G17', [Globalization.CultureInfo]::InvariantCulture)
+    $App.Execute('wcol(' + $ColumnIndex + ')[' + $rowNumber + ']=' + $value + ';') | Out-Null
+  }
+}
+
+function Initialize-OriginCalibrationWorksheet($App, [string]$BookName, [string]$DisplayName, [int]$RowCount) {
+  $sheetName = Convert-ToSafeOriginName ([System.IO.Path]::GetFileNameWithoutExtension($DisplayName)) 'Data'
+  $App.Execute('newbook name:="' + $BookName + '";') | Out-Null
+  $safeDisplayName = Escape-OriginText $DisplayName
+  $App.Execute('page.longname$="' + $safeDisplayName + '"; page.comments$=""; page.comment$="";') | Out-Null
+  $App.Execute('wks.name$="' + $sheetName + '"; wks.longname$="' + $safeDisplayName + '"; wks.comments$=""; wks.comment$=""; wks.ncols=3; wks.nrows=' + $RowCount + ';') | Out-Null
+  $App.Execute('wks.col1.type=4; wks.col2.type=1; wks.col3.type=1;') | Out-Null
+  $App.Execute('wks.col1.lname$="Concentration_mM"; wks.col2.lname$="Measured"; wks.col3.lname$="Origin_Linear_Fit";') | Out-Null
+  $App.Execute('wks.col1.comment$=""; wks.col2.comment$=""; wks.col3.comment$="";') | Out-Null
+}
+
+function Sanitize-ProjectPages($App) {
+  $App.Execute('doc -e W { page.comments$=""; page.comment$=""; wks.comments$=""; wks.comment$=""; }; doc -e P { page.comments$=""; page.comment$=""; };') | Out-Null
+}
+
 function Import-And-PlotCalibration(
   $App,
   [string]$Template,
-  [string]$DataFile,
   [string]$PageName,
   [string]$Substance,
   [string]$XTitle,
   [string]$YTitle,
   [double]$YTo,
-  [double]$YInc
+  [double]$YInc,
+  [double[]]$Concentrations,
+  [double[]]$Measured
 ) {
   $axis_title_size=36
-  $App.Execute('newbook name:="' + $PageName + '_Data";') | Out-Null
-  $App.Execute('impASC fname:="' + (To-OriginPath $DataFile) + '";') | Out-Null
-  $App.Execute('wks.col1.type=4; wks.col2.type=1; wks.col3.type=1;') | Out-Null
-  $App.Execute('wks.ncols=3; wks.col1.lname$="Concentration_mM"; wks.col2.lname$="Measured"; wks.col3.lname$="Origin_Linear_Fit";') | Out-Null
+  $dataFileName = $Substance + '_calibration_data.tsv'
+  $bookName = Convert-ToSafeOriginName ([System.IO.Path]::GetFileNameWithoutExtension($dataFileName)) 'Data'
+  if ($Concentrations.Count -ne $Measured.Count) {
+    throw "HPLC calibration series length mismatch on $PageName"
+  }
+  Initialize-OriginCalibrationWorksheet $App $bookName $dataFileName $Concentrations.Count
+  Set-OriginWorksheetColumn $App 1 $Concentrations
+  Set-OriginWorksheetColumn $App 2 $Measured
   $App.Execute('fitlr iy:=(1,2) oy:=(1,3);') | Out-Null
   $intercept = [double]$App.Evaluate('fitlr.a')
   $slope = [double]$App.Evaluate('fitlr.b')
@@ -205,7 +256,7 @@ function Import-And-PlotCalibration(
 
   $plotCmd = 'worksheet -s 1 2; plotxy iy:=(1,2) plot:=202 ogl:=[<new template:="' + (To-OriginPath $Template) + '" name:="' + $PageName + '">];'
   $App.Execute($plotCmd) | Out-Null
-  $App.Execute('win -a ' + $PageName + '; page.longname$="' + $Substance + ' calibration curve"; page.width=6432; page.height=4923;') | Out-Null
+  $App.Execute('win -a ' + $PageName + '; page.longname$="' + $Substance + ' calibration curve"; page.comments$=""; page.comment$=""; page.width=6432; page.height=4923;') | Out-Null
   $App.Execute('layer -b s 0;') | Out-Null
   $App.Execute('layer.left=17.89; layer.top=11.6; layer.width=68.19; layer.height=71.81; layer -a; layer.x.from=0; layer.x.to=2.1; layer.x.inc=0.5; layer.y.from=0; layer.y.to=' + $YTo + '; layer.y.inc=' + $YInc + ';') | Out-Null
   $App.Execute('layer.x.label.pt=28; layer.y.label.pt=22; layer.x.title.pt=' + $axis_title_size + '; layer.y.title.pt=' + $axis_title_size + ';') | Out-Null
@@ -291,11 +342,14 @@ $OutputDir = Resolve-RunPath $OutputDir $projectRoot
 if ([string]::IsNullOrWhiteSpace($Stamp)) {
   $Stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 }
+if ($Stamp -match '(?i)(codex|chatgpt|openai)') {
+  throw "Stamp must not include assistant or tool labels."
+}
 
 $ExportDpi = 600
 $templateOpjuPath = Resolve-RunPath $TemplateOpju $projectRoot
 if (-not (Test-Path -LiteralPath $templateOpjuPath)) {
-  throw "HPLC calibration template OPJU not found: $templateOpjuPath"
+  throw ("HPLC calibration template OPJU not found: " + (Split-Path -Leaf $templateOpjuPath))
 }
 
 $dataDir = Join-Path $OutputDir 'processed_data'
@@ -363,8 +417,8 @@ $app = New-Object -ComObject Origin.Application
 $app.Visible = if ($Headless) { 0 } else { 1 }
 try {
   Write-Log 'Origin.Application launched'
-  Write-Log ('TemplateOpju=' + $templateOpjuPath)
-  Write-Log ('OutputDir=' + $OutputDir)
+  Write-Log ('TemplateOpju=' + [System.IO.Path]::GetFileName($templateOpjuPath))
+  Write-Log ('OutputDir=' + [System.IO.Path]::GetFileName($OutputDir))
   $app.Load($workingTemplate) | Out-Null
 
   foreach ($s in $series) {
@@ -376,7 +430,7 @@ try {
       ($s.TemplateGraph + ':' + $expr + '=' + $app.Evaluate($expr)) | Add-Content -LiteralPath $script:LogPath -Encoding UTF8
     }
     if (Test-Path -LiteralPath $templatePath) { Remove-Item -LiteralPath $templatePath -Force }
-    $app.Execute('template_saveas pg:=' + $s.TemplateGraph + ' category:="CodexOrigin" template:="' + $templateBase + '" filepath:="' + (To-OriginPath $templateDir) + '" emf:=0 bmp:=1 loadsys:=0;') | Out-Null
+    $app.Execute('template_saveas pg:=' + $s.TemplateGraph + ' category:="HPLC_Calibration" template:="' + $templateBase + '" filepath:="' + (To-OriginPath $templateDir) + '" emf:=0 bmp:=1 loadsys:=0;') | Out-Null
     Wait-ForOutputFile $templatePath
     $s.TemplatePath = $templatePath
     if ($ExportTemplateComparison) {
@@ -389,10 +443,16 @@ try {
   $xTitle = 'Concentration (mM)'
   $yTitle = '\p70(Peak area (mAU*s))'
   foreach ($s in $series) {
-    $dataFile = Join-Path $dataDir ($s.Key + '_plot_data.tsv')
-    $fitMap[$s.Page] = Import-And-PlotCalibration $app $s.TemplatePath $dataFile $s.Page $s.Name $xTitle $yTitle $s.YTo $s.YInc
+    $xValues = @()
+    $yValues = @()
+    foreach ($p in $points) {
+      $xValues += [double]$p.X
+      $yValues += [double]$p[$s.Key]
+    }
+    $fitMap[$s.Page] = Import-And-PlotCalibration $app $s.TemplatePath $s.Page $s.Name $xTitle $yTitle $s.YTo $s.YInc $xValues $yValues
   }
 
+  Sanitize-ProjectPages $app
   $app.Save($outputOpju) | Out-Null
   Wait-ForOutputFile $outputOpju
   foreach ($s in $series) {
@@ -417,8 +477,8 @@ if ($ExportTemplateComparison) {
     $result = Compare-ImageFiles $templatePreviewMap[$s.Page] $generatedPreviewMap[$s.Page] $ComparisonMeanTolerance $ComparisonMaxTolerance
     $comparisonLines += (
       $s.Page + "`t" +
-      $templatePreviewMap[$s.Page] + "`t" +
-      $generatedPreviewMap[$s.Page] + "`t" +
+      (To-RunRelativePath $templatePreviewMap[$s.Page] $OutputDir) + "`t" +
+      (To-RunRelativePath $generatedPreviewMap[$s.Page] $OutputDir) + "`t" +
       $result.TemplateWidth + "`t" +
       $result.TemplateHeight + "`t" +
       $result.GeneratedWidth + "`t" +
@@ -440,16 +500,16 @@ if (-not $KeepIntermediate) {
   try { Remove-Item -LiteralPath $workingTemplate -Force -ErrorAction SilentlyContinue } catch {}
 }
 
-Write-Output "OUTPUT_DIR=$OutputDir"
-Write-Output "OPJU=$outputOpju"
-Write-Output "DATA=$(Join-Path $dataDir 'final_calibration_data.tsv')"
-Write-Output "LOG=$script:LogPath"
+Write-Output ("OUTPUT_DIR=" + (Split-Path -Leaf $OutputDir))
+Write-Output ("OPJU=" + (To-RunRelativePath $outputOpju $OutputDir))
+Write-Output ("DATA=" + (To-RunRelativePath (Join-Path $dataDir 'final_calibration_data.tsv') $OutputDir))
+Write-Output ("LOG=" + (To-RunRelativePath $script:LogPath $OutputDir))
 if ($ExportTemplateComparison) {
-  Write-Output "COMPARISON_REPORT=$comparisonReport"
+  Write-Output ("COMPARISON_REPORT=" + (To-RunRelativePath $comparisonReport $OutputDir))
 }
 foreach ($s in $series) {
   $fit = $fitMap[$s.Page]
-  Write-Output ("PNG=" + $generatedPreviewMap[$s.Page])
-  Write-Output ("TIF=" + $generatedTifMap[$s.Page])
+  Write-Output ("PNG=" + (To-RunRelativePath $generatedPreviewMap[$s.Page] $OutputDir))
+  Write-Output ("TIF=" + (To-RunRelativePath $generatedTifMap[$s.Page] $OutputDir))
   Write-Output ($s.Page + "_FIT=slope=" + $fit.Slope.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + ";intercept=" + $fit.Intercept.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + ";r2=" + $fit.R2.ToString('0.000000', [Globalization.CultureInfo]::InvariantCulture))
 }

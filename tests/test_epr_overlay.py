@@ -8,6 +8,11 @@ from openpyxl import Workbook
 from src.core.epr_overlay import build_epr_condition_overlay
 
 
+def _result_path(root: Path, value: object) -> Path:
+    path = Path(str(value))
+    return path if path.is_absolute() else root / path
+
+
 def _write_xlsx(path: Path, ys: list[float]) -> None:
     workbook = Workbook()
     sheet = workbook.active
@@ -30,7 +35,7 @@ def test_epr_overlay_builds_condition_group_without_normalizing_amplitudes(tmp_p
     assert result["file_labels"] == ["BC-OH-light2", "CWO-OH-light2", "BOBC-OH-light1"]
     assert result["point_count"] == 4
     assert result["offset_step"] > 0
-    with Path(result["processed_csv"]).open(encoding="utf-8", newline="") as handle:
+    with _result_path(tmp_path, result["processed_csv"]).open(encoding="utf-8", newline="") as handle:
         rows = list(csv.reader(handle))
     assert rows[0] == ["magnetic_field", "BC", "CWO", "BOBC"]
     # Default EPR overlay preserves relative amplitude; the BOBC centered span remains much larger than BC.
@@ -73,9 +78,10 @@ def test_epr_overlay_writes_baseline_smoothing_detail_to_requested_output_dir(tm
     )
 
     assert result["smoothing"] == "moving_average_window_3"
-    assert Path(result["processed_csv"]).parent == out
-    assert Path(result["detail_csv"]).parent == out
-    with Path(result["detail_csv"]).open(encoding="utf-8", newline="") as handle:
+    assert _result_path(tmp_path, result["processed_csv"]).parent == out
+    assert _result_path(tmp_path, result["detail_csv"]).parent == out
+    assert not Path(result["processed_csv"]).is_absolute()
+    with _result_path(tmp_path, result["detail_csv"]).open(encoding="utf-8", newline="") as handle:
         rows = list(csv.reader(handle))
     assert rows[0] == [
         "magnetic_field",

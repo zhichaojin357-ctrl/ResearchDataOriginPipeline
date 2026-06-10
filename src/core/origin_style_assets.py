@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.origin.operations import connect_origin, safe_origin_name
 
 
@@ -26,7 +27,7 @@ class OriginStyleAssetExportItem:
     comparison_png: Path | None = None
     preview_rms: float | None = None
 
-    def manifest_entry(self, asset_root: Path, source_run_root: Path) -> dict[str, object]:
+    def manifest_entry(self, asset_root: Path) -> dict[str, object]:
         return {
             "product_key": self.product_key,
             "data_type": self.data_type,
@@ -37,8 +38,6 @@ class OriginStyleAssetExportItem:
             "reference_preview_png": _relative_or_absolute(self.reference_preview_png, asset_root) if self.reference_preview_png else "",
             "template_preview_comparison_png": _relative_or_absolute(self.comparison_png, asset_root) if self.comparison_png else "",
             "preview_rms": self.preview_rms,
-            "source_run_root": str(source_run_root),
-            "source_product_opju": str(self.origin_file),
         }
 
 
@@ -112,9 +111,9 @@ def export_origin_style_assets(
                     continue
                 saved = operations.save_graph_template(item.graph_page, item.graph_template_path)
                 if not getattr(saved, "ok", False):
-                    failures.append({"product_key": item.product_key, "message": getattr(saved, "message", "template save failed")})
+                    failures.append({"product_key": item.product_key, "message": scrub_output_text(getattr(saved, "message", "template save failed"), project_root=project_root)})
                     continue
-                exported.append({"product_key": item.product_key, "graph_template": str(item.graph_template_path)})
+                exported.append({"product_key": item.product_key, "graph_template": render_output_path(item.graph_template_path, project_root=project_root)})
         finally:
             operations.close()
     else:
@@ -137,21 +136,20 @@ def export_origin_style_assets(
             comparison_png=comparison,
             preview_rms=item.preview_rms,
         )
-        entries.append(manifest_item.manifest_entry(plan.asset_root, run_root))
+        entries.append(manifest_item.manifest_entry(plan.asset_root))
 
     manifest = {
         "schema_version": 1,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "source_run_root": str(run_root),
-        "asset_root": str(plan.asset_root),
+        "asset_root": render_output_path(plan.asset_root, project_root=project_root),
         "origin_dependency_boundary": "Project-local .otpu Graph Templates are the style-package fallback when external OPJU exemplars are unavailable.",
         "assets": entries,
     }
     manifest_path = plan.asset_root / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return {
-        "asset_root": str(plan.asset_root),
-        "manifest": str(manifest_path),
+        "asset_root": render_output_path(plan.asset_root, project_root=project_root),
+        "manifest": render_output_path(manifest_path, project_root=project_root),
         "planned_count": len(plan.items),
         "exported_count": len(exported),
         "failure_count": len(failures),

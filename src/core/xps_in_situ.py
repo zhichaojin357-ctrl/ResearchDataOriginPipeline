@@ -10,6 +10,7 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.xps_heterojunction import (
     XpsFitRecord,
     _component_key,
@@ -47,6 +48,28 @@ SAMPLE_TEXT_COLORS = {
     "BC Dark": "#1F5AA6",
     "BC Light": "#C7362F",
 }
+
+
+def _output_path(output_dir: Path, path: Path | str | None) -> str | None:
+    if path is None:
+        return None
+    return str(render_output_path(path, project_root=output_dir))
+
+
+def _source_name(path: Path | str) -> str:
+    return Path(str(path)).name
+
+
+def _sanitize_output_payload(value: Any, output_dir: Path) -> Any:
+    if isinstance(value, Path):
+        return _output_path(output_dir, value)
+    if isinstance(value, dict):
+        return {str(key): _sanitize_output_payload(item, output_dir) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_sanitize_output_payload(item, output_dir) for item in value]
+    if isinstance(value, str):
+        return scrub_output_text(value, output_root=output_dir)
+    return value
 COMPONENT_COLORS = (
     "#72B7D2",
     "#E58BA6",
@@ -189,12 +212,12 @@ def build_xps_in_situ_outputs(
     (output_dirs["reports"] / "xps_in_situ_manifest.json").write_text(
         json.dumps(
             {
-                "output_dir": str(output_dir),
-                "output_dirs": {name: str(path) for name, path in output_dirs.items()},
+                "output_dir": ".",
+                "output_dirs": {name: _output_path(output_dir, path) for name, path in output_dirs.items()},
                 "plotted_panels": [panel.__dict__ for panel in panels],
                 "missing": missing,
                 "element_sources": element_sources,
-                "origin_status": origin_status,
+                "origin_status": _sanitize_output_payload(origin_status, output_dir),
                 "quality_checks": quality_checks,
             },
             ensure_ascii=False,
@@ -343,7 +366,7 @@ def _write_figures(panel_records: dict[InSituPanelPlan, list[XpsFitRecord]], out
     for idx, panel in enumerate(panels):
         ax = axes[idx // cols][idx % cols]
         _draw_panel(ax, panel, panel_records[panel], string.ascii_lowercase[idx])
-        element_sources[panel.panel_title] = [str(record.source_file) for record in panel_records[panel]]
+        element_sources[panel.panel_title] = [_source_name(record.source_file) for record in panel_records[panel]]
     for idx in range(len(panels), rows * cols):
         axes[idx // cols][idx % cols].axis("off")
     fig.tight_layout(w_pad=1.6, h_pad=1.4)
@@ -549,7 +572,7 @@ def _peak_entries(record: XpsFitRecord, offset: float, scale: tuple[float, float
                 "assignment": assignment,
                 "binding_energy_eV": round(float(binding), 2),
                 "normalized_y": round(float(normalized_y), 4),
-                "source_file": str(record.source_file),
+                "source_file": _source_name(record.source_file),
                 "sheet_name": record.sheet_name,
             }
         )
@@ -589,7 +612,7 @@ def _peak_summary_rows(panel_records: dict[InSituPanelPlan, list[XpsFitRecord]])
                         "Peak position / eV": float(peak["binding_energy_eV"]),
                         "Reference peak position / eV": ref_position,
                         "Shift vs reference / eV": None if shift is None else round(shift, 3),
-                        "Data source file": str(record.source_file),
+                        "Data source file": _source_name(record.source_file),
                         "Sheet name": record.sheet_name,
                         "Notes": note,
                     }
@@ -638,7 +661,12 @@ def _try_write_origin_project(
         )
     except Exception as exc:
         write_origin_error(project_root, f"xps_in_situ_combined: {exc}")
-        return {"requested": True, "ok": False, "origin_file": str(origin_file) if origin_file.exists() else None, "message": str(exc)}
+        return {
+            "requested": True,
+            "ok": False,
+            "origin_file": _output_path(output_dir, origin_file) if origin_file.exists() else None,
+            "message": scrub_output_text(exc, output_root=output_dir),
+        }
     preview_png = output_dir / "xps_in_situ_combined_origin_preview.png"
     missing = [
         str(path.name)
@@ -648,11 +676,16 @@ def _try_write_origin_project(
     if missing:
         message = "Origin export missing or empty artifacts: " + ", ".join(missing)
         write_origin_error(project_root, f"xps_in_situ_combined: {message}")
-        return {"requested": True, "ok": False, "origin_file": str(origin_file) if origin_file.exists() else None, "message": message}
+        return {
+            "requested": True,
+            "ok": False,
+            "origin_file": _output_path(output_dir, origin_file) if origin_file.exists() else None,
+            "message": message,
+        }
     return {
         "requested": True,
         "ok": True,
-        "origin_file": str(origin_file),
+        "origin_file": _output_path(output_dir, origin_file),
         "message": "Origin project saved with final figure image page plus editable worksheets and graph pages.",
     }
 
@@ -685,6 +718,7 @@ def _write_origin_project(
             records = panel_records[panel]
             headers, columns = _origin_columns(panel, records)
             wks = op.new_sheet("w", safe_name(f"{panel.element}_{panel.region}_data"))
+            op.lt_exec('page.comments$=""; page.comment$=""; wks.comments$=""; wks.comment$="";')
             wks.cols = len(headers)
             for col_index, (header, values) in enumerate(zip(headers, columns)):
                 axis = "X" if col_index == 0 else "Y"
@@ -729,6 +763,7 @@ def _write_origin_project(
             layer.label("XB").text = r"\b(Binding energy (eV))"
             layer.label("YL").text = r"\b(Intensity (a.u.))"
             layer.add_label(panel.panel_title, max(x_values), max(y_values) if y_values else 1.0)
+        op.lt_exec('doc -e W { page.comments$=""; page.comment$=""; wks.comments$=""; wks.comment$=""; }; doc -e P { page.comments$=""; page.comment$=""; };')
         op.save(str(origin_file))
         graph.save_fig(str(preview_png), type="png", replace=True, width=2800)
     finally:
@@ -829,7 +864,7 @@ def _mapping_report(
     lines: list[str] = [
         "# XPS data mapping report",
         "",
-        f"Output directory: `{output_dir}`",
+        f"Output directory: `.`",
         "",
         "## Recognized sample files",
         "",
@@ -837,7 +872,7 @@ def _mapping_report(
         "|---|---|",
     ]
     for sample, files in sample_files.items():
-        selected_text = "<br>".join(f"`{path}`" for path in files) or "MISSING"
+        selected_text = "<br>".join(f"`{_source_name(path)}`" for path in files) or "MISSING"
         lines.append(f"| {sample} | {selected_text} |")
 
     lines.extend(["", "## Parsed fitted records", "", "| Sample | Element | Sheet | Rows | Components | Complete | Notes | Source file |", "|---|---:|---|---:|---:|---|---|---|"])
@@ -848,7 +883,7 @@ def _mapping_report(
         note = "" if status is None else status.note
         selected_marker = "selected" if selected.get((record.sample, record.element)) is record else "candidate"
         lines.append(
-            f"| {record.sample} | {record.element} | {record.sheet_name} | {len(record.data)} | {len(record.component_labels)} | {complete} | {selected_marker}; {note} | `{record.source_file}` |"
+            f"| {record.sample} | {record.element} | {record.sheet_name} | {len(record.data)} | {len(record.component_labels)} | {complete} | {selected_marker}; {note} | `{_source_name(record.source_file)}` |"
         )
 
     lines.extend(["", "## Successfully plotted elements", ""])
@@ -872,7 +907,7 @@ def _mapping_report(
 
     lines.extend(["", "## Files not used for fitted plotting", "", "| File | Reason |", "|---|---|"])
     for item in file_notes:
-        lines.append(f"| `{item['file']}` | {item['reason']} |")
+        lines.append(f"| `{_source_name(item['file'])}` | {item['reason']} |")
 
     if manual_review:
         lines.extend(["", "## Loader manual-review notes", "", "```json", json.dumps(manual_review, ensure_ascii=False, indent=2), "```"])

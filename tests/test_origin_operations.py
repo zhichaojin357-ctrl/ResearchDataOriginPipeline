@@ -125,6 +125,7 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         ops = OriginOperations(app)
         self.assertTrue(ops.new_project().ok)
         self.assertTrue(ops.save_project("D:/tmp/test.opju").ok)
+        self.assertIn('page.comments$=""', "\n".join(app.commands))
         with tempfile.TemporaryDirectory() as tmpdir:
             project = Path(tmpdir) / "test.opju"
             project.write_text("fake", encoding="utf-8")

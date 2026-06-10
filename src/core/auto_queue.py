@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.core.metadata import file_hash
+from src.core.output_sanitizer import render_output_path
 from src.core.project import report_path
 from src.core.runtime_paths import resolve_phase1_6_index, resolve_workspace_root
 
@@ -128,13 +129,13 @@ def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
     return {
         "runner": "auto-queue",
         "created_at": datetime.now().isoformat(timespec="seconds"),
-        "source_queue": str(queue_path),
-        "workspace_root": str(workspace_root),
-        "processed_index": str(processed_index),
+        "source_queue": render_output_path(queue_path, project_root=project_root, output_root=options.output_root),
+        "workspace_root": render_output_path(workspace_root, project_root=project_root, output_root=options.output_root),
+        "processed_index": render_output_path(processed_index, project_root=project_root, output_root=options.output_root),
         "options": {
             "dry_run": True,
             "only_type": options.only_type,
-            "output_root": str(options.output_root) if options.output_root else None,
+            "output_root": render_output_path(options.output_root, project_root=project_root, output_root=options.output_root) if options.output_root else None,
         },
         "summary": summary,
         "queue": {"queue_version": "1.0", "created_at": datetime.now().isoformat(timespec="seconds"), "items": accepted},

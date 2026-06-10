@@ -1,0 +1,884 @@
+﻿param(
+  [Parameter(Mandatory=$false)]
+  [string]$ReferenceOpju = '',
+
+  [Parameter(Mandatory=$false)]
+  [string]$ReferenceGraph = 'Graph4',
+
+  [Parameter(Mandatory=$true)]
+  [string]$OutputOpju,
+
+  [Parameter(Mandatory=$true)]
+  [string]$ExportDir,
+
+  [Parameter(Mandatory=$true)]
+  [array]$Groups,
+
+  [string]$DefaultPlotType = '200',
+
+  [switch]$AllowRunningOrigin,
+
+  [switch]$Headless,
+
+  [switch]$RefreshReferenceStyle,
+
+  [switch]$KeepIntermediate,
+
+  [switch]$CloseOrigin
+)
+
+$ErrorActionPreference = 'Stop'
+$AxisTitleFont = 67
+$AxisTitleSize = 36
+
+function To-OriginPath([string]$Path) {
+  return ($Path -replace '\\','/')
+}
+
+function Convert-ToSafeOriginName([string]$Name, [string]$Fallback = 'Data') {
+  $clean = ([regex]::Replace($Name, '[^A-Za-z0-9_]+', '_')).Trim('_')
+  if ([string]::IsNullOrWhiteSpace($clean)) { $clean = $Fallback }
+  if ($clean[0] -match '[0-9]') { $clean = $Fallback + '_' + $clean }
+  if ($clean.Length -gt 24) { $clean = $clean.Substring(0, 24).Trim('_') }
+  if ([string]::IsNullOrWhiteSpace($clean)) { $clean = $Fallback }
+  return $clean
+}
+
+function Escape-OriginText([string]$Text) {
+  return $Text.Replace('"', '\"').Replace("`r", ' ').Replace("`n", ' ')
+}
+
+function Require-File([string]$Path) {
+  if (-not (Test-Path -LiteralPath $Path)) {
+    throw "Required file not found: $Path"
+  }
+}
+
+function Find-DefaultReferenceOpju {
+  $root = 'D:\OriginFlies\Manual Save'
+  if (-not (Test-Path -LiteralPath $root)) {
+    throw "Default Origin reference directory not found."
+  }
+
+  $labelSuffix = [string][char]0x6807 + [string][char]0x5361
+  $candidates = @(Get-ChildItem -LiteralPath $root -Filter 'CWO+BOBC+*.opju' -File -ErrorAction Stop)
+  if ($candidates.Count -eq 0) {
+    throw "No default Origin reference OPJU matched CWO+BOBC+*.opju."
+  }
+
+  $preferred = @($candidates | Where-Object { $_.BaseName -like ('*' + $labelSuffix + '*') } | Sort-Object LastWriteTime -Descending)
+  if ($preferred.Count -gt 0) {
+    return $preferred[0].FullName
+  }
+
+  return (@($candidates | Sort-Object LastWriteTime -Descending))[0].FullName
+}
+
+function Get-GroupValue($Group, [string]$Name, $Default = $null) {
+  if ($Group -is [hashtable] -and $Group.ContainsKey($Name)) { return $Group[$Name] }
+  $prop = $Group.PSObject.Properties[$Name]
+  if ($prop) { return $prop.Value }
+  return $Default
+}
+
+function Convert-ToBoolean($Value, [bool]$Default) {
+  if ($null -eq $Value) { return $Default }
+  if ($Value -is [bool]) { return [bool]$Value }
+  $text = ([string]$Value).Trim().ToLowerInvariant()
+  if ($text -in @('1','true','yes','on')) { return $true }
+  if ($text -in @('0','false','no','off')) { return $false }
+  return $Default
+}
+
+function Get-HeaderLabels([string]$DataFile, [int]$ColumnCount) {
+  $header = Get-Content -LiteralPath $DataFile -TotalCount 1
+  if (-not $header) { return @() }
+  $parts = $header -split "`t|,"
+  if ($parts.Count -lt 2) { return @() }
+  $end = [Math]::Min($ColumnCount - 1, $parts.Count - 1)
+  return @($parts[1..$end] | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
+
+function Read-DelimitedTable([string]$DataFile) {
+  $lines = @(Get-Content -LiteralPath $DataFile)
+  if ($lines.Count -eq 0) { return [pscustomobject]@{ Headers = @(); Rows = @() } }
+  $delimiter = if ($lines[0] -like "*`t*") { "`t" } else { "," }
+  $rows = @($lines | ConvertFrom-Csv -Delimiter $delimiter)
+  $headers = @()
+  if ($rows.Count -gt 0) {
+    $headers = @($rows[0].PSObject.Properties.Name)
+  } else {
+    $headers = @($lines[0] -split [regex]::Escape($delimiter))
+  }
+  return [pscustomobject]@{ Headers = $headers; Rows = $rows }
+}
+
+function Set-OriginWorksheetCell($app, [int]$ColumnIndex, [int]$RowNumber, [string]$Value) {
+  if ([string]::IsNullOrWhiteSpace($Value)) { return }
+  try {
+    $number = [double]::Parse($Value, [Globalization.CultureInfo]::InvariantCulture)
+    $text = $number.ToString('G17', [Globalization.CultureInfo]::InvariantCulture)
+    $app.Execute('wcol(' + $ColumnIndex + ')[' + $RowNumber + ']=' + $text + ';') | Out-Null
+    return
+  } catch {}
+  $escaped = $Value.Replace('"', '\"').Replace("`r", ' ').Replace("`n", ' ')
+  $app.Execute('wcol(' + $ColumnIndex + ')[' + $RowNumber + ']$="' + $escaped + '";') | Out-Null
+}
+
+function Initialize-OriginDataWorkbook($app, [string]$BookName, [string]$DisplayName, [array]$Headers, [array]$Rows, [int]$ColumnCount) {
+  $sheetName = Convert-ToSafeOriginName ([System.IO.Path]::GetFileNameWithoutExtension($DisplayName)) 'Data'
+  $safeDisplayName = Escape-OriginText $DisplayName
+  $app.Execute('newbook name:="' + $BookName + '";') | Out-Null
+  $app.Execute('page.longname$="' + $safeDisplayName + '"; page.comments$=""; page.comment$="";') | Out-Null
+  $app.Execute('wks.name$="' + $sheetName + '"; wks.longname$="' + $safeDisplayName + '"; wks.comments$=""; wks.comment$=""; wks.ncols=' + $ColumnCount + '; wks.nrows=' + $Rows.Count + ';') | Out-Null
+  $typeCmd = 'wks.col1.type=4;'
+  for ($i = 2; $i -le $ColumnCount; $i++) {
+    $typeCmd += " wks.col$i.type=1;"
+  }
+  $app.Execute($typeCmd) | Out-Null
+  for ($i = 1; $i -le $ColumnCount; $i++) {
+    $header = if (($i - 1) -lt $Headers.Count) { [string]$Headers[$i - 1] } else { 'Column_' + $i }
+    $escapedHeader = Escape-OriginText $header
+    $app.Execute('wks.col' + $i + '.lname$="' + $escapedHeader + '"; wks.col' + $i + '.comment$="";') | Out-Null
+  }
+  for ($rowIndex = 0; $rowIndex -lt $Rows.Count; $rowIndex++) {
+    $rowNumber = $rowIndex + 1
+    $row = $Rows[$rowIndex]
+    for ($colIndex = 1; $colIndex -le $ColumnCount; $colIndex++) {
+      if (($colIndex - 1) -ge $Headers.Count) { continue }
+      $name = [string]$Headers[$colIndex - 1]
+      Set-OriginWorksheetCell $app $colIndex $rowNumber ([string]$row.$name)
+    }
+  }
+}
+
+function Sanitize-ProjectPages($app) {
+  $app.Execute('doc -e W { page.comments$=""; page.comment$=""; wks.comments$=""; wks.comment$=""; }; doc -e P { page.comments$=""; page.comment$=""; };') | Out-Null
+}
+
+function Test-CurrentText([string]$Text, [array]$CurrentLabels) {
+  if ([string]::IsNullOrWhiteSpace($Text)) { return $true }
+  if ($Text -match '2.?theta|2Theta|degree|Intensity|a\.u|%\(\?X\)|%\(\?Y\)') { return $true }
+  foreach ($label in $CurrentLabels) {
+    if ($label -and $Text -like ('*' + $label + '*')) { return $true }
+  }
+  return $false
+}
+
+function Format-BoldText([string]$Text) {
+  if ([string]::IsNullOrWhiteSpace($Text)) { return $Text }
+  $formatted = Format-ChemicalFormulaSubscripts $Text
+  if ($formatted -match '\\b\(') { return $formatted }
+  return '\b(' + $formatted + ')'
+}
+
+function Format-LegendLabel([string]$Text) {
+  if ($null -eq $Text) { return '' }
+  return Format-ChemicalFormulaSubscripts (($Text -replace "`r|`n", ' ').Trim())
+}
+
+function Test-ChemicalFormulaToken([string]$Token) {
+  if ([string]::IsNullOrWhiteSpace($Token)) { return $false }
+  if ($Token -match '\\-\(') { return $false }
+  if ($Token -notmatch '\d') { return $false }
+  if ($Token -notmatch '[A-Z]') { return $false }
+  if ($Token -match '\d+[a-z]') { return $false }
+  if ($Token -match '^(XRD|XPS|EPR|FTIR|PL|Raman)\d*$') { return $false }
+  return $true
+}
+
+function Format-ChemicalFormulaSubscripts([string]$Text) {
+  if ([string]::IsNullOrWhiteSpace($Text)) { return $Text }
+  $tokenPattern = '\b[A-Za-z][A-Za-z0-9()]*\b'
+  return [regex]::Replace($Text, $tokenPattern, {
+    param($match)
+    $token = [string]$match.Value
+    if (-not (Test-ChemicalFormulaToken $token)) { return $token }
+    return [regex]::Replace($token, '(?<=[A-Za-z\)])(\d+)', '\-($1)')
+  })
+}
+
+function New-LegendText([array]$Labels) {
+  $rows = New-Object System.Collections.Generic.List[string]
+  for ($i = 0; $i -lt $Labels.Count; $i++) {
+    $rows.Add('\l(' + ($i + 1) + ')\b( ' + (Format-LegendLabel $Labels[$i]) + ')')
+  }
+  return ($rows -join "`r`n`r`n")
+}
+
+function Add-DirectCurveLabels($app, [string]$PageName, [array]$Labels, $Style, [string]$DataFile, [int]$ColumnCount) {
+  $rows = Import-Csv -LiteralPath $DataFile
+  if (-not $rows -or $ColumnCount -lt 2) { return }
+  $columns = @($rows[0].PSObject.Properties.Name)
+  if ($columns.Count -lt $ColumnCount) { return }
+  $xColumn = $columns[0]
+  $app.Execute('win -a ' + $PageName + '; layer -s 1;') | Out-Null
+  $layer = $app.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $app.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { return }
+  $xTo = [double]$app.Evaluate('layer.x.to')
+  $xRange = $xTo - [double]$app.Evaluate('layer.x.from')
+  $xOffset = if ($xRange -gt 0) { $xRange * 0.16 } else { 0.10 }
+  $yRange = [double]$app.Evaluate('layer.y.to') - [double]$app.Evaluate('layer.y.from')
+  $yLabelOffset = if ($yRange -gt 0) { $yRange * 0.035 } else { 0 }
+  for ($i = 1; $i -lt $ColumnCount; $i++) {
+    if (($i - 1) -ge $Labels.Count) { continue }
+    $yColumn = $columns[$i]
+    $point = $null
+    $tailValues = New-Object System.Collections.Generic.List[double]
+    $tailStart = [Math]::Max(0, $rows.Count - [Math]::Max(25, [int]($rows.Count * 0.04)))
+    for ($rowIndex = $rows.Count - 1; $rowIndex -ge 0; $rowIndex--) {
+      $row = $rows[$rowIndex]
+      $xText = [string]$row.$xColumn
+      $yText = [string]$row.$yColumn
+      if ([string]::IsNullOrWhiteSpace($xText) -or [string]::IsNullOrWhiteSpace($yText)) { continue }
+      try {
+        $xVal = [double]::Parse($xText, [Globalization.CultureInfo]::InvariantCulture)
+        $yVal = [double]::Parse($yText, [Globalization.CultureInfo]::InvariantCulture)
+        if ($rowIndex -ge $tailStart) { $tailValues.Add($yVal) | Out-Null }
+        $point = @{ X = $xVal; Y = $yVal }
+        break
+      } catch {}
+    }
+    if (-not $point) { continue }
+    for ($rowIndex = $tailStart; $rowIndex -lt $rows.Count; $rowIndex++) {
+      $row = $rows[$rowIndex]
+      $yText = [string]$row.$yColumn
+      if ([string]::IsNullOrWhiteSpace($yText)) { continue }
+      try {
+        $tailValues.Add([double]::Parse($yText, [Globalization.CultureInfo]::InvariantCulture)) | Out-Null
+      } catch {}
+    }
+    $labelY = [double]$point.Y
+    if ($tailValues.Count -gt 0) {
+      $sortedTail = @($tailValues.ToArray() | Sort-Object)
+      $labelY = [double]$sortedTail[[int][Math]::Floor($sortedTail.Count / 2)]
+    }
+    try {
+      $labelText = Format-BoldText ([string]$Labels[$i - 1])
+      $safeName = 'DL' + $i
+      $escaped = $labelText.Replace('"', '\"')
+      $labelX = [Math]::Min([double]($point.X - $xOffset), [double]($xTo - $xOffset))
+      $xValue = [string]$labelX
+      $yValue = [string]([double]($labelY + $yLabelOffset))
+      $app.Execute('label -r ' + $safeName + ';') | Out-Null
+      $app.Execute('label -n ' + $safeName + ' "' + $escaped + '"; ' + $safeName + '.x=' + $xValue + '; ' + $safeName + '.y=' + $yValue + '; ' + $safeName + '.font=67; ' + $safeName + '.fsize=' + $Style.LegendSize + '; ' + $safeName + '.bold=1; ' + $safeName + '.color=' + $Style.TextColor + ';') | Out-Null
+    } catch {}
+  }
+}
+
+function Get-GraphObjectByName($Layer, [string]$Name) {
+  for ($i = 0; $i -lt $Layer.GraphObjects.Count; $i++) {
+    $obj = $Layer.GraphObjects.Item($i)
+    if ($obj.Name -eq $Name) { return $obj }
+  }
+  return $null
+}
+
+function Set-GraphObjectFormat($Obj, [int]$Font, [double]$Size, [double]$Color) {
+  if (-not $Obj) { return }
+  try { $Obj.SetNumProp('font', $Font) | Out-Null } catch {}
+  try { $Obj.SetNumProp('fsize', $Size) | Out-Null } catch {}
+  try { $Obj.SetNumProp('color', $Color) | Out-Null } catch {}
+}
+
+function New-CachedGraph4Style {
+  return [ordered]@{
+    PageWidth = 6432.0
+    PageHeight = 4923.0
+    LayerLeft = 17.89
+    LayerTop = 11.6
+    LayerWidth = 68.19
+    LayerHeight = 71.81
+    XFrom = 5.0
+    XTo = 80.0
+    XStep = 10.0
+    YFrom = -6000.0
+    YTo = 19000.0
+    YStep = 5000.0
+    AxisThickness = 3.0
+    XLabelFont = 67
+    YLabelFont = 67
+    XLabelSize = 28.0
+    YLabelSize = 36.0
+    XTicks = 2
+    YTicks = 0
+    XTitleFont = $AxisTitleFont
+    YTitleFont = $AxisTitleFont
+    XTitleSize = $AxisTitleSize
+    YTitleSize = $AxisTitleSize
+    TextColor = 1
+    LegendLeft = 3569
+    LegendTop = 827
+    LegendWidth = 1800
+    LegendHeight = 893
+    LegendFont = 67
+    LegendSize = 26.0
+    # Okabe-Ito inspired, colorblind-accessible Origin OColor values from color(r,g,b).
+    # Order avoids relying on red/green alone and keeps black available for the 8th trace.
+    Palette = @(28471808, 16818150, 24354304, 16801493, 32093270, 27752908, 21161200, 16777216)
+  }
+}
+
+function Get-ReferenceStyle($app, [string]$PageName) {
+  $app.Execute('win -a ' + $PageName + '; layer -s 1;') | Out-Null
+  $layer = $app.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $app.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { throw "Reference graph layer not found: $PageName" }
+
+  $legend = Get-GraphObjectByName $layer 'Legend'
+  $xb = Get-GraphObjectByName $layer 'XB'
+  $yl = Get-GraphObjectByName $layer 'YL'
+
+  $pageWidth = [double]$app.Evaluate('page.width')
+  $pageHeight = [double]$app.Evaluate('page.height')
+  $layerLeft = [double]$app.Evaluate('layer.left')
+  $layerTop = [double]$app.Evaluate('layer.top')
+  $layerWidth = [double]$app.Evaluate('layer.width')
+  $layerHeight = [double]$app.Evaluate('layer.height')
+
+  $style = [ordered]@{
+    PageWidth = $pageWidth
+    PageHeight = $pageHeight
+    LayerLeft = $layerLeft
+    LayerTop = $layerTop
+    LayerWidth = $layerWidth
+    LayerHeight = $layerHeight
+    XFrom = [double]$app.Evaluate('layer.x.from')
+    XTo = [double]$app.Evaluate('layer.x.to')
+    XStep = [double]$app.Evaluate('layer.x.inc')
+    YFrom = [double]$app.Evaluate('layer.y.from')
+    YTo = [double]$app.Evaluate('layer.y.to')
+    YStep = [double]$app.Evaluate('layer.y.inc')
+    AxisThickness = [double]$app.Evaluate('layer.x.thickness')
+    XLabelFont = [int]$app.Evaluate('layer.x.label.font')
+    YLabelFont = [int]$app.Evaluate('layer.y.label.font')
+    XLabelSize = [double]$app.Evaluate('layer.x.label.pt')
+    YLabelSize = [double]$app.Evaluate('layer.y.label.pt')
+    XTicks = [int]$app.Evaluate('layer.x.ticks')
+    YTicks = [int]$app.Evaluate('layer.y.ticks')
+    XTitleFont = $AxisTitleFont
+    YTitleFont = $AxisTitleFont
+    XTitleSize = $AxisTitleSize
+    YTitleSize = $AxisTitleSize
+    TextColor = 1
+    LegendLeft = [int]($pageWidth * 0.55)
+    LegendTop = [int]($pageHeight * 0.15)
+    LegendWidth = [int]($pageWidth * 0.28)
+    LegendHeight = [int]($pageHeight * 0.18)
+    LegendFont = 67
+    LegendSize = 26
+    Palette = @()
+  }
+
+  if ($xb) {
+    try { $style.TextColor = [double]$xb.GetNumProp('color') } catch {}
+  }
+  if ($yl) {
+    try { $style.TextColor = [double]$yl.GetNumProp('color') } catch {}
+  }
+  $style.XTitleFont = $AxisTitleFont
+  $style.YTitleFont = $AxisTitleFont
+  $style.XTitleSize = $AxisTitleSize
+  $style.YTitleSize = $AxisTitleSize
+  if ($legend) {
+    $style.LegendLeft = [int]$legend.Left
+    $style.LegendTop = [int]$legend.Top
+    $style.LegendWidth = [int]$legend.Width
+    $style.LegendHeight = [int]$legend.Height
+    try { $style.LegendFont = [int]$legend.GetNumProp('font') } catch {}
+    try { $style.LegendSize = [double]$legend.GetNumProp('fsize') } catch {}
+    try { $style.TextColor = [double]$legend.GetNumProp('color') } catch {}
+  }
+
+  $palette = New-Object System.Collections.Generic.List[double]
+  $app.Execute('win -a ' + $PageName + '; layer -s 1;') | Out-Null
+  $mainLayer = $app.FindGraphLayer($PageName)
+  if (-not $mainLayer) { $mainLayer = $app.FindGraphLayer($PageName + '!1') }
+  if ($mainLayer) {
+    for ($pi = 0; $pi -lt $mainLayer.DataPlots.Count; $pi++) {
+      $plot = $mainLayer.DataPlots.Item($pi)
+      $lw = -1
+      $color = -1
+      try { $lw = [double]$plot.GetNumProp('line.width') } catch {}
+      try { $color = [double]$plot.GetNumProp('color') } catch {}
+      if ($lw -ge 2 -and $color -gt 0) { $palette.Add($color) }
+    }
+  }
+  if ($palette.Count -gt 0) { $style.Palette = @($palette) }
+  $app.Execute('win -a ' + $PageName + '; layer -s 1;') | Out-Null
+  return $style
+}
+
+function Sanitize-ReferenceGraphForTemplate($app, [string]$PageName) {
+  $app.Execute('win -a ' + $PageName + ';') | Out-Null
+  $layerCount = [int]$app.Evaluate('page.nlayers')
+  while ($layerCount -gt 1) {
+    $app.Execute('layer -d ' + $layerCount + ';') | Out-Null
+    $layerCount = [int]$app.Evaluate('page.nlayers')
+  }
+
+  $app.Execute('layer -s 1;') | Out-Null
+  $layer = $app.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $app.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { return }
+
+  for ($i = $layer.GraphObjects.Count - 1; $i -ge 0; $i--) {
+    $obj = $layer.GraphObjects.Item($i)
+    $name = $obj.Name
+    if ($name -in @('Legend', 'XB', 'YL', 'XT', 'YR', '3D', '__BCO2', '__FRAMESRCDATAINFOS')) { continue }
+    if ($name -match '^(Text|Line|_.*)$') {
+      try { $obj.Destroy() | Out-Null } catch {}
+    }
+  }
+}
+
+function Clear-TemplateResidue($app, [string]$PageName, [array]$CurrentLabels) {
+  $app.Execute('win -a ' + $PageName + ';') | Out-Null
+
+  $layerCount = [int]$app.Evaluate('page.nlayers')
+  while ($layerCount -gt 1) {
+    $app.Execute('layer -d ' + $layerCount + ';') | Out-Null
+    $layerCount = [int]$app.Evaluate('page.nlayers')
+  }
+
+  $app.Execute('layer -s 1;') | Out-Null
+  $layer = $app.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $app.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { return }
+
+  for ($i = $layer.GraphObjects.Count - 1; $i -ge 0; $i--) {
+    $obj = $layer.GraphObjects.Item($i)
+    $name = $obj.Name
+
+    if ($name -in @('Legend', 'XB', 'YL', 'XT', 'YR', '3D', '__BCO2', '__FRAMESRCDATAINFOS')) {
+      continue
+    }
+
+    $txt = ''
+    try { $txt = $obj.Text } catch {}
+
+    if ($txt) {
+      if (-not (Test-CurrentText $txt $CurrentLabels)) {
+        try { $obj.Destroy() | Out-Null } catch {}
+      }
+      continue
+    }
+
+    if ($name -match '^(Text|Line|_.*)$') {
+      try { $obj.Destroy() | Out-Null } catch {}
+    }
+  }
+}
+
+function Apply-ReferenceStyle($app, [string]$PageName, [array]$Labels, $Style, $Group) {
+  $app.Execute('win -a ' + $PageName + '; layer -s 1;') | Out-Null
+
+  $app.Execute('page.kar=0; page.width=' + $Style.PageWidth + '; page.height=' + $Style.PageHeight + '; page.customwidth=1; page.customheight=1;') | Out-Null
+  $app.Execute('layer.left=' + $Style.LayerLeft + '; layer.top=' + $Style.LayerTop + '; layer.width=' + $Style.LayerWidth + '; layer.height=' + $Style.LayerHeight + ';') | Out-Null
+  $app.Execute('layer.x.thickness=' + $Style.AxisThickness + '; layer.y.thickness=' + $Style.AxisThickness + ';') | Out-Null
+  $app.Execute('layer.x.label.font=67; layer.y.label.font=67; layer.x.label.bold=1; layer.y.label.bold=1;') | Out-Null
+  $app.Execute('layer.x.label.pt=' + $Style.XLabelSize + '; layer.y.label.pt=' + $Style.YLabelSize + ';') | Out-Null
+  $app.Execute('layer.x.ticks=' + $Style.XTicks + '; layer.y.ticks=' + $Style.YTicks + ';') | Out-Null
+
+  $axisMode = [string](Get-GroupValue $Group 'AxisMode' 'auto')
+  if ($axisMode -eq 'template') {
+    $app.Execute('layer.x.from=' + $Style.XFrom + '; layer.x.to=' + $Style.XTo + '; layer.x.inc=' + $Style.XStep + ';') | Out-Null
+    $app.Execute('layer.y.from=' + $Style.YFrom + '; layer.y.to=' + $Style.YTo + '; layer.y.inc=' + $Style.YStep + ';') | Out-Null
+  }
+
+  foreach ($axis in @('X','Y')) {
+    $from = Get-GroupValue $Group ($axis + 'From') $null
+    $to = Get-GroupValue $Group ($axis + 'To') $null
+    $step = Get-GroupValue $Group ($axis + 'Step') $null
+    $prefix = if ($axis -eq 'X') { 'layer.x' } else { 'layer.y' }
+    if ($null -ne $from) { $app.Execute($prefix + '.from=' + $from + ';') | Out-Null }
+    if ($null -ne $to) { $app.Execute($prefix + '.to=' + $to + ';') | Out-Null }
+    if ($null -ne $step) { $app.Execute($prefix + '.inc=' + $step + ';') | Out-Null }
+  }
+
+  $layer = $app.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $app.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { return }
+
+  $xb = Get-GraphObjectByName $layer 'XB'
+  $yl = Get-GraphObjectByName $layer 'YL'
+  if ($xb) {
+    $xTitle = Get-GroupValue $Group 'XTitle' $null
+    if ($xTitle) { $xb.Text = Format-BoldText ([string]$xTitle) } else { $xb.Text = Format-BoldText $xb.Text }
+    Set-GraphObjectFormat $xb $AxisTitleFont $AxisTitleSize $Style.TextColor
+  }
+  if ($yl) {
+    $yTitle = Get-GroupValue $Group 'YTitle' $null
+    if ($yTitle) { $yl.Text = Format-BoldText ([string]$yTitle) } else { $yl.Text = Format-BoldText $yl.Text }
+    Set-GraphObjectFormat $yl $AxisTitleFont $AxisTitleSize $Style.TextColor
+    # Keep the fixed Graph4 layer geometry, but prevent the bold 36 pt Y title
+    # from falling outside the export page on large negative tick ranges.
+    try {
+      if ([double]$yl.Left -lt 65) { $yl.Left = 65 }
+    } catch {}
+  }
+
+  $legend = Get-GraphObjectByName $layer 'Legend'
+  if (-not $legend) {
+    $app.Execute('legend;') | Out-Null
+    $legend = Get-GraphObjectByName $layer 'Legend'
+  }
+  if ($legend) {
+    $legend.Text = New-LegendText $Labels
+    $legend.Left = [int]$Style.LegendLeft
+    $legend.Top = [int]$Style.LegendTop
+    $legend.Width = [int]$Style.LegendWidth
+    $legend.Height = [int]([Math]::Max($Style.LegendHeight, 220 * [Math]::Max(1, $Labels.Count)))
+    Set-GraphObjectFormat $legend 67 $Style.LegendSize $Style.TextColor
+    try { $legend.SetNumProp('border', 0) | Out-Null } catch {}
+    try { $legend.SetNumProp('frame', 0) | Out-Null } catch {}
+    try { $legend.SetNumProp('fill', 0) | Out-Null } catch {}
+    $app.Execute('legend.frame=0; legend.border=0; legend.fill=0;') | Out-Null
+  }
+
+  for ($i = 0; $i -lt $layer.GraphObjects.Count; $i++) {
+    $obj = $layer.GraphObjects.Item($i)
+    if ($obj.Name -in @('XB','YL','Legend')) { continue }
+    $txt = ''
+    try { $txt = $obj.Text } catch {}
+    if ($txt -and $obj.Name -notin @('XT','YR')) {
+      $obj.Text = Format-BoldText $txt
+      Set-GraphObjectFormat $obj 67 $Style.LegendSize $Style.TextColor
+    }
+  }
+
+  for ($i = 0; $i -lt $layer.DataPlots.Count; $i++) {
+    $plot = $layer.DataPlots.Item($i)
+    try { $plot.SetNumProp('line.width', 3) | Out-Null } catch {}
+    $palette = @(Get-GroupValue $Group 'Palette' $Style.Palette)
+    if ($palette.Count -gt 0) {
+      $color = [double]$palette[$i % $palette.Count]
+      try { $plot.SetNumProp('color', $color) | Out-Null } catch {}
+    }
+  }
+
+  $app.Execute('doc -e DY {set %C -lw 3;};') | Out-Null
+}
+
+function Apply-PlotPolicy($app, [string]$PageName, $Group) {
+  $app.Execute('win -a ' + $PageName + '; layer -s 1;') | Out-Null
+  $showYAxis = Convert-ToBoolean (Get-GroupValue $Group 'ShowYAxis' $true) $true
+  $showYTicks = Convert-ToBoolean (Get-GroupValue $Group 'ShowYTicks' $true) $true
+  $showYTickValues = Convert-ToBoolean (Get-GroupValue $Group 'ShowYTickValues' $true) $true
+  $showXTickValues = Convert-ToBoolean (Get-GroupValue $Group 'ShowXTickValues' $true) $true
+  $plotPrimitive = ([string](Get-GroupValue $Group 'PlotPrimitive' 'line')).Trim().ToLowerInvariant()
+  $markerMode = ([string](Get-GroupValue $Group 'MarkerMode' 'none')).Trim().ToLowerInvariant()
+  $fitOverlayMode = ([string](Get-GroupValue $Group 'FitOverlayMode' 'none')).Trim()
+
+  $showYAxisValue = if ($showYAxis) { '1' } else { '0' }
+  $showYTicksValue = if ($showYTicks) { '1' } else { '0' }
+  $showYTickValuesValue = if ($showYTickValues) { '1' } else { '0' }
+  $showXTickValuesValue = if ($showXTickValues) { '1' } else { '0' }
+
+  $app.Execute('layer.y.show=' + $showYAxisValue + ';') | Out-Null
+  $app.Execute('layer.y.ticks=' + $showYTicksValue + ';') | Out-Null
+  $app.Execute('layer.y.label.show=' + $showYTickValuesValue + '; layer.y.showLabels=' + $showYTickValuesValue + ';') | Out-Null
+  $app.Execute('layer.x.label.show=' + $showXTickValuesValue + '; layer.x.showLabels=' + $showXTickValuesValue + ';') | Out-Null
+
+  $layer = $app.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $app.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { return }
+
+  if ($markerMode -eq 'direct_labels_preferred') {
+    $legend = Get-GraphObjectByName $layer 'Legend'
+    if ($legend) {
+      try { $legend.Destroy() | Out-Null } catch {}
+    }
+    $labels = @(Get-GroupValue $Group 'Labels' @())
+    $dataFile = [string](Get-GroupValue $Group 'DataFile' '')
+    $columnCount = [int](Get-GroupValue $Group 'ColumnCount' 0)
+    Add-DirectCurveLabels $app $PageName $labels (New-CachedGraph4Style) $dataFile $columnCount
+  }
+
+  for ($i = 0; $i -lt $layer.DataPlots.Count; $i++) {
+    $plot = $layer.DataPlots.Item($i)
+    try { $plot.SetNumProp('line.width', 3) | Out-Null } catch {}
+    switch ($markerMode) {
+      'none' {
+        try { $plot.SetNumProp('symbol.kind', 0) | Out-Null } catch {}
+      }
+      'not_applicable' {
+        try { $plot.SetNumProp('symbol.kind', 0) | Out-Null } catch {}
+      }
+      'markers_required' {
+        try { $plot.SetNumProp('symbol.kind', (($i % 6) + 1)) | Out-Null } catch {}
+        try { $plot.SetNumProp('symbol.size', 6) | Out-Null } catch {}
+      }
+      'markers_preferred' {
+        try { $plot.SetNumProp('symbol.kind', (($i % 6) + 1)) | Out-Null } catch {}
+        try { $plot.SetNumProp('symbol.size', 6) | Out-Null } catch {}
+      }
+      'markers_optional' {
+        try { $plot.SetNumProp('symbol.kind', (($i % 6) + 1)) | Out-Null } catch {}
+        try { $plot.SetNumProp('symbol.size', 5) | Out-Null } catch {}
+      }
+      'markers_optional_for_sparse_points' {
+        try { $plot.SetNumProp('symbol.kind', (($i % 6) + 1)) | Out-Null } catch {}
+        try { $plot.SetNumProp('symbol.size', 5) | Out-Null } catch {}
+      }
+      'symbols_required_for_branches' {
+        try { $plot.SetNumProp('symbol.kind', (($i % 6) + 1)) | Out-Null } catch {}
+        try { $plot.SetNumProp('symbol.size', 6) | Out-Null } catch {}
+      }
+      'error_bars_when_available' {
+        try { $plot.SetNumProp('symbol.kind', (($i % 6) + 1)) | Out-Null } catch {}
+        try { $plot.SetNumProp('symbol.size', 6) | Out-Null } catch {}
+      }
+      'sticks_required' {
+        try { $plot.SetNumProp('symbol.kind', 0) | Out-Null } catch {}
+        try { $plot.SetNumProp('line.width', 3) | Out-Null } catch {}
+      }
+      default {
+        if ($markerMode -match 'markers|symbols|sticks') {
+          try { $plot.SetNumProp('symbol.kind', (($i % 6) + 1)) | Out-Null } catch {}
+          try { $plot.SetNumProp('symbol.size', 6) | Out-Null } catch {}
+        } else {
+          try { $plot.SetNumProp('symbol.kind', 0) | Out-Null } catch {}
+        }
+      }
+    }
+
+    switch ($plotPrimitive) {
+      'scatter' {
+        try { $plot.SetNumProp('line.width', 0) | Out-Null } catch {}
+        try { $plot.SetNumProp('symbol.kind', (($i % 6) + 1)) | Out-Null } catch {}
+      }
+      'line' {
+        if ($markerMode -eq 'none') {
+          try { $plot.SetNumProp('symbol.kind', 0) | Out-Null } catch {}
+        }
+      }
+      'fitted_component_overlay' {
+        # The processed CSV already decides raw/background/envelope/component columns.
+        # This helper consumes the strategy by applying stable overlay styling only.
+        if ($i -eq 0) {
+          try { $plot.SetNumProp('line.width', 3) | Out-Null } catch {}
+        } elseif ($i -eq 1) {
+          try { $plot.SetNumProp('line.width', 3) | Out-Null } catch {}
+          try { $plot.SetNumProp('line.style', 2) | Out-Null } catch {}
+        } else {
+          try { $plot.SetNumProp('line.width', 3) | Out-Null } catch {}
+        }
+      }
+      'image_panel' {
+        $app.Execute('layer.x.show=0; layer.y.show=0; layer.x.ticks=0; layer.y.ticks=0; layer.x.label.show=0; layer.y.label.show=0; layer.x.showLabels=0; layer.y.showLabels=0;') | Out-Null
+      }
+      'eds_map' {
+        $app.Execute('layer.x.show=0; layer.y.show=0; layer.x.ticks=0; layer.y.ticks=0; layer.x.label.show=0; layer.y.label.show=0; layer.x.showLabels=0; layer.y.showLabels=0;') | Out-Null
+      }
+      default {
+        # PlotPrimitive is intentionally consumed here even when Origin's plotxy
+        # primitive already handled the major graph type via PlotType.
+      }
+    }
+
+    if ($fitOverlayMode -and $fitOverlayMode -ne 'none') {
+      try { $plot.SetNumProp('line.width', 3) | Out-Null } catch {}
+    }
+  }
+}
+
+function Assert-ValidOutput([string]$Path) {
+  Require-File $Path
+  $item = Get-Item -LiteralPath $Path
+  if ($item.Length -lt 10000) {
+    throw "Output OPJU is suspiciously small: $Path ($($item.Length) bytes)"
+  }
+}
+
+function Assert-PngOutput([string]$ExportDir, [string]$PageName) {
+  $png = Join-Path $ExportDir ($PageName + '.png')
+  Require-File $png
+  $item = Get-Item -LiteralPath $png
+  if ($item.Length -lt 10000) {
+    throw "Exported PNG is suspiciously small: $png ($($item.Length) bytes)"
+  }
+}
+
+function Assert-GraphPageValid($app, [string]$PageName, [int]$ExpectedPlots, [array]$CurrentLabels) {
+  $app.Execute('win -a ' + $PageName + '; layer -s 1;') | Out-Null
+  $layer = $app.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $app.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { throw "Generated graph layer not found: $PageName" }
+
+  if ([int]$layer.DataPlots.Count -ne $ExpectedPlots) {
+    throw "Generated graph $PageName expected $ExpectedPlots data plots, got $($layer.DataPlots.Count)"
+  }
+
+  for ($i = 0; $i -lt $layer.GraphObjects.Count; $i++) {
+    $obj = $layer.GraphObjects.Item($i)
+    $txt = ''
+    try { $txt = [string]$obj.Text } catch {}
+    if (-not $txt) { continue }
+
+    if ($obj.Name -in @('XB','YL')) {
+      $font = -1
+      $size = -1
+      try { $font = [int]$obj.GetNumProp('font') } catch {}
+      try { $size = [double]$obj.GetNumProp('fsize') } catch {}
+      if ($font -ne $AxisTitleFont -or [Math]::Abs($size - $AxisTitleSize) -gt 0.05) {
+        throw "Axis title $($obj.Name) is not Arial size 36 on ${PageName}: font=$font size=$size"
+      }
+      if ($txt -notmatch '\\b\(') {
+        throw "Axis title $($obj.Name) is not bold-wrapped on ${PageName}: $txt"
+      }
+    }
+
+    if ($obj.Name -eq 'Legend' -and $txt -match '%\(') {
+      throw "Legend still contains Origin placeholders on $PageName`: $txt"
+    }
+
+    if (($txt -match 'BiCu|CuWO|BiOBr|JCPDS|04-009|card') -and -not (Test-CurrentText $txt $CurrentLabels)) {
+      throw "Template residue remains on $PageName object $($obj.Name): $txt"
+    }
+  }
+}
+
+$app = $null
+
+try {
+  $useReferenceStyle = $RefreshReferenceStyle -or -not [string]::IsNullOrWhiteSpace($ReferenceOpju)
+  if ($useReferenceStyle -and [string]::IsNullOrWhiteSpace($ReferenceOpju)) {
+    $ReferenceOpju = Find-DefaultReferenceOpju
+  }
+  if ($useReferenceStyle) {
+    Require-File $ReferenceOpju
+  }
+  if (-not $AllowRunningOrigin) {
+    $runningOrigin = Get-Process -Name Origin* -ErrorAction SilentlyContinue
+    if ($runningOrigin) {
+      throw "Origin is already running. Close it or rerun with -AllowRunningOrigin after confirming no unsaved work will be affected."
+    }
+  }
+
+  New-Item -ItemType Directory -Path $ExportDir -Force | Out-Null
+  $workDir = Split-Path -Parent $OutputOpju
+  New-Item -ItemType Directory -Path $workDir -Force | Out-Null
+  $templateRoot = Join-Path $workDir 'origin_templates'
+  $templateDir = $null
+  $templateRootCreatedByThisRun = $false
+  $templateDirCreatedByThisRun = $false
+  if ($useReferenceStyle) {
+    if (-not (Test-Path -LiteralPath $templateRoot)) {
+      New-Item -ItemType Directory -Path $templateRoot -Force | Out-Null
+      $templateRootCreatedByThisRun = $true
+    }
+    $templateDir = Join-Path $templateRoot ('run_' + (Get-Date -Format 'yyyyMMdd_HHmmss_fff') + '_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $templateDir -Force | Out-Null
+    $templateDirCreatedByThisRun = $true
+  }
+
+  $app = New-Object -ComObject Origin.Application
+  $app.Visible = if ($Headless) { 0 } else { 1 }
+
+  $referenceStyle = New-CachedGraph4Style
+  $template = $null
+  if ($useReferenceStyle) {
+    $referenceWorkingCopy = Join-Path $templateDir 'reference_working_copy.opju'
+    Copy-Item -LiteralPath $ReferenceOpju -Destination $referenceWorkingCopy -Force
+
+    if (-not $app.Load($referenceWorkingCopy)) {
+      throw ("Failed to load reference OPJU working copy: " + (Split-Path -Leaf $referenceWorkingCopy))
+    }
+
+    $app.Execute("win -a $ReferenceGraph;") | Out-Null
+    $referenceStyle = Get-ReferenceStyle $app $ReferenceGraph
+    Sanitize-ReferenceGraphForTemplate $app $ReferenceGraph
+    Sanitize-ProjectPages $app
+    $templateName = 'reference_graph_' + (Get-Date -Format 'yyyyMMdd_HHmmss_fff')
+    $template = Join-Path $templateDir ($templateName + '.otpu')
+    Remove-Item -LiteralPath $template -Force -ErrorAction SilentlyContinue
+    $app.Execute('template_saveas pg:=' + $ReferenceGraph + ' category:="ResearchDataOrigin" template:="' + $templateName + '" filepath:="' + (To-OriginPath $templateDir) + '" emf:=0 bmp:=1 loadsys:=0;') | Out-Null
+    Sanitize-ProjectPages $app
+    $app.Save($referenceWorkingCopy) | Out-Null
+    Require-File $template
+  }
+
+  $app.NewProject() | Out-Null
+
+  foreach ($group in $Groups) {
+    Require-File (Get-GroupValue $group 'DataFile')
+    $dataFile = [string](Get-GroupValue $group 'DataFile')
+    $pageName = [string](Get-GroupValue $group 'PageName')
+    $cols = [int](Get-GroupValue $group 'ColumnCount')
+    $plotType = [string]$DefaultPlotType
+    $groupPlotType = Get-GroupValue $group 'PlotType' $null
+    if ($groupPlotType) { $plotType = [string]$groupPlotType }
+    if (-not $pageName) { throw 'Each group needs PageName.' }
+    if ($cols -lt 2) { throw "ColumnCount must be >= 2 for $pageName." }
+
+    $currentLabels = @()
+    $groupLabels = Get-GroupValue $group 'Labels' $null
+    if ($groupLabels) {
+      $currentLabels = @($groupLabels)
+    } else {
+      $currentLabels = Get-HeaderLabels $dataFile $cols
+    }
+    if ($currentLabels.Count -ne ($cols - 1)) {
+      throw "Label count ($($currentLabels.Count)) must match Y column count ($($cols - 1)) for $pageName."
+    }
+
+    $table = Read-DelimitedTable $dataFile
+    if ($table.Headers.Count -lt $cols) {
+      throw "Data file column count is smaller than requested ColumnCount for $pageName."
+    }
+    $dataFileName = [System.IO.Path]::GetFileName($dataFile)
+    $dataBookName = Convert-ToSafeOriginName ([System.IO.Path]::GetFileNameWithoutExtension($dataFile)) 'Data'
+    Initialize-OriginDataWorkbook $app $dataBookName $dataFileName $table.Headers $table.Rows $cols
+
+    if ($template) {
+      $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(1,2:' + $cols + ') plot:=' + $plotType + ' ogl:=[<new template:="' + (To-OriginPath $template) + '" name:="' + $pageName + '">];') | Out-Null
+    } else {
+      $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(1,2:' + $cols + ') plot:=' + $plotType + ' ogl:=[<new name:="' + $pageName + '">];') | Out-Null
+    }
+    $app.Execute('legendupdate mode:=lname;') | Out-Null
+    Clear-TemplateResidue $app $pageName $currentLabels
+    Apply-ReferenceStyle $app $pageName $currentLabels $referenceStyle $group
+    Apply-PlotPolicy $app $pageName $group
+    Clear-TemplateResidue $app $pageName $currentLabels
+    Apply-ReferenceStyle $app $pageName $currentLabels $referenceStyle $group
+    Apply-PlotPolicy $app $pageName $group
+    Assert-GraphPageValid $app $pageName ($cols - 1) $currentLabels
+  }
+
+  Sanitize-ProjectPages $app
+  $app.Save($OutputOpju) | Out-Null
+  Assert-ValidOutput $OutputOpju
+
+  foreach ($group in $Groups) {
+    $pageName = [string](Get-GroupValue $group 'PageName')
+    $app.Execute('win -a ' + $pageName + '; expGraph type:=png path:="' + (To-OriginPath $ExportDir) + '" filename:="' + $pageName + '" overwrite:=replace;') | Out-Null
+    Assert-PngOutput $ExportDir $pageName
+  }
+
+  Write-Output ("SAVED=" + (Split-Path -Leaf $OutputOpju))
+  Write-Output ("EXPORT_DIR=" + (Split-Path -Leaf $ExportDir))
+  if ($useReferenceStyle) {
+    Write-Output ("REFERENCE=" + (Split-Path -Leaf $ReferenceOpju))
+  } else {
+    Write-Output "REFERENCE=CACHED_GRAPH4_STYLE"
+  }
+
+  if (-not $KeepIntermediate -and $templateDirCreatedByThisRun -and $templateDir -and (Test-Path -LiteralPath $templateDir)) {
+    Remove-Item -LiteralPath $templateDir -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Output "CLEANED_INTERMEDIATE=$templateDir"
+  }
+  if (-not $KeepIntermediate -and $templateRootCreatedByThisRun -and (Test-Path -LiteralPath $templateRoot)) {
+    $remainingTemplateFiles = @(Get-ChildItem -LiteralPath $templateRoot -Force -ErrorAction SilentlyContinue)
+    if ($remainingTemplateFiles.Count -eq 0) {
+      Remove-Item -LiteralPath $templateRoot -Force -ErrorAction SilentlyContinue
+      Write-Output "CLEANED_INTERMEDIATE_ROOT=$templateRoot"
+    }
+  }
+}
+finally {
+  if ($CloseOrigin -and $app) {
+    try { $app.Exit() | Out-Null } catch {}
+  }
+}

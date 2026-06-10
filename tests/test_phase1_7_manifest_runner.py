@@ -46,6 +46,9 @@ def test_gallery_index_can_be_generated_when_package_available(project_root: Pat
 
 
 def test_manual_override_decision_table_can_be_generated(project_root: Path):
+    proposals = project_root / "output" / "reports" / "phase1_6_manual_override_proposals_second_wave.json"
+    if not proposals.exists():
+        pytest.skip("real manual override proposals are not available in this checkout")
     rows, summary = generate_override_decision_table(project_root)
     assert "proposal_count" in summary
     assert rows

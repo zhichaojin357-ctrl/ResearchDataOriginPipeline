@@ -5,10 +5,6 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = PROJECT_ROOT / "scripts" / "data_types" / "hplc_lc" / "plot_hplc_calibration_origin.ps1"
-TEMPLATE_OPJU = (
-    r"D:\Codex Project\科研数据处理\数据\26.5.30\HPLC_calibration_origin"
-    r"\HPLC_calibration_curves_20260530_230503.opju"
-)
 
 
 def _script_text() -> str:
@@ -16,16 +12,29 @@ def _script_text() -> str:
     return SCRIPT_PATH.read_text(encoding="utf-8-sig")
 
 
-def test_hplc_calibration_script_uses_completed_hplc_opju_template() -> None:
+def test_hplc_calibration_script_requires_explicit_hplc_opju_template() -> None:
     text = _script_text()
 
-    assert TEMPLATE_OPJU in text
+    assert "[Parameter(Mandatory=$true)]" in text
     assert "D:\\OriginFlies\\Manual Save" not in text
     assert "CWO+BOBC" not in text
     assert "Origin.ApplicationSI" not in text
     assert "New-Object -ComObject Origin.Application" in text
     assert "[string]$TemplateOpju" in text
     assert "[string]$OutputDir" in text
+    assert "impASC" not in text
+    assert "CodexOrigin" not in text
+    assert "category:=\"HPLC_Calibration\"" in text
+    assert "Set-OriginWorksheetColumn" in text
+    assert "Sanitize-ProjectPages" in text
+    assert "$dataFileName = $Substance + '_calibration_data.tsv'" in text
+    assert "wks.longname$=" in text
+    assert "wks.comments$=\"\"" in text
+    assert "wks.comment$=\"\"" in text
+    assert 'doc -e W { page.comments$=""; page.comment$=""; wks.comments$=""; wks.comment$=""; };' in text
+    assert 'wks.name$="Data"' not in text
+    assert "page.longname$=page.name$" not in text
+    assert "Stamp must not include assistant or tool labels." in text
 
 
 def test_hplc_calibration_script_exports_expected_artifact_set() -> None:
@@ -39,6 +48,8 @@ def test_hplc_calibration_script_exports_expected_artifact_set() -> None:
     assert "expGraph type:=png" in text
     assert "expGraph type:=tif" in text
     assert "600" in text
+    assert "To-RunRelativePath $templatePreviewMap" in text
+    assert "To-RunRelativePath $generatedPreviewMap" in text
 
 
 def test_hplc_calibration_script_preserves_three_template_pages_and_locked_style() -> None:

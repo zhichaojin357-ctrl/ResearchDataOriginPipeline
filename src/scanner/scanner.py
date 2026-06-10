@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.core.output_sanitizer import render_output_path
 from src.core.project import ensure_output_structure, load_json_compatible_yaml, output_dir, registry_path, report_path
 
 
@@ -130,7 +131,7 @@ def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | N
     unclassified_files = [
         item
         for item in all_files
-        if str(Path(item["path"]).resolve()) not in classified_paths
+        if str(Path(str(item["path"])).resolve()) not in classified_paths
     ]
     manifest = {
         "scan_root": str(input_path),
@@ -140,14 +141,55 @@ def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | N
         "unsupported_files_in_known_folders": unsupported_files_in_known_folders,
         "classifications": [item.as_dict() for item in classifications],
     }
+    output_manifest = _render_manifest_for_output(manifest, project_root=project_root, output_root=output_root)
     reports = output_dir(project_root, "reports", output_root=output_root)
     (reports / "inventory_manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2),
+        json.dumps(output_manifest, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    _write_classification_report(project_root, manifest, output_root=output_root)
-    _write_unclassified_manifest(project_root, manifest, output_root=output_root)
+    _write_classification_report(project_root, output_manifest, output_root=output_root)
+    _write_unclassified_manifest(project_root, output_manifest, output_root=output_root)
     return manifest
+
+
+def _render_manifest_for_output(manifest: dict, *, project_root: Path, output_root: Path | None = None) -> dict:
+    rendered = dict(manifest)
+    rendered["scan_root"] = render_output_path(manifest.get("scan_root"), project_root=project_root, output_root=output_root)
+    rendered["files"] = [_render_file_entry(item, project_root=project_root, output_root=output_root) for item in manifest.get("files", [])]
+    rendered["unclassified_files"] = [
+        _render_file_entry(item, project_root=project_root, output_root=output_root)
+        for item in manifest.get("unclassified_files", [])
+    ]
+    rendered["unsupported_files_in_known_folders"] = [
+        _render_file_entry(item, project_root=project_root, output_root=output_root)
+        for item in manifest.get("unsupported_files_in_known_folders", [])
+    ]
+    classifications = []
+    for classification in manifest.get("classifications", []):
+        item = dict(classification)
+        item["folder_path"] = (
+            render_output_path(item.get("folder_path"), project_root=project_root, output_root=output_root)
+            if item.get("folder_path")
+            else None
+        )
+        item["folder_paths"] = [
+            render_output_path(path, project_root=project_root, output_root=output_root)
+            for path in item.get("folder_paths", [])
+        ]
+        item["files"] = [
+            render_output_path(path, project_root=project_root, output_root=output_root)
+            for path in item.get("files", [])
+        ]
+        classifications.append(item)
+    rendered["classifications"] = classifications
+    return rendered
+
+
+def _render_file_entry(item: dict, *, project_root: Path, output_root: Path | None = None) -> dict:
+    rendered = dict(item)
+    if "path" in rendered:
+        rendered["path"] = render_output_path(rendered["path"], project_root=project_root, output_root=output_root)
+    return rendered
 
 
 def _write_classification_report(project_root: Path, manifest: dict, *, output_root: Path | None = None) -> None:

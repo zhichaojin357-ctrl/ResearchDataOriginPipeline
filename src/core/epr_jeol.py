@@ -7,6 +7,8 @@ from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
 
+from src.core.output_sanitizer import render_output_path
+
 
 DATA_OFFSET_CACQU = 9500
 DEFAULT_EXPORT_POINTS = 4096  # Verified JEOL cAcqu export default.
@@ -249,10 +251,10 @@ def export_jeol_cwesr_to_xlsx(
         write_compare_report(reference_dir, exported, report_xlsx)
     return {
         "exported_xlsx": len(exported),
-        "output_root": str(output_root),
-        "reference_dir": str(reference_dir) if reference_dir else None,
-        "report_xlsx": str(report_xlsx) if report_xlsx else None,
-        "files": [str(item[0]) for item in exported.values()],
+        "output_root": ".",
+        "reference_dir": render_output_path(reference_dir, output_root=output_root) if reference_dir else None,
+        "report_xlsx": render_output_path(report_xlsx, output_root=output_root) if report_xlsx else None,
+        "files": [render_output_path(item[0], output_root=output_root) for item in exported.values()],
     }
 
 

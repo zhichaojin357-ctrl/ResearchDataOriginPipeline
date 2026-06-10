@@ -3,7 +3,7 @@ source_policy:
   original_data_read_only: true
   do_not_write_to_raw_data: true
   workspace_copy_required_for_real_batch: true
-  current_workspace_copy: D:/Codex Project/科研数据处理/数据/workspace_data/LL_detection_copy_20260530
+  current_workspace_copy: workspace_data/LL_detection_copy_20260530
   originally_requested_path: F:\课题\LL\检测中
   actual_copied_path: F:\课题\LL\检测
 

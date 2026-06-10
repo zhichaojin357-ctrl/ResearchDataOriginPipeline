@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
+from src.core.output_sanitizer import render_output_path
 from src.core.opju_product_pilot import (
     ProductContext,
     TargetPairing,
@@ -648,7 +649,7 @@ def run_v3_real_template_rebuild_all_types(
             acceptance = _build_v3_acceptance(product, export_status, active_template, extra)
             metadata = _write_v3_product_metadata(layout.root, product, export_status, style, extra, active_template, acceptance)
             report = _write_v3_per_type_report(layout.root, product, export_status, style, extra, active_template, acceptance)
-            products.append(_v3_product_summary(product, export_status, metadata, report, active_template, acceptance))
+            products.append(_v3_product_summary(layout.root, product, export_status, metadata, report, active_template, acceptance))
         except Exception as exc:
             failures.append({"product_key": product_key, "message": str(exc)})
             products.append(_failed_product_record(layout.root, product_key, selection, str(exc)))
@@ -1632,7 +1633,7 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         pages = operations.list_worksheets().payload.get("pages", [])
         graph_pages = [str(item["name"]) for item in pages if item.get("type") == "graph"]
         reopened_graph = graph_name if graph_name in graph_pages else (graph_pages[0] if graph_pages else graph_name)
-        product_snapshot = read_graph_style_snapshot(operations, reopened_graph, source_label=str(product.origin_file), graph_pages=graph_pages)
+        product_snapshot = read_graph_style_snapshot(operations, reopened_graph, source_label=product.origin_file.name, graph_pages=graph_pages)
         conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
         strict_readback = _strict_style_readback(product_snapshot.to_dict())
         png = operations.export_graph(reopened_graph, product.preview_png, "png", dpi=style.export_dpi)
@@ -1946,7 +1947,7 @@ def _extract_v3_product_reference_snapshot(operations: object, product: ProductC
     return read_graph_style_snapshot(
         operations,
         graph_page,
-        source_label=str(product.reference_opju_copy),
+        source_label=product.reference_opju_copy.name,
         graph_pages=graph_pages,
     )
 
@@ -2918,6 +2919,7 @@ def _write_v3_per_type_report(
 
 
 def _v3_product_summary(
+    run_root: Path,
     product: ProductContext,
     export_status: dict[str, object],
     metadata: Path,
@@ -2928,16 +2930,16 @@ def _v3_product_summary(
     return {
         "type": product.product_key,
         "product_key": product.product_key,
-        "template_path": str(template.path),
+        "template_path": _relative_to_run(run_root, template.path) if template.path.is_absolute() else template.path.as_posix(),
         "template_graph": template.graph_page,
         "status": acceptance.status,
-        "origin_file": str(product.origin_file),
-        "figure_tif": str(product.figure_tif),
-        "preview_png": str(product.preview_png),
-        "reference_preview_png": str(product.reference_preview_png),
-        "processed_data": str(product.processed_data),
-        "metadata": str(metadata),
-        "report": str(report),
+        "origin_file": _relative_to_run(run_root, product.origin_file),
+        "figure_tif": _relative_to_run(run_root, product.figure_tif),
+        "preview_png": _relative_to_run(run_root, product.preview_png),
+        "reference_preview_png": _relative_to_run(run_root, product.reference_preview_png),
+        "processed_data": _relative_to_run(run_root, product.processed_data),
+        "metadata": _relative_to_run(run_root, metadata),
+        "report": _relative_to_run(run_root, report),
         "has_opju": product.origin_file.exists() and product.origin_file.stat().st_size > 0,
         "has_tif": product.figure_tif.exists() and product.figure_tif.stat().st_size > 0,
         "has_png": product.preview_png.exists() and product.preview_png.stat().st_size > 0,
@@ -3674,7 +3676,7 @@ def _write_v3_no_label_audit(run_root: Path) -> dict[str, object]:
         "## Product-visible hits",
     ]
     lines.extend(["- none"] if not hits else [f"- {hit}" for hit in hits])
-    (reports / "product_no_codex_label_audit.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    (reports / "product_label_audit.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return audit
 
 
@@ -3991,6 +3993,8 @@ def _safe_metadata_payload(value: object) -> object:
 
 def _safe_metadata_text(value: object) -> str:
     text = str(value).replace("\\", "/")
+    if Path(text).is_absolute() or (len(text) >= 3 and text[1:3] == ":/") or text.startswith("//"):
+        return str(render_output_path(text))
     return "".join(char if ord(char) >= 32 else "/" for char in text)
 
 

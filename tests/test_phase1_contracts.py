@@ -84,9 +84,11 @@ class Phase1ContractsTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             manifest = json.loads((project / "output" / "reports" / "inventory_manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(Path(manifest["scan_root"]), raw.resolve())
+            self.assertEqual(Path(manifest["scan_root"]), Path("custom_raw"))
+            self.assertFalse(Path(manifest["scan_root"]).is_absolute())
             self.assertEqual(len(manifest["unclassified_files"]), 1)
             self.assertEqual(manifest["unclassified_files"][0]["relative_path"], "unknown_folder\\mystery.csv")
+            self.assertFalse(Path(manifest["unclassified_files"][0]["path"]).is_absolute())
             unclassified = project / "output" / "unclassified" / "unclassified_manifest.json"
             self.assertTrue(unclassified.exists())
             self.assertEqual(source.read_text(encoding="utf-8"), "a,b\n1,2\n")
@@ -278,6 +280,9 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertIn("frame/fill box", manual_items)
             self.assertIn("chemical formula subscripts", manual_items)
             self.assertEqual(metadata["confidence_level"]["plotting"], "medium")
+            self.assertEqual(metadata["origin_template_used"], "Graph4 cached snapshot")
+            self.assertNotIn("CodexData", json.dumps(metadata, ensure_ascii=False))
+            self.assertNotIn(".codex", json.dumps(metadata, ensure_ascii=False))
 
     def test_success_metadata_rejects_artifacts_outside_output_directory(self):
         with tempfile.TemporaryDirectory() as tmp:

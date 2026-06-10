@@ -45,9 +45,10 @@ def test_create_run_output_layout_creates_standard_dirs_and_manifest(tmp_path: P
     assert manifest["no_origin"] is True
     assert manifest["dry_run"] is False
     assert manifest["compatibility_mode"] == "run_scoped"
-    assert manifest["output_root"] == str(layout.root)
-    assert manifest["produced_artifact_directories"]["processed_data"] == str(layout.processed_data)
-    assert manifest["input_paths"] == [str(tmp_path / "input" / "raw_data")]
+    assert manifest["output_root"] == "output/runs/20260603_120000_process_no_origin"
+    assert manifest["produced_artifact_directories"]["processed_data"] == "output/runs/20260603_120000_process_no_origin/processed_data"
+    assert manifest["input_paths"] == ["input/raw_data"]
+    assert not Path(manifest["output_root"]).is_absolute()
 
 
 def test_output_dir_allows_explicit_external_output_root(tmp_path: Path):
@@ -96,6 +97,7 @@ def test_run_process_can_route_no_origin_artifacts_into_run_root(tmp_path: Path)
     assert metadata["processing_status"] == "processed_no_origin"
     assert metadata["run_output_root"] == "output/runs/20260603_120001_process_no_origin"
     assert metadata["processed_data"].startswith("output/runs/20260603_120001_process_no_origin/processed_data/")
+    assert not Path(metadata["processed_data"]).is_absolute()
 
 
 def test_run_triage_can_route_reports_into_run_root(tmp_path: Path):

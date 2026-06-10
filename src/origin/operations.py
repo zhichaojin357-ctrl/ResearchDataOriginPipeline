@@ -109,6 +109,13 @@ def safe_origin_name(value: str, default: str = "Page") -> str:
     return cleaned[:24]
 
 
+def visible_origin_label(value: str | Path, default: str = "Data") -> str:
+    text = str(value).replace("\\", "/").strip()
+    if "/" in text:
+        text = text.rstrip("/").split("/")[-1]
+    return text or default
+
+
 def normalize_export_path(file_path: str | Path, export_format: str = "png") -> tuple[Path, str]:
     output = Path(file_path)
     requested_format = (export_format or "png").strip().lower().lstrip(".")
@@ -186,8 +193,20 @@ class OriginOperations:
 
     def save_project(self, file_path: str | Path = "") -> OperationResult:
         target = str(file_path) if file_path else ""
+        self.sanitize_project_metadata()
         self.app.Save(target)
         return OperationResult(True, "Project saved", {"file_path": target})
+
+    def sanitize_project_metadata(self) -> OperationResult:
+        script = (
+            'doc -e W { page.comments$=""; page.comment$=""; wks.comments$=""; wks.comment$=""; }; '
+            'doc -e P { page.comments$=""; page.comment$=""; };'
+        )
+        try:
+            self.app.Execute(script)
+        except Exception as exc:
+            return OperationResult(False, f"Origin page metadata sanitization failed: {exc}", {"script": script})
+        return OperationResult(True, "Origin page metadata sanitized", {"script": script})
 
     def load_project(self, file_path: str | Path) -> OperationResult:
         path = Path(file_path)
@@ -197,9 +216,15 @@ class OriginOperations:
         return OperationResult(True, "Project loaded", {"file_path": str(path)})
 
     def create_worksheet(self, book_name: str, sheet_name: str = "Sheet1") -> OperationResult:
-        book = self.app.CreatePage(2, safe_origin_name(book_name, "Book"), "origin")
-        if sheet_name != "Sheet1":
-            self.run_labtalk(f'win -a "{quote_labtalk(book)}"; wks.name$ = "{quote_labtalk(sheet_name)}";')
+        visible_book = visible_origin_label(book_name, "Book")
+        visible_sheet = visible_origin_label(sheet_name, "Data")
+        book = self.app.CreatePage(2, safe_origin_name(visible_book, "Book"), "origin")
+        self.run_labtalk(
+            f'win -a "{quote_labtalk(book)}"; '
+            f'page.longname$="{quote_labtalk(visible_book)}"; page.comments$=""; page.comment$=""; '
+            f'wks.name$="{quote_labtalk(safe_origin_name(visible_sheet, "Data"))}"; '
+            f'wks.longname$="{quote_labtalk(visible_sheet)}"; wks.comments$=""; wks.comment$="";'
+        )
         return OperationResult(True, "Worksheet created", {"book_name": book, "sheet_name": sheet_name})
 
     def set_worksheet_data(

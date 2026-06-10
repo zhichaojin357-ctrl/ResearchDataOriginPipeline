@@ -19,6 +19,7 @@ from src.core.opju_product_pilot import (
     _forbidden_claims,
     _load_pairing_items,
     _manual_items,
+    _product_output_path,
     _reference_policy_notes,
     _relative_to_run,
     _resolve_pairing_path,
@@ -29,6 +30,7 @@ from src.core.opju_product_pilot import (
     _write_per_type_report,
     _write_product_metadata,
 )
+from src.core.output_sanitizer import scrub_output_text
 from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table_with_metadata
 from src.origin.operations import connect_origin, quote_labtalk
@@ -172,9 +174,9 @@ def run_remaining_opju_product_drafts(
                 export_status = exporter(product)
             metadata = _write_product_metadata(layout.root, product, export_status)
             report = _write_per_type_report(layout.root, product, export_status)
-            products.append(_product_summary(product, export_status, metadata, report))
+            products.append(_product_summary(layout.root, product, export_status, metadata, report))
         except Exception as exc:
-            failures.append({"product_key": pairing.product_key, "message": str(exc)})
+            failures.append({"product_key": pairing.product_key, "message": scrub_output_text(exc, output_root=layout.root)})
 
     hplc_deferred = _hplc_lc_deferred_items(options.pairing_path, roots)
     if hplc_deferred:
@@ -417,21 +419,27 @@ def _ftir_overlay_table(paths: list[Path]) -> tuple[list[str], list[list[float |
     }
 
 
-def _product_summary(product: ProductContext, export_status: dict[str, object], metadata: Path, report: Path) -> dict[str, object]:
+def _product_summary(
+    run_root: Path,
+    product: ProductContext,
+    export_status: dict[str, object],
+    metadata: Path,
+    report: Path,
+) -> dict[str, object]:
     return {
         "product_key": product.product_key,
         "data_root_label": product.pairing.data_root_label,
         "selected_data_relative_paths": _selected_relative_paths(product.pairing, "selected_data_relative_paths"),
         "opju_root_label": product.pairing.opju_root_label,
         "selected_opju_relative_path": _selected_relative_paths(product.pairing, "selected_opju_relative_path"),
-        "processed_data": str(product.processed_data),
-        "origin_file": str(product.origin_file),
-        "figure_tif": str(product.figure_tif),
-        "preview_png": str(product.preview_png),
-        "reference_opju_copy": str(product.reference_opju_copy),
-        "reference_preview_png": str(product.reference_preview_png),
-        "metadata": str(metadata),
-        "report": str(report),
+        "processed_data": _product_output_path(run_root, product.processed_data),
+        "origin_file": _product_output_path(run_root, product.origin_file),
+        "figure_tif": _product_output_path(run_root, product.figure_tif),
+        "preview_png": _product_output_path(run_root, product.preview_png),
+        "reference_opju_copy": _product_output_path(run_root, product.reference_opju_copy),
+        "reference_preview_png": _product_output_path(run_root, product.reference_preview_png),
+        "metadata": _product_output_path(run_root, metadata),
+        "report": _product_output_path(run_root, report),
         "status": "success" if bool(export_status.get("ok")) else "origin_failed",
         "origin_message": str(export_status.get("message") or ""),
     }

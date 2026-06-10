@@ -26,6 +26,7 @@ from src.core.opju_product_pilot import (
     build_default_root_map,
     load_target_pairings,
 )
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.remaining_opju_product_drafts import (
     _build_remaining_processed_plot_table,
     load_remaining_pairings,
@@ -215,9 +216,9 @@ def run_v2_exemplar_conformance_products(
                 export_status["eis_cleaning"] = eis_cleaning
             metadata = _write_v2_product_metadata(layout.root, product, export_status, style, extra)
             report = _write_v2_per_type_report(layout.root, product, export_status, style, extra)
-            products.append(_product_summary(product, export_status, metadata, report))
+            products.append(_product_summary(layout.root, product, export_status, metadata, report))
         except Exception as exc:
-            failures.append({"product_key": product_key, "message": str(exc)})
+            failures.append({"product_key": product_key, "message": scrub_output_text(str(exc), output_root=layout.root)})
 
     label_audit = _write_v2_no_label_audit(layout.root)
     _write_v2_run_reports(layout.root, first_run, remaining_run, products, failures, label_audit, eis_cleaning)
@@ -284,7 +285,7 @@ def run_unified_v2_exemplar_conformance_products(
                 products.append(product_summary)
                 eis_imported = True
             except Exception as exc:
-                failures.append({"product_key": product_key, "message": str(exc)})
+                failures.append({"product_key": product_key, "message": scrub_output_text(str(exc), output_root=layout.root)})
             continue
 
         pairing = first_pairings.get(product_key) or remaining_pairings.get(product_key)
@@ -299,11 +300,11 @@ def run_unified_v2_exemplar_conformance_products(
                 export_status = exporter(product, style)
             metadata = _write_v2_product_metadata(layout.root, product, export_status, style, extra)
             report = _write_v2_per_type_report(layout.root, product, export_status, style, extra)
-            products.append(_product_summary(product, export_status, metadata, report))
+            products.append(_product_summary(layout.root, product, export_status, metadata, report))
             if options.with_origin and not bool(export_status.get("ok")):
-                failures.append({"product_key": product_key, "message": str(export_status.get("message") or "Origin export failed")})
+                failures.append({"product_key": product_key, "message": scrub_output_text(str(export_status.get("message") or "Origin export failed"), output_root=layout.root)})
         except Exception as exc:
-            failures.append({"product_key": product_key, "message": str(exc)})
+            failures.append({"product_key": product_key, "message": scrub_output_text(str(exc), output_root=layout.root)})
 
     label_audit = _write_v2_no_label_audit(layout.root)
     _write_v2_run_reports(layout.root, first_run, remaining_run, products, failures, label_audit, eis_cleaning)
@@ -363,14 +364,14 @@ def run_eis_randles_cpe_v2(
     export_status["eis_cleaning"] = eis_cleaning
     metadata = _write_v2_product_metadata(layout.root, product, export_status, style, extra)
     report = _write_v2_per_type_report(layout.root, product, export_status, style, extra)
-    product_summary = _product_summary(product, export_status, metadata, report)
+    product_summary = _product_summary(layout.root, product, export_status, metadata, report)
     label_audit = _write_v2_no_label_audit(layout.root)
     _write_eis_only_reports(layout.root, previous_run, product_summary, label_audit, eis_cleaning)
     _write_eis_only_docs(project_root, layout.root, previous_run, product_summary, label_audit, eis_cleaning)
     return {
         "run_root": str(layout.root),
         "products": [product_summary],
-        "failures": [] if bool(export_status.get("ok")) else [{"product_key": "EIS", "message": str(export_status.get("message", ""))}],
+        "failures": [] if bool(export_status.get("ok")) else [{"product_key": "EIS", "message": scrub_output_text(str(export_status.get("message", "")), output_root=layout.root)}],
         "summary": {
             "product_count": 1 if bool(export_status.get("ok")) else 0,
             "failure_count": 0 if bool(export_status.get("ok")) else 1,
@@ -475,12 +476,12 @@ def _import_completed_eis_v2_product(run_root: Path, eis_v2_run_root: Path) -> t
     conformance = origin_status.get("conformance") if isinstance(origin_status.get("conformance"), dict) else {}
     product_summary = {
         "product_key": "EIS",
-        "origin_file": str(target_type_root / "origin_files" / "EIS_BOBC_exemplar_v2.opju"),
-        "figure_tif": str(target_type_root / "figures_tif" / "EIS_BOBC_exemplar_v2.tif"),
-        "preview_png": str(target_type_root / "figures_preview" / "EIS_BOBC_exemplar_v2_preview.png"),
-        "processed_data": str(target_type_root / "processed_data" / "EIS_BOBC_exemplar_v2.csv"),
-        "metadata": str(target_type_root / "metadata" / "EIS_BOBC_exemplar_v2.json"),
-        "report": str(import_report),
+        "origin_file": render_output_path(target_type_root / "origin_files" / "EIS_BOBC_exemplar_v2.opju", project_root=run_root),
+        "figure_tif": render_output_path(target_type_root / "figures_tif" / "EIS_BOBC_exemplar_v2.tif", project_root=run_root),
+        "preview_png": render_output_path(target_type_root / "figures_preview" / "EIS_BOBC_exemplar_v2_preview.png", project_root=run_root),
+        "processed_data": render_output_path(target_type_root / "processed_data" / "EIS_BOBC_exemplar_v2.csv", project_root=run_root),
+        "metadata": render_output_path(target_type_root / "metadata" / "EIS_BOBC_exemplar_v2.json", project_root=run_root),
+        "report": render_output_path(import_report, project_root=run_root),
         "status": "success",
         "message": "imported from completed Randles-CPE v2 run without refitting",
         "conformance": conformance or {},
@@ -491,10 +492,11 @@ def _import_completed_eis_v2_product(run_root: Path, eis_v2_run_root: Path) -> t
 def _rewrite_imported_eis_cleaning_metadata(type_root: Path) -> dict[str, object]:
     metadata_path = type_root / "metadata" / "eis_cleaning_and_fit_metadata.json"
     payload = _read_json(metadata_path)
-    payload["raw_data"] = str(type_root / "processed_data" / "raw_eis_data.csv")
-    payload["cleaned_data"] = str(type_root / "processed_data" / "cleaned_eis_data.csv")
-    payload["ignored_points"] = str(type_root / "processed_data" / "ignored_eis_points.csv")
-    payload["fit_curve"] = str(type_root / "processed_data" / "eis_randles_cpe_fit_curve.csv")
+    output_root = type_root.parent
+    payload["raw_data"] = render_output_path(type_root / "processed_data" / "raw_eis_data.csv", project_root=output_root)
+    payload["cleaned_data"] = render_output_path(type_root / "processed_data" / "cleaned_eis_data.csv", project_root=output_root)
+    payload["ignored_points"] = render_output_path(type_root / "processed_data" / "ignored_eis_points.csv", project_root=output_root)
+    payload["fit_curve"] = render_output_path(type_root / "processed_data" / "eis_randles_cpe_fit_curve.csv", project_root=output_root)
     payload["unified_v2_import_policy"] = "Imported from the completed EIS Randles-CPE v2 run; no EIS cleaning or fitting was rerun."
     metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return payload
@@ -509,7 +511,7 @@ def _rewrite_imported_eis_product_metadata(type_root: Path, source_run_root: Pat
     payload["origin_file"] = _safe_metadata_path(type_root / "origin_files" / "EIS_BOBC_exemplar_v2.opju")
     payload["figure_tif"] = _safe_metadata_path(type_root / "figures_tif" / "EIS_BOBC_exemplar_v2.tif")
     payload["preview_png"] = _safe_metadata_path(type_root / "figures_preview" / "EIS_BOBC_exemplar_v2_preview.png")
-    payload["unified_v2_imported_from"] = str(source_run_root)
+    payload["unified_v2_imported_from"] = source_run_root.name
     payload["unified_v2_import_policy"] = "OPJU/TIF/PNG/processed EIS files were copied from the completed Randles-CPE v2 run without refitting."
     metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return payload
@@ -592,7 +594,7 @@ def export_v2_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         operations.run_labtalk("title.show=0;")
         series_count = 2 if product.product_key == "EIS" and len(headers) >= 4 else len(headers) - 1
         _style_v2_series(operations, graph_name, product, series_count, style)
-        product_snapshot = read_graph_style_snapshot(operations, graph_name, source_label=str(product.origin_file))
+        product_snapshot = read_graph_style_snapshot(operations, graph_name, source_label=product.origin_file.name)
         conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
         product.origin_file.parent.mkdir(parents=True, exist_ok=True)
         saved = operations.save_project(product.origin_file)
@@ -789,17 +791,17 @@ def _write_v2_per_type_report(
     return path
 
 
-def _product_summary(product: ProductContext, export_status: dict[str, object], metadata: Path, report: Path) -> dict[str, object]:
+def _product_summary(run_root: Path, product: ProductContext, export_status: dict[str, object], metadata: Path, report: Path) -> dict[str, object]:
     return {
         "product_key": product.product_key,
-        "origin_file": str(product.origin_file),
-        "figure_tif": str(product.figure_tif),
-        "preview_png": str(product.preview_png),
-        "processed_data": str(product.processed_data),
-        "metadata": str(metadata),
-        "report": str(report),
+        "origin_file": render_output_path(product.origin_file, project_root=run_root),
+        "figure_tif": render_output_path(product.figure_tif, project_root=run_root),
+        "preview_png": render_output_path(product.preview_png, project_root=run_root),
+        "processed_data": render_output_path(product.processed_data, project_root=run_root),
+        "metadata": render_output_path(metadata, project_root=run_root),
+        "report": render_output_path(report, project_root=run_root),
         "status": "success" if bool(export_status.get("ok")) else "origin_failed",
-        "message": str(export_status.get("message") or ""),
+        "message": scrub_output_text(str(export_status.get("message") or ""), output_root=run_root),
         "conformance": export_status.get("conformance", {}),
     }
 
@@ -848,7 +850,7 @@ def _write_v2_docs(
     _write_conformance_summary(docs / "V2_EXEMPLAR_CONFORMANCE_FINAL_AUDIT.md", run_root, products)
     _write_eis_summary(docs / "EIS_V2_REGENERATION_SUMMARY.md", run_root, eis_cleaning)
     _write_manual_review(docs / "V2_MANUAL_CALIBRATION_ENTRYPOINT.md", run_root, products, failures)
-    _write_no_label_doc(docs / "V2_PRODUCT_NO_CODEX_LABEL_AUDIT.md", label_audit)
+    _write_no_label_doc(docs / "V2_PRODUCT_LABEL_AUDIT.md", label_audit)
 
 
 def _write_unified_v2_reports(
@@ -1333,7 +1335,7 @@ def _write_v2_no_label_audit(run_root: Path) -> dict[str, object]:
                     hits.append(record)
     audit = {"hit_count": len(hits), "hits": hits, "path_only_hits": path_only_hits}
     (run_root / "reports" / "product_no_label_audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
-    _write_no_label_doc(run_root / "reports" / "product_no_codex_label_audit.md", audit)
+    _write_no_label_doc(run_root / "reports" / "product_label_audit.md", audit)
     return audit
 
 
@@ -1467,6 +1469,8 @@ def _safe_metadata_path(path: Path | str) -> str:
 
 def _safe_metadata_text(value: object) -> str:
     text = str(value).replace("\\", "/")
+    if Path(text).is_absolute() or (len(text) >= 3 and text[1:3] == ":/") or text.startswith("//"):
+        return str(render_output_path(text))
     return "".join(char if ord(char) >= 32 else "/" for char in text)
 
 

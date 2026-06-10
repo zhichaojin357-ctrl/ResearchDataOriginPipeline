@@ -32,11 +32,11 @@ export:
   dpi: 600
   compression: "lzw"
 origin_template:
-  rules_skill_path: "D:\\CodexData\\.codex\\skills\\origin-plotting"
+  helper_script: "scripts/origin/origin_plot_from_template.ps1"
   default_graph_page: "Graph4"
   use_cached_graph4: true
   refresh_reference_style: false
-  reuse_rule: "Follow D:\\CodexData\\.codex\\skills\\origin-plotting. Use the cached Graph4 snapshot by default; only pass a reference OPJU when explicitly refreshing the cached style."
+  reuse_rule: "Use the project-local Origin helper and cached Graph4 snapshot by default; only pass a reference OPJU when explicitly refreshing the cached style."
   automation_entrypoint: "Origin.Application"
   avoid_entrypoint: "Origin.ApplicationSI"
   validation_required:

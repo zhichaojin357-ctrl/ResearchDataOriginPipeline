@@ -6,7 +6,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from src.core.opju_product_pilot import ProductContext
+from src.core.opju_product_pilot import ProductContext, _product_output_path
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.v3_real_template_rebuild import (
     V3RealTemplateRebuildOptions,
     _strict_style_readback,
@@ -240,7 +241,7 @@ def export_template_base_product_with_origin(product: ProductContext, style: Res
         pages = operations.list_worksheets().payload.get("pages", [])
         graph_pages = [str(item["name"]) for item in pages if item.get("type") == "graph"]
         reopened_graph = graph_name if graph_name in graph_pages else (graph_pages[0] if graph_pages else graph_name)
-        product_snapshot = read_graph_style_snapshot(operations, reopened_graph, source_label=str(product.origin_file), graph_pages=graph_pages)
+        product_snapshot = read_graph_style_snapshot(operations, reopened_graph, source_label=product.origin_file.name, graph_pages=graph_pages)
         conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
         strict_readback = _strict_style_readback(product_snapshot.to_dict())
         png = operations.export_graph(reopened_graph, product.preview_png, "png", dpi=style.export_dpi)
@@ -250,7 +251,7 @@ def export_template_base_product_with_origin(product: ProductContext, style: Res
         if missing:
             return {
                 "ok": False,
-                "message": "missing artifacts: " + "; ".join(str(path) for path in missing),
+                "message": "missing artifacts: " + "; ".join(_product_output_path(product.type_root.parent, path) for path in missing),
                 "template_format_plan": plan.to_dict(),
                 "template_base_replacement": replacement,
                 "exemplar_style": exemplar_style,
@@ -260,7 +261,7 @@ def export_template_base_product_with_origin(product: ProductContext, style: Res
         if not getattr(png, "ok", False) or not getattr(tif, "ok", False):
             return {
                 "ok": False,
-                "message": f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}",
+                "message": scrub_output_text(f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}", output_root=product.type_root.parent),
                 "template_format_plan": plan.to_dict(),
                 "template_base_replacement": replacement,
                 "exemplar_style": exemplar_style,
@@ -280,7 +281,7 @@ def export_template_base_product_with_origin(product: ProductContext, style: Res
                 "applied": True,
                 "method": "opju_template_base_workbook_replacement",
                 "processing_location": "Origin template-base workbook replacement",
-                "source_opju_copy": str(product.reference_opju_copy),
+                "source_opju_copy": _product_output_path(product.type_root.parent, product.reference_opju_copy),
                 "graph_page": reopened_graph,
             },
             "xps_component_fill": _template_base_xps_fill_intent(product, replacement),
@@ -289,7 +290,7 @@ def export_template_base_product_with_origin(product: ProductContext, style: Res
             "axis_title_bold_policy": style.font_bold,
         }
     except Exception as exc:
-        return {"ok": False, "message": str(exc)}
+        return {"ok": False, "message": scrub_output_text(str(exc), output_root=product.type_root.parent)}
     finally:
         operations.close()
 
@@ -348,7 +349,7 @@ def _read_processed_csv(path: Path) -> tuple[list[str], list[list[object]]]:
         reader = csv.reader(handle)
         rows = [row for row in reader if any(str(cell).strip() for cell in row)]
     if len(rows) < 2:
-        raise ValueError(f"processed CSV has no numeric rows: {path}")
+        raise ValueError(f"processed CSV has no numeric rows: {path.name}")
     headers = [str(cell).strip() for cell in rows[0]]
     data_rows: list[list[object]] = []
     for row in rows[1:]:
@@ -389,7 +390,7 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
         "- Exactness rule: one-to-one replication is not claimed until exported reference and product previews pass comparison.",
         "- Global policy: plotted curves are forced to 3 pt where Origin exposes plot objects; axis titles are bold.",
         "",
-        f"- Run root: {run_root}",
+        f"- Run root: {render_output_path(run_root, project_root=project_root)}",
         f"- Product count: {summary.get('product_count', '')}",
         f"- Accepted/success count: {summary.get('accepted_count', summary.get('success_count', ''))}",
         f"- Blocked count: {summary.get('blocked_count', '')}",

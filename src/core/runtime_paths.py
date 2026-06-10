@@ -6,15 +6,16 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from src.core.output_sanitizer import render_output_path
 from src.core.project import ensure_write_path_allowed
 from src.core.project import load_project_config
 from src.core.project import _parse_simple_yaml
 
 
 LEGACY_PHASE1_6_PACKAGE = Path("output") / "phase1_6_origin_results_20260531_041538"
-LEGACY_WORKSPACE_ROOT = Path("D:/Codex Project/科研数据处理/数据/workspace_data/LL_detection_copy_20260530")
+LEGACY_WORKSPACE_ROOT = Path("workspace_data") / "LL_detection_copy_20260530"
 LEGACY_F_DRIVE_BACKUP = Path("F:/课题/LL/检测")
-LEGACY_ORIGIN_HELPER = Path(r"D:\CodexData\.codex\skills\origin-plotting\scripts\origin_plot_from_template.ps1")
+LEGACY_ORIGIN_HELPER = Path("scripts") / "origin" / "origin_plot_from_template.ps1"
 LEGACY_ORIGIN_REFERENCE_PATTERN = r"D:\OriginFlies\Manual Save\CWO+BOBC+*.opju"
 
 PHASE1_6_PACKAGE_ENV = "RESEARCHDATAORIGINPIPELINE_PHASE1_6_PACKAGE"
@@ -111,12 +112,17 @@ def create_run_output_layout(
         "command": command,
         "mode": mode,
         "scope": normalized_scope,
-        "project_root": str(project_root),
-        "output_root": str(root),
-        "input_paths": [str(path) for path in input_paths or []],
+        "project_root": ".",
+        "output_root": render_output_path(root, project_root=project_root, output_root=base),
+        "input_paths": [
+            render_output_path(path, project_root=project_root, output_root=base) for path in input_paths or []
+        ],
         "no_origin": no_origin,
         "dry_run": dry_run,
-        "produced_artifact_directories": {name: str(path) for name, path in directories.items()},
+        "produced_artifact_directories": {
+            name: render_output_path(path, project_root=project_root, output_root=base)
+            for name, path in directories.items()
+        },
         "warnings": list(warnings or []),
         "compatibility_mode": compatibility_mode,
     }
@@ -195,7 +201,13 @@ def resolve_origin_helper(project_root: Path, override: str | Path | None = None
         _config_value(project_root, "origin_template", "helper_script"),
         _config_value(project_root, "paths", "origin_helper_script"),
     )
-    return resolve_project_path(project_root, value or LEGACY_ORIGIN_HELPER)
+    if value:
+        return resolve_project_path(project_root, value)
+    project_helper = resolve_project_path(project_root, LEGACY_ORIGIN_HELPER)
+    if project_helper.exists():
+        return project_helper
+    repo_helper = Path(__file__).resolve().parents[2] / LEGACY_ORIGIN_HELPER
+    return repo_helper if repo_helper.exists() else project_helper
 
 
 def resolve_origin_reference_pattern(project_root: Path, override: str | None = None) -> str:

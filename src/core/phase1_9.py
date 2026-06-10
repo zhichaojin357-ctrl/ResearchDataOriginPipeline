@@ -14,13 +14,14 @@ from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from src.core.output_sanitizer import render_output_path
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE, get_plot_policy
 
 
-DEFAULT_ORIGIN_SKILL_DIR = Path(r"D:\CodexData\.codex\skills\origin-plotting")
+DEFAULT_ORIGIN_SKILL_DIR = Path(".agents") / "skills" / "originpro-graph-export"
 DEFAULT_PHASE1_6_PACKAGE = Path("output/phase1_6_origin_results_20260531_041538")
 
-STYLE_PROFILE = "origin-plotting Graph4 cached style"
+STYLE_PROFILE = "Origin Graph4 cached style"
 
 REQUIRED_JOURNAL_INDEX_COLUMNS = {
     "result_id",
@@ -86,7 +87,7 @@ def run_phase1_9_governance(
     skill_dir: Path | None = None,
     package_dir: Path | None = None,
 ) -> Phase19Outputs:
-    skill_dir = skill_dir or DEFAULT_ORIGIN_SKILL_DIR
+    skill_dir = _resolve_project_path(project_root, skill_dir or DEFAULT_ORIGIN_SKILL_DIR)
     package_dir = _resolve_project_path(project_root, package_dir or DEFAULT_PHASE1_6_PACKAGE)
 
     skill_payload = write_origin_plotting_skill_snapshot(project_root, skill_dir)
@@ -131,12 +132,12 @@ def write_origin_plotting_skill_snapshot(project_root: Path, skill_dir: Path) ->
 
     payload = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "skill_dir": str(skill_dir),
-        "skill_md": str(skill_md),
+        "skill_dir": render_output_path(skill_dir, project_root=project_root),
+        "skill_md": render_output_path(skill_md, project_root=project_root),
         "skill_sha256": _sha256_file(skill_md),
         "files": file_entries,
         "locked_rules": {
-            "style_source": "D:/CodexData/.codex/skills/origin-plotting/SKILL.md",
+            "style_source": ".agents/skills/originpro-graph-export/SKILL.md",
             "graph": "Graph4",
             "cache_style": True,
             "refresh_template_each_run": False,
@@ -174,10 +175,10 @@ def write_origin_plotting_skill_snapshot(project_root: Path, skill_dir: Path) ->
     md = [
         "# Phase 1.9 Origin Plotting Skill Snapshot",
         "",
-        f"- Skill path: `{skill_md}`",
+        f"- Skill path: `{render_output_path(skill_md, project_root=project_root)}`",
         f"- Skill SHA256: `{payload['skill_sha256']}`",
         f"- Generated at: `{payload['generated_at']}`",
-        "- Locked source of truth: the local `origin-plotting` skill.",
+        "- Locked source of truth: the project-local Origin graph export skill.",
         "- Origin entrypoint: `Origin.Application`.",
         "- Graph/style source: cached `Graph4` profile.",
         "- Export contract: OPJU, 600 dpi TIF, PNG preview.",
@@ -571,7 +572,7 @@ def write_agent_summary(project_root: Path, skill_payload: dict, package_dir: Pa
         "# Phase 1.9 Summary",
         "",
         f"- Origin plotting skill snapshot SHA256: `{skill_payload['skill_sha256']}`",
-        f"- Phase 1.6 package audited for journal index: `{package_dir}`",
+        f"- Phase 1.6 package audited for journal index: `{render_output_path(package_dir, project_root=project_root)}`",
         f"- Journal-ready index: `{journal_csv.relative_to(project_root)}`",
         "- Project structure index files refreshed.",
         "- Raw data and formal result packages were not moved or deleted.",
@@ -587,7 +588,7 @@ def update_dashboard(project_root: Path, journal_csv: Path) -> Path:
     lines = [
         "# Phase 1.9 Origin Plotting Governance",
         "",
-        "- Plotting style source: `D:/CodexData/.codex/skills/origin-plotting/SKILL.md`.",
+        "- Plotting style source: `.agents/skills/originpro-graph-export/SKILL.md`.",
         "- Graph profile: cached Graph4.",
         "- Journal-ready index:",
         f"  `{journal_csv.relative_to(project_root)}`",

@@ -163,23 +163,31 @@ def test_run_opju_product_pilot_routes_five_products_with_fake_origin(tmp_path: 
     }
     for item in result["products"]:
         stem = expected_names[str(item["product_key"])]
-        assert Path(item["origin_file"]).read_text(encoding="utf-8").startswith("fake ")
-        assert Path(item["origin_file"]).name == f"{stem}.opju"
-        assert Path(item["figure_tif"]).name == f"{stem}.tif"
-        assert Path(item["preview_png"]).name == f"{stem}_preview.png"
-        assert Path(item["origin_file"]).parent == run_root / str(item["product_key"]) / "origin_files"
-        assert Path(item["figure_tif"]).exists()
-        assert Path(item["preview_png"]).exists()
-        assert Path(item["processed_data"]).exists()
-        assert Path(item["reference_opju_copy"]).exists()
-        assert Path(item["reference_preview_png"]).exists()
+        origin_file = run_root / Path(item["origin_file"])
+        figure_tif = run_root / Path(item["figure_tif"])
+        preview_png = run_root / Path(item["preview_png"])
+        processed_data = run_root / Path(item["processed_data"])
+        reference_opju_copy = run_root / Path(item["reference_opju_copy"])
+        reference_preview_png = run_root / Path(item["reference_preview_png"])
+        assert not Path(item["origin_file"]).is_absolute()
+        assert origin_file.read_text(encoding="utf-8").startswith("fake ")
+        assert origin_file.name == f"{stem}.opju"
+        assert figure_tif.name == f"{stem}.tif"
+        assert preview_png.name == f"{stem}_preview.png"
+        assert origin_file.parent == run_root / str(item["product_key"]) / "origin_files"
+        assert figure_tif.exists()
+        assert preview_png.exists()
+        assert processed_data.exists()
+        assert reference_opju_copy.exists()
+        assert reference_preview_png.exists()
     checklist = (run_root / "reports" / "manual_calibration_checklist.md").read_text(encoding="utf-8")
     assert "HPLC/LC exported data" in checklist
     assert "deferred" in checklist
     assert (run_root / "reports" / "manual_review_checklist.md").exists()
     assert (run_root / "reports" / "final_summary.md").exists()
     assert (run_root / "reports" / "per_type_status.csv").exists()
-    assert (run_root / "reports" / "product_no_codex_label_audit.md").exists()
+    assert (run_root / "reports" / "product_label_audit.md").exists()
+    assert not (run_root / "reports" / "product_no_codex_label_audit.md").exists()
 
 
 def test_run_opju_product_pilot_marks_failed_origin_export(tmp_path: Path) -> None:
@@ -260,6 +268,8 @@ def test_no_label_audit_ignores_absolute_path_values_in_metadata(tmp_path: Path)
     audit = json.loads((run_root / "reports" / "product_no_label_audit.json").read_text(encoding="utf-8"))
     assert audit["hit_count"] == 0
     assert "forbidden_labels" not in audit
+    assert (run_root / "reports" / "product_label_audit.md").exists()
+    assert not (run_root / "reports" / "product_no_codex_label_audit.md").exists()
     assert not (run_root / "reports" / "product_no_codex_label_audit.json").exists()
 
 

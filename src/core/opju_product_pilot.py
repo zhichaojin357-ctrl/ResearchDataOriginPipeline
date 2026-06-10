@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, Iterable, Any
 
 from src.core.epr_jeol import read_xy_xlsx
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.table_reader import read_table
 from src.core.xps_heterojunction import (
@@ -203,14 +204,14 @@ def run_opju_product_pilot(
                     "selected_data_relative_paths": _selected_relative_paths(product.pairing, "selected_data_relative_paths"),
                     "opju_root_label": product.pairing.opju_root_label,
                     "selected_opju_relative_path": _selected_relative_paths(product.pairing, "selected_opju_relative_path"),
-                    "processed_data": str(product.processed_data),
-                    "origin_file": str(product.origin_file),
-                    "figure_tif": str(product.figure_tif),
-                    "preview_png": str(product.preview_png),
-                    "reference_opju_copy": str(product.reference_opju_copy),
-                    "reference_preview_png": str(product.reference_preview_png),
-                    "metadata": str(metadata),
-                    "report": str(report),
+                    "processed_data": _product_output_path(layout.root, product.processed_data),
+                    "origin_file": _product_output_path(layout.root, product.origin_file),
+                    "figure_tif": _product_output_path(layout.root, product.figure_tif),
+                    "preview_png": _product_output_path(layout.root, product.preview_png),
+                    "reference_opju_copy": _product_output_path(layout.root, product.reference_opju_copy),
+                    "reference_preview_png": _product_output_path(layout.root, product.reference_preview_png),
+                    "metadata": _product_output_path(layout.root, metadata),
+                    "report": _product_output_path(layout.root, report),
                     "status": "success"
                     if bool(export_status.get("ok"))
                     else ("origin_failed" if options.with_origin else "processed_no_origin"),
@@ -218,7 +219,7 @@ def run_opju_product_pilot(
                 }
             )
         except Exception as exc:
-            failures.append({"product_key": pairing.product_key, "message": str(exc)})
+            failures.append({"product_key": pairing.product_key, "message": scrub_output_text(exc, output_root=layout.root)})
 
     skipped = _skipped_pairing_items(options.pairing_path)
     _write_manual_checklist(layout.root, products, failures, skipped)
@@ -289,7 +290,11 @@ def export_product_with_origin(product: ProductContext) -> dict[str, object]:
         tif = operations.export_graph(graph_name, product.figure_tif, "tif")
         missing = [path for path in (product.origin_file, product.preview_png, product.figure_tif) if not path.exists() or path.stat().st_size == 0]
         if missing:
-            return {"ok": False, "message": "missing artifacts: " + "; ".join(str(path) for path in missing), "style": style}
+            return {
+                "ok": False,
+                "message": "missing artifacts: " + "; ".join(_product_output_path(product.type_root, path) for path in missing),
+                "style": style,
+            }
         if not png.ok or not tif.ok:
             return {"ok": False, "message": f"{png.message}; {tif.message}", "style": style}
         return {"ok": True, "message": "Origin isolated export succeeded", "style": style}
@@ -649,15 +654,15 @@ def _write_product_metadata(run_root: Path, product: ProductContext, export_stat
         "selected_data_relative_paths": _selected_relative_paths(product.pairing, "selected_data_relative_paths"),
         "opju_root_label": product.pairing.opju_root_label,
         "selected_opju_relative_path": _selected_relative_paths(product.pairing, "selected_opju_relative_path"),
-        "source_files": [str(path) for path in product.pairing.data_paths],
-        "input_copies": [str(path) for path in product.input_copies],
-        "reference_opju": str(product.pairing.reference_opju),
-        "reference_opju_copy": str(product.reference_opju_copy),
-        "reference_preview_png": str(product.reference_preview_png),
-        "processed_data": str(product.processed_data),
-        "origin_file": str(product.origin_file),
-        "figure_tif": str(product.figure_tif),
-        "preview_png": str(product.preview_png),
+        "source_files": [_product_output_path(run_root, path) for path in product.pairing.data_paths],
+        "input_copies": [_product_output_path(run_root, path) for path in product.input_copies],
+        "reference_opju": _product_output_path(run_root, product.pairing.reference_opju),
+        "reference_opju_copy": _product_output_path(run_root, product.reference_opju_copy),
+        "reference_preview_png": _product_output_path(run_root, product.reference_preview_png),
+        "processed_data": _product_output_path(run_root, product.processed_data),
+        "origin_file": _product_output_path(run_root, product.origin_file),
+        "figure_tif": _product_output_path(run_root, product.figure_tif),
+        "preview_png": _product_output_path(run_root, product.preview_png),
         "origin_status": export_status,
         "manual_check_required": True,
         "manual_check_items": _manual_items(product.product_key),
@@ -667,6 +672,10 @@ def _write_product_metadata(run_root: Path, product: ProductContext, export_stat
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
+
+def _product_output_path(run_root: Path, path: Path | str) -> str:
+    return str(render_output_path(path, project_root=run_root))
 
 
 def _write_per_type_report(run_root: Path, product: ProductContext, export_status: dict[str, object]) -> Path:
@@ -827,7 +836,7 @@ def _write_summary(
 
 def _write_no_label_audit(run_root: Path) -> dict[str, object]:
     hits = []
-    self_audit_names = {"product_no_codex_label_audit.md"}
+    self_audit_names = {"product_label_audit.md", "product_no_codex_label_audit.md"}
     for path in run_root.rglob("*"):
         if not path.is_file():
             continue
@@ -860,7 +869,7 @@ def _write_no_label_audit(run_root: Path) -> dict[str, object]:
             lines.append(f"- {hit['location']}: {_relative_to_run(run_root, Path(str(hit['path'])))} ({hit['label']})")
     else:
         lines.append("- none")
-    (run_root / "reports" / "product_no_codex_label_audit.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    (run_root / "reports" / "product_label_audit.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return audit
 
 
@@ -874,6 +883,8 @@ def _selected_relative_paths(pairing: TargetPairing, key: str) -> list[str]:
 
 
 def _relative_to_run(run_root: Path, path: Path) -> str:
+    if not path.is_absolute():
+        return path.as_posix()
     try:
         return path.resolve().relative_to(run_root.resolve()).as_posix()
     except ValueError:

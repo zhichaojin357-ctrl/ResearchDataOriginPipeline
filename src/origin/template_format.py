@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from src.core.output_sanitizer import render_output_path
+
 
 STYLE_PACKAGE_SUFFIXES = {".oth", ".otp", ".otpu", ".ogg", ".opju", ".opj"}
 
@@ -30,11 +32,11 @@ class TemplateFormatPlan:
             "data_type": self.data_type,
             "status": self.status,
             "mode": self.mode,
-            "source_opju": str(self.source_opju) if self.source_opju else "",
+            "source_opju": render_output_path(self.source_opju) if self.source_opju else "",
             "graph_page": self.graph_page,
-            "style_package_path": str(self.style_package_path) if self.style_package_path else "",
-            "reference_preview_png": str(self.reference_preview_png) if self.reference_preview_png else "",
-            "product_preview_png": str(self.product_preview_png) if self.product_preview_png else "",
+            "style_package_path": render_output_path(self.style_package_path) if self.style_package_path else "",
+            "reference_preview_png": render_output_path(self.reference_preview_png) if self.reference_preview_png else "",
+            "product_preview_png": render_output_path(self.product_preview_png) if self.product_preview_png else "",
             "can_execute": self.can_execute,
             "one_to_one_claim_allowed": self.one_to_one_claim_allowed,
             "plot_intent": dict(self.plot_intent),

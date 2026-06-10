@@ -16,6 +16,7 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.project import load_project_config
 from src.core.runtime_paths import resolve_origin_helper, resolve_project_path
 from src.origin.adapter import check_origin_available, write_origin_error
@@ -93,6 +94,30 @@ LEGACY_BC_CANDIDATES = (
 )
 
 
+def _task_output_path(output_dir: Path, path: Path | str | None) -> str | None:
+    if path is None:
+        return None
+    return str(render_output_path(path, project_root=output_dir))
+
+
+def _source_display_path(path: Path | str) -> str:
+    return Path(str(path)).name
+
+
+def _sanitize_xps_output_payload(value: Any, output_dir: Path) -> Any:
+    if isinstance(value, Path):
+        return _task_output_path(output_dir, value)
+    if isinstance(value, dict):
+        return {str(key): _sanitize_xps_output_payload(item, output_dir) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_sanitize_xps_output_payload(item, output_dir) for item in value]
+    if isinstance(value, str):
+        if re.search(r"^[A-Za-z]:[\\/]|^[\\/]{2}", value):
+            return render_output_path(value, output_root=output_dir)
+        return scrub_output_text(value, output_root=output_dir)
+    return value
+
+
 def discover_default_xps_sample_files(
     project_root: Path | None = None,
     *,
@@ -105,7 +130,7 @@ def discover_default_xps_sample_files(
         files = _excel_files_in_folder(folder)
         sample_files[sample] = files
         if not files:
-            notes.append({"sample": sample, "folder": str(folder), "reason": "no_excel_files_in_official_folder"})
+            notes.append({"sample": sample, "folder": folder.name, "reason": "no_excel_files_in_official_folder"})
     if include_bc_candidate and not sample_files.get("BC"):
         candidate = next((path for path in _configured_bc_candidates(project_root) if path.exists()), None)
         if candidate:
@@ -113,7 +138,7 @@ def discover_default_xps_sample_files(
             notes.append(
                 {
                     "sample": "BC",
-                    "source_file": str(candidate),
+                    "source_file": candidate.name,
                     "reason": "bc_excel_candidate_used_because_official_folder_has_only_data_grid",
                 }
             )
@@ -171,12 +196,12 @@ def load_xps_fit_workbooks(sample_files: dict[str, list[Path]]) -> tuple[list[Xp
             continue
         for source_file in files:
             if not source_file.exists():
-                manual_review.append({"sample": sample, "source_file": str(source_file), "reason": "source_file_missing"})
+                manual_review.append({"sample": sample, "source_file": source_file.name, "reason": "source_file_missing"})
                 continue
             try:
                 workbook = pd.ExcelFile(source_file)
             except Exception as exc:
-                manual_review.append({"sample": sample, "source_file": str(source_file), "reason": "workbook_open_failed", "error": str(exc)})
+                manual_review.append({"sample": sample, "source_file": source_file.name, "reason": "workbook_open_failed", "error": str(exc)})
                 continue
             for sheet_name in workbook.sheet_names:
                 region = _region_from_sheet(sheet_name)
@@ -189,7 +214,7 @@ def load_xps_fit_workbooks(sample_files: dict[str, list[Path]]) -> tuple[list[Xp
                     manual_review.append(
                         {
                             "sample": sample,
-                            "source_file": str(source_file),
+                            "source_file": source_file.name,
                             "sheet_name": sheet_name,
                             "reason": "sheet_parse_failed",
                             "error": str(exc),
@@ -200,7 +225,7 @@ def load_xps_fit_workbooks(sample_files: dict[str, list[Path]]) -> tuple[list[Xp
                     manual_review.append(
                         {
                             "sample": sample,
-                            "source_file": str(source_file),
+                            "source_file": source_file.name,
                             "sheet_name": sheet_name,
                             "reason": "fit_columns_not_recognized",
                         }
@@ -273,11 +298,11 @@ def run_xps_heterojunction_stacked(
             "data_type": "XPS",
             "comparison": f"{comparison.sample_a} vs {comparison.sample_b}",
             "element": comparison.element,
-            "source_files": [str(comparison.record_a.source_file), str(comparison.record_b.source_file)],
+            "source_files": [_source_display_path(comparison.record_a.source_file), _source_display_path(comparison.record_b.source_file)],
             "sheets": [comparison.record_a.sheet_name, comparison.record_b.sheet_name],
-            "processed_data": str(processed_csv),
-            "origin_plot_input": str(plot_csv),
-            "peak_annotation_table": str(peak_table),
+            "processed_data": _task_output_path(output_dir, processed_csv),
+            "origin_plot_input": _task_output_path(output_dir, plot_csv),
+            "peak_annotation_table": _task_output_path(output_dir, peak_table),
             "manual_check_required": True,
             "manual_check_items": [
                 "confirm XPS binding-energy calibration, fitted peak positions, and component assignments",
@@ -290,44 +315,44 @@ def run_xps_heterojunction_stacked(
             ],
             "peak_annotations": peak_details,
             "peak_annotations_eV": peaks,
-            "origin_file": str(origin_artifacts["origin_file"]) if origin_artifacts.get("origin_file") else None,
-            "figure_tif": str(origin_artifacts["figure_tif"]) if origin_artifacts.get("figure_tif") else None,
-            "preview_png": str(origin_artifacts["preview_png"]) if origin_artifacts.get("preview_png") else None,
+            "origin_file": _task_output_path(output_dir, origin_artifacts.get("origin_file")) if origin_artifacts.get("origin_file") else None,
+            "figure_tif": _task_output_path(output_dir, origin_artifacts.get("figure_tif")) if origin_artifacts.get("figure_tif") else None,
+            "preview_png": _task_output_path(output_dir, origin_artifacts.get("preview_png")) if origin_artifacts.get("preview_png") else None,
             "processing_status": "planned_no_origin" if not options.with_origin else ("success" if origin_artifacts.get("ok") else "origin_failed"),
             "origin_message": origin_artifacts.get("message", ""),
         }
         metadata_path = dirs["metadata"] / f"{comparison.name}_metadata.json"
-        metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+        metadata_path.write_text(json.dumps(_sanitize_xps_output_payload(metadata, output_dir), ensure_ascii=False, indent=2), encoding="utf-8")
         figure_rows.append(
             {
                 "name": comparison.name,
                 "element": comparison.element,
                 "comparison": f"{comparison.sample_a} vs {comparison.sample_b}",
-                "sample_a_file": str(comparison.record_a.source_file),
-                "sample_b_file": str(comparison.record_b.source_file),
-                "processed_csv": str(processed_csv),
-                "origin_plot_csv": str(plot_csv),
-                "peak_annotation_csv": str(peak_table),
-                "metadata": str(metadata_path),
-                "origin_file": str(origin_artifacts["origin_file"]) if origin_artifacts.get("origin_file") else "",
-                "figure_tif": str(origin_artifacts["figure_tif"]) if origin_artifacts.get("figure_tif") else "",
-                "preview_png": str(origin_artifacts["preview_png"]) if origin_artifacts.get("preview_png") else "",
+                "sample_a_file": _source_display_path(comparison.record_a.source_file),
+                "sample_b_file": _source_display_path(comparison.record_b.source_file),
+                "processed_csv": _task_output_path(output_dir, processed_csv),
+                "origin_plot_csv": _task_output_path(output_dir, plot_csv),
+                "peak_annotation_csv": _task_output_path(output_dir, peak_table),
+                "metadata": _task_output_path(output_dir, metadata_path),
+                "origin_file": _task_output_path(output_dir, origin_artifacts.get("origin_file")) if origin_artifacts.get("origin_file") else "",
+                "figure_tif": _task_output_path(output_dir, origin_artifacts.get("figure_tif")) if origin_artifacts.get("figure_tif") else "",
+                "preview_png": _task_output_path(output_dir, origin_artifacts.get("preview_png")) if origin_artifacts.get("preview_png") else "",
                 "peak_annotations_eV": "; ".join(f"{peak:.2f}" for peak in peaks),
                 "peak_annotation_labels": "; ".join(_format_peak_detail(item) for item in peak_details),
                 "status": metadata["processing_status"],
             }
         )
 
-    _write_manual_review(dirs["reports"] / "manual_review.csv", plan.manual_review)
-    _write_summary_reports(dirs["reports"], sample_files, records, plan, figure_rows, options)
+    _write_manual_review(dirs["reports"] / "manual_review.csv", plan.manual_review, output_dir)
+    _write_summary_reports(dirs["reports"], sample_files, records, plan, figure_rows, options, output_dir)
 
     result = {
-        "output_dir": str(output_dir),
+        "output_dir": ".",
         "comparison_count": len(plan.comparisons),
         "manual_review_count": len(plan.manual_review),
         "will_launch_origin": bool(options.with_origin),
         "figures": figure_rows,
-        "manual_review": plan.manual_review,
+        "manual_review": _sanitize_xps_output_payload(plan.manual_review, output_dir),
     }
     (dirs["reports"] / "xps_heterojunction_stacked_summary.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2),
@@ -374,7 +399,7 @@ def _write_comparison_tables(comparison: XpsComparison, processed_csv: Path, plo
                     "background": row.get("background"),
                     "envelope": row.get("envelope"),
                     "residual": row.get("residual"),
-                    "source_file": str(record.source_file),
+                    "source_file": _source_display_path(record.source_file),
                     "sheet_name": record.sheet_name,
                 }
                 component_keys = [_component_key(label) for label in record.component_labels]
@@ -414,25 +439,31 @@ def _export_origin_for_comparison(
     script = _build_direct_origin_xps_script(comparison, plot_csv, origin_file, preview_png, figure_tif, page_name, peak_details)
     job_script.write_text(script, encoding="utf-8")
     completed = None
-    for attempt in range(3):
+    try:
+        for attempt in range(3):
+            try:
+                completed = subprocess.run(
+                    [sys.executable, str(job_script)],
+                    text=True,
+                    capture_output=True,
+                    timeout=600,
+                )
+            except Exception as exc:
+                write_origin_error(project_root, f"{comparison.name}: {exc}")
+                return {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": str(exc)}
+            if completed.returncode == 0:
+                break
+            try:
+                _wait_for_no_origin_process(timeout_seconds=30.0)
+            except RuntimeError:
+                _stop_headless_origin_processes()
+                _wait_for_no_origin_process(timeout_seconds=30.0)
+            time.sleep(1.0 + attempt)
+    finally:
         try:
-            completed = subprocess.run(
-                [sys.executable, str(job_script)],
-                text=True,
-                capture_output=True,
-                timeout=600,
-            )
-        except Exception as exc:
-            write_origin_error(project_root, f"{comparison.name}: {exc}")
-            return {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": str(exc)}
-        if completed.returncode == 0:
-            break
-        try:
-            _wait_for_no_origin_process(timeout_seconds=30.0)
-        except RuntimeError:
-            _stop_headless_origin_processes()
-            _wait_for_no_origin_process(timeout_seconds=30.0)
-        time.sleep(1.0 + attempt)
+            job_script.unlink()
+        except OSError:
+            pass
     if completed is None or completed.returncode:
         details = (completed.stderr or completed.stdout or "Origin XPS renderer failed").strip()
         write_origin_error(project_root, f"{comparison.name}: {details}")
@@ -842,23 +873,29 @@ def _export_tif_from_opju(origin_file: Path, page_name: str, figure_tif: Path) -
     script_path.parent.mkdir(parents=True, exist_ok=True)
     script_path.write_text(script, encoding="utf-8-sig")
     completed = None
-    for attempt in range(3):
-        _wait_for_no_origin_process()
-        completed = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path)],
-            text=True,
-            capture_output=True,
-            timeout=180,
-        )
-        _wait_for_no_origin_process()
-        if completed.returncode == 0 and figure_tif.exists() and figure_tif.stat().st_size > 0:
-            break
-        time.sleep(2.0 + attempt)
+    try:
+        for attempt in range(3):
+            _wait_for_no_origin_process()
+            completed = subprocess.run(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path)],
+                text=True,
+                capture_output=True,
+                timeout=180,
+            )
+            _wait_for_no_origin_process()
+            if completed.returncode == 0 and figure_tif.exists() and figure_tif.stat().st_size > 0:
+                break
+            time.sleep(2.0 + attempt)
+    finally:
+        try:
+            script_path.unlink()
+        except OSError:
+            pass
     if completed is None or completed.returncode:
         details = (completed.stderr or completed.stdout or "Origin TIF export failed").strip()
         raise RuntimeError(details)
     if not figure_tif.exists() or figure_tif.stat().st_size == 0:
-        raise RuntimeError(f"Origin did not export TIF: {figure_tif}")
+        raise RuntimeError(f"Origin did not export TIF: {figure_tif.name}")
 
 
 def _annotate_origin_graph(
@@ -1021,12 +1058,18 @@ finally:
     op.exit()
 """
     script_path.write_text(script, encoding="utf-8")
-    completed = subprocess.run(
-        [sys.executable, str(script_path)],
-        text=True,
-        capture_output=True,
-        timeout=240,
-    )
+    try:
+        completed = subprocess.run(
+            [sys.executable, str(script_path)],
+            text=True,
+            capture_output=True,
+            timeout=240,
+        )
+    finally:
+        try:
+            script_path.unlink()
+        except OSError:
+            pass
     try:
         _wait_for_no_origin_process()
     except RuntimeError:
@@ -1039,9 +1082,9 @@ finally:
         details = (completed.stderr or completed.stdout or "Origin annotation script failed").strip()
         raise RuntimeError(details)
     if not preview_png.exists() or preview_png.stat().st_size == 0:
-        raise RuntimeError(f"Origin did not export annotated PNG: {preview_png}")
+        raise RuntimeError(f"Origin did not export annotated PNG: {preview_png.name}")
     if not figure_tif.exists() or figure_tif.stat().st_size == 0:
-        raise RuntimeError(f"Origin did not export annotated TIF: {figure_tif}")
+        raise RuntimeError(f"Origin did not export annotated TIF: {figure_tif.name}")
 
 
 def _wait_for_no_origin_process(timeout_seconds: float = 90.0) -> None:
@@ -1439,12 +1482,12 @@ def _write_peak_annotation_table(path: Path, peak_details: list[dict[str, Any]])
         writer.writerows({key: item.get(key, "") for key in fieldnames} for item in peak_details)
 
 
-def _write_manual_review(path: Path, items: list[dict[str, Any]]) -> None:
+def _write_manual_review(path: Path, items: list[dict[str, Any]], output_dir: Path) -> None:
     keys = sorted({key for item in items for key in item}) or ["reason"]
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=keys)
         writer.writeheader()
-        writer.writerows(items)
+        writer.writerows(_sanitize_xps_output_payload(items, output_dir))
 
 
 def _write_summary_reports(
@@ -1454,6 +1497,7 @@ def _write_summary_reports(
     plan: XpsComparisonPlan,
     figure_rows: list[dict[str, Any]],
     options: XpsHeterojunctionOptions,
+    output_dir: Path,
 ) -> None:
     csv_path = reports_dir / "xps_heterojunction_stacked_summary.csv"
     with csv_path.open("w", encoding="utf-8-sig", newline="") as handle:
@@ -1497,12 +1541,12 @@ def _write_summary_reports(
     for sample, files in sample_files.items():
         if files:
             for path in files:
-                lines.append(f"- {sample}: `{path}`")
+                lines.append(f"- {sample}: `{_source_display_path(path)}`")
         else:
             lines.append(f"- {sample}: no Excel file configured/found")
     lines.extend(["", "## Recognized Sheets", "", "| sample | element | region | sheet | source |", "|---|---|---|---|---|"])
     for record in records:
-        lines.append(f"| {record.sample} | {record.element} | {record.region} | {record.sheet_name} | `{record.source_file}` |")
+        lines.append(f"| {record.sample} | {record.element} | {record.region} | {record.sheet_name} | `{_source_display_path(record.source_file)}` |")
     lines.extend(
         [
             "",
@@ -1520,7 +1564,7 @@ def _write_summary_reports(
     lines.extend(["", "## Manual Review"])
     if plan.manual_review:
         for item in plan.manual_review:
-            lines.append(f"- `{json.dumps(item, ensure_ascii=False)}`")
+            lines.append(f"- `{json.dumps(_sanitize_xps_output_payload(item, output_dir), ensure_ascii=False)}`")
     else:
         lines.append("- None.")
     lines.extend(

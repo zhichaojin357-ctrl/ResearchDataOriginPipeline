@@ -36,7 +36,7 @@ def test_phase1_9_governance_generates_skill_snapshot_and_journal_index(tmp_path
     assert len(rows) == 1
     assert REQUIRED_JOURNAL_INDEX_COLUMNS.issubset(rows[0])
     assert rows[0]["plotting_skill_sha256"] == outputs.skill_sha256
-    assert rows[0]["plot_style_profile"] == "origin-plotting Graph4 cached style"
+    assert rows[0]["plot_style_profile"] == "Origin Graph4 cached style"
     assert rows[0]["y_tick_policy"] == "show_y_axis_ticks_and_numeric_values"
     assert rows[0]["plot_primitive"] == "line+symbol"
     assert rows[0]["y_axis_visible"] == "true"

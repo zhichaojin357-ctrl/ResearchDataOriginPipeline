@@ -10,11 +10,13 @@ Organize scripts by function first and data type second. Use `scripts/data_types
 - `data_types/`
 - `maintenance/`
 - `one_off/`
+- `origin/`
 - `reports/`
 
 Current classified helpers:
 
 - `reports/regenerate_manual_review_filtered.py`: reusable manual-review report generator.
+- `origin/origin_plot_from_template.ps1`: project-local Origin helper used by the formal Origin adapter; imports data by writing neutral workbook cells so OPJU outputs do not inherit source-file paths.
 - `maintenance/opju_exemplar_regression.py`: OPJU exemplar regression/comparison helper, not a production processor.
 - `one_off/verify_jeol_epr_decode_against_exports.py`: JEOL EPR decode verification helper kept for traceability.
 - `data_types/hplc_lc/plot_hplc_calibration_origin.ps1`: HPLC/LC calibration-curve Origin script using the fixed completed OPJU template.

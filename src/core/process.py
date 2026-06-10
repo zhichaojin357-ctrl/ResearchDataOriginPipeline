@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.processors.base import process_table_dataset
 from src.scanner.scanner import scan_raw_data
+from src.core.output_sanitizer import render_output_path
 from src.core.project import output_dir, report_path
 from src.core.runtime_paths import resolve_phase1_6_index
 
@@ -358,7 +359,7 @@ def _triage_from_queue_item(item: dict, *, stale: bool = False, message: str | N
 
 def _failure_from_queue_validation(classification: dict, source: Path, triage: dict) -> dict:
     return {
-        "source_file": str(source),
+        "source_file": render_output_path(source),
         "source_hash": triage.get("source_hash"),
         "inferred_data_type": classification.get("inferred_data_type"),
         "selected_processor": classification.get("selected_processor"),

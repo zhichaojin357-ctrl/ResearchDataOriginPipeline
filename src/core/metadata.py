@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from src.core.output_sanitizer import render_output_path
 from src.core.project import ensure_write_path_allowed
 
 
@@ -59,16 +60,11 @@ def write_metadata(
     def render_path(value: Path | None) -> str | None:
         if value is None:
             return None
-        if project_root:
-            try:
-                return str(value.resolve().relative_to(project_root.resolve())).replace("\\", "/")
-            except ValueError:
-                pass
-        return str(value)
+        return render_output_path(value, project_root=project_root, output_root=output_root)
 
     origin_template_used = None
     if processing_status == "success" and origin_file and figure_tif:
-        origin_template_used = "Graph4 cached snapshot from D:\\CodexData\\.codex\\skills\\origin-plotting"
+        origin_template_used = "Graph4 cached snapshot"
 
     metadata = {
         "dataset_id": dataset_id,

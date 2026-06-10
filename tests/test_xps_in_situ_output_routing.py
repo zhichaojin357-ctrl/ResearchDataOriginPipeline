@@ -66,9 +66,10 @@ def test_build_xps_in_situ_routes_metadata_outputs_to_structured_subdirs(tmp_pat
     assert captured["peak_summary_rows"] == [{"Element": "Bi"}]
     assert (reports_dir / "xps_data_mapping_report.md").read_text(encoding="utf-8") == "mapping report\n"
     manifest = json.loads((reports_dir / "xps_in_situ_manifest.json").read_text(encoding="utf-8"))
-    assert manifest["output_dirs"]["reports"] == str(reports_dir)
-    assert manifest["output_dirs"]["tables"] == str(tables_dir)
-    assert manifest["output_dirs"]["origin_projects"] == str(resolved_output / "origin_projects")
+    assert manifest["output_dirs"]["reports"] == "reports"
+    assert manifest["output_dirs"]["tables"] == "tables"
+    assert manifest["output_dirs"]["origin_projects"] == "origin_projects"
+    assert all(not Path(value).is_absolute() for value in manifest["output_dirs"].values())
     assert not (resolved_output / "xps_data_mapping_report.md").exists()
     assert not (resolved_output / "xps_in_situ_manifest.json").exists()
     assert not (resolved_output / "peak_positions_summary.xlsx").exists()

@@ -1,8 +1,6 @@
 {
   "schema_version": 1,
   "generated_at": "2026-06-08T09:18:58",
-  "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-  "asset_root": "D:\\Codex Project\\科研数据处理\\ResearchDataOriginPipeline\\templates\\origin_styles",
   "origin_dependency_boundary": "Project-local .otpu Graph Templates are the style-package fallback when external OPJU exemplars are unavailable.",
   "assets": [
     {
@@ -14,9 +12,7 @@
       "preview_png": "previews/BET_preview.png",
       "reference_preview_png": "previews/BET_reference.png",
       "template_preview_comparison_png": "previews/BET_comparison.png",
-      "preview_rms": 31.465724960868123,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\BET\\origin_files\\BET_BOBC_exemplar_v5_template_format.opju"
+      "preview_rms": 31.465724960868123
     },
     {
       "product_key": "XPS_in_situ",
@@ -27,9 +23,7 @@
       "preview_png": "previews/XPS_in_situ_preview.png",
       "reference_preview_png": "previews/XPS_in_situ_reference.png",
       "template_preview_comparison_png": "previews/XPS_in_situ_comparison.png",
-      "preview_rms": 28.275988516184842,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\XPS_in_situ\\origin_files\\XPS_in_situ_BOBC_exemplar_v5_template_format.opju"
+      "preview_rms": 28.275988516184842
     },
     {
       "product_key": "XPS_non_in_situ",
@@ -40,9 +34,7 @@
       "preview_png": "previews/XPS_non_in_situ_preview.png",
       "reference_preview_png": "previews/XPS_non_in_situ_reference.png",
       "template_preview_comparison_png": "previews/XPS_non_in_situ_comparison.png",
-      "preview_rms": 32.6638845789279,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\XPS_non_in_situ\\origin_files\\XPS_non_in_situ_BOBC_BC_exemplar_v5_template_format.opju"
+      "preview_rms": 32.6638845789279
     },
     {
       "product_key": "XRD",
@@ -53,9 +45,7 @@
       "preview_png": "previews/XRD_preview.png",
       "reference_preview_png": "previews/XRD_reference.png",
       "template_preview_comparison_png": "previews/XRD_comparison.png",
-      "preview_rms": 24.894680583182,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\XRD\\origin_files\\XRD_BOBC_exemplar_v5_template_format.opju"
+      "preview_rms": 24.894680583182
     },
     {
       "product_key": "EPR",
@@ -66,9 +56,7 @@
       "preview_png": "previews/EPR_preview.png",
       "reference_preview_png": "previews/EPR_reference.png",
       "template_preview_comparison_png": "previews/EPR_comparison.png",
-      "preview_rms": 33.388174266242935,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\EPR\\origin_files\\EPR_OH_overlay_exemplar_v5_template_format.opju"
+      "preview_rms": 33.388174266242935
     },
     {
       "product_key": "EIS",
@@ -79,9 +67,7 @@
       "preview_png": "previews/EIS_preview.png",
       "reference_preview_png": "previews/EIS_reference.png",
       "template_preview_comparison_png": "previews/EIS_comparison.png",
-      "preview_rms": 0.0,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\EIS\\origin_files\\EIS_BOBC_exemplar_v5_template_format.opju"
+      "preview_rms": 0.0
     },
     {
       "product_key": "Raman",
@@ -92,9 +78,7 @@
       "preview_png": "previews/Raman_preview.png",
       "reference_preview_png": "previews/Raman_reference.png",
       "template_preview_comparison_png": "previews/Raman_comparison.png",
-      "preview_rms": 18.00548585511432,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\Raman\\origin_files\\Raman_BOBC_exemplar_v5_template_format.opju"
+      "preview_rms": 18.00548585511432
     },
     {
       "product_key": "UV-vis DRS / Tauc",
@@ -105,9 +89,7 @@
       "preview_png": "previews/UV_vis_DRS_Tauc_preview.png",
       "reference_preview_png": "previews/UV_vis_DRS_Tauc_reference.png",
       "template_preview_comparison_png": "previews/UV_vis_DRS_Tauc_comparison.png",
-      "preview_rms": 0.0,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\UV_vis_DRS_Tauc\\origin_files\\UV_vis_DRS_Tauc_BOBC_exemplar_v5_template_format.opju"
+      "preview_rms": 0.0
     },
     {
       "product_key": "PL",
@@ -118,9 +100,7 @@
       "preview_png": "previews/PL_preview.png",
       "reference_preview_png": "previews/PL_reference.png",
       "template_preview_comparison_png": "previews/PL_comparison.png",
-      "preview_rms": 0.0,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\PL\\origin_files\\PL_BOBC_exemplar_v5_template_format.opju"
+      "preview_rms": 0.0
     },
     {
       "product_key": "photocurrent",
@@ -131,9 +111,7 @@
       "preview_png": "previews/photocurrent_preview.png",
       "reference_preview_png": "previews/photocurrent_reference.png",
       "template_preview_comparison_png": "previews/photocurrent_comparison.png",
-      "preview_rms": 0.0,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\photocurrent\\origin_files\\photocurrent_BOBC_exemplar_v5_template_format.opju"
+      "preview_rms": 0.0
     },
     {
       "product_key": "FTIR",
@@ -144,9 +122,7 @@
       "preview_png": "previews/FTIR_preview.png",
       "reference_preview_png": "previews/FTIR_reference.png",
       "template_preview_comparison_png": "previews/FTIR_comparison.png",
-      "preview_rms": 25.895210448476817,
-      "source_run_root": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types",
-      "source_product_opju": "D:\\Codex Project\\科研数据处理\\输出\\runs\\20260607_224339_unified_v5_template_format_conformance_all_types\\FTIR\\origin_files\\FTIR_BOBC_CWO_exemplar_v5_template_format.opju"
+      "preview_rms": 25.895210448476817
     }
   ]
 }

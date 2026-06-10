@@ -63,7 +63,8 @@ def test_create_run_output_layout_uses_configured_external_output_root(tmp_path:
     assert layout.reports.is_dir()
     assert not (tmp_path / "output").exists()
     manifest = json.loads(layout.manifest.read_text(encoding="utf-8"))
-    assert manifest["output_root"] == str(layout.root)
+    assert manifest["output_root"] == "output/20260604_120000_external_pilot"
+    assert not Path(manifest["output_root"]).is_absolute()
 
 
 def test_auto_queue_uses_env_phase16_package_when_processed_index_not_explicit(tmp_path: Path, monkeypatch):
@@ -87,7 +88,8 @@ def test_auto_queue_uses_env_phase16_package_when_processed_index_not_explicit(t
     plan = plan_auto_queue(tmp_path, AutoQueueOptions(queue=queue_path, workspace_root=workspace))
 
     assert plan["summary"]["skipped_count"] == 1
-    assert plan["processed_index"] == str(package / "index.csv")
+    assert plan["processed_index"] == "custom_package/index.csv"
+    assert not Path(plan["processed_index"]).is_absolute()
 
 
 def test_readiness_can_skip_legacy_project_path_check(tmp_path: Path):

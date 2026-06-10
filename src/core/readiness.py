@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from src.core.output_sanitizer import scrub_output_text
 from src.core.runtime_paths import (
     resolve_optional_f_drive_backup,
     resolve_phase1_6_package,
@@ -131,7 +132,7 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
 
     failures = sum(1 for check in checks if check["status"] == "fail")
     warnings = sum(1 for check in checks if check["status"] == "warning")
-    return {
+    report = {
         "report": "readiness",
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "summary": {
@@ -142,6 +143,21 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
         },
         "checks": checks,
     }
+    _sanitize_check_details(project_root, report)
+    return report
+
+
+def _sanitize_check_details(project_root: Path, report: dict) -> None:
+    parent = project_root.parent
+    roots = [project_root, parent]
+    for check in report.get("checks", []):
+        detail = str(check.get("detail", "")).replace("\\", "/")
+        for root in roots:
+            root_text = str(root).replace("\\", "/").rstrip("/")
+            if root_text:
+                detail = detail.replace(root_text + "/", "")
+                detail = detail.replace(root_text, ".")
+        check["detail"] = scrub_output_text(detail, project_root=project_root)
 
 
 def _write_readiness_report(project_root: Path, report: dict, options: ReadinessOptions) -> None:
@@ -284,8 +300,6 @@ def _active_project_name_status(project_root: Path) -> tuple[bool, str]:
     ]
     stale_patterns = [
         "GroupMeetingAutoPPT",
-        "D:\\Codex Project\\科研数据处理\\GroupMeetingAutoPPT",
-        "D:/Codex Project/科研数据处理/GroupMeetingAutoPPT",
     ]
     stale_hits: list[str] = []
     missing_active_docs: list[str] = []

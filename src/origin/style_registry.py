@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from src.core.output_sanitizer import render_output_path
+
 
 DEFAULT_STYLE_MANIFEST = Path("templates") / "origin_styles" / "manifest.json"
 
@@ -27,7 +29,7 @@ class OriginStyleAsset:
             "graph_template": _relative_or_absolute(self.graph_template_path, project_root / "templates" / "origin_styles"),
             "status": self.status,
             "graph_page": self.graph_page,
-            "source_run_root": self.source_run_root,
+            "source_run_root": render_output_path(self.source_run_root) if self.source_run_root else "",
             "preview_png": _relative_or_absolute(self.preview_png, project_root / "templates" / "origin_styles") if self.preview_png else "",
             "reference_preview_png": _relative_or_absolute(self.reference_preview_png, project_root / "templates" / "origin_styles") if self.reference_preview_png else "",
         }
@@ -95,7 +97,7 @@ def _relative_or_absolute(path: Path | None, base: Path) -> str:
     try:
         return str(path.relative_to(base)).replace("\\", "/")
     except ValueError:
-        return str(path)
+        return str(render_output_path(path))
 
 
 def _style_key(value: str) -> str:

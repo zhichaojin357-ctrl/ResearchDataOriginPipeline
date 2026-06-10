@@ -5,6 +5,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from src.core.manifest_normalizer import normalize_material_collection_manifest
 from src.core.manifest_schema import (
     detect_manifest_type,
@@ -16,6 +18,8 @@ from src.core.origin_batch import OriginBatchOptions, plan_origin_batch
 
 def test_standard_phase1_6_manifest_validates_when_available(project_root: Path):
     manifest = project_root / "output" / "phase1_6_origin_results_20260531_041538" / "index.csv"
+    if not manifest.exists():
+        pytest.skip("real Phase 1.6 package is not available in this checkout")
     assert detect_manifest_type(manifest) == "standard_result_manifest"
     validation = validate_origin_batch_manifest(manifest)
     assert validation["valid"] is True

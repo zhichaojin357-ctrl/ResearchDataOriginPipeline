@@ -7,6 +7,7 @@ from pathlib import Path
 from statistics import median
 
 from src.core.epr_jeol import read_xy_xlsx
+from src.core.output_sanitizer import render_output_path
 from src.core.project import output_dir, report_path
 from src.core.runtime_paths import resolve_workspace_root
 from src.origin.adapter import export_plot
@@ -61,7 +62,7 @@ def run_epr_overlay(project_root: Path, options: EprOverlayOptions) -> int:
 
     payload = {
         "command": "epr-overlay",
-        "reference_dir": str(reference_dir),
+        "reference_dir": render_output_path(reference_dir, project_root=project_root),
         "normalization": "max_abs_per_trace" if options.normalize else "none; amplitudes preserved",
         "baseline_correction": "edge-region median baseline subtraction",
         "smoothing": f"moving_average_window_{options.smooth_window}" if options.smooth_window else "none by default",
@@ -187,7 +188,7 @@ def build_epr_condition_overlay(
     return {
         "group": group_name,
         "status": status,
-        "input_files": [str(trace["path"]) for trace in traces],
+        "input_files": [Path(str(trace["path"])).name for trace in traces],
         "labels": [trace["label"] for trace in traces],
         "file_labels": [trace["file_label"] for trace in traces],
         "point_count": len(traces[0]["x"]),
@@ -201,11 +202,11 @@ def build_epr_condition_overlay(
         "normalization": "max_abs_per_trace" if normalize else "none",
         "background_subtraction": background or "none",
         "background_files": {trace["label"]: trace["background_file"] for trace in traces if trace["background_file"]},
-        "processed_csv": str(plot_csv),
-        "detail_csv": str(detail_csv),
-        "origin_file": str(origin_result.origin_file) if origin_result and origin_result.origin_file else None,
-        "figure_tif": str(origin_result.figure_tif) if origin_result and origin_result.figure_tif else None,
-        "preview_png": str(origin_result.preview_png) if origin_result and origin_result.preview_png else None,
+        "processed_csv": render_output_path(plot_csv, project_root=project_root),
+        "detail_csv": render_output_path(detail_csv, project_root=project_root),
+        "origin_file": render_output_path(origin_result.origin_file, project_root=project_root) if origin_result and origin_result.origin_file else None,
+        "figure_tif": render_output_path(origin_result.figure_tif, project_root=project_root) if origin_result and origin_result.figure_tif else None,
+        "preview_png": render_output_path(origin_result.preview_png, project_root=project_root) if origin_result and origin_result.preview_png else None,
         "origin_message": origin_result.message if origin_result else "Origin export not requested",
     }
 
