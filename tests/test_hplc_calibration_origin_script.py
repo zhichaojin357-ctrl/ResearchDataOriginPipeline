@@ -27,6 +27,9 @@ def test_hplc_calibration_script_requires_explicit_hplc_opju_template() -> None:
     assert "category:=\"HPLC_Calibration\"" in text
     assert "Set-OriginWorksheetColumn" in text
     assert "Sanitize-ProjectPages" in text
+    assert "New-NeutralOriginStage" in text
+    assert "$stageTemplateDir" in text
+    assert "Join-Path $OutputDir 'origin_templates'" not in text
     assert "$dataFileName = $Substance + '_calibration_data.tsv'" in text
     assert "wks.longname$=" in text
     assert "wks.comments$=\"\"" in text
@@ -66,7 +69,13 @@ def test_hplc_calibration_script_preserves_three_template_pages_and_locked_style
     assert "axis_title_size=36" in text
     assert "layer.x.label.pt=28" in text
     assert "layer.y.label.pt=22" in text
-    assert "layer.y.label.divideBy=1000" in text
+    assert "layer.y.label.divideBy=' + $YDivideBy" in text
     assert "layer.y.ticks=2" in text
     assert r"Peak area \(40)10\+(3) mAU*s\(41)" in text
+    assert r"Peak area \(40)10\+(2) mAU*s\(41)" in text
+    assert "YDivideBy=1000" in text
+    assert "YDivideBy=100" in text
+    assert "LegendLeft=1585; LegendTop=880; LegendWidth=2429; LegendHeight=826" in text
+    assert "LegendLeft=1740; LegendTop=808; LegendWidth=2308; LegendHeight=826" in text
+    assert "LegendLeft=1578; LegendTop=850; LegendWidth=2457; LegendHeight=760" in text
     assert "layer.y.showLabels=1" in text

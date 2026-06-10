@@ -25,6 +25,51 @@ function Resolve-RunPath([string]$Path, [string]$BaseDir) {
   return [System.IO.Path]::GetFullPath((Join-Path $BaseDir $Path))
 }
 
+function Has-AssistantTrace([string]$Text) {
+  if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
+  return ($Text -match '(?i)(codex|chatgpt|openai)')
+}
+
+function New-NeutralOriginStage([string]$Stamp, [string]$ProjectRoot) {
+  $candidateBases = @()
+  foreach ($base in @($env:TEMP, $env:LOCALAPPDATA, [System.IO.Path]::GetTempPath())) {
+    if (-not [string]::IsNullOrWhiteSpace($base)) {
+      $candidateBases += (Join-Path $base 'ResearchDataOriginPipeline\origin_stage')
+    }
+  }
+  $projectDrive = [System.IO.Path]::GetPathRoot($ProjectRoot)
+  if (-not [string]::IsNullOrWhiteSpace($projectDrive)) {
+    $candidateBases += (Join-Path $projectDrive 'RDOP_OriginStage')
+  }
+
+  $seen = @{}
+  foreach ($base in $candidateBases) {
+    $stagePath = [System.IO.Path]::GetFullPath((Join-Path $base ('hplc_' + $Stamp)))
+    $key = $stagePath.ToLowerInvariant()
+    if ($seen.ContainsKey($key)) { continue }
+    $seen[$key] = $true
+    if (Has-AssistantTrace $stagePath) { continue }
+    New-Item -ItemType Directory -Path $stagePath -Force | Out-Null
+    return $stagePath
+  }
+  throw 'Could not create an Origin staging path without assistant/tool labels.'
+}
+
+function Remove-NeutralOriginStage([string]$StagePath) {
+  if ([string]::IsNullOrWhiteSpace($StagePath)) { return }
+  $full = [System.IO.Path]::GetFullPath($StagePath)
+  $leaf = Split-Path -Leaf $full
+  if ($leaf -notlike 'hplc_*') {
+    throw "Refusing to remove non-run-specific Origin stage: $full"
+  }
+  if (Has-AssistantTrace $full) {
+    throw "Refusing to remove Origin stage with assistant/tool labels: $full"
+  }
+  if (Test-Path -LiteralPath $full) {
+    Remove-Item -LiteralPath $full -Recurse -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function To-RunRelativePath([string]$Path, [string]$Root) {
   $full = [System.IO.Path]::GetFullPath($Path)
   $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
@@ -157,26 +202,36 @@ function Sanitize-Graph($App, [string]$PageName) {
   }
 }
 
-function Apply-HplcYAxisStyle($App, [string]$PageName) {
-  $yTitle = '\b(Peak area \(40)10\+(3) mAU*s\(41))'
+function Apply-HplcYAxisStyle($App, [string]$PageName, [int]$YDivideBy, [string]$YTitle) {
   $App.Execute('win -a ' + $PageName + ';') | Out-Null
-  $App.Execute('layer.y.label.divideBy=1000; layer.y.ticks=2; layer.y.ticklength=8; layer.y.tickthickness=3; layer.y.label.pt=22; layer.y.label.bold=1; layer.y.showLabels=1; layer.y.showAxes=3; layer.y2.ticks=0;') | Out-Null
-  $App.Execute('label -yl "' + $yTitle + '";') | Out-Null
+  $App.Execute('layer.y.label.divideBy=' + $YDivideBy + '; layer.y.ticks=2; layer.y.ticklength=8; layer.y.tickthickness=3; layer.y.label.pt=22; layer.y.label.bold=1; layer.y.showLabels=1; layer.y.showAxes=3; layer.y2.ticks=0;') | Out-Null
+  $App.Execute('label -yl "' + $YTitle + '";') | Out-Null
 }
 
-function Assert-HplcYAxisStyle($App, [string]$PageName) {
+function Assert-HplcYAxisStyle($App, [string]$PageName, [int]$ExpectedYDivideBy) {
   $App.Execute('win -a ' + $PageName + ';') | Out-Null
   $divideBy = [double]$App.Evaluate('layer.y.label.divideby')
   $ticks = [int]$App.Evaluate('layer.y.ticks')
-  if ([Math]::Abs($divideBy - 1000) -gt 0.001) {
-    throw "HPLC Y-axis divideBy was not applied on $PageName; expected 1000, got $divideBy"
+  if ([Math]::Abs($divideBy - $ExpectedYDivideBy) -gt 0.001) {
+    throw "HPLC Y-axis divideBy was not applied on $PageName; expected $ExpectedYDivideBy, got $divideBy"
   }
   if ($ticks -ne 2) {
     throw "HPLC Y-axis outward ticks were not applied on $PageName; expected ticks=2, got $ticks"
   }
 }
 
-function Set-Legend($App, [string]$PageName, [string]$Substance, [double]$Slope, [double]$Intercept, [double]$R2) {
+function Set-Legend(
+  $App,
+  [string]$PageName,
+  [string]$Substance,
+  [double]$Slope,
+  [double]$Intercept,
+  [double]$R2,
+  [int]$LegendLeft,
+  [int]$LegendTop,
+  [int]$LegendWidth,
+  [int]$LegendHeight
+) {
   $App.Execute('win -a ' + $PageName + ';') | Out-Null
   $layer = $App.FindGraphLayer($PageName)
   if (-not $layer) { $layer = $App.FindGraphLayer($PageName + '!1') }
@@ -195,10 +250,10 @@ function Set-Legend($App, [string]$PageName, [string]$Substance, [double]$Slope,
     if ($name -eq 'Legend') {
       $obj.Text = ($rows -join "`r`n")
       try {
-        $obj.Left = 2300
-        $obj.Top = 760
-        $obj.Width = 2450
-        $obj.Height = 980
+        $obj.Left = $LegendLeft
+        $obj.Top = $LegendTop
+        $obj.Width = $LegendWidth
+        $obj.Height = $LegendHeight
       } catch {}
     }
   }
@@ -236,6 +291,11 @@ function Import-And-PlotCalibration(
   [string]$YTitle,
   [double]$YTo,
   [double]$YInc,
+  [int]$YDivideBy,
+  [int]$LegendLeft,
+  [int]$LegendTop,
+  [int]$LegendWidth,
+  [int]$LegendHeight,
   [double[]]$Concentrations,
   [double[]]$Measured
 ) {
@@ -260,14 +320,14 @@ function Import-And-PlotCalibration(
   $App.Execute('layer -b s 0;') | Out-Null
   $App.Execute('layer.left=17.89; layer.top=11.6; layer.width=68.19; layer.height=71.81; layer -a; layer.x.from=0; layer.x.to=2.1; layer.x.inc=0.5; layer.y.from=0; layer.y.to=' + $YTo + '; layer.y.inc=' + $YInc + ';') | Out-Null
   $App.Execute('layer.x.label.pt=28; layer.y.label.pt=22; layer.x.title.pt=' + $axis_title_size + '; layer.y.title.pt=' + $axis_title_size + ';') | Out-Null
-  $App.Execute('axis -ps Y A 3; axis -ps Y L 1; layer.y.showAxes=3; layer.y.showLabels=1; layer.y.opposite=1; layer.y.showopposite=1; layer.y.label.dir=1; layer.y.label.rotate=0; layer.y.label.pt=22; layer.y.label.bold=1; layer.y.ticks=2; layer.y.tickthickness=3; layer.y.ticklength=8; layer.y.label.divideBy=1000; layer.y2.ticks=0; layer.x.thickness=3; layer.y.thickness=3; layer.y2.thickness=3; doc -e DY {set %C -c color(255,128,0);};') | Out-Null
-  $App.Execute('label -xb "\b(' + $XTitle + ')"; label -yl "\b(' + $YTitle + ')";') | Out-Null
-  Apply-HplcYAxisStyle $App $PageName
+  $App.Execute('axis -ps Y A 3; axis -ps Y L 1; layer.y.showAxes=3; layer.y.showLabels=1; layer.y.opposite=1; layer.y.showopposite=1; layer.y.label.dir=1; layer.y.label.rotate=0; layer.y.label.pt=22; layer.y.label.bold=1; layer.y.ticks=2; layer.y.tickthickness=3; layer.y.ticklength=8; layer.y.label.divideBy=' + $YDivideBy + '; layer.y2.ticks=0; layer.x.thickness=3; layer.y.thickness=3; layer.y2.thickness=3; doc -e DY {set %C -c color(255,128,0);};') | Out-Null
+  $App.Execute('label -xb "\b(' + $XTitle + ')"; label -yl "' + $YTitle + '";') | Out-Null
+  Apply-HplcYAxisStyle $App $PageName $YDivideBy $YTitle
   $App.Execute('legendupdate mode:=lname; doc -e DY {set %C -sx 0; set %C -sy 0; set %C -sxs 1; set %C -sys 1; set %C -lw 3; set %C -z 7;};') | Out-Null
   Sanitize-Graph $App $PageName
-  Set-Legend $App $PageName $Substance $slope $intercept $r2
-  Apply-HplcYAxisStyle $App $PageName
-  Assert-HplcYAxisStyle $App $PageName
+  Set-Legend $App $PageName $Substance $slope $intercept $r2 $LegendLeft $LegendTop $LegendWidth $LegendHeight
+  Apply-HplcYAxisStyle $App $PageName $YDivideBy $YTitle
+  Assert-HplcYAxisStyle $App $PageName $YDivideBy
   return @{
     Slope = $slope
     Intercept = $intercept
@@ -356,17 +416,18 @@ $dataDir = Join-Path $OutputDir 'processed_data'
 $originDir = Join-Path $OutputDir 'origin_files'
 $previewDir = Join-Path $OutputDir 'figures_preview'
 $tifDir = Join-Path $OutputDir 'figures_tif'
-$templateDir = Join-Path $OutputDir 'origin_templates'
 $comparisonDir = Join-Path $OutputDir 'template_comparison'
 $templatePreviewDir = Join-Path $comparisonDir 'template_preview'
 $templateTifDir = Join-Path $comparisonDir 'template_tif'
 $logDir = Join-Path $OutputDir 'logs'
-New-Item -ItemType Directory -Path $dataDir, $originDir, $previewDir, $tifDir, $templateDir, $comparisonDir, $logDir -Force | Out-Null
+$stageRoot = New-NeutralOriginStage $Stamp $projectRoot
+$stageTemplateDir = Join-Path $stageRoot 'origin_templates'
+New-Item -ItemType Directory -Path $dataDir, $originDir, $previewDir, $tifDir, $comparisonDir, $logDir, $stageTemplateDir -Force | Out-Null
 
 $script:LogPath = Join-Path $logDir 'origin_run_log.txt'
 if (Test-Path -LiteralPath $script:LogPath) { Remove-Item -LiteralPath $script:LogPath -Force }
 
-$workingTemplate = Join-Path $templateDir ('template_working_copy_' + $Stamp + '.opju')
+$workingTemplate = Join-Path $stageRoot ('template_working_copy_' + $Stamp + '.opju')
 $outputOpju = Join-Path $originDir ('HPLC_calibration_curves_' + $Stamp + '.opju')
 $comparisonReport = Join-Path $comparisonDir 'comparison_report.tsv'
 if (Test-Path -LiteralPath $outputOpju) { Remove-Item -LiteralPath $outputOpju -Force }
@@ -382,10 +443,13 @@ $points = @(
   @{ Point='S7'; X=2.00; Sulfoxide=2959.872; Sulfone=991.845; Sulfide=21670.291 }
 )
 
+$yTitlePower3 = '\b(Peak area \(40)10\+(3) mAU*s\(41))'
+$yTitlePower2 = '\b(Peak area \(40)10\+(2) mAU*s\(41))'
+
 $series = @(
-  @{ Key='Sulfoxide'; Page='Cal_Sulfoxide'; TemplateGraph='Cal_Sulfoxide'; Name='Anisole sulfoxide'; YTo=3200; YInc=500 },
-  @{ Key='Sulfone'; Page='Cal_Sulfone'; TemplateGraph='Cal_Sulfone'; Name='Anisole sulfone'; YTo=1100; YInc=200 },
-  @{ Key='Sulfide'; Page='Cal_Sulfide'; TemplateGraph='Cal_Sulfide'; Name='Anisole sulfide'; YTo=23000; YInc=5000 }
+  @{ Key='Sulfoxide'; Page='Cal_Sulfoxide'; TemplateGraph='Cal_Sulfoxide'; Name='Anisole sulfoxide'; YTo=3200; YInc=500; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=1585; LegendTop=880; LegendWidth=2429; LegendHeight=826 },
+  @{ Key='Sulfone'; Page='Cal_Sulfone'; TemplateGraph='Cal_Sulfone'; Name='Anisole sulfone'; YTo=1100; YInc=200; YDivideBy=100; YTitle=$yTitlePower2; LegendLeft=1740; LegendTop=808; LegendWidth=2308; LegendHeight=826 },
+  @{ Key='Sulfide'; Page='Cal_Sulfide'; TemplateGraph='Cal_Sulfide'; Name='Anisole sulfide'; YTo=23000; YInc=5000; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=1578; LegendTop=850; LegendWidth=2457; LegendHeight=760 }
 )
 
 $masterHeader = 'Point' + "`t" + 'Concentration_mM' + "`t" + 'Sulfoxide_area_mAU_s' + "`t" + 'Sulfone_area_mAU_s' + "`t" + 'Sulfide_area_mAU_s'
@@ -423,14 +487,14 @@ try {
 
   foreach ($s in $series) {
     $templateBase = 'hplc_' + $s.TemplateGraph + '_' + $Stamp
-    $templatePath = Join-Path $templateDir ($templateBase + '.otpu')
+    $templatePath = Join-Path $stageTemplateDir ($templateBase + '.otpu')
     $app.Execute('win -a ' + $s.TemplateGraph + ';') | Out-Null
-    Apply-HplcYAxisStyle $app $s.TemplateGraph
+    Apply-HplcYAxisStyle $app $s.TemplateGraph $s.YDivideBy $s.YTitle
     foreach ($expr in @('page.width', 'page.height', 'page.nlayers', 'layer.left', 'layer.top', 'layer.width', 'layer.height', 'layer.x.thickness', 'layer.y.thickness')) {
       ($s.TemplateGraph + ':' + $expr + '=' + $app.Evaluate($expr)) | Add-Content -LiteralPath $script:LogPath -Encoding UTF8
     }
     if (Test-Path -LiteralPath $templatePath) { Remove-Item -LiteralPath $templatePath -Force }
-    $app.Execute('template_saveas pg:=' + $s.TemplateGraph + ' category:="HPLC_Calibration" template:="' + $templateBase + '" filepath:="' + (To-OriginPath $templateDir) + '" emf:=0 bmp:=1 loadsys:=0;') | Out-Null
+    $app.Execute('template_saveas pg:=' + $s.TemplateGraph + ' category:="HPLC_Calibration" template:="' + $templateBase + '" filepath:="' + (To-OriginPath $stageTemplateDir) + '" emf:=0 bmp:=1 loadsys:=0;') | Out-Null
     Wait-ForOutputFile $templatePath
     $s.TemplatePath = $templatePath
     if ($ExportTemplateComparison) {
@@ -441,7 +505,6 @@ try {
 
   $app.NewProject() | Out-Null
   $xTitle = 'Concentration (mM)'
-  $yTitle = '\p70(Peak area (mAU*s))'
   foreach ($s in $series) {
     $xValues = @()
     $yValues = @()
@@ -449,7 +512,7 @@ try {
       $xValues += [double]$p.X
       $yValues += [double]$p[$s.Key]
     }
-    $fitMap[$s.Page] = Import-And-PlotCalibration $app $s.TemplatePath $s.Page $s.Name $xTitle $yTitle $s.YTo $s.YInc $xValues $yValues
+    $fitMap[$s.Page] = Import-And-PlotCalibration $app $s.TemplatePath $s.Page $s.Name $xTitle $s.YTitle $s.YTo $s.YInc $s.YDivideBy $s.LegendLeft $s.LegendTop $s.LegendWidth $s.LegendHeight $xValues $yValues
   }
 
   Sanitize-ProjectPages $app
@@ -497,7 +560,7 @@ if ($ExportTemplateComparison) {
 }
 
 if (-not $KeepIntermediate) {
-  try { Remove-Item -LiteralPath $workingTemplate -Force -ErrorAction SilentlyContinue } catch {}
+  try { Remove-NeutralOriginStage $stageRoot } catch { Write-Log ('Origin stage cleanup skipped: ' + $_.Exception.Message) }
 }
 
 Write-Output ("OUTPUT_DIR=" + (Split-Path -Leaf $OutputDir))
