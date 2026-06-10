@@ -67,6 +67,23 @@ def test_validate_checks_phase1_9_governance_files_when_present(tmp_path: Path):
     assert "- Phase 1.9 journal-ready index policy values: pass" in report
 
 
+def test_validate_does_not_require_generated_phase1_9_outputs_for_docs_only_snapshot(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    _write_minimal_validate_project(project)
+    docs = project / "docs" / "agent_reports"
+    docs.mkdir(parents=True)
+    (docs / "phase1_9_origin_plotting_skill_snapshot.md").write_text(
+        "# Historical Phase 1.9 Origin Plotting Skill Snapshot\n",
+        encoding="utf-8",
+    )
+
+    validate(project)
+    report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+
+    assert "- Phase 1.9 plotting governance files: not checked (no generated output artifacts)" in report
+    assert "missing Phase 1.9 plotting governance files" not in report
+
+
 def test_validate_rejects_invalid_phase1_9_journal_policy_values(tmp_path: Path):
     project = tmp_path / "ResearchDataOriginPipeline"
     _write_minimal_validate_project(project)

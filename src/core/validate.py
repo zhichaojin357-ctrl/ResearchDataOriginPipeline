@@ -193,7 +193,12 @@ def validate(project_root: Path) -> int:
         "snapshot_json": project_root / "output" / "reports" / "phase1_9_origin_plotting_skill_snapshot.json",
         "journal_index": project_root / "output" / "reports" / "phase1_9_journal_ready_index.csv",
     }
-    if any(path.exists() for path in phase1_9_files.values()):
+    generated_phase1_9_files = {
+        name: path
+        for name, path in phase1_9_files.items()
+        if name != "snapshot_md"
+    }
+    if any(path.exists() for path in generated_phase1_9_files.values()):
         missing_phase1_9 = [name for name, path in phase1_9_files.items() if not path.exists()]
         lines.append(f"- Phase 1.9 plotting governance files: {'pass' if not missing_phase1_9 else 'fail'}")
         if missing_phase1_9:
@@ -230,6 +235,8 @@ def validate(project_root: Path) -> int:
                     if len(policy_field_failures) > 10:
                         lines.append(f"  - ... {len(policy_field_failures) - 10} more")
                     failures.append("Phase 1.9 journal-ready index policy values invalid")
+    else:
+        lines.append("- Phase 1.9 plotting governance files: not checked (no generated output artifacts)")
     lines.append("- max_threads = 5")
     lines.append("- max_depth = 1")
     lines.append(f"- Claim policy forbidden claims: {len(claim.get('forbidden_claims', []))}")
