@@ -17,6 +17,8 @@ Current classified helpers:
 
 - `reports/regenerate_manual_review_filtered.py`: reusable manual-review report generator.
 - `origin/origin_plot_from_template.ps1`: project-local Origin helper used by the formal Origin adapter; imports data by writing neutral workbook cells so OPJU outputs do not inherit source-file paths.
+- `maintenance/dry_run_output_cleanup_plan.py`: read-only output directory inventory helper; it never deletes files.
+- `maintenance/dry_run_tracked_output_reports_policy.py`: read-only tracked report policy classifier; it never changes Git or report files.
 - `maintenance/opju_exemplar_regression.py`: OPJU exemplar regression/comparison helper, not a production processor.
 - `one_off/verify_jeol_epr_decode_against_exports.py`: JEOL EPR decode verification helper kept for traceability.
 - `data_types/hplc_lc/plot_hplc_calibration_origin.ps1`: HPLC/LC calibration-curve Origin script using the fixed completed OPJU template.
