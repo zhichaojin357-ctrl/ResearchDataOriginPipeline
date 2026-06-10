@@ -71,8 +71,15 @@ def test_quantitative_plots_show_y_axis_ticks_and_values() -> None:
         assert policy.y_tick_values_visible is True
 
 
+def test_xrd_overlays_keep_y_axis_but_hide_y_ticks_and_numeric_values() -> None:
+    policy = get_plot_policy("XRD")
+    assert policy.y_axis_visible is True
+    assert policy.y_ticks_visible is False
+    assert policy.y_tick_values_visible is False
+
+
 def test_offset_spectra_keep_y_axis_and_ticks_but_hide_numeric_values() -> None:
-    for data_type in ["XRD", "Raman", "FTIR", "PL", "XPS", "XPS fitted"]:
+    for data_type in ["Raman", "FTIR", "PL", "XPS", "XPS fitted"]:
         policy = get_plot_policy(data_type)
         assert policy.y_axis_visible is True
         assert policy.y_ticks_visible is True

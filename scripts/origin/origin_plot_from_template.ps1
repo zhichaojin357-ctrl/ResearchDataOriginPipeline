@@ -578,6 +578,11 @@ function Apply-PlotPolicy($app, [string]$PageName, $Group) {
 
   $app.Execute('layer.y.show=' + $showYAxisValue + ';') | Out-Null
   $app.Execute('layer.y.ticks=' + $showYTicksValue + ';') | Out-Null
+  if ($showYTicks) {
+    $app.Execute('layer.y.ticklength=8; layer.y.mticklength=0; layer.y2.ticks=0; layer.y2.ticklength=0; layer.y2.mticklength=0; layer.y2.showLabels=0;') | Out-Null
+  } else {
+    $app.Execute('layer.y.ticklength=0; layer.y.mticklength=0; layer.y2.ticks=0; layer.y2.ticklength=0; layer.y2.mticklength=0; layer.y2.showLabels=0;') | Out-Null
+  }
   $app.Execute('layer.y.label.show=' + $showYTickValuesValue + '; layer.y.showLabels=' + $showYTickValuesValue + ';') | Out-Null
   $app.Execute('layer.x.label.show=' + $showXTickValuesValue + '; layer.x.showLabels=' + $showXTickValuesValue + ';') | Out-Null
 

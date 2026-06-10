@@ -70,7 +70,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             data.write_text("x,y\n0,1\n", encoding="utf-8")
 
             expectations = {
-                "XRD": ("line", "200", True, True, False),
+                "XRD": ("line", "200", True, False, False),
                 "EIS": ("line+symbol", "202", True, True, True),
                 "BET": ("line+symbol", "202", True, True, True),
                 "Mott-Schottky": ("line+symbol", "202", True, True, True),
@@ -287,8 +287,11 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             self.assertEqual(job.plot_type_code, "200")
             self.assertFalse(job.plot_policy.y_tick_values_visible)
             self.assertIn("PlotPrimitive = 'line'", script)
-            self.assertIn("ShowYTicks = $true", script)
+            self.assertIn("ShowYTicks = $false", script)
             self.assertIn("ShowYTickValues = $false", script)
+            helper_text = job.helper_script.read_text(encoding="utf-8")
+            self.assertIn("layer.y.ticklength=0", helper_text)
+            self.assertIn("layer.y2.ticks=0", helper_text)
             self.assertNotIn("reference_card", plot_text)
             self.assertNotIn("JCPDS", plot_text)
             self.assertNotIn("hkl", plot_text)
