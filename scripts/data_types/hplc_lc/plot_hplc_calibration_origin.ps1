@@ -204,6 +204,7 @@ function Sanitize-Graph($App, [string]$PageName) {
 
 function Apply-HplcYAxisStyle($App, [string]$PageName, [int]$YDivideBy, [string]$YTitle) {
   $App.Execute('win -a ' + $PageName + ';') | Out-Null
+  $App.Execute('layer.x.ticks=2; layer.x.ticklength=8; layer.x.label.pt=28; layer.x.label.bold=1; layer.x.showLabels=1; layer.x.showAxes=3; layer.x.label.dir=1; layer.x.label.rotate=0;') | Out-Null
   $App.Execute('layer.y.label.divideBy=' + $YDivideBy + '; layer.y.ticks=2; layer.y.ticklength=8; layer.y.tickthickness=3; layer.y.label.pt=22; layer.y.label.bold=1; layer.y.showLabels=1; layer.y.showAxes=3; layer.y2.ticks=0;') | Out-Null
   $App.Execute('label -yl "' + $YTitle + '";') | Out-Null
 }
@@ -259,6 +260,58 @@ function Set-Legend(
   }
 }
 
+function Get-HplcGraphObject($App, [string]$PageName, [string]$ObjectName) {
+  $layer = $App.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $App.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { return $null }
+  for ($i = 0; $i -lt $layer.GraphObjects.Count; $i++) {
+    $obj = $layer.GraphObjects.Item($i)
+    $name = ''
+    try { $name = $obj.Name } catch {}
+    if ($name -eq $ObjectName) { return $obj }
+  }
+  return $null
+}
+
+function Set-HplcTextObjectBounds(
+  $App,
+  [string]$PageName,
+  [string]$ObjectName,
+  [int]$Left,
+  [int]$Top,
+  [int]$Width,
+  [int]$Height
+) {
+  $App.Execute('win -a ' + $PageName + ';') | Out-Null
+  $obj = Get-HplcGraphObject $App $PageName $ObjectName
+  if (-not $obj) { throw "HPLC graph object $ObjectName was not found on $PageName" }
+  $obj.Left = $Left
+  $obj.Top = $Top
+  $obj.Width = $Width
+  $obj.Height = $Height
+}
+
+function Assert-HplcTextObjectBounds(
+  $App,
+  [string]$PageName,
+  [string]$ObjectName,
+  [int]$ExpectedLeft,
+  [int]$ExpectedTop,
+  [int]$ExpectedWidth,
+  [int]$ExpectedHeight
+) {
+  $App.Execute('win -a ' + $PageName + ';') | Out-Null
+  $obj = Get-HplcGraphObject $App $PageName $ObjectName
+  if (-not $obj) { throw "HPLC graph object $ObjectName was not found on $PageName" }
+  $actual = @([int]$obj.Left, [int]$obj.Top, [int]$obj.Width, [int]$obj.Height)
+  $expected = @($ExpectedLeft, $ExpectedTop, $ExpectedWidth, $ExpectedHeight)
+  for ($i = 0; $i -lt $expected.Count; $i++) {
+    if ([Math]::Abs($actual[$i] - $expected[$i]) -gt 1) {
+      throw "HPLC graph object $ObjectName bounds differ on $PageName; expected $($expected -join ','), got $($actual -join ',')"
+    }
+  }
+}
+
 function Set-OriginWorksheetColumn($App, [int]$ColumnIndex, [double[]]$Values) {
   for ($rowIndex = 0; $rowIndex -lt $Values.Count; $rowIndex++) {
     $rowNumber = $rowIndex + 1
@@ -296,6 +349,14 @@ function Import-And-PlotCalibration(
   [int]$LegendTop,
   [int]$LegendWidth,
   [int]$LegendHeight,
+  [int]$XTitleLeft,
+  [int]$XTitleTop,
+  [int]$XTitleWidth,
+  [int]$XTitleHeight,
+  [int]$YTitleLeft,
+  [int]$YTitleTop,
+  [int]$YTitleWidth,
+  [int]$YTitleHeight,
   [double[]]$Concentrations,
   [double[]]$Measured
 ) {
@@ -325,9 +386,15 @@ function Import-And-PlotCalibration(
   Apply-HplcYAxisStyle $App $PageName $YDivideBy $YTitle
   $App.Execute('legendupdate mode:=lname; doc -e DY {set %C -sx 0; set %C -sy 0; set %C -sxs 1; set %C -sys 1; set %C -lw 3; set %C -z 7;};') | Out-Null
   Sanitize-Graph $App $PageName
+  Set-HplcTextObjectBounds $App $PageName 'XB' $XTitleLeft $XTitleTop $XTitleWidth $XTitleHeight
+  Set-HplcTextObjectBounds $App $PageName 'YL' $YTitleLeft $YTitleTop $YTitleWidth $YTitleHeight
   Set-Legend $App $PageName $Substance $slope $intercept $r2 $LegendLeft $LegendTop $LegendWidth $LegendHeight
   Apply-HplcYAxisStyle $App $PageName $YDivideBy $YTitle
+  Set-HplcTextObjectBounds $App $PageName 'XB' $XTitleLeft $XTitleTop $XTitleWidth $XTitleHeight
+  Set-HplcTextObjectBounds $App $PageName 'YL' $YTitleLeft $YTitleTop $YTitleWidth $YTitleHeight
   Assert-HplcYAxisStyle $App $PageName $YDivideBy
+  Assert-HplcTextObjectBounds $App $PageName 'XB' $XTitleLeft $XTitleTop $XTitleWidth $XTitleHeight
+  Assert-HplcTextObjectBounds $App $PageName 'YL' $YTitleLeft $YTitleTop $YTitleWidth $YTitleHeight
   return @{
     Slope = $slope
     Intercept = $intercept
@@ -447,9 +514,9 @@ $yTitlePower3 = '\b(Peak area \(40)10\+(3) mAU*s\(41))'
 $yTitlePower2 = '\b(Peak area \(40)10\+(2) mAU*s\(41))'
 
 $series = @(
-  @{ Key='Sulfoxide'; Page='Cal_Sulfoxide'; TemplateGraph='Cal_Sulfoxide'; Name='Anisole sulfoxide'; YTo=3200; YInc=500; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=1585; LegendTop=880; LegendWidth=2429; LegendHeight=826 },
-  @{ Key='Sulfone'; Page='Cal_Sulfone'; TemplateGraph='Cal_Sulfone'; Name='Anisole sulfone'; YTo=1100; YInc=200; YDivideBy=100; YTitle=$yTitlePower2; LegendLeft=1740; LegendTop=808; LegendWidth=2308; LegendHeight=826 },
-  @{ Key='Sulfide'; Page='Cal_Sulfide'; TemplateGraph='Cal_Sulfide'; Name='Anisole sulfide'; YTo=23000; YInc=5000; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=1578; LegendTop=850; LegendWidth=2457; LegendHeight=760 }
+  @{ Key='Sulfoxide'; Page='Cal_Sulfoxide'; TemplateGraph='Cal_Sulfoxide'; Name='Anisole sulfoxide'; YTo=3200; YInc=500; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=1585; LegendTop=880; LegendWidth=2429; LegendHeight=826; XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338; YTitleLeft=362; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204 },
+  @{ Key='Sulfone'; Page='Cal_Sulfone'; TemplateGraph='Cal_Sulfone'; Name='Anisole sulfone'; YTo=1100; YInc=200; YDivideBy=100; YTitle=$yTitlePower2; LegendLeft=1740; LegendTop=808; LegendWidth=2308; LegendHeight=826; XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338; YTitleLeft=413; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204 },
+  @{ Key='Sulfide'; Page='Cal_Sulfide'; TemplateGraph='Cal_Sulfide'; Name='Anisole sulfide'; YTo=23000; YInc=5000; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=1578; LegendTop=850; LegendWidth=2457; LegendHeight=760; XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338; YTitleLeft=413; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204 }
 )
 
 $masterHeader = 'Point' + "`t" + 'Concentration_mM' + "`t" + 'Sulfoxide_area_mAU_s' + "`t" + 'Sulfone_area_mAU_s' + "`t" + 'Sulfide_area_mAU_s'
@@ -512,7 +579,7 @@ try {
       $xValues += [double]$p.X
       $yValues += [double]$p[$s.Key]
     }
-    $fitMap[$s.Page] = Import-And-PlotCalibration $app $s.TemplatePath $s.Page $s.Name $xTitle $s.YTitle $s.YTo $s.YInc $s.YDivideBy $s.LegendLeft $s.LegendTop $s.LegendWidth $s.LegendHeight $xValues $yValues
+    $fitMap[$s.Page] = Import-And-PlotCalibration $app $s.TemplatePath $s.Page $s.Name $xTitle $s.YTitle $s.YTo $s.YInc $s.YDivideBy $s.LegendLeft $s.LegendTop $s.LegendWidth $s.LegendHeight $s.XTitleLeft $s.XTitleTop $s.XTitleWidth $s.XTitleHeight $s.YTitleLeft $s.YTitleTop $s.YTitleWidth $s.YTitleHeight $xValues $yValues
   }
 
   Sanitize-ProjectPages $app

@@ -28,6 +28,8 @@ def test_hplc_calibration_script_requires_explicit_hplc_opju_template() -> None:
     assert "Set-OriginWorksheetColumn" in text
     assert "Sanitize-ProjectPages" in text
     assert "New-NeutralOriginStage" in text
+    assert "Set-HplcTextObjectBounds" in text
+    assert "Assert-HplcTextObjectBounds" in text
     assert "$stageTemplateDir" in text
     assert "Join-Path $OutputDir 'origin_templates'" not in text
     assert "$dataFileName = $Substance + '_calibration_data.tsv'" in text
@@ -70,6 +72,8 @@ def test_hplc_calibration_script_preserves_three_template_pages_and_locked_style
     assert "layer.x.label.pt=28" in text
     assert "layer.y.label.pt=22" in text
     assert "layer.y.label.divideBy=' + $YDivideBy" in text
+    assert "layer.x.ticks=2" in text
+    assert "layer.x.ticklength=8" in text
     assert "layer.y.ticks=2" in text
     assert r"Peak area \(40)10\+(3) mAU*s\(41)" in text
     assert r"Peak area \(40)10\+(2) mAU*s\(41)" in text
@@ -78,4 +82,7 @@ def test_hplc_calibration_script_preserves_three_template_pages_and_locked_style
     assert "LegendLeft=1585; LegendTop=880; LegendWidth=2429; LegendHeight=826" in text
     assert "LegendLeft=1740; LegendTop=808; LegendWidth=2308; LegendHeight=826" in text
     assert "LegendLeft=1578; LegendTop=850; LegendWidth=2457; LegendHeight=760" in text
+    assert "XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338" in text
+    assert "YTitleLeft=362; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204" in text
+    assert "YTitleLeft=413; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204" in text
     assert "layer.y.showLabels=1" in text
