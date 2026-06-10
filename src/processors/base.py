@@ -239,6 +239,8 @@ def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str
         candidate_methods.append("current_cycle_candidate_metrics")
     if data_type == "BET":
         candidate_methods.append("bet_exported_summary_or_isotherm_candidate")
+        if key_results.get("adapter_results", {}).get("BET"):
+            candidate_methods.append("pygaps_pointisotherm_candidate_no_bet_fit")
     if data_type == "EPR":
         if key_results.get("adapter_results", {}).get("EPR"):
             candidate_methods.append("epr_adapter_field_intensity_candidate_metrics")

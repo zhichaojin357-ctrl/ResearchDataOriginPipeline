@@ -9,7 +9,7 @@
 | `pybaselines` | 1.2.1 | ok | core_optional | permissive | Raman, PL, FTIR, UV-vis DRS, EPR | baseline correction candidate |
 | `scipy` | 1.17.1 | ok | core | permissive | spectra, all numeric | find_peaks and numeric routines |
 | `vgd-reader` | 0.1.0 | ok | optional_adapter | permissive | XPS | VGD reader probe |
-| `pygaps` | 4.6.1 | ok | optional_adapter | permissive | BET | isotherm/BET candidate analysis |
+| `pygaps` | 4.6.1 | ok | optional_adapter | permissive | BET | PointIsotherm candidate provenance only; no BET fit/model conclusion |
 | `nmrglue` | 0.11 | ok | optional_adapter | permissive | NMR | Bruker processed data reader |
 | `tifffile` | 2026.3.3 | ok | core_optional | permissive | SEM, TEM | image metadata and preview |
 | `pillow` | 12.2.0 | ok | core_optional | permissive | SEM, TEM, QC | image preview and DPI inspection |

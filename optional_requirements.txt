@@ -14,7 +14,7 @@ rampy
 spectrochempy
 hplc-py
 rainbow-api
-mocca
+mocca2
 pymzML
 pyteomics
 nmrglue

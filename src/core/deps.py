@@ -20,6 +20,7 @@ CORE = {
 
 OPTIONAL = {
     "impedance": "impedance",
+    "pyimpspec": "pyimpspec",
     "ixdat": "ixdat",
     "galvani": "galvani",
     "eclabfiles": "eclabfiles",
@@ -33,11 +34,12 @@ OPTIONAL = {
     "ramanspy": "ramanspy",
     "rampy": "rampy",
     "spectrochempy": "spectrochempy",
-    "hplc": "hplc",
+    "hplc-py": "hplc",
     "rainbow": "rainbow",
     "mocca2": "mocca2",
     "pymzml": "pymzml",
     "pyteomics": "pyteomics",
+    "matchms": "matchms",
     "cwepr": "cwepr",
     "EPRpy": "eprpy",
 }

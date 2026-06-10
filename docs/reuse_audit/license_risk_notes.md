@@ -55,6 +55,19 @@ Optional dependencies must remain optional:
 - `vgd-reader` 0.1.0 reports MIT metadata and may parse Thermo VGD XPS spectra through `src.adapters.xps_vgd_reader_adapter`; parsed spectra remain unassigned XPS tables.
 - `lmfitxps` 4.2.0 reports an MIT package license with internal third-party license caveats, including GPL text for some background implementations. The current adapter uses import/provenance and existing-curve summarization only; do not call background or fitting routines in automatic Phase 1 output without a focused license and method review.
 
+## Current BET Adapter Decision
+
+- `pyGAPS` 4.6.1 reports MIT metadata and is allowed only through `src.adapters.bet_pygaps_adapter`.
+- The adapter may construct a `PointIsotherm` candidate from exported relative-pressure/loading rows and record provenance.
+- Phase 1 must not call pyGAPS BET fitting, pore-size modeling, material classification, or any automatic adsorption interpretation.
+- If pyGAPS is unavailable or construction fails, the BET processor falls back to the exported-table parser and keeps only table-derived candidate values.
+
+## Current Local Import Audit
+
+- Available with permissive or acceptable metadata in `D:\Python\python.exe`: `impedance`, `ixdat`, `pyGAPS`, `nmrglue`, `tifffile`, `scikit-image`, `vgd-reader`, `MOCCA2`, `pymzML`, `pyteomics`, `cwepr`, `eprpy`, and narrow `lmfitxps` import/provenance use.
+- Reference-only or non-default because of GPL/LGPL/unclear license boundaries: `pyimpspec`, `galvani`, `eclabfiles`, `hplc-py`, and `rainbow-api`.
+- Not importable in the current `D:\Python\python.exe` environment and not used by the main flow: `ramanspy`, `rampy`, `spectrochempy`, and `matchms`.
+
 ## Origin Tools And Manual References
 
 OriginPro is already installed on the target machine. This project may test Python/COM automation and may save `.opju` files and export `.tif` figures through Origin.
@@ -76,7 +89,6 @@ The following candidates should remain optional until package metadata and proje
 - `ixdat`
 - `galvani`
 - `eclabfiles`
-- `pyGAPS`
 - `lmfitxps` advanced fitting/background routines
 - `RamanSPy`
 - `RamPy`

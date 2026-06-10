@@ -54,8 +54,13 @@ def type_specific_results(
         summary = bet_summary_results(rows)
         result = {**summary}
         if isotherm:
-            result["isotherm_points"] = len(isotherm)
+            adapter = bet_package_results(isotherm)
+            result["isotherm_points"] = int(adapter.get("isotherm_point_count") or len(isotherm))
             result["bet_table_kind_candidate"] = "isotherm"
+            if adapter.get("pygaps_pointisotherm_constructed"):
+                result["pygaps_relative_pressure_range"] = adapter.get("relative_pressure_range", [])
+                result["pygaps_loading_range"] = adapter.get("loading_range", [])
+                result["adapter_results"] = {"BET": adapter}
         elif pore_distribution:
             result["pore_distribution_points"] = len(pore_distribution)
             result["bet_table_kind_candidate"] = "pore_distribution"
@@ -874,6 +879,29 @@ def bet_pore_distribution_rows(rows: list[dict[str, str]]) -> list[list[float | 
         if pore_size > 0 and isfinite(pore_volume):
             output.append([pore_size, pore_volume])
     return output if len(output) >= 2 else []
+
+
+def bet_package_results(isotherm_rows: list[list[float | str | None]]) -> dict:
+    if not isotherm_rows:
+        return {}
+    from src.adapters import bet_pygaps_adapter
+
+    relative_pressure = []
+    loading = []
+    for row in isotherm_rows:
+        if len(row) < 2:
+            continue
+        try:
+            pressure = float(row[0])
+            amount = float(row[1])
+        except (TypeError, ValueError):
+            continue
+        relative_pressure.append(pressure)
+        loading.append(amount)
+    if not relative_pressure:
+        return {}
+    result = bet_pygaps_adapter.process_or_analyze(relative_pressure, loading)
+    return result if result.get("ok") else {}
 
 
 def bet_vendor_isotherm_rows(rows: list[dict[str, str]]) -> list[list[float | str | None]]:

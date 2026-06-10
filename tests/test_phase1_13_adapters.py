@@ -238,6 +238,38 @@ def test_xps_vgd_reader_adapter_converts_spectrum_to_rows(monkeypatch, tmp_path:
     assert result.metadata_provenance["adapter"] == "xps_vgd_reader_adapter"
 
 
+def test_bet_processor_results_are_sourced_from_pygaps_adapter(monkeypatch):
+    calls = []
+
+    def fake_process(relative_pressure, loading):
+        calls.append((list(relative_pressure), list(loading)))
+        return {
+            "ok": True,
+            "pygaps_pointisotherm_constructed": True,
+            "isotherm_point_count": 2,
+            "relative_pressure_range": [0.1, 0.2],
+            "loading_range": [5.0, 7.0],
+            "manual_check_required": True,
+            "metadata_provenance": {"adapter": "bet_pygaps_adapter"},
+        }
+
+    monkeypatch.setattr(bet_pygaps_adapter, "process_or_analyze", fake_process)
+
+    result = type_specific_results(
+        "BET",
+        [(0.1, 5.0), (0.2, 7.0)],
+        [
+            {"relative pressure": "0.1", "quantity adsorbed": "5"},
+            {"relative pressure": "0.2", "quantity adsorbed": "7"},
+        ],
+    )
+
+    assert calls == [([0.1, 0.2], [5.0, 7.0])]
+    assert result["isotherm_points"] == 2
+    assert result["pygaps_relative_pressure_range"] == [0.1, 0.2]
+    assert result["adapter_results"]["BET"]["metadata_provenance"]["adapter"] == "bet_pygaps_adapter"
+
+
 def test_bet_xps_epr_and_raman_adapters_are_candidate_only():
     bet = bet_pygaps_adapter.process_or_analyze([0.05, 0.1], [1.0, 1.5])
     xps = xps_lmfitxps_adapter.smoke_test()["result"]

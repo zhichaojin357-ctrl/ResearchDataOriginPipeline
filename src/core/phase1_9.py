@@ -50,7 +50,7 @@ PACKAGE_SPECS = [
     {"package": "pybaselines", "module": "pybaselines", "tier": "core_optional", "data_types": ["Raman", "PL", "FTIR", "UV-vis DRS", "EPR"], "license_policy": "permissive", "use": "baseline correction candidate"},
     {"package": "scipy", "module": "scipy", "tier": "core", "data_types": ["spectra", "all numeric"], "license_policy": "permissive", "use": "find_peaks and numeric routines"},
     {"package": "vgd-reader", "module": "vgd_reader", "tier": "optional_adapter", "data_types": ["XPS"], "license_policy": "permissive", "use": "VGD reader probe"},
-    {"package": "pygaps", "module": "pygaps", "tier": "optional_adapter", "data_types": ["BET"], "license_policy": "permissive", "use": "isotherm/BET candidate analysis"},
+    {"package": "pygaps", "module": "pygaps", "tier": "optional_adapter", "data_types": ["BET"], "license_policy": "permissive", "use": "PointIsotherm candidate provenance only; no BET fit/model conclusion"},
     {"package": "nmrglue", "module": "nmrglue", "tier": "optional_adapter", "data_types": ["NMR"], "license_policy": "permissive", "use": "Bruker processed data reader"},
     {"package": "tifffile", "module": "tifffile", "tier": "core_optional", "data_types": ["SEM", "TEM"], "license_policy": "permissive", "use": "image metadata and preview"},
     {"package": "pillow", "module": "PIL", "tier": "core_optional", "data_types": ["SEM", "TEM", "QC"], "license_policy": "permissive", "use": "image preview and DPI inspection"},
@@ -340,7 +340,7 @@ def write_data_type_coverage_matrix(project_root: Path, package_report: dict) ->
     installed = {item["package"]: item for item in package_report["installed_or_detected"] if item["import_status"] == "ok"}
     rows = [
         {"data_type": "photocurrent/photoelectrochemistry", "reader": "table/CHI TXT + optional ixdat", "algorithm": "time-current, light marker, current density candidate", "external_packages": _available_names(installed, ["ixdat", "scipy"]), "auto_conclusions": "blocked"},
-        {"data_type": "BET", "reader": "CSV/XLS/XLSX exported tables + optional pyGAPS", "algorithm": "isotherm points and exported BET summary; BET fit candidate only", "external_packages": _available_names(installed, ["pygaps"]), "auto_conclusions": "blocked"},
+        {"data_type": "BET", "reader": "CSV/XLS/XLSX exported tables + optional pyGAPS", "algorithm": "exported isotherm/summary parser plus optional pyGAPS PointIsotherm provenance; no BET fit", "external_packages": _available_names(installed, ["pygaps"]), "auto_conclusions": "blocked"},
         {"data_type": "EPR", "reader": "JEOL decoder + optional cwepr/eprpy", "algorithm": "adapter field-intensity, peak-to-peak, g candidate", "external_packages": _available_names(installed, ["cwepr", "eprpy"]), "auto_conclusions": "radical assignment blocked"},
         {"data_type": "PL/FTIR/Raman/UV-vis", "reader": "tables", "algorithm": "pybaselines ASLS candidate, scipy peaks, raw/corrected columns", "external_packages": _available_names(installed, ["pybaselines", "scipy"]), "auto_conclusions": "defect/recombination/bond assignment blocked"},
         {"data_type": "SEM/TEM", "reader": "image metadata/probe only", "algorithm": "thumbnail/QC metadata only", "external_packages": _available_names(installed, ["pillow", "tifffile", "scikit-image"]), "auto_conclusions": "morphology/lattice interpretation blocked"},

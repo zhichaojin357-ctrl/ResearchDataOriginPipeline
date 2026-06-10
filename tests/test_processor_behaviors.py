@@ -768,6 +768,15 @@ class ProcessorBehaviorTest(unittest.TestCase):
                 writer.writerow([0.2, 7])
             bet_meta = process_table_dataset(root, classification("BET", "bet_processor"), bet)
             self.assertEqual(bet_meta["key_results"]["isotherm_points"], 2)
+            self.assertEqual(bet_meta["key_results"]["pygaps_relative_pressure_range"], [0.1, 0.2])
+            self.assertEqual(
+                bet_meta["key_results"]["adapter_results"]["BET"]["metadata_provenance"]["adapter"],
+                "bet_pygaps_adapter",
+            )
+            self.assertIn(
+                "pygaps_pointisotherm_candidate_no_bet_fit",
+                bet_meta["parameters"]["algorithm_provenance"]["candidate_methods"],
+            )
             bet_rows = self._processed_rows(root, bet_meta)
             self.assertEqual(set(bet_rows[0]), {"relative_pressure_p_p0", "adsorbed_volume", "desorption_volume_optional"})
 
