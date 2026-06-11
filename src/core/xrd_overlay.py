@@ -10,6 +10,7 @@ from pathlib import Path
 
 from src.core.metadata import file_hash
 from src.core.opju_product_pilot import extract_xrd_raw_data_rows
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.runtime_paths import create_run_output_layout, resolve_origin_helper, resolve_output_root
 from src.origin.adapter import check_origin_available, write_origin_error, write_origin_success
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE, get_plot_policy
@@ -420,7 +421,11 @@ def _write_metadata(
         "data_type": "XRD",
         "processor_name": "xrd_overlay_processor",
         "processing_status": "success" if export_status.get("ok") else ("fail" if options.with_origin else "processed_no_origin"),
-        "source_files": [str(options.bicu_source), str(options.bobc_source), str(options.cwo_source)],
+        "source_files": [
+            _output_display_path(run_root, options.bicu_source),
+            _output_display_path(run_root, options.bobc_source),
+            _output_display_path(run_root, options.cwo_source),
+        ],
         "source_hashes": {
             "BiCu-10": file_hash(options.bicu_source),
             "BiOBr0.5Cl0.5": file_hash(options.bobc_source),
@@ -431,8 +436,8 @@ def _write_metadata(
         "origin_file": _relative(run_root, artifacts.origin_file) if artifacts.origin_file.exists() else None,
         "figure_tif": _relative(run_root, artifacts.figure_tif) if artifacts.figure_tif.exists() else None,
         "preview_png": _relative(run_root, artifacts.preview_png) if artifacts.preview_png.exists() else None,
-        "origin_reference_opju": str(options.reference_opju),
-        "origin_status": export_status,
+        "origin_reference_opju": _output_display_path(run_root, options.reference_opju),
+        "origin_status": _sanitize_output_value(run_root, export_status),
         "plot_type": "normalized offset XRD overlay with CuWO4 reference-card sticks",
         "manual_check_required": True,
         "manual_check_items": [
@@ -468,8 +473,8 @@ def _write_report(
         f"- Origin OPJU: `{_relative(run_root, artifacts.origin_file) if artifacts.origin_file.exists() else 'not exported'}`",
         f"- TIF: `{_relative(run_root, artifacts.figure_tif) if artifacts.figure_tif.exists() else 'not exported'}`",
         f"- PNG preview: `{_relative(run_root, artifacts.preview_png) if artifacts.preview_png.exists() else 'not exported'}`",
-        f"- Reference OPJU: `{options.reference_opju}`",
-        f"- CWO reference card: `{options.cwo_card}`",
+        f"- Reference OPJU: `{_output_display_path(run_root, options.reference_opju)}`",
+        f"- CWO reference card: `{_output_display_path(run_root, options.cwo_card)}`",
         "",
         "## Series",
         "",
@@ -605,3 +610,18 @@ def _relative(root: Path, path: Path) -> str:
         return str(path.resolve().relative_to(root.resolve())).replace("\\", "/")
     except ValueError:
         return str(path)
+
+
+def _output_display_path(run_root: Path, path: Path) -> str:
+    rendered = render_output_path(path, output_root=run_root)
+    return rendered or Path(path).name
+
+
+def _sanitize_output_value(run_root: Path, value: object) -> object:
+    if isinstance(value, dict):
+        return {key: _sanitize_output_value(run_root, item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_output_value(run_root, item) for item in value]
+    if isinstance(value, str):
+        return scrub_output_text(value, output_root=run_root)
+    return value

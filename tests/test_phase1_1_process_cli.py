@@ -324,6 +324,8 @@ class Phase11ProcessCliTest(unittest.TestCase):
             record = failures["failures"][0]
             self.assertEqual(record["inferred_data_type"], "XRD")
             self.assertEqual(record["processor_name"], "xrd_processor")
+            self.assertFalse(Path(record["source_file"]).is_absolute())
+            self.assertNotIn(str(project), json.dumps(failures, ensure_ascii=False))
             self.assertIn(record["failure_stage"], {"read_table", "processing"})
             self.assertTrue(record["manual_fix_hint"])
             self.assertTrue((project / "output" / "reports" / "processing_failures.md").exists())

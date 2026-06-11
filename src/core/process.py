@@ -7,7 +7,7 @@ from pathlib import Path
 
 from src.processors.base import process_table_dataset
 from src.scanner.scanner import scan_raw_data
-from src.core.output_sanitizer import render_output_path
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.project import output_dir, report_path
 from src.core.runtime_paths import resolve_phase1_6_index
 
@@ -35,7 +35,7 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
         run_triage(
             project_root,
             input_path,
-            TriageOptions(only_type=options.only_type, only_folder=options.only_folder),
+            TriageOptions(only_type=options.only_type, only_folder=options.only_folder, output_root=options.output_root),
         )
         options = ProcessOptions(
             no_origin=True,
@@ -72,7 +72,7 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
 
     for classification, source, triage_data in work_items:
         if triage_data and triage_data.get("stale_queue_item"):
-            failure = _failure_from_queue_validation(classification, source, triage_data)
+            failure = _failure_from_queue_validation(classification, source, triage_data, project_root=project_root, output_root=options.output_root)
             failures.append(failure)
             if options.fail_fast:
                 break
@@ -95,7 +95,7 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
                 if options.fail_fast:
                     break
         except Exception as exc:
-            failure = _failure_from_exception(classification, source, exc, triage_data)
+            failure = _failure_from_exception(classification, source, exc, triage_data, project_root=project_root, output_root=options.output_root)
             failures.append(failure)
             if options.fail_fast:
                 break
@@ -357,16 +357,23 @@ def _triage_from_queue_item(item: dict, *, stale: bool = False, message: str | N
     return triage
 
 
-def _failure_from_queue_validation(classification: dict, source: Path, triage: dict) -> dict:
+def _failure_from_queue_validation(
+    classification: dict,
+    source: Path,
+    triage: dict,
+    *,
+    project_root: Path | None = None,
+    output_root: Path | None = None,
+) -> dict:
     return {
-        "source_file": render_output_path(source),
+        "source_file": render_output_path(source, project_root=project_root, output_root=output_root),
         "source_hash": triage.get("source_hash"),
         "inferred_data_type": classification.get("inferred_data_type"),
         "selected_processor": classification.get("selected_processor"),
         "processor_name": classification.get("selected_processor"),
         "triage_decision": triage.get("triage_decision"),
         "failure_stage": "queue_validation",
-        "error_message": triage.get("message", "queue item is stale or invalid"),
+        "error_message": scrub_output_text(triage.get("message", "queue item is stale or invalid"), project_root=project_root, output_root=output_root),
         "manual_fix_hint": "Regenerate the triage queue, or use an explicit manual override after confirming the source file.",
         "whether_retry_with_manual_override_is_possible": True,
     }
@@ -406,20 +413,28 @@ def _failure_from_metadata(metadata: dict, stage: str) -> dict:
     }
 
 
-def _failure_from_exception(classification: dict, source: Path, exc: Exception, triage: dict | None = None) -> dict:
+def _failure_from_exception(
+    classification: dict,
+    source: Path,
+    exc: Exception,
+    triage: dict | None = None,
+    *,
+    project_root: Path | None = None,
+    output_root: Path | None = None,
+) -> dict:
     from src.core.metadata import file_hash
 
     triage = triage or {}
     source_hash = file_hash(source) if source.exists() and source.is_file() else None
     return {
-        "source_file": str(source),
+        "source_file": render_output_path(source, project_root=project_root, output_root=output_root),
         "source_hash": source_hash,
         "inferred_data_type": classification.get("inferred_data_type"),
         "selected_processor": classification.get("selected_processor"),
         "processor_name": classification.get("selected_processor"),
         "triage_decision": triage.get("triage_decision"),
         "failure_stage": _failure_stage(exc),
-        "error_message": str(exc),
+        "error_message": scrub_output_text(exc, project_root=project_root, output_root=output_root),
         "manual_fix_hint": _manual_fix_hint(_failure_stage(exc), classification.get("inferred_data_type")),
         "whether_retry_with_manual_override_is_possible": True,
     }

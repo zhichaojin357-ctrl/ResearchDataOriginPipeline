@@ -9,9 +9,11 @@ import pytest
 
 from src.core.origin_batch import OriginBatchOptions, plan_origin_batch, run_origin_batch
 from src.core.phase1_7 import (
+    audit_phase1_6_package,
     generate_gallery,
     generate_override_decision_table,
     generate_preview_review_checklist,
+    write_origin_com_isolation_proof,
 )
 
 
@@ -43,6 +45,20 @@ def test_gallery_index_can_be_generated_when_package_available(project_root: Pat
     gallery = generate_gallery(project_root)
     assert gallery["total"] == 167
     assert gallery["by_type"]["XPS"] == 9
+
+
+def test_phase1_7_reports_render_package_paths_without_absolute_prefix(tmp_path: Path):
+    package = _make_manifest_package(tmp_path, tmp_path, complete=True)
+
+    audit = audit_phase1_6_package(tmp_path, package)
+    gallery = generate_gallery(tmp_path, package)
+    proof = write_origin_com_isolation_proof(tmp_path)
+    rendered = json.dumps({"audit": audit, "gallery": gallery, "proof": proof}, ensure_ascii=False)
+
+    assert str(tmp_path) not in rendered
+    assert audit["package_root"] == "pkg"
+    assert gallery["package_root"] == audit["package_root"]
+    assert proof["synthetic_data"] == "output/reports/phase1_7_origin_com_isolation_synthetic/synthetic.csv"
 
 
 def test_manual_override_decision_table_can_be_generated(project_root: Path):
@@ -141,6 +157,9 @@ def test_manifest_runner_writes_default_reports(tmp_path: Path, project_root: Pa
     assert code == 0
     payload = json.loads(report_json.read_text(encoding="utf-8"))
     assert payload["summary"]["will_launch_origin"] is False
+    rendered = json.dumps(payload, ensure_ascii=False)
+    assert str(tmp_path) not in rendered
+    assert "external/" in payload["manifest"]
 
 
 def test_origin_batch_help_documents_dry_run_default(project_root: Path):

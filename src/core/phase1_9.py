@@ -54,7 +54,7 @@ PACKAGE_SPECS = [
     {"package": "nmrglue", "module": "nmrglue", "tier": "optional_adapter", "data_types": ["NMR"], "license_policy": "permissive", "use": "Bruker processed data reader"},
     {"package": "tifffile", "module": "tifffile", "tier": "core_optional", "data_types": ["SEM", "TEM"], "license_policy": "permissive", "use": "image metadata and preview"},
     {"package": "pillow", "module": "PIL", "tier": "core_optional", "data_types": ["SEM", "TEM", "QC"], "license_policy": "permissive", "use": "image preview and DPI inspection"},
-    {"package": "scikit-image", "module": "skimage", "tier": "optional_adapter", "data_types": ["SEM", "TEM"], "license_policy": "permissive", "use": "image metadata/QC only"},
+    {"package": "scikit-image", "module": "skimage", "tier": "future_reference", "data_types": ["SEM", "TEM"], "license_policy": "future_candidate_unused", "use": "future image-QC candidate only; current adapter uses Pillow/tifffile"},
     {"package": "ixdat", "module": "ixdat", "tier": "optional_adapter", "data_types": ["photocurrent", "electrochemistry"], "license_policy": "permissive", "use": "electrochemical import abstraction"},
     {"package": "impedance", "module": "impedance", "tier": "optional_adapter", "data_types": ["EIS"], "license_policy": "MIT", "use": "CustomCircuit draft fit candidate; no circuit conclusion"},
     {"package": "rainbow-api", "module": "rainbow", "tier": "optional_adapter", "data_types": ["HPLC/LC exported data"], "license_policy": "LGPL_optional_boundary", "use": "chromatography raw reader probe"},
@@ -66,8 +66,9 @@ PACKAGE_SPECS = [
     {"package": "lmfitxps", "module": "lmfitxps", "tier": "optional_adapter", "data_types": ["XPS"], "license_policy": "MIT_with_internal_license_review", "use": "existing fitted-curve summary only; no automatic fitting or valence assignment"},
     {"package": "galvani", "module": "galvani", "tier": "reference_only", "data_types": ["electrochemistry"], "license_policy": "GPL_reference_only", "use": "Bio-Logic reader reference only"},
     {"package": "eclabfiles", "module": "eclabfiles", "tier": "reference_only", "data_types": ["electrochemistry"], "license_policy": "GPL_reference_only", "use": "EC-Lab reader reference only"},
+    {"package": "hplc-py", "module": "hplc", "tier": "reference_only", "data_types": ["HPLC/LC exported data"], "license_policy": "reference_only_gpl", "use": "raw HPLC reader reference only; exported-table flow does not require it"},
     {"package": "pyopenms", "module": "pyopenms", "tier": "reference_only", "data_types": ["MS"], "license_policy": "heavy_optional_reference", "use": "full MS toolkit reference only"},
-    {"package": "matchms", "module": "matchms", "tier": "reference_only", "data_types": ["MS"], "license_policy": "optional_reference", "use": "MS similarity reference only"},
+    {"package": "matchms", "module": "matchms", "tier": "blocked", "data_types": ["MS"], "license_policy": "blocked_core_dependency_change", "use": "blocked in Phase 1 because dry-run would change core numpy/scipy versions"},
     {"package": "pyimpspec", "module": "pyimpspec", "tier": "reference_only", "data_types": ["EIS"], "license_policy": "GPL_reference_only", "use": "EIS expert analysis reference only"},
 ]
 
@@ -245,7 +246,7 @@ def write_journal_ready_index(project_root: Path, package_dir: Path, skill_paylo
     md = [
         "# Phase 1.9 Journal-ready Index",
         "",
-        f"- Source package: `{package_dir}`",
+        f"- Source package: `{render_output_path(package_dir, project_root=project_root)}`",
         f"- Rows: {len(enriched_rows)}",
         f"- Plotting skill SHA256: `{skill_payload['skill_sha256']}`",
         f"- Style profile: `{STYLE_PROFILE}`",
@@ -294,6 +295,10 @@ def write_package_integration_report(project_root: Path) -> dict:
             result["adapter_policy"] = "available only behind explicit optional adapter and manual-review guard"
         elif result["tier"] == "reference_only":
             result["adapter_policy"] = "do not import in automatic processing; reference/report only"
+        elif result["tier"] == "blocked":
+            result["adapter_policy"] = "blocked from Phase 1 dependency set"
+        elif result["tier"] == "future_reference":
+            result["adapter_policy"] = "future candidate only; not imported by current automatic processing"
         else:
             result["adapter_policy"] = "allowed for candidate calculations without scientific conclusions"
         results.append(result)
@@ -343,7 +348,7 @@ def write_data_type_coverage_matrix(project_root: Path, package_report: dict) ->
         {"data_type": "BET", "reader": "CSV/XLS/XLSX exported tables + optional pyGAPS", "algorithm": "exported isotherm/summary parser plus optional pyGAPS PointIsotherm provenance; no BET fit", "external_packages": _available_names(installed, ["pygaps"]), "auto_conclusions": "blocked"},
         {"data_type": "EPR", "reader": "JEOL decoder + optional cwepr/eprpy", "algorithm": "adapter field-intensity, peak-to-peak, g candidate", "external_packages": _available_names(installed, ["cwepr", "eprpy"]), "auto_conclusions": "radical assignment blocked"},
         {"data_type": "PL/FTIR/Raman/UV-vis", "reader": "tables", "algorithm": "pybaselines ASLS candidate, scipy peaks, raw/corrected columns", "external_packages": _available_names(installed, ["pybaselines", "scipy"]), "auto_conclusions": "defect/recombination/bond assignment blocked"},
-        {"data_type": "SEM/TEM", "reader": "image metadata/probe only", "algorithm": "thumbnail/QC metadata only", "external_packages": _available_names(installed, ["pillow", "tifffile", "scikit-image"]), "auto_conclusions": "morphology/lattice interpretation blocked"},
+        {"data_type": "SEM/TEM", "reader": "image metadata/probe only", "algorithm": "thumbnail/QC metadata only", "external_packages": _available_names(installed, ["pillow", "tifffile"]), "auto_conclusions": "morphology/lattice interpretation blocked"},
         {"data_type": "XPS", "reader": "tables + optional vgd-reader/lmfitxps", "algorithm": "adapter raw/background/envelope/component/residual handling; no auto fitting", "external_packages": _available_names(installed, ["vgd-reader", "lmfitxps"]), "auto_conclusions": "valence assignment blocked"},
         {"data_type": "XRD", "reader": "CSV/TXT/XLSX tables; raw/dql probe only", "algorithm": "peak candidates only", "external_packages": _available_names(installed, ["scipy"]), "auto_conclusions": "phase/plane assignment blocked"},
         {"data_type": "NMR", "reader": "optional nmrglue for Bruker processed data", "algorithm": "spectrum/peaklist index only", "external_packages": _available_names(installed, ["nmrglue"]), "auto_conclusions": "structure interpretation blocked"},

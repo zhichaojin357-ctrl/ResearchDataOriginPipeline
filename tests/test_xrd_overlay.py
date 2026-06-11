@@ -70,9 +70,17 @@ def test_run_xrd_overlay_dry_run_writes_metadata_without_origin(tmp_path: Path) 
     assert result["will_launch_origin"] is False
     processed = project_root / result["processed_data"]
     metadata = json.loads((project_root / result["metadata"]).read_text(encoding="utf-8"))
+    report = (project_root / result["report"]).read_text(encoding="utf-8")
     assert processed.exists()
     assert metadata["manual_check_required"] is True
     assert metadata["origin_status"]["ok"] is False
+    assert metadata["source_files"] == ["external/BOBCshuirecwo.txt", "external/BOBCshuire.txt", "external/cwo.txt"]
+    assert metadata["origin_reference_opju"] == "external/CWO+BOBC+标卡.opju"
+    rendered_metadata = json.dumps(metadata, ensure_ascii=False)
+    assert "Codex Project" not in rendered_metadata
+    assert ":/" not in rendered_metadata.replace("Origin export skipped by --dry-run/--no-origin.", "")
+    assert str(reference) not in report
+    assert "external/CWO+BOBC+标卡.opju" in report
     assert "BiOBr\\-(0.5)Cl\\-(0.5)" in processed.read_text(encoding="utf-8").splitlines()[0]
 
 

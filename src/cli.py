@@ -326,6 +326,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="skip the machine-local desktop workbook copy check; project report workbook is still checked",
     )
+    readiness.add_argument(
+        "--strict-artifacts",
+        action="store_true",
+        help="treat generated historical packages, queues, dashboards, and review workbooks as required artifacts",
+    )
     readiness.add_argument("--report-json", type=Path)
     readiness.add_argument("--report-md", type=Path)
 
@@ -698,6 +703,7 @@ def main(argv: list[str] | None = None) -> int:
                 workspace_root=args.workspace_root,
                 f_drive_backup=args.f_drive_backup,
                 phase1_6_package=args.phase1_6_package,
+                strict_artifacts=args.strict_artifacts,
                 check_legacy_project_path=not args.skip_legacy_project_path_check,
                 desktop_review_xlsx=None if args.no_desktop_review_xlsx else args.desktop_review_xlsx,
                 report_json=args.report_json,

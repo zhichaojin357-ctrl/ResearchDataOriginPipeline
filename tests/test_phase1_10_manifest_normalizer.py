@@ -72,8 +72,12 @@ def test_material_collection_normalizer_marks_source_only_items_unsafe(tmp_path:
     result = normalize_material_collection_manifest(collection / "index.csv", tmp_path)
 
     assert result.summary["safe_count"] == 0
+    assert str(tmp_path) not in json.dumps(result.summary, ensure_ascii=False)
+    assert result.summary["source_manifest"] == "collection/index.csv"
+    assert result.summary["source_package"] == "collection"
     assert result.items[0]["safe_for_origin_batch"] == "false"
     assert result.items[0]["unprocessed_source_only"] == "true"
+    assert result.items[0]["source_package"] == "collection"
     assert "missing_processed_csv" in result.items[0]["cannot_origin_batch_reason"]
     assert "missing_metadata" in result.items[0]["cannot_origin_batch_reason"]
     assert result.items[0]["already_origin_exported"] == "false"

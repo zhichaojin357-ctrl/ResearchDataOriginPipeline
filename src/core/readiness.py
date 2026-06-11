@@ -21,6 +21,7 @@ class ReadinessOptions:
     workspace_root: Path | None = None
     f_drive_backup: Path | None = None
     phase1_6_package: Path | None = None
+    strict_artifacts: bool = False
     check_legacy_project_path: bool = True
     desktop_review_xlsx: Path | None = None
     report_json: Path | None = None
@@ -41,36 +42,100 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
     docs_reports = project_root / "docs" / "agent_reports"
     package = resolve_phase1_6_package(project_root, options.phase1_6_package)
 
-    _add_check(checks, "workspace_copy_exists", workspace_root.exists() and workspace_root.is_dir(), str(workspace_root))
+    _add_artifact_check(
+        checks,
+        "workspace_copy_exists",
+        workspace_root.exists() and workspace_root.is_dir(),
+        str(workspace_root),
+        options,
+        artifacts_present=workspace_root.exists(),
+    )
     if f_drive_backup is not None:
-        _add_check(checks, "f_drive_backup_exists", f_drive_backup.exists() and f_drive_backup.is_dir(), str(f_drive_backup))
+        _add_artifact_check(
+            checks,
+            "f_drive_backup_exists",
+            f_drive_backup.exists() and f_drive_backup.is_dir(),
+            str(f_drive_backup),
+            options,
+            artifacts_present=f_drive_backup.exists(),
+        )
     if options.check_legacy_project_path:
         old_project = project_root.parent / "GroupMeetingAutoPPT"
         _add_check(checks, "old_project_path_absent", not old_project.exists(), str(old_project))
-    active_docs_ok, active_docs_detail = _active_project_name_status(project_root)
-    _add_check(checks, "active_project_name_references_current", active_docs_ok, active_docs_detail)
+    active_docs_ok, active_docs_detail, active_docs_generated_only = _active_project_name_status(project_root)
+    _add_check(
+        checks,
+        "active_project_name_references_current",
+        active_docs_ok,
+        active_docs_detail,
+        fail_status="warning" if active_docs_generated_only and not options.strict_artifacts else "fail",
+    )
 
     index = package / "index.csv"
     index_rows = _csv_row_count(index)
-    _add_check(
+    _add_artifact_check(
         checks,
         "phase1_6_index_count",
         index_rows == options.expected_phase1_6_count,
         f"{index_rows}/{options.expected_phase1_6_count} rows in {index}",
+        options,
+        artifacts_present=index.is_file(),
     )
     result_summary = package / "result_summary.json"
-    _add_check(checks, "phase1_6_result_summary_exists", result_summary.is_file(), str(result_summary))
+    _add_artifact_check(
+        checks,
+        "phase1_6_result_summary_exists",
+        result_summary.is_file(),
+        str(result_summary),
+        options,
+        artifacts_present=result_summary.exists(),
+    )
     summary_ok, summary_detail = _phase1_6_summary_status(index, result_summary, options.expected_phase1_6_count)
-    _add_check(checks, "phase1_6_result_summary_matches_index", summary_ok, summary_detail)
+    _add_artifact_check(
+        checks,
+        "phase1_6_result_summary_matches_index",
+        summary_ok,
+        summary_detail,
+        options,
+        artifacts_present=index.exists() or result_summary.exists(),
+    )
 
     manual_csv = reports / "phase1_8_manual_review_required_filtered.csv"
     manual_xlsx = reports / "phase1_8_manual_review_required_filtered.xlsx"
     manual_report = reports / "phase1_8_manual_review_required_filtered_report.md"
-    _add_check(checks, "manual_review_filtered_csv_exists", manual_csv.is_file() and manual_csv.stat().st_size > 0, str(manual_csv))
-    _add_check(checks, "manual_review_filtered_xlsx_exists", manual_xlsx.is_file() and manual_xlsx.stat().st_size > 0, str(manual_xlsx))
-    _add_check(checks, "manual_review_filtered_report_exists", manual_report.is_file() and manual_report.stat().st_size > 0, str(manual_report))
+    _add_artifact_check(
+        checks,
+        "manual_review_filtered_csv_exists",
+        manual_csv.is_file() and manual_csv.stat().st_size > 0,
+        str(manual_csv),
+        options,
+        artifacts_present=manual_csv.exists(),
+    )
+    _add_artifact_check(
+        checks,
+        "manual_review_filtered_xlsx_exists",
+        manual_xlsx.is_file() and manual_xlsx.stat().st_size > 0,
+        str(manual_xlsx),
+        options,
+        artifacts_present=manual_xlsx.exists(),
+    )
+    _add_artifact_check(
+        checks,
+        "manual_review_filtered_report_exists",
+        manual_report.is_file() and manual_report.stat().st_size > 0,
+        str(manual_report),
+        options,
+        artifacts_present=manual_report.exists(),
+    )
     manual_consistent_ok, manual_consistent_detail = _manual_review_status(manual_csv, manual_xlsx, manual_report)
-    _add_check(checks, "manual_review_outputs_consistent", manual_consistent_ok, manual_consistent_detail)
+    _add_artifact_check(
+        checks,
+        "manual_review_outputs_consistent",
+        manual_consistent_ok,
+        manual_consistent_detail,
+        options,
+        artifacts_present=manual_csv.exists() or manual_xlsx.exists() or manual_report.exists(),
+    )
     if options.desktop_review_xlsx is not None:
         desktop_xlsx = _resolve_path(project_root, options.desktop_review_xlsx)
         desktop_ok, desktop_detail = _matching_file_status(manual_xlsx, desktop_xlsx)
@@ -79,26 +144,49 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
     auto_plan = reports / "phase1_8_new_auto_process_plan.json"
     auto_queue = reports / "phase1_8_new_auto_process_queue.json"
     auto_summary = _json_summary(auto_plan)
-    _add_check(checks, "auto_queue_plan_exists", auto_plan.is_file(), str(auto_plan))
-    _add_check(checks, "auto_queue_file_exists", auto_queue.is_file(), str(auto_queue))
-    _add_check(
+    _add_artifact_check(checks, "auto_queue_plan_exists", auto_plan.is_file(), str(auto_plan), options, artifacts_present=auto_plan.exists())
+    _add_artifact_check(checks, "auto_queue_file_exists", auto_queue.is_file(), str(auto_queue), options, artifacts_present=auto_queue.exists())
+    _add_artifact_check(
         checks,
         "auto_queue_dry_run_flags",
         auto_summary.get("will_run_process") is False and auto_summary.get("will_launch_origin") is False,
         f"will_run_process={auto_summary.get('will_run_process')}; will_launch_origin={auto_summary.get('will_launch_origin')}",
+        options,
+        artifacts_present=auto_plan.is_file(),
     )
     auto_consistent_ok, auto_consistent_detail = _auto_queue_status(auto_plan, auto_queue)
-    _add_check(checks, "auto_queue_plan_queue_consistent", auto_consistent_ok, auto_consistent_detail)
+    _add_artifact_check(
+        checks,
+        "auto_queue_plan_queue_consistent",
+        auto_consistent_ok,
+        auto_consistent_detail,
+        options,
+        artifacts_present=auto_plan.exists() or auto_queue.exists(),
+    )
 
     reviewed_proposals = reports / "phase1_7_new_override_proposals_after_optimization.json"
     reviewed_decisions = reports / "phase1_8_review_decisions_template.csv"
     reviewed_plan = reports / "phase1_8_reviewed_queue_plan.json"
     reviewed_ok, reviewed_detail = _reviewed_queue_status(reviewed_proposals, reviewed_decisions, reviewed_plan)
-    _add_check(checks, "reviewed_queue_plan_current", reviewed_ok, reviewed_detail)
+    _add_artifact_check(
+        checks,
+        "reviewed_queue_plan_current",
+        reviewed_ok,
+        reviewed_detail,
+        options,
+        artifacts_present=reviewed_proposals.exists() or reviewed_decisions.exists() or reviewed_plan.exists(),
+    )
 
     origin_batch_plan = reports / "phase1_7_manifest_runner_plan.json"
     origin_batch_ok, origin_batch_detail = _origin_batch_plan_status(origin_batch_plan, options.expected_phase1_6_count)
-    _add_check(checks, "origin_batch_dry_run_plan_current", origin_batch_ok, origin_batch_detail)
+    _add_artifact_check(
+        checks,
+        "origin_batch_dry_run_plan_current",
+        origin_batch_ok,
+        origin_batch_detail,
+        options,
+        artifacts_present=origin_batch_plan.is_file(),
+    )
 
     validation_report = reports / "validation_report.md"
     validation_ok, validation_detail = _validation_report_status(project_root, validation_report)
@@ -113,12 +201,34 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
         reports / "phase1_8_final_summary.md",
         docs_reports / "phase1_8_final_summary.md",
     ]
-    summary_ok = all(path.is_file() and not _contains_any(path, stale_summary_terms) for path in final_summaries)
-    _add_check(checks, "phase1_8_summary_current", summary_ok, "; ".join(str(path) for path in final_summaries))
+    missing_summaries = [path for path in final_summaries if not path.is_file()]
+    stale_summaries = [path for path in final_summaries if path.is_file() and _contains_any(path, stale_summary_terms)]
+    summary_ok = not missing_summaries and not stale_summaries
+    summary_detail_parts = []
+    if missing_summaries:
+        summary_detail_parts.append("missing: " + "; ".join(str(path) for path in missing_summaries))
+    if stale_summaries:
+        summary_detail_parts.append("stale: " + "; ".join(str(path) for path in stale_summaries))
+    if not summary_detail_parts:
+        summary_detail_parts.append("; ".join(str(path) for path in final_summaries))
+    _add_check(
+        checks,
+        "phase1_8_summary_current",
+        summary_ok,
+        "; ".join(summary_detail_parts),
+        fail_status="fail" if options.strict_artifacts or stale_summaries else "warning",
+    )
 
     dashboard_path = project_root / "output" / "review_dashboard" / "index.md"
     dashboard_ok, dashboard_detail = _dashboard_status(dashboard_path, stale_summary_terms)
-    _add_check(checks, "review_dashboard_current", dashboard_ok, dashboard_detail)
+    _add_artifact_check(
+        checks,
+        "review_dashboard_current",
+        dashboard_ok,
+        dashboard_detail,
+        options,
+        artifacts_present=dashboard_path.exists(),
+    )
 
     forbidden_paths = [
         project_root / "src" / "ppt",
@@ -188,8 +298,21 @@ def _readiness_markdown(report: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _add_check(checks: list[dict], name: str, passed: bool, detail: str) -> None:
-    checks.append({"name": name, "status": "pass" if passed else "fail", "detail": detail})
+def _add_check(checks: list[dict], name: str, passed: bool, detail: str, *, fail_status: str = "fail") -> None:
+    checks.append({"name": name, "status": "pass" if passed else fail_status, "detail": detail})
+
+
+def _add_artifact_check(
+    checks: list[dict],
+    name: str,
+    passed: bool,
+    detail: str,
+    options: ReadinessOptions,
+    *,
+    artifacts_present: bool,
+) -> None:
+    fail_status = "fail" if options.strict_artifacts or artifacts_present else "warning"
+    _add_check(checks, name, passed, detail, fail_status=fail_status)
 
 
 def _csv_row_count(path: Path) -> int:
@@ -288,7 +411,7 @@ def _validation_inputs_newer_than_report(project_root: Path, report: Path) -> li
     return [path for path in candidates if path.is_file() and path.stat().st_mtime > report_mtime + 1e-6]
 
 
-def _active_project_name_status(project_root: Path) -> tuple[bool, str]:
+def _active_project_name_status(project_root: Path) -> tuple[bool, str, bool]:
     active_docs = [
         project_root / "README.md",
         project_root / "PROJECT_STATUS.md",
@@ -313,10 +436,11 @@ def _active_project_name_status(project_root: Path) -> tuple[bool, str]:
         if any(pattern in text for pattern in stale_patterns):
             stale_hits.append(str(path))
     if stale_hits:
-        return False, "stale old project references in active docs: " + "; ".join(stale_hits)
+        return False, "stale old project references in active docs: " + "; ".join(stale_hits), False
     if missing_active_docs:
-        return False, "missing active entry docs: " + "; ".join(missing_active_docs)
-    return True, "no stale old project references in active docs"
+        generated_only = all("/output/" in path.replace("\\", "/") for path in missing_active_docs)
+        return False, "missing active entry docs: " + "; ".join(missing_active_docs), generated_only
+    return True, "no stale old project references in active docs", False
 
 
 def _manual_review_status(csv_path: Path, xlsx_path: Path, report_path: Path) -> tuple[bool, str]:

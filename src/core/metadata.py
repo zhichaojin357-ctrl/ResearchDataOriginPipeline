@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from src.core.output_sanitizer import render_output_path
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.project import ensure_write_path_allowed
 
 
@@ -83,12 +83,16 @@ def write_metadata(
         "preview_png": render_path(preview_png),
         "processed_data": render_path(processed_data),
         "manual_check_required": True,
-        "manual_check_items": _manual_check_items(processing_status, manual_check_items, preview_png),
-        "forbidden_claims": forbidden_claims or [],
-        "warnings": warnings,
-        "parameters": parameters or {},
-        "key_results": key_results,
-        "triage": triage or {},
+        "manual_check_items": _sanitize_metadata_payload(
+            _manual_check_items(processing_status, manual_check_items, preview_png),
+            project_root=project_root,
+            output_root=output_root,
+        ),
+        "forbidden_claims": _sanitize_metadata_payload(forbidden_claims or [], project_root=project_root, output_root=output_root),
+        "warnings": _sanitize_metadata_payload(warnings, project_root=project_root, output_root=output_root),
+        "parameters": _sanitize_metadata_payload(parameters or {}, project_root=project_root, output_root=output_root),
+        "key_results": _sanitize_metadata_payload(key_results, project_root=project_root, output_root=output_root),
+        "triage": _sanitize_metadata_payload(triage or {}, project_root=project_root, output_root=output_root),
         "confidence_level": {
             "data_reading": "medium",
             "plotting": "medium" if processing_status == "success" else "low",
@@ -110,6 +114,18 @@ def _manual_check_items(processing_status: str, items: list[str], preview_png: P
         if preview_item not in output:
             output.append(preview_item)
     return output
+
+
+def _sanitize_metadata_payload(value: object, *, project_root: Path | None, output_root: Path | None) -> object:
+    if isinstance(value, Path):
+        return render_output_path(value, project_root=project_root, output_root=output_root)
+    if isinstance(value, dict):
+        return {str(key): _sanitize_metadata_payload(item, project_root=project_root, output_root=output_root) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_sanitize_metadata_payload(item, project_root=project_root, output_root=output_root) for item in value]
+    if isinstance(value, str):
+        return scrub_output_text(value, project_root=project_root, output_root=output_root)
+    return value
 
 
 def _is_under(path: Path, parent: Path) -> bool:

@@ -13,7 +13,7 @@
 | `nmrglue` | 0.11 | ok | optional_adapter | permissive | NMR | Bruker processed data reader |
 | `tifffile` | 2026.3.3 | ok | core_optional | permissive | SEM, TEM | image metadata and preview |
 | `pillow` | 12.2.0 | ok | core_optional | permissive | SEM, TEM, QC | image preview and DPI inspection |
-| `scikit-image` | 0.26.0 | ok | optional_adapter | permissive | SEM, TEM | image metadata/QC only |
+| `scikit-image` | 0.26.0 | ok | future_reference | future_candidate_unused | SEM, TEM | future image-QC candidate only; current adapter uses Pillow/tifffile |
 | `ixdat` | 0.3.0 | ok | optional_adapter | permissive | photocurrent, electrochemistry | electrochemical import abstraction |
 | `impedance` | 1.7.1 | ok | optional_adapter | MIT | EIS | CustomCircuit draft fit candidate; no circuit conclusion |
 | `rainbow-api` | 1.0.10 | ok | optional_adapter | LGPL_optional_boundary | HPLC/LC exported data | chromatography raw reader probe |
@@ -25,6 +25,7 @@
 | `lmfitxps` | 4.2.0 | ok | optional_adapter | MIT_with_internal_license_review | XPS | existing fitted-curve summary only; no automatic fitting or valence assignment |
 | `galvani` | 0.5.0 | ok | reference_only | GPL_reference_only | electrochemistry | Bio-Logic reader reference only |
 | `eclabfiles` | 0.4.1 | ok | reference_only | GPL_reference_only | electrochemistry | EC-Lab reader reference only |
+| `hplc-py` |  | fail | reference_only | reference_only_gpl | HPLC/LC exported data | raw HPLC reader reference only; exported-table flow does not require it |
 | `pyopenms` |  | fail | reference_only | heavy_optional_reference | MS | full MS toolkit reference only |
-| `matchms` |  | fail | reference_only | optional_reference | MS | MS similarity reference only |
+| `matchms` |  | fail | blocked | blocked_core_dependency_change | MS | blocked in Phase 1 because dry-run would change core numpy/scipy versions |
 | `pyimpspec` | 5.1.3 | ok | reference_only | GPL_reference_only | EIS | EIS expert analysis reference only |

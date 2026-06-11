@@ -64,9 +64,9 @@ Optional dependencies must remain optional:
 
 ## Current Local Import Audit
 
-- Available with permissive or acceptable metadata in `D:\Python\python.exe`: `impedance`, `ixdat`, `pyGAPS`, `nmrglue`, `tifffile`, `scikit-image`, `vgd-reader`, `MOCCA2`, `pymzML`, `pyteomics`, `cwepr`, `eprpy`, and narrow `lmfitxps` import/provenance use.
+- Available with permissive or acceptable metadata in `D:\Python\python.exe`: `impedance`, `ixdat`, `pyGAPS`, `nmrglue`, `tifffile`, `Pillow`, `vgd-reader`, `MOCCA2`, `pymzML`, `pyteomics`, `cwepr`, `eprpy`, and narrow `lmfitxps` import/provenance use.
 - Reference-only or non-default because of GPL/LGPL/unclear license boundaries: `pyimpspec`, `galvani`, `eclabfiles`, `hplc-py`, and `rainbow-api`.
-- Not importable in the current `D:\Python\python.exe` environment and not used by the main flow: `ramanspy`, `rampy`, `spectrochempy`, and `matchms`.
+- Not importable in the current `D:\Python\python.exe` environment and not used by the main flow: `ramanspy`, `rampy`, `spectrochempy`, and `matchms`. `matchms` is blocked for Phase 1 because its dry-run would change core numpy/scipy versions.
 
 ## Origin Tools And Manual References
 
@@ -107,7 +107,7 @@ The following candidates should remain optional until package metadata and proje
 - `HyperSpy`
 - `eXSpy`
 
-`scikit-image` is commonly BSD-licensed and suitable as a future optional candidate, but SEM/TEM image analysis remains deferred regardless of license.
+`scikit-image` is commonly BSD-licensed and suitable as a future optional candidate, but the current image metadata adapter uses only Pillow/tifffile and SEM/TEM image analysis remains deferred regardless of license.
 
 ## Practical Implementation Guardrails
 

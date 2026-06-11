@@ -233,8 +233,8 @@ Current caution:
 
 - `scripts/maintenance/opju_exemplar_regression.py` is a regression/comparison helper, not a production data processor.
 - `scripts/one_off/verify_jeol_epr_decode_against_exports.py` is one-off verification support.
-- `scripts/build_xps_in_situ_20260506.py` and `scripts/data_types/xps/build_xps_in_situ_20260506.py` are dedicated XPS helper paths, not the general queue pipeline.
-- The tracked root script `scripts/regenerate_manual_review_filtered.py` is currently deleted in the working tree, while report-script structure exists under `scripts/reports/`.
+- `scripts/data_types/xps/build_xps_in_situ_20260506.py` is the dedicated XPS helper path, not the general queue pipeline; the old root-level script path is historical only.
+- `scripts/reports/regenerate_manual_review_filtered.py` is the active report helper; the old root-level `scripts/regenerate_manual_review_filtered.py` path is historical only.
 
 ## Files To Avoid As Next-Batch Inputs
 

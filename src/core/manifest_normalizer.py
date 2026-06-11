@@ -8,6 +8,7 @@ from pathlib import Path
 
 from src.core.manifest_schema import CANONICAL_MANIFEST_VERSION, CANONICAL_ORIGIN_BATCH_COLUMNS
 from src.core.origin_batch import INPUT_ARTIFACT_FIELDS, ORIGIN_OUTPUT_FIELDS, _missing_or_empty, _resolve_artifact_paths
+from src.core.output_sanitizer import scrub_output_text
 
 
 @dataclass(frozen=True)
@@ -37,13 +38,13 @@ def normalize_material_collection_manifest(
     md_path = _resolve_output_path(project_root, output_md or out_dir / "phase1_10_material_collection_normalized_manifest.md")
 
     rows = _read_rows(manifest_path)
-    items = [_normalize_row(row, collection_root, manifest_path) for row in rows]
+    items = [_normalize_row(project_root, row, collection_root, manifest_path) for row in rows]
     safe_count = sum(1 for item in items if item["safe_for_origin_batch"] == "true")
     summary = {
         "manifest_version": CANONICAL_MANIFEST_VERSION,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "source_manifest": str(manifest_path),
-        "source_package": str(collection_root),
+        "source_manifest": _report_path(project_root, manifest_path),
+        "source_package": _report_path(project_root, collection_root),
         "total_items": len(items),
         "safe_count": safe_count,
         "unsafe_count": len(items) - safe_count,
@@ -61,7 +62,7 @@ def normalize_material_collection_manifest(
     return ManifestNormalizationResult(csv_path=csv_path, json_path=json_path, md_path=md_path, items=items, summary=summary)
 
 
-def _normalize_row(row: dict[str, str], collection_root: Path, manifest_path: Path) -> dict[str, str]:
+def _normalize_row(project_root: Path, row: dict[str, str], collection_root: Path, manifest_path: Path) -> dict[str, str]:
     item_id = row.get("collection_id", "")
     result_id = _extract_note_value(row.get("notes", ""), "result_id") or item_id
     source_file = _extract_note_value(row.get("notes", ""), "source_file") or row.get("original_relative_path", "")
@@ -72,7 +73,7 @@ def _normalize_row(row: dict[str, str], collection_root: Path, manifest_path: Pa
         "package_id": collection_root.name,
         "package_role": "material_collection_normalized",
         "generated_at": "",
-        "source_package": str(collection_root),
+        "source_package": _report_path(project_root, collection_root),
         "item_id": item_id,
         "result_id": result_id,
         "queue_id": item_id,
@@ -194,6 +195,10 @@ def _resolve_output_path(project_root: Path, path: Path) -> Path:
     if not any(_is_under_or_equal(resolved.resolve(), root) for root in allowed):
         raise ValueError(f"Refusing to write normalized manifest outside output/ or docs/: {resolved}")
     return resolved
+
+
+def _report_path(project_root: Path, path: Path) -> str:
+    return scrub_output_text(path, project_root=project_root)
 
 
 def _is_under_or_equal(path: Path, parent: Path) -> bool:

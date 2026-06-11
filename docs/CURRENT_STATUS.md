@@ -42,7 +42,7 @@ The working tree has moved beyond the committed Phase 1.10-1.11 baseline. Curren
   - 100 tracked modified/deleted paths
   - 239 untracked paths
   - 339 total `git status --short` entries
-- Tracked deletion present: `scripts/regenerate_manual_review_filtered.py`
+- Historical root report helper `scripts/regenerate_manual_review_filtered.py` has been migrated to `scripts/reports/regenerate_manual_review_filtered.py`.
 - Important implication: current disk state is ahead of the latest commit. Do not treat commit `116b393` as the full current project state.
 
 ## Formal Entry Points
@@ -227,7 +227,7 @@ Do not treat these as the general formal pipeline:
 - `output/opju_exemplar_regression/temp_preview_compare`
 - `scripts/one_off/*`
 - `scripts/maintenance/opju_exemplar_regression.py` as a comparison/regression helper, not a production processor
-- `scripts/data_types/xps/*` and `scripts/build_xps_in_situ_20260506.py` as dedicated XPS figure helpers, not the general queue pipeline
+- `scripts/data_types/xps/build_xps_in_situ_20260506.py` as a dedicated XPS figure helper, not the general queue pipeline; the old root-level helper path is historical only
 - `output/phase1_5_processed_results_20260531_005613` as historical no-Origin output
 - raw `output/reports/processing_queue.json` for future batch processing
 

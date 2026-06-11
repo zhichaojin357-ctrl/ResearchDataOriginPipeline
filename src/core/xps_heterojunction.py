@@ -468,12 +468,12 @@ def _export_origin_for_comparison(
         details = (completed.stderr or completed.stdout or "Origin XPS renderer failed").strip()
         write_origin_error(project_root, f"{comparison.name}: {details}")
         return {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": details}
-    missing = [path for path in (origin_file, figure_tif) if not path.exists() or path.stat().st_size == 0]
+    missing = [path for path in (origin_file, figure_tif, preview_png) if not path.exists() or path.stat().st_size == 0]
     if missing:
         message = "Missing or empty Origin artifacts: " + ", ".join(str(path) for path in missing)
         write_origin_error(project_root, f"{comparison.name}: {message}")
         return {"ok": False, "origin_file": origin_file if origin_file.exists() else None, "figure_tif": figure_tif if figure_tif.exists() else None, "preview_png": preview_png if preview_png.exists() else None, "message": message}
-    return {"ok": True, "origin_file": origin_file, "figure_tif": figure_tif, "preview_png": None, "message": "Origin COM export succeeded"}
+    return {"ok": True, "origin_file": origin_file, "figure_tif": figure_tif, "preview_png": preview_png, "message": "Origin COM export succeeded"}
 
 
 def _display_sample_name(sample: str) -> str:
