@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.core.auto_queue import AutoQueueOptions, plan_auto_queue
-from src.core.project import load_project_config
+from src.core.project import default_output_root, load_project_config
 from src.core.readiness import ReadinessOptions, run_readiness
 from src.core.runtime_paths import create_run_output_layout
 from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern, resolve_output_root, resolve_phase1_6_index
@@ -16,14 +16,43 @@ from src.origin.adapter import build_origin_plot_job
 
 
 def test_phase16_index_auto_discovers_latest_package(tmp_path: Path):
-    older = tmp_path / "output" / "phase1_6_origin_results_20260101_000000"
-    newer = tmp_path / "output" / "phase1_6_origin_results_20260201_000000"
+    output_root = default_output_root(tmp_path)
+    older = output_root / "phase1_6_origin_results_20260101_000000"
+    newer = output_root / "phase1_6_origin_results_20260201_000000"
     older.mkdir(parents=True)
     newer.mkdir(parents=True)
     (older / "index.csv").write_text("source_hash\nold\n", encoding="utf-8")
     (newer / "index.csv").write_text("source_hash\nnew\n", encoding="utf-8")
 
     assert resolve_phase1_6_index(tmp_path) == newer / "index.csv"
+
+
+def test_default_output_root_is_workspace_sibling_output_folder(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    project.mkdir()
+
+    assert resolve_output_root(project) == default_output_root(project)
+
+
+def test_create_run_output_layout_defaults_to_workspace_sibling_output_folder(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    project.mkdir()
+
+    layout = create_run_output_layout(
+        project,
+        scope="default output",
+        command="process",
+        mode="no_origin",
+        timestamp="20260611_160000",
+        no_origin=True,
+        dry_run=False,
+    )
+
+    assert layout.root == default_output_root(project) / "runs" / "20260611_160000_default_output"
+    assert layout.reports.is_dir()
+    assert not (project / "output").exists()
+    manifest = json.loads(layout.manifest.read_text(encoding="utf-8"))
+    assert manifest["output_root"] == "output/20260611_160000_default_output"
 
 
 def test_output_root_resolution_priority_uses_explicit_then_local_then_env(tmp_path: Path, monkeypatch):
@@ -106,7 +135,7 @@ def test_readiness_can_skip_legacy_project_path_check(tmp_path: Path):
             check_legacy_project_path=False,
         ),
     )
-    report = json.loads((project / "output" / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
+    report = json.loads((resolve_output_root(project) / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
 
     assert code == 0
     assert "old_project_path_absent" not in {check["name"] for check in report["checks"]}
@@ -251,9 +280,10 @@ def _sha256(path: Path) -> str:
 
 def _write_minimal_readiness_project(project: Path) -> None:
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    output_root = default_output_root(project)
+    package = output_root / "phase1_6_origin_results_20260531_041538"
+    reports = output_root / "reports"
+    dashboard = output_root / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     package.mkdir(parents=True)

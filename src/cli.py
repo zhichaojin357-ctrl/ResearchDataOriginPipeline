@@ -217,9 +217,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="normalize a material collection index into an origin-batch-compatible manifest without processing data",
     )
     manifest_normalize.add_argument("--manifest", type=Path, required=True, help="material collection index.csv")
-    manifest_normalize.add_argument("--output-csv", type=Path, default=Path("output/reports/phase1_10_material_collection_normalized_manifest.csv"))
-    manifest_normalize.add_argument("--output-json", type=Path, default=Path("output/reports/phase1_10_material_collection_normalized_manifest.json"))
-    manifest_normalize.add_argument("--output-md", type=Path, default=Path("output/reports/phase1_10_material_collection_normalized_manifest.md"))
+    manifest_normalize.add_argument("--output-csv", type=Path)
+    manifest_normalize.add_argument("--output-json", type=Path)
+    manifest_normalize.add_argument("--output-md", type=Path)
 
     reviewed_queue = subparsers.add_parser(
         "reviewed-queue",
@@ -238,7 +238,7 @@ def build_parser() -> argparse.ArgumentParser:
         "auto-queue",
         help="dry-run a no-Origin candidate queue from current AUTO_PROCESS items, excluding Phase 1.6 processed hashes",
     )
-    auto_queue.add_argument("--queue", type=Path, default=Path("output/reports/processing_queue.json"))
+    auto_queue.add_argument("--queue", type=Path)
     auto_queue.add_argument("--workspace-root", type=Path, help="workspace data root; defaults to config/env/autodetected project path")
     auto_queue.add_argument("--processed-index", type=Path, help="Phase 1.6 index.csv or package directory; defaults to config/env/latest package")
     auto_queue.add_argument("--only-type")
@@ -254,7 +254,7 @@ def build_parser() -> argparse.ArgumentParser:
     xps_stacked.add_argument("--bobc", type=Path, nargs="*", help="BOBC fitted XPS Excel workbook(s)")
     xps_stacked.add_argument("--cwo", type=Path, nargs="*", help="CWO fitted XPS Excel workbook(s)")
     xps_stacked.add_argument("--bc", type=Path, nargs="*", help="BC fitted XPS Excel workbook(s)")
-    xps_stacked.add_argument("--output-dir", type=Path, default=Path("output/xps_heterojunction_stacked"))
+    xps_stacked.add_argument("--output-dir", type=Path)
     xps_origin = xps_stacked.add_mutually_exclusive_group()
     xps_origin.add_argument("--dry-run", action="store_true", help="parse data, write tables/reports, but do not launch Origin")
     xps_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF")
@@ -586,9 +586,12 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
     if args.command == "manifest-normalize":
+        output_root = _resolve_cli_output_root(project_root, args)
+        reports = output_root / "reports"
         normalize_material_collection_manifest(
             args.manifest if args.manifest.is_absolute() else project_root / args.manifest,
             project_root,
+            output_dir=reports,
             output_csv=args.output_csv,
             output_json=args.output_json,
             output_md=args.output_md,
@@ -633,7 +636,10 @@ def main(argv: list[str] | None = None) -> int:
             }
             _validate_explicit_xps_input_files(sample_files)
             notes = []
-        output_dir = args.output_dir if args.output_dir.is_absolute() else project_root / args.output_dir
+        if args.output_dir is None:
+            output_dir = _resolve_cli_output_root(project_root, args) / "xps_heterojunction_stacked"
+        else:
+            output_dir = args.output_dir if args.output_dir.is_absolute() else project_root / args.output_dir
         run_xps_heterojunction_stacked(
             project_root,
             sample_files,

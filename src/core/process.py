@@ -8,7 +8,7 @@ from pathlib import Path
 from src.processors.base import process_table_dataset
 from src.scanner.scanner import scan_raw_data
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.project import output_dir, report_path
+from src.core.project import default_output_root, output_dir, report_path
 from src.core.runtime_paths import resolve_phase1_6_index
 
 
@@ -515,7 +515,7 @@ def _write_processing_summary(project_root: Path, manifest: dict, results: list[
             required_artifacts = ("processed_data", "metadata_path")
         missing = [
             name for name in required_artifacts
-            if _artifact_missing(project_root, metadata, name)
+            if _artifact_missing(project_root, metadata, name, output_root=output_root)
         ]
         if missing:
             missing_artifacts.append({"dataset_id": metadata["dataset_id"], "missing": missing})
@@ -563,13 +563,17 @@ def _write_processing_summary(project_root: Path, manifest: dict, results: list[
     report_path(project_root, "processing_summary.md", output_root=output_root).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _artifact_missing(project_root: Path, metadata: dict, name: str) -> bool:
+def _artifact_missing(project_root: Path, metadata: dict, name: str, *, output_root: Path | None = None) -> bool:
     value = metadata.get(name)
     if value is None:
         return True
     path = Path(str(value))
     if not path.is_absolute():
-        path = project_root / path
+        if path.parts and path.parts[0] == "output":
+            base = output_root or default_output_root(project_root)
+            path = base / Path(*path.parts[1:])
+        else:
+            path = project_root / path
     return not path.exists()
 
 

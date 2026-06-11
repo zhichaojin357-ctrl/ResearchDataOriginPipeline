@@ -13,6 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.core.project import default_output_root
 from src.origin.operations import connect_origin
 
 
@@ -107,7 +108,7 @@ def main() -> int:
         if item.get("triage", {}).get("queue_id")
     }
 
-    reference_export_root = project_root / "output" / "opju_exemplar_regression" / "reference_exports"
+    reference_export_root = default_output_root(project_root) / "opju_exemplar_regression" / "reference_exports"
     reference_export_root.mkdir(parents=True, exist_ok=True)
 
     rows = []
@@ -175,7 +176,11 @@ def main() -> int:
 
 def _resolve(project_root: Path, value: str | Path) -> Path:
     path = Path(value)
-    return path if path.is_absolute() else project_root / path
+    if path.is_absolute():
+        return path
+    if path.parts and path.parts[0] == "output":
+        return default_output_root(project_root) / Path(*path.parts[1:])
+    return project_root / path
 
 
 def _missing_row(queue_id: str, queue_item: dict[str, Any], message: str) -> dict[str, Any]:

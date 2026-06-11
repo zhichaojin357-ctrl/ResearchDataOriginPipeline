@@ -8,11 +8,12 @@ from pathlib import Path
 
 from src.core.phase1_9 import REQUIRED_JOURNAL_INDEX_COLUMNS, run_phase1_9_governance
 from src.core.validate import validate
+from src.core.project import default_output_root
 
 
 def test_phase1_9_governance_generates_skill_snapshot_and_journal_index(tmp_path: Path):
     project = tmp_path / "ResearchDataOriginPipeline"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
     skill_dir = tmp_path / "origin-plotting"
     raw_source = project / "workspace_data" / "LL_detection_copy_20260530" / "source.csv"
     raw_source.parent.mkdir(parents=True)
@@ -50,7 +51,7 @@ def test_phase1_9_governance_generates_skill_snapshot_and_journal_index(tmp_path
 def test_validate_checks_phase1_9_governance_files_when_present(tmp_path: Path):
     project = tmp_path / "ResearchDataOriginPipeline"
     _write_minimal_validate_project(project)
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
     skill_dir = tmp_path / "origin-plotting"
     skill_dir.mkdir()
     (skill_dir / "SKILL.md").write_text("Graph4\n", encoding="utf-8")
@@ -59,7 +60,7 @@ def test_validate_checks_phase1_9_governance_files_when_present(tmp_path: Path):
     run_phase1_9_governance(project, skill_dir=skill_dir, package_dir=package)
 
     validate(project)
-    report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+    report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
     assert "- Phase 1.9 plotting governance files: pass" in report
     assert "- Phase 1.9 plotting skill SHA256 recorded: pass" in report
     assert "- Phase 1.9 journal-ready index columns: pass" in report
@@ -78,7 +79,7 @@ def test_validate_does_not_require_generated_phase1_9_outputs_for_docs_only_snap
     )
 
     validate(project)
-    report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+    report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
 
     assert "- Phase 1.9 plotting governance files: not checked (no generated output artifacts)" in report
     assert "missing Phase 1.9 plotting governance files" not in report
@@ -87,7 +88,7 @@ def test_validate_does_not_require_generated_phase1_9_outputs_for_docs_only_snap
 def test_validate_rejects_invalid_phase1_9_journal_policy_values(tmp_path: Path):
     project = tmp_path / "ResearchDataOriginPipeline"
     _write_minimal_validate_project(project)
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
     skill_dir = tmp_path / "origin-plotting"
     skill_dir.mkdir()
     (skill_dir / "SKILL.md").write_text("Graph4\n", encoding="utf-8")
@@ -95,7 +96,7 @@ def test_validate_rejects_invalid_phase1_9_journal_policy_values(tmp_path: Path)
     _write_package_index(package / "index.csv")
     run_phase1_9_governance(project, skill_dir=skill_dir, package_dir=package)
 
-    journal_csv = project / "output" / "reports" / "phase1_9_journal_ready_index.csv"
+    journal_csv = default_output_root(project) / "reports" / "phase1_9_journal_ready_index.csv"
     with journal_csv.open(encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
         fields = list(rows[0].keys())
@@ -107,7 +108,7 @@ def test_validate_rejects_invalid_phase1_9_journal_policy_values(tmp_path: Path)
         writer.writerows(rows)
 
     exit_code = validate(project)
-    report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+    report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
 
     assert exit_code == 1
     assert "- Phase 1.9 journal-ready index policy values: fail" in report

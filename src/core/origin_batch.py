@@ -9,7 +9,7 @@ from pathlib import Path
 
 from src.core.manifest_schema import schema_mismatch_message
 from src.core.output_sanitizer import scrub_output_text
-from src.core.project import report_path
+from src.core.project import default_output_root, report_path
 from src.core.runtime_paths import resolve_workspace_root
 from src.origin.adapter import export_plot
 
@@ -490,7 +490,12 @@ def _file_sha256(path: Path) -> str:
 
 def _guard_output_path(project_root: Path, path: Path) -> None:
     resolved = path.resolve()
-    allowed = [(project_root / "output").resolve(), (project_root / "docs").resolve(), (project_root / "tests" / "fixtures").resolve()]
+    allowed = [
+        (project_root / "output").resolve(),
+        default_output_root(project_root).resolve(),
+        (project_root / "docs").resolve(),
+        (project_root / "tests" / "fixtures").resolve(),
+    ]
     if not any(_is_under_or_equal(resolved, root) for root in allowed):
         raise ValueError(f"Refusing to write report outside allowed output areas: {path}")
 

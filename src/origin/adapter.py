@@ -1170,13 +1170,13 @@ def origin_smoke_test(project_root: Path) -> OriginResult:
     if not ok:
         write_origin_error(project_root, message)
         return OriginResult(False, None, None, None, message)
-    data_dir = project_root / "output" / "processed_data" / "_origin_test"
+    data_dir = output_dir(project_root, "processed_data", "_origin_test")
     data_dir.mkdir(parents=True, exist_ok=True)
     csv_path = data_dir / "origin_smoke_test.csv"
     csv_path.write_text("x,y\n0,0\n1,1\n", encoding="utf-8")
-    origin_file = project_root / "output" / "origin_files" / "origin_smoke_test.opju"
-    figure_tif = project_root / "output" / "figures_tif" / "origin_smoke_test.tif"
-    preview_png = project_root / "output" / "figures_preview" / "origin_smoke_test.png"
+    origin_file = output_dir(project_root, "origin_files") / "origin_smoke_test.opju"
+    figure_tif = output_dir(project_root, "figures_tif") / "origin_smoke_test.tif"
+    preview_png = output_dir(project_root, "figures_preview") / "origin_smoke_test.png"
     operations = None
     try:
         operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)

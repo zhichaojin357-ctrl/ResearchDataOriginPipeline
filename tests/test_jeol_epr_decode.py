@@ -19,6 +19,7 @@ from src.core.epr_jeol import (
     read_xy_xlsx,
     write_data_xlsx,
 )
+from src.core.project import default_output_root
 from src.core.triage import TriageOptions, run_triage
 from src.processors.base import process_table_dataset
 
@@ -29,6 +30,13 @@ def classification(data_type: str, processor: str) -> dict:
         "selected_processor": processor,
         "supported_in_phase_1": True,
     }
+
+
+def _artifact_path(root: Path, rendered_path: str) -> Path:
+    rendered = Path(rendered_path)
+    if rendered.parts and rendered.parts[0] == "output":
+        return default_output_root(root) / Path(*rendered.parts[1:])
+    return rendered if rendered.is_absolute() else root / rendered
 
 
 def write_synthetic_jeol_cacqu(path: Path, *, process_type: str = "cAcqu", data_length: int = 65536) -> None:
@@ -76,7 +84,7 @@ def write_synthetic_jeol_cacqu(path: Path, *, process_type: str = "cAcqu", data_
 
 class JeolEprDecodeTest(unittest.TestCase):
     def _processed_rows(self, root: Path, metadata: dict) -> list[dict[str, str]]:
-        with (root / metadata["processed_data"]).open(encoding="utf-8") as handle:
+        with _artifact_path(root, metadata["processed_data"]).open(encoding="utf-8") as handle:
             return list(csv.DictReader(handle))
 
     def test_jeol_cacqu_no_extension_decodes_to_project_epr_rows(self):

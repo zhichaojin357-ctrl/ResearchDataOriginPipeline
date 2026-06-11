@@ -8,7 +8,7 @@ from pathlib import Path
 
 from src.cli import build_parser
 from src.core.metadata import write_metadata
-from src.core.project import REQUIRED_OUTPUT_DIRS
+from src.core.project import default_output_root, REQUIRED_OUTPUT_DIRS
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,14 +64,14 @@ class Phase1ContractsTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(source.read_text(encoding="utf-8"), "2theta,intensity\n10,100\n20,200\n")
-            manifest = json.loads((project / "output" / "reports" / "inventory_manifest.json").read_text(encoding="utf-8"))
+            manifest = json.loads((default_output_root(project) / "reports" / "inventory_manifest.json").read_text(encoding="utf-8"))
             names = {item["folder_name"]: item for item in manifest["classifications"]}
             self.assertEqual(names["XRD"]["inferred_data_type"], "XRD")
             self.assertTrue(names["XRD"]["supported_in_phase_1"])
             self.assertEqual(names["动力学"]["inferred_data_type"], "reference_literature")
             self.assertEqual(names["动力学"]["special_handling"], "scan_only")
             self.assertEqual(names["SEM"]["special_handling"], "scan_only")
-            self.assertTrue((project / "output" / "reports" / "classification_report.md").exists())
+            self.assertTrue((default_output_root(project) / "reports" / "classification_report.md").exists())
 
     def test_scan_uses_config_default_input_and_registers_unclassified_files(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -89,13 +89,13 @@ class Phase1ContractsTest(unittest.TestCase):
             result = run_cli("scan", "--config", str(config), cwd=project)
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            manifest = json.loads((project / "output" / "reports" / "inventory_manifest.json").read_text(encoding="utf-8"))
+            manifest = json.loads((default_output_root(project) / "reports" / "inventory_manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(Path(manifest["scan_root"]), Path("custom_raw"))
             self.assertFalse(Path(manifest["scan_root"]).is_absolute())
             self.assertEqual(len(manifest["unclassified_files"]), 1)
             self.assertEqual(manifest["unclassified_files"][0]["relative_path"], "unknown_folder\\mystery.csv")
             self.assertFalse(Path(manifest["unclassified_files"][0]["path"]).is_absolute())
-            unclassified = project / "output" / "unclassified" / "unclassified_manifest.json"
+            unclassified = default_output_root(project) / "unclassified" / "unclassified_manifest.json"
             self.assertTrue(unclassified.exists())
             self.assertEqual(source.read_text(encoding="utf-8"), "a,b\n1,2\n")
 
@@ -110,7 +110,7 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertIn("input directory does not exist", result.stderr)
             self.assertIn("missing_raw_data", result.stderr)
             self.assertNotIn("Traceback", result.stderr)
-            self.assertFalse((project / "output").exists())
+            self.assertFalse((default_output_root(project)).exists())
 
     def test_triage_cli_reports_missing_input_directory_without_outputs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -123,7 +123,7 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertIn("input directory does not exist", result.stderr)
             self.assertIn("missing_raw_data", result.stderr)
             self.assertNotIn("Traceback", result.stderr)
-            self.assertFalse((project / "output").exists())
+            self.assertFalse((default_output_root(project)).exists())
 
     def test_process_cli_reports_missing_input_directory_without_outputs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -136,7 +136,7 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertIn("input directory does not exist", result.stderr)
             self.assertIn("missing_raw_data", result.stderr)
             self.assertNotIn("Traceback", result.stderr)
-            self.assertFalse((project / "output").exists())
+            self.assertFalse((default_output_root(project)).exists())
 
     def test_scan_matches_nested_and_multiple_known_folders_and_reports_unsupported_extensions(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -153,7 +153,7 @@ class Phase1ContractsTest(unittest.TestCase):
             result = run_cli("scan", "--input", str(raw), cwd=project)
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            manifest = json.loads((project / "output" / "reports" / "inventory_manifest.json").read_text(encoding="utf-8"))
+            manifest = json.loads((default_output_root(project) / "reports" / "inventory_manifest.json").read_text(encoding="utf-8"))
             xrd = {item["folder_name"]: item for item in manifest["classifications"]}["XRD"]
             self.assertEqual(xrd["physical_presence"], "present")
             self.assertEqual(len(xrd["folder_paths"]), 2)
@@ -187,9 +187,9 @@ class Phase1ContractsTest(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            processed = project / "output" / "processed_data" / "XRD" / "sample_processed.csv"
-            metadata = project / "output" / "metadata" / "XRD" / "sample" / "metadata.json"
-            report = project / "output" / "reports" / "processing_report.md"
+            processed = default_output_root(project) / "processed_data" / "XRD" / "sample_processed.csv"
+            metadata = default_output_root(project) / "metadata" / "XRD" / "sample" / "metadata.json"
+            report = default_output_root(project) / "reports" / "processing_report.md"
             self.assertTrue(processed.exists())
             self.assertTrue(metadata.exists())
             self.assertTrue(report.exists())
@@ -213,16 +213,16 @@ class Phase1ContractsTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 write_metadata(
                     project_root=project,
-                    path=project / "output" / "metadata" / "XRD" / "sample" / "metadata.json",
+                    path=default_output_root(project) / "metadata" / "XRD" / "sample" / "metadata.json",
                     dataset_id="XRD_sample",
                     data_type="XRD",
                     source_file=source,
                     processor_name="xrd_processor",
                     processing_status="success",
                     plot_type="2theta-intensity line plot",
-                    origin_file=project / "output" / "origin_files" / "missing.opju",
-                    figure_tif=project / "output" / "figures_tif" / "missing.tif",
-                    processed_data=project / "output" / "processed_data" / "missing.csv",
+                    origin_file=default_output_root(project) / "origin_files" / "missing.opju",
+                    figure_tif=default_output_root(project) / "figures_tif" / "missing.tif",
+                    processed_data=default_output_root(project) / "processed_data" / "missing.csv",
                     manual_check_items=[],
                     forbidden_claims=[],
                     warnings=[],
@@ -234,10 +234,10 @@ class Phase1ContractsTest(unittest.TestCase):
             project = Path(tmp)
             source = project / "source.csv"
             source.write_text("x,y\n1,2\n", encoding="utf-8")
-            origin_file = project / "output" / "origin_files" / "sample.opju"
-            figure_tif = project / "output" / "figures_tif" / "sample.tif"
-            preview_png = project / "output" / "figures_preview" / "sample.png"
-            processed = project / "output" / "processed_data" / "sample.csv"
+            origin_file = default_output_root(project) / "origin_files" / "sample.opju"
+            figure_tif = default_output_root(project) / "figures_tif" / "sample.tif"
+            preview_png = default_output_root(project) / "figures_preview" / "sample.png"
+            processed = default_output_root(project) / "processed_data" / "sample.csv"
             for artifact in (origin_file, figure_tif, preview_png, processed):
                 artifact.parent.mkdir(parents=True, exist_ok=True)
                 artifact.write_text("artifact\n", encoding="utf-8")
@@ -245,7 +245,7 @@ class Phase1ContractsTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 write_metadata(
                     project_root=project,
-                    path=project / "output" / "metadata" / "XRD" / "sample" / "metadata.json",
+                    path=default_output_root(project) / "metadata" / "XRD" / "sample" / "metadata.json",
                     dataset_id="XRD_sample",
                     data_type="XRD",
                     source_file=source,
@@ -263,7 +263,7 @@ class Phase1ContractsTest(unittest.TestCase):
 
             metadata = write_metadata(
                 project_root=project,
-                path=project / "output" / "metadata" / "XRD" / "sample" / "metadata.json",
+                path=default_output_root(project) / "metadata" / "XRD" / "sample" / "metadata.json",
                 dataset_id="XRD_sample",
                 data_type="XRD",
                 source_file=source,
@@ -301,7 +301,7 @@ class Phase1ContractsTest(unittest.TestCase):
             project = Path(tmp)
             source = project / "source.csv"
             source.write_text("x,y\n1,2\n", encoding="utf-8")
-            processed = project / "output" / "processed_data" / "sample.csv"
+            processed = default_output_root(project) / "processed_data" / "sample.csv"
             processed.parent.mkdir(parents=True)
             processed.write_text("x,y\n1,2\n", encoding="utf-8")
             external = project / "external"
@@ -315,7 +315,7 @@ class Phase1ContractsTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 write_metadata(
                     project_root=project,
-                    path=project / "output" / "metadata" / "XRD" / "sample" / "metadata.json",
+                    path=default_output_root(project) / "metadata" / "XRD" / "sample" / "metadata.json",
                     dataset_id="XRD_sample",
                     data_type="XRD",
                     source_file=source,
@@ -337,8 +337,8 @@ class Phase1ContractsTest(unittest.TestCase):
             project = Path(tmp)
             result = run_cli("deps-audit", cwd=project)
 
-            audit_json = project / "output" / "reports" / "dependency_audit.json"
-            audit_md = project / "output" / "reports" / "dependency_audit.md"
+            audit_json = default_output_root(project) / "reports" / "dependency_audit.json"
+            audit_md = default_output_root(project) / "reports" / "dependency_audit.md"
             self.assertTrue(audit_json.exists())
             self.assertTrue(audit_md.exists())
             data = json.loads(audit_json.read_text(encoding="utf-8"))
@@ -398,7 +398,7 @@ class Phase1ContractsTest(unittest.TestCase):
             result = run_cli("validate", cwd=project)
 
             self.assertIn(result.returncode, (0, 1))
-            report = project / "output" / "reports" / "validation_report.md"
+            report = default_output_root(project) / "reports" / "validation_report.md"
             self.assertTrue(report.exists())
             text = report.read_text(encoding="utf-8")
         self.assertIn("max_threads = 5", text)
@@ -430,14 +430,14 @@ class Phase1ContractsTest(unittest.TestCase):
                 "manual_overrides.yaml",
             ]:
                 (project / "config" / name).write_text((ROOT / "config" / name).read_text(encoding="utf-8"), encoding="utf-8")
-            forbidden = project / "output" / "reports" / "draft_presentation.pptx"
+            forbidden = default_output_root(project) / "reports" / "draft_presentation.pptx"
             forbidden.parent.mkdir(parents=True)
             forbidden.write_text("forbidden", encoding="utf-8")
 
             result = run_cli("validate", cwd=project)
 
             self.assertEqual(result.returncode, 1)
-            report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+            report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
             self.assertIn("Forbidden presentation artifacts: fail", report)
             self.assertIn("draft_presentation.pptx", report)
 
@@ -461,7 +461,7 @@ class Phase1ContractsTest(unittest.TestCase):
             result = run_cli("validate", cwd=project)
 
             self.assertEqual(result.returncode, 0)
-            report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+            report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
             self.assertIn("Forbidden presentation artifacts: pass", report)
 
     def test_validate_rejects_kinetics_processor_package_directory(self):
@@ -484,7 +484,7 @@ class Phase1ContractsTest(unittest.TestCase):
             result = run_cli("validate", cwd=project)
 
             self.assertEqual(result.returncode, 1)
-            report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+            report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
             self.assertIn("Kinetics processor paths: fail", report)
             self.assertIn("src\\processors\\kinetics\\__init__.py", report)
 
@@ -514,7 +514,7 @@ class Phase1ContractsTest(unittest.TestCase):
             result = run_cli("validate", cwd=project)
 
             self.assertEqual(result.returncode, 1)
-            report = (project / "output" / "reports" / "validation_report.md").read_text(encoding="utf-8")
+            report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
             self.assertIn("deferred/reference registry semantics", report)
             self.assertIn("NMR", report)
             self.assertIn("动力学", report)

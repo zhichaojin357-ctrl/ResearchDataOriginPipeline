@@ -10,6 +10,7 @@ from src.core.xrd_overlay import (
     parse_xrd_reference_card_peaks,
     run_xrd_overlay,
 )
+from src.core.project import default_output_root
 
 
 def test_build_xrd_overlay_table_orders_requested_series_and_card(tmp_path: Path) -> None:
@@ -61,7 +62,7 @@ def test_run_xrd_overlay_dry_run_writes_metadata_without_origin(tmp_path: Path) 
             cwo_source=cwo,
             cwo_card=card,
             reference_opju=reference,
-            output_root=project_root / "output",
+            output_root=default_output_root(project_root),
             with_origin=False,
             timestamp="20260610_120000",
         ),
@@ -101,7 +102,7 @@ def test_run_xrd_overlay_dry_run_does_not_require_reference_opju(tmp_path: Path)
             cwo_source=cwo,
             cwo_card=card,
             reference_opju=tmp_path / "missing_reference.opju",
-            output_root=project_root / "output",
+            output_root=default_output_root(project_root),
             with_origin=False,
             timestamp="20260610_120001",
         ),

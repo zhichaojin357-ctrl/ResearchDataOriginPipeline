@@ -32,6 +32,8 @@ def render_output_path(
     for prefix, root in roots:
         try:
             relative = value.resolve().relative_to(root.resolve()).as_posix()
+            if relative == ".":
+                return prefix or "."
             return f"{prefix}/{relative}".strip("/")
         except (OSError, ValueError):
             continue

@@ -8,8 +8,10 @@ from datetime import datetime
 from pathlib import Path
 
 from src.core.output_sanitizer import scrub_output_text
+from src.core.project import default_output_root
 from src.core.runtime_paths import (
     resolve_optional_f_drive_backup,
+    resolve_output_root,
     resolve_phase1_6_package,
     resolve_workspace_root,
 )
@@ -38,7 +40,8 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
     checks: list[dict] = []
     workspace_root = resolve_workspace_root(project_root, options.workspace_root)
     f_drive_backup = resolve_optional_f_drive_backup(project_root, options.f_drive_backup)
-    reports = project_root / "output" / "reports"
+    output_root = resolve_output_root(project_root)
+    reports = output_root / "reports"
     docs_reports = project_root / "docs" / "agent_reports"
     package = resolve_phase1_6_package(project_root, options.phase1_6_package)
 
@@ -219,7 +222,7 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
         fail_status="fail" if options.strict_artifacts or stale_summaries else "warning",
     )
 
-    dashboard_path = project_root / "output" / "review_dashboard" / "index.md"
+    dashboard_path = output_root / "review_dashboard" / "index.md"
     dashboard_ok, dashboard_detail = _dashboard_status(dashboard_path, stale_summary_terms)
     _add_artifact_check(
         checks,
@@ -271,7 +274,7 @@ def _sanitize_check_details(project_root: Path, report: dict) -> None:
 
 
 def _write_readiness_report(project_root: Path, report: dict, options: ReadinessOptions) -> None:
-    reports = project_root / "output" / "reports"
+    reports = resolve_output_root(project_root) / "reports"
     json_path = _resolve_output(project_root, options.report_json or reports / "readiness_report.json")
     md_path = _resolve_output(project_root, options.report_md or reports / "readiness_report.md")
     json_path.parent.mkdir(parents=True, exist_ok=True)
@@ -419,7 +422,7 @@ def _active_project_name_status(project_root: Path) -> tuple[bool, str, bool]:
         project_root / "AGENT_HANDOFF.md",
         project_root / "docs" / "REAL_DATA_INTAKE_GUIDE.md",
         project_root / "docs" / "REAL_DATA_COMPATIBILITY_MATRIX.md",
-        project_root / "output" / "review_dashboard" / "index.md",
+        resolve_output_root(project_root) / "review_dashboard" / "index.md",
     ]
     stale_patterns = [
         "GroupMeetingAutoPPT",
@@ -438,7 +441,13 @@ def _active_project_name_status(project_root: Path) -> tuple[bool, str, bool]:
     if stale_hits:
         return False, "stale old project references in active docs: " + "; ".join(stale_hits), False
     if missing_active_docs:
-        generated_only = all("/output/" in path.replace("\\", "/") for path in missing_active_docs)
+        output_root = resolve_output_root(project_root).resolve()
+        legacy_output_root = (project_root / "output").resolve()
+        generated_only = all(
+            _is_under_or_equal(Path(path).resolve(), output_root)
+            or _is_under_or_equal(Path(path).resolve(), legacy_output_root)
+            for path in missing_active_docs
+        )
         return False, "missing active entry docs: " + "; ".join(missing_active_docs), generated_only
     return True, "no stale old project references in active docs", False
 
@@ -678,9 +687,9 @@ def _resolve_path(project_root: Path, path: Path) -> Path:
 
 def _resolve_output(project_root: Path, path: Path) -> Path:
     resolved = _resolve_path(project_root, path)
-    allowed = [project_root / "output", project_root / "docs"]
+    allowed = [project_root / "output", default_output_root(project_root), project_root / "docs"]
     if not any(_is_under_or_equal(resolved.resolve(), base.resolve()) for base in allowed):
-        raise ValueError(f"Output path must stay under output/ or docs/: {resolved}")
+        raise ValueError(f"Output path must stay under configured output root or docs/: {resolved}")
     return resolved
 
 

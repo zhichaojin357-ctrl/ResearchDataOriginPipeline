@@ -20,6 +20,7 @@ from src.origin.adapter import (
     _run_origin_job,
 )
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE
+from src.core.project import default_output_root
 
 
 class _FakeOperationResult:
@@ -62,10 +63,16 @@ class _FakeOriginOperations:
         return _FakeOperationResult()
 
 
+def _temp_project(tmpdir: str) -> Path:
+    project_root = Path(tmpdir) / "ResearchDataOriginPipeline"
+    project_root.mkdir(parents=True, exist_ok=True)
+    return project_root
+
+
 class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
     def test_phase1_plot_types_are_explicitly_mapped(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
             data.write_text("x,y\n0,1\n", encoding="utf-8")
 
@@ -98,7 +105,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_reaction_condition_screening_uses_column_plot_type_in_job_script(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "screening.csv"
             data.write_text("condition,yield\nA,10\nB,20\n", encoding="utf-8")
 
@@ -121,7 +128,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_spectral_policy_hides_only_y_numeric_tick_values_in_job_script(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "raman.csv"
             data.write_text("shift,intensity\n100,1\n200,2\n", encoding="utf-8")
 
@@ -138,7 +145,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_epr_plot_uses_raw_intensity_and_hides_y_axis_ticks(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "epr_processed.csv"
             data.write_text(
                 "\n".join(
@@ -164,7 +171,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_point_line_policy_uses_line_symbol_origin_plot_type_and_marker_mode(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "eis.csv"
             data.write_text("real_impedance,neg_imag_impedance,residual\n1,2,0.1\n", encoding="utf-8")
 
@@ -180,7 +187,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_bet_isotherm_uses_relative_pressure_and_branch_columns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "bet_isotherm.csv"
             data.write_text(
                 "\n".join(
@@ -207,7 +214,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_bet_pore_distribution_uses_pore_size_and_volume_curve_columns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "bet_pore_distribution.csv"
             data.write_text(
                 "\n".join(
@@ -232,7 +239,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_bet_summary_metrics_are_not_plotted_as_single_point_curves(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "bet_summary.csv"
             data.write_text(
                 "bet_surface_area_m2_g_candidate,pore_volume_cm3_g_candidate,average_pore_diameter_nm_candidate\n"
@@ -245,7 +252,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_spectral_plot_uses_raw_intensity_not_normalized_or_optional_corrections(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "raman_processed.csv"
             data.write_text(
                 "\n".join(
@@ -265,7 +272,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_xrd_plot_uses_raw_pattern_only_not_reference_card_or_phase_columns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "xrd_processed.csv"
             data.write_text(
                 "\n".join(
@@ -299,7 +306,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_xrd_reference_card_only_table_is_rejected_for_automatic_plotting(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "xrd_reference_only.csv"
             data.write_text(
                 "\n".join(
@@ -323,7 +330,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_builds_graph4_helper_job_without_forbidden_entrypoint(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             config = project_root / "config"
             config.mkdir()
             (config / "plot_style.yaml").write_text(
@@ -382,7 +389,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_origin_page_name_includes_stable_hash_within_origin_short_name_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
             data.write_text("x,y\n0,1\n", encoding="utf-8")
 
@@ -396,7 +403,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_origin_job_filters_auxiliary_columns_and_uses_material_color(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "photocurrent.csv"
             data.write_text("time_s,current,cycle_candidate_id\n0,1,1\n1,2,1\n", encoding="utf-8")
             source = project_root / "1-BOC-(OCP).txt"
@@ -421,7 +428,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_bet_origin_job_keeps_desorption_optional_branch_as_plot_series(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "bet_processed.csv"
             data.write_text(
                 "\n".join(
@@ -463,7 +470,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_bet_combined_origin_job_groups_primary_three_then_remaining_in_one_opju(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
 
             def write_processed(name: str, scale: float) -> Path:
                 path = project_root / f"{name}_processed.csv"
@@ -525,7 +532,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_same_material_gets_same_curve_color_across_jobs(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             first_data = project_root / "first.csv"
             second_data = project_root / "second.csv"
             first_data.write_text("x,intensity\n0,1\n", encoding="utf-8")
@@ -556,7 +563,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_curve_label_material_takes_priority_over_folder_composite(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
             data.write_text("x,y\n0,1\n", encoding="utf-8")
             source = project_root / "CWO+BOBC" / "BOBC-A.txt"
@@ -577,7 +584,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_writes_origin_job_script_with_utf8_bom_for_chinese_paths(self) -> None:
         with tempfile.TemporaryDirectory(prefix="科研_") as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "数据.csv"
             data.write_text("x,样品A\n0,1\n", encoding="utf-8")
             job = build_origin_plot_job(project_root, "样品 A", data, "角度", "强度", "XRD")
@@ -592,7 +599,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_writes_origin_error_report_when_dependencies_unavailable(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
 
             with patch(
                 "src.origin.adapter.check_origin_available",
@@ -607,17 +614,17 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             self.assertEqual(result.message, "originpro unavailable: No module named 'originpro'")
             check_origin_available.assert_called_once_with()
 
-            report_path = project_root / "output" / "reports" / "origin_errors.md"
+            report_path = default_output_root(project_root) / "reports" / "origin_errors.md"
             self.assertTrue(report_path.exists())
             self.assertEqual(
                 report_path.read_text(encoding="utf-8"),
                 "# Origin Errors\n\n- originpro unavailable: No module named 'originpro'\n",
             )
-            self.assertFalse((project_root / "output" / "processed_data").exists())
+            self.assertFalse((default_output_root(project_root) / "processed_data").exists())
 
     def test_origin_smoke_test_uses_isolated_operations_export(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             fake = _FakeOriginOperations()
 
             with patch("src.origin.adapter.check_origin_available", return_value=(True, "origin available")):
@@ -629,11 +636,11 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             connect_origin.assert_called_once_with(entrypoint="Origin.Application", isolated=True, visible=False)
             self.assertTrue(fake.closed)
             self.assertEqual(fake.axis_labels, [("origin_smoke_test", "x", "y", "")])
-            self.assertTrue((project_root / "output" / "origin_files" / "origin_smoke_test.opju").exists())
-            self.assertTrue((project_root / "output" / "figures_tif" / "origin_smoke_test.tif").exists())
-            self.assertTrue((project_root / "output" / "figures_preview" / "origin_smoke_test.png").exists())
+            self.assertTrue((default_output_root(project_root) / "origin_files" / "origin_smoke_test.opju").exists())
+            self.assertTrue((default_output_root(project_root) / "figures_tif" / "origin_smoke_test.tif").exists())
+            self.assertTrue((default_output_root(project_root) / "figures_preview" / "origin_smoke_test.png").exists())
             self.assertEqual(
-                (project_root / "output" / "reports" / "origin_errors.md").read_text(encoding="utf-8"),
+                (default_output_root(project_root) / "reports" / "origin_errors.md").read_text(encoding="utf-8"),
                 "# Origin Errors\n\nNo current Origin errors.\n",
             )
 
@@ -665,12 +672,12 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_write_origin_error_deduplicates_identical_messages(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
 
             write_origin_error(project_root, "originpro unavailable: No module named 'originpro'")
             write_origin_error(project_root, "originpro unavailable: No module named 'originpro'")
 
-            report = project_root / "output" / "reports" / "origin_errors.md"
+            report = default_output_root(project_root) / "reports" / "origin_errors.md"
             self.assertEqual(
                 report.read_text(encoding="utf-8"),
                 "# Origin Errors\n\n- originpro unavailable: No module named 'originpro'\n",
@@ -678,8 +685,8 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_write_origin_error_normalizes_existing_duplicate_messages(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            report = project_root / "output" / "reports" / "origin_errors.md"
+            project_root = _temp_project(tmpdir)
+            report = default_output_root(project_root) / "reports" / "origin_errors.md"
             report.parent.mkdir(parents=True)
             report.write_text(
                 "# Origin Errors\n\n- old duplicate\n\n- old duplicate\n",
@@ -695,17 +702,17 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_write_origin_success_replaces_stale_error_report(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             write_origin_error(project_root, "old failure")
 
             write_origin_success(project_root)
 
-            report = project_root / "output" / "reports" / "origin_errors.md"
+            report = default_output_root(project_root) / "reports" / "origin_errors.md"
             self.assertEqual(report.read_text(encoding="utf-8"), "# Origin Errors\n\nNo current Origin errors.\n")
 
     def test_origin_job_rejects_non_graph4_line_width_contract(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             config = project_root / "config"
             config.mkdir()
             (config / "plot_style.yaml").write_text(
@@ -735,7 +742,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_export_plot_rejects_success_without_nonempty_preview_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
             data.write_text("x,y\n0,1\n", encoding="utf-8")
 
@@ -755,7 +762,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_export_plot_uses_originpro_tif_fallback_when_labtalk_tif_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
             data.write_text("x,y\n0,1\n", encoding="utf-8")
 
@@ -793,7 +800,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_export_plot_success_does_not_clear_stale_batch_error_report(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
             data.write_text("x,y\n0,1\n", encoding="utf-8")
             write_origin_error(project_root, "old failure")
@@ -810,12 +817,12 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
                         result = export_plot(project_root, "clear_stale", data, "x", "y", "XRD")
 
             self.assertTrue(result.ok)
-            report = project_root / "output" / "reports" / "origin_errors.md"
+            report = default_output_root(project_root) / "reports" / "origin_errors.md"
             self.assertEqual(report.read_text(encoding="utf-8"), "# Origin Errors\n\n- old failure\n")
 
     def test_export_plot_rejects_success_without_nonempty_tif_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
             data.write_text("x,y\n0,1\n", encoding="utf-8")
 
@@ -835,7 +842,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
     def test_export_plot_removes_stale_artifacts_before_current_origin_run(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
+            project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
             data.write_text("x,y\n0,1\n", encoding="utf-8")
             stale_job = build_origin_plot_job(project_root, "stale_outputs", data, "x", "y", "XRD")

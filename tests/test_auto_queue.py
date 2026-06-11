@@ -8,12 +8,20 @@ from pathlib import Path
 import pytest
 
 from src.core.auto_queue import AutoQueueOptions, plan_auto_queue, run_auto_queue
+from src.core.project import default_output_root
+
+
+def _project_root(tmp_path: Path) -> Path:
+    project = tmp_path / "ResearchDataOriginPipeline"
+    project.mkdir(parents=True, exist_ok=True)
+    return project
 
 
 def test_auto_queue_excludes_phase16_hash_and_accepts_new_auto_process(tmp_path: Path):
-    workspace = tmp_path / "workspace"
-    reports = tmp_path / "output" / "reports"
-    package = tmp_path / "output" / "phase1_6_origin_results_20260531_041538"
+    project = _project_root(tmp_path)
+    workspace = project / "workspace"
+    reports = default_output_root(project) / "reports"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
     reports.mkdir(parents=True)
     package.mkdir(parents=True)
     old_source = _write(workspace / "EIS" / "old.csv", "x,y\n1,2\n")
@@ -32,7 +40,7 @@ def test_auto_queue_excludes_phase16_hash_and_accepts_new_auto_process(tmp_path:
         writer.writerow({"source_hash": _sha256(old_source)})
 
     plan = plan_auto_queue(
-        tmp_path,
+        project,
         AutoQueueOptions(queue=queue_path, workspace_root=workspace, processed_index=package / "index.csv"),
     )
 
@@ -44,8 +52,9 @@ def test_auto_queue_excludes_phase16_hash_and_accepts_new_auto_process(tmp_path:
 
 
 def test_auto_queue_blocks_hash_mismatch_and_path_traversal(tmp_path: Path):
-    workspace = tmp_path / "workspace"
-    reports = tmp_path / "output" / "reports"
+    project = _project_root(tmp_path)
+    workspace = project / "workspace"
+    reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
     source = _write(workspace / "EIS" / "new.csv", "x,y\n3,4\n")
     queue = {
@@ -57,7 +66,7 @@ def test_auto_queue_blocks_hash_mismatch_and_path_traversal(tmp_path: Path):
     queue_path = reports / "processing_queue.json"
     queue_path.write_text(json.dumps(queue), encoding="utf-8")
 
-    plan = plan_auto_queue(tmp_path, AutoQueueOptions(queue=queue_path, workspace_root=workspace))
+    plan = plan_auto_queue(project, AutoQueueOptions(queue=queue_path, workspace_root=workspace))
 
     assert plan["summary"]["accepted_count"] == 0
     statuses = {item["status"] for item in plan["blocked_items"]}
@@ -66,8 +75,9 @@ def test_auto_queue_blocks_hash_mismatch_and_path_traversal(tmp_path: Path):
 
 
 def test_auto_queue_blocks_forbidden_type_variants(tmp_path: Path):
-    workspace = tmp_path / "workspace"
-    reports = tmp_path / "output" / "reports"
+    project = _project_root(tmp_path)
+    workspace = project / "workspace"
+    reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
     sem_source = _write(workspace / "SEM" / "image.csv", "x,y\n1,2\n")
     mixed_source = _write(workspace / "mixed" / "blocked.csv", "x,y\n3,4\n")
@@ -87,7 +97,7 @@ def test_auto_queue_blocks_forbidden_type_variants(tmp_path: Path):
         encoding="utf-8",
     )
 
-    plan = plan_auto_queue(tmp_path, AutoQueueOptions(queue=queue_path, workspace_root=workspace))
+    plan = plan_auto_queue(project, AutoQueueOptions(queue=queue_path, workspace_root=workspace))
 
     assert plan["summary"]["accepted_count"] == 0
     assert plan["summary"]["blocked_count"] == 3
@@ -95,14 +105,15 @@ def test_auto_queue_blocks_forbidden_type_variants(tmp_path: Path):
 
 
 def test_auto_queue_writes_plan_and_never_requests_origin_or_process(tmp_path: Path):
-    workspace = tmp_path / "workspace"
-    reports = tmp_path / "output" / "reports"
+    project = _project_root(tmp_path)
+    workspace = project / "workspace"
+    reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
     source = _write(workspace / "EPR" / "sample.txt", "1,2\n3,4\n")
     queue_path = reports / "processing_queue.json"
     queue_path.write_text(json.dumps({"items": [_queue_item("EPR/sample.txt", _sha256(source), data_type="EPR")]}), encoding="utf-8")
 
-    code = run_auto_queue(tmp_path, AutoQueueOptions(queue=queue_path, workspace_root=workspace))
+    code = run_auto_queue(project, AutoQueueOptions(queue=queue_path, workspace_root=workspace))
     plan = json.loads((reports / "phase1_8_new_auto_process_plan.json").read_text(encoding="utf-8"))
     output_queue = json.loads((reports / "phase1_8_new_auto_process_queue.json").read_text(encoding="utf-8"))
 
@@ -111,13 +122,14 @@ def test_auto_queue_writes_plan_and_never_requests_origin_or_process(tmp_path: P
     assert plan["summary"]["will_run_process"] is False
     assert output_queue["items"][0]["origin_export_allowed"] is False
     report_md = (reports / "phase1_8_new_auto_process_plan.md").read_text(encoding="utf-8")
-    assert str(tmp_path) not in report_md
+    assert str(project) not in report_md
     assert "- Candidate queue: `output/reports/phase1_8_new_auto_process_queue.json`" in report_md
 
 
 def test_auto_queue_rejects_report_outside_output_or_docs(tmp_path: Path):
-    workspace = tmp_path / "workspace"
-    reports = tmp_path / "output" / "reports"
+    project = _project_root(tmp_path)
+    workspace = project / "workspace"
+    reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
     source = _write(workspace / "EIS" / "new.csv", "x,y\n3,4\n")
     queue_path = reports / "processing_queue.json"
@@ -125,7 +137,7 @@ def test_auto_queue_rejects_report_outside_output_or_docs(tmp_path: Path):
 
     with pytest.raises(ValueError):
         run_auto_queue(
-            tmp_path,
+            project,
             AutoQueueOptions(queue=queue_path, workspace_root=workspace, report_json=tmp_path / "unsafe.json"),
         )
 

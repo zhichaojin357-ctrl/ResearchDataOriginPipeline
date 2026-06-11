@@ -7,10 +7,13 @@ from pathlib import Path
 from openpyxl import Workbook
 
 from src.core.epr_overlay import build_epr_condition_overlay
+from src.core.project import default_output_root
 
 
 def _result_path(root: Path, value: object) -> Path:
     path = Path(str(value))
+    if path.parts and path.parts[0] == "output":
+        return default_output_root(root) / Path(*path.parts[1:])
     return path if path.is_absolute() else root / path
 
 

@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.core.auto_queue import AutoQueueOptions, run_auto_queue
-from src.core.project import output_dir
+from src.core.project import default_output_root, output_dir
 from src.core.process import ProcessOptions, run_process
 from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
 from src.core.runtime_paths import create_run_output_layout
@@ -28,7 +28,7 @@ def test_create_run_output_layout_creates_standard_dirs_and_manifest(tmp_path: P
     )
 
     assert layout.run_id == "20260603_120000_process_no_origin"
-    assert layout.root == tmp_path / "output" / "runs" / "20260603_120000_process_no_origin"
+    assert layout.root == default_output_root(tmp_path) / "runs" / "20260603_120000_process_no_origin"
     assert layout.processed_data.is_dir()
     assert layout.metadata.is_dir()
     assert layout.origin_files.is_dir()
@@ -45,8 +45,8 @@ def test_create_run_output_layout_creates_standard_dirs_and_manifest(tmp_path: P
     assert manifest["no_origin"] is True
     assert manifest["dry_run"] is False
     assert manifest["compatibility_mode"] == "run_scoped"
-    assert manifest["output_root"] == "output/runs/20260603_120000_process_no_origin"
-    assert manifest["produced_artifact_directories"]["processed_data"] == "output/runs/20260603_120000_process_no_origin/processed_data"
+    assert manifest["output_root"] == "output/20260603_120000_process_no_origin"
+    assert manifest["produced_artifact_directories"]["processed_data"] == "output/20260603_120000_process_no_origin/processed_data"
     assert manifest["input_paths"] == ["input/raw_data"]
     assert not Path(manifest["output_root"]).is_absolute()
 
