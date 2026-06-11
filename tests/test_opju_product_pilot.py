@@ -169,6 +169,7 @@ def test_run_opju_product_pilot_routes_five_products_with_fake_origin(tmp_path: 
         processed_data = run_root / Path(item["processed_data"])
         reference_opju_copy = run_root / Path(item["reference_opju_copy"])
         reference_preview_png = run_root / Path(item["reference_preview_png"])
+        metadata = run_root / Path(item["metadata"])
         assert not Path(item["origin_file"]).is_absolute()
         assert origin_file.read_text(encoding="utf-8").startswith("fake ")
         assert origin_file.name == f"{stem}.opju"
@@ -180,6 +181,11 @@ def test_run_opju_product_pilot_routes_five_products_with_fake_origin(tmp_path: 
         assert processed_data.exists()
         assert reference_opju_copy.exists()
         assert reference_preview_png.exists()
+        assert metadata == run_root / str(item["product_key"]) / "metadata" / stem / "metadata.json"
+        recorded = json.loads(metadata.read_text(encoding="utf-8"))
+        assert recorded["dataset_id"] == stem
+        assert recorded["metadata_path"] == str(Path(item["metadata"]).as_posix())
+        assert not (run_root / str(item["product_key"]) / "metadata" / f"{stem}.json").exists()
     checklist = (run_root / "reports" / "manual_calibration_checklist.md").read_text(encoding="utf-8")
     assert "HPLC/LC exported data" in checklist
     assert "deferred" in checklist

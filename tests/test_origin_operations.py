@@ -248,6 +248,22 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertIn("save -t Graph1", command_text)
         self.assertIn("GraphStyle.otpu", command_text)
 
+    def test_create_graph_from_template_uses_project_local_otpu(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "GraphStyle.otpu"
+            template_path.write_bytes(b"otpu")
+            result = ops.create_graph_from_template("ProductGraph", template_path)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload["graph_name"], "ProductGraph")
+        command_text = "\n".join(app.commands)
+        expected_folder = str(template_path.parent).replace("\\", "/")
+        self.assertIn(f'cd "{expected_folder}"', command_text)
+        self.assertIn("CreatePage:3:ProductGraph:GraphStyle.otpu", app.commands)
+        self.assertNotIn(f"CreatePage:3:ProductGraph:{template_path}", app.commands)
+
     def test_helpers_and_connect_origin_dispatch_mode(self):
         self.assertEqual(safe_origin_name("123 unsafe name"), "Page_123_unsafe_name")
         output, export_format = normalize_export_path("figure", "tiff")

@@ -10,6 +10,7 @@ from src.core.v3_real_template_rebuild import (
     V3RealTemplateRebuildOptions,
     V3_TARGET_TYPES,
     V3TemplateCandidate,
+    classify_v3_project_style_asset_candidates,
     classify_v3_xps_reference_candidates,
     classify_v3_template_candidates,
     clip_eis_fit_to_measured_range,
@@ -68,6 +69,43 @@ def test_classify_v3_xps_reference_root_uses_in_situ_reference_opjus(tmp_path: P
     assert {item.product_key for item in classified} == {"XPS_in_situ"}
     assert {item.source for item in classified} == {"xps_reference_scan"}
     assert all(item.path_score > 30 for item in classified)
+
+
+def test_classify_v3_project_style_asset_candidates_use_cached_graph_templates(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    style_root = project_root / "templates" / "origin_styles"
+    graph_dir = style_root / "graph_templates"
+    graph_dir.mkdir(parents=True)
+    template = graph_dir / "BET.otpu"
+    template.write_text("cached style package", encoding="utf-8")
+    (style_root / "manifest.json").write_text(
+        """{
+  "schema_version": 1,
+  "assets": [
+    {
+      "product_key": "BET",
+      "data_type": "BET",
+      "graph_template": "graph_templates/BET.otpu",
+      "status": "accepted",
+      "graph_page": "Graph1",
+      "source_run_root": "output/runs/source_run"
+    }
+  ]
+}
+""",
+        encoding="utf-8",
+    )
+
+    candidates = classify_v3_project_style_asset_candidates(project_root)
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate.product_key == "BET"
+    assert candidate.path == template
+    assert candidate.source == "project_origin_style_asset"
+    assert candidate.status == "valid"
+    assert candidate.graph_page == "Graph1"
+    assert candidate.metadata["style_asset"]["graph_template"] == "graph_templates/BET.otpu"
 
 
 def test_select_v3_template_blocks_missing_or_data_only_candidates() -> None:

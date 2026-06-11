@@ -83,6 +83,7 @@ OUTPUT_SUBDIRS = (
     "figures_png",
     "figures_pdf",
     "origin_projects",
+    "metadata",
     "reports",
     "tables",
 )
@@ -192,6 +193,39 @@ def build_xps_in_situ_outputs(
         origin_status = _try_write_origin_project(project_root, panel_records, output_dir)
 
     quality_checks = _quality_checks(output_dir, panel_records, origin_status)
+    metadata_path = output_dirs["metadata"] / "xps_in_situ" / "metadata.json"
+    metadata_payload = {
+        "dataset_id": "xps_in_situ",
+        "metadata_path": _output_path(output_dir, metadata_path),
+        "data_type": "XPS",
+        "subtype": "XPS_in_situ",
+        "source_files": _sanitize_output_payload(scanned_files, output_dir),
+        "plotted_panels": [panel.__dict__ for panel in panels],
+        "missing": missing,
+        "element_sources": element_sources,
+        "origin_file": origin_status.get("origin_file"),
+        "figure_tif": _output_path(output_dir, output_dir / "xps_in_situ_combined.tif")
+        if (output_dir / "xps_in_situ_combined.tif").exists()
+        else None,
+        "preview_png": _output_path(output_dir, output_dir / "xps_in_situ_combined.png")
+        if (output_dir / "xps_in_situ_combined.png").exists()
+        else None,
+        "processing_status": "success" if origin_status.get("ok") else "processed_no_origin",
+        "origin_status": _sanitize_output_payload(origin_status, output_dir),
+        "quality_checks": quality_checks,
+        "manual_check_required": True,
+        "manual_check_items": [
+            "confirm XPS in-situ peak positions, fitted components, and illumination/dark sample mapping",
+            "review any binding-energy shifts manually before interpretation",
+        ],
+        "forbidden_claims": [
+            "do not assign valence states automatically",
+            "do not infer electron-transfer direction or heterojunction mechanism",
+            "do not claim proof of S-scheme mechanism",
+        ],
+    }
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(_sanitize_output_payload(metadata_payload, output_dir), ensure_ascii=False, indent=2), encoding="utf-8")
     report_text = _mapping_report(
         xps_root=xps_root,
         output_dir=output_dir,
@@ -214,6 +248,7 @@ def build_xps_in_situ_outputs(
             {
                 "output_dir": ".",
                 "output_dirs": {name: _output_path(output_dir, path) for name, path in output_dirs.items()},
+                "metadata": _output_path(output_dir, metadata_path),
                 "plotted_panels": [panel.__dict__ for panel in panels],
                 "missing": missing,
                 "element_sources": element_sources,

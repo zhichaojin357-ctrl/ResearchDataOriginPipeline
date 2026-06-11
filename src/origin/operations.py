@@ -348,6 +348,17 @@ class OriginOperations:
             self.run_labtalk(f'label -n title -s "{quote_origin_text(title)}"; title.x = 50; title.y = 95;')
         return OperationResult(True, "Graph created", {"graph_name": graph, "plot_type": plot_type})
 
+    def create_graph_from_template(self, graph_name: str, template_path: str | Path) -> OperationResult:
+        path = Path(template_path)
+        if not path.is_file():
+            return OperationResult(False, f"Graph template file not found: {path}")
+        template_arg = str(path)
+        if path.is_absolute():
+            self.run_labtalk(f'cd "{quote_labtalk(to_origin_path(path.parent))}";')
+            template_arg = path.name
+        graph = self.app.CreatePage(3, safe_origin_name(graph_name, "Graph"), template_arg)
+        return OperationResult(True, "Graph created from template", {"graph_name": graph, "template_path": str(path)})
+
     def add_plot_to_graph(
         self,
         graph_name: str,

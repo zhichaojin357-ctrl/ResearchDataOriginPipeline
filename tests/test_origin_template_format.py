@@ -49,6 +49,24 @@ def test_template_format_plan_can_use_cached_style_package_when_opju_missing(tmp
     assert plan.one_to_one_claim_allowed is False
 
 
+def test_template_format_plan_treats_otpu_source_as_cached_style_package(tmp_path: Path) -> None:
+    style_package = tmp_path / "BET.otpu"
+    style_package.write_text("style", encoding="utf-8")
+
+    plan = build_template_format_plan(
+        "BET",
+        opju_path=style_package,
+        graph_page="Graph1",
+    )
+
+    assert plan.status == "ready"
+    assert plan.mode == "cached_style_package"
+    assert plan.source_opju == style_package
+    assert plan.style_package_path == style_package
+    assert plan.graph_page == "Graph1"
+    assert plan.one_to_one_claim_allowed is False
+
+
 def test_template_format_plan_blocks_without_opju_or_style_package(tmp_path: Path) -> None:
     plan = build_template_format_plan(
         "EPR",

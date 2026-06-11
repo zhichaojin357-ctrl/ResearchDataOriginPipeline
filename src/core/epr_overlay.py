@@ -185,6 +185,38 @@ def build_epr_condition_overlay(
         )
         status = "success" if origin_result.ok else "fail"
 
+    metadata_path = _epr_overlay_metadata_path(project_root, data_dir, slug)
+    metadata_payload = {
+        "dataset_id": slug,
+        "metadata_path": render_output_path(metadata_path, project_root=project_root),
+        "data_type": "EPR",
+        "subtype": "EPR overlay",
+        "group": group_name,
+        "source_files": [Path(str(trace["path"])).name for trace in traces],
+        "processed_data": render_output_path(plot_csv, project_root=project_root),
+        "detail_csv": render_output_path(detail_csv, project_root=project_root),
+        "origin_file": render_output_path(origin_result.origin_file, project_root=project_root) if origin_result and origin_result.origin_file else None,
+        "figure_tif": render_output_path(origin_result.figure_tif, project_root=project_root) if origin_result and origin_result.figure_tif else None,
+        "preview_png": render_output_path(origin_result.preview_png, project_root=project_root) if origin_result and origin_result.preview_png else None,
+        "processing_status": status,
+        "manual_check_required": True,
+        "manual_check_items": [
+            "confirm EPR field calibration, baseline handling, and trace offsets",
+            "radical identity assignment requires manual scientific review",
+        ],
+        "forbidden_claims": ["no automatic radical assignment", "no automatic mechanism claim"],
+        "key_results": {
+            "point_count": len(traces[0]["x"]),
+            "x_min": min(traces[0]["x"]),
+            "x_max": max(traces[0]["x"]),
+            "offset_step": step,
+            "offsets": offsets,
+            "baseline_values": {trace["label"]: trace["baseline"] for trace in traces},
+        },
+    }
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(metadata_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
     return {
         "group": group_name,
         "status": status,
@@ -204,11 +236,20 @@ def build_epr_condition_overlay(
         "background_files": {trace["label"]: trace["background_file"] for trace in traces if trace["background_file"]},
         "processed_csv": render_output_path(plot_csv, project_root=project_root),
         "detail_csv": render_output_path(detail_csv, project_root=project_root),
+        "metadata": render_output_path(metadata_path, project_root=project_root),
         "origin_file": render_output_path(origin_result.origin_file, project_root=project_root) if origin_result and origin_result.origin_file else None,
         "figure_tif": render_output_path(origin_result.figure_tif, project_root=project_root) if origin_result and origin_result.figure_tif else None,
         "preview_png": render_output_path(origin_result.preview_png, project_root=project_root) if origin_result and origin_result.preview_png else None,
         "origin_message": origin_result.message if origin_result else "Origin export not requested",
     }
+
+
+def _epr_overlay_metadata_path(project_root: Path, data_dir: Path, slug: str) -> Path:
+    if data_dir.name == "processed_data":
+        return data_dir.parent / "metadata" / slug / "metadata.json"
+    if data_dir.parent.name == "processed_data":
+        return data_dir.parent.parent / "metadata" / data_dir.name / slug / "metadata.json"
+    return project_root / "output" / "metadata" / "EPR" / slug / "metadata.json"
 
 
 def _default_reference_dir(project_root: Path) -> Path:

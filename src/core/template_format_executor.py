@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import csv
 import json
+import os
+import shutil
+import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -16,10 +19,12 @@ from src.core.v3_real_template_rebuild import (
 from src.core.v4_strict_template_conformance import V4_STRICT_GLOBAL_STYLE_OVERRIDE
 from src.origin.conformance import compare_style_snapshots
 from src.origin.operations import connect_origin, quote_labtalk
+from src.origin.style_registry import resolve_origin_style_asset
 from src.origin.style_mimic import extract_style_snapshot, read_graph_style_snapshot
 from src.origin.template_format import build_template_dataset_updates, build_template_format_plan
 from src.origin.text_format import origin_bold_text
 from src.origin.user_style import ResolvedPlotStyle
+from src.processors.base import safe_name
 
 
 TEMPLATE_FORMAT_SCOPE = "unified_v5_template_format_conformance_all_types"
@@ -57,6 +62,7 @@ def build_template_format_v3_options(options: TemplateFormatExecutorOptions) -> 
         xps_templates_from_reference_only=True,
         xps_smooth_gradient_fill=True,
         cleanup_empty_run_layout_dirs=True,
+        project_style_asset_fallback=True,
     )
 
 
@@ -65,7 +71,7 @@ def run_template_format_executor(project_root: Path, options: TemplateFormatExec
     result = run_v3_real_template_rebuild_all_types(
         project_root,
         build_template_format_v3_options(options),
-        origin_exporter=export_template_base_product_with_origin,
+        origin_exporter=lambda product, style: export_template_base_product_with_origin(product, style, project_root=project_root),
     )
     _write_template_format_docs(project_root, Path(str(result["run_root"])), result)
     summary = dict(result.get("summary", {}))
@@ -176,12 +182,20 @@ def _read_template_plot_dataset_names(operations: object, graph_name: str, *, ma
     return {"ok": True, "plot_dataset_names": names, "layers_read": layers_read}
 
 
-def export_template_base_product_with_origin(product: ProductContext, style: ResolvedPlotStyle) -> dict[str, object]:
+def export_template_base_product_with_origin(
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    *,
+    project_root: Path | None = None,
+) -> dict[str, object]:
     operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
     try:
+        style_asset = resolve_origin_style_asset(project_root, product.product_key) if project_root is not None else None
         plan = build_template_format_plan(
             product.product_key,
             opju_path=product.reference_opju_copy,
+            style_package_path=style_asset.graph_template_path if style_asset else None,
+            graph_page=style_asset.graph_page if style_asset else "",
             reference_preview_png=product.reference_preview_png,
             product_preview_png=product.preview_png,
             curve_line_width_pt=style.line_width_pt,
@@ -189,6 +203,8 @@ def export_template_base_product_with_origin(product: ProductContext, style: Res
         )
         if not plan.can_execute:
             return {"ok": False, "message": "; ".join(plan.warnings), "template_format_plan": plan.to_dict()}
+        if plan.mode == "cached_style_package":
+            return _export_cached_style_package_product_with_origin(operations, product, style, plan)
 
         exemplar_snapshot = extract_style_snapshot(operations, product.reference_opju_copy)
         exemplar_style = exemplar_snapshot.to_dict()
@@ -293,6 +309,150 @@ def export_template_base_product_with_origin(product: ProductContext, style: Res
         return {"ok": False, "message": scrub_output_text(str(exc), output_root=product.type_root.parent)}
     finally:
         operations.close()
+
+
+def _export_cached_style_package_product_with_origin(
+    operations: object,
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    plan: object,
+) -> dict[str, object]:
+    style_package_path = Path(str(getattr(plan, "style_package_path", "") or ""))
+    if not style_package_path.is_file():
+        return {"ok": False, "message": f"Saved Origin style package not found: {style_package_path}", "template_format_plan": plan.to_dict()}
+    headers, _rows = _read_processed_csv(product.processed_data)
+    neutral_root = _neutral_origin_runtime_root()
+    with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root) as runtime_text:
+        runtime = Path(runtime_text)
+        runtime_style = runtime / style_package_path.name
+        shutil.copy2(style_package_path, runtime_style)
+        runtime_origin = runtime / product.origin_file.name
+        runtime_png = runtime / product.preview_png.name
+        runtime_tif = runtime / product.figure_tif.name
+
+        operations.new_project()
+        imported = operations.import_csv_to_worksheet(product.processed_data, book_name=f"{product.slug}_data")
+        if not getattr(imported, "ok", False):
+            return {"ok": False, "message": getattr(imported, "message", "CSV import failed"), "template_format_plan": plan.to_dict()}
+        book_name = str(imported.payload["book_name"])
+        graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
+        created = operations.create_graph_from_template(graph_name, runtime_style)
+        if not getattr(created, "ok", False):
+            return {"ok": False, "message": getattr(created, "message", "template graph creation failed"), "template_format_plan": plan.to_dict()}
+        graph_name = str(created.payload.get("graph_name") or graph_name)
+        for column_index in range(2, len(headers) + 1):
+            added = operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
+            if not getattr(added, "ok", False) and column_index == 2:
+                return {"ok": False, "message": getattr(added, "message", "first plot add failed"), "template_format_plan": plan.to_dict()}
+        operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
+        _apply_template_base_global_policies(operations, graph_name, product, style)
+        saved = operations.save_project(runtime_origin)
+        if not getattr(saved, "ok", False):
+            return {"ok": False, "message": getattr(saved, "message", "project save failed"), "template_format_plan": plan.to_dict()}
+        png = operations.export_graph(graph_name, runtime_png, "png", dpi=style.export_dpi)
+        tif = operations.export_graph(graph_name, runtime_tif, "tif", dpi=style.export_dpi)
+        metadata_warnings = [
+            warning
+            for warning in (
+                _strip_raster_metadata(runtime_png, dpi=style.export_dpi),
+                _strip_raster_metadata(runtime_tif, dpi=style.export_dpi),
+            )
+            if warning
+        ]
+        missing = [path for path in (runtime_origin, runtime_png, runtime_tif) if not path.exists() or path.stat().st_size == 0]
+        if missing:
+            return {
+                "ok": False,
+                "message": "missing artifacts: " + "; ".join(path.name for path in missing),
+                "template_format_plan": plan.to_dict(),
+            }
+        if not getattr(png, "ok", False) or not getattr(tif, "ok", False):
+            return {
+                "ok": False,
+                "message": scrub_output_text(f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}", output_root=product.type_root.parent),
+                "template_format_plan": plan.to_dict(),
+            }
+        operations.new_project()
+        _copy_runtime_artifact(runtime_origin, product.origin_file)
+        _copy_runtime_artifact(runtime_png, product.preview_png)
+        _copy_runtime_artifact(runtime_tif, product.figure_tif)
+    missing = [path for path in (product.origin_file, product.preview_png, product.figure_tif) if not path.exists() or path.stat().st_size == 0]
+    if missing:
+        return {
+            "ok": False,
+            "message": "missing copied artifacts: " + "; ".join(_product_output_path(product.type_root.parent, path) for path in missing),
+            "template_format_plan": plan.to_dict(),
+        }
+    return {
+        "ok": True,
+        "message": "Origin cached style-package export succeeded.",
+        "template_format_plan": plan.to_dict(),
+        "origin_processing": {
+            "required": True,
+            "applied": True,
+            "method": "cached_style_package_graph_template",
+            "processing_location": "Origin project-local .otpu graph template",
+            "style_package_path": _product_output_path(product.type_root.parent, style_package_path),
+            "graph_page": graph_name,
+            "neutral_runtime": True,
+            "raster_metadata_stripped": not metadata_warnings,
+            "metadata_warnings": metadata_warnings,
+        },
+        "reopened_graph": graph_name,
+        "line_width_policy_pt": style.line_width_pt,
+        "axis_title_bold_policy": style.font_bold,
+    }
+
+
+def _neutral_origin_runtime_root() -> Path:
+    candidates: list[Path] = []
+    for name in ("LOCALAPPDATA", "PROGRAMDATA"):
+        value = os.environ.get(name)
+        if value:
+            candidates.append(Path(value) / "ResearchDataOriginPipeline" / "origin_runtime")
+    candidates.append(Path.home() / "AppData" / "Local" / "ResearchDataOriginPipeline" / "origin_runtime")
+    candidates.append(Path("C:/ResearchDataOriginPipeline/origin_runtime"))
+    candidates.append(Path(tempfile.gettempdir()) / "ResearchDataOriginPipeline" / "origin_runtime")
+    for candidate in candidates:
+        if "codex" in str(candidate).casefold():
+            continue
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            return candidate
+        except OSError:
+            continue
+    fallback = Path(tempfile.gettempdir()) / "ResearchDataOriginPipeline" / "origin_runtime"
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
+def _copy_runtime_artifact(source: Path, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists():
+        target.unlink()
+    shutil.copy2(source, target)
+
+
+def _strip_raster_metadata(path: Path, *, dpi: int) -> str:
+    try:
+        from PIL import Image
+
+        with Image.open(path) as image:
+            fmt = image.format or path.suffix.lstrip(".").upper()
+            image.load()
+            clean = Image.new(image.mode, image.size)
+            pixel_data = image.get_flattened_data() if hasattr(image, "get_flattened_data") else image.getdata()
+            clean.putdata(list(pixel_data))
+            clean.info.clear()
+            tmp = path.with_name(f"{path.stem}.stripped{path.suffix}")
+            save_kwargs: dict[str, object] = {"dpi": (dpi, dpi)}
+            if fmt.upper() in {"TIF", "TIFF"}:
+                save_kwargs["compression"] = "tiff_lzw"
+            clean.save(tmp, format=fmt, **save_kwargs)
+        tmp.replace(path)
+        return ""
+    except Exception as exc:
+        return f"raster metadata strip skipped for {path.name}: {exc}"
 
 
 def _apply_template_base_global_policies(

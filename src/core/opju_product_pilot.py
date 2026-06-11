@@ -644,9 +644,11 @@ def _write_csv(path: Path, headers: list[str], rows: list[list[float | str | Non
 
 
 def _write_product_metadata(run_root: Path, product: ProductContext, export_status: dict[str, object]) -> Path:
-    path = product.type_root / "metadata" / f"{product.slug}.json"
+    path = product.type_root / "metadata" / product.slug / "metadata.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
+        "dataset_id": product.slug,
+        "metadata_path": _product_output_path(run_root, path),
         "product_key": product.product_key,
         "data_type": product.pairing.data_type,
         "xps_subtype": product.pairing.xps_subtype,

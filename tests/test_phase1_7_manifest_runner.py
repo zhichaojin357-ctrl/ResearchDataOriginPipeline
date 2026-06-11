@@ -162,6 +162,51 @@ def test_manifest_runner_writes_default_reports(tmp_path: Path, project_root: Pa
     assert "external/" in payload["manifest"]
 
 
+def test_manifest_runner_execute_with_origin_exports_planned_items(tmp_path: Path, monkeypatch):
+    test_project = tmp_path / "project"
+    package = _make_manifest_package(tmp_path, test_project, complete=False)
+    for relative in ("origin_files/XPS/item.opju", "figures_tif/XPS/item.tif", "previews/origin/XPS/item.png"):
+        (package / relative).unlink()
+    calls: list[dict[str, object]] = []
+
+    class FakeOriginResult:
+        ok = True
+        message = "fake origin export"
+
+        def __init__(self, origin_file: Path, figure_tif: Path, preview_png: Path) -> None:
+            self.origin_file = origin_file
+            self.figure_tif = figure_tif
+            self.preview_png = preview_png
+
+    def fake_export_plot(project: Path, dataset_id: str, processed_csv: Path, x_title: str, y_title: str, **kwargs: object):
+        assert project == test_project
+        assert processed_csv == package / "processed_tables" / "XPS" / "item.csv"
+        assert kwargs["data_type"] == "XPS"
+        calls.append({"dataset_id": dataset_id, "x_title": x_title, "y_title": y_title, "output_root": kwargs.get("output_root")})
+        scratch = package / "origin_files" / f"{dataset_id}.opju"
+        scratch.parent.mkdir(parents=True, exist_ok=True)
+        tif = package / "figures_tif" / f"{dataset_id}.tif"
+        png = package / "figures_preview" / f"{dataset_id}.png"
+        for path, content in ((scratch, b"opju"), (tif, b"tif"), (png, b"png")):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        return FakeOriginResult(scratch, tif, png)
+
+    monkeypatch.setattr("src.core.origin_batch.export_plot", fake_export_plot)
+
+    code = run_origin_batch(test_project, OriginBatchOptions(manifest=package / "index.csv", execute=True, with_origin=True))
+
+    assert code == 0
+    assert calls and calls[0]["dataset_id"] == "XPS_item"
+    assert (package / "origin_files" / "XPS" / "item.opju").read_bytes() == b"opju"
+    assert (package / "figures_tif" / "XPS" / "item.tif").read_bytes() == b"tif"
+    assert (package / "previews" / "origin" / "XPS" / "item.png").read_bytes() == b"png"
+    report = json.loads((test_project / "output" / "reports" / "phase1_7_manifest_runner_plan.json").read_text(encoding="utf-8"))
+    assert report["summary"]["exported_count"] == 1
+    assert report["summary"]["failure_count"] == 0
+    assert report["execution"]["reason"] == "executed_with_origin"
+
+
 def test_origin_batch_help_documents_dry_run_default(project_root: Path):
     result = subprocess.run(
         ["D:\\Python\\python.exe", "run.py", "origin-batch", "--help"],

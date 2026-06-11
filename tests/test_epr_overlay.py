@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -99,3 +100,22 @@ def test_epr_overlay_writes_baseline_smoothing_detail_to_requested_output_dir(tm
         "BOBC_offset",
     ]
     assert any(float(row[2]) != 0.0 for row in rows[1:])
+
+
+def test_epr_overlay_writes_canonical_metadata_next_to_output_package(tmp_path: Path) -> None:
+    ref = tmp_path / "refs"
+    out = tmp_path / "run" / "EPR" / "processed_data"
+    ref.mkdir()
+    _write_xlsx(ref / "BC-OH-light2.xlsx", [-1, 0, 1, 2])
+    _write_xlsx(ref / "CWO-OH-light2.xlsx", [-10, 0, 10, 20])
+    _write_xlsx(ref / "BOBC-OH-light1.xlsx", [-100, 0, 100, 200])
+
+    result = build_epr_condition_overlay(tmp_path, ref, "OH", with_origin=False, output_data_dir=out)
+
+    metadata = _result_path(tmp_path, result["metadata"])
+    assert metadata == out.parent / "metadata" / "epr_oh_overlay" / "metadata.json"
+    recorded = json.loads(metadata.read_text(encoding="utf-8"))
+    assert recorded["dataset_id"] == "epr_oh_overlay"
+    assert recorded["metadata_path"] == "run/EPR/metadata/epr_oh_overlay/metadata.json"
+    assert recorded["manual_check_required"] is True
+    assert recorded["forbidden_claims"] == ["no automatic radical assignment", "no automatic mechanism claim"]

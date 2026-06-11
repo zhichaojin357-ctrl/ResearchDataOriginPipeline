@@ -91,7 +91,7 @@ def build_template_format_plan(
         "origin_template_or_format_source_required": True,
     }
     warnings: list[str] = []
-    if source_opju is not None and source_opju.is_file():
+    if source_opju is not None and source_opju.is_file() and source_opju.suffix.casefold() in {".opju", ".opj"}:
         return TemplateFormatPlan(
             data_type=data_type,
             status="ready",
@@ -105,6 +105,9 @@ def build_template_format_plan(
             plot_intent=intent,
             warnings=tuple(warnings),
         )
+    style_package = style_package or (
+        source_opju if source_opju is not None and source_opju.is_file() and _is_supported_style_package(source_opju) else None
+    )
     if style_package is not None and _is_supported_style_package(style_package):
         warnings.append("OPJU exemplar missing; using a saved style package instead of live template project.")
         return TemplateFormatPlan(

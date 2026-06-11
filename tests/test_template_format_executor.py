@@ -10,8 +10,10 @@ from src.core.template_format_executor import (
     TEMPLATE_FORMAT_SCOPE,
     TemplateFormatExecutorOptions,
     _apply_template_base_global_policies,
+    _strip_raster_metadata,
     apply_template_base_data_replacement,
     build_template_format_v3_options,
+    export_template_base_product_with_origin,
 )
 from src.origin.operations import OperationResult
 from src.origin.user_style import ResolvedPlotStyle
@@ -42,6 +44,63 @@ class _FakeTemplateOps:
     def set_graph_font(self, graph_name: str, **_kwargs: object) -> OperationResult:
         self.commands.append(f"font:{graph_name}")
         return OperationResult(True, "ok")
+
+
+class _FakeCachedStyleOps:
+    def __init__(self) -> None:
+        self.created_from_template: Path | None = None
+        self.saved_paths: list[Path] = []
+        self.exported_paths: list[Path] = []
+        self.closed = False
+        self.commands: list[str] = []
+
+    def new_project(self) -> OperationResult:
+        return OperationResult(True, "new")
+
+    def import_csv_to_worksheet(self, _path: Path, book_name: str = "", delimiter: str = ",") -> OperationResult:
+        return OperationResult(True, "imported", {"book_name": book_name or "Book1"})
+
+    def create_graph_from_template(self, graph_name: str, template_path: Path) -> OperationResult:
+        self.created_from_template = template_path
+        return OperationResult(True, "created", {"graph_name": graph_name})
+
+    def add_plot_to_graph(self, *_args: object, **_kwargs: object) -> OperationResult:
+        return OperationResult(True, "added")
+
+    def set_axis_labels(self, *_args: object, **_kwargs: object) -> OperationResult:
+        return OperationResult(True, "axis")
+
+    def apply_graph4_fixed_style(self, *_args: object, **_kwargs: object) -> OperationResult:
+        return OperationResult(True, "style")
+
+    def set_tick_style(self, *_args: object, **_kwargs: object) -> OperationResult:
+        return OperationResult(True, "ticks")
+
+    def set_axis_and_tick_visibility(self, *_args: object, **_kwargs: object) -> OperationResult:
+        return OperationResult(True, "visibility")
+
+    def set_legend(self, *_args: object, **_kwargs: object) -> OperationResult:
+        return OperationResult(True, "legend")
+
+    def run_labtalk(self, command: str) -> OperationResult:
+        self.commands.append(command)
+        return OperationResult(True, "labtalk")
+
+    def save_project(self, path: Path) -> OperationResult:
+        self.saved_paths.append(Path(path))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"opju")
+        return OperationResult(True, "saved")
+
+    def export_graph(self, _graph_name: str, path: Path, _format: str, **_kwargs: object) -> OperationResult:
+        self.exported_paths.append(Path(path))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"figure")
+        return OperationResult(True, "exported")
+
+    def close(self) -> OperationResult:
+        self.closed = True
+        return OperationResult(True, "closed")
 
 
 def test_template_format_v3_options_keep_v5_scope_separate(tmp_path: Path) -> None:
@@ -166,6 +225,57 @@ def test_template_base_global_policy_preserves_template_legend_text(tmp_path: Pa
     assert "legend.text$" not in commands
     assert "legend.background=0" not in commands
     assert "legend -r" not in commands
+
+
+def test_export_template_base_uses_project_style_asset_when_reference_opju_missing(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    style_root = project_root / "templates" / "origin_styles"
+    template = style_root / "graph_templates" / "BET.otpu"
+    template.parent.mkdir(parents=True)
+    template.write_bytes(b"otpu")
+    (style_root / "manifest.json").write_text(
+        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","graph_template":"graph_templates/BET.otpu","status":"accepted"}]}',
+        encoding="utf-8",
+    )
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = _FakeCachedStyleOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
+
+    assert result["ok"] is True
+    assert result["template_format_plan"]["mode"] == "cached_style_package"
+    assert result["origin_processing"]["method"] == "cached_style_package_graph_template"
+    assert result["origin_processing"]["neutral_runtime"] is True
+    assert fake.created_from_template is not None
+    assert fake.created_from_template.name == template.name
+    assert "codex" not in str(fake.created_from_template).casefold()
+    assert project_root not in fake.created_from_template.parents
+    assert fake.saved_paths and fake.saved_paths[0] != product.origin_file
+    assert fake.exported_paths and product.figure_tif not in fake.exported_paths
+    assert product.origin_file.exists()
+    assert product.figure_tif.exists()
+    assert product.preview_png.exists()
+    assert fake.closed is True
+
+
+def test_strip_raster_metadata_removes_tiff_description_paths(tmp_path: Path) -> None:
+    from PIL import Image, TiffImagePlugin
+
+    figure = tmp_path / "figure.tif"
+    tags = TiffImagePlugin.ImageFileDirectory_v2()
+    tags[270] = r"D:\Codex Project\科研数据处理\product.opju"
+    Image.new("RGB", (8, 6), "white").save(figure, tiffinfo=tags)
+    assert b"Codex Project" in figure.read_bytes()
+
+    warning = _strip_raster_metadata(figure, dpi=600)
+
+    assert warning == ""
+    cleaned = figure.read_bytes()
+    assert b"Codex Project" not in cleaned
+    assert b":\\" not in cleaned
 
 
 def test_cli_unified_v5_template_format_passes_options(tmp_path: Path, monkeypatch) -> None:

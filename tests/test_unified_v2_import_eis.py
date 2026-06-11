@@ -108,6 +108,13 @@ def test_unified_v2_imports_completed_eis_without_refitting(tmp_path: Path, monk
     assert imported_eis_meta["fit"]["parameters"]["n"] == 0.8054177975139813
     assert not Path(imported_eis_meta["fit_curve"]).is_absolute()
     assert run_root / Path(imported_eis_meta["fit_curve"]) == run_root / "EIS" / "processed_data" / "eis_randles_cpe_fit_curve.csv"
+    product_metadata = run_root / "EIS" / "metadata" / "EIS_BOBC_exemplar_v2" / "metadata.json"
+    assert product_metadata.exists()
+    assert not (run_root / "EIS" / "metadata" / "EIS_BOBC_exemplar_v2.json").exists()
+    imported_product_meta = json.loads(product_metadata.read_text(encoding="utf-8"))
+    assert imported_product_meta["metadata_path"] == "EIS/metadata/EIS_BOBC_exemplar_v2/metadata.json"
+    eis_summary = next(item for item in result["products"] if item["product_key"] == "EIS")
+    assert eis_summary["metadata"] == "EIS/metadata/EIS_BOBC_exemplar_v2/metadata.json"
     import_report = run_root / "EIS" / "reports" / "EIS_BOBC_exemplar_v2_import_report.md"
     assert "not refitted" in import_report.read_text(encoding="utf-8")
     assert (project_root / "docs" / "UNIFIED_V2_PRODUCT_SUMMARY.md").exists()

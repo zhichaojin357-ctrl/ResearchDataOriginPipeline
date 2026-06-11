@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import subprocess
 from unittest.mock import patch
@@ -249,6 +250,12 @@ def test_run_xps_heterojunction_stacked_dry_run_writes_reports_and_tables(tmp_pa
     assert (output / "reports" / "xps_heterojunction_stacked_summary.md").exists()
     assert (output / "reports" / "xps_heterojunction_stacked_summary.csv").exists()
     assert (output / "reports" / "manual_review.csv").exists()
+    metadata_path = output / "metadata" / "XPS_Bi_BOBC_vs_BC_stacked" / "metadata.json"
+    assert metadata_path.exists()
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert metadata["metadata_path"] == "metadata/XPS_Bi_BOBC_vs_BC_stacked/metadata.json"
+    assert result["figures"][0]["metadata"] == "metadata/XPS_Bi_BOBC_vs_BC_stacked/metadata.json"
+    assert not (output / "metadata" / "XPS_Bi_BOBC_vs_BC_stacked_metadata.json").exists()
     summary = (output / "reports" / "xps_heterojunction_stacked_summary.md").read_text(encoding="utf-8")
     assert "non-in-situ fitted XPS heterojunction stacked comparisons" in summary
     assert "no mechanism conclusion is generated" in summary

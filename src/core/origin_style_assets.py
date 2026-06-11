@@ -181,7 +181,12 @@ def _metadata_for_product(run_root: Path, product_type: str) -> dict[str, Any]:
     metadata_dir = product_dir / "metadata"
     if not metadata_dir.exists():
         return {}
-    for path in sorted(metadata_dir.glob("*.json")):
+    candidates = [*sorted(metadata_dir.rglob("metadata.json")), *sorted(metadata_dir.glob("*.json"))]
+    seen: set[Path] = set()
+    for path in candidates:
+        if path in seen:
+            continue
+        seen.add(path)
         try:
             loaded = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:

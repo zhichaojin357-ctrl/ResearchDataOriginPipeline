@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from src.core.manifest_schema import schema_mismatch_message
 from src.core.output_sanitizer import scrub_output_text
 from src.core.project import report_path
 from src.core.runtime_paths import resolve_workspace_root
+from src.origin.adapter import export_plot
 
 
 PACKAGE_ARTIFACT_FIELDS = (
@@ -53,9 +55,24 @@ class OriginBatchOptions:
 
 def run_origin_batch(project_root: Path, options: OriginBatchOptions) -> int:
     plan = plan_origin_batch(project_root, options)
+    if not plan["execution"]["blocked"] and options.execute and options.with_origin:
+        execution = execute_origin_batch_exports(project_root, options, plan)
+        plan["execution"].update(
+            {
+                "reason": "executed_with_origin",
+                "origin_launch": True,
+                "exported": execution["exported"],
+                "failures": execution["failures"],
+            }
+        )
+        plan["summary"]["exported_count"] = len(execution["exported"])
+        plan["summary"]["failure_count"] = len(execution["failures"])
+        plan["summary"]["will_launch_origin"] = True
     write_origin_batch_reports(project_root, plan, options)
     if plan["execution"]["blocked"]:
         return 2
+    if int(plan["summary"].get("failure_count", 0)):
+        return 1
     return 0 if not plan["summary"]["blocked_count"] else 1
 
 
@@ -130,8 +147,7 @@ def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
         execution_blocked = True
         execution_reason = "execute_requires_explicit_with_origin"
     elif options.execute and options.with_origin:
-        execution_blocked = True
-        execution_reason = "phase1_7_runner_implements_planning_only_no_export"
+        execution_reason = "ready_to_execute_with_origin"
 
     plan = {
         "runner": "origin-batch",
@@ -149,19 +165,77 @@ def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
             "planned_count": len(planned),
             "skipped_count": len(skipped),
             "blocked_count": len(blocked),
-            "will_launch_origin": False,
+            "will_launch_origin": bool(options.execute and options.with_origin and not execution_blocked),
+            "exported_count": 0,
+            "failure_count": 0,
         },
         "execution": {
             "blocked": execution_blocked,
             "reason": execution_reason,
-            "origin_launch": False,
-            "notes": "Phase 1.7 origin-batch is a manifest-driven dry-run planner; it never launches Origin during dry-run.",
+            "origin_launch": bool(options.execute and options.with_origin and not execution_blocked),
+            "notes": "origin-batch is dry-run by default; real Origin export requires both --execute and --with-origin.",
         },
         "planned_items": planned,
         "skipped_items": skipped,
         "blocked_items": blocked,
     }
     return _sanitize_report_payload(project_root, plan, options.output_root)
+
+
+def execute_origin_batch_exports(project_root: Path, options: OriginBatchOptions, plan: dict) -> dict[str, list[dict[str, object]]]:
+    project_root = project_root.absolute()
+    manifest_path = _resolve_existing_path(project_root, options.manifest)
+    package_root = manifest_path.parent.absolute()
+    rows = _read_manifest_rows(manifest_path)
+    planned_rows = {int(item["row_number"]) for item in plan.get("planned_items", [])}
+    exported: list[dict[str, object]] = []
+    failures: list[dict[str, object]] = []
+    for row_number, row in enumerate(rows, start=2):
+        if row_number not in planned_rows:
+            continue
+        result_id = row.get("result_id") or f"row_{row_number}"
+        data_type = row.get("data_type", "")
+        try:
+            path_errors, artifacts = _resolve_artifact_paths(package_root, row)
+            if path_errors:
+                raise ValueError(f"artifact path validation failed: {path_errors}")
+            source_check = _check_source_hash(project_root, package_root, row, row.get("source_hash", "").strip())
+            if not source_check.get("ok"):
+                raise ValueError(str(source_check.get("reason") or "source hash check failed"))
+            processed_csv = artifacts["processed_csv"]
+            x_title, y_title = _csv_axis_titles(processed_csv)
+            source_file = Path(str(source_check.get("source_path_checked"))) if source_check.get("source_path_checked") else None
+            origin_result = export_plot(
+                project_root,
+                result_id,
+                processed_csv,
+                x_title,
+                y_title,
+                data_type=data_type,
+                source_file=source_file,
+                output_root=package_root,
+            )
+            if not getattr(origin_result, "ok", False):
+                raise RuntimeError(getattr(origin_result, "message", "Origin export failed"))
+            _copy_exported_artifact(origin_result.origin_file, artifacts.get("origin_file"))
+            _copy_exported_artifact(origin_result.figure_tif, artifacts.get("figure_tif"))
+            _copy_exported_artifact(origin_result.preview_png, artifacts.get("preview_png"))
+            missing = _missing_or_empty(artifacts, ORIGIN_OUTPUT_FIELDS)
+            if missing:
+                raise RuntimeError("Origin export did not produce manifest outputs: " + ", ".join(missing))
+            exported.append(
+                {
+                    "row_number": row_number,
+                    "result_id": result_id,
+                    "data_type": data_type,
+                    "origin_file": str(artifacts["origin_file"]),
+                    "figure_tif": str(artifacts["figure_tif"]),
+                    "preview_png": str(artifacts["preview_png"]),
+                }
+            )
+        except Exception as exc:
+            failures.append({"row_number": row_number, "result_id": result_id, "data_type": data_type, "message": str(exc)})
+    return _sanitize_report_payload(project_root, {"exported": exported, "failures": failures}, options.output_root)
 
 
 def write_origin_batch_reports(project_root: Path, plan: dict, options: OriginBatchOptions) -> tuple[Path, Path]:
@@ -180,6 +254,29 @@ def write_origin_batch_reports(project_root: Path, plan: dict, options: OriginBa
     json_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     md_path.write_text(_manifest_plan_markdown(plan), encoding="utf-8")
     return json_path, md_path
+
+
+def _csv_axis_titles(path: Path) -> tuple[str, str]:
+    try:
+        with path.open(encoding="utf-8-sig", newline="") as handle:
+            row = next(csv.reader(handle), [])
+    except (OSError, StopIteration):
+        return "X", "Y"
+    x_title = str(row[0]).strip() if len(row) >= 1 and str(row[0]).strip() else "X"
+    y_title = str(row[1]).strip() if len(row) >= 2 and str(row[1]).strip() else "Y"
+    return x_title, y_title
+
+
+def _copy_exported_artifact(source: Path | str | None, target: Path | None) -> None:
+    if source is None or target is None:
+        return
+    source_path = Path(source)
+    if not source_path.is_file():
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if source_path.resolve() == target.resolve():
+        return
+    shutil.copy2(source_path, target)
 
 
 def _manifest_plan_markdown(plan: dict) -> str:

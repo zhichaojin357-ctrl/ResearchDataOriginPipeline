@@ -24,6 +24,7 @@ def test_output_subdirs_are_structured_and_artifact_free(tmp_path: Path) -> None
         "figures_png": output_dir / "figures_png",
         "figures_pdf": output_dir / "figures_pdf",
         "origin_projects": output_dir / "origin_projects",
+        "metadata": output_dir / "metadata",
         "reports": output_dir / "reports",
         "tables": output_dir / "tables",
     }
@@ -66,6 +67,13 @@ def test_build_xps_in_situ_routes_metadata_outputs_to_structured_subdirs(tmp_pat
     assert captured["peak_summary_rows"] == [{"Element": "Bi"}]
     assert (reports_dir / "xps_data_mapping_report.md").read_text(encoding="utf-8") == "mapping report\n"
     manifest = json.loads((reports_dir / "xps_in_situ_manifest.json").read_text(encoding="utf-8"))
+    metadata_path = resolved_output / "metadata" / "xps_in_situ" / "metadata.json"
+    assert metadata_path.exists()
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert metadata["dataset_id"] == "xps_in_situ"
+    assert metadata["metadata_path"] == "metadata/xps_in_situ/metadata.json"
+    assert metadata["manual_check_required"] is True
+    assert manifest["metadata"] == "metadata/xps_in_situ/metadata.json"
     assert manifest["output_dirs"]["reports"] == "reports"
     assert manifest["output_dirs"]["tables"] == "tables"
     assert manifest["output_dirs"]["origin_projects"] == "origin_projects"

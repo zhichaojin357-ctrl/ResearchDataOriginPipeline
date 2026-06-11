@@ -458,13 +458,14 @@ def _import_completed_eis_v2_product(run_root: Path, eis_v2_run_root: Path) -> t
         "processed_data/eis_randles_cpe_fit_curve.csv",
         "processed_data/EIS_BOBC_exemplar_v2.csv",
         "metadata/eis_cleaning_and_fit_metadata.json",
-        "metadata/EIS_BOBC_exemplar_v2.json",
         "origin_files/EIS_BOBC_exemplar_v2.opju",
         "figures_tif/EIS_BOBC_exemplar_v2.tif",
         "figures_preview/EIS_BOBC_exemplar_v2_preview.png",
         "reports/EIS_BOBC_exemplar_v2_report.md",
     ]
     missing = [relative for relative in required if not (source_type_root / relative).exists()]
+    if _completed_eis_product_metadata_path(source_type_root) is None:
+        missing.append("metadata/EIS_BOBC_exemplar_v2/metadata.json or metadata/EIS_BOBC_exemplar_v2.json")
     if missing:
         raise FileNotFoundError("completed EIS v2 run is missing required files: " + "; ".join(missing))
     shutil.copytree(source_type_root, target_type_root, dirs_exist_ok=True)
@@ -480,7 +481,7 @@ def _import_completed_eis_v2_product(run_root: Path, eis_v2_run_root: Path) -> t
         "figure_tif": render_output_path(target_type_root / "figures_tif" / "EIS_BOBC_exemplar_v2.tif", project_root=run_root),
         "preview_png": render_output_path(target_type_root / "figures_preview" / "EIS_BOBC_exemplar_v2_preview.png", project_root=run_root),
         "processed_data": render_output_path(target_type_root / "processed_data" / "EIS_BOBC_exemplar_v2.csv", project_root=run_root),
-        "metadata": render_output_path(target_type_root / "metadata" / "EIS_BOBC_exemplar_v2.json", project_root=run_root),
+        "metadata": render_output_path(_canonical_eis_product_metadata_path(target_type_root), project_root=run_root),
         "report": render_output_path(import_report, project_root=run_root),
         "status": "success",
         "message": "imported from completed Randles-CPE v2 run without refitting",
@@ -503,8 +504,13 @@ def _rewrite_imported_eis_cleaning_metadata(type_root: Path) -> dict[str, object
 
 
 def _rewrite_imported_eis_product_metadata(type_root: Path, source_run_root: Path) -> dict[str, object]:
-    metadata_path = type_root / "metadata" / "EIS_BOBC_exemplar_v2.json"
-    payload = _read_json(metadata_path)
+    source_metadata = _completed_eis_product_metadata_path(type_root)
+    if source_metadata is None:
+        raise FileNotFoundError("completed EIS product metadata not found")
+    metadata_path = _canonical_eis_product_metadata_path(type_root)
+    payload = _read_json(source_metadata)
+    payload["dataset_id"] = "EIS_BOBC_exemplar_v2"
+    payload["metadata_path"] = render_output_path(metadata_path, project_root=type_root.parent)
     payload["input_copies"] = _safe_metadata_paths([str(path) for path in sorted((type_root / "input_copies").glob("*"))])
     payload["reference_opju_copy"] = _safe_metadata_path(_first_file(type_root / "reference_opju", "*.opj*") or type_root / "reference_opju")
     payload["processed_data"] = _safe_metadata_path(type_root / "processed_data" / "EIS_BOBC_exemplar_v2.csv")
@@ -513,8 +519,25 @@ def _rewrite_imported_eis_product_metadata(type_root: Path, source_run_root: Pat
     payload["preview_png"] = _safe_metadata_path(type_root / "figures_preview" / "EIS_BOBC_exemplar_v2_preview.png")
     payload["unified_v2_imported_from"] = source_run_root.name
     payload["unified_v2_import_policy"] = "OPJU/TIF/PNG/processed EIS files were copied from the completed Randles-CPE v2 run without refitting."
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    if source_metadata != metadata_path and source_metadata.exists():
+        source_metadata.unlink()
     return payload
+
+
+def _canonical_eis_product_metadata_path(type_root: Path) -> Path:
+    return type_root / "metadata" / "EIS_BOBC_exemplar_v2" / "metadata.json"
+
+
+def _completed_eis_product_metadata_path(type_root: Path) -> Path | None:
+    canonical = _canonical_eis_product_metadata_path(type_root)
+    if canonical.is_file():
+        return canonical
+    legacy = type_root / "metadata" / "EIS_BOBC_exemplar_v2.json"
+    if legacy.is_file():
+        return legacy
+    return None
 
 
 def _write_imported_eis_report(
@@ -712,8 +735,11 @@ def _write_v2_product_metadata(
     style: ResolvedPlotStyle,
     extra: dict[str, object],
 ) -> Path:
-    path = product.type_root / "metadata" / f"{product.slug}.json"
+    path = product.type_root / "metadata" / product.slug / "metadata.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
+        "dataset_id": product.slug,
+        "metadata_path": render_output_path(path, project_root=run_root),
         "product_key": product.product_key,
         "data_type": product.pairing.data_type,
         "xps_subtype": product.pairing.xps_subtype,

@@ -293,8 +293,10 @@ def run_xps_heterojunction_stacked(
         origin_artifacts = {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": ""}
         if options.with_origin:
             origin_artifacts = _export_origin_for_comparison(project_root, comparison, plot_csv, dirs, peak_details)
+        metadata_path = dirs["metadata"] / comparison.name / "metadata.json"
         metadata = {
             "dataset_id": comparison.name,
+            "metadata_path": _task_output_path(output_dir, metadata_path),
             "data_type": "XPS",
             "comparison": f"{comparison.sample_a} vs {comparison.sample_b}",
             "element": comparison.element,
@@ -321,7 +323,7 @@ def run_xps_heterojunction_stacked(
             "processing_status": "planned_no_origin" if not options.with_origin else ("success" if origin_artifacts.get("ok") else "origin_failed"),
             "origin_message": origin_artifacts.get("message", ""),
         }
-        metadata_path = dirs["metadata"] / f"{comparison.name}_metadata.json"
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
         metadata_path.write_text(json.dumps(_sanitize_xps_output_payload(metadata, output_dir), ensure_ascii=False, indent=2), encoding="utf-8")
         figure_rows.append(
             {

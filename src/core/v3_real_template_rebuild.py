@@ -55,6 +55,7 @@ from src.core.xps_heterojunction import (
 )
 from src.origin.conformance import compare_style_snapshots
 from src.origin.operations import connect_origin, quote_labtalk
+from src.origin.style_registry import load_origin_style_manifest, origin_style_manifest_path, resolve_origin_style_asset
 from src.origin.style_mimic import OpjuStyleSnapshot, apply_style_snapshot, extract_style_snapshot, read_graph_style_snapshot
 from src.origin.text_format import origin_bold_text
 from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overrides, load_user_plot_style, resolve_user_plot_style
@@ -193,6 +194,7 @@ class V3RealTemplateRebuildOptions:
     xps_templates_from_reference_only: bool = False
     xps_smooth_gradient_fill: bool = False
     cleanup_empty_run_layout_dirs: bool = False
+    project_style_asset_fallback: bool = False
 
 
 def classify_v3_template_candidates(paths: list[Path], *, f_drive_root: Path) -> list[V3TemplateCandidate]:
@@ -298,6 +300,40 @@ def build_v3_template_candidate_pool(
             classify_v3_xps_non_in_situ_candidates(
                 xps_non_in_situ_paths,
                 reference_root=xps_non_in_situ_root,
+            )
+        )
+    return candidates
+
+
+def classify_v3_project_style_asset_candidates(project_root: Path) -> list[V3TemplateCandidate]:
+    manifest_path = origin_style_manifest_path(project_root)
+    manifest = load_origin_style_manifest(project_root, manifest_path)
+    candidates: list[V3TemplateCandidate] = []
+    for raw in manifest.get("assets", []):
+        if not isinstance(raw, dict):
+            continue
+        product_key = str(raw.get("product_key") or raw.get("data_type") or "")
+        if product_key not in V3_TARGET_TYPES:
+            continue
+        asset = resolve_origin_style_asset(project_root, product_key, manifest_path)
+        if asset is None:
+            continue
+        candidates.append(
+            V3TemplateCandidate(
+                product_key=product_key,
+                path=asset.graph_template_path,
+                source="project_origin_style_asset",
+                path_score=1,
+                status="valid",
+                graph_page=asset.graph_page or "Graph1",
+                layer_count=1,
+                plot_count=1,
+                reason="project-local cached Origin style asset fallback",
+                metadata={
+                    "style_package": True,
+                    "style_asset": asset.to_dict(project_root),
+                    "manifest_entry": asset.to_dict(project_root),
+                },
             )
         )
     return candidates
@@ -602,6 +638,8 @@ def run_v3_real_template_rebuild_all_types(
         _ensure_v3_type_dirs(layout.root / V3_TYPE_DIRS[product_key])
     validator = template_validator or validate_v3_template_candidates
     validated = validator(candidates, layout.root / "template_scan_copies")
+    if options.project_style_asset_fallback:
+        validated.extend(classify_v3_project_style_asset_candidates(project_root))
     selections = {product_key: select_v3_template(product_key, validated) for product_key in V3_TARGET_TYPES}
     _write_template_discovery_doc(project_root / "docs" / "V3_TEMPLATE_DISCOVERY_AND_SELECTION.md", f_drive_root, validated, selections)
 
@@ -2792,8 +2830,10 @@ def _write_v3_product_metadata(
     template: V3TemplateCandidate,
     acceptance: V3Acceptance,
 ) -> Path:
-    path = product.type_root / "metadata" / f"{product.slug}.json"
+    path = product.type_root / "metadata" / product.slug / "metadata.json"
     payload = {
+        "dataset_id": product.slug,
+        "metadata_path": _safe_metadata_path(path),
         "product_key": product.product_key,
         "status": acceptance.status,
         "data_type": product.pairing.data_type,
