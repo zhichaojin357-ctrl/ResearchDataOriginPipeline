@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from src.core.output_sanitizer import scrub_output_text
 from src.core.project import report_path
 from src.core.runtime_paths import resolve_phase1_6_index, resolve_workspace_root
 
@@ -181,7 +182,7 @@ def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: Revi
         "skipped_items": skipped,
         "blocked_items": blocked,
     }
-    return plan
+    return _sanitize_report_payload(project_root, plan, options.output_root)
 
 
 def write_reviewed_queue_reports(project_root: Path, plan: dict, options: ReviewedQueueOptions) -> tuple[Path, Path]:
@@ -507,6 +508,16 @@ def _file_sha256(path: Path) -> str:
 
 def _truthy(value: object) -> bool:
     return str(value).strip().casefold() in {"1", "true", "yes", "y", "ack", "acknowledged"}
+
+
+def _sanitize_report_payload(project_root: Path, value: object, output_root: Path | None = None) -> object:
+    if isinstance(value, dict):
+        return {str(key): _sanitize_report_payload(project_root, item, output_root) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_report_payload(project_root, item, output_root) for item in value]
+    if isinstance(value, str):
+        return scrub_output_text(value, project_root=project_root, output_root=output_root)
+    return value
 
 
 def _resolve_existing_path(project_root: Path, raw_path: Path) -> Path:

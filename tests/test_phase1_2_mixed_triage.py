@@ -43,6 +43,23 @@ def write_hplc_like(path: Path, rows: int = 5) -> None:
 
 
 class Phase12MixedTriageTest(unittest.TestCase):
+    def test_triage_scrubs_parser_probe_error_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "XRD" / "bad.csv"
+            source.parent.mkdir(parents=True)
+            source.write_text("2theta,intensity\nbad,data\n", encoding="utf-8")
+
+            def fail_reader(path: Path, *args, **kwargs):
+                raise ValueError(f"failed to read {path.resolve()}")
+
+            with patch("src.core.triage.read_table_with_metadata", side_effect=fail_reader):
+                result = run_triage(ROOT, root, TriageOptions(dry_run=True))
+
+            rendered = json.dumps(result, ensure_ascii=False)
+            self.assertNotIn(str(root), rendered)
+            self.assertTrue(result["items"][0]["parser_probe_error"].startswith("failed to read external/"))
+
     def test_triage_creates_queue_reports_and_never_modifies_raw_files(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)

@@ -1,29 +1,34 @@
-# Optional dependency candidates only.
+# Optional installable dependency candidates only.
 # Missing optional dependencies must warn, not fail.
-# Phase 1.13 allows these as optional/reference adapters only.
 # Do not use these to expand Phase 1 scope or make scientific assignments.
 impedance
-pyimpspec
 ixdat
-galvani
-eclabfiles
 pyGAPS
 lmfitxps
 ramanspy
 rampy
 spectrochempy
-hplc-py
 rainbow-api
 mocca2
 pymzML
 pyteomics
 nmrglue
-hyperspy
-exspy
-scikit-image
+tifffile
+Pillow
 EPRpy
 cwepr
 
+# Reference-only probes. Do not install from this file or add to the default
+# environment without a separate license/version decision.
+# pyimpspec: GPL reference-only EIS expert analysis probe.
+# galvani: GPL reference-only electrochemistry reader.
+# eclabfiles: reference-only electrochemistry reader with conservative license boundary.
+# hplc-py: reference-only HPLC raw reader; exported-table flow does not require it.
+# scikit-image: future image-QC candidate; current adapter uses Pillow/tifffile only.
+# hyperspy: future SEM/TEM/NMR/MS candidate; Phase 1 remains scan-only for those raw types.
+# exspy: future EPR candidate; current EPR flow uses JEOL decode and candidate metrics only.
+# pyopenms: heavy MS toolkit reference only.
+#
 # Additional optional candidates from the Phase 1 goal need package-name
 # and license verification before they become installable requirement lines:
 # DearEIS
@@ -32,6 +37,6 @@ cwepr
 # absorption_tauc_plot
 # xrdfit
 #
-# Blocked in Phase 1.13:
+# Blocked in Phase 1:
 # matchms: dry-run would change core numpy/scipy versions; keep out until a
 # separate environment or explicit core-dependency upgrade is approved.

@@ -72,6 +72,10 @@ def test_reviewed_queue_plan_records_input_hashes(tmp_path: Path, project_root: 
         "proposals_sha256": _sha256(fixture.proposals),
         "decisions_sha256": _sha256(decisions),
     }
+    rendered = json.dumps(plan, ensure_ascii=False)
+    assert str(tmp_path) not in rendered
+    assert plan["proposals"].startswith("external/")
+    assert plan["decisions"].startswith("external/")
 
 
 def test_explicit_medium_risk_approval_creates_dry_run_queue_item(tmp_path: Path, project_root: Path):

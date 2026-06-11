@@ -11,7 +11,7 @@ def version_info() -> dict[str, object]:
     return {
         "ixdat": {"available": is_module_available("ixdat"), "version": version_for("ixdat", "ixdat")},
         "galvani": {"available": is_module_available("galvani"), "version": version_for("galvani", "galvani"), "policy": "reference_only_gpl"},
-        "eclabfiles": {"available": is_module_available("eclabfiles"), "version": version_for("eclabfiles", "eclabfiles"), "policy": "reference_only_license_unknown"},
+        "eclabfiles": {"available": is_module_available("eclabfiles"), "version": version_for("eclabfiles", "eclabfiles"), "policy": "reference_only_gpl_or_unknown"},
     }
 
 

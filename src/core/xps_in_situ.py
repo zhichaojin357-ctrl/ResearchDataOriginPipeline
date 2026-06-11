@@ -249,34 +249,42 @@ def discover_input_files(xps_root: Path) -> tuple[dict[str, list[Path]], list[di
     for path in sorted(scanned_files, key=lambda item: str(item).casefold()):
         suffix = path.suffix.casefold()
         sample = sample_from_path(path.relative_to(xps_root))
+        note_file = _input_note_path(xps_root, path)
         if suffix not in {".xlsx", ".xls", ".csv", ".txt"}:
-            file_notes.append({"file": str(path), "sample": sample or "", "reason": "not a table workbook used for fitted curves"})
+            file_notes.append({"file": note_file, "sample": sample or "", "reason": "not a table workbook used for fitted curves"})
             continue
         if suffix in {".csv", ".txt"}:
-            file_notes.append({"file": str(path), "sample": sample or "", "reason": "text-like file found but no fitted XPS component table parser was needed"})
+            file_notes.append({"file": note_file, "sample": sample or "", "reason": "text-like file found but no fitted XPS component table parser was needed"})
             continue
         if sample is None:
-            file_notes.append({"file": str(path), "sample": "", "reason": "sample could not be inferred from requested folders or filename"})
+            file_notes.append({"file": note_file, "sample": "", "reason": "sample could not be inferred from requested folders or filename"})
             continue
         if sample in {"CWO", "BOBC"}:
             if suffix == ".xlsx":
                 sample_files[sample].append(path)
             else:
-                file_notes.append({"file": str(path), "sample": sample, "reason": "xls companion skipped because xlsx fitted workbook is preferred"})
+                file_notes.append({"file": note_file, "sample": sample, "reason": "xls companion skipped because xlsx fitted workbook is preferred"})
         elif sample == "BC Dark":
             if path.name.casefold() == "dark-20260506.xlsx":
                 sample_files[sample].append(path)
             else:
-                file_notes.append({"file": str(path), "sample": sample, "reason": "not the requested DARK-20260506 workbook"})
+                file_notes.append({"file": note_file, "sample": sample, "reason": "not the requested DARK-20260506 workbook"})
         elif sample == "BC Light":
             if path.name.casefold() == "lingt-20260506.xlsx":
                 sample_files[sample].append(path)
             else:
-                file_notes.append({"file": str(path), "sample": sample, "reason": "not selected; LINGT-20260506.xlsx is the requested Light workbook"})
+                file_notes.append({"file": note_file, "sample": sample, "reason": "not selected; LINGT-20260506.xlsx is the requested Light workbook"})
 
     for sample in sample_files:
         sample_files[sample] = sorted(set(sample_files[sample]), key=lambda item: str(item).casefold())
     return sample_files, file_notes, sorted(set(scanned_files), key=lambda item: str(item).casefold())
+
+
+def _input_note_path(xps_root: Path, path: Path) -> str:
+    try:
+        return path.relative_to(xps_root).as_posix()
+    except ValueError:
+        return Path(path).name
 
 
 def format_region(region: str) -> str:
@@ -817,13 +825,17 @@ def _quality_checks(
     for panel in panel_records:
         stem = output_dir / panel.file_stem
         paths.extend([stem.with_suffix(".tif"), stem.with_suffix(".png"), stem.with_suffix(".pdf")])
-    existing = {str(path): path.exists() and path.stat().st_size > 0 for path in paths}
+    existing = {_output_path(output_dir, path): path.exists() and path.stat().st_size > 0 for path in paths}
     dpi_checks: dict[str, Any] = {}
     if Image is not None:
         for path in [item for item in paths if item.suffix.casefold() == ".tif" and item.exists()]:
-            with Image.open(path) as image:
-                dpi = image.info.get("dpi", (0, 0))
-            dpi_checks[str(path)] = {"dpi": [round(float(dpi[0])), round(float(dpi[1]))], "ok": float(dpi[0]) >= 600 and float(dpi[1]) >= 600}
+            rendered = _output_path(output_dir, path)
+            try:
+                with Image.open(path) as image:
+                    dpi = image.info.get("dpi", (0, 0))
+                dpi_checks[rendered] = {"dpi": [round(float(dpi[0])), round(float(dpi[1]))], "ok": float(dpi[0]) >= 600 and float(dpi[1]) >= 600}
+            except Exception as exc:
+                dpi_checks[rendered] = {"ok": False, "error": scrub_output_text(exc, output_root=output_dir)}
     data_checks = {}
     for panel, records in panel_records.items():
         data_checks[panel.panel_title] = {

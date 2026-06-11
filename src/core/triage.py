@@ -9,7 +9,7 @@ from pathlib import Path
 
 from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.metadata import file_hash
-from src.core.output_sanitizer import render_output_path
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.project import load_json_compatible_yaml, output_dir, registry_path, report_path
 from src.core.table_reader import coerce_numeric_rows, read_table_with_metadata
 
@@ -145,7 +145,9 @@ def _triage_file(project_root: Path, root: Path, path: Path, entries: list[dict]
         "sheet_scores": parser.get("sheet_scores", {}),
         "header_row_index": parser.get("header_row_index"),
         "parser_probe_status": parser["parser_probe_status"],
-        "parser_probe_error": parser["parser_probe_error"],
+        "parser_probe_error": scrub_output_text(parser["parser_probe_error"], project_root=project_root, output_root=options.output_root)
+        if parser["parser_probe_error"]
+        else None,
         "observed_column_headers": parser["observed_column_headers"],
         "normalized_column_headers": [_norm(header) for header in parser["observed_column_headers"]],
         "column_role_candidates": parser["column_role_candidates"],

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image
+import pytest
 
 from src.adapters import (
     baseline_adapter,
@@ -116,7 +116,12 @@ def test_eis_adapters_do_not_claim_circuits():
     result = eis_impedance_adapter.process_or_analyze([1000, 100], [10, 20], [-3, -4])
     assert result["ok"] is True
     assert result["bode"][0]["impedance_magnitude"] > 0
-    assert eis_pyimpspec_adapter.smoke_test()["ok"] is True
+    pyimpspec = eis_pyimpspec_adapter.smoke_test()
+    assert eis_pyimpspec_adapter.capabilities()["core_flow_policy"] == "reference_only_not_default"
+    if pyimpspec["ok"]:
+        assert pyimpspec["result"]["metadata_provenance"]["adapter"] == "eis_pyimpspec_adapter"
+    else:
+        assert "unavailable" in pyimpspec["result"]["fallback_reason"]
     assert not contains_forbidden_claims([result["metadata_provenance"]["method"]])
 
 
@@ -282,6 +287,7 @@ def test_bet_xps_epr_and_raman_adapters_are_candidate_only():
 
 
 def test_image_metadata_adapter_probe_only(tmp_path: Path):
+    Image = pytest.importorskip("PIL.Image")
     image_path = tmp_path / "sem_preview.tif"
     Image.new("L", (32, 16), color=128).save(image_path, dpi=(600, 600))
     result = image_metadata_adapter.process_or_analyze(image_path, output_dir=tmp_path / "thumbs")
@@ -296,8 +302,12 @@ def test_scan_only_import_adapters_smoke_without_scientific_assignment(tmp_path:
     peaklist.write_text("<peaklist><peak ppm=\"1.23\" intensity=\"42\" /></peaklist>", encoding="utf-8")
     assert nmr_adapter.process_or_analyze(peaklist)["peaklist_entries"] == 1
     assert ms_adapter.process_or_analyze(tmp_path / "sample.mzML")["format_family"] == "mzML"
-    assert electrochem_import_adapter.smoke_test()["ok"] is True
-    assert hplc_adapter.smoke_test()["ok"] is True
+    electrochem = electrochem_import_adapter.smoke_test()
+    hplc = hplc_adapter.smoke_test()
+    assert electrochem["result"]["metadata_provenance"]["adapter"] == "electrochem_import_adapter"
+    assert hplc["result"]["metadata_provenance"]["adapter"] == "hplc_adapter"
+    assert electrochem_import_adapter.capabilities()["core_flow_policy"] == "ixdat optional; galvani/eclabfiles reference only"
+    assert hplc_adapter.version_info()["hplc-py"]["policy"] == "reference_only_gpl"
     combined_claims = (
         nmr_adapter.capabilities()["forbidden_claims"]
         + ms_adapter.capabilities()["forbidden_claims"]

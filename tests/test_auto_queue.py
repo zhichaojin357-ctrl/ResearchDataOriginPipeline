@@ -110,6 +110,9 @@ def test_auto_queue_writes_plan_and_never_requests_origin_or_process(tmp_path: P
     assert plan["summary"]["will_launch_origin"] is False
     assert plan["summary"]["will_run_process"] is False
     assert output_queue["items"][0]["origin_export_allowed"] is False
+    report_md = (reports / "phase1_8_new_auto_process_plan.md").read_text(encoding="utf-8")
+    assert str(tmp_path) not in report_md
+    assert "- Candidate queue: `output/reports/phase1_8_new_auto_process_queue.json`" in report_md
 
 
 def test_auto_queue_rejects_report_outside_output_or_docs(tmp_path: Path):

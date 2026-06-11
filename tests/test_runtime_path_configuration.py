@@ -201,13 +201,27 @@ def test_xps_in_situ_quality_check_skips_dpi_when_pillow_missing(tmp_path: Path)
     assert result["warnings"] == ["Pillow is not installed; skipped TIF DPI quality checks."]
 
 
+def test_xps_in_situ_quality_check_uses_output_relative_file_keys(tmp_path: Path):
+    from src.core import xps_in_situ
+
+    for name in ("xps_in_situ_combined.tif", "xps_in_situ_combined.png", "xps_in_situ_combined.pdf"):
+        (tmp_path / name).write_bytes(b"artifact")
+
+    result = xps_in_situ._quality_checks(tmp_path, {}, {"ok": True})
+    rendered = json.dumps(result, ensure_ascii=False)
+
+    assert str(tmp_path) not in rendered
+    assert "xps_in_situ_combined.tif" in result["files_saved"]
+
+
 def test_phase1_7_baseline_uses_current_python_executable(tmp_path: Path):
     from src.core.phase1_7 import write_baseline_report
 
-    write_baseline_report(tmp_path, "sha", {"pytest": {"exit_code": 0, "summary": "ok"}})
+    write_baseline_report(tmp_path, "sha", {"pytest": {"exit_code": 0, "summary": f"ok {tmp_path}"}})
     report = (tmp_path / "docs" / "agent_reports" / "phase1_7_baseline.md").read_text(encoding="utf-8")
 
-    assert f"- Current Python interpreter: `{sys.executable}`" in report
+    assert "- Current Python interpreter: `external/python.exe`" in report
+    assert str(tmp_path) not in report
 
 
 def _queue_item(relative_path: str, source_hash: str, *, data_type: str = "EIS") -> dict:

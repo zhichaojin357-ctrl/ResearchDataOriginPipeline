@@ -215,7 +215,7 @@ def run_opju_product_pilot(
                     "status": "success"
                     if bool(export_status.get("ok"))
                     else ("origin_failed" if options.with_origin else "processed_no_origin"),
-                    "origin_message": str(export_status.get("message") or ""),
+                    "origin_message": scrub_output_text(export_status.get("message") or "", output_root=layout.root),
                 }
             )
         except Exception as exc:
@@ -250,13 +250,13 @@ def export_product_with_origin(product: ProductContext) -> dict[str, object]:
         operations.new_project()
         imported = operations.import_csv_to_worksheet(product.processed_data, book_name=f"{product.slug}_data")
         if not imported.ok:
-            return {"ok": False, "message": imported.message, "style": style}
+            return {"ok": False, "message": _product_status_message(product, imported.message), "style": style}
         book_name = str(imported.payload["book_name"])
         headers = _csv_header(product.processed_data)
         graph_name = safe_name(product.slug)[:24] or "PilotGraph"
         created = operations.create_graph(graph_name, book_name, "Sheet1", 1, 2, plot_type=product.plot_type)
         if not created.ok:
-            return {"ok": False, "message": created.message, "style": style}
+            return {"ok": False, "message": _product_status_message(product, created.message), "style": style}
         graph_name = str(created.payload["graph_name"])
         for column_index in range(3, min(len(headers), 10) + 1):
             operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
@@ -285,7 +285,7 @@ def export_product_with_origin(product: ProductContext) -> dict[str, object]:
         product.origin_file.parent.mkdir(parents=True, exist_ok=True)
         saved = operations.save_project(product.origin_file)
         if not saved.ok:
-            return {"ok": False, "message": saved.message, "style": style}
+            return {"ok": False, "message": _product_status_message(product, saved.message), "style": style}
         png = operations.export_graph(graph_name, product.preview_png, "png")
         tif = operations.export_graph(graph_name, product.figure_tif, "tif")
         missing = [path for path in (product.origin_file, product.preview_png, product.figure_tif) if not path.exists() or path.stat().st_size == 0]
@@ -296,10 +296,10 @@ def export_product_with_origin(product: ProductContext) -> dict[str, object]:
                 "style": style,
             }
         if not png.ok or not tif.ok:
-            return {"ok": False, "message": f"{png.message}; {tif.message}", "style": style}
+            return {"ok": False, "message": _product_status_message(product, f"{png.message}; {tif.message}"), "style": style}
         return {"ok": True, "message": "Origin isolated export succeeded", "style": style}
     except Exception as exc:
-        return {"ok": False, "message": str(exc)}
+        return {"ok": False, "message": _product_status_message(product, exc)}
     finally:
         operations.close()
 
@@ -844,7 +844,7 @@ def _write_no_label_audit(run_root: Path) -> dict[str, object]:
             continue
         for label in FORBIDDEN_LABELS:
             if label.casefold() in path.name.casefold():
-                hits.append({"path": str(path), "location": "filename", "label": label})
+                hits.append({"path": _relative_to_run(run_root, path), "location": "filename", "label": label})
         if path.suffix.casefold() not in {".csv", ".md", ".txt"}:
             continue
         try:
@@ -853,7 +853,7 @@ def _write_no_label_audit(run_root: Path) -> dict[str, object]:
             continue
         for label in FORBIDDEN_LABELS:
             if label.casefold() in text.casefold():
-                hits.append({"path": str(path), "location": "text", "label": label})
+                hits.append({"path": _relative_to_run(run_root, path), "location": "text", "label": label})
     audit = {"policy": "forbidden visible product labels checked", "hit_count": len(hits), "hits": hits}
     (run_root / "reports" / "product_no_label_audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     lines = [
@@ -871,6 +871,10 @@ def _write_no_label_audit(run_root: Path) -> dict[str, object]:
         lines.append("- none")
     (run_root / "reports" / "product_label_audit.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return audit
+
+
+def _product_status_message(product: ProductContext, message: object) -> str:
+    return scrub_output_text(message, output_root=product.type_root.parent)
 
 
 def _selected_relative_paths(pairing: TargetPairing, key: str) -> list[str]:

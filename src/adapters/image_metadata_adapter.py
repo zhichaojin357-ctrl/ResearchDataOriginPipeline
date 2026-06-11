@@ -5,7 +5,7 @@ from typing import Any
 
 from src.adapters.common import import_optional, is_module_available, metadata_provenance, version_for
 
-PACKAGE = "Pillow/tifffile/scikit-image"
+PACKAGE = "Pillow/tifffile"
 
 
 def is_available() -> bool:
@@ -18,7 +18,6 @@ def version_info() -> dict[str, object]:
         "available": is_available(),
         "pillow": version_for("Pillow", "PIL"),
         "tifffile": version_for("tifffile", "tifffile"),
-        "scikit_image": version_for("scikit-image", "skimage"),
     }
 
 
@@ -66,7 +65,7 @@ def process_or_analyze(path: Path, *, output_dir: Path | None = None) -> dict[st
         "metadata_provenance": metadata_provenance(
             adapter="image_metadata_adapter",
             package=PACKAGE,
-            module="PIL/tifffile/skimage",
+            module="PIL/tifffile",
             version=str(version_info()),
             method="metadata_probe_only",
             fallback_reason="; ".join(warnings) or None,

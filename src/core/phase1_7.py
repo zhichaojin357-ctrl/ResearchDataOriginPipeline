@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.core.origin_batch import plan_origin_batch, OriginBatchOptions
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.runtime_paths import resolve_optional_f_drive_backup, resolve_phase1_6_index, resolve_phase1_6_package, resolve_workspace_root
 
 
@@ -76,7 +77,7 @@ def load_package_rows(package_root: Path) -> list[dict[str, str]]:
 def audit_phase1_6_package(project_root: Path, package_root: Path | None = None) -> dict:
     package_root = package_root or package_dir(project_root)
     audit: dict[str, object] = {
-        "package_root": str(package_root),
+        "package_root": _report_path(project_root, package_root),
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "exists": package_root.exists(),
         "expected_result_count": EXPECTED_RESULT_COUNT,
@@ -109,7 +110,7 @@ def audit_phase1_6_package(project_root: Path, package_root: Path | None = None)
             pd.read_csv(package_root / "index.csv")
             pandas_readable = True
         except Exception as exc:  # pragma: no cover - exact optional dependency failure is environment-specific
-            issues.append({"kind": "pandas_read_failed", "message": str(exc)})
+            issues.append({"kind": "pandas_read_failed", "message": scrub_output_text(exc, project_root=project_root)})
     by_type = Counter(row.get("data_type", "") for row in rows)
     audit["index_rows"] = len(rows)
     audit["by_type"] = dict(sorted(by_type.items()))
@@ -197,7 +198,7 @@ def generate_gallery(project_root: Path, package_root: Path | None = None) -> di
     for row in rows:
         grouped[row.get("data_type", "")].append(row)
     gallery = {
-        "package_root": str(package_root),
+        "package_root": _report_path(project_root, package_root),
         "total": len(rows),
         "by_type": {key: len(value) for key, value in sorted(grouped.items())},
         "groups": {},
@@ -264,7 +265,7 @@ def write_high_priority_review(project_root: Path, entries: list[dict[str, str]]
 def generate_override_decision_table(project_root: Path) -> tuple[list[dict[str, str]], dict]:
     proposal_path = project_root / "output" / "reports" / "phase1_6_manual_override_proposals_second_wave.json"
     if not proposal_path.exists():
-        return [], {"missing": str(proposal_path)}
+        return [], {"missing": _report_path(project_root, proposal_path)}
     payload = json.loads(proposal_path.read_text(encoding="utf-8"))
     rows = []
     for proposal_index, proposal in enumerate(payload.get("proposals", []), start=1):
@@ -325,7 +326,7 @@ def write_origin_com_isolation_proof(project_root: Path, *, run_single_instance:
     proof: dict[str, object] = {
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "origin_processes_before": before,
-        "synthetic_data": str(synthetic_dir / "synthetic.csv"),
+        "synthetic_data": _report_path(project_root, synthetic_dir / "synthetic.csv"),
         "single_instance_probe": "not_run",
         "dual_instance_probe": "simulated_plan_only",
         "task_owned_instance_tracking": "required_before_execute",
@@ -352,8 +353,8 @@ def write_origin_com_isolation_proof(project_root: Path, *, run_single_instance:
         )
         proof["single_instance_probe"] = {
             "exit_code": result.returncode,
-            "stdout_tail": result.stdout[-1000:],
-            "stderr_tail": result.stderr[-1000:],
+            "stdout_tail": scrub_output_text(result.stdout[-1000:], project_root=project_root),
+            "stderr_tail": scrub_output_text(result.stderr[-1000:], project_root=project_root),
         }
         proof["recommendation"] = "two_instances_possible_with_guardrails" if result.returncode == 0 else "proof_blocked"
     proof["origin_processes_after"] = _origin_processes()
@@ -370,7 +371,7 @@ def write_baseline_report(project_root: Path, instruction_sha: str, command_resu
         "",
         f"- Instruction SHA256: `{instruction_sha}`",
         f"- Append triage-recognition instruction SHA256: `{append_instruction_sha or 'not_present'}`",
-        f"- Current Python interpreter: `{sys.executable}`",
+        f"- Current Python interpreter: `{render_output_path(Path(sys.executable), project_root=project_root)}`",
         f"- Workspace copy exists: {resolve_workspace_root(project_root).exists()}",
         f"- F drive backup exists: {bool((backup := resolve_optional_f_drive_backup(project_root)) and backup.exists())}",
         f"- Phase 1.6 package exists: {package_dir(project_root).exists()}",
@@ -382,7 +383,7 @@ def write_baseline_report(project_root: Path, instruction_sha: str, command_resu
         "## Commands",
     ]
     for name, result in command_results.items():
-        report.append(f"- {name}: exit {result['exit_code']}; {result.get('summary', '').strip()}")
+        report.append(f"- {name}: exit {result['exit_code']}; {scrub_output_text(result.get('summary', '').strip(), project_root=project_root)}")
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_baseline.md", "\n".join(report) + "\n")
 
 
@@ -503,7 +504,7 @@ def write_success_pattern_library(project_root: Path) -> dict:
     grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         grouped[row.get("data_type", "")].append(row)
-    library = {"source_package": str(package_root), "total_successes": len(rows), "patterns": []}
+    library = {"source_package": _report_path(project_root, package_root), "total_successes": len(rows), "patterns": []}
     for data_type, items in sorted(grouped.items()):
         extensions = Counter(Path(row.get("source_file", "")).suffix.lower() or "<none>" for row in items)
         folder_patterns = Counter(str(Path(row.get("source_file", "")).parent).replace("\\", "/").split("/")[0] for row in items)
@@ -899,6 +900,10 @@ def _write_text(path: Path, text: str) -> None:
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _report_path(project_root: Path, path: Path) -> str:
+    return str(render_output_path(path, project_root=project_root))
 
 
 def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:

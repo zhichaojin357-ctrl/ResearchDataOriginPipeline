@@ -57,6 +57,55 @@ def test_readiness_passes_with_current_required_artifacts(tmp_path: Path):
     assert {check["status"] for check in report["checks"]} == {"pass"}
 
 
+def test_readiness_portable_mode_warns_for_missing_generated_history(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    reports = project / "output" / "reports"
+    reports.mkdir(parents=True)
+    _write_active_entry_docs(project)
+    _write_passing_validation_report(reports / "validation_report.md")
+
+    code = run_readiness(
+        project,
+        ReadinessOptions(
+            expected_phase1_6_count=1,
+            f_drive_backup=tmp_path / "missing_f_backup",
+        ),
+    )
+    report = json.loads((reports / "readiness_report.json").read_text(encoding="utf-8"))
+
+    assert code == 0
+    assert report["summary"]["failures"] == 0
+    assert report["summary"]["warnings"] > 0
+    statuses = {check["name"]: check["status"] for check in report["checks"]}
+    assert statuses["validation_report_current"] == "pass"
+    assert statuses["phase1_6_index_count"] == "warning"
+    assert statuses["manual_review_filtered_xlsx_exists"] == "warning"
+    assert statuses["review_dashboard_current"] == "warning"
+
+
+def test_readiness_strict_mode_fails_for_missing_generated_history(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    reports = project / "output" / "reports"
+    reports.mkdir(parents=True)
+    _write_active_entry_docs(project)
+    _write_passing_validation_report(reports / "validation_report.md")
+
+    code = run_readiness(
+        project,
+        ReadinessOptions(
+            expected_phase1_6_count=1,
+            f_drive_backup=tmp_path / "missing_f_backup",
+            strict_artifacts=True,
+        ),
+    )
+    report = json.loads((reports / "readiness_report.json").read_text(encoding="utf-8"))
+
+    assert code == 1
+    failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
+    assert "phase1_6_index_count" in failed_names
+    assert "manual_review_filtered_xlsx_exists" in failed_names
+
+
 def test_readiness_fails_on_stale_summary_and_processing_plan_that_would_run(tmp_path: Path):
     project = tmp_path
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"

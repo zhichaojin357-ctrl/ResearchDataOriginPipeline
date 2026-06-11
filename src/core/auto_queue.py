@@ -160,12 +160,12 @@ def write_auto_queue_outputs(project_root: Path, plan: dict, options: AutoQueueO
     )
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
-    md_path.write_text(_markdown(plan, queue_path), encoding="utf-8")
+    md_path.write_text(_markdown(plan, queue_path, project_root=project_root, output_root=options.output_root), encoding="utf-8")
     queue_path.write_text(json.dumps(plan["queue"], ensure_ascii=False, indent=2), encoding="utf-8")
     if options.output_root is None:
         agent_report = project_root / "docs" / "agent_reports" / "phase1_8_new_auto_process_queue_report.md"
         agent_report.parent.mkdir(parents=True, exist_ok=True)
-        agent_report.write_text(_markdown(plan, queue_path), encoding="utf-8")
+        agent_report.write_text(_markdown(plan, queue_path, project_root=project_root, output_root=options.output_root), encoding="utf-8")
     return json_path, md_path, queue_path
 
 
@@ -255,14 +255,15 @@ def _is_forbidden_type(data_type: object) -> bool:
     return any(token in FORBIDDEN_TYPE_TOKENS for token in tokens)
 
 
-def _markdown(plan: dict, queue_path: Path) -> str:
+def _markdown(plan: dict, queue_path: Path, *, project_root: Path, output_root: Path | None) -> str:
     summary = plan["summary"]
+    rendered_queue_path = render_output_path(queue_path, project_root=project_root, output_root=output_root)
     lines = [
         "# Phase 1.8 New AUTO_PROCESS Queue Plan",
         "",
         f"- Created at: {plan['created_at']}",
         f"- Source queue: `{plan['source_queue']}`",
-        f"- Candidate queue: `{queue_path}`",
+        f"- Candidate queue: `{rendered_queue_path}`",
         f"- Source queue items: {summary['source_queue_items']}",
         f"- Accepted new candidates: {summary['accepted_count']}",
         f"- Skipped: {summary['skipped_count']}",

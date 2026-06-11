@@ -128,6 +128,34 @@ def test_run_triage_can_route_reports_into_run_root(tmp_path: Path):
     assert not (tmp_path / "output" / "review_dashboard").exists()
 
 
+def test_process_auto_select_uses_same_output_root_for_triage_queue(tmp_path: Path):
+    source = tmp_path / "input" / "raw_data" / "XRD" / "sample.csv"
+    source.parent.mkdir(parents=True)
+    source.write_text("2theta,intensity\n10,1\n20,4\n30,2\n40,3\n", encoding="utf-8")
+    layout = create_run_output_layout(
+        tmp_path,
+        scope="process_auto_select",
+        command="process",
+        mode="no_origin",
+        input_paths=[tmp_path / "input" / "raw_data"],
+        timestamp="20260603_120002_auto",
+        no_origin=True,
+        dry_run=False,
+    )
+
+    with patch("src.processors.base.export_plot", side_effect=AssertionError("Origin must not run")):
+        code = run_process(
+            tmp_path,
+            tmp_path / "input" / "raw_data",
+            ProcessOptions(auto_select=True, force=True, output_root=layout.root),
+        )
+
+    assert code == 0
+    assert (layout.reports / "processing_queue.json").exists()
+    assert (layout.reports / "processing_report.json").exists()
+    assert not (tmp_path / "output" / "reports" / "processing_queue.json").exists()
+
+
 def test_auto_queue_can_route_reports_into_run_root_without_agent_report(tmp_path: Path):
     source = tmp_path / "input" / "raw_data" / "XRD" / "sample.csv"
     source.parent.mkdir(parents=True)

@@ -40,6 +40,12 @@ class Phase1ContractsTest(unittest.TestCase):
         self.assertEqual(args.command, "readiness")
         self.assertTrue(args.no_desktop_review_xlsx)
 
+    def test_readiness_cli_can_require_historical_artifacts_strictly(self):
+        args = build_parser().parse_args(["readiness", "--strict-artifacts"])
+
+        self.assertEqual(args.command, "readiness")
+        self.assertTrue(args.strict_artifacts)
+
     def test_scan_classifies_required_folders_without_touching_raw_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
@@ -270,8 +276,10 @@ class Phase1ContractsTest(unittest.TestCase):
                 processed_data=processed,
                 manual_check_items=[],
                 forbidden_claims=[],
-                warnings=[],
-                key_results={},
+                warnings=[f"warning from {project}"],
+                key_results={"source_path": source, "nested": {"message": f"read {project / 'source.csv'}"}},
+                parameters={"alpha": 1, "path": project / "params" / "local.txt"},
+                triage={"decision": "AUTO_PROCESS", "error": f"parser saw {project / 'source.csv'}"},
             )
 
             self.assertEqual(metadata["preview_png"], "output/figures_preview/sample.png")
@@ -283,6 +291,10 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertEqual(metadata["origin_template_used"], "Graph4 cached snapshot")
             self.assertNotIn("CodexData", json.dumps(metadata, ensure_ascii=False))
             self.assertNotIn(".codex", json.dumps(metadata, ensure_ascii=False))
+            rendered = json.dumps(metadata, ensure_ascii=False)
+            self.assertNotIn(str(project), rendered)
+            self.assertEqual(metadata["key_results"]["source_path"], "source.csv")
+            self.assertEqual(metadata["parameters"]["path"], "params/local.txt")
 
     def test_success_metadata_rejects_artifacts_outside_output_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -332,12 +344,25 @@ class Phase1ContractsTest(unittest.TestCase):
             data = json.loads(audit_json.read_text(encoding="utf-8"))
             self.assertIn("core", data)
             self.assertIn("optional", data)
+            self.assertIn("reference_only", data)
+            self.assertIn("blocked", data)
             self.assertIn("summary", data)
             missing_core = [name for name, item in data["core"].items() if not item["available"]]
             for item in data["core"].values():
                 self.assertEqual(item["severity"], "fail")
             for item in data["optional"].values():
                 self.assertEqual(item["severity"], "warning")
+            for item in data["reference_only"].values():
+                self.assertEqual(item["severity"], "reference_only")
+            for item in data["blocked"].values():
+                self.assertEqual(item["severity"], "blocked")
+                self.assertEqual(item["status"], "blocked")
+            self.assertNotIn("matchms", data["optional"])
+            self.assertIn("matchms", data["blocked"])
+            self.assertNotIn("hplc-py", data["optional"])
+            self.assertIn("hplc-py", data["reference_only"])
+            self.assertNotIn("scikit-image", data["optional"])
+            self.assertIn("scikit-image", data["reference_only"])
             self.assertEqual(data["summary"]["missing_core"], missing_core)
             self.assertEqual(result.returncode, 1 if missing_core else 0)
 

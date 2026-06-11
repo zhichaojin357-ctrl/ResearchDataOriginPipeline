@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.core.manifest_schema import schema_mismatch_message
+from src.core.output_sanitizer import scrub_output_text
 from src.core.project import report_path
 from src.core.runtime_paths import resolve_workspace_root
 
@@ -132,7 +133,7 @@ def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
         execution_blocked = True
         execution_reason = "phase1_7_runner_implements_planning_only_no_export"
 
-    return {
+    plan = {
         "runner": "origin-batch",
         "manifest": str(manifest_path),
         "package_root": str(package_root),
@@ -160,6 +161,7 @@ def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
         "skipped_items": skipped,
         "blocked_items": blocked,
     }
+    return _sanitize_report_payload(project_root, plan, options.output_root)
 
 
 def write_origin_batch_reports(project_root: Path, plan: dict, options: OriginBatchOptions) -> tuple[Path, Path]:
@@ -414,3 +416,13 @@ def _reason_counts(items: list[dict]) -> dict[str, int]:
         reason = str(item.get("reason", "unknown"))
         counts[reason] = counts.get(reason, 0) + 1
     return counts
+
+
+def _sanitize_report_payload(project_root: Path, value: object, output_root: Path | None = None) -> object:
+    if isinstance(value, dict):
+        return {str(key): _sanitize_report_payload(project_root, item, output_root) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_report_payload(project_root, item, output_root) for item in value]
+    if isinstance(value, str):
+        return scrub_output_text(value, project_root=project_root, output_root=output_root)
+    return value
