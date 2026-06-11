@@ -11,8 +11,9 @@ from src.core.template_format_executor import (
     TemplateFormatExecutorOptions,
     _apply_template_base_global_policies,
     _strip_raster_metadata,
+    _with_default_xps_non_in_situ_template_root,
     apply_template_base_data_replacement,
-    build_template_format_v3_options,
+    build_template_product_builder_options,
     export_template_base_product_with_origin,
 )
 from src.origin.operations import OperationResult
@@ -103,8 +104,8 @@ class _FakeCachedStyleOps:
         return OperationResult(True, "closed")
 
 
-def test_template_format_v3_options_keep_v5_scope_separate(tmp_path: Path) -> None:
-    options = build_template_format_v3_options(
+def test_template_format_builder_options_use_final_scope(tmp_path: Path) -> None:
+    options = build_template_product_builder_options(
         TemplateFormatExecutorOptions(
             pairing_path=tmp_path / "pairing.json",
             output_root=tmp_path / "out",
@@ -118,13 +119,26 @@ def test_template_format_v3_options_keep_v5_scope_separate(tmp_path: Path) -> No
 
     assert options.run_scope == TEMPLATE_FORMAT_SCOPE
     assert options.command_name == TEMPLATE_FORMAT_COMMAND
-    assert options.product_slug_version == "v5_template_format"
+    assert options.product_slug_version == "template_format"
     assert options.with_origin is True
     assert options.xps_non_in_situ_template_root == tmp_path / "xps_non"
     assert options.xps_reference_templates_for_all_xps is True
     assert options.xps_templates_from_reference_only is True
     assert options.xps_smooth_gradient_fill is True
     assert options.cleanup_empty_run_layout_dirs is True
+
+
+def test_default_xps_non_in_situ_template_root_is_not_added_for_project_style_asset_mode(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    default_root = project_root.parent / "26.6.3组会数据" / "结果汇总" / "XPS" / "xps_heterojunction_stacked" / "origin_projects"
+    default_root.mkdir(parents=True)
+
+    options = _with_default_xps_non_in_situ_template_root(
+        project_root,
+        TemplateFormatExecutorOptions(pairing_path=tmp_path / "pairing.json"),
+    )
+
+    assert options.xps_non_in_situ_template_root is None
 
 
 def test_apply_template_base_data_replacement_uses_template_plot_datasets(tmp_path: Path) -> None:
@@ -266,7 +280,7 @@ def test_strip_raster_metadata_removes_tiff_description_paths(tmp_path: Path) ->
 
     figure = tmp_path / "figure.tif"
     tags = TiffImagePlugin.ImageFileDirectory_v2()
-    tags[270] = r"D:\Codex Project\科研数据处理\product.opju"
+    tags[270] = r"D:\Codex Project\绉戠爺鏁版嵁澶勭悊\product.opju"
     Image.new("RGB", (8, 6), "white").save(figure, tiffinfo=tags)
     assert b"Codex Project" in figure.read_bytes()
 
@@ -278,7 +292,7 @@ def test_strip_raster_metadata_removes_tiff_description_paths(tmp_path: Path) ->
     assert b":\\" not in cleaned
 
 
-def test_cli_unified_v5_template_format_passes_options(tmp_path: Path, monkeypatch) -> None:
+def test_cli_template_format_products_passes_options(tmp_path: Path, monkeypatch) -> None:
     project_root = tmp_path / "project"
     project_root.mkdir()
     pairing = tmp_path / "pairing.json"
@@ -293,7 +307,7 @@ def test_cli_unified_v5_template_format_passes_options(tmp_path: Path, monkeypat
         captured["project"] = project
         captured["options"] = options
         return {
-            "run_root": str(output_root / "runs" / "20260607_210000_unified_v5_template_format_conformance_all_types"),
+            "run_root": str(output_root / "runs" / "20260607_210000_template_format_products"),
             "summary": {"product_count": 11, "success_count": 0, "blocked_count": 11, "failed_count": 0},
             "failures": [],
         }
@@ -303,7 +317,7 @@ def test_cli_unified_v5_template_format_passes_options(tmp_path: Path, monkeypat
 
     code = main(
         [
-            "unified-v5-template-format-conformance-all-types",
+            "template-format-products",
             "--pairing",
             str(pairing),
             "--output-root",
@@ -344,7 +358,7 @@ def _product(tmp_path: Path, processed: Path) -> ProductContext:
     )
     return ProductContext(
         product_key="BET",
-        slug="BET_v5",
+        slug="BET_template",
         pairing=pairing,
         type_root=tmp_path,
         processed_data=processed,

@@ -6,15 +6,12 @@ from pathlib import Path
 import pandas as pd
 from openpyxl import Workbook
 
-from src.cli import main
 from src.core.opju_product_pilot import (
-    OpjuProductPilotOptions,
     ProductContext,
     TargetPairing,
     extract_xrd_raw_data_rows,
     export_product_with_origin,
     load_target_pairings,
-    run_opju_product_pilot,
     _write_no_label_audit,
 )
 
@@ -68,157 +65,6 @@ def test_extract_xrd_raw_data_rows_uses_only_bracketed_data_section(tmp_path: Pa
     rows = extract_xrd_raw_data_rows(raw)
 
     assert rows == [[5.0, 824.0], [5.01946, 894.0], [5.03892, 849.0]]
-
-
-def test_run_opju_product_pilot_routes_five_products_with_fake_origin(tmp_path: Path) -> None:
-    project_root = tmp_path / "project"
-    project_root.mkdir()
-    roots = _root_map(tmp_path)
-    for root in roots.values():
-        root.mkdir(parents=True, exist_ok=True)
-
-    bet = _write(roots["f_drive_detection"] / "BET" / "bet.csv", "relative pressure,quantity adsorbed,desorption\n0.01,1,1.2\n0.5,3,3.4\n0.99,9,9.1\n")
-    xrd = _write(roots["f_drive_detection"] / "XRD" / "xrd.txt", "[Data]\nAngle, PSD\n5,10\n6,20\n7,15\n")
-    epr = roots["f_drive_detection"] / "EPR" / "epr.xlsx"
-    _write_xy_xlsx(epr, [(324.0, 1.0), (324.1, -2.0), (324.2, 1.5)])
-    insitu_bobc = roots["workspace_xps_data"] / "insitu" / "bobc.xlsx"
-    insitu_dark = roots["workspace_xps_data"] / "insitu" / "dark.xlsx"
-    insitu_light = roots["workspace_xps_data"] / "insitu" / "light.xlsx"
-    for path in (insitu_bobc, insitu_dark, insitu_light):
-        _write_xps_workbook(path, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
-    non_bobc = roots["workspace_xps_data"] / "non" / "bobc.xlsx"
-    non_bc = roots["workspace_xps_data"] / "non" / "bc.xlsx"
-    for path in (non_bobc, non_bc):
-        _write_xps_workbook(path, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
-
-    refs = [
-        roots["f_drive_detection"] / "BET" / "style.opju",
-        roots["f_drive_detection"] / "XRD" / "style.opju",
-        roots["f_drive_detection"] / "EPR" / "style.opju",
-        roots["workspace_xps_reference"] / "insitu.opju",
-        roots["workspace_group_data"] / "xps" / "out.opju",
-    ]
-    for ref in refs:
-        _write(ref, "reference")
-
-    pairing = tmp_path / "pairing.json"
-    _write_pairing(
-        pairing,
-        [
-            _pair("BET", "", "f_drive_detection", [bet.relative_to(roots["f_drive_detection"]).as_posix()], "f_drive_detection", "BET/style.opju"),
-            _pair("XRD", "", "f_drive_detection", [xrd.relative_to(roots["f_drive_detection"]).as_posix()], "f_drive_detection", "XRD/style.opju"),
-            _pair("EPR", "", "f_drive_detection", [epr.relative_to(roots["f_drive_detection"]).as_posix()], "f_drive_detection", "EPR/style.opju"),
-            _pair(
-                "XPS",
-                "XPS_in_situ",
-                "workspace_xps_data",
-                [path.relative_to(roots["workspace_xps_data"]).as_posix() for path in (insitu_bobc, insitu_dark, insitu_light)],
-                "workspace_xps_reference",
-                "insitu.opju",
-            ),
-            _pair(
-                "XPS",
-                "XPS_non_in_situ",
-                "workspace_xps_data",
-                [path.relative_to(roots["workspace_xps_data"]).as_posix() for path in (non_bc, non_bobc)],
-                "workspace_group_data",
-                "xps/out.opju",
-            ),
-            _pair("HPLC/LC exported data", "", "f_drive_detection", ["LC/lc.pdf"], "", ""),
-        ],
-    )
-
-    calls: list[str] = []
-
-    def fake_origin_export(product) -> dict[str, object]:
-        calls.append(product.product_key)
-        for artifact in (product.origin_file, product.figure_tif, product.preview_png, product.reference_preview_png):
-            artifact.parent.mkdir(parents=True, exist_ok=True)
-            artifact.write_text(f"fake {product.product_key}", encoding="utf-8")
-        return {"ok": True, "message": "fake origin export"}
-
-    result = run_opju_product_pilot(
-        project_root,
-        OpjuProductPilotOptions(
-            pairing_path=pairing,
-            output_root=tmp_path / "external_output",
-            with_origin=True,
-            timestamp="20260604_120000",
-        ),
-        root_map=roots,
-        origin_exporter=fake_origin_export,
-    )
-
-    assert result["summary"]["product_count"] == 5
-    assert calls == ["BET", "XRD", "EPR", "XPS_in_situ", "XPS_non_in_situ"]
-    run_root = Path(result["run_root"])
-    assert run_root == tmp_path / "external_output" / "runs" / "20260604_120000_real_opju_product_pilot_xps_xrd_epr_bet"
-    assert not (run_root / "HPLC_LC_deferred").exists()
-    expected_names = {
-        "BET": "BET_BOBC_exemplar_pilot",
-        "XRD": "XRD_BOBC_exemplar_pilot",
-        "EPR": "EPR_BC_O3_dark_exemplar_pilot",
-        "XPS_in_situ": "XPS_in_situ_BOBC_exemplar_pilot",
-        "XPS_non_in_situ": "XPS_non_in_situ_BOBC_BC_exemplar_pilot",
-    }
-    for item in result["products"]:
-        stem = expected_names[str(item["product_key"])]
-        origin_file = run_root / Path(item["origin_file"])
-        figure_tif = run_root / Path(item["figure_tif"])
-        preview_png = run_root / Path(item["preview_png"])
-        processed_data = run_root / Path(item["processed_data"])
-        reference_opju_copy = run_root / Path(item["reference_opju_copy"])
-        reference_preview_png = run_root / Path(item["reference_preview_png"])
-        metadata = run_root / Path(item["metadata"])
-        assert not Path(item["origin_file"]).is_absolute()
-        assert origin_file.read_text(encoding="utf-8").startswith("fake ")
-        assert origin_file.name == f"{stem}.opju"
-        assert figure_tif.name == f"{stem}.tif"
-        assert preview_png.name == f"{stem}_preview.png"
-        assert origin_file.parent == run_root / str(item["product_key"]) / "origin_files"
-        assert figure_tif.exists()
-        assert preview_png.exists()
-        assert processed_data.exists()
-        assert reference_opju_copy.exists()
-        assert reference_preview_png.exists()
-        assert metadata == run_root / str(item["product_key"]) / "metadata" / stem / "metadata.json"
-        recorded = json.loads(metadata.read_text(encoding="utf-8"))
-        assert recorded["dataset_id"] == stem
-        assert recorded["metadata_path"] == str(Path(item["metadata"]).as_posix())
-        assert not (run_root / str(item["product_key"]) / "metadata" / f"{stem}.json").exists()
-    checklist = (run_root / "reports" / "manual_calibration_checklist.md").read_text(encoding="utf-8")
-    assert "HPLC/LC exported data" in checklist
-    assert "deferred" in checklist
-    assert (run_root / "reports" / "manual_review_checklist.md").exists()
-    assert (run_root / "reports" / "final_summary.md").exists()
-    assert (run_root / "reports" / "per_type_status.csv").exists()
-    assert (run_root / "reports" / "product_label_audit.md").exists()
-    assert not (run_root / "reports" / "product_no_codex_label_audit.md").exists()
-
-
-def test_run_opju_product_pilot_marks_failed_origin_export(tmp_path: Path) -> None:
-    project_root = tmp_path / "project"
-    project_root.mkdir()
-    roots = _root_map(tmp_path)
-    for root in roots.values():
-        root.mkdir(parents=True, exist_ok=True)
-    bet = _write(roots["f_drive_detection"] / "BET" / "bet.csv", "relative pressure,quantity adsorbed\n0.01,1\n0.5,2\n")
-    _write(roots["f_drive_detection"] / "BET" / "style.opju", "reference")
-    pairing = tmp_path / "pairing.json"
-    _write_pairing(
-        pairing,
-        [_pair("BET", "", "f_drive_detection", [bet.relative_to(roots["f_drive_detection"]).as_posix()], "f_drive_detection", "BET/style.opju")],
-    )
-
-    result = run_opju_product_pilot(
-        project_root,
-        OpjuProductPilotOptions(pairing_path=pairing, output_root=tmp_path / "out", with_origin=True),
-        root_map=roots,
-        origin_exporter=lambda _product: {"ok": False, "message": "fake failure"},
-    )
-
-    assert result["products"][0]["status"] == "origin_failed"
-    assert result["products"][0]["origin_message"] == "fake failure"
 
 
 def test_export_product_with_origin_creates_output_parents_before_saving(tmp_path: Path, monkeypatch) -> None:
@@ -277,33 +123,6 @@ def test_no_label_audit_ignores_absolute_path_values_in_metadata(tmp_path: Path)
     assert (run_root / "reports" / "product_label_audit.md").exists()
     assert not (run_root / "reports" / "product_no_codex_label_audit.md").exists()
     assert not (run_root / "reports" / "product_no_codex_label_audit.json").exists()
-
-
-def test_cli_opju_product_pilot_passes_pairing_output_root_and_origin_flag(tmp_path: Path, monkeypatch) -> None:
-    project_root = tmp_path / "project"
-    project_root.mkdir()
-    pairing = tmp_path / "pairing.json"
-    _write_pairing(pairing, [])
-    output_root = tmp_path / "external_output"
-    captured: dict[str, object] = {}
-
-    def fake_run(project: Path, options: OpjuProductPilotOptions) -> dict[str, object]:
-        captured["project"] = project
-        captured["options"] = options
-        return {"run_root": str(output_root / "runs" / "fake"), "summary": {"product_count": 0}}
-
-    monkeypatch.chdir(project_root)
-    monkeypatch.setattr("src.cli.run_opju_product_pilot", fake_run)
-
-    code = main(["opju-product-pilot", "--pairing", str(pairing), "--output-root", str(output_root), "--with-origin"])
-
-    assert code == 0
-    assert captured["project"] == project_root
-    options = captured["options"]
-    assert isinstance(options, OpjuProductPilotOptions)
-    assert options.pairing_path == pairing
-    assert options.output_root == output_root
-    assert options.with_origin is True
 
 
 def _root_map(tmp_path: Path) -> dict[str, Path]:

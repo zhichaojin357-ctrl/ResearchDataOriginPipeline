@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import re
 from pathlib import Path
 
@@ -12,13 +13,22 @@ from src.core.runtime_paths import resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
 from src.origin.adapter import export_plot
 from src.processors.calculations import build_processed_table, bet_numeric, condition_screening_numeric, epr_numeric, type_specific_results
+from src.processors.eis import (
+    clean_eis_file,
+    draft_fit_eis_randles_cpe,
+    eis_plot_rows,
+    select_eis_semicircle_main_branch,
+    write_eis_fit_csv,
+    write_eis_points_csv,
+    write_ignored_eis_points_csv,
+)
 from src.processors.profiles import SUPPORTED_PROCESSOR_PROFILES
 
 
 MANUAL_CHECK_ITEMS = {
     "XRD": ["candidate peaks only; no phase or crystal-plane assignment"],
     "UV-vis DRS": ["Eg_candidate and linear interval require confirmation"],
-    "EIS": ["no equivalent-circuit fitting or mechanism conclusion"],
+    "EIS": ["draft Randles-CPE visualization requires manual review; no final equivalent-circuit or mechanism conclusion"],
     "XPS": ["peak positions/areas are candidates; no valence assignment"],
     "EPR": ["no radical species assignment"],
     "Mott-Schottky": ["flat-band candidate is not CB/VB"],
@@ -86,6 +96,39 @@ def process_table_dataset(
         warnings.append("HPLC/LC exported table is ambiguous; manual review required before plot or quantification.")
         origin_result = None
         status = "manual_review"
+    elif data_type == "EIS":
+        headers, processed_rows, eis_results = _build_eis_fit_product(source_file, processed_csv)
+        processed_headers = headers
+        with processed_csv.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(headers)
+            writer.writerows(processed_rows)
+        key_results = dict(type_specific_results(data_type, numeric, rows))
+        key_results.update(eis_results)
+        warnings.extend(eis_results.get("eis_cleaning", {}).get("warnings", []))
+        warning = eis_results.get("eis_fit", {}).get("warning")
+        if warning:
+            warnings.append(str(warning))
+        warnings.append("EIS Randles-CPE curve is a draft visualization for manual review, not a final equivalent-circuit conclusion.")
+        x_title, y_title = _origin_axis_titles(headers, data_type)
+        if no_origin:
+            origin_result = None
+            status = "processed_no_origin"
+            warnings.append("Origin export skipped by --no-origin.")
+        else:
+            origin_result = export_plot(
+                project_root,
+                dataset_id,
+                processed_csv,
+                x_title,
+                y_title,
+                data_type=data_type,
+                source_file=source_file,
+                output_root=effective_output_root,
+            )
+            status = "success" if origin_result.ok else "fail"
+            if not origin_result.ok:
+                warnings.append(origin_result.message)
     elif not numeric:
         warnings.append("No two-column numeric data could be read.")
         processed_csv.write_text("x,y\n", encoding="utf-8")
@@ -166,6 +209,53 @@ def process_table_dataset(
     )
 
 
+def _build_eis_fit_product(source_file: Path, processed_csv: Path) -> tuple[list[str], list[list[float | None]], dict[str, object]]:
+    cleaning = select_eis_semicircle_main_branch(clean_eis_file(source_file))
+    fit = draft_fit_eis_randles_cpe(cleaning.cleaned_points)
+    sidecar_dir = processed_csv.parent / f"{processed_csv.stem}_eis_sidecars"
+    raw_path = sidecar_dir / "raw_eis_data.csv"
+    cleaned_path = sidecar_dir / "cleaned_eis_data.csv"
+    ignored_path = sidecar_dir / "ignored_eis_points.csv"
+    fit_path = sidecar_dir / "eis_randles_cpe_fit_curve.csv"
+    metadata_path = sidecar_dir / "eis_cleaning_and_fit_metadata.json"
+    write_eis_points_csv(raw_path, cleaning.raw_points)
+    write_eis_points_csv(cleaned_path, cleaning.cleaned_points)
+    write_ignored_eis_points_csv(ignored_path, cleaning.ignored_points)
+    write_eis_fit_csv(fit_path, fit)
+    cleaning_metadata = cleaning.to_metadata()
+    fit_metadata = fit.to_metadata()
+    payload = {
+        "source_file": source_file.name,
+        "cleaning": cleaning_metadata,
+        "fit": fit_metadata,
+        "sidecars": {
+            "raw_points_csv": raw_path.name,
+            "cleaned_points_csv": cleaned_path.name,
+            "ignored_points_csv": ignored_path.name,
+            "fit_curve_csv": fit_path.name,
+        },
+        "manual_check_required": True,
+    }
+    metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    headers = [
+        "cleaned_z_real_ohm",
+        "cleaned_minus_z_imag_ohm",
+        "fit_z_real_ohm",
+        "draft_fit_minus_z_imag_ohm",
+    ]
+    rows = eis_plot_rows(cleaning.cleaned_points, fit)
+    key_results = {
+        "point_count": len(cleaning.cleaned_points),
+        "nyquist_points": len(cleaning.cleaned_points),
+        "bode_points": len([point for point in cleaning.cleaned_points if point.frequency_hz is not None]),
+        "max_negative_imaginary_impedance": max((point.minus_z_imag_ohm for point in cleaning.cleaned_points), default=None),
+        "eis_cleaning": cleaning_metadata,
+        "eis_fit": fit_metadata,
+        "eis_sidecar_dir": str(sidecar_dir),
+    }
+    return headers, rows, key_results
+
+
 def _read_processor_rows(source_file: Path, data_type: str) -> tuple[list[dict[str, str]], list[str]]:
     if data_type == "EPR" and looks_like_jeol_cwesr_file(source_file):
         return decode_jeol_cacqu_rows(source_file), [
@@ -218,6 +308,13 @@ def _origin_axis_titles(headers: list[str], data_type: str = "") -> tuple[str, s
     }
     if data_type in axis_by_type and normalized[:2] in (["x", "intensity"], ["magnetic_field", "intensity"]):
         return axis_by_type[data_type]
+    if data_type == "EIS" and normalized[:4] == [
+        "cleaned_z_real_ohm",
+        "cleaned_minus_z_imag_ohm",
+        "fit_z_real_ohm",
+        "draft_fit_minus_z_imag_ohm",
+    ]:
+        return "Z' (ohm)", "-Z'' (ohm)"
     if len(headers) >= 2:
         return headers[0], headers[1]
     if len(headers) == 1:
@@ -239,6 +336,8 @@ def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str
         candidate_methods.append("xps_component_trapezoid_area_candidate")
     if data_type in {"photocurrent", "photocurrent_response"}:
         candidate_methods.append("current_cycle_candidate_metrics")
+    if data_type == "EIS" and key_results.get("eis_fit"):
+        candidate_methods.append("randles_cpe_draft_fit_candidate")
     if data_type == "BET":
         candidate_methods.append("bet_exported_summary_or_isotherm_candidate")
         if key_results.get("adapter_results", {}).get("BET"):

@@ -3,8 +3,10 @@ from __future__ import annotations
 import csv
 import json
 import math
+import os
 import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -216,54 +218,70 @@ def _replace_graph4_template_data_with_originpro(options: XrdOverlayOptions, art
     artifacts.origin_file.parent.mkdir(parents=True, exist_ok=True)
     artifacts.preview_png.parent.mkdir(parents=True, exist_ok=True)
     artifacts.figure_tif.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(options.reference_opju, artifacts.origin_file)
+    neutral_root = _neutral_origin_runtime_root()
+    with tempfile.TemporaryDirectory(prefix="rdop_xrd_", dir=neutral_root) as runtime_text:
+        runtime = Path(runtime_text)
+        runtime_origin = runtime / artifacts.origin_file.name
+        runtime_png = runtime / artifacts.preview_png.name
+        runtime_tif = runtime / artifacts.figure_tif.name
+        shutil.copy2(options.reference_opju, runtime_origin)
 
-    try:
-        op.set_show(False)
-        if not op.open(str(artifacts.origin_file), readonly=False, asksave=False):
-            raise RuntimeError("failed to open copied Graph4 reference OPJU")
-        graph = op.find_graph("Graph4")
-        if graph is None:
-            raise RuntimeError("Graph4 was not found in the copied reference OPJU")
-        if len(graph) < 3:
-            raise RuntimeError("Graph4 does not contain the expected sample, card, and top-curve layers")
-
-        book2 = op.find_book("w", "Book2")
-        book3 = op.find_book("w", "Book3")
-        if book2 is None or book3 is None:
-            raise RuntimeError("Graph4 source workbooks Book2 and Book3 were not found")
-        sheet2 = book2[0]
-        sheet3 = book3[0]
-
-        cwo_points = _numeric_xy_points(extract_xrd_raw_data_rows(options.cwo_source))
-        bobc_points = _numeric_xy_points(extract_xrd_raw_data_rows(options.bobc_source))
-        bicu_points = _numeric_xy_points(extract_xrd_raw_data_rows(options.bicu_source))
-        if not cwo_points or not bobc_points or not bicu_points:
-            raise RuntimeError("one or more XRD sources contain no numeric two-theta/intensity rows")
-
-        _write_scaled_xy_to_template_columns(sheet2, 0, 1, cwo_points, CWO_LABEL, "CuWO4")
-        _write_scaled_xy_to_template_columns(sheet2, 2, 3, bobc_points, BOBC_LABEL, "BiOBr0.5Cl0.5")
-        _write_scaled_xy_to_template_columns(sheet3, 4, 5, bicu_points, BICU_LABEL, "BiCu-10", y_shift=-2500.0)
-        _write_card_to_template_columns(sheet2, 6, 7, parse_xrd_reference_card_peaks(options.cwo_card))
-
-        _remove_template_bicu30_plot(graph)
-        _set_template_text_objects(graph)
-        _enforce_template_plot_colors(graph)
-
-        graph.save_fig(str(artifacts.preview_png), type="png", replace=True, width=GRAPH4_FIXED_STYLE.page_width)
-        graph.save_fig(str(artifacts.figure_tif), type="tif", replace=True, width=GRAPH4_FIXED_STYLE.page_width)
-        op.save(str(artifacts.origin_file))
-        if not artifacts.preview_png.exists():
-            raise RuntimeError("Origin did not export the PNG preview")
-        if not artifacts.figure_tif.exists():
-            raise RuntimeError("Origin did not export the TIF figure")
-        _ensure_tif_600_dpi(artifacts.figure_tif)
-        return {"ok": True, "message": "Graph4 template data replaced and TIF exported at 600 dpi."}
-    finally:
         try:
-            op.exit()
-        except Exception:
-            pass
+            op.set_show(False)
+            if not op.open(str(runtime_origin), readonly=False, asksave=False):
+                raise RuntimeError("failed to open copied Graph4 reference OPJU")
+            graph = op.find_graph("Graph4")
+            if graph is None:
+                raise RuntimeError("Graph4 was not found in the copied reference OPJU")
+            if len(graph) < 3:
+                raise RuntimeError("Graph4 does not contain the expected sample, card, and top-curve layers")
+
+            book2 = op.find_book("w", "Book2")
+            book3 = op.find_book("w", "Book3")
+            if book2 is None or book3 is None:
+                raise RuntimeError("Graph4 source workbooks Book2 and Book3 were not found")
+            sheet2 = book2[0]
+            sheet3 = book3[0]
+
+            cwo_points = _numeric_xy_points(extract_xrd_raw_data_rows(options.cwo_source))
+            bobc_points = _numeric_xy_points(extract_xrd_raw_data_rows(options.bobc_source))
+            bicu_points = _numeric_xy_points(extract_xrd_raw_data_rows(options.bicu_source))
+            if not cwo_points or not bobc_points or not bicu_points:
+                raise RuntimeError("one or more XRD sources contain no numeric two-theta/intensity rows")
+
+            _write_scaled_xy_to_template_columns(sheet2, 0, 1, cwo_points, CWO_LABEL, "CuWO4")
+            _write_scaled_xy_to_template_columns(sheet2, 2, 3, bobc_points, BOBC_LABEL, "BiOBr0.5Cl0.5")
+            _write_scaled_xy_to_template_columns(sheet3, 4, 5, bicu_points, BICU_LABEL, "BiCu-10", y_shift=-2500.0)
+            _write_card_to_template_columns(sheet2, 6, 7, parse_xrd_reference_card_peaks(options.cwo_card))
+
+            _remove_template_bicu30_plot(graph)
+            _set_template_text_objects(graph)
+            _enforce_template_plot_colors(graph)
+
+            graph.save_fig(str(runtime_png), type="png", replace=True, width=GRAPH4_FIXED_STYLE.page_width)
+            graph.save_fig(str(runtime_tif), type="tif", replace=True, width=GRAPH4_FIXED_STYLE.page_width)
+            op.save(str(runtime_origin))
+        finally:
+            try:
+                op.exit()
+            except Exception:
+                pass
+
+        if not runtime_png.exists():
+            raise RuntimeError("Origin did not export the PNG preview")
+        if not runtime_tif.exists():
+            raise RuntimeError("Origin did not export the TIF figure")
+        if not runtime_origin.exists():
+            raise RuntimeError("Origin did not save the OPJU project")
+        _ensure_tif_600_dpi(runtime_tif)
+        _copy_runtime_artifact(runtime_origin, artifacts.origin_file)
+        _copy_runtime_artifact(runtime_png, artifacts.preview_png)
+        _copy_runtime_artifact(runtime_tif, artifacts.figure_tif)
+    return {
+        "ok": True,
+        "message": "Graph4 template data replaced and TIF exported at 600 dpi.",
+        "neutral_runtime": True,
+    }
 
 
 def _write_scaled_xy_to_template_columns(
@@ -615,6 +633,35 @@ def _ensure_tif_600_dpi(path: Path) -> None:
         target_height = max(1, round(output.height * (GRAPH4_FIXED_STYLE.page_width / output.width)))
         output = output.resize((GRAPH4_FIXED_STYLE.page_width, target_height))
     output.save(path, format="TIFF", dpi=(600, 600), compression="tiff_lzw")
+
+
+def _neutral_origin_runtime_root() -> Path:
+    candidates: list[Path] = []
+    for name in ("LOCALAPPDATA", "PROGRAMDATA"):
+        value = os.environ.get(name)
+        if value:
+            candidates.append(Path(value) / "ResearchDataOriginPipeline" / "origin_runtime")
+    candidates.append(Path.home() / "AppData" / "Local" / "ResearchDataOriginPipeline" / "origin_runtime")
+    candidates.append(Path("C:/ResearchDataOriginPipeline/origin_runtime"))
+    candidates.append(Path(tempfile.gettempdir()) / "ResearchDataOriginPipeline" / "origin_runtime")
+    for candidate in candidates:
+        if "codex" in str(candidate).casefold():
+            continue
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            return candidate
+        except OSError:
+            continue
+    fallback = Path(tempfile.gettempdir()) / "ResearchDataOriginPipeline" / "origin_runtime"
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
+def _copy_runtime_artifact(source: Path, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists():
+        target.unlink()
+    shutil.copy2(source, target)
 
 
 def _to_float(value: object) -> float | None:

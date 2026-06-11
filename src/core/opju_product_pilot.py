@@ -47,15 +47,6 @@ FORBIDDEN_LABELS = (
 
 
 @dataclass(frozen=True)
-class OpjuProductPilotOptions:
-    pairing_path: Path
-    output_root: Path | None = None
-    with_origin: bool = False
-    timestamp: str | None = None
-    force: bool = True
-
-
-@dataclass(frozen=True)
 class TargetPairing:
     product_key: str
     data_type: str
@@ -161,83 +152,6 @@ def extract_xrd_raw_data_rows(path: Path) -> list[list[float]]:
     if len(rows) < 2:
         raise ValueError(f"XRD RAW data section has fewer than 2 numeric rows: {path}")
     return rows
-
-
-def run_opju_product_pilot(
-    project_root: Path,
-    options: OpjuProductPilotOptions,
-    *,
-    root_map: dict[str, Path] | None = None,
-    origin_exporter: OriginExporter | None = None,
-) -> dict[str, object]:
-    project_root = project_root.resolve()
-    roots = root_map or build_default_root_map(project_root)
-    pairings = load_target_pairings(options.pairing_path, roots)
-    output_root = resolve_output_root(project_root, explicit=options.output_root)
-    layout = create_run_output_layout(
-        project_root,
-        scope="real_opju_product_pilot_xps_xrd_epr_bet",
-        command="opju-product-pilot",
-        mode="with_origin" if options.with_origin else "no_origin",
-        input_paths=[options.pairing_path, *[path for item in pairings for path in item.data_paths], *[item.reference_opju for item in pairings]],
-        timestamp=options.timestamp,
-        no_origin=not options.with_origin,
-        dry_run=False,
-        output_base=output_root / "runs",
-    )
-    exporter = origin_exporter or export_product_with_origin
-    products: list[dict[str, object]] = []
-    failures: list[dict[str, str]] = []
-
-    for pairing in pairings:
-        try:
-            product = _prepare_product(layout.root, pairing)
-            export_status: dict[str, object] = {"ok": False, "message": "Origin export skipped"}
-            if options.with_origin:
-                export_status = exporter(product)
-            metadata = _write_product_metadata(layout.root, product, export_status)
-            report = _write_per_type_report(layout.root, product, export_status)
-            products.append(
-                {
-                    "product_key": product.product_key,
-                    "data_root_label": product.pairing.data_root_label,
-                    "selected_data_relative_paths": _selected_relative_paths(product.pairing, "selected_data_relative_paths"),
-                    "opju_root_label": product.pairing.opju_root_label,
-                    "selected_opju_relative_path": _selected_relative_paths(product.pairing, "selected_opju_relative_path"),
-                    "processed_data": _product_output_path(layout.root, product.processed_data),
-                    "origin_file": _product_output_path(layout.root, product.origin_file),
-                    "figure_tif": _product_output_path(layout.root, product.figure_tif),
-                    "preview_png": _product_output_path(layout.root, product.preview_png),
-                    "reference_opju_copy": _product_output_path(layout.root, product.reference_opju_copy),
-                    "reference_preview_png": _product_output_path(layout.root, product.reference_preview_png),
-                    "metadata": _product_output_path(layout.root, metadata),
-                    "report": _product_output_path(layout.root, report),
-                    "status": "success"
-                    if bool(export_status.get("ok"))
-                    else ("origin_failed" if options.with_origin else "processed_no_origin"),
-                    "origin_message": scrub_output_text(export_status.get("message") or "", output_root=layout.root),
-                }
-            )
-        except Exception as exc:
-            failures.append({"product_key": pairing.product_key, "message": scrub_output_text(exc, output_root=layout.root)})
-
-    skipped = _skipped_pairing_items(options.pairing_path)
-    _write_manual_checklist(layout.root, products, failures, skipped)
-    label_audit = _write_no_label_audit(layout.root)
-    _write_summary(layout.root, products, failures, skipped, bool(options.with_origin), label_audit)
-    label_audit = _write_no_label_audit(layout.root)
-    _write_summary(layout.root, products, failures, skipped, bool(options.with_origin), label_audit)
-    return {
-        "run_root": str(layout.root),
-        "summary": {
-            "product_count": len(products),
-            "failure_count": len(failures),
-            "with_origin": bool(options.with_origin),
-        },
-        "products": products,
-        "failures": failures,
-        "skipped": skipped,
-    }
 
 
 def export_product_with_origin(product: ProductContext) -> dict[str, object]:

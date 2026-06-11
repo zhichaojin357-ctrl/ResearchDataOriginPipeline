@@ -13,6 +13,7 @@ from typing import Callable
 
 from src.core.output_sanitizer import render_output_path
 from src.core.opju_product_pilot import (
+    FORBIDDEN_LABELS,
     ProductContext,
     TargetPairing,
     _build_processed_plot_table,
@@ -44,7 +45,6 @@ from src.core.remaining_opju_product_drafts import (
 )
 from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.table_reader import read_table
-from src.core.v2_exemplar_conformance import FORBIDDEN_PRODUCT_LABELS
 from src.core.xps_heterojunction import (
     XpsFitRecord,
     XpsHeterojunctionOptions,
@@ -74,7 +74,7 @@ from src.processors.eis import (
 )
 
 
-V3_TARGET_TYPES = (
+TEMPLATE_TARGET_TYPES = (
     "BET",
     "XPS_in_situ",
     "XPS_non_in_situ",
@@ -88,9 +88,9 @@ V3_TARGET_TYPES = (
     "FTIR",
 )
 
-V3_ACCEPTED_TYPES = V3_TARGET_TYPES
+TEMPLATE_ACCEPTED_TYPES = TEMPLATE_TARGET_TYPES
 
-V3_TYPE_DIRS = {
+TEMPLATE_TYPE_DIRS = {
     "BET": "BET",
     "XPS_in_situ": "XPS_in_situ",
     "XPS_non_in_situ": "XPS_non_in_situ",
@@ -104,24 +104,24 @@ V3_TYPE_DIRS = {
     "FTIR": "FTIR",
 }
 
-V3_STATUS_NAMES = ("accepted", "blocked", "skipped", "failed")
+TEMPLATE_STATUS_NAMES = ("accepted", "blocked", "skipped", "failed")
 
-V3_SLUGS = {
-    "BET": "BET_BOBC_exemplar_v3",
-    "XPS_in_situ": "XPS_in_situ_BOBC_exemplar_v3",
-    "XPS_non_in_situ": "XPS_non_in_situ_BOBC_BC_exemplar_v3",
-    "XRD": "XRD_BOBC_exemplar_v3",
-    "EPR": "EPR_OH_overlay_exemplar_v3",
-    "EIS": "EIS_BOBC_exemplar_v3",
-    "Raman": "Raman_BOBC_exemplar_v3",
-    "UV-vis DRS / Tauc": "UV_vis_DRS_Tauc_BOBC_exemplar_v3",
-    "PL": "PL_BOBC_exemplar_v3",
-    "photocurrent": "photocurrent_BOBC_exemplar_v3",
-    "FTIR": "FTIR_BOBC_CWO_exemplar_v3",
+TEMPLATE_PRODUCT_SLUGS = {
+    "BET": "BET_BOBC_exemplar",
+    "XPS_in_situ": "XPS_in_situ_BOBC_exemplar",
+    "XPS_non_in_situ": "XPS_non_in_situ_BOBC_BC_exemplar",
+    "XRD": "XRD_BOBC_exemplar",
+    "EPR": "EPR_OH_overlay_exemplar",
+    "EIS": "EIS_BOBC_exemplar",
+    "Raman": "Raman_BOBC_exemplar",
+    "UV-vis DRS / Tauc": "UV_vis_DRS_Tauc_BOBC_exemplar",
+    "PL": "PL_BOBC_exemplar",
+    "photocurrent": "photocurrent_BOBC_exemplar",
+    "FTIR": "FTIR_BOBC_CWO_exemplar",
 }
 
 FIRST_BATCH_TYPES = {"BET", "XPS_in_situ", "XPS_non_in_situ", "XRD", "EPR"}
-SKIPPED_V3_TYPES = (
+SKIPPED_TEMPLATE_TYPES = (
     {
         "type": "HPLC/LC",
         "status": "skipped",
@@ -130,12 +130,12 @@ SKIPPED_V3_TYPES = (
     {
         "type": "Mott-Schottky",
         "status": "skipped",
-        "reason": "Previously reviewed Mott candidates remain exemplar-mismatch risks and are not in the v3 rebuild target set.",
+        "reason": "Previously reviewed Mott candidates remain exemplar-mismatch risks and are not in the final template product target set.",
     },
     {
         "type": "reaction_condition_screening",
         "status": "skipped",
-        "reason": "No clear reviewed data table plus OPJU pair is available for v3 rebuild.",
+        "reason": "No clear reviewed data table plus OPJU pair is available for final template product generation.",
     },
 )
 
@@ -143,7 +143,7 @@ OriginExporter = Callable[[ProductContext, ResolvedPlotStyle], dict[str, object]
 
 
 @dataclass(frozen=True)
-class V3TemplateCandidate:
+class TemplateCandidate:
     product_key: str
     path: Path
     source: str
@@ -157,16 +157,16 @@ class V3TemplateCandidate:
 
 
 @dataclass(frozen=True)
-class V3TemplateSelection:
+class TemplateSelection:
     product_key: str
     status: str
-    selected: V3TemplateCandidate | None = None
-    candidates: tuple[V3TemplateCandidate, ...] = ()
+    selected: TemplateCandidate | None = None
+    candidates: tuple[TemplateCandidate, ...] = ()
     reason: str = ""
 
 
 @dataclass(frozen=True)
-class V3Acceptance:
+class TemplateAcceptance:
     status: str
     visual_acceptance: bool
     line_width_acceptance: bool
@@ -176,7 +176,7 @@ class V3Acceptance:
 
 
 @dataclass(frozen=True)
-class V3RealTemplateRebuildOptions:
+class TemplateProductBuilderOptions:
     pairing_path: Path
     output_root: Path | None = None
     with_origin: bool = False
@@ -185,9 +185,9 @@ class V3RealTemplateRebuildOptions:
     xps_reference_template_root: Path | None = None
     xps_non_in_situ_template_root: Path | None = None
     user_style_path: Path | None = None
-    run_scope: str = "unified_v3_real_template_rebuild_all_types"
-    command_name: str = "unified-v3-real-template-rebuild-all-types"
-    product_slug_version: str = "v3"
+    run_scope: str = "template_product_builder_all_types"
+    command_name: str = "template-product-builder-all-types"
+    product_slug_version: str = "template"
     global_style_override: dict[str, object] | None = None
     eis_strict_semicircle_branch: bool = False
     xps_reference_templates_for_all_xps: bool = False
@@ -197,8 +197,8 @@ class V3RealTemplateRebuildOptions:
     project_style_asset_fallback: bool = False
 
 
-def classify_v3_template_candidates(paths: list[Path], *, f_drive_root: Path) -> list[V3TemplateCandidate]:
-    candidates: list[V3TemplateCandidate] = []
+def classify_template_candidates(paths: list[Path], *, f_drive_root: Path) -> list[TemplateCandidate]:
+    candidates: list[TemplateCandidate] = []
     for path in paths:
         if path.suffix.casefold() not in {".opju", ".opj"}:
             continue
@@ -208,7 +208,7 @@ def classify_v3_template_candidates(paths: list[Path], *, f_drive_root: Path) ->
         if product_key is None:
             continue
         candidates.append(
-            V3TemplateCandidate(
+            TemplateCandidate(
                 product_key=product_key,
                 path=path,
                 source="f_drive_scan",
@@ -219,13 +219,13 @@ def classify_v3_template_candidates(paths: list[Path], *, f_drive_root: Path) ->
     return candidates
 
 
-def classify_v3_xps_reference_candidates(
+def classify_template_xps_reference_candidates(
     paths: list[Path],
     *,
     reference_root: Path,
     include_all_xps_types: bool = False,
-) -> list[V3TemplateCandidate]:
-    candidates: list[V3TemplateCandidate] = []
+) -> list[TemplateCandidate]:
+    candidates: list[TemplateCandidate] = []
     for path in paths:
         if path.suffix.casefold() not in {".opju", ".opj"}:
             continue
@@ -236,7 +236,7 @@ def classify_v3_xps_reference_candidates(
         product_keys = ("XPS_in_situ", "XPS_non_in_situ") if include_all_xps_types else ("XPS_in_situ",)
         for product_key in product_keys:
             candidates.append(
-                V3TemplateCandidate(
+                TemplateCandidate(
                     product_key=product_key,
                     path=path,
                     source="xps_reference_scan",
@@ -251,19 +251,19 @@ def classify_v3_xps_reference_candidates(
     return candidates
 
 
-def classify_v3_xps_non_in_situ_candidates(
+def classify_template_xps_non_in_situ_candidates(
     paths: list[Path],
     *,
     reference_root: Path,
-) -> list[V3TemplateCandidate]:
-    candidates: list[V3TemplateCandidate] = []
+) -> list[TemplateCandidate]:
+    candidates: list[TemplateCandidate] = []
     for path in paths:
         if path.suffix.casefold() not in {".opju", ".opj"}:
             continue
         if not _is_relative_to(path, reference_root):
             continue
         candidates.append(
-            V3TemplateCandidate(
+            TemplateCandidate(
                 product_key="XPS_non_in_situ",
                 path=path,
                 source="xps_non_in_situ_reference_scan",
@@ -274,7 +274,7 @@ def classify_v3_xps_non_in_situ_candidates(
     return candidates
 
 
-def build_v3_template_candidate_pool(
+def build_template_candidate_pool(
     f_drive_paths: list[Path],
     xps_reference_paths: list[Path],
     *,
@@ -284,12 +284,12 @@ def build_v3_template_candidate_pool(
     xps_non_in_situ_root: Path | None = None,
     xps_reference_templates_for_all_xps: bool = False,
     xps_templates_from_reference_only: bool = False,
-) -> list[V3TemplateCandidate]:
-    candidates = classify_v3_template_candidates(f_drive_paths, f_drive_root=f_drive_root)
+) -> list[TemplateCandidate]:
+    candidates = classify_template_candidates(f_drive_paths, f_drive_root=f_drive_root)
     if xps_templates_from_reference_only:
         candidates = [candidate for candidate in candidates if not candidate.product_key.startswith("XPS")]
     candidates.extend(
-        classify_v3_xps_reference_candidates(
+        classify_template_xps_reference_candidates(
             xps_reference_paths,
             reference_root=xps_reference_root,
             include_all_xps_types=xps_reference_templates_for_all_xps,
@@ -297,7 +297,7 @@ def build_v3_template_candidate_pool(
     )
     if xps_non_in_situ_paths and xps_non_in_situ_root is not None:
         candidates.extend(
-            classify_v3_xps_non_in_situ_candidates(
+            classify_template_xps_non_in_situ_candidates(
                 xps_non_in_situ_paths,
                 reference_root=xps_non_in_situ_root,
             )
@@ -305,21 +305,21 @@ def build_v3_template_candidate_pool(
     return candidates
 
 
-def classify_v3_project_style_asset_candidates(project_root: Path) -> list[V3TemplateCandidate]:
+def classify_template_project_style_asset_candidates(project_root: Path) -> list[TemplateCandidate]:
     manifest_path = origin_style_manifest_path(project_root)
     manifest = load_origin_style_manifest(project_root, manifest_path)
-    candidates: list[V3TemplateCandidate] = []
+    candidates: list[TemplateCandidate] = []
     for raw in manifest.get("assets", []):
         if not isinstance(raw, dict):
             continue
         product_key = str(raw.get("product_key") or raw.get("data_type") or "")
-        if product_key not in V3_TARGET_TYPES:
+        if product_key not in TEMPLATE_TARGET_TYPES:
             continue
         asset = resolve_origin_style_asset(project_root, product_key, manifest_path)
         if asset is None:
             continue
         candidates.append(
-            V3TemplateCandidate(
+            TemplateCandidate(
                 product_key=product_key,
                 path=asset.graph_template_path,
                 source="project_origin_style_asset",
@@ -339,7 +339,7 @@ def classify_v3_project_style_asset_candidates(project_root: Path) -> list[V3Tem
     return candidates
 
 
-def scan_v3_f_drive_template_paths(f_drive_root: Path) -> list[Path]:
+def scan_template_f_drive_template_paths(f_drive_root: Path) -> list[Path]:
     if not f_drive_root.exists():
         raise FileNotFoundError(f"F-drive template root not found: {f_drive_root}")
     return sorted(
@@ -347,7 +347,7 @@ def scan_v3_f_drive_template_paths(f_drive_root: Path) -> list[Path]:
     )
 
 
-def scan_v3_optional_template_paths(template_root: Path | None) -> list[Path]:
+def scan_template_optional_template_paths(template_root: Path | None) -> list[Path]:
     if template_root is None or not template_root.exists():
         return []
     return sorted(
@@ -355,18 +355,18 @@ def scan_v3_optional_template_paths(template_root: Path | None) -> list[Path]:
     )
 
 
-def validate_v3_template_candidates(candidates: list[V3TemplateCandidate], scan_copy_root: Path, *, max_per_type: int = 5) -> list[V3TemplateCandidate]:
+def validate_template_candidates(candidates: list[TemplateCandidate], scan_copy_root: Path, *, max_per_type: int = 5) -> list[TemplateCandidate]:
     if not candidates:
         return []
     scan_copy_root.mkdir(parents=True, exist_ok=True)
-    validated: list[V3TemplateCandidate] = []
+    validated: list[TemplateCandidate] = []
     validation_targets = _prioritized_template_validation_targets(candidates, max_per_type=max_per_type)
     target_ids = {id(candidate) for candidate in validation_targets}
     copy_index = 1
     for candidate in candidates:
         if id(candidate) not in target_ids:
             validated.append(
-                V3TemplateCandidate(
+                TemplateCandidate(
                     product_key=candidate.product_key,
                     path=candidate.path,
                     source=candidate.source,
@@ -382,7 +382,7 @@ def validate_v3_template_candidates(candidates: list[V3TemplateCandidate], scan_
             snapshot_payload = _extract_template_snapshot_in_isolated_process(copied)
             status = _candidate_status_from_snapshot_payload(snapshot_payload)
             validated.append(
-                V3TemplateCandidate(
+                TemplateCandidate(
                     product_key=candidate.product_key,
                     path=candidate.path,
                     source=candidate.source,
@@ -400,7 +400,7 @@ def validate_v3_template_candidates(candidates: list[V3TemplateCandidate], scan_
             )
         except Exception as exc:
             validated.append(
-                V3TemplateCandidate(
+                TemplateCandidate(
                     product_key=candidate.product_key,
                     path=candidate.path,
                     source=candidate.source,
@@ -413,14 +413,14 @@ def validate_v3_template_candidates(candidates: list[V3TemplateCandidate], scan_
     return validated
 
 
-def select_v3_template(product_key: str, candidates: list[V3TemplateCandidate]) -> V3TemplateSelection:
+def select_template(product_key: str, candidates: list[TemplateCandidate]) -> TemplateSelection:
     scoped = [candidate for candidate in candidates if candidate.product_key == product_key]
     if not scoped:
-        return V3TemplateSelection(
+        return TemplateSelection(
             product_key=product_key,
             status="blocked",
             candidates=(),
-            reason=f"No F-drive OPJU/OPJ template candidate found for {product_key}.",
+            reason=f"No OPJU/OPJ template or project-local style asset candidate found for {product_key}.",
         )
     usable = [
         candidate
@@ -429,19 +429,19 @@ def select_v3_template(product_key: str, candidates: list[V3TemplateCandidate]) 
     ]
     if not usable:
         data_only = any(candidate.status in {"data_only", "no_graph_pages"} for candidate in scoped)
-        reason = "All F-drive candidates are data-only or lack complete graph/layer/plot objects." if data_only else "No validated graph-bearing template candidate is available."
-        return V3TemplateSelection(product_key=product_key, status="blocked", candidates=tuple(scoped), reason=reason)
+        reason = "All template candidates are data-only or lack complete graph/layer/plot objects." if data_only else "No validated graph-bearing template candidate is available."
+        return TemplateSelection(product_key=product_key, status="blocked", candidates=tuple(scoped), reason=reason)
     selected = max(usable, key=lambda item: (item.path_score, item.plot_count, item.layer_count, -len(str(item.path))))
-    return V3TemplateSelection(
+    return TemplateSelection(
         product_key=product_key,
         status="selected",
         selected=selected,
         candidates=tuple(scoped),
-        reason="Selected highest-scoring validated F-drive graph template.",
+        reason="Selected highest-scoring validated graph template or project-local style asset.",
     )
 
 
-def _select_v3_xps_template_for_product(product: ProductContext, selection: V3TemplateSelection) -> V3TemplateCandidate:
+def _select_template_xps_template_for_product(product: ProductContext, selection: TemplateSelection) -> TemplateCandidate:
     selected = selection.selected
     if selected is None or not product.product_key.startswith("XPS"):
         if selected is None:
@@ -452,13 +452,13 @@ def _select_v3_xps_template_for_product(product: ProductContext, selection: V3Te
         for candidate in selection.candidates
         if candidate.status in {"extracted", "valid"} and candidate.layer_count > 0 and candidate.plot_count > 0
     ]
-    best: V3TemplateCandidate | None = None
+    best: TemplateCandidate | None = None
     for candidate in usable:
         snapshot = candidate.metadata.get("snapshot") if isinstance(candidate.metadata, dict) else {}
         graph_pages = snapshot.get("graph_pages") if isinstance(snapshot, dict) else []
         if not isinstance(graph_pages, list):
             continue
-        graph_page = _preferred_v3_xps_graph_name(product.graph_title, [str(item) for item in graph_pages])
+        graph_page = _preferred_template_xps_graph_name(product.graph_title, [str(item) for item in graph_pages])
         if not graph_page:
             continue
         updated = replace(
@@ -471,7 +471,7 @@ def _select_v3_xps_template_for_product(product: ProductContext, selection: V3Te
     return best or selected
 
 
-def _preferred_v3_xps_graph_name(product_title: str, graph_pages: list[str]) -> str:
+def _preferred_template_xps_graph_name(product_title: str, graph_pages: list[str]) -> str:
     element = _xps_element_from_title(product_title)
     if not element:
         return ""
@@ -530,7 +530,7 @@ def clip_eis_fit_to_measured_range(
     )
 
 
-def v3_acceptance_status(
+def template_acceptance_status(
     *,
     has_required_artifacts: bool,
     no_label_pass: bool,
@@ -540,7 +540,7 @@ def v3_acceptance_status(
     axis_title_acceptance: bool,
     exemplar_similarity: bool,
     notes: list[str],
-) -> V3Acceptance:
+) -> TemplateAcceptance:
     checks = (
         has_required_artifacts,
         no_label_pass,
@@ -551,7 +551,7 @@ def v3_acceptance_status(
         exemplar_similarity,
     )
     status = "accepted" if all(checks) else "blocked"
-    return V3Acceptance(
+    return TemplateAcceptance(
         status=status,
         visual_acceptance=visual_acceptance,
         line_width_acceptance=line_width_acceptance,
@@ -561,98 +561,109 @@ def v3_acceptance_status(
     )
 
 
-def v3_plot_type_for_header(product_key: str, header: str, default_plot_type: str) -> str:
+def template_plot_type_for_header(product_key: str, header: str, default_plot_type: str) -> str:
     if product_key.startswith("XPS") and "_component_" in header:
         return default_plot_type
-    if product_key == "XRD" and is_v3_xrd_reference_stick_header(header):
+    if product_key == "XRD" and is_template_xrd_reference_stick_header(header):
         return "column"
     return default_plot_type
 
 
-def is_v3_xrd_reference_stick_header(header: str) -> bool:
+def is_template_xrd_reference_stick_header(header: str) -> bool:
     text = str(header).casefold()
     return "jcpds" in text or "pdf" in text or "card_sticks" in text or "reference_sticks" in text
 
 
-def is_v3_xps_component_curve_header(header: str) -> bool:
+def is_template_xps_component_curve_header(header: str) -> bool:
     return "_component_" in header and not header.endswith("_fill_baseline")
 
 
-def is_v3_xps_component_fill_baseline_header(header: str) -> bool:
+def is_template_xps_component_fill_baseline_header(header: str) -> bool:
     return header.endswith("_fill_baseline")
 
 
-def v3_xps_component_fill_pairs(headers: list[str]) -> list[tuple[int, int]]:
+def template_xps_component_fill_pairs(headers: list[str]) -> list[tuple[int, int]]:
     pairs: list[tuple[int, int]] = []
     series_headers = headers[1:]
     for plot_index, header in enumerate(series_headers, start=1):
-        if not is_v3_xps_component_curve_header(header):
+        if not is_template_xps_component_curve_header(header):
             continue
         baseline_plot_index = plot_index + 1
         baseline_header_index = baseline_plot_index - 1
-        if baseline_header_index < len(series_headers) and is_v3_xps_component_fill_baseline_header(series_headers[baseline_header_index]):
+        if baseline_header_index < len(series_headers) and is_template_xps_component_fill_baseline_header(series_headers[baseline_header_index]):
             pairs.append((plot_index, baseline_plot_index))
     return pairs
 
 
-def run_v3_real_template_rebuild_all_types(
+def run_template_product_builder_all_types(
     project_root: Path,
-    options: V3RealTemplateRebuildOptions,
+    options: TemplateProductBuilderOptions,
     *,
     root_map: dict[str, Path] | None = None,
     origin_exporter: OriginExporter | None = None,
-    template_validator: Callable[[list[V3TemplateCandidate], Path], list[V3TemplateCandidate]] | None = None,
+    template_validator: Callable[[list[TemplateCandidate], Path], list[TemplateCandidate]] | None = None,
 ) -> dict[str, object]:
     project_root = project_root.resolve()
     roots = root_map or build_default_root_map(project_root)
     output_root = resolve_output_root(project_root, explicit=options.output_root)
     timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    use_project_style_assets_only = (
+        options.project_style_asset_fallback
+        and options.f_drive_template_root is None
+        and options.xps_reference_template_root is None
+        and options.xps_non_in_situ_template_root is None
+    )
     f_drive_root = options.f_drive_template_root or Path("F:/") / "\u8bfe\u9898" / "LL" / "\u68c0\u6d4b"
     xps_reference_root = options.xps_reference_template_root or roots.get("workspace_xps_reference") or (project_root.parent / "xps\u53c2\u8003\u56fe\u50cf")
     xps_non_in_situ_root = options.xps_non_in_situ_template_root
-    opju_paths = scan_v3_f_drive_template_paths(f_drive_root)
-    xps_reference_paths = scan_v3_optional_template_paths(xps_reference_root)
-    xps_non_in_situ_paths = scan_v3_optional_template_paths(xps_non_in_situ_root)
-    candidates = build_v3_template_candidate_pool(
-        opju_paths,
-        xps_reference_paths,
-        f_drive_root=f_drive_root,
-        xps_reference_root=xps_reference_root,
-        xps_non_in_situ_paths=xps_non_in_situ_paths,
-        xps_non_in_situ_root=xps_non_in_situ_root,
-        xps_reference_templates_for_all_xps=options.xps_reference_templates_for_all_xps,
-        xps_templates_from_reference_only=options.xps_templates_from_reference_only,
-    )
+    if use_project_style_assets_only:
+        candidates: list[TemplateCandidate] = []
+        template_source_root = project_root / "templates" / "origin_styles"
+    else:
+        opju_paths = scan_template_f_drive_template_paths(f_drive_root)
+        xps_reference_paths = scan_template_optional_template_paths(xps_reference_root)
+        xps_non_in_situ_paths = scan_template_optional_template_paths(xps_non_in_situ_root)
+        candidates = build_template_candidate_pool(
+            opju_paths,
+            xps_reference_paths,
+            f_drive_root=f_drive_root,
+            xps_reference_root=xps_reference_root,
+            xps_non_in_situ_paths=xps_non_in_situ_paths,
+            xps_non_in_situ_root=xps_non_in_situ_root,
+            xps_reference_templates_for_all_xps=options.xps_reference_templates_for_all_xps,
+            xps_templates_from_reference_only=options.xps_templates_from_reference_only,
+        )
+        template_source_root = f_drive_root
     layout = create_run_output_layout(
         project_root,
         scope=options.run_scope,
         command=options.command_name,
         mode="with_origin" if options.with_origin else "no_origin",
-        input_paths=[options.pairing_path, f_drive_root, xps_reference_root],
+        input_paths=[options.pairing_path, template_source_root, xps_reference_root],
         timestamp=timestamp,
         no_origin=not options.with_origin,
         dry_run=False,
         output_base=output_root / "runs",
     )
-    for product_key in V3_TARGET_TYPES:
-        _ensure_v3_type_dirs(layout.root / V3_TYPE_DIRS[product_key])
-    validator = template_validator or validate_v3_template_candidates
-    validated = validator(candidates, layout.root / "template_scan_copies")
+    for product_key in TEMPLATE_TARGET_TYPES:
+        _ensure_template_type_dirs(layout.root / TEMPLATE_TYPE_DIRS[product_key])
+    validator = template_validator or validate_template_candidates
+    validated = validator(candidates, layout.root / "template_scan_copies") if candidates else []
     if options.project_style_asset_fallback:
-        validated.extend(classify_v3_project_style_asset_candidates(project_root))
-    selections = {product_key: select_v3_template(product_key, validated) for product_key in V3_TARGET_TYPES}
-    _write_template_discovery_doc(project_root / "docs" / "V3_TEMPLATE_DISCOVERY_AND_SELECTION.md", f_drive_root, validated, selections)
+        validated.extend(classify_template_project_style_asset_candidates(project_root))
+    selections = {product_key: select_template(product_key, validated) for product_key in TEMPLATE_TARGET_TYPES}
+    _write_template_discovery_doc(project_root / "docs" / "TEMPLATE_DISCOVERY_AND_SELECTION.md", template_source_root, validated, selections)
 
     user_config = load_user_plot_style(project_root, options.user_style_path)
     if options.global_style_override:
         user_config = _merge_global_style_override(user_config, options.global_style_override)
     first_pairings = {item.product_key: item for item in load_target_pairings(options.pairing_path, roots)}
     remaining_pairings = {item.product_key: item for item in load_remaining_pairings(options.pairing_path, roots)}
-    exporter = origin_exporter or (lambda product, style: export_v3_product_with_origin(product, style))
+    exporter = origin_exporter or (lambda product, style: export_template_product_with_origin(product, style))
     products: list[dict[str, object]] = []
     failures: list[dict[str, str]] = []
 
-    for product_key in V3_TARGET_TYPES:
+    for product_key in TEMPLATE_TARGET_TYPES:
         selection = selections[product_key]
         if selection.status != "selected" or selection.selected is None:
             record = _blocked_product_record(layout.root, product_key, selection)
@@ -664,7 +675,7 @@ def run_v3_real_template_rebuild_all_types(
             products.append(record)
             continue
         try:
-            product, extra = prepare_v3_product(
+            product, extra = prepare_template_product(
                 layout.root,
                 pairing,
                 selection.selected,
@@ -672,7 +683,7 @@ def run_v3_real_template_rebuild_all_types(
                 eis_strict_semicircle_branch=options.eis_strict_semicircle_branch,
                 xps_smooth_gradient_fill=options.xps_smooth_gradient_fill,
             )
-            active_template = _select_v3_xps_template_for_product(product, selection)
+            active_template = _select_template_xps_template_for_product(product, selection)
             if active_template.path != selection.selected.path:
                 product = replace(
                     product,
@@ -684,26 +695,26 @@ def run_v3_real_template_rebuild_all_types(
             export_status: dict[str, object] = {"ok": False, "message": "Origin export skipped"}
             if options.with_origin:
                 export_status = exporter(product, style)
-            acceptance = _build_v3_acceptance(product, export_status, active_template, extra)
-            metadata = _write_v3_product_metadata(layout.root, product, export_status, style, extra, active_template, acceptance)
-            report = _write_v3_per_type_report(layout.root, product, export_status, style, extra, active_template, acceptance)
-            products.append(_v3_product_summary(layout.root, product, export_status, metadata, report, active_template, acceptance))
+            acceptance = _build_template_acceptance(product, export_status, active_template, extra)
+            metadata = _write_template_product_metadata(layout.root, product, export_status, style, extra, active_template, acceptance)
+            report = _write_template_per_type_report(layout.root, product, export_status, style, extra, active_template, acceptance)
+            products.append(_template_product_summary(layout.root, product, export_status, metadata, report, active_template, acceptance))
         except Exception as exc:
             failures.append({"product_key": product_key, "message": str(exc)})
             products.append(_failed_product_record(layout.root, product_key, selection, str(exc)))
 
-    label_audit = _write_v3_no_label_audit(layout.root)
+    label_audit = _write_template_no_label_audit(layout.root)
     products = [_with_label_audit_status(product, label_audit) for product in products]
-    template_preview_audit = _write_v3_template_preview_comparison(layout.root, products)
-    _write_v3_run_reports(layout.root, products, failures, selections, label_audit, template_preview_audit)
-    _write_v3_docs(project_root, layout.root, products, failures, selections, label_audit)
+    template_preview_audit = _write_template_preview_comparison(layout.root, products)
+    _write_template_run_reports(layout.root, products, failures, selections, label_audit, template_preview_audit)
+    _write_template_docs(project_root, layout.root, products, failures, selections, label_audit)
     if options.cleanup_empty_run_layout_dirs:
         _cleanup_empty_run_layout_dirs(layout)
     return {
         "run_root": str(layout.root),
         "products": products,
         "failures": failures,
-        "skipped": list(SKIPPED_V3_TYPES),
+        "skipped": list(SKIPPED_TEMPLATE_TYPES),
         "summary": {
             "product_count": len(products),
             "accepted_count": sum(1 for item in products if item.get("status") == "accepted"),
@@ -723,39 +734,39 @@ def _merge_global_style_override(user_config: dict[str, object], override: dict[
     return merged
 
 
-def _versioned_v3_slug(product_key: str, slug_version: str) -> str:
-    slug = V3_SLUGS[product_key]
-    if slug_version == "v3":
+def _versioned_template_slug(product_key: str, slug_version: str) -> str:
+    slug = TEMPLATE_PRODUCT_SLUGS[product_key]
+    if slug_version == "template":
         return slug
-    return slug[:-2] + slug_version if slug.endswith("v3") else f"{slug}_{slug_version}"
+    return f"{slug}_{slug_version}"
 
 
-def prepare_v3_product(
+def prepare_template_product(
     run_root: Path,
     pairing: TargetPairing,
-    template: V3TemplateCandidate,
+    template: TemplateCandidate,
     *,
-    slug_version: str = "v3",
+    slug_version: str = "template",
     eis_strict_semicircle_branch: bool = False,
     xps_smooth_gradient_fill: bool = False,
 ) -> tuple[ProductContext, dict[str, object]]:
     product_key = pairing.product_key
-    type_root = run_root / V3_TYPE_DIRS[product_key]
-    _ensure_v3_type_dirs(type_root)
-    slug = _versioned_v3_slug(product_key, slug_version)
+    type_root = run_root / TEMPLATE_TYPE_DIRS[product_key]
+    _ensure_template_type_dirs(type_root)
+    slug = _versioned_template_slug(product_key, slug_version)
     input_copies = [] if product_key == "EPR" else _copy_inputs(pairing.data_paths, type_root / "input_copies")
     reference_copy = _copy_reference(template.path, type_root / "reference_opju")
     extra: dict[str, object] = {"template": _candidate_to_dict(template)}
     product_pairing = pairing
     if product_key == "EIS":
-        headers, rows, labels, eis_extra = _build_v3_eis_table(
+        headers, rows, labels, eis_extra = _build_template_eis_table(
             pairing,
             type_root,
             strict_semicircle_branch=eis_strict_semicircle_branch,
         )
         extra.update(eis_extra)
     elif product_key == "EPR":
-        headers, rows, labels, epr_extra = _build_v3_epr_table(pairing, type_root, template, slug)
+        headers, rows, labels, epr_extra = _build_template_epr_table(pairing, type_root, template, slug)
         extra.update(epr_extra)
         epr_overlay = epr_extra.get("epr_overlay") if isinstance(epr_extra.get("epr_overlay"), dict) else {}
         epr_input_files = [Path(value) for value in epr_overlay.get("input_files", []) if str(value).strip()]
@@ -763,7 +774,7 @@ def prepare_v3_product(
             input_copies = _copy_inputs(epr_input_files, type_root / "input_copies")
             product_pairing = replace(pairing, data_paths=epr_input_files)
     elif product_key in FIRST_BATCH_TYPES:
-        enriched = _build_v3_template_aligned_first_batch_table(
+        enriched = _build_template_aligned_first_batch_table(
             pairing,
             template,
             xps_component_fill_mode="template_line_fill" if xps_smooth_gradient_fill else "plain",
@@ -771,11 +782,11 @@ def prepare_v3_product(
         headers, rows, labels = enriched["headers"], enriched["rows"], enriched["labels"]
         extra["template_data_alignment"] = enriched["alignment"]
     else:
-        enriched = _build_v3_template_aligned_remaining_table(pairing, template)
+        enriched = _build_template_aligned_remaining_table(pairing, template)
         headers, rows, labels = enriched["headers"], enriched["rows"], enriched["labels"]
         extra["template_data_alignment"] = enriched["alignment"]
     if product_key not in {"EIS", "EPR"}:
-        extra["origin_processing"] = _write_v3_origin_processing_plan(
+        extra["origin_processing"] = _write_template_origin_processing_plan(
             pairing,
             type_root,
             slug,
@@ -810,18 +821,18 @@ def prepare_v3_product(
     return product, extra
 
 
-def _build_v3_template_aligned_first_batch_table(
+def _build_template_aligned_first_batch_table(
     pairing: TargetPairing,
-    template: V3TemplateCandidate,
+    template: TemplateCandidate,
     *,
     xps_component_fill_mode: str,
 ) -> dict[str, object]:
     if pairing.product_key == "BET":
-        aligned = _build_v3_bet_multisource_table(pairing, template)
+        aligned = _build_template_bet_multisource_table(pairing, template)
         if aligned is not None:
             return aligned
     if pairing.product_key == "XRD":
-        aligned = _build_v3_xrd_multisource_table(pairing, template)
+        aligned = _build_template_xrd_multisource_table(pairing, template)
         if aligned is not None:
             return aligned
     headers, rows, labels = _build_processed_plot_table(
@@ -832,13 +843,13 @@ def _build_v3_template_aligned_first_batch_table(
         "headers": headers,
         "rows": rows,
         "labels": labels,
-        "alignment": _v3_alignment_payload(pairing, template, pairing.data_paths, len(headers) - 1, "fallback_existing_first_batch_builder"),
+        "alignment": _template_alignment_payload(pairing, template, pairing.data_paths, len(headers) - 1, "fallback_existing_first_batch_builder"),
     }
 
 
-def _build_v3_template_aligned_remaining_table(pairing: TargetPairing, template: V3TemplateCandidate) -> dict[str, object]:
+def _build_template_aligned_remaining_table(pairing: TargetPairing, template: TemplateCandidate) -> dict[str, object]:
     if pairing.product_key in {"Raman", "UV-vis DRS / Tauc", "PL", "photocurrent", "FTIR"}:
-        aligned = _build_v3_xy_multisource_table(pairing, template)
+        aligned = _build_template_xy_multisource_table(pairing, template)
         if aligned is not None:
             return aligned
     headers, rows, labels = _build_remaining_processed_plot_table(pairing)
@@ -846,14 +857,14 @@ def _build_v3_template_aligned_remaining_table(pairing: TargetPairing, template:
         "headers": headers,
         "rows": rows,
         "labels": labels,
-        "alignment": _v3_alignment_payload(pairing, template, pairing.data_paths, len(headers) - 1, "fallback_existing_remaining_builder"),
+        "alignment": _template_alignment_payload(pairing, template, pairing.data_paths, len(headers) - 1, "fallback_existing_remaining_builder"),
     }
 
 
-def _build_v3_bet_multisource_table(pairing: TargetPairing, template: V3TemplateCandidate) -> dict[str, object] | None:
+def _build_template_bet_multisource_table(pairing: TargetPairing, template: TemplateCandidate) -> dict[str, object] | None:
     target_series = max(int(template.plot_count or 0), 2)
     target_files = max(1, math.ceil(target_series / 2))
-    candidates = _v3_candidate_files(
+    candidates = _template_candidate_files(
         pairing,
         template,
         suffixes=(".xls", ".xlsx"),
@@ -870,7 +881,7 @@ def _build_v3_bet_multisource_table(pairing: TargetPairing, template: V3Template
             continue
         if len(headers) < 2 or len(rows) < 2:
             continue
-        label = _v3_bet_series_label_from_path(path)
+        label = _template_bet_series_label_from_path(path)
         # Keep adsorption and optional desorption branches as separate plots.
         series.append((f"{label}_adsorption", [[row[0], row[1]] for row in rows if len(row) >= 2]))
         if len(headers) >= 3:
@@ -882,7 +893,7 @@ def _build_v3_bet_multisource_table(pairing: TargetPairing, template: V3Template
             break
     if len(series) < 2:
         return None
-    headers, rows = _v3_same_x_overlay_table("relative_pressure_p_p0", series[:target_series])
+    headers, rows = _template_same_x_overlay_table("relative_pressure_p_p0", series[:target_series])
     labels = {
         "x_label": "Relative Pressure (P/P_0)",
         "y_label": "Quantity Adsorbed (cm3/g STP)",
@@ -894,11 +905,11 @@ def _build_v3_bet_multisource_table(pairing: TargetPairing, template: V3Template
         "headers": headers,
         "rows": rows,
         "labels": labels,
-        "alignment": _v3_alignment_payload(pairing, template, used_files, len(headers) - 1, "template_aligned_bet_adjacent_sources"),
+        "alignment": _template_alignment_payload(pairing, template, used_files, len(headers) - 1, "template_aligned_bet_adjacent_sources"),
     }
 
 
-def _v3_bet_series_label_from_path(path: Path) -> str:
+def _template_bet_series_label_from_path(path: Path) -> str:
     stem = path.stem.casefold()
     if "bobc-4-xin" in stem or "4-bobc-4-xin" in stem:
         return "BOBC-4-XIN"
@@ -908,16 +919,16 @@ def _v3_bet_series_label_from_path(path: Path) -> str:
         return "CWO"
     if "bobc" in stem:
         return "BOBC"
-    return _v3_series_label_from_path(path)
+    return _template_series_label_from_path(path)
 
 
-def _build_v3_xrd_multisource_table(pairing: TargetPairing, template: V3TemplateCandidate) -> dict[str, object] | None:
-    target_series = _v3_xrd_target_sample_series_count(pairing, template)
-    candidates = _v3_candidate_files(
+def _build_template_xrd_multisource_table(pairing: TargetPairing, template: TemplateCandidate) -> dict[str, object] | None:
+    target_series = _template_xrd_target_sample_series_count(pairing, template)
+    candidates = _template_candidate_files(
         pairing,
         template,
         suffixes=(".txt", ".dql"),
-        exclude_name_tokens=("pdf#", "jcpds", "card", "标卡"),
+        exclude_name_tokens=("pdf#", "jcpds", "card", "鏍囧崱"),
         prefer_template_parent=True,
         limit=max(target_series * 3, 8),
     )
@@ -933,21 +944,21 @@ def _build_v3_xrd_multisource_table(pairing: TargetPairing, template: V3Template
                 continue
         if len(rows) < 2:
             continue
-        series.append((_v3_series_label_from_path(path), rows))
+        series.append((_template_series_label_from_path(path), rows))
         used_files.append(path)
         if len(series) >= target_series:
             break
     if len(series) < 1:
         return None
-    reference_card = _v3_xrd_reference_stick_series(pairing, template, series[0][1])
+    reference_card = _template_xrd_reference_stick_series(pairing, template, series[0][1])
     if reference_card is not None:
         series.append(reference_card[0])
         used_files.append(reference_card[1])
-    headers, rows = _v3_same_x_overlay_table("two_theta_deg", series)
+    headers, rows = _template_same_x_overlay_table("two_theta_deg", series)
     legend_entries = [
         _xrd_legend_label(label)
         for label, _values in series
-        if not is_v3_xrd_reference_stick_header(label)
+        if not is_template_xrd_reference_stick_header(label)
     ]
     visual_plot_count = len(series)
     labels = {
@@ -959,7 +970,7 @@ def _build_v3_xrd_multisource_table(pairing: TargetPairing, template: V3Template
         "legend_entries": legend_entries,
         "notes": "Multiple real XRD source exports were used where available; PDF/JCPDS reference sticks are plotted for manual review without phase assignment.",
     }
-    alignment = _v3_alignment_payload(pairing, template, used_files, len(headers) - 1, "template_aligned_xrd_stacked_patterns_with_reference_sticks")
+    alignment = _template_alignment_payload(pairing, template, used_files, len(headers) - 1, "template_aligned_xrd_stacked_patterns_with_reference_sticks")
     alignment["visual_template_plot_count"] = max(visual_plot_count, int(template.plot_count or 0))
     alignment["reference_stick_included"] = reference_card is not None
     return {
@@ -970,19 +981,19 @@ def _build_v3_xrd_multisource_table(pairing: TargetPairing, template: V3Template
     }
 
 
-def _v3_xrd_target_sample_series_count(pairing: TargetPairing, template: V3TemplateCandidate) -> int:
+def _template_xrd_target_sample_series_count(pairing: TargetPairing, template: TemplateCandidate) -> int:
     target = max(int(template.plot_count or 0), 1)
-    if pairing.product_key == "XRD" and _v3_xrd_reference_card_files(pairing, template):
+    if pairing.product_key == "XRD" and _template_xrd_reference_card_files(pairing, template):
         target = max(target, 4)
     return target
 
 
-def _v3_xrd_reference_stick_series(
+def _template_xrd_reference_stick_series(
     pairing: TargetPairing,
-    template: V3TemplateCandidate,
+    template: TemplateCandidate,
     sample_rows: list[list[float | str | None]],
 ) -> tuple[tuple[str, list[list[float | str | None]]], Path] | None:
-    cards = _v3_xrd_reference_card_files(pairing, template)
+    cards = _template_xrd_reference_card_files(pairing, template)
     if not cards:
         return None
     x_values = [_to_float(row[0]) for row in sample_rows if row]
@@ -990,17 +1001,17 @@ def _v3_xrd_reference_stick_series(
     if len(grid) < 2:
         return None
     for card in cards:
-        peaks = _v3_xrd_reference_card_peaks(card)
+        peaks = _template_xrd_reference_card_peaks(card)
         if not peaks:
             continue
-        y_values = _v3_xrd_reference_stick_values(grid, peaks)
+        y_values = _template_xrd_reference_stick_values(grid, peaks)
         if any(value > 0 for value in y_values):
             rows = [[x_value, y_value] for x_value, y_value in zip(grid, y_values)]
-            return ((f"{_v3_series_label_from_path(card)}_JCPDS_card_sticks", rows), card)
+            return ((f"{_template_series_label_from_path(card)}_JCPDS_card_sticks", rows), card)
     return None
 
 
-def _v3_xrd_reference_card_files(pairing: TargetPairing, template: V3TemplateCandidate) -> list[Path]:
+def _template_xrd_reference_card_files(pairing: TargetPairing, template: TemplateCandidate) -> list[Path]:
     roots = [template.path.parent, *[path.parent for path in pairing.data_paths]]
     candidates: list[Path] = []
     seen: set[str] = set()
@@ -1018,7 +1029,7 @@ def _v3_xrd_reference_card_files(pairing: TargetPairing, template: V3TemplateCan
     return candidates
 
 
-def _v3_xrd_reference_card_peaks(path: Path) -> list[tuple[float, float]]:
+def _template_xrd_reference_card_peaks(path: Path) -> list[tuple[float, float]]:
     peaks: list[tuple[float, float]] = []
     try:
         lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
@@ -1038,7 +1049,7 @@ def _v3_xrd_reference_card_peaks(path: Path) -> list[tuple[float, float]]:
     return peaks
 
 
-def _v3_xrd_reference_stick_values(grid: list[float], peaks: list[tuple[float, float]]) -> list[float]:
+def _template_xrd_reference_stick_values(grid: list[float], peaks: list[tuple[float, float]]) -> list[float]:
     if not grid or not peaks:
         return []
     max_intensity = max(intensity for _two_theta, intensity in peaks)
@@ -1060,10 +1071,10 @@ def _xrd_legend_label(label: str) -> str:
     return cleaned[:42] or "XRD"
 
 
-def _build_v3_xy_multisource_table(pairing: TargetPairing, template: V3TemplateCandidate) -> dict[str, object] | None:
+def _build_template_xy_multisource_table(pairing: TargetPairing, template: TemplateCandidate) -> dict[str, object] | None:
     target_series = max(int(template.plot_count or 0), 1)
-    suffixes = _v3_xy_suffixes(pairing.product_key)
-    candidates = _v3_candidate_files(
+    suffixes = _template_xy_suffixes(pairing.product_key)
+    candidates = _template_candidate_files(
         pairing,
         template,
         suffixes=suffixes,
@@ -1071,9 +1082,9 @@ def _build_v3_xy_multisource_table(pairing: TargetPairing, template: V3TemplateC
         limit=max(target_series * 4, 12),
     )
     if pairing.product_key == "photocurrent":
-        candidates = _v3_photocurrent_candidate_files(pairing, template, target_series)
+        candidates = _template_photocurrent_candidate_files(pairing, template, target_series)
     if pairing.product_key == "PL":
-        candidates = _v3_pl_candidate_files(pairing, template, target_series)
+        candidates = _template_pl_candidate_files(pairing, template, target_series)
     series: list[tuple[str, list[list[float | str | None]]]] = []
     used_files: list[Path] = []
     for path in candidates:
@@ -1083,23 +1094,23 @@ def _build_v3_xy_multisource_table(pairing: TargetPairing, template: V3TemplateC
             continue
         if len(rows) < 2:
             continue
-        series.append((_v3_series_label_from_path(path), rows))
+        series.append((_template_series_label_from_path(path), rows))
         used_files.append(path)
         if len(series) >= target_series:
             break
     if not series:
         return None
-    x_header, y_suffix, labels = _v3_xy_labels(pairing.product_key)
-    headers, rows = _v3_same_x_overlay_table(x_header, [(f"{label}_{y_suffix}", values) for label, values in series])
+    x_header, y_suffix, labels = _template_xy_labels(pairing.product_key)
+    headers, rows = _template_same_x_overlay_table(x_header, [(f"{label}_{y_suffix}", values) for label, values in series])
     return {
         "headers": headers,
         "rows": rows,
         "labels": labels,
-        "alignment": _v3_alignment_payload(pairing, template, used_files, len(headers) - 1, f"template_aligned_{safe_name(pairing.product_key)}_adjacent_sources"),
+        "alignment": _template_alignment_payload(pairing, template, used_files, len(headers) - 1, f"template_aligned_{safe_name(pairing.product_key)}_adjacent_sources"),
     }
 
 
-def _v3_same_x_overlay_table(
+def _template_same_x_overlay_table(
     x_header: str,
     series: list[tuple[str, list[list[float | str | None]]]],
 ) -> tuple[list[str], list[list[float | str | None]]]:
@@ -1156,9 +1167,9 @@ def _interpolated_series_y(points: list[tuple[float, float]], x_value: float) ->
     return points[-1][1]
 
 
-def _v3_candidate_files(
+def _template_candidate_files(
     pairing: TargetPairing,
-    template: V3TemplateCandidate,
+    template: TemplateCandidate,
     *,
     suffixes: tuple[str, ...],
     exclude_name_tokens: tuple[str, ...] = (),
@@ -1187,21 +1198,21 @@ def _v3_candidate_files(
             name = path.name.casefold()
             if any(token in name for token in exclude_name_tokens):
                 continue
-            if path.suffix.casefold() == ".txt" and any(token in name for token in ("备注", "readme", "说明")):
+            if path.suffix.casefold() == ".txt" and any(token in name for token in ("澶囨敞", "readme", "璇存槑")):
                 continue
             candidates.append(path)
             if len(candidates) >= limit:
-                return _v3_ordered_candidate_paths(pairing, candidates, prefer_template_parent=prefer_template_parent)
-    return _v3_ordered_candidate_paths(pairing, candidates, prefer_template_parent=prefer_template_parent)
+                return _template_ordered_candidate_paths(pairing, candidates, prefer_template_parent=prefer_template_parent)
+    return _template_ordered_candidate_paths(pairing, candidates, prefer_template_parent=prefer_template_parent)
 
 
-def _v3_ordered_candidate_paths(pairing: TargetPairing, candidates: list[Path], *, prefer_template_parent: bool) -> list[Path]:
+def _template_ordered_candidate_paths(pairing: TargetPairing, candidates: list[Path], *, prefer_template_parent: bool) -> list[Path]:
     if prefer_template_parent:
-        return _v3_unique_paths([*candidates, *pairing.data_paths])
-    return _v3_unique_paths([*pairing.data_paths, *candidates])
+        return _template_unique_paths([*candidates, *pairing.data_paths])
+    return _template_unique_paths([*pairing.data_paths, *candidates])
 
 
-def _v3_unique_paths(paths: list[Path]) -> list[Path]:
+def _template_unique_paths(paths: list[Path]) -> list[Path]:
     seen: set[str] = set()
     unique: list[Path] = []
     for path in paths:
@@ -1213,23 +1224,23 @@ def _v3_unique_paths(paths: list[Path]) -> list[Path]:
     return unique
 
 
-def _v3_xy_suffixes(product_key: str) -> tuple[str, ...]:
+def _template_xy_suffixes(product_key: str) -> tuple[str, ...]:
     if product_key == "FTIR":
         return (".dpt", ".txt")
     return (".txt", ".csv")
 
 
-def _v3_pl_candidate_files(pairing: TargetPairing, template: V3TemplateCandidate, target_series: int) -> list[Path]:
+def _template_pl_candidate_files(pairing: TargetPairing, template: TemplateCandidate, target_series: int) -> list[Path]:
     graph = str(template.graph_page or "").casefold()
     preferred = "ex" if graph.startswith("ex") else "em"
     parent = pairing.data_paths[0].parent if pairing.data_paths else template.path.parent
     files = sorted(parent.glob(f"*{preferred}*.txt"), key=lambda item: item.name.casefold())
     if len(files) >= target_series:
         return files
-    return _v3_candidate_files(pairing, template, suffixes=(".txt",), limit=max(target_series * 3, 9))
+    return _template_candidate_files(pairing, template, suffixes=(".txt",), limit=max(target_series * 3, 9))
 
 
-def _v3_photocurrent_candidate_files(pairing: TargetPairing, template: V3TemplateCandidate, target_series: int) -> list[Path]:
+def _template_photocurrent_candidate_files(pairing: TargetPairing, template: TemplateCandidate, target_series: int) -> list[Path]:
     roots: list[Path] = []
     if pairing.data_paths:
         roots.append(pairing.data_paths[0].parent.parent)
@@ -1243,11 +1254,11 @@ def _v3_photocurrent_candidate_files(pairing: TargetPairing, template: V3Templat
             if "ocp" in path.name.casefold():
                 candidates.append(path)
             if len(candidates) >= target_series:
-                return _v3_unique_paths(candidates)
-    return _v3_unique_paths([*pairing.data_paths, *candidates])
+                return _template_unique_paths(candidates)
+    return _template_unique_paths([*pairing.data_paths, *candidates])
 
 
-def _v3_xy_labels(product_key: str) -> tuple[str, str, dict[str, str]]:
+def _template_xy_labels(product_key: str) -> tuple[str, str, dict[str, str]]:
     if product_key == "Raman":
         return "raman_shift_cm-1", "intensity", {
             "x_label": "Raman shift (cm-1)",
@@ -1290,14 +1301,14 @@ def _v3_xy_labels(product_key: str) -> tuple[str, str, dict[str, str]]:
     raise ValueError(f"Unsupported XY product key: {product_key}")
 
 
-def _v3_series_label_from_path(path: Path) -> str:
+def _template_series_label_from_path(path: Path) -> str:
     label = safe_name(path.stem)
     return label[:42] or "series"
 
 
-def _v3_alignment_payload(
+def _template_alignment_payload(
     pairing: TargetPairing,
-    template: V3TemplateCandidate,
+    template: TemplateCandidate,
     used_files: list[Path],
     product_series_count: int,
     strategy: str,
@@ -1316,7 +1327,7 @@ def _v3_alignment_payload(
     }
 
 
-def _write_v3_origin_processing_plan(
+def _write_template_origin_processing_plan(
     pairing: TargetPairing,
     type_root: Path,
     slug: str,
@@ -1326,13 +1337,13 @@ def _write_v3_origin_processing_plan(
     xps_component_fill_mode: str = "plain",
 ) -> dict[str, object]:
     if pairing.product_key.startswith("XPS"):
-        return _write_v3_xps_origin_processing_plan(pairing, type_root, slug, xps_component_fill_mode=xps_component_fill_mode)
+        return _write_template_xps_origin_processing_plan(pairing, type_root, slug, xps_component_fill_mode=xps_component_fill_mode)
     if pairing.product_key == "XRD":
-        return _write_v3_xrd_origin_processing_plan(type_root, slug, headers, rows)
-    return _write_v3_identity_origin_processing_plan(pairing.product_key, type_root, slug, headers, rows)
+        return _write_template_xrd_origin_processing_plan(type_root, slug, headers, rows)
+    return _write_template_identity_origin_processing_plan(pairing.product_key, type_root, slug, headers, rows)
 
 
-def _write_v3_identity_origin_processing_plan(
+def _write_template_identity_origin_processing_plan(
     product_key: str,
     type_root: Path,
     slug: str,
@@ -1363,7 +1374,7 @@ def _write_v3_identity_origin_processing_plan(
     return plan
 
 
-def _write_v3_xrd_origin_processing_plan(
+def _write_template_xrd_origin_processing_plan(
     type_root: Path,
     slug: str,
     headers: list[str],
@@ -1376,7 +1387,7 @@ def _write_v3_xrd_origin_processing_plan(
     transforms: list[dict[str, object]] = [{"header": headers[0], "kind": "copy", "source_col": 1}]
     sample_index = 0
     for raw_col, header in enumerate(headers[1:], start=2):
-        if is_v3_xrd_reference_stick_header(header):
+        if is_template_xrd_reference_stick_header(header):
             transforms.append({"header": header, "kind": "copy", "source_col": raw_col})
             continue
         transforms.append(
@@ -1408,14 +1419,14 @@ def _write_v3_xrd_origin_processing_plan(
     return plan
 
 
-def _write_v3_xps_origin_processing_plan(
+def _write_template_xps_origin_processing_plan(
     pairing: TargetPairing,
     type_root: Path,
     slug: str,
     *,
     xps_component_fill_mode: str,
 ) -> dict[str, object]:
-    records = _select_v3_xps_records_for_origin_processing(pairing)
+    records = _select_template_xps_records_for_origin_processing(pairing)
     point_count = min(len(record.data) for record in records)
     raw_headers = ["binding_energy_eV"]
     raw_columns: list[list[float | None]] = [[_to_float(records[0].data[index].get("binding_energy_eV")) for index in range(point_count)]]
@@ -1521,7 +1532,7 @@ def _write_v3_xps_origin_processing_plan(
     return plan
 
 
-def _select_v3_xps_records_for_origin_processing(pairing: TargetPairing) -> list[XpsFitRecord]:
+def _select_template_xps_records_for_origin_processing(pairing: TargetPairing) -> list[XpsFitRecord]:
     if pairing.product_key == "XPS_in_situ":
         sample_files = _xps_in_situ_sample_files(pairing.data_paths)
         records, manual_review = load_xps_fit_workbooks(sample_files)
@@ -1560,10 +1571,10 @@ def _write_json_file(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(_safe_metadata_payload(payload), ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotStyle) -> dict[str, object]:
+def export_template_product_with_origin(product: ProductContext, style: ResolvedPlotStyle) -> dict[str, object]:
     operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
     try:
-        exemplar_snapshot = _extract_v3_product_reference_snapshot(operations, product)
+        exemplar_snapshot = _extract_template_product_reference_snapshot(operations, product)
         exemplar_style = exemplar_snapshot.to_dict()
         if exemplar_snapshot.graph_page:
             operations.export_graph(exemplar_snapshot.graph_page, product.reference_preview_png, "png", dpi=style.export_dpi)
@@ -1573,7 +1584,7 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         origin_processing: dict[str, object] = {"required": product.product_key != "EIS", "applied": False}
         plots_created_in_origin_processing = False
         if product.product_key == "EPR":
-            epr_graph = _create_v3_epr_origin_processed_graph(operations, product)
+            epr_graph = _create_template_epr_origin_processed_graph(operations, product)
             if not epr_graph.get("ok"):
                 return {"ok": False, "message": str(epr_graph.get("message")), "exemplar_style": exemplar_style}
             headers = list(epr_graph["headers"])
@@ -1583,7 +1594,7 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
             origin_processing = dict(epr_origin_processing)
             plots_created_in_origin_processing = True
         elif product.product_key != "EIS" and (product.type_root / "metadata" / "origin_processing_plan.json").is_file():
-            processed_graph = _create_v3_origin_processed_graph(operations, product)
+            processed_graph = _create_template_origin_processed_graph(operations, product)
             if not processed_graph.get("ok"):
                 return {"ok": False, "message": str(processed_graph.get("message")), "exemplar_style": exemplar_style}
             headers = list(processed_graph["headers"])
@@ -1597,7 +1608,7 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
                 return {"ok": False, "message": imported.message, "exemplar_style": exemplar_style}
             headers = _csv_header(product.processed_data)
             book_name = str(imported.payload["book_name"])
-            graph_name = safe_name(product.slug)[:24] or "V3Graph"
+            graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
             created = operations.create_graph(graph_name, book_name, "Sheet1", 1, 2, plot_type=product.plot_type)
             if not created.ok:
                 return {"ok": False, "message": created.message, "exemplar_style": exemplar_style}
@@ -1605,20 +1616,20 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         xps_fill_intent: dict[str, object] = {"required": product.product_key.startswith("XPS"), "applied": False, "component_plot_count": 0}
         if plots_created_in_origin_processing:
             if product.product_key.startswith("XPS"):
-                xps_fill_intent["component_plot_count"] = sum(1 for header in headers if is_v3_xps_component_curve_header(header))
+                xps_fill_intent["component_plot_count"] = sum(1 for header in headers if is_template_xps_component_curve_header(header))
         elif product.product_key == "EIS" and len(headers) >= 4:
             operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 3, 4, plot_type=product.plot_type)
         else:
             max_column = len(headers) if product.product_key.startswith("XPS") else min(len(headers), 10)
             for column_index in range(3, max_column + 1):
                 header = headers[column_index - 1] if column_index - 1 < len(headers) else ""
-                plot_type = v3_plot_type_for_header(product.product_key, header, product.plot_type)
+                plot_type = template_plot_type_for_header(product.product_key, header, product.plot_type)
                 added = operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=plot_type)
-                if added.ok and product.product_key.startswith("XPS") and is_v3_xps_component_curve_header(header):
+                if added.ok and product.product_key.startswith("XPS") and is_template_xps_component_curve_header(header):
                     xps_fill_intent["component_plot_count"] = int(xps_fill_intent["component_plot_count"]) + 1
         if not apply_style_snapshot(operations, graph_name, exemplar_snapshot):
             operations.apply_graph4_fixed_style(graph_name)
-        _apply_v3_template_plot_style(operations, graph_name, exemplar_snapshot, style)
+        _apply_template_plot_style(operations, graph_name, exemplar_snapshot, style)
         operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
         operations.set_graph_font(
             graph_name,
@@ -1631,30 +1642,30 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         )
         _set_bold_axis_title_objects(operations, graph_name, product.x_label, product.y_label)
         apply_resolved_style_overrides(operations, graph_name, style)
-        _apply_v3_axis_range(operations, graph_name, product)
+        _apply_template_axis_range(operations, graph_name, product)
         operations.set_tick_style(graph_name)
         operations.set_axis_and_tick_visibility(graph_name, y_axis=True, y_ticks=product.y_ticks, y_tick_values=product.y_tick_values)
-        _position_v3_axis_titles_outside_plot(operations, graph_name, exemplar_snapshot)
-        _force_v3_axis_titles_visible(operations, graph_name)
-        y_axis_title_overlay = _apply_v3_xps_y_axis_title_overlay(operations, graph_name, product, style)
+        _position_template_axis_titles_outside_plot(operations, graph_name, exemplar_snapshot)
+        _force_template_axis_titles_visible(operations, graph_name)
+        y_axis_title_overlay = _apply_template_xps_y_axis_title_overlay(operations, graph_name, product, style)
         legend_visible = False if product.product_key == "EIS" else bool(exemplar_snapshot.audit_numeric_values.get("legend.show", 0))
         operations.set_legend(graph_name, visible=legend_visible, entries=product.legend_entries)
         if legend_visible:
-            _restore_v3_template_legend_position(operations, graph_name, exemplar_snapshot)
+            _restore_template_legend_position(operations, graph_name, exemplar_snapshot)
         operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; title.show=0;')
         series_count = 2 if product.product_key == "EIS" and len(headers) >= 4 else len(headers) - 1
-        _style_v3_series(operations, graph_name, product, series_count, style, headers=headers)
+        _style_template_series(operations, graph_name, product, series_count, style, headers=headers)
         xps_peak_annotations: dict[str, object] = {"required": product.product_key.startswith("XPS"), "applied": False, "annotation_count": 0}
         if product.product_key.startswith("XPS"):
-            xps_fill_intent = _apply_v3_xps_component_fill(operations, graph_name, headers, xps_fill_intent, style=style)
-            xps_peak_annotations = _apply_v3_xps_peak_annotations(
+            xps_fill_intent = _apply_template_xps_component_fill(operations, graph_name, headers, xps_fill_intent, style=style)
+            xps_peak_annotations = _apply_template_xps_peak_annotations(
                 operations,
                 graph_name,
                 product.processed_data,
                 product_title=product.graph_title,
                 style=style,
             )
-            xps_peak_annotations["sample_labels"] = _apply_v3_xps_sample_labels(
+            xps_peak_annotations["sample_labels"] = _apply_template_xps_sample_labels(
                 operations,
                 graph_name,
                 product.processed_data,
@@ -1690,7 +1701,7 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
             return {"ok": False, "message": f"{png.message}; {tif.message}", "exemplar_style": exemplar_style}
         return {
             "ok": True,
-            "message": "Origin isolated v3 export succeeded after save/reopen/readback",
+            "message": "Origin isolated template export succeeded after save/reopen/readback",
             "exemplar_style": exemplar_style,
             "product_style": product_snapshot.to_dict(),
             "conformance": conformance.to_dict(),
@@ -1710,7 +1721,7 @@ def export_v3_product_with_origin(product: ProductContext, style: ResolvedPlotSt
         operations.close()
 
 
-def _create_v3_origin_processed_graph(operations: object, product: ProductContext) -> dict[str, object]:
+def _create_template_origin_processed_graph(operations: object, product: ProductContext) -> dict[str, object]:
     plan_path = product.type_root / "metadata" / "origin_processing_plan.json"
     if not plan_path.is_file():
         return {"ok": False, "message": f"Origin processing plan not found: {plan_path}"}
@@ -1727,7 +1738,7 @@ def _create_v3_origin_processed_graph(operations: object, product: ProductContex
     raw_column_count = int(plan.get("raw_column_count") or 0)
     if len(headers) < 2 or not isinstance(transforms, list) or raw_column_count < 1:
         return {"ok": False, "message": "Origin processing plan is incomplete"}
-    script = _v3_origin_processing_script(book_name, raw_column_count, transforms)
+    script = _template_origin_processing_script(book_name, raw_column_count, transforms)
     executed = operations.run_labtalk(script)
     if not getattr(executed, "ok", False):
         return {"ok": False, "message": "Origin LabTalk processing returned failure"}
@@ -1741,7 +1752,7 @@ def _create_v3_origin_processed_graph(operations: object, product: ProductContex
         return {"ok": False, "message": f"Origin processed worksheet has too few columns: {len(columns) if isinstance(columns, list) else 'unreadable'}"}
     final_columns = columns[final_start_col - 1 : final_end_col]
     _write_columns_csv(product.processed_data, headers, final_columns)
-    graph_name = safe_name(product.slug)[:24] or "V3Graph"
+    graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
     first_y_header = headers[1] if len(headers) > 1 else ""
     created = operations.create_graph(
         graph_name,
@@ -1749,7 +1760,7 @@ def _create_v3_origin_processed_graph(operations: object, product: ProductContex
         "Sheet1",
         final_start_col,
         final_start_col + 1,
-        plot_type=v3_plot_type_for_header(product.product_key, first_y_header, product.plot_type),
+        plot_type=template_plot_type_for_header(product.product_key, first_y_header, product.plot_type),
     )
     if not getattr(created, "ok", False):
         return {"ok": False, "message": getattr(created, "message", "Origin processed graph creation failed")}
@@ -1762,7 +1773,7 @@ def _create_v3_origin_processed_graph(operations: object, product: ProductContex
             "Sheet1",
             final_start_col,
             column_index,
-            plot_type=v3_plot_type_for_header(product.product_key, header, product.plot_type),
+            plot_type=template_plot_type_for_header(product.product_key, header, product.plot_type),
         )
         if not getattr(added, "ok", False):
             return {"ok": False, "message": getattr(added, "message", f"Origin processed plot add failed for column {column_index}")}
@@ -1785,7 +1796,7 @@ def _create_v3_origin_processed_graph(operations: object, product: ProductContex
     }
 
 
-def _v3_origin_processing_script(book_name: str, raw_column_count: int, transforms: list[object]) -> str:
+def _template_origin_processing_script(book_name: str, raw_column_count: int, transforms: list[object]) -> str:
     final_start = raw_column_count + 1
     commands = [
         f'win -a "{quote_labtalk(book_name)}"',
@@ -1805,8 +1816,8 @@ def _v3_origin_processing_script(book_name: str, raw_column_count: int, transfor
             source_col = int(raw_transform.get("source_col") or 1)
             scale_col = int(raw_transform.get("scale_col") or source_col)
             offset = float(raw_transform.get("offset") or 0.0)
-            min_var = f"__v3_min_{transform_index}"
-            span_var = f"__v3_span_{transform_index}"
+            min_var = f"__template_min_{transform_index}"
+            span_var = f"__template_span_{transform_index}"
             commands.append(f"double {min_var}=min(col({scale_col}))")
             commands.append(f"double {span_var}=max(col({scale_col}))-{min_var}")
             commands.append(f"if({span_var}<=0) {span_var}=1")
@@ -1818,7 +1829,7 @@ def _v3_origin_processing_script(book_name: str, raw_column_count: int, transfor
     return "; ".join(commands) + ";"
 
 
-def _create_v3_epr_origin_processed_graph(operations: object, product: ProductContext) -> dict[str, object]:
+def _create_template_epr_origin_processed_graph(operations: object, product: ProductContext) -> dict[str, object]:
     plan_path = product.type_root / "metadata" / "epr_origin_processing_plan.json"
     if not plan_path.is_file():
         return {"ok": False, "message": f"EPR Origin processing plan not found: {plan_path}"}
@@ -1833,7 +1844,7 @@ def _create_v3_epr_origin_processed_graph(operations: object, product: ProductCo
     labels = [str(value) for value in plan.get("labels", ["BC", "CWO", "BOBC"])]
     if len(labels) != 3:
         return {"ok": False, "message": f"EPR Origin processing expects 3 traces, got labels={labels}"}
-    script = _v3_epr_origin_processing_script(book_name, labels)
+    script = _template_epr_origin_processing_script(book_name, labels)
     executed = operations.run_labtalk(script)
     if not getattr(executed, "ok", False):
         return {"ok": False, "message": "EPR Origin LabTalk processing returned failure"}
@@ -1880,7 +1891,7 @@ def _create_v3_epr_origin_processed_graph(operations: object, product: ProductCo
             columns[12],
         ],
     )
-    graph_name = safe_name(product.slug)[:24] or "V3Graph"
+    graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
     created = operations.create_graph(graph_name, book_name, "Sheet1", 1, 11, plot_type=product.plot_type)
     if not getattr(created, "ok", False):
         return {"ok": False, "message": getattr(created, "message", "EPR Origin graph creation failed")}
@@ -1911,7 +1922,7 @@ def _create_v3_epr_origin_processed_graph(operations: object, product: ProductCo
     }
 
 
-def _v3_epr_origin_processing_script(book_name: str, labels: list[str]) -> str:
+def _template_epr_origin_processing_script(book_name: str, labels: list[str]) -> str:
     safe_labels = [quote_labtalk(label) for label in labels]
     return (
         f'win -a "{quote_labtalk(book_name)}"; '
@@ -1967,7 +1978,7 @@ def _write_columns_csv(path: Path, headers: list[str], columns: list[list[object
             writer.writerow([columns[column_index][row_index] for column_index in range(len(columns))])
 
 
-def _extract_v3_product_reference_snapshot(operations: object, product: ProductContext) -> OpjuStyleSnapshot:
+def _extract_template_product_reference_snapshot(operations: object, product: ProductContext) -> OpjuStyleSnapshot:
     if not product.product_key.startswith("XPS"):
         return extract_style_snapshot(operations, product.reference_opju_copy)
     load_result = operations.load_project(product.reference_opju_copy)
@@ -1981,7 +1992,7 @@ def _extract_v3_product_reference_snapshot(operations: object, product: ProductC
     ]
     if not graph_pages:
         return OpjuStyleSnapshot(str(product.reference_opju_copy), "no_graph_pages", warnings=["No graph pages were available in the copied exemplar."])
-    graph_page = _preferred_v3_xps_graph_name(product.graph_title, graph_pages) or graph_pages[0]
+    graph_page = _preferred_template_xps_graph_name(product.graph_title, graph_pages) or graph_pages[0]
     return read_graph_style_snapshot(
         operations,
         graph_page,
@@ -1990,7 +2001,7 @@ def _extract_v3_product_reference_snapshot(operations: object, product: ProductC
     )
 
 
-def _build_v3_eis_table(
+def _build_template_eis_table(
     pairing: TargetPairing,
     type_root: Path,
     *,
@@ -2017,7 +2028,7 @@ def _build_v3_eis_table(
         plot_labels = {
             "x_label": "Z' (Ohm)",
             "y_label": "-Z'' (Ohm)",
-            "title": "EIS v4 draft",
+            "title": "EIS draft fit",
             "plot_type": "line+symbol",
             "notes": "draft fit for visualization/manual review only\nDefault fit model is Rs + (Rct || CPE); invalid and offset low-frequency tail points are reported but excluded from the main fit.",
         }
@@ -2029,7 +2040,7 @@ def _build_v3_eis_table(
         plot_labels = {
             "x_label": "Z' (kOhm)",
             "y_label": "-Z'' (kOhm)",
-            "title": "EIS v3 draft",
+            "title": "EIS draft fit",
             "plot_type": "line+symbol",
             "notes": "draft fit for visualization/manual review only\nDefault fit model is Rs + (Rct || CPE); main plot uses measured-range fit segment to avoid full-fit axis distortion.",
         }
@@ -2052,17 +2063,17 @@ def _build_v3_eis_table(
         "cleaning": cleaning.to_metadata(),
         "fit": main_fit.to_metadata(),
         "full_fit": full_fit.to_metadata(),
-        "raw_data": str(raw_path),
-        "cleaned_data": str(cleaned_path),
-        "ignored_points": str(ignored_path),
-        "fit_curve": str(fit_path),
-        "fit_parameters": str(fit_parameters_path),
-        "ignored_points_report": str(ignored_report_path),
-        "full_fit_curve_debug": str(full_fit_path),
+        "raw_data": _template_run_relative_path(type_root, raw_path),
+        "cleaned_data": _template_run_relative_path(type_root, cleaned_path),
+        "ignored_points": _template_run_relative_path(type_root, ignored_path),
+        "fit_curve": _template_run_relative_path(type_root, fit_path),
+        "fit_parameters": _template_run_relative_path(type_root, fit_parameters_path),
+        "ignored_points_report": _template_run_relative_path(type_root, ignored_report_path),
+        "full_fit_curve_debug": _template_run_relative_path(type_root, full_fit_path),
         "strict_semicircle_branch": bool(strict_semicircle_branch),
         "default_fitted_model": "Model A: Rs + (Rct || CPE)",
         "main_plot_curve_policy": main_curve_policy,
-        "fallback_model_policy": "Model B: Rs + CPE is diagnostic fallback only and is not the default v3 fit.",
+        "fallback_model_policy": "Model B: Rs + CPE is diagnostic fallback only and is not the default fit.",
         "warburg_policy": "Warburg diffusion tail is not included unless a future manual request explicitly asks for it.",
     }
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2094,14 +2105,14 @@ def _build_v3_eis_table(
     )
 
 
-def _build_v3_epr_table(
+def _build_template_epr_table(
     pairing: TargetPairing,
     type_root: Path,
-    template: V3TemplateCandidate,
+    template: TemplateCandidate,
     slug: str,
 ) -> tuple[list[str], list[list[float | str | None]], dict[str, str], dict[str, object]]:
-    group_name = _select_v3_epr_group(pairing, template)
-    reference_dir = _infer_v3_epr_reference_dir(pairing.data_paths, group_name)
+    group_name = _select_template_epr_group(pairing, template)
+    reference_dir = _infer_template_epr_reference_dir(pairing.data_paths, group_name)
     entries = DEFAULT_EPR_GROUPS[group_name]
     traces = []
     for label, file_name in entries:
@@ -2110,7 +2121,7 @@ def _build_v3_epr_table(
             raise FileNotFoundError(f"EPR overlay input missing for {group_name}: {path}")
         x_values, y_values = read_xy_xlsx(path)
         traces.append({"label": label, "file_name": file_name, "path": path, "x": x_values, "y": y_values})
-    _validate_v3_epr_common_x([trace["x"] for trace in traces])
+    _validate_template_epr_common_x([trace["x"] for trace in traces])
     raw_csv = type_root / "processed_data" / f"epr_{group_name.lower()}_overlay_origin_raw_input.csv"
     detail_csv = type_root / "processed_data" / f"epr_{group_name.lower()}_overlay_origin_detail.csv"
     plan_path = type_root / "metadata" / "epr_origin_processing_plan.json"
@@ -2164,7 +2175,7 @@ def _build_v3_epr_table(
     }
 
 
-def _validate_v3_epr_common_x(series: list[list[float]]) -> None:
+def _validate_template_epr_common_x(series: list[list[float]]) -> None:
     first = series[0]
     for values in series[1:]:
         if len(values) != len(first):
@@ -2174,7 +2185,7 @@ def _validate_v3_epr_common_x(series: list[list[float]]) -> None:
             raise ValueError(f"EPR overlay traces have different magnetic field grids; max delta={max_delta}")
 
 
-def _select_v3_epr_group(pairing: TargetPairing, template: V3TemplateCandidate) -> str:
+def _select_template_epr_group(pairing: TargetPairing, template: TemplateCandidate) -> str:
     candidates = [template.graph_page, template.path.stem, " ".join(path.stem for path in pairing.data_paths)]
     joined = " ".join(value for value in candidates if value).casefold()
     if "oh" in joined:
@@ -2184,14 +2195,14 @@ def _select_v3_epr_group(pairing: TargetPairing, template: V3TemplateCandidate) 
     return "OH"
 
 
-def _infer_v3_epr_reference_dir(data_paths: list[Path], group_name: str) -> Path:
+def _infer_template_epr_reference_dir(data_paths: list[Path], group_name: str) -> Path:
     candidate_dirs: list[Path] = []
     for path in data_paths:
         base = path.parent if path.suffix else path
         candidate_dirs.append(base)
         for parent in [base, *base.parents]:
             if parent.name.casefold() == "epr":
-                candidate_dirs.append(parent / "导出后的数据")
+                candidate_dirs.append(parent / "瀵煎嚭鍚庣殑鏁版嵁")
                 export_roots = sorted(parent.glob("EPR_Excel*"), key=lambda item: item.name)
                 for export_root in export_roots:
                     if export_root.is_dir():
@@ -2211,7 +2222,7 @@ def _infer_v3_epr_reference_dir(data_paths: list[Path], group_name: str) -> Path
     )
 
 
-def _read_v3_plot_csv(path: Path) -> tuple[list[str], list[list[float | str | None]]]:
+def _read_template_plot_csv(path: Path) -> tuple[list[str], list[list[float | str | None]]]:
     with path.open(encoding="utf-8", newline="") as handle:
         reader = csv.reader(handle)
         headers = next(reader)
@@ -2230,7 +2241,7 @@ def _coerce_csv_cell(value: str) -> float | str | None:
     return number if math.isfinite(number) else text
 
 
-def _apply_v3_template_plot_style(operations: object, graph_name: str, snapshot: OpjuStyleSnapshot, style: ResolvedPlotStyle) -> None:
+def _apply_template_plot_style(operations: object, graph_name: str, snapshot: OpjuStyleSnapshot, style: ResolvedPlotStyle) -> None:
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
     plot_names = getattr(operations, "_plot_names", lambda _name: [])(graph_name)
     for index, plot_name in enumerate(plot_names, start=1):
@@ -2247,7 +2258,7 @@ def _apply_v3_template_plot_style(operations: object, graph_name: str, snapshot:
         operations.run_labtalk("; ".join(commands) + ";")
 
 
-def _style_v3_series(
+def _style_template_series(
     operations: object,
     graph_name: str,
     product: ProductContext,
@@ -2266,14 +2277,14 @@ def _style_v3_series(
         colors = ("blue", "red", "black", "orange", "purple", "green", "cyan", "magenta", "gray")
     for index in range(1, series_count + 1):
         header = headers[index] if headers is not None and index < len(headers) else ""
-        color = _v3_xps_series_color(header, colors[(index - 1) % len(colors)]) if product.product_key.startswith("XPS") else colors[(index - 1) % len(colors)]
+        color = _template_xps_series_color(header, colors[(index - 1) % len(colors)]) if product.product_key.startswith("XPS") else colors[(index - 1) % len(colors)]
         result = operations.set_plot_style(graph_name, index, line_width=style.line_width_pt, symbol_size=style.marker_size, color=color)
         if not result.ok and index == 1:
             break
         if product.product_key == "BET":
             line_style = 2 if index % 2 == 0 else 1
             operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; layer.plot{index}.linestyle={line_style};')
-        if product.product_key == "XRD" and is_v3_xrd_reference_stick_header(header):
+        if product.product_key == "XRD" and is_template_xrd_reference_stick_header(header):
             operations.run_labtalk(
                 f'win -a "{quote_labtalk(graph_name)}"; '
                 f"layer.plot{index}.color=19; layer.plot{index}.fillcolor=19; layer.plot{index}.bordercolor=19;"
@@ -2285,7 +2296,7 @@ def _style_v3_series(
             operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; set {plot_names[1]} -k 0; set {plot_names[1]} -l 1; set {plot_names[1]} -z 0; set {plot_names[1]} -wp {float(style.line_width_pt):g};')
 
 
-def _v3_xps_series_color(header: str, fallback: str) -> str:
+def _template_xps_series_color(header: str, fallback: str) -> str:
     text = str(header).casefold()
     if text.endswith("_measured") or text.endswith("_envelope"):
         return "black"
@@ -2296,7 +2307,7 @@ def _v3_xps_series_color(header: str, fallback: str) -> str:
     return fallback
 
 
-def _apply_v3_xps_component_fill(
+def _apply_template_xps_component_fill(
     operations: object,
     graph_name: str,
     headers: list[str],
@@ -2305,7 +2316,7 @@ def _apply_v3_xps_component_fill(
     style: ResolvedPlotStyle,
 ) -> dict[str, object]:
     plot_names = getattr(operations, "_plot_names", lambda _name: [])(graph_name)
-    component_fill_pairs = v3_xps_component_fill_pairs(headers)
+    component_fill_pairs = template_xps_component_fill_pairs(headers)
     applied = 0
     template_component_colors = (30586738, 27692005)
     for pair_number, (component_plot_index, baseline_plot_index) in enumerate(component_fill_pairs, start=1):
@@ -2401,7 +2412,7 @@ def _legend_bold_readback(numeric: dict[str, object], strings: dict[str, object]
     return _number_matches(numeric.get("legend.bold"), 1) or "\\b(" in legend_text
 
 
-def _apply_v3_axis_range(operations: object, graph_name: str, product: ProductContext) -> None:
+def _apply_template_axis_range(operations: object, graph_name: str, product: ProductContext) -> None:
     if product.product_key not in {"EIS", "XRD"}:
         return
     if product.product_key == "EIS":
@@ -2417,7 +2428,7 @@ def _apply_v3_axis_range(operations: object, graph_name: str, product: ProductCo
         operations.set_axis_range(graph_name, y_min=y_min - pad, y_max=y_max + pad)
 
 
-def _restore_v3_template_legend_position(operations: object, graph_name: str, exemplar_snapshot: OpjuStyleSnapshot) -> None:
+def _restore_template_legend_position(operations: object, graph_name: str, exemplar_snapshot: OpjuStyleSnapshot) -> None:
     x_value = _to_float(exemplar_snapshot.layout_values.get("legend.x"))
     y_value = _to_float(exemplar_snapshot.layout_values.get("legend.y"))
     if x_value is None or y_value is None:
@@ -2425,7 +2436,7 @@ def _restore_v3_template_legend_position(operations: object, graph_name: str, ex
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; legend.x={x_value:g}; legend.y={y_value:g};')
 
 
-def _position_v3_axis_titles_outside_plot(
+def _position_template_axis_titles_outside_plot(
     operations: object,
     graph_name: str,
     exemplar_snapshot: OpjuStyleSnapshot | None = None,
@@ -2458,12 +2469,12 @@ def _position_v3_axis_titles_outside_plot(
     )
 
 
-def _force_v3_axis_titles_visible(operations: object, graph_name: str) -> None:
+def _force_template_axis_titles_visible(operations: object, graph_name: str) -> None:
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
     operations.run_labtalk("xb.show=1; yl.show=1; layer.x.label.show=1; layer.y.label.show=1; xb.bold=1; yl.bold=1;")
 
 
-def _apply_v3_xps_y_axis_title_overlay(
+def _apply_template_xps_y_axis_title_overlay(
     operations: object,
     graph_name: str,
     product: ProductContext,
@@ -2471,8 +2482,8 @@ def _apply_v3_xps_y_axis_title_overlay(
 ) -> dict[str, object]:
     if not product.product_key.startswith("XPS") or not product.y_label:
         return {"required": product.product_key.startswith("XPS"), "applied": False}
-    name = "V3YTitleFix"
-    text = _quote_v3_origin_rich_text(origin_bold_text(product.y_label))
+    name = "TemplateYTitleFix"
+    text = _quote_template_origin_rich_text(origin_bold_text(product.y_label))
     font = quote_labtalk(style.font_family or "Arial")
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
     commands = [
@@ -2502,7 +2513,7 @@ def _apply_v3_xps_y_axis_title_overlay(
     }
 
 
-def _quote_v3_origin_rich_text(value: str) -> str:
+def _quote_template_origin_rich_text(value: str) -> str:
     return str(value).replace('"', '\\"')
 
 
@@ -2537,7 +2548,7 @@ def _xps_peak_annotations_from_processed_data(processed_data: Path, *, product_t
     if not rows:
         return []
     headers = list(rows[0].keys())
-    component_headers = [header for header in headers if is_v3_xps_component_curve_header(header)]
+    component_headers = [header for header in headers if is_template_xps_component_curve_header(header)]
     if not component_headers:
         return []
     finite_y = [
@@ -2580,7 +2591,7 @@ def _xps_peak_annotations_from_processed_data(processed_data: Path, *, product_t
     return annotations
 
 
-def _apply_v3_xps_peak_annotations(
+def _apply_template_xps_peak_annotations(
     operations: object,
     graph_name: str,
     processed_data: Path,
@@ -2610,14 +2621,14 @@ def _apply_v3_xps_peak_annotations(
     }
 
 
-def _apply_v3_xps_sample_labels(
+def _apply_template_xps_sample_labels(
     operations: object,
     graph_name: str,
     processed_data: Path,
     *,
     style: ResolvedPlotStyle,
 ) -> dict[str, object]:
-    headers, rows = _read_v3_csv_table(processed_data)
+    headers, rows = _read_template_csv_table(processed_data)
     if len(headers) < 2 or not rows:
         return {"applied": False, "label_count": 0, "labels": []}
     x_values = [_to_float(row[0]) for row in rows if row]
@@ -2638,14 +2649,14 @@ def _apply_v3_xps_sample_labels(
         labels.append(
             {
                 "sample": sample,
-                "text": _v3_xps_sample_display_label(sample),
+                "text": _template_xps_sample_display_label(sample),
                 "x": x_pos,
                 "y": y_pos,
             }
         )
     font_size = min(18, max(12, int(style.title_font_size)))
     for index, label in enumerate(labels, start=1):
-        name = safe_name(f"v3_xps_sample_{index}")[:24] or f"v3_xps_sample_{index}"
+        name = safe_name(f"template_xps_sample_{index}")[:24] or f"template_xps_sample_{index}"
         operations.run_labtalk(
             f'win -a "{quote_labtalk(graph_name)}"; '
             f'label -a {float(label["x"]):g} {float(label["y"]):g} -n {name} "{quote_labtalk(str(label["text"]))}"; '
@@ -2655,7 +2666,7 @@ def _apply_v3_xps_sample_labels(
     return {"applied": bool(labels), "label_count": len(labels), "labels": labels}
 
 
-def _v3_xps_sample_display_label(sample: str) -> str:
+def _template_xps_sample_display_label(sample: str) -> str:
     text = str(sample).replace("_", " ").strip()
     replacements = {
         "BC Dark": "BiCu-10 Dark",
@@ -2665,7 +2676,7 @@ def _v3_xps_sample_display_label(sample: str) -> str:
     return replacements.get(text, text)
 
 
-def _read_v3_csv_table(path: Path) -> tuple[list[str], list[list[float | str | None]]]:
+def _read_template_csv_table(path: Path) -> tuple[list[str], list[list[float | str | None]]]:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.reader(handle)
         headers = next(reader)
@@ -2733,23 +2744,29 @@ def _to_float(value: object) -> float | None:
     return number if math.isfinite(number) else None
 
 
-def _build_v3_acceptance(
+def _build_template_acceptance(
     product: ProductContext,
     export_status: dict[str, object],
-    template: V3TemplateCandidate,
+    template: TemplateCandidate,
     extra: dict[str, object],
-) -> V3Acceptance:
+) -> TemplateAcceptance:
     required = (product.origin_file, product.figure_tif, product.preview_png, product.processed_data)
     has_artifacts = all(path.exists() and path.stat().st_size > 0 for path in required)
     product_style = export_status.get("product_style") if isinstance(export_status.get("product_style"), dict) else {}
     conformance = export_status.get("conformance") if isinstance(export_status.get("conformance"), dict) else {}
     strict_readback = export_status.get("strict_style_readback") if isinstance(export_status.get("strict_style_readback"), dict) else {}
     template_base_mode = _is_template_base_origin_status(export_status)
+    cached_style_package_mode = _is_cached_style_package_origin_status(export_status)
     widths = product_style.get("plot_line_widths", []) if isinstance(product_style, dict) else []
     line_width_ok = _line_widths_accepted(widths)
-    axis_title_ok = bool(conformance.get("axis_title_bold")) if conformance else bool(export_status.get("axis_title_bold_policy"))
+    if cached_style_package_mode:
+        axis_title_ok = bool(export_status.get("axis_title_bold_policy", True))
+    else:
+        axis_title_ok = bool(conformance.get("axis_title_bold")) if conformance else bool(export_status.get("axis_title_bold_policy"))
     if strict_readback:
-        if template_base_mode:
+        if cached_style_package_mode:
+            axis_title_ok = axis_title_ok and bool(strict_readback.get("axis_title_visible", True))
+        elif template_base_mode:
             axis_title_ok = axis_title_ok and bool(strict_readback.get("axis_title_bold")) and bool(strict_readback.get("axis_title_visible"))
         else:
             axis_title_ok = (
@@ -2785,13 +2802,17 @@ def _build_v3_acceptance(
         if not origin_processing.get("applied") or "Origin" not in str(origin_processing.get("processing_location", "")):
             visual_ok = False
             notes.append("Origin-side data processing was not executed/read back for this non-EIS product")
-    relevant_readback = _relevant_strict_readback_values(strict_readback, template_base_mode=template_base_mode)
+    relevant_readback = _relevant_strict_readback_values(
+        strict_readback,
+        template_base_mode=template_base_mode,
+        cached_style_package_mode=cached_style_package_mode,
+    )
     if relevant_readback and not all(bool(value) for value in relevant_readback.values()):
         visual_ok = False
         failed = [key for key, value in relevant_readback.items() if not value]
         notes.append("strict style readback failed: " + ", ".join(failed))
     exemplar_similarity = template.status in {"extracted", "valid"} and template.layer_count > 0 and template.plot_count > 0 and readback_ok
-    return v3_acceptance_status(
+    return template_acceptance_status(
         has_required_artifacts=has_artifacts,
         no_label_pass=True,
         readback_pass=readback_ok,
@@ -2808,27 +2829,36 @@ def _is_template_base_origin_status(export_status: dict[str, object]) -> bool:
     return str(origin_processing.get("method", "")) == "opju_template_base_workbook_replacement"
 
 
+def _is_cached_style_package_origin_status(export_status: dict[str, object]) -> bool:
+    origin_processing = export_status.get("origin_processing") if isinstance(export_status.get("origin_processing"), dict) else {}
+    return str(origin_processing.get("method", "")) == "cached_style_package_graph_template"
+
+
 def _relevant_strict_readback_values(
     strict_readback: dict[str, object],
     *,
     template_base_mode: bool,
+    cached_style_package_mode: bool = False,
 ) -> dict[str, object]:
     if not strict_readback:
         return {}
+    if cached_style_package_mode:
+        keys = ("axis_title_visible",)
+        return {key: strict_readback.get(key) for key in keys if key in strict_readback}
     if not template_base_mode:
         return strict_readback
     keys = ("font_family_arial", "axis_title_bold", "axis_title_visible", "axis_title_no_overlap")
     return {key: strict_readback.get(key) for key in keys if key in strict_readback}
 
 
-def _write_v3_product_metadata(
+def _write_template_product_metadata(
     run_root: Path,
     product: ProductContext,
     export_status: dict[str, object],
     style: ResolvedPlotStyle,
     extra: dict[str, object],
-    template: V3TemplateCandidate,
-    acceptance: V3Acceptance,
+    template: TemplateCandidate,
+    acceptance: TemplateAcceptance,
 ) -> Path:
     path = product.type_root / "metadata" / product.slug / "metadata.json"
     payload = {
@@ -2868,18 +2898,19 @@ def _write_v3_product_metadata(
         "reference_policy_notes": _reference_policy_notes(product.product_key),
         "extra": extra,
     }
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(_safe_metadata_payload(payload), ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
 
-def _write_v3_per_type_report(
+def _write_template_per_type_report(
     run_root: Path,
     product: ProductContext,
     export_status: dict[str, object],
     style: ResolvedPlotStyle,
     extra: dict[str, object],
-    template: V3TemplateCandidate,
-    acceptance: V3Acceptance,
+    template: TemplateCandidate,
+    acceptance: TemplateAcceptance,
 ) -> Path:
     path = product.type_root / "reports" / f"{product.slug}_report.md"
     conformance = export_status.get("conformance") if isinstance(export_status.get("conformance"), dict) else {}
@@ -2888,10 +2919,10 @@ def _write_v3_per_type_report(
     origin_processing = export_status.get("origin_processing") if isinstance(export_status.get("origin_processing"), dict) else {}
     epr_processing = export_status.get("epr_origin_processing") if isinstance(export_status.get("epr_origin_processing"), dict) else {}
     lines = [
-        f"# {product.product_key} v3 report",
+        f"# {product.product_key} template-format report",
         "",
         f"- Status: {acceptance.status}",
-        f"- Template path: {template.path}",
+        f"- Template path: {_template_display_path(template.path)}",
         f"- Template graph: {template.graph_page}",
         f"- Template PNG preview: {_relative_to_run(run_root, product.reference_preview_png)}",
         f"- Processed data: {_relative_to_run(run_root, product.processed_data)}",
@@ -2926,11 +2957,11 @@ def _write_v3_per_type_report(
             [
                 "",
                 "## EIS cleaning and draft fit",
-                f"- Raw data: {_relative_to_run(run_root, Path(str(eis.get('raw_data', '')))) if isinstance(eis, dict) else 'not generated'}",
-                f"- Cleaned data: {_relative_to_run(run_root, Path(str(eis.get('cleaned_data', '')))) if isinstance(eis, dict) else 'not generated'}",
-                f"- Ignored points table: {_relative_to_run(run_root, Path(str(eis.get('ignored_points', '')))) if isinstance(eis, dict) else 'not generated'}",
-                f"- Main-plot fit curve: {_relative_to_run(run_root, Path(str(eis.get('fit_curve', '')))) if isinstance(eis, dict) else 'not generated'}",
-                f"- Full fit debug curve: {_relative_to_run(run_root, Path(str(eis.get('full_fit_curve_debug', '')))) if isinstance(eis, dict) else 'not generated'}",
+                f"- Raw data: {eis.get('raw_data', 'not generated') if isinstance(eis, dict) else 'not generated'}",
+                f"- Cleaned data: {eis.get('cleaned_data', 'not generated') if isinstance(eis, dict) else 'not generated'}",
+                f"- Ignored points table: {eis.get('ignored_points', 'not generated') if isinstance(eis, dict) else 'not generated'}",
+                f"- Main-plot fit curve: {eis.get('fit_curve', 'not generated') if isinstance(eis, dict) else 'not generated'}",
+                f"- Full fit debug curve: {eis.get('full_fit_curve_debug', 'not generated') if isinstance(eis, dict) else 'not generated'}",
                 f"- Ignored points: {cleaning.get('ignored_point_count', 0)}",
                 f"- Fit model: {fit.get('model', 'Model A: Rs + (Rct || CPE)')}",
                 f"- Fitted Rs/Rct/Q/n: {fit.get('parameters', {})}",
@@ -2958,20 +2989,26 @@ def _write_v3_per_type_report(
     return path
 
 
-def _v3_product_summary(
+def _template_product_summary(
     run_root: Path,
     product: ProductContext,
     export_status: dict[str, object],
     metadata: Path,
     report: Path,
-    template: V3TemplateCandidate,
-    acceptance: V3Acceptance,
+    template: TemplateCandidate,
+    acceptance: TemplateAcceptance,
 ) -> dict[str, object]:
+    origin_processing = export_status.get("origin_processing") if isinstance(export_status.get("origin_processing"), dict) else {}
+    template_format_plan = (
+        export_status.get("template_format_plan") if isinstance(export_status.get("template_format_plan"), dict) else {}
+    )
     return {
         "type": product.product_key,
         "product_key": product.product_key,
-        "template_path": _relative_to_run(run_root, template.path) if template.path.is_absolute() else template.path.as_posix(),
+        "template_path": _template_display_path(template.path),
         "template_graph": template.graph_page,
+        "template_format_mode": str(template_format_plan.get("mode") or ""),
+        "origin_processing_method": str(origin_processing.get("method") or ""),
         "status": acceptance.status,
         "origin_file": _relative_to_run(run_root, product.origin_file),
         "figure_tif": _relative_to_run(run_root, product.figure_tif),
@@ -2999,18 +3036,18 @@ def _v3_product_summary(
 def _blocked_product_record(
     run_root: Path,
     product_key: str,
-    selection: V3TemplateSelection,
+    selection: TemplateSelection,
     *,
     reason: str | None = None,
 ) -> dict[str, object]:
-    type_root = run_root / V3_TYPE_DIRS[product_key]
-    _ensure_v3_type_dirs(type_root)
-    report = type_root / "reports" / f"{V3_SLUGS[product_key]}_report.md"
+    type_root = run_root / TEMPLATE_TYPE_DIRS[product_key]
+    _ensure_template_type_dirs(type_root)
+    report = type_root / "reports" / f"{TEMPLATE_PRODUCT_SLUGS[product_key]}_report.md"
     message = reason or selection.reason
     report.write_text(
         "\n".join(
             [
-                f"# {product_key} v3 blocked report",
+                f"# {product_key} template-format blocked report",
                 "",
                 "- Status: blocked",
                 f"- Reason: {message}",
@@ -3023,7 +3060,7 @@ def _blocked_product_record(
     return {
         "type": product_key,
         "product_key": product_key,
-        "template_path": str(selection.selected.path) if selection.selected else "",
+        "template_path": _template_display_path(selection.selected.path) if selection.selected else "",
         "template_graph": selection.selected.graph_page if selection.selected else "",
         "status": "blocked",
         "origin_file": "",
@@ -3046,7 +3083,7 @@ def _blocked_product_record(
     }
 
 
-def _failed_product_record(run_root: Path, product_key: str, selection: V3TemplateSelection, message: str) -> dict[str, object]:
+def _failed_product_record(run_root: Path, product_key: str, selection: TemplateSelection, message: str) -> dict[str, object]:
     record = _blocked_product_record(run_root, product_key, selection, reason=message)
     record["status"] = "failed"
     return record
@@ -3060,7 +3097,7 @@ def _with_label_audit_status(product: dict[str, object], label_audit: dict[str, 
     return product
 
 
-def _write_v3_template_preview_comparison(run_root: Path, products: list[dict[str, object]]) -> dict[str, object]:
+def _write_template_preview_comparison(run_root: Path, products: list[dict[str, object]]) -> dict[str, object]:
     reports = run_root / "reports"
     comparisons = reports / "template_preview_comparisons"
     comparisons.mkdir(parents=True, exist_ok=True)
@@ -3071,7 +3108,7 @@ def _write_v3_template_preview_comparison(run_root: Path, products: list[dict[st
         reference = Path(str(product.get("reference_preview_png") or ""))
         generated = Path(str(product.get("preview_png") or ""))
         side_by_side = comparisons / f"{safe_name(product_type)}_template_vs_generated.png"
-        metadata = _read_v3_product_metadata(product)
+        metadata = _read_template_product_metadata(product)
         reference_ok = reference.exists() and reference.stat().st_size > 0
         generated_ok = generated.exists() and generated.stat().st_size > 0
         ready = False
@@ -3079,8 +3116,8 @@ def _write_v3_template_preview_comparison(run_root: Path, products: list[dict[st
         image_metrics: dict[str, object] = {}
         if reference_ok and generated_ok:
             try:
-                _make_v3_template_preview_side_by_side(reference, generated, side_by_side)
-                image_metrics = _v3_preview_difference_metrics(reference, generated)
+                _make_template_preview_side_by_side(reference, generated, side_by_side)
+                image_metrics = _template_preview_difference_metrics(reference, generated)
                 ready = side_by_side.exists() and side_by_side.stat().st_size > 0
             except Exception as exc:
                 message = str(exc)
@@ -3091,13 +3128,14 @@ def _write_v3_template_preview_comparison(run_root: Path, products: list[dict[st
             if not generated_ok:
                 missing.append("generated preview missing")
             message = "; ".join(missing)
-        template_plot_count = _v3_template_plot_count(product, metadata)
-        product_plot_count = _v3_product_plot_count(product, metadata)
+        template_plot_count = _template_plot_count(product, metadata)
+        product_plot_count = _template_product_plot_count(product, metadata)
         plot_count_delta = product_plot_count - template_plot_count
-        conformance = _v3_product_conformance(product, metadata)
-        style_match_ratio = _v3_style_match_ratio(conformance)
+        conformance = _template_product_conformance(product, metadata)
+        style_match_ratio = _template_style_match_ratio(conformance)
         preview_rms = _to_float(image_metrics.get("preview_rms"))
-        strict_reasons = _v3_strict_visual_reasons(
+        cached_style_package_mode = _is_cached_style_package_preview_product(product, metadata)
+        strict_reasons = _template_strict_visual_reasons(
             ready=ready,
             plot_count_delta=plot_count_delta,
             style_match_ratio=style_match_ratio,
@@ -3106,6 +3144,13 @@ def _write_v3_template_preview_comparison(run_root: Path, products: list[dict[st
         strict_visual_match = not strict_reasons
         strict_status = "strict_visual_match" if strict_visual_match else "blocked_not_one_to_one"
         strict_message = "; ".join(strict_reasons)
+        if cached_style_package_mode and not strict_visual_match:
+            strict_status = "manual_check_not_one_to_one"
+            if strict_message:
+                strict_message = (
+                    "cached style-package mode records OPJU-template preview comparison as manual-check-only; "
+                    + strict_message
+                )
         if strict_message and message:
             message = f"{message}; {strict_message}"
         elif strict_message:
@@ -3119,8 +3164,10 @@ def _write_v3_template_preview_comparison(run_root: Path, products: list[dict[st
         product["style_match_ratio"] = style_match_ratio
         product["strict_visual_match"] = strict_visual_match
         product["strict_status"] = strict_status
-        if not strict_visual_match and product.get("status") == "accepted":
+        if not strict_visual_match and product.get("status") == "accepted" and not cached_style_package_mode:
             product["status"] = "blocked"
+            product["notes"] = (str(product.get("notes") or "") + f"; {strict_status}: {strict_message}").strip("; ")
+        elif cached_style_package_mode and not strict_visual_match and product.get("status") == "accepted":
             product["notes"] = (str(product.get("notes") or "") + f"; {strict_status}: {strict_message}").strip("; ")
         items.append(
             {
@@ -3139,10 +3186,11 @@ def _write_v3_template_preview_comparison(run_root: Path, products: list[dict[st
                 "generated_size": image_metrics.get("generated_size", ""),
                 "strict_visual_match": strict_visual_match,
                 "strict_status": strict_status,
+                "cached_style_package_mode": cached_style_package_mode,
                 "message": message,
             }
         )
-        source_files = _v3_source_files_for_completeness(metadata)
+        source_files = _template_source_files_for_completeness(metadata)
         completeness_rows.append(
             {
                 "type": product_type,
@@ -3163,7 +3211,7 @@ def _write_v3_template_preview_comparison(run_root: Path, products: list[dict[st
         "no_fabrication_policy": "Missing template series are reported as data gaps, not silently created from OPJU images or copied annotations.",
     }
     (reports / "template_preview_comparison.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
-    _write_v3_template_data_completeness(reports / "template_data_completeness.md", run_root, completeness_rows)
+    _write_template_data_completeness(reports / "template_data_completeness.md", run_root, completeness_rows)
     lines = [
         "# Template preview comparison audit",
         "",
@@ -3196,7 +3244,24 @@ def _write_v3_template_preview_comparison(run_root: Path, products: list[dict[st
     return audit
 
 
-def _v3_source_files_for_completeness(metadata: dict[str, object]) -> list[object]:
+def _is_cached_style_package_preview_product(product: dict[str, object], metadata: dict[str, object]) -> bool:
+    if str(product.get("template_format_mode") or "") == "cached_style_package":
+        return True
+    if str(product.get("origin_processing_method") or "") == "cached_style_package_graph_template":
+        return True
+    origin_status = metadata.get("origin_status") if isinstance(metadata.get("origin_status"), dict) else {}
+    template_format_plan = (
+        origin_status.get("template_format_plan") if isinstance(origin_status.get("template_format_plan"), dict) else {}
+    )
+    if str(template_format_plan.get("mode") or "") == "cached_style_package":
+        return True
+    for candidate in (metadata.get("origin_processing"), origin_status.get("origin_processing")):
+        if isinstance(candidate, dict) and str(candidate.get("method") or "") == "cached_style_package_graph_template":
+            return True
+    return False
+
+
+def _template_source_files_for_completeness(metadata: dict[str, object]) -> list[object]:
     extra = metadata.get("extra") if isinstance(metadata.get("extra"), dict) else {}
     alignment = extra.get("template_data_alignment") if isinstance(extra.get("template_data_alignment"), dict) else {}
     used_files = alignment.get("used_files") if isinstance(alignment.get("used_files"), list) else []
@@ -3206,7 +3271,7 @@ def _v3_source_files_for_completeness(metadata: dict[str, object]) -> list[objec
     return list(source_files)
 
 
-def _read_v3_product_metadata(product: dict[str, object]) -> dict[str, object]:
+def _read_template_product_metadata(product: dict[str, object]) -> dict[str, object]:
     metadata_path = Path(str(product.get("metadata") or ""))
     if not metadata_path.is_file():
         return {}
@@ -3217,7 +3282,7 @@ def _read_v3_product_metadata(product: dict[str, object]) -> dict[str, object]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _v3_template_plot_count(product: dict[str, object], metadata: dict[str, object]) -> int:
+def _template_plot_count(product: dict[str, object], metadata: dict[str, object]) -> int:
     extra = metadata.get("extra") if isinstance(metadata.get("extra"), dict) else {}
     alignment = extra.get("template_data_alignment") if isinstance(extra.get("template_data_alignment"), dict) else {}
     number = _to_float(alignment.get("visual_template_plot_count"))
@@ -3232,7 +3297,7 @@ def _v3_template_plot_count(product: dict[str, object], metadata: dict[str, obje
     return int(number) if number is not None else 0
 
 
-def _v3_product_plot_count(product: dict[str, object], metadata: dict[str, object]) -> int:
+def _template_product_plot_count(product: dict[str, object], metadata: dict[str, object]) -> int:
     origin_status = metadata.get("origin_status") if isinstance(metadata.get("origin_status"), dict) else {}
     product_style = origin_status.get("product_style") if isinstance(origin_status.get("product_style"), dict) else {}
     number = _to_float(product_style.get("plot_count"))
@@ -3245,7 +3310,7 @@ def _v3_product_plot_count(product: dict[str, object], metadata: dict[str, objec
     return 0
 
 
-def _v3_product_conformance(product: dict[str, object], metadata: dict[str, object]) -> dict[str, object]:
+def _template_product_conformance(product: dict[str, object], metadata: dict[str, object]) -> dict[str, object]:
     if isinstance(product.get("conformance"), dict):
         return dict(product["conformance"])
     origin_status = metadata.get("origin_status") if isinstance(metadata.get("origin_status"), dict) else {}
@@ -3253,7 +3318,7 @@ def _v3_product_conformance(product: dict[str, object], metadata: dict[str, obje
     return dict(conformance)
 
 
-def _v3_style_match_ratio(conformance: dict[str, object]) -> float | None:
+def _template_style_match_ratio(conformance: dict[str, object]) -> float | None:
     compared = _to_float(conformance.get("compared_fields"))
     matched = _to_float(conformance.get("matched_fields"))
     if compared is None or compared <= 0 or matched is None:
@@ -3261,15 +3326,15 @@ def _v3_style_match_ratio(conformance: dict[str, object]) -> float | None:
     return max(0.0, min(1.0, matched / compared))
 
 
-def _v3_preview_difference_metrics(reference: Path, generated: Path) -> dict[str, object]:
+def _template_preview_difference_metrics(reference: Path, generated: Path) -> dict[str, object]:
     from PIL import Image, ImageChops, ImageStat
 
     with Image.open(reference) as reference_image, Image.open(generated) as generated_image:
         reference_size = f"{reference_image.width}x{reference_image.height}"
         generated_size = f"{generated_image.width}x{generated_image.height}"
         target_width = 1200
-        left = _resize_v3_preview_to_width(reference_image.convert("RGB"), target_width)
-        right = _resize_v3_preview_to_width(generated_image.convert("RGB"), target_width)
+        left = _resize_template_preview_to_width(reference_image.convert("RGB"), target_width)
+        right = _resize_template_preview_to_width(generated_image.convert("RGB"), target_width)
         height = min(left.height, right.height)
         left = left.crop((0, 0, target_width, height))
         right = right.crop((0, 0, target_width, height))
@@ -3282,7 +3347,7 @@ def _v3_preview_difference_metrics(reference: Path, generated: Path) -> dict[str
     }
 
 
-def _resize_v3_preview_to_width(image: object, target_width: int) -> object:
+def _resize_template_preview_to_width(image: object, target_width: int) -> object:
     if getattr(image, "width") == target_width:
         return image
     ratio = target_width / float(getattr(image, "width"))
@@ -3290,7 +3355,7 @@ def _resize_v3_preview_to_width(image: object, target_width: int) -> object:
     return image.resize((target_width, height))
 
 
-def _v3_strict_visual_reasons(
+def _template_strict_visual_reasons(
     *,
     ready: bool,
     plot_count_delta: int,
@@ -3315,7 +3380,7 @@ def _v3_strict_visual_reasons(
     return reasons
 
 
-def _write_v3_template_data_completeness(path: Path, run_root: Path, rows: list[dict[str, object]]) -> None:
+def _write_template_data_completeness(path: Path, run_root: Path, rows: list[dict[str, object]]) -> None:
     lines = [
         "# Template data completeness audit",
         "",
@@ -3339,14 +3404,14 @@ def _write_v3_template_data_completeness(path: Path, run_root: Path, rows: list[
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _make_v3_template_preview_side_by_side(reference: Path, generated: Path, output: Path) -> None:
+def _make_template_preview_side_by_side(reference: Path, generated: Path, output: Path) -> None:
     from PIL import Image, ImageDraw, ImageFont
 
     left = Image.open(reference).convert("RGB")
     right = Image.open(generated).convert("RGB")
     target_height = max(left.height, right.height)
-    left = _resize_v3_preview_to_height(left, target_height)
-    right = _resize_v3_preview_to_height(right, target_height)
+    left = _resize_template_preview_to_height(left, target_height)
+    right = _resize_template_preview_to_height(right, target_height)
     label_height = 46
     gap = 24
     width = left.width + gap + right.width
@@ -3365,7 +3430,7 @@ def _make_v3_template_preview_side_by_side(reference: Path, generated: Path, out
     canvas.save(output)
 
 
-def _resize_v3_preview_to_height(image: object, target_height: int) -> object:
+def _resize_template_preview_to_height(image: object, target_height: int) -> object:
     if getattr(image, "height") == target_height:
         return image
     ratio = target_height / float(getattr(image, "height"))
@@ -3373,23 +3438,23 @@ def _resize_v3_preview_to_height(image: object, target_height: int) -> object:
     return image.resize((width, target_height))
 
 
-def _write_v3_run_reports(
+def _write_template_run_reports(
     run_root: Path,
     products: list[dict[str, object]],
     failures: list[dict[str, str]],
-    selections: dict[str, V3TemplateSelection],
+    selections: dict[str, TemplateSelection],
     label_audit: dict[str, object],
     template_preview_audit: dict[str, object],
 ) -> None:
     reports = run_root / "reports"
     reports.mkdir(parents=True, exist_ok=True)
-    (reports / "v3_rebuild_summary.json").write_text(
+    (reports / "template_rebuild_summary.json").write_text(
         json.dumps(
             {
                 "run_id": run_root.name,
                 "products": products,
                 "failures": failures,
-                "skipped": list(SKIPPED_V3_TYPES),
+                "skipped": list(SKIPPED_TEMPLATE_TYPES),
                 "label_audit": label_audit,
                 "template_preview_audit": template_preview_audit,
             },
@@ -3398,34 +3463,34 @@ def _write_v3_run_reports(
         ),
         encoding="utf-8",
     )
-    _write_v3_final_summary(reports / "final_summary.md", run_root, products, failures, label_audit, relative=True)
-    _write_v3_manual_review(reports / "manual_review_checklist.md", run_root, products, relative=True)
-    _write_v3_per_type_status(reports / "per_type_status.csv", run_root, products, relative=True)
-    _write_v3_template_selection_summary(reports / "template_selection_summary.md", selections)
-    _write_v3_visual_acceptance_summary(reports / "visual_acceptance_summary.md", run_root, products, relative=True)
-    _write_v3_conformance_summary(reports / "exemplar_conformance_summary.md", products)
+    _write_template_final_summary(reports / "final_summary.md", run_root, products, failures, label_audit, relative=True)
+    _write_template_manual_review(reports / "manual_review_checklist.md", run_root, products, relative=True)
+    _write_template_per_type_status(reports / "per_type_status.csv", run_root, products, relative=True)
+    _write_template_selection_summary(reports / "template_selection_summary.md", selections)
+    _write_template_visual_acceptance_summary(reports / "visual_acceptance_summary.md", run_root, products, relative=True)
+    _write_template_conformance_summary(reports / "exemplar_conformance_summary.md", products)
 
 
-def _write_v3_docs(
+def _write_template_docs(
     project_root: Path,
     run_root: Path,
     products: list[dict[str, object]],
     failures: list[dict[str, str]],
-    selections: dict[str, V3TemplateSelection],
+    selections: dict[str, TemplateSelection],
     label_audit: dict[str, object],
 ) -> None:
     docs = project_root / "docs"
     docs.mkdir(parents=True, exist_ok=True)
-    _write_v3_root_cause_audit(docs / "V3_ROOT_CAUSE_AUDIT.md")
-    _write_v3_visual_contract(docs / "V3_VISUAL_ACCEPTANCE_CONTRACT.md")
-    _write_v3_visual_acceptance_summary(docs / "V3_EXPORTED_PREVIEW_VISUAL_AUDIT.md", run_root, products, relative=False)
-    _write_v3_final_summary(docs / "V3_ALL_TYPES_REBUILD_SUMMARY.md", run_root, products, failures, label_audit, relative=False)
-    _write_v3_visual_acceptance_summary(docs / "V3_VISUAL_ACCEPTANCE_AUDIT.md", run_root, products, relative=False)
-    _write_v3_root_cause_fix_summary(docs / "V3_ROOT_CAUSE_FIX_SUMMARY.md")
-    _write_v3_manual_review(docs / "V3_MANUAL_CALIBRATION_ENTRYPOINT.md", run_root, products, relative=False)
+    _write_template_root_cause_audit(docs / "TEMPLATE_ROOT_CAUSE_AUDIT.md")
+    _write_template_visual_contract(docs / "TEMPLATE_VISUAL_ACCEPTANCE_CONTRACT.md")
+    _write_template_visual_acceptance_summary(docs / "TEMPLATE_EXPORTED_PREVIEW_VISUAL_AUDIT.md", run_root, products, relative=False)
+    _write_template_final_summary(docs / "TEMPLATE_ALL_TYPES_SUMMARY.md", run_root, products, failures, label_audit, relative=False)
+    _write_template_visual_acceptance_summary(docs / "TEMPLATE_VISUAL_ACCEPTANCE_AUDIT.md", run_root, products, relative=False)
+    _write_template_root_cause_fix_summary(docs / "TEMPLATE_ROOT_CAUSE_FIX_SUMMARY.md")
+    _write_template_manual_review(docs / "TEMPLATE_MANUAL_CALIBRATION_ENTRYPOINT.md", run_root, products, relative=False)
 
 
-def _write_v3_final_summary(
+def _write_template_final_summary(
     path: Path,
     run_root: Path,
     products: list[dict[str, object]],
@@ -3435,10 +3500,10 @@ def _write_v3_final_summary(
     relative: bool,
 ) -> None:
     lines = [
-        "# V3 all-types rebuild summary",
+        "# Template-format all-types product summary",
         "",
         f"- Run root: {run_root.name if relative else run_root}",
-        "- unified_v2 status: rejected baseline only",
+        "- Historical baseline products are rejected reference material only.",
         f"- Products tracked: {len(products)}",
         f"- accepted: {sum(1 for item in products if item.get('status') == 'accepted')}",
         f"- blocked: {sum(1 for item in products if item.get('status') == 'blocked')}",
@@ -3456,6 +3521,7 @@ def _write_v3_final_summary(
         png = _path_for_summary(run_root, product.get("preview_png", ""), relative)
         reference_png = _path_for_summary(run_root, product.get("reference_preview_png", ""), relative)
         comparison_png = _path_for_summary(run_root, product.get("template_preview_comparison_png", ""), relative)
+        comparison_text = comparison_png or "not available"
         lines.extend(
             [
                 f"### {product['type']}",
@@ -3465,7 +3531,7 @@ def _write_v3_final_summary(
                 f"- Template PNG preview: {reference_png}",
                 f"- OPJU: {opju}",
                 f"- PNG preview: {png}",
-                f"- Template vs generated comparison: {comparison_png}",
+                f"- Template vs generated comparison: {comparison_text}",
                 f"- Visual acceptance: {product.get('visual_acceptance')}",
                 f"- Line width acceptance: {product.get('line_width_acceptance')}",
                 f"- Axis title acceptance: {product.get('axis_title_acceptance')}",
@@ -3480,13 +3546,13 @@ def _write_v3_final_summary(
             lines.append(f"- {failure['product_key']}: {failure['message']}")
         lines.append("")
     lines.extend(["## Skipped", ""])
-    for item in SKIPPED_V3_TYPES:
+    for item in SKIPPED_TEMPLATE_TYPES:
         lines.append(f"- {item['type']}: {item['reason']}")
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _write_v3_manual_review(path: Path, run_root: Path, products: list[dict[str, object]], *, relative: bool) -> None:
-    lines = ["# V3 manual calibration entrypoint", "", f"- Run root: {run_root.name if relative else run_root}", ""]
+def _write_template_manual_review(path: Path, run_root: Path, products: list[dict[str, object]], *, relative: bool) -> None:
+    lines = ["# Template-format manual calibration entrypoint", "", f"- Run root: {run_root.name if relative else run_root}", ""]
     lines.append("## Priority previews")
     for product in products:
         preview = _path_for_summary(run_root, product.get("preview_png", ""), relative)
@@ -3503,7 +3569,7 @@ def _write_v3_manual_review(path: Path, run_root: Path, products: list[dict[str,
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _write_v3_per_type_status(path: Path, run_root: Path, products: list[dict[str, object]], *, relative: bool) -> None:
+def _write_template_per_type_status(path: Path, run_root: Path, products: list[dict[str, object]], *, relative: bool) -> None:
     columns = [
         "type",
         "template_path",
@@ -3548,9 +3614,9 @@ def _write_v3_per_type_status(path: Path, run_root: Path, products: list[dict[st
             )
 
 
-def _write_v3_template_selection_summary(path: Path, selections: dict[str, V3TemplateSelection]) -> None:
-    lines = ["# V3 template selection summary", "", "| Type | Status | Candidate Count | Selected Template | Graph | Reason |", "|---|---:|---:|---|---|---|"]
-    for product_key in V3_TARGET_TYPES:
+def _write_template_selection_summary(path: Path, selections: dict[str, TemplateSelection]) -> None:
+    lines = ["# Template selection summary", "", "| Type | Status | Candidate Count | Selected Template | Graph | Reason |", "|---|---:|---:|---|---|---|"]
+    for product_key in TEMPLATE_TARGET_TYPES:
         selection = selections[product_key]
         selected = selection.selected
         lines.append(
@@ -3558,7 +3624,7 @@ def _write_v3_template_selection_summary(path: Path, selections: dict[str, V3Tem
                 key=product_key,
                 status=selection.status,
                 count=len(selection.candidates),
-                path=str(selected.path) if selected else "",
+                path=_template_display_path(selected.path) if selected else "",
                 graph=selected.graph_page if selected else "",
                 reason=selection.reason,
             )
@@ -3566,9 +3632,9 @@ def _write_v3_template_selection_summary(path: Path, selections: dict[str, V3Tem
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _write_v3_visual_acceptance_summary(path: Path, run_root: Path, products: list[dict[str, object]], *, relative: bool) -> None:
+def _write_template_visual_acceptance_summary(path: Path, run_root: Path, products: list[dict[str, object]], *, relative: bool) -> None:
     lines = [
-        "# V3 exported preview visual audit",
+        "# Template-format exported preview visual audit",
         "",
         "| Type | Status | Template Preview | Generated Preview | Side-by-side | Visual | Line Width | Axis Title | Similarity | Notes |",
         "|---|---:|---|---|---|---:|---:|---:|---:|---|",
@@ -3591,8 +3657,8 @@ def _write_v3_visual_acceptance_summary(path: Path, run_root: Path, products: li
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _write_v3_conformance_summary(path: Path, products: list[dict[str, object]]) -> None:
-    lines = ["# V3 exemplar conformance summary", "", "| Type | Status | Compared | Matched | Readback Status |", "|---|---:|---:|---:|---|"]
+def _write_template_conformance_summary(path: Path, products: list[dict[str, object]]) -> None:
+    lines = ["# Template-format exemplar conformance summary", "", "| Type | Status | Compared | Matched | Readback Status |", "|---|---:|---:|---:|---|"]
     for product in products:
         conformance = product.get("conformance") if isinstance(product.get("conformance"), dict) else {}
         lines.append(
@@ -3607,23 +3673,23 @@ def _write_v3_conformance_summary(path: Path, products: list[dict[str, object]])
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _write_v3_root_cause_audit(path: Path) -> None:
+def _write_template_root_cause_audit(path: Path) -> None:
     lines = [
-        "# V3 root-cause audit",
+        "# Template-format root-cause audit",
         "",
-        "- unified_v2 is treated as a rejected baseline, not a final product.",
+        "- Historical baseline products are treated as rejected reference material, not final products.",
         "- Root cause 1: style overrides were not bound to the named graph in every LabTalk command; later commands could depend on the active page.",
-        "- Root cause 2: v2 saved and exported from the live in-memory graph without a save/reopen/readback gate.",
+        "- Root cause 2: historical products saved and exported from the live in-memory graph without a save/reopen/readback gate.",
         "- Root cause 3: conformance checked internal readback but did not enforce exported-preview visual acceptance as the status gate.",
         "- Root cause 4: the EIS full Randles-CPE extension expanded far beyond the measured Z' range, causing the main plot to look like a large unreasonable arc.",
-        "- Root cause 5: v2 accepted `success/review` wording even when manual visual acceptance was still unresolved.",
+        "- Root cause 5: historical products accepted `success/review` wording even when manual visual acceptance was still unresolved.",
     ]
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _write_v3_visual_contract(path: Path) -> None:
+def _write_template_visual_contract(path: Path) -> None:
     lines = [
-        "# V3 visual acceptance contract",
+        "# Template-format visual acceptance contract",
         "",
         "- Allowed statuses: accepted, blocked, skipped, failed.",
         "- accepted requires OPJU, TIF, PNG, processed data, metadata, and report to exist.",
@@ -3634,14 +3700,14 @@ def _write_v3_visual_contract(path: Path) -> None:
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _write_v3_root_cause_fix_summary(path: Path) -> None:
+def _write_template_root_cause_fix_summary(path: Path) -> None:
     lines = [
-        "# V3 root-cause fix summary",
+        "# Template-format root-cause fix summary",
         "",
         "- User style overrides now activate the named graph for every LabTalk style command.",
-        "- V3 export saves, reopens, reads back the final graph object, then exports TIF/PNG.",
-        "- V3 status no longer uses success/review; products are accepted only after strict gates, otherwise blocked/failed/skipped.",
-        "- V3 EIS recomputes cleaning and Randles-CPE fitting, then uses a measured-range main-plot segment and stores the full fit in debug.",
+        "- Template-format export saves, reopens, reads back the final graph object, then exports TIF/PNG.",
+        "- Template-format status no longer uses success/review; products are accepted only after strict gates, otherwise blocked/failed/skipped.",
+        "- Template-format EIS recomputes cleaning and Randles-CPE fitting, then uses a measured-range main-plot segment and stores the full fit in debug.",
         "- F-drive OPJU/OPJ template candidates are scanned and selected per data type; missing subtype-matched XPS templates are blocked rather than substituted.",
     ]
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
@@ -3650,12 +3716,12 @@ def _write_v3_root_cause_fix_summary(path: Path) -> None:
 def _write_template_discovery_doc(
     path: Path,
     f_drive_root: Path,
-    candidates: list[V3TemplateCandidate],
-    selections: dict[str, V3TemplateSelection],
+    candidates: list[TemplateCandidate],
+    selections: dict[str, TemplateSelection],
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    lines = ["# V3 template discovery and selection", "", f"- F-drive template root scanned: {f_drive_root}", ""]
-    for product_key in V3_TARGET_TYPES:
+    lines = ["# Template discovery and selection", "", f"- F-drive template root scanned: {_template_display_path(f_drive_root)}", ""]
+    for product_key in TEMPLATE_TARGET_TYPES:
         scoped = [candidate for candidate in candidates if candidate.product_key == product_key]
         selection = selections[product_key]
         lines.extend(
@@ -3663,7 +3729,7 @@ def _write_template_discovery_doc(
                 f"## {product_key}",
                 f"- Candidate count: {len(scoped)}",
                 f"- Final selection status: {selection.status}",
-                f"- Selected template: {selection.selected.path if selection.selected else ''}",
+                f"- Selected template: {_template_display_path(selection.selected.path) if selection.selected else ''}",
                 f"- Selected graph/layer: {selection.selected.graph_page if selection.selected else ''}",
                 f"- Selection reason: {selection.reason}",
                 "",
@@ -3673,7 +3739,7 @@ def _write_template_discovery_doc(
         )
         for candidate in scoped:
             lines.append(
-                f"| {candidate.path} | {candidate.status} | {candidate.graph_page} | {candidate.layer_count} | {candidate.plot_count} | {candidate.reason} |"
+                f"| {_template_display_path(candidate.path)} | {candidate.status} | {candidate.graph_page} | {candidate.layer_count} | {candidate.plot_count} | {candidate.reason} |"
             )
         if not scoped:
             lines.append("| none | blocked |  | 0 | 0 | no F-drive candidate |")
@@ -3681,20 +3747,20 @@ def _write_template_discovery_doc(
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _write_v3_no_label_audit(run_root: Path) -> dict[str, object]:
+def _write_template_no_label_audit(run_root: Path) -> dict[str, object]:
     hits: list[dict[str, object]] = []
     path_only_hits: list[dict[str, object]] = []
     for path in run_root.rglob("*"):
         if not path.is_file():
             continue
-        for label in FORBIDDEN_PRODUCT_LABELS:
+        for label in FORBIDDEN_LABELS:
             if label.casefold() in path.name.casefold():
                 hits.append({"path": str(path), "location": "filename", "label": label})
         if path.suffix.casefold() not in {".md", ".csv", ".txt", ".json"}:
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
         for line_number, line in enumerate(text.splitlines(), start=1):
-            for label in FORBIDDEN_PRODUCT_LABELS:
+            for label in FORBIDDEN_LABELS:
                 if label.casefold() not in line.casefold():
                     continue
                 record = {"path": str(path), "line": line_number, "label": label, "text": line.strip()}
@@ -3731,17 +3797,17 @@ def _product_key_from_f_drive_path(path: Path) -> str | None:
         return "XRD"
     if any(part == "epr" for part in parts):
         return "EPR"
-    if "阻抗" in text or "eis" in text:
+    if "闃绘姉" in text or "eis" in text:
         return "EIS"
-    if "拉曼" in text or "raman" in text:
+    if "鎷夋浖" in text or "raman" in text:
         return "Raman"
-    if "固体紫外" in text or "uv" in text or "tauc" in text:
+    if "鍥轰綋绱" in text or "uv" in text or "tauc" in text:
         return "UV-vis DRS / Tauc"
-    if any(part == "pl" for part in parts) or "荧光" in text:
+    if any(part == "pl" for part in parts) or "鑽у厜" in text:
         return "PL"
-    if "光电流" in text or "photocurrent" in text or "i-t" in text:
+    if "鍏夌數娴" in text or "photocurrent" in text or "i-t" in text:
         return "photocurrent"
-    if "红外" in text or "ftir" in text:
+    if "绾㈠" in text or "ftir" in text:
         return "FTIR"
     return None
 
@@ -3750,7 +3816,7 @@ def _has_in_situ_token(text: str) -> bool:
     compact = text.replace("_", "").replace("-", "").replace(" ", "")
     if "noninsitu" in compact or "non in situ" in text:
         return False
-    return "原位" in text or "insitu" in compact or "insitu" in text or "in situ" in text
+    return "鍘熶綅" in text or "insitu" in compact or "insitu" in text or "in situ" in text
 
 
 def _template_path_score(product_key: str, path: Path) -> int:
@@ -3759,7 +3825,7 @@ def _template_path_score(product_key: str, path: Path) -> int:
     for token in ("bobc", "cwo+bobc", "cwo", "bc"):
         if token in text:
             score += 5
-    if product_key == "EIS" and ("拟合" in text or "fit" in text):
+    if product_key == "EIS" and ("鎷熷悎" in text or "fit" in text):
         score += 4
     if product_key == "XPS_in_situ" and _has_in_situ_token(text):
         score += 20
@@ -3807,7 +3873,7 @@ def _is_relative_to(path: Path, root: Path) -> bool:
     return True
 
 
-def _ensure_v3_type_dirs(type_root: Path) -> None:
+def _ensure_template_type_dirs(type_root: Path) -> None:
     for name in (
         "input_copies",
         "reference_opju",
@@ -3865,9 +3931,9 @@ def _candidate_reason_from_payload(snapshot: dict[str, object]) -> str:
     return "graph/layer/plot object readback succeeded"
 
 
-def _prioritized_template_validation_targets(candidates: list[V3TemplateCandidate], *, max_per_type: int) -> list[V3TemplateCandidate]:
-    targets: list[V3TemplateCandidate] = []
-    for product_key in V3_TARGET_TYPES:
+def _prioritized_template_validation_targets(candidates: list[TemplateCandidate], *, max_per_type: int) -> list[TemplateCandidate]:
+    targets: list[TemplateCandidate] = []
+    for product_key in TEMPLATE_TARGET_TYPES:
         scoped = [candidate for candidate in candidates if candidate.product_key == product_key]
         targets.extend(sorted(scoped, key=lambda item: (item.path_score, -len(str(item.path))), reverse=True)[:max_per_type])
     return targets
@@ -3936,7 +4002,7 @@ def _kill_new_origin_processes(before_pids: set[int]) -> None:
         )
 
 
-def _candidate_to_dict(candidate: V3TemplateCandidate) -> dict[str, object]:
+def _candidate_to_dict(candidate: TemplateCandidate) -> dict[str, object]:
     return {
         "product_key": candidate.product_key,
         "path": str(candidate.path),
@@ -4013,6 +4079,28 @@ def _csv_bounds_for_columns(path: Path, column_indexes: tuple[int, ...]) -> tupl
 
 def _safe_metadata_paths(values: list[str]) -> list[str]:
     return [_safe_metadata_text(value) for value in values]
+
+
+def _template_run_relative_path(type_root: Path, path: Path) -> str:
+    try:
+        return path.resolve().relative_to(type_root.resolve()).as_posix()
+    except (OSError, ValueError):
+        return _template_display_path(path)
+
+
+def _template_display_path(path: Path | str) -> str:
+    text = str(path).replace("\\", "/")
+    if not text:
+        return ""
+    if "/templates/origin_styles/" in text:
+        return "templates/origin_styles/" + text.split("/templates/origin_styles/", 1)[1]
+    if "/templates/" in text:
+        return "templates/" + text.split("/templates/", 1)[1]
+    if text.startswith("templates/"):
+        return text
+    if Path(text).is_absolute() or (len(text) >= 3 and text[1:3] == ":/") or text.startswith("//"):
+        return f"external/{Path(text).name}"
+    return "".join(char if ord(char) >= 32 else "/" for char in text)
 
 
 def _safe_metadata_path(path: Path | str) -> str:

@@ -185,6 +185,32 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             self.assertIn("MarkerMode = 'markers_preferred'", script)
             self.assertIn("ShowYTickValues = $true", script)
 
+    def test_eis_fit_csv_plots_cleaned_points_and_draft_fit_curve(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            data = project_root / "eis_fit.csv"
+            data.write_text(
+                "\n".join(
+                    [
+                        "cleaned_z_real_ohm,cleaned_minus_z_imag_ohm,fit_z_real_ohm,draft_fit_minus_z_imag_ohm",
+                        "10,1,10,1.1",
+                        "20,5,15,3.2",
+                        ",,20,4.9",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            job = build_origin_plot_job(project_root, "eis_fit", data, "Z' (ohm)", "-Z'' (ohm)", "EIS")
+
+            self.assertEqual(
+                job.plot_csv.read_text(encoding="utf-8").splitlines()[0],
+                "cleaned_z_real_ohm,cleaned_minus_z_imag_ohm,fit_z_real_ohm,draft_fit_minus_z_imag_ohm",
+            )
+            self.assertEqual(job.labels, ("Measured", "Draft Randles-CPE fit"))
+            self.assertEqual(job.column_count, 4)
+
     def test_bet_isotherm_uses_relative_pressure_and_branch_columns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = _temp_project(tmpdir)
