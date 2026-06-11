@@ -64,15 +64,6 @@ PREVIOUS_COMPLETED_TYPES = ("BET", "XPS_in_situ", "XPS_non_in_situ", "XRD", "EPR
 
 
 @dataclass(frozen=True)
-class RemainingOpjuProductDraftOptions:
-    pairing_path: Path
-    output_root: Path | None = None
-    with_origin: bool = False
-    timestamp: str | None = None
-    previous_run_root: Path | None = None
-
-
-@dataclass(frozen=True)
 class ReferenceValidationResult:
     ok: bool
     decision: str
@@ -114,101 +105,6 @@ def load_remaining_pairings(pairing_path: Path, root_map: dict[str, Path]) -> li
         )
         seen.add(product_key)
     return selected
-
-
-def run_remaining_opju_product_drafts(
-    project_root: Path,
-    options: RemainingOpjuProductDraftOptions,
-    *,
-    root_map: dict[str, Path] | None = None,
-    origin_exporter: OriginExporter | None = None,
-    reference_validator: ReferenceValidator | None = None,
-) -> dict[str, object]:
-    project_root = project_root.resolve()
-    roots = root_map or build_default_root_map(project_root)
-    pairings = load_remaining_pairings(options.pairing_path, roots)
-    output_root = resolve_output_root(project_root, explicit=options.output_root)
-    previous_run = options.previous_run_root or _latest_previous_completed_run(output_root)
-    layout = create_run_output_layout(
-        project_root,
-        scope="remaining_opju_product_drafts",
-        command="remaining-opju-product-drafts",
-        mode="with_origin" if options.with_origin else "no_origin",
-        input_paths=[
-            options.pairing_path,
-            *[path for item in pairings for path in item.data_paths],
-            *[item.reference_opju for item in pairings],
-        ],
-        timestamp=options.timestamp,
-        no_origin=not options.with_origin,
-        dry_run=False,
-        output_base=output_root / "runs",
-    )
-    for directory in REMAINING_TYPE_DIRS.values():
-        _ensure_type_dirs(layout.root / directory)
-    _write_previous_completed_links(layout.root, previous_run)
-
-    exporter = origin_exporter or export_product_with_origin
-    validator = reference_validator or validate_mott_schottky_exemplar
-    products: list[dict[str, object]] = []
-    failures: list[dict[str, str]] = []
-    skipped: list[dict[str, object]] = []
-
-    for pairing in pairings:
-        if pairing.product_key == "Mott-Schottky":
-            validation = validator(pairing)
-            if not validation.ok:
-                skipped.append(
-                    {
-                        "data_type": pairing.product_key,
-                        "decision": validation.decision,
-                        "reason": validation.reason,
-                        "details": validation.details,
-                    }
-                )
-                continue
-        try:
-            product = _prepare_remaining_product(layout.root, pairing)
-            export_status: dict[str, object] = {"ok": False, "message": "Origin export skipped"}
-            if options.with_origin:
-                export_status = exporter(product)
-            metadata = _write_product_metadata(layout.root, product, export_status)
-            report = _write_per_type_report(layout.root, product, export_status)
-            products.append(_product_summary(layout.root, product, export_status, metadata, report))
-        except Exception as exc:
-            failures.append({"product_key": pairing.product_key, "message": scrub_output_text(exc, output_root=layout.root)})
-
-    hplc_deferred = _hplc_lc_deferred_items(options.pairing_path, roots)
-    if hplc_deferred:
-        skipped.append(
-            {
-                "data_type": "HPLC/LC exported data",
-                "decision": "deferred_hplc_lc_pdf_only_no_opju",
-                "reason": "Only PDF samples were present in the reviewed pairing; no OPJU exemplar was available.",
-                "details": {"items": hplc_deferred},
-            }
-        )
-    reaction_skip = _reaction_condition_skip(roots)
-    skipped.append(reaction_skip)
-
-    _write_hplc_lc_report(layout.root, hplc_deferred)
-    label_audit = _write_no_label_audit(layout.root)
-    _write_remaining_reports(layout.root, products, failures, skipped, bool(options.with_origin), label_audit, previous_run)
-    label_audit = _write_no_label_audit(layout.root)
-    _write_remaining_reports(layout.root, products, failures, skipped, bool(options.with_origin), label_audit, previous_run)
-    return {
-        "run_root": str(layout.root),
-        "summary": {
-            "product_count": len(products),
-            "failure_count": len(failures),
-            "skipped_count": len(skipped),
-            "with_origin": bool(options.with_origin),
-            "previous_run_root": str(previous_run) if previous_run else "",
-        },
-        "products": products,
-        "failures": failures,
-        "skipped": skipped,
-    }
 
 
 def validate_mott_schottky_exemplar(pairing: TargetPairing) -> ReferenceValidationResult:

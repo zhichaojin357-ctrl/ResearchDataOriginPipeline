@@ -6,43 +6,36 @@ from pathlib import Path
 from openpyxl import Workbook
 from PIL import Image
 
-from src.cli import main
 from src.core.opju_product_pilot import _xps_records_to_offset_table
-from src.core.v3_real_template_rebuild import (
-    _apply_v3_xps_component_fill,
-    _apply_v3_xps_peak_annotations,
-    _apply_v3_xps_y_axis_title_overlay,
-    _build_v3_epr_table,
-    _build_v3_xy_multisource_table,
-    _v3_bet_series_label_from_path,
-    _v3_same_x_overlay_table,
-    _force_v3_axis_titles_visible,
-    _position_v3_axis_titles_outside_plot,
-    _preferred_v3_xps_graph_name,
+from src.core.template_product_builder import (
+    _apply_template_xps_component_fill,
+    _apply_template_xps_peak_annotations,
+    _apply_template_xps_y_axis_title_overlay,
+    _build_template_epr_table,
+    _build_template_xy_multisource_table,
+    _template_bet_series_label_from_path,
+    _template_display_path,
+    _template_same_x_overlay_table,
+    _force_template_axis_titles_visible,
+    _position_template_axis_titles_outside_plot,
+    _preferred_template_xps_graph_name,
     _relevant_strict_readback_values,
-    _select_v3_xps_template_for_product,
+    _select_template_xps_template_for_product,
     _strict_style_readback,
-    _v3_origin_processing_script,
-    _v3_strict_visual_reasons,
-    _v3_epr_origin_processing_script,
-    _write_v3_identity_origin_processing_plan,
+    _template_origin_processing_script,
+    _template_strict_visual_reasons,
+    _template_epr_origin_processing_script,
+    _write_template_identity_origin_processing_plan,
     _xps_peak_annotations_from_processed_data,
-    build_v3_template_candidate_pool,
-    V3TemplateCandidate,
-    V3TemplateSelection,
-    is_v3_xps_component_curve_header,
-    v3_plot_type_for_header,
-    _write_v3_template_preview_comparison,
-    v3_xps_component_fill_pairs,
+    build_template_candidate_pool,
+    TemplateCandidate,
+    TemplateSelection,
+    is_template_xps_component_curve_header,
+    template_plot_type_for_header,
+    _write_template_preview_comparison,
+    template_xps_component_fill_pairs,
 )
 from src.core.opju_product_pilot import ProductContext, TargetPairing
-from src.core.v4_strict_template_conformance import (
-    V4_STRICT_COMMAND,
-    V4_STRICT_GLOBAL_STYLE_OVERRIDE,
-    V4_STRICT_SCOPE,
-    V4StrictTemplateConformanceOptions,
-    build_v4_strict_v3_options,
-)
 from src.core.xps_heterojunction import XpsFitRecord
 from src.origin.style_mimic import OpjuStyleSnapshot
 from src.origin.user_style import ResolvedPlotStyle
@@ -59,45 +52,17 @@ class _FakeOriginOps:
         self.commands.append(command)
 
 
-def test_v4_strict_options_use_strict_scope_and_xps_reference_only(tmp_path: Path) -> None:
-    pairing = tmp_path / "pairing.json"
-    output_root = tmp_path / "external"
+def test_template_candidate_pool_excludes_f_drive_xps_templates(tmp_path: Path) -> None:
     f_root = tmp_path / "f_drive"
-    xps_reference = tmp_path / "xps参考图像"
-
-    v3_options = build_v4_strict_v3_options(
-        V4StrictTemplateConformanceOptions(
-            pairing_path=pairing,
-            output_root=output_root,
-            timestamp="20260605_220000",
-            f_drive_template_root=f_root,
-            xps_reference_template_root=xps_reference,
-            with_origin=True,
-        )
-    )
-
-    assert v3_options.run_scope == V4_STRICT_SCOPE
-    assert v3_options.command_name == V4_STRICT_COMMAND
-    assert v3_options.product_slug_version == "v4_strict"
-    assert v3_options.global_style_override == V4_STRICT_GLOBAL_STYLE_OVERRIDE
-    assert v3_options.eis_strict_semicircle_branch is True
-    assert v3_options.xps_reference_templates_for_all_xps is True
-    assert v3_options.xps_templates_from_reference_only is True
-    assert v3_options.xps_smooth_gradient_fill is True
-    assert v3_options.cleanup_empty_run_layout_dirs is True
-
-
-def test_v4_strict_candidate_pool_excludes_f_drive_xps_templates(tmp_path: Path) -> None:
-    f_root = tmp_path / "f_drive"
-    reference_root = tmp_path / "xps参考图像"
-    f_xps = f_root / "XPS" / "CWO+BOBC VBXPS谱图.opju"
+    reference_root = tmp_path / "xps_reference"
+    f_xps = f_root / "XPS" / "CWO+BOBC VBXPS.opju"
     ref_xps = reference_root / "xps_in_situ_Bi_Cl_Br.opju"
-    f_bet = f_root / "BET" / "BET -BOBC为负数.opju"
+    f_bet = f_root / "BET" / "BET_BOBC.opju"
     for path in (f_xps, ref_xps, f_bet):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"placeholder")
 
-    candidates = build_v3_template_candidate_pool(
+    candidates = build_template_candidate_pool(
         [f_xps, f_bet],
         [ref_xps],
         f_drive_root=f_root,
@@ -113,7 +78,15 @@ def test_v4_strict_candidate_pool_excludes_f_drive_xps_templates(tmp_path: Path)
     assert any(candidate.product_key == "BET" and candidate.source == "f_drive_scan" for candidate in candidates)
 
 
-def test_v4_strict_candidate_pool_can_add_non_in_situ_xps_stack_templates(tmp_path: Path) -> None:
+def test_template_display_path_hides_workspace_prefixes() -> None:
+    template = Path("D:/Codex Project/科研数据处理/ResearchDataOriginPipeline/templates/origin_styles/graph_templates/BET.otpu")
+    external = Path("F:/课题/LL/检测/BET/BOBC.opju")
+
+    assert _template_display_path(template) == "templates/origin_styles/graph_templates/BET.otpu"
+    assert _template_display_path(external) == "external/BOBC.opju"
+
+
+def test_template_candidate_pool_can_add_non_in_situ_xps_stack_templates(tmp_path: Path) -> None:
     f_root = tmp_path / "f_drive"
     reference_root = tmp_path / "xps_reference"
     non_in_situ_root = tmp_path / "xps_heterojunction_stacked" / "origin_projects"
@@ -125,7 +98,7 @@ def test_v4_strict_candidate_pool_can_add_non_in_situ_xps_stack_templates(tmp_pa
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"placeholder")
 
-    candidates = build_v3_template_candidate_pool(
+    candidates = build_template_candidate_pool(
         [f_bet],
         [ref_xps],
         f_drive_root=f_root,
@@ -140,66 +113,15 @@ def test_v4_strict_candidate_pool_can_add_non_in_situ_xps_stack_templates(tmp_pa
     assert any(candidate.path == stacked for candidate in non_in_situ_candidates)
     assert max(non_in_situ_candidates, key=lambda item: item.path_score).path == stacked
 
-
-def test_cli_unified_v4_strict_passes_required_paths(tmp_path: Path, monkeypatch) -> None:
-    project_root = tmp_path / "project"
-    project_root.mkdir()
-    pairing = tmp_path / "pairing.json"
-    pairing.write_text("[]", encoding="utf-8")
-    output_root = tmp_path / "external"
-    f_root = tmp_path / "f_drive"
-    xps_reference = tmp_path / "xps参考图像"
-    captured: dict[str, object] = {}
-
-    def fake_run(project: Path, options: V4StrictTemplateConformanceOptions) -> dict[str, object]:
-        captured["project"] = project
-        captured["options"] = options
-        return {
-            "run_root": str(output_root / "runs" / "20260605_220000_unified_v4_strict_template_conformance_all_types"),
-            "summary": {"product_count": 11, "success_count": 11, "blocked_count": 0, "failed_count": 0},
-            "failures": [],
-        }
-
-    monkeypatch.chdir(project_root)
-    monkeypatch.setattr("src.cli.run_v4_strict_template_conformance_all_types", fake_run)
-
-    code = main(
-        [
-            "unified-v4-strict-template-conformance-all-types",
-            "--pairing",
-            str(pairing),
-            "--output-root",
-            str(output_root),
-            "--with-origin",
-            "--timestamp",
-            "20260605_220000",
-            "--f-drive-template-root",
-            str(f_root),
-            "--xps-reference-template-root",
-            str(xps_reference),
-        ]
-    )
-
-    assert code == 0
-    assert captured["project"] == project_root
-    options = captured["options"]
-    assert isinstance(options, V4StrictTemplateConformanceOptions)
-    assert options.pairing_path == pairing
-    assert options.output_root == output_root
-    assert options.f_drive_template_root == f_root
-    assert options.xps_reference_template_root == xps_reference
-    assert options.with_origin is True
+def test_template_xps_component_fill_keeps_template_line_plot_not_area_plot() -> None:
+    assert template_plot_type_for_header("XPS_in_situ", "BOBC_component_1", "line") == "line"
+    assert template_plot_type_for_header("XPS_non_in_situ", "BOBC_component_1", "line") == "line"
+    assert template_plot_type_for_header("BET", "BOBC_component_1", "line+symbol") == "line+symbol"
+    assert is_template_xps_component_curve_header("BOBC_component_1")
+    assert not is_template_xps_component_curve_header("BOBC_component_1_fill_baseline")
 
 
-def test_v4_strict_xps_component_fill_keeps_template_line_plot_not_area_plot() -> None:
-    assert v3_plot_type_for_header("XPS_in_situ", "BOBC_component_1", "line") == "line"
-    assert v3_plot_type_for_header("XPS_non_in_situ", "BOBC_component_1", "line") == "line"
-    assert v3_plot_type_for_header("BET", "BOBC_component_1", "line+symbol") == "line+symbol"
-    assert is_v3_xps_component_curve_header("BOBC_component_1")
-    assert not is_v3_xps_component_curve_header("BOBC_component_1_fill_baseline")
-
-
-def test_v4_strict_xps_components_are_followed_by_template_fill_baselines() -> None:
+def test_template_xps_components_are_followed_by_template_fill_baselines() -> None:
     record = XpsFitRecord(
         sample="BOBC",
         element="Bi",
@@ -253,10 +175,10 @@ def test_v4_strict_xps_components_are_followed_by_template_fill_baselines() -> N
     assert rows[1][4] == 0.2
     assert rows[0][6] == 0.0
     assert rows[1][6] == 0.2
-    assert v3_xps_component_fill_pairs(headers) == [(3, 4), (5, 6)]
+    assert template_xps_component_fill_pairs(headers) == [(3, 4), (5, 6)]
 
 
-def test_v4_strict_xps_fill_baseline_is_masked_to_component_valid_points() -> None:
+def test_template_xps_fill_baseline_is_masked_to_component_valid_points() -> None:
     record = XpsFitRecord(
         sample="BOBC",
         element="Bi",
@@ -314,7 +236,7 @@ def test_v4_strict_xps_fill_baseline_is_masked_to_component_valid_points() -> No
     assert rows[1][6] is None
 
 
-def test_v4_strict_writes_template_vs_generated_preview_comparison(tmp_path: Path) -> None:
+def test_template_writes_template_vs_generated_preview_comparison(tmp_path: Path) -> None:
     reference = tmp_path / "BET" / "reference_exports" / "BET_reference.png"
     generated = tmp_path / "BET" / "figures_preview" / "BET_preview.png"
     metadata = tmp_path / "BET" / "metadata" / "BET.json"
@@ -337,7 +259,7 @@ def test_v4_strict_writes_template_vs_generated_preview_comparison(tmp_path: Pat
         encoding="utf-8",
     )
 
-    audit = _write_v3_template_preview_comparison(
+    audit = _write_template_preview_comparison(
         tmp_path,
         [
             {
@@ -364,7 +286,47 @@ def test_v4_strict_writes_template_vs_generated_preview_comparison(tmp_path: Pat
     assert (tmp_path / "reports" / "template_data_completeness.md").exists()
 
 
-def test_v4_strict_xy_alignment_uses_adjacent_real_sources_without_fabricating_missing_series(tmp_path: Path) -> None:
+def test_cached_style_package_preview_gap_does_not_block_accepted_product(tmp_path: Path) -> None:
+    generated = tmp_path / "BET" / "figures_preview" / "BET_preview.png"
+    metadata = tmp_path / "BET" / "metadata" / "BET.json"
+    generated.parent.mkdir(parents=True)
+    metadata.parent.mkdir(parents=True)
+    Image.new("RGB", (16, 12), "white").save(generated)
+    metadata.write_text(
+        json.dumps(
+            {
+                "template_plot_count": 3,
+                "origin_status": {
+                    "template_format_plan": {"mode": "cached_style_package"},
+                    "origin_processing": {"method": "cached_style_package_graph_template"},
+                    "product_style": {"plot_count": 1},
+                },
+                "origin_processing": {"method": "cached_style_package_graph_template"},
+                "source_files": ["raw1.csv"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    product = {
+        "type": "BET",
+        "status": "accepted",
+        "reference_preview_png": str(tmp_path / "missing_reference.png"),
+        "preview_png": str(generated),
+        "metadata": str(metadata),
+        "template_format_mode": "cached_style_package",
+        "origin_processing_method": "cached_style_package_graph_template",
+        "notes": "Origin cached style-package export succeeded.",
+    }
+
+    audit = _write_template_preview_comparison(tmp_path, [product])
+
+    assert product["status"] == "accepted"
+    assert audit["items"][0]["strict_status"] == "manual_check_not_one_to_one"
+    assert audit["items"][0]["cached_style_package_mode"] is True
+    assert "manual-check-only" in product["notes"]
+
+
+def test_template_xy_alignment_uses_adjacent_real_sources_without_fabricating_missing_series(tmp_path: Path) -> None:
     data_root = tmp_path / "raman"
     data_root.mkdir()
     first = data_root / "BOBC.txt"
@@ -383,7 +345,7 @@ def test_v4_strict_xy_alignment_uses_adjacent_real_sources_without_fabricating_m
         opju_root_label="tmp",
         reference_opju=template_path,
     )
-    template = V3TemplateCandidate(
+    template = TemplateCandidate(
         product_key="Raman",
         path=template_path,
         source="unit",
@@ -393,7 +355,7 @@ def test_v4_strict_xy_alignment_uses_adjacent_real_sources_without_fabricating_m
         plot_count=3,
     )
 
-    aligned = _build_v3_xy_multisource_table(pairing, template)
+    aligned = _build_template_xy_multisource_table(pairing, template)
 
     assert aligned is not None
     assert aligned["headers"] == ["raman_shift_cm-1", "BOBC_intensity", "CWO_intensity"]
@@ -405,8 +367,8 @@ def test_v4_strict_xy_alignment_uses_adjacent_real_sources_without_fabricating_m
     assert alignment["fabrication_policy"] == "do_not_synthesize_missing_template_series"
 
 
-def test_v4_strict_overlay_table_unions_x_grid_without_truncating_longer_series() -> None:
-    headers, rows = _v3_same_x_overlay_table(
+def test_template_overlay_table_unions_x_grid_without_truncating_longer_series() -> None:
+    headers, rows = _template_same_x_overlay_table(
         "x",
         [
             ("short", [[0.0, 0.0], [1.0, 10.0]]),
@@ -420,17 +382,17 @@ def test_v4_strict_overlay_table_unions_x_grid_without_truncating_longer_series(
     assert rows[2] == [1.0, 10.0, 20.0]
 
 
-def test_v4_strict_bet_series_label_matches_template_short_names() -> None:
-    assert _v3_bet_series_label_from_path(Path("XWM-LL-260421-1-BOBC-All Pore.XLS")) == "BOBC"
-    assert _v3_bet_series_label_from_path(Path("XWM-LL-260421-2-CWO-All Pore.XLS")) == "CWO"
-    assert _v3_bet_series_label_from_path(Path("XWM-LL-260421-3-BiCu-All Pore.XLS")) == "BiCu"
-    assert _v3_bet_series_label_from_path(Path("XWM-LL-260421-4-BOBC-4-XIN-All Pore.XLS")) == "BOBC-4-XIN"
+def test_template_bet_series_label_matches_template_short_names() -> None:
+    assert _template_bet_series_label_from_path(Path("XWM-LL-260421-1-BOBC-All Pore.XLS")) == "BOBC"
+    assert _template_bet_series_label_from_path(Path("XWM-LL-260421-2-CWO-All Pore.XLS")) == "CWO"
+    assert _template_bet_series_label_from_path(Path("XWM-LL-260421-3-BiCu-All Pore.XLS")) == "BiCu"
+    assert _template_bet_series_label_from_path(Path("XWM-LL-260421-4-BOBC-4-XIN-All Pore.XLS")) == "BOBC-4-XIN"
 
 
-def test_v4_strict_xps_fill_uses_origin_fill_to_next_plot_mode() -> None:
+def test_template_xps_fill_uses_origin_fill_to_next_plot_mode() -> None:
     ops = _FakeOriginOps()
 
-    status = _apply_v3_xps_component_fill(
+    status = _apply_template_xps_component_fill(
         ops,
         "Graph1",
         ["binding_energy_eV", "BOBC_measured", "BOBC_envelope", "BOBC_component_1", "BOBC_component_1_fill_baseline"],
@@ -448,18 +410,18 @@ def test_v4_strict_xps_fill_uses_origin_fill_to_next_plot_mode() -> None:
     assert "set baseline1 -s 1" in joined
 
 
-def test_v4_strict_simple_types_write_origin_processing_plan(tmp_path: Path) -> None:
-    plan = _write_v3_identity_origin_processing_plan(
+def test_template_simple_types_write_origin_processing_plan(tmp_path: Path) -> None:
+    plan = _write_template_identity_origin_processing_plan(
         "XRD",
         tmp_path / "XRD",
-        "XRD_BOBC_exemplar_v4_strict",
+        "XRD_BOBC_exemplar_template",
         ["two_theta_deg", "intensity"],
         [[10.0, 100.0], [11.0, 120.0]],
     )
 
     raw_input = Path(plan["raw_origin_input_csv"])
     plan_path = tmp_path / "XRD" / "metadata" / "origin_processing_plan.json"
-    script = _v3_origin_processing_script("XRDBook", int(plan["raw_column_count"]), list(plan["transforms"]))
+    script = _template_origin_processing_script("XRDBook", int(plan["raw_column_count"]), list(plan["transforms"]))
 
     assert plan["processing_location"] == "Origin workbook LabTalk after raw data import"
     assert raw_input.exists()
@@ -469,8 +431,8 @@ def test_v4_strict_simple_types_write_origin_processing_plan(tmp_path: Path) -> 
     assert "wks.col1.hidden=1" in script
 
 
-def test_v4_strict_origin_processing_script_supports_xps_normalize_offset() -> None:
-    script = _v3_origin_processing_script(
+def test_template_origin_processing_script_supports_xps_normalize_offset() -> None:
+    script = _template_origin_processing_script(
         "XPSBook",
         3,
         [
@@ -482,13 +444,13 @@ def test_v4_strict_origin_processing_script_supports_xps_normalize_offset() -> N
 
     assert 'win -a "XPSBook"' in script
     assert "col(4)=col(1)" in script
-    assert "double __v3_min_1=min(col(2))" in script
-    assert "col(5)=(col(2)-__v3_min_1)/__v3_span_1+0" in script
-    assert "double __v3_min_2=min(col(3))" in script
-    assert "col(6)=(col(3)-__v3_min_2)/__v3_span_2+1.35" in script
+    assert "double __template_min_1=min(col(2))" in script
+    assert "col(5)=(col(2)-__template_min_1)/__template_span_1+0" in script
+    assert "double __template_min_2=min(col(3))" in script
+    assert "col(6)=(col(3)-__template_min_2)/__template_span_2+1.35" in script
 
 
-def test_v4_strict_epr_uses_template_group_overlay_not_single_seed_file(tmp_path: Path) -> None:
+def test_template_epr_uses_template_group_overlay_not_single_seed_file(tmp_path: Path) -> None:
     reference_dir = tmp_path / "F_drive" / "EPR" / "refs"
     reference_dir.mkdir(parents=True)
     _write_epr_xlsx(reference_dir / "BC-O3-dark.xlsx", [1, 2, 3, 4, 5])
@@ -504,7 +466,7 @@ def test_v4_strict_epr_uses_template_group_overlay_not_single_seed_file(tmp_path
         "f_drive_scan",
         tmp_path / "epr.opju",
     )
-    template = V3TemplateCandidate(
+    template = TemplateCandidate(
         "EPR",
         tmp_path / "epr.opju",
         "f_drive_scan",
@@ -514,7 +476,7 @@ def test_v4_strict_epr_uses_template_group_overlay_not_single_seed_file(tmp_path
         plot_count=3,
     )
 
-    headers, rows, labels, extra = _build_v3_epr_table(pairing, tmp_path / "EPR", template, "EPR_OH_overlay_exemplar_v4_strict")
+    headers, rows, labels, extra = _build_template_epr_table(pairing, tmp_path / "EPR", template, "EPR_OH_overlay_exemplar_template")
 
     overlay = extra["epr_overlay"]
     assert headers == ["magnetic_field", "BC", "CWO", "BOBC"]
@@ -535,8 +497,8 @@ def test_v4_strict_epr_uses_template_group_overlay_not_single_seed_file(tmp_path
     assert Path(overlay["final_product_processed_csv"]).parent == tmp_path / "EPR" / "processed_data"
 
 
-def test_v4_strict_epr_origin_processing_script_uses_origin_median_and_smooth() -> None:
-    script = _v3_epr_origin_processing_script("EPRBook", ["BC", "CWO", "BOBC"])
+def test_template_epr_origin_processing_script_uses_origin_median_and_smooth() -> None:
+    script = _template_epr_origin_processing_script("EPRBook", ["BC", "CWO", "BOBC"])
 
     assert 'win -a "EPRBook"' in script
     assert "median(col(14))" in script
@@ -546,7 +508,7 @@ def test_v4_strict_epr_origin_processing_script_uses_origin_median_and_smooth() 
     assert "col(11)=col(8)+2*step" in script
 
 
-def test_v4_strict_style_readback_requires_legend_bold_and_full_no_frame() -> None:
+def test_template_style_readback_requires_legend_bold_and_full_no_frame() -> None:
     passed = _strict_style_readback(
         {
             "audit_numeric_values": {
@@ -598,7 +560,7 @@ def test_v4_strict_style_readback_requires_legend_bold_and_full_no_frame() -> No
     assert failed["legend_bold"] is False
 
 
-def test_v5_template_base_readback_ignores_v4_font_size_and_legend_frame_requirements() -> None:
+def test_template_base_readback_ignores_optional_font_size_and_legend_frame_requirements() -> None:
     readback = {
         "font_family_arial": True,
         "axis_title_font_size_36": False,
@@ -619,8 +581,28 @@ def test_v5_template_base_readback_ignores_v4_font_size_and_legend_frame_require
     }
 
 
+def test_cached_style_readback_only_requires_axis_title_visibility() -> None:
+    readback = {
+        "font_family_arial": True,
+        "axis_title_font_size_36": False,
+        "axis_title_bold": False,
+        "axis_title_visible": True,
+        "legend_no_frame": False,
+        "legend_bold": False,
+        "axis_title_no_overlap": True,
+    }
+
+    relevant = _relevant_strict_readback_values(
+        readback,
+        template_base_mode=False,
+        cached_style_package_mode=True,
+    )
+
+    assert relevant == {"axis_title_visible": True}
+
+
 def test_strict_preview_accepts_low_rms_plot_count_readback_delta_as_nonblocking() -> None:
-    reasons = _v3_strict_visual_reasons(
+    reasons = _template_strict_visual_reasons(
         ready=True,
         plot_count_delta=-2,
         style_match_ratio=1.0,
@@ -630,10 +612,10 @@ def test_strict_preview_accepts_low_rms_plot_count_readback_delta_as_nonblocking
     assert reasons == []
 
 
-def test_v4_strict_axis_titles_are_explicitly_shown() -> None:
+def test_template_axis_titles_are_explicitly_shown() -> None:
     ops = _FakeOriginOps()
 
-    _force_v3_axis_titles_visible(ops, "Graph1")
+    _force_template_axis_titles_visible(ops, "Graph1")
 
     joined = "\n".join(ops.commands)
     assert "xb.show=1" in joined
@@ -644,17 +626,17 @@ def test_v4_strict_axis_titles_are_explicitly_shown() -> None:
     assert "yl.bold=1" in joined
 
 
-def test_v4_strict_y_axis_title_position_handles_reversed_binding_energy_axis() -> None:
+def test_template_y_axis_title_position_handles_reversed_binding_energy_axis() -> None:
     ops = _FakeOriginOps()
 
-    _position_v3_axis_titles_outside_plot(ops, "Graph1")
+    _position_template_axis_titles_outside_plot(ops, "Graph1")
 
     joined = "\n".join(ops.commands)
     assert "if(layer.x.from>layer.x.to)" in joined
     assert "yl.x=layer.x.from+0.06*abs(layer.x.to-layer.x.from)" in joined
 
 
-def test_v4_strict_y_axis_title_position_uses_template_offset_ratio() -> None:
+def test_template_y_axis_title_position_uses_template_offset_ratio() -> None:
     ops = _FakeOriginOps()
     snapshot = OpjuStyleSnapshot(
         source_opju="template.opju",
@@ -670,7 +652,7 @@ def test_v4_strict_y_axis_title_position_uses_template_offset_ratio() -> None:
         },
     )
 
-    _position_v3_axis_titles_outside_plot(ops, "Graph1", snapshot)
+    _position_template_axis_titles_outside_plot(ops, "Graph1", snapshot)
 
     joined = "\n".join(ops.commands)
     assert "yl.x=layer.x.from+0.061" in joined
@@ -678,11 +660,11 @@ def test_v4_strict_y_axis_title_position_uses_template_offset_ratio() -> None:
     assert "0.08*abs(layer.x.to-layer.x.from)" not in joined
 
 
-def test_v4_strict_xps_y_axis_title_overlay_uses_rotated_named_label(tmp_path: Path) -> None:
+def test_template_xps_y_axis_title_overlay_uses_rotated_named_label(tmp_path: Path) -> None:
     ops = _FakeOriginOps()
     product = ProductContext(
         product_key="XPS_non_in_situ",
-        slug="XPS_non_in_situ_BOBC_BC_exemplar_v4_strict",
+        slug="XPS_non_in_situ_BOBC_BC_exemplar_template",
         pairing=TargetPairing("XPS_non_in_situ", "XPS", "XPS_non_in_situ", "", [], "", tmp_path / "template.opju"),
         type_root=tmp_path,
         processed_data=tmp_path / "xps.csv",
@@ -699,17 +681,17 @@ def test_v4_strict_xps_y_axis_title_overlay_uses_rotated_named_label(tmp_path: P
         x_descending=True,
     )
 
-    status = _apply_v3_xps_y_axis_title_overlay(ops, "Graph1", product, ResolvedPlotStyle())
+    status = _apply_template_xps_y_axis_title_overlay(ops, "Graph1", product, ResolvedPlotStyle())
 
     joined = "\n".join(ops.commands)
     assert status["applied"] is True
-    assert 'label -p 8 50 -n V3YTitleFix "\\b(Intensity (a.u.))";' in joined
-    assert "V3YTitleFix.rotate=90;" in joined
-    assert "V3YTitleFix.x=layer.x.from+0.04*abs(layer.x.to-layer.x.from)" in joined
+    assert 'label -p 8 50 -n TemplateYTitleFix "\\b(Intensity (a.u.))";' in joined
+    assert "TemplateYTitleFix.rotate=90;" in joined
+    assert "TemplateYTitleFix.x=layer.x.from+0.04*abs(layer.x.to-layer.x.from)" in joined
     assert "label -p -" not in joined
 
 
-def test_v4_strict_xps_peak_annotations_use_current_peak_positions(tmp_path: Path) -> None:
+def test_template_xps_peak_annotations_use_current_peak_positions(tmp_path: Path) -> None:
     processed = tmp_path / "xps.csv"
     processed.write_text(
         "\n".join(
@@ -731,7 +713,7 @@ def test_v4_strict_xps_peak_annotations_use_current_peak_positions(tmp_path: Pat
     assert annotations[1]["x"] == 160.0
 
 
-def test_v4_strict_xps_peak_annotations_emit_origin_labels(tmp_path: Path) -> None:
+def test_template_xps_peak_annotations_emit_origin_labels(tmp_path: Path) -> None:
     processed = tmp_path / "xps.csv"
     processed.write_text(
         "\n".join(
@@ -746,7 +728,7 @@ def test_v4_strict_xps_peak_annotations_emit_origin_labels(tmp_path: Path) -> No
     )
     ops = _FakeOriginOps()
 
-    status = _apply_v3_xps_peak_annotations(
+    status = _apply_template_xps_peak_annotations(
         ops,
         "Graph1",
         processed,
@@ -763,16 +745,16 @@ def test_v4_strict_xps_peak_annotations_emit_origin_labels(tmp_path: Path) -> No
     assert "\\b(" not in joined
 
 
-def test_v4_strict_prefers_xps_template_graph_matching_product_element() -> None:
-    assert _preferred_v3_xps_graph_name("XPS non-in-situ Bi pilot", ["Br_3d", "Bi_4f", "Cl_2p"]) == "Bi_4f"
-    assert _preferred_v3_xps_graph_name("XPS in-situ W pilot", ["Cu_2p", "W_4f"]) == "W_4f"
+def test_template_prefers_xps_template_graph_matching_product_element() -> None:
+    assert _preferred_template_xps_graph_name("XPS non-in-situ Bi pilot", ["Br_3d", "Bi_4f", "Cl_2p"]) == "Bi_4f"
+    assert _preferred_template_xps_graph_name("XPS in-situ W pilot", ["Cu_2p", "W_4f"]) == "W_4f"
 
 
-def test_v4_strict_selects_xps_reference_opju_containing_matching_graph(tmp_path: Path) -> None:
+def test_template_selects_xps_reference_opju_containing_matching_graph(tmp_path: Path) -> None:
     pairing = TargetPairing("XPS_in_situ", "XPS", "XPS_in_situ", "", [], "", tmp_path / "unused.opju")
     product = ProductContext(
         product_key="XPS_in_situ",
-        slug="XPS_in_situ_BOBC_exemplar_v4_strict",
+        slug="XPS_in_situ_BOBC_exemplar_template",
         pairing=pairing,
         type_root=tmp_path,
         processed_data=tmp_path / "xps.csv",
@@ -788,7 +770,7 @@ def test_v4_strict_selects_xps_reference_opju_containing_matching_graph(tmp_path
         plot_type="line",
         x_descending=True,
     )
-    cu_w = V3TemplateCandidate(
+    cu_w = TemplateCandidate(
         "XPS_in_situ",
         tmp_path / "xps_in_situ_Cu_W.opju",
         "xps_reference_scan",
@@ -798,7 +780,7 @@ def test_v4_strict_selects_xps_reference_opju_containing_matching_graph(tmp_path
         plot_count=14,
         metadata={"snapshot": {"graph_pages": ["Cu_2p", "W_4f"]}},
     )
-    bi_cl_br = V3TemplateCandidate(
+    bi_cl_br = TemplateCandidate(
         "XPS_in_situ",
         tmp_path / "xps_in_situ_Bi_Cl_Br.opju",
         "xps_reference_scan",
@@ -808,9 +790,9 @@ def test_v4_strict_selects_xps_reference_opju_containing_matching_graph(tmp_path
         plot_count=21,
         metadata={"snapshot": {"graph_pages": ["Br_3d", "Bi_4f", "Cl_2p"]}},
     )
-    selection = V3TemplateSelection("XPS_in_situ", "selected", selected=cu_w, candidates=(cu_w, bi_cl_br))
+    selection = TemplateSelection("XPS_in_situ", "selected", selected=cu_w, candidates=(cu_w, bi_cl_br))
 
-    selected = _select_v3_xps_template_for_product(product, selection)
+    selected = _select_template_xps_template_for_product(product, selection)
 
     assert selected.path.name == "xps_in_situ_Bi_Cl_Br.opju"
     assert selected.graph_page == "Bi_4f"

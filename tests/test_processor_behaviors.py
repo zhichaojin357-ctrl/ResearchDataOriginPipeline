@@ -458,9 +458,12 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertEqual(metadata["key_results"]["bode_points"], 2)
             self.assertEqual(metadata["key_results"]["max_negative_imaginary_impedance"], 8.0)
             rows = self._processed_rows(root, metadata)
-            self.assertEqual(set(rows[0]), {"frequency", "real_impedance", "neg_imag_impedance", "impedance_magnitude", "phase"})
-            self.assertEqual(rows[0]["real_impedance"], "10.0")
-            self.assertEqual(rows[0]["neg_imag_impedance"], "3.0")
+            self.assertEqual(
+                set(rows[0]),
+                {"cleaned_z_real_ohm", "cleaned_minus_z_imag_ohm", "fit_z_real_ohm", "draft_fit_minus_z_imag_ohm"},
+            )
+            self.assertEqual(rows[0]["cleaned_z_real_ohm"], "10.0")
+            self.assertEqual(rows[0]["cleaned_minus_z_imag_ohm"], "3.0")
 
     def test_eis_converts_imaginary_sign_and_derives_missing_impedance_magnitude(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -476,9 +479,8 @@ class ProcessorBehaviorTest(unittest.TestCase):
 
             self.assertEqual(metadata["key_results"]["max_negative_imaginary_impedance"], 12.0)
             rows = self._processed_rows(root, metadata)
-            self.assertEqual(rows[0]["neg_imag_impedance"], "4.0")
-            self.assertEqual(rows[0]["impedance_magnitude"], "5.0")
-            self.assertEqual(rows[1]["impedance_magnitude"], "13.0")
+            self.assertEqual(rows[0]["cleaned_minus_z_imag_ohm"], "4.0")
+            self.assertEqual(rows[1]["cleaned_minus_z_imag_ohm"], "12.0")
 
     def test_eis_accepts_common_chi_z_prime_and_z_double_prime_headers(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -494,9 +496,47 @@ class ProcessorBehaviorTest(unittest.TestCase):
 
             self.assertEqual(metadata["key_results"]["max_negative_imaginary_impedance"], 12.0)
             rows = self._processed_rows(root, metadata)
-            self.assertEqual(set(rows[0]), {"frequency", "real_impedance", "neg_imag_impedance", "impedance_magnitude", "phase"})
-            self.assertEqual(rows[0]["real_impedance"], "3.0")
-            self.assertEqual(rows[0]["neg_imag_impedance"], "4.0")
+            self.assertEqual(
+                set(rows[0]),
+                {"cleaned_z_real_ohm", "cleaned_minus_z_imag_ohm", "fit_z_real_ohm", "draft_fit_minus_z_imag_ohm"},
+            )
+            self.assertEqual(rows[0]["cleaned_z_real_ohm"], "3.0")
+            self.assertEqual(rows[0]["cleaned_minus_z_imag_ohm"], "4.0")
+
+    def test_eis_formal_processor_writes_cleaned_points_and_fit_curve_sidecars(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "eis_semicircle.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Frequency (Hz)", "Z' (ohm)", "-Z'' (ohm)"])
+                for index in range(1, 16):
+                    writer.writerow([10 ** (5 - index / 3), 8 + index * 2.5, max(0.2, index * (16 - index) * 0.45)])
+                writer.writerow([0.01, -100, -50])
+
+            metadata = process_table_dataset(root, classification("EIS", "eis_processor"), source)
+
+            self.assertEqual(metadata["processing_status"], "processed_no_origin")
+            self.assertEqual(metadata["key_results"]["eis_fit"]["model"], "Model A: Rs + (Rct || CPE)")
+            self.assertTrue(metadata["key_results"]["eis_cleaning"]["ignored_point_count"] >= 1)
+            rows = self._processed_rows(root, metadata)
+            self.assertEqual(
+                set(rows[0]),
+                {
+                    "cleaned_z_real_ohm",
+                    "cleaned_minus_z_imag_ohm",
+                    "fit_z_real_ohm",
+                    "draft_fit_minus_z_imag_ohm",
+                },
+            )
+            self.assertTrue(any(row["fit_z_real_ohm"] for row in rows))
+            processed_path = _artifact_path(root, metadata["processed_data"])
+            sidecar_dir = processed_path.parent / f"{processed_path.stem}_eis_sidecars"
+            self.assertTrue((sidecar_dir / "raw_eis_data.csv").exists())
+            self.assertTrue((sidecar_dir / "cleaned_eis_data.csv").exists())
+            self.assertTrue((sidecar_dir / "ignored_eis_points.csv").exists())
+            self.assertTrue((sidecar_dir / "eis_randles_cpe_fit_curve.csv").exists())
+            self.assertTrue((sidecar_dir / "eis_cleaning_and_fit_metadata.json").exists())
 
     def test_pl_ftir_raman_output_peak_candidates(self):
         for data_type, processor in [

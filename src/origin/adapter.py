@@ -58,6 +58,7 @@ class OriginPlotJob:
     page_name: str
     column_count: int
     labels: tuple[str, ...]
+    xy_column_pairs: tuple[tuple[int, int], ...]
     curve_colors: tuple[int, ...]
     color_assignments: tuple[dict[str, object], ...]
     x_title: str
@@ -289,6 +290,10 @@ def _ps_array(values: tuple[str, ...]) -> str:
 
 def _ps_int_array(values: tuple[int, ...]) -> str:
     return "@(" + ", ".join(str(int(value)) for value in values) + ")"
+
+
+def _ps_xy_pairs(pairs: tuple[tuple[int, int], ...]) -> str:
+    return "'" + ";".join(f"{int(x)}:{int(y)}" for x, y in pairs) + "'"
 
 
 def _safe_origin_name(value: str) -> str:
@@ -524,6 +529,8 @@ def _select_plot_columns(header: list[str], data_type: str) -> tuple[int, list[i
     normalized = [item.strip().lower() for item in header]
     if len(header) < 2:
         return 0, [1]
+    if _is_eis_fit_header(normalized):
+        return 0, [1, 2, 3]
     if data_type == "XRD":
         return _select_xrd_plot_columns(header)
     if data_type == "BET":
@@ -710,6 +717,22 @@ def _write_plot_csv(source_csv: Path, plot_csv: Path, data_type: str) -> list[st
         for row in rows[1:]:
             writer.writerow([row[index] if index < len(row) else "" for index in selected_indices])
     return selected_header
+
+
+def _xy_column_pairs(header: list[str], data_type: str) -> tuple[tuple[int, int], ...]:
+    normalized = [item.strip().lower() for item in header]
+    if data_type == "EIS" and _is_eis_fit_header(normalized):
+        return ((1, 2), (3, 4))
+    return ()
+
+
+def _is_eis_fit_header(normalized_header: list[str]) -> bool:
+    return normalized_header[:4] == [
+        "cleaned_z_real_ohm",
+        "cleaned_minus_z_imag_ohm",
+        "fit_z_real_ohm",
+        "draft_fit_minus_z_imag_ohm",
+    ]
 
 
 def _series_labels(raw_labels: tuple[str, ...], dataset_id: str, source_file: Path | None) -> tuple[str, ...]:
@@ -916,10 +939,15 @@ def build_origin_plot_job(
     plot_csv = job_dir / f"{dataset_id}_plot_input.csv"
     header = _write_plot_csv(processed_csv, plot_csv, data_type)
     column_count = max(2, len(header))
-    raw_labels = tuple(label.strip() for label in header[1:] if label.strip()) or ("Signal",)
-    labels = _series_labels(raw_labels, dataset_id, source_file)
-    if len(labels) != column_count - 1:
-        labels = tuple(f"Series {index}" for index in range(1, column_count))
+    xy_column_pairs = _xy_column_pairs(header, data_type)
+    if xy_column_pairs and data_type == "EIS":
+        labels = ("Measured", "Draft Randles-CPE fit")
+    else:
+        raw_labels = tuple(label.strip() for label in header[1:] if label.strip()) or ("Signal",)
+        labels = _series_labels(raw_labels, dataset_id, source_file)
+    expected_label_count = len(xy_column_pairs) if xy_column_pairs else column_count - 1
+    if len(labels) != expected_label_count:
+        labels = tuple(f"Series {index}" for index in range(1, expected_label_count + 1))
     color_assignments = _color_assignments(dataset_id, data_type, labels, source_file, processed_csv)
     curve_colors = tuple(int(item["origin_ocolor"]) for item in color_assignments)
 
@@ -962,6 +990,7 @@ def build_origin_plot_job(
         page_name=page_name,
         column_count=column_count,
         labels=labels,
+        xy_column_pairs=xy_column_pairs,
         curve_colors=curve_colors,
         color_assignments=color_assignments,
         x_title=x_title,
@@ -976,6 +1005,7 @@ def build_origin_invocation_script(job: OriginPlotJob) -> str:
         f"  PageName = {_ps_quote(job.page_name)}\n"
         f"  ColumnCount = {job.column_count}\n"
         f"  Labels = {_ps_array(job.labels)}\n"
+        f"  XYPairs = {_ps_xy_pairs(job.xy_column_pairs)}\n"
         f"  Palette = {_ps_int_array(job.curve_colors)}\n"
         f"  PlotType = {_ps_quote(job.plot_type_code)}\n"
         f"  PlotPrimitive = {_ps_quote(job.plot_policy.plot_primitive)}\n"

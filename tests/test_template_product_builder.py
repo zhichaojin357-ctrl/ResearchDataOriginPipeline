@@ -2,36 +2,36 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.cli import main
 from src.processors.eis import EisFitResult, EisPoint
 
-from src.core.v3_real_template_rebuild import (
-    V3_ACCEPTED_TYPES,
-    V3RealTemplateRebuildOptions,
-    V3_TARGET_TYPES,
-    V3TemplateCandidate,
-    classify_v3_project_style_asset_candidates,
-    classify_v3_xps_reference_candidates,
-    classify_v3_template_candidates,
+from src.core.template_product_builder import (
+    TEMPLATE_ACCEPTED_TYPES,
+    TEMPLATE_TARGET_TYPES,
+    TemplateProductBuilderOptions,
+    TemplateCandidate,
+    classify_template_project_style_asset_candidates,
+    classify_template_xps_reference_candidates,
+    classify_template_candidates,
     clip_eis_fit_to_measured_range,
-    select_v3_template,
-    v3_acceptance_status,
+    run_template_product_builder_all_types,
+    select_template,
+    template_acceptance_status,
 )
 
 
-def test_classify_v3_templates_uses_f_drive_type_paths_and_separates_xps_subtypes() -> None:
-    root = Path("F:/课题/LL/检测")
+def test_classify_templates_uses_f_drive_type_paths_and_separates_xps_subtypes() -> None:
+    root = Path("F:/template_root")
     paths = [
         root / "BET" / "BOBC.opju",
-        root / "XPS" / "原位" / "insitu.opju",
+        root / "XPS" / "in_situ" / "insitu.opju",
         root / "XPS" / "bobc xps.opju",
-        root / "XRD" / "CWO+BOBC" / "CWO+BOBC+标卡.opju",
-        root / "阻抗EIS" / "20260203李永进CWO+BOBC" / "2eis图20260202.opju",
-        root / "固体紫外" / "BOBC+MS.opju",
-        root / "光电流响应" / "I-T BOBC+CWO 4.22.opju",
+        root / "XRD" / "CWO+BOBC" / "CWO+BOBC+鏍囧崱.opju",
+        root / "EIS" / "BOBC" / "2eis.opju",
+        root / "UV" / "BOBC+MS.opju",
+        root / "photocurrent" / "I-T BOBC+CWO 4.22.opju",
     ]
 
-    classified = classify_v3_template_candidates(paths, f_drive_root=root)
+    classified = classify_template_candidates(paths, f_drive_root=root)
 
     assert {item.product_key for item in classified} >= {
         "BET",
@@ -44,11 +44,11 @@ def test_classify_v3_templates_uses_f_drive_type_paths_and_separates_xps_subtype
     }
     assert [item.path.name for item in classified if item.product_key == "XPS_in_situ"] == ["insitu.opju"]
     assert [item.path.name for item in classified if item.product_key == "XPS_non_in_situ"] == ["bobc xps.opju"]
-    assert tuple(V3_TARGET_TYPES) == tuple(V3_ACCEPTED_TYPES)
+    assert tuple(TEMPLATE_TARGET_TYPES) == tuple(TEMPLATE_ACCEPTED_TYPES)
 
 
-def test_classify_v3_xps_reference_root_uses_in_situ_reference_opjus(tmp_path: Path) -> None:
-    reference_root = tmp_path / "xps参考图像"
+def test_classify_template_xps_reference_root_uses_in_situ_reference_opjus(tmp_path: Path) -> None:
+    reference_root = tmp_path / "xps_reference"
     reference_root.mkdir()
     bi_cl_br = reference_root / "xps_in_situ_Bi_Cl_Br.opju"
     cu_w = reference_root / "xps_in_situ_Cu_W.opju"
@@ -57,7 +57,7 @@ def test_classify_v3_xps_reference_root_uses_in_situ_reference_opjus(tmp_path: P
     for path in (bi_cl_br, cu_w, non_in_situ, note):
         path.write_text("placeholder", encoding="utf-8")
 
-    classified = classify_v3_xps_reference_candidates(
+    classified = classify_template_xps_reference_candidates(
         [bi_cl_br, cu_w, non_in_situ, note],
         reference_root=reference_root,
     )
@@ -71,7 +71,7 @@ def test_classify_v3_xps_reference_root_uses_in_situ_reference_opjus(tmp_path: P
     assert all(item.path_score > 30 for item in classified)
 
 
-def test_classify_v3_project_style_asset_candidates_use_cached_graph_templates(tmp_path: Path) -> None:
+def test_classify_template_project_style_asset_candidates_use_cached_graph_templates(tmp_path: Path) -> None:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
     graph_dir = style_root / "graph_templates"
@@ -96,7 +96,7 @@ def test_classify_v3_project_style_asset_candidates_use_cached_graph_templates(t
         encoding="utf-8",
     )
 
-    candidates = classify_v3_project_style_asset_candidates(project_root)
+    candidates = classify_template_project_style_asset_candidates(project_root)
 
     assert len(candidates) == 1
     candidate = candidates[0]
@@ -108,10 +108,71 @@ def test_classify_v3_project_style_asset_candidates_use_cached_graph_templates(t
     assert candidate.metadata["style_asset"]["graph_template"] == "graph_templates/BET.otpu"
 
 
-def test_select_v3_template_blocks_missing_or_data_only_candidates() -> None:
-    root = Path("F:/课题/LL/检测")
+def test_template_builder_uses_project_style_assets_without_default_external_scan(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    style_root = project_root / "templates" / "origin_styles"
+    graph_dir = style_root / "graph_templates"
+    graph_dir.mkdir(parents=True)
+    (graph_dir / "BET.otpu").write_bytes(b"otpu")
+    (style_root / "manifest.json").write_text(
+        """{
+  "schema_version": 1,
+  "assets": [
+    {"product_key":"BET","data_type":"BET","graph_template":"graph_templates/BET.otpu","status":"accepted","graph_page":"Graph1"}
+  ]
+}
+""",
+        encoding="utf-8",
+    )
+    roots = {"f_drive_detection": tmp_path / "raw", "workspace_xps_reference": tmp_path / "xps_reference", "workspace_group_data": tmp_path / "group"}
+    data = roots["f_drive_detection"] / "BET" / "bet.csv"
+    data.parent.mkdir(parents=True)
+    data.write_text("relative_pressure_p_p0,quantity_adsorbed\n0.1,1\n0.5,2\n", encoding="utf-8")
+    reference = roots["f_drive_detection"] / "BET" / "reference.opju"
+    reference.write_bytes(b"opju")
+    pairing = tmp_path / "pairing.json"
+    pairing.write_text(
+        """[
+  {
+    "data_type":"BET",
+    "xps_subtype":"",
+    "selected_data_root_label":"f_drive_detection",
+    "selected_data_relative_paths":["BET/bet.csv"],
+    "selected_opju_root_label":"f_drive_detection",
+    "selected_opju_relative_path":"BET/reference.opju"
+  }
+]
+""",
+        encoding="utf-8",
+    )
+
+    def fail_external_scan(_root: Path) -> list[Path]:
+        raise AssertionError("default external template scan should not run when project style assets are available")
+
+    monkeypatch.setattr("src.core.template_product_builder.scan_template_f_drive_template_paths", fail_external_scan)
+
+    result = run_template_product_builder_all_types(
+        project_root,
+        TemplateProductBuilderOptions(
+            pairing_path=pairing,
+            output_root=tmp_path / "out",
+            timestamp="20260611_190000",
+            project_style_asset_fallback=True,
+        ),
+        root_map=roots,
+    )
+
+    bet = next(product for product in result["products"] if product["type"] == "BET")
+    assert bet["status"] == "blocked"
+    assert Path(str(bet["processed_data"])).name == "BET_BOBC_exemplar.csv"
+    assert result["summary"]["product_count"] == len(TEMPLATE_TARGET_TYPES)
+
+
+def test_select_template_blocks_missing_or_data_only_candidates() -> None:
+    root = Path("F:/template_root")
     candidates = [
-        V3TemplateCandidate(
+        TemplateCandidate(
             product_key="XPS_in_situ",
             path=root / "XPS" / "table_only.opju",
             source="f_drive_scan",
@@ -124,13 +185,13 @@ def test_select_v3_template_blocks_missing_or_data_only_candidates() -> None:
         )
     ]
 
-    selection = select_v3_template("XPS_in_situ", candidates)
-    missing = select_v3_template("Raman", candidates)
+    selection = select_template("XPS_in_situ", candidates)
+    missing = select_template("Raman", candidates)
 
     assert selection.status == "blocked"
     assert "data-only" in selection.reason
     assert missing.status == "blocked"
-    assert "No F-drive OPJU/OPJ template candidate" in missing.reason
+    assert "No OPJU/OPJ template or project-local style asset candidate" in missing.reason
 
 
 def test_clip_eis_fit_to_measured_range_keeps_main_plot_from_large_full_arc() -> None:
@@ -156,10 +217,10 @@ def test_clip_eis_fit_to_measured_range_keeps_main_plot_from_large_full_arc() ->
     assert "full fit retained in debug" in clipped.warning
 
 
-def test_v3_acceptance_status_uses_strict_accepted_blocked_terms_only(tmp_path: Path) -> None:
+def test_template_acceptance_status_uses_strict_accepted_blocked_terms_only(tmp_path: Path) -> None:
     artifact = tmp_path / "ok.bin"
     artifact.write_text("x", encoding="utf-8")
-    accepted = v3_acceptance_status(
+    accepted = template_acceptance_status(
         has_required_artifacts=True,
         no_label_pass=True,
         readback_pass=True,
@@ -169,7 +230,7 @@ def test_v3_acceptance_status_uses_strict_accepted_blocked_terms_only(tmp_path: 
         exemplar_similarity=True,
         notes=[],
     )
-    blocked = v3_acceptance_status(
+    blocked = template_acceptance_status(
         has_required_artifacts=True,
         no_label_pass=True,
         readback_pass=True,
@@ -184,54 +245,3 @@ def test_v3_acceptance_status_uses_strict_accepted_blocked_terms_only(tmp_path: 
     assert blocked.status == "blocked"
     assert "success" not in {accepted.status, blocked.status}
     assert "review" not in {accepted.status, blocked.status}
-
-
-def test_cli_unified_v3_passes_template_root_and_output_options(tmp_path: Path, monkeypatch) -> None:
-    project_root = tmp_path / "project"
-    project_root.mkdir()
-    pairing = tmp_path / "pairing.json"
-    pairing.write_text("[]", encoding="utf-8")
-    output_root = tmp_path / "external"
-    f_root = tmp_path / "f_drive"
-    xps_reference_root = tmp_path / "xps参考图像"
-    captured: dict[str, object] = {}
-
-    def fake_run(project: Path, options: V3RealTemplateRebuildOptions) -> dict[str, object]:
-        captured["project"] = project
-        captured["options"] = options
-        return {
-            "run_root": str(output_root / "runs" / "fake"),
-            "summary": {"product_count": 11, "accepted_count": 10, "blocked_count": 1, "failed_count": 0},
-            "failures": [],
-        }
-
-    monkeypatch.chdir(project_root)
-    monkeypatch.setattr("src.cli.run_v3_real_template_rebuild_all_types", fake_run)
-
-    code = main(
-        [
-            "unified-v3-real-template-rebuild-all-types",
-            "--pairing",
-            str(pairing),
-            "--output-root",
-            str(output_root),
-            "--with-origin",
-            "--timestamp",
-            "20260605_180000",
-            "--f-drive-template-root",
-            str(f_root),
-            "--xps-reference-template-root",
-            str(xps_reference_root),
-        ]
-    )
-
-    assert code == 0
-    assert captured["project"] == project_root
-    options = captured["options"]
-    assert isinstance(options, V3RealTemplateRebuildOptions)
-    assert options.pairing_path == pairing
-    assert options.output_root == output_root
-    assert options.with_origin is True
-    assert options.timestamp == "20260605_180000"
-    assert options.f_drive_template_root == f_root
-    assert options.xps_reference_template_root == xps_reference_root

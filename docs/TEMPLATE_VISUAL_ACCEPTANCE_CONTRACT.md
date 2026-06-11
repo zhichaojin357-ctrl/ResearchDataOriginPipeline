@@ -1,4 +1,4 @@
-# V3 visual acceptance contract
+# Template-format visual acceptance contract
 
 - Allowed statuses: accepted, blocked, skipped, failed.
 - accepted requires OPJU, TIF, PNG, processed data, metadata, and report to exist.

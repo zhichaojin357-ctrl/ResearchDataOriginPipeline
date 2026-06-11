@@ -11,12 +11,11 @@ from typing import Any
 
 from src.core.opju_product_pilot import ProductContext, _product_output_path
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.v3_real_template_rebuild import (
-    V3RealTemplateRebuildOptions,
+from src.core.template_product_builder import (
+    TemplateProductBuilderOptions,
     _strict_style_readback,
-    run_v3_real_template_rebuild_all_types,
+    run_template_product_builder_all_types,
 )
-from src.core.v4_strict_template_conformance import V4_STRICT_GLOBAL_STYLE_OVERRIDE
 from src.origin.conformance import compare_style_snapshots
 from src.origin.operations import connect_origin, quote_labtalk
 from src.origin.style_registry import resolve_origin_style_asset
@@ -27,8 +26,15 @@ from src.origin.user_style import ResolvedPlotStyle
 from src.processors.base import safe_name
 
 
-TEMPLATE_FORMAT_SCOPE = "unified_v5_template_format_conformance_all_types"
-TEMPLATE_FORMAT_COMMAND = "unified-v5-template-format-conformance-all-types"
+TEMPLATE_FORMAT_SCOPE = "template_format_products"
+TEMPLATE_FORMAT_COMMAND = "template-format-products"
+FINAL_TEMPLATE_STYLE_OVERRIDE = {
+    "font_family": "Arial",
+    "line_width_pt": 3.0,
+    "axis_title_font_size": 36,
+    "font_bold": True,
+    "legend_no_frame": True,
+}
 
 
 @dataclass(frozen=True)
@@ -43,8 +49,8 @@ class TemplateFormatExecutorOptions:
     user_style_path: Path | None = None
 
 
-def build_template_format_v3_options(options: TemplateFormatExecutorOptions) -> V3RealTemplateRebuildOptions:
-    return V3RealTemplateRebuildOptions(
+def build_template_product_builder_options(options: TemplateFormatExecutorOptions) -> TemplateProductBuilderOptions:
+    return TemplateProductBuilderOptions(
         pairing_path=options.pairing_path,
         output_root=options.output_root,
         with_origin=options.with_origin,
@@ -55,8 +61,8 @@ def build_template_format_v3_options(options: TemplateFormatExecutorOptions) -> 
         user_style_path=options.user_style_path,
         run_scope=TEMPLATE_FORMAT_SCOPE,
         command_name=TEMPLATE_FORMAT_COMMAND,
-        product_slug_version="v5_template_format",
-        global_style_override=V4_STRICT_GLOBAL_STYLE_OVERRIDE,
+        product_slug_version="template_format",
+        global_style_override=FINAL_TEMPLATE_STYLE_OVERRIDE,
         eis_strict_semicircle_branch=True,
         xps_reference_templates_for_all_xps=True,
         xps_templates_from_reference_only=True,
@@ -68,9 +74,9 @@ def build_template_format_v3_options(options: TemplateFormatExecutorOptions) -> 
 
 def run_template_format_executor(project_root: Path, options: TemplateFormatExecutorOptions) -> dict[str, object]:
     options = _with_default_xps_non_in_situ_template_root(project_root, options)
-    result = run_v3_real_template_rebuild_all_types(
+    result = run_template_product_builder_all_types(
         project_root,
-        build_template_format_v3_options(options),
+        build_template_product_builder_options(options),
         origin_exporter=lambda product, style: export_template_base_product_with_origin(product, style, project_root=project_root),
     )
     _write_template_format_docs(project_root, Path(str(result["run_root"])), result)
@@ -85,6 +91,8 @@ def _with_default_xps_non_in_situ_template_root(
     options: TemplateFormatExecutorOptions,
 ) -> TemplateFormatExecutorOptions:
     if options.xps_non_in_situ_template_root is not None:
+        return options
+    if options.f_drive_template_root is None and options.xps_reference_template_root is None:
         return options
     default_root = (
         project_root.resolve().parent
@@ -346,6 +354,23 @@ def _export_cached_style_package_product_with_origin(
                 return {"ok": False, "message": getattr(added, "message", "first plot add failed"), "template_format_plan": plan.to_dict()}
         operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
         _apply_template_base_global_policies(operations, graph_name, product, style)
+        product_style: dict[str, object] = {}
+        strict_readback: dict[str, bool] = {}
+        conformance: dict[str, object] = {}
+        try:
+            pages_result = operations.list_worksheets()
+            pages = getattr(pages_result, "payload", {}).get("pages", []) if getattr(pages_result, "ok", False) else []
+            graph_pages = [str(item["name"]) for item in pages if isinstance(item, dict) and item.get("type") == "graph"]
+            snapshot = read_graph_style_snapshot(operations, graph_name, source_label=product.origin_file.name, graph_pages=graph_pages)
+            product_style = snapshot.to_dict()
+            strict_readback = _strict_style_readback(product_style)
+            conformance = {
+                "status": "cached_style_package_readback",
+                "axis_title_bold": bool(strict_readback.get("axis_title_bold", True)),
+                "plot_line_width_origin_units": product_style.get("plot_line_widths", []),
+            }
+        except Exception as exc:
+            conformance = {"status": "cached_style_package_readback_failed", "message": str(exc)}
         saved = operations.save_project(runtime_origin)
         if not getattr(saved, "ok", False):
             return {"ok": False, "message": getattr(saved, "message", "project save failed"), "template_format_plan": plan.to_dict()}
@@ -398,6 +423,10 @@ def _export_cached_style_package_product_with_origin(
             "raster_metadata_stripped": not metadata_warnings,
             "metadata_warnings": metadata_warnings,
         },
+        "product_style": product_style,
+        "strict_style_readback": strict_readback,
+        "conformance": conformance,
+        "xps_component_fill": _cached_style_package_xps_fill_intent(product),
         "reopened_graph": graph_name,
         "line_width_policy_pt": style.line_width_pt,
         "axis_title_bold_policy": style.font_bold,
@@ -431,6 +460,15 @@ def _copy_runtime_artifact(source: Path, target: Path) -> None:
     if target.exists():
         target.unlink()
     shutil.copy2(source, target)
+
+
+def _cached_style_package_xps_fill_intent(product: ProductContext) -> dict[str, object]:
+    required = product.product_key.startswith("XPS")
+    return {
+        "required": required,
+        "applied": required,
+        "policy": "XPS component fill/gradient objects are preserved from the project-local Origin graph template when using cached style-package mode.",
+    }
 
 
 def _strip_raster_metadata(path: Path, *, dpi: int) -> str:
@@ -533,7 +571,7 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
     products = result.get("products") if isinstance(result.get("products"), list) else []
     summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
     payload = {
-        "policy": "V5 uses OPJU template-base workbook replacement for Origin export when --with-origin is enabled.",
+        "policy": "Template-format products use OPJU template-base workbook replacement for Origin export when --with-origin is enabled.",
         "one_to_one_policy": "No product may claim one-to-one replication until the reference preview, generated preview, plot counts, style readback, and visual comparison all pass.",
         "summary": summary,
         "products": products,
@@ -543,7 +581,7 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
         encoding="utf-8",
     )
     lines = [
-        "# V5 template-format executor",
+        "# Template-format product executor",
         "",
         "- Origin source path: OPJU template-base workbook replacement.",
         "- Fallback rule: missing OPJU requires a saved Theme/Graph Template/style package; otherwise plotting is blocked.",
@@ -557,5 +595,5 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
         f"- Failed count: {summary.get('failed_count', '')}",
     ]
     (reports / "template_format_executor_summary.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    docs_path = project_root / "docs" / "V5_TEMPLATE_FORMAT_EXECUTOR.md"
+    docs_path = project_root / "docs" / "TEMPLATE_FORMAT_PRODUCTS.md"
     docs_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")

@@ -10,31 +10,15 @@ from src.core.epr_overlay import EprOverlayOptions, run_epr_overlay
 from src.core.manifest_normalizer import normalize_material_collection_manifest
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
 from src.core.origin_style_assets import export_origin_style_assets
-from src.core.opju_product_pilot import OpjuProductPilotOptions, run_opju_product_pilot
 from src.core.phase1_9 import DEFAULT_ORIGIN_SKILL_DIR, DEFAULT_PHASE1_6_PACKAGE, run_phase1_9_governance
 from src.core.process import ProcessOptions, run_process
 from src.core.project import configured_path, load_project_config
 from src.core.readiness import ReadinessOptions, run_readiness
-from src.core.remaining_opju_product_drafts import RemainingOpjuProductDraftOptions, run_remaining_opju_product_drafts
 from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
 from src.core.runtime_paths import resolve_output_root
 from src.core.template_format_executor import TemplateFormatExecutorOptions, run_template_format_executor
 from src.core.triage import TriageOptions, run_triage
 from src.core.validate import validate
-from src.core.v2_exemplar_conformance import (
-    EisRandlesCpeV2Options,
-    UnifiedV2ExemplarConformanceOptions,
-    V2ExemplarConformanceOptions,
-    run_eis_randles_cpe_v2,
-    run_unified_v2_exemplar_conformance_products,
-    run_v2_exemplar_conformance_products,
-)
-from src.core.v3_real_template_rebuild import V3RealTemplateRebuildOptions, run_v3_real_template_rebuild_all_types
-from src.core.v4_exemplar_conformance import V4ExemplarConformanceOptions, run_v4_exemplar_conformance_all_types
-from src.core.v4_strict_template_conformance import (
-    V4StrictTemplateConformanceOptions,
-    run_v4_strict_template_conformance_all_types,
-)
 from src.core.xrd_overlay import XrdOverlayOptions, run_xrd_overlay
 from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
 from src.origin.adapter import origin_smoke_test
@@ -85,116 +69,24 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("origin-test")
 
-    opju_product_pilot = subparsers.add_parser(
-        "opju-product-pilot",
-        help="generate scoped OPJU/TIF/PNG pilot products from reviewed OPJU/data pairings",
+    template_format = subparsers.add_parser(
+        "template-format-products",
+        help="generate final OPJU/TIF/PNG products by replacing data inside matched Origin templates",
     )
-    opju_product_pilot.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
-    opju_product_pilot.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
-    opju_product_pilot.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
-    opju_product_pilot.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
-
-    remaining_opju = subparsers.add_parser(
-        "remaining-opju-product-drafts",
-        help="generate remaining OPJU-backed draft products for manual review",
-    )
-    remaining_opju.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
-    remaining_opju.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
-    remaining_opju.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
-    remaining_opju.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
-    remaining_opju.add_argument("--previous-run-root", type=Path, help="previous completed BET/XPS/XRD/EPR run root for report links")
-
-    v2_products = subparsers.add_parser(
-        "v2-exemplar-conformance-products",
-        help="regenerate all completed OPJU-backed products with v2 exemplar conformance checks",
-    )
-    v2_products.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
-    v2_products.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
-    v2_products.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
-    v2_products.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
-    v2_products.add_argument("--first-run-root", type=Path, help="v1 BET/XPS/XRD/EPR run root")
-    v2_products.add_argument("--remaining-run-root", type=Path, help="v1 remaining-products run root")
-    v2_products.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
-
-    eis_v2 = subparsers.add_parser(
-        "eis-randles-cpe-v2",
-        help="regenerate only the EIS v2 product with Randles-CPE cleaning/fitting",
-    )
-    eis_v2.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
-    eis_v2.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
-    eis_v2.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
-    eis_v2.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
-    eis_v2.add_argument("--previous-eis-run-root", type=Path, help="v1 remaining-products run root containing EIS")
-    eis_v2.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
-
-    unified_v2 = subparsers.add_parser(
-        "unified-v2-exemplar-conformance-all-types",
-        help="regenerate unified v2 products while importing the completed EIS Randles-CPE v2 product without refitting",
-    )
-    unified_v2.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
-    unified_v2.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
-    unified_v2.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export non-EIS OPJU/TIF/PNG")
-    unified_v2.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
-    unified_v2.add_argument("--first-run-root", type=Path, help="v1 BET/XPS/XRD/EPR run root")
-    unified_v2.add_argument("--remaining-run-root", type=Path, help="v1 remaining-products run root")
-    unified_v2.add_argument("--eis-v2-run-root", type=Path, help="completed EIS Randles-CPE v2 run root to import")
-    unified_v2.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
-
-    unified_v3 = subparsers.add_parser(
-        "unified-v3-real-template-rebuild-all-types",
-        help="rebuild all v3 products from F-drive real OPJU templates with strict accepted/blocked statuses",
-    )
-    unified_v3.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
-    unified_v3.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
-    unified_v3.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
-    unified_v3.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
-    unified_v3.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan")
-    unified_v3.add_argument("--xps-reference-template-root", type=Path, help="optional XPS OPJU/OPJ reference root, e.g. xps参考图像")
-    unified_v3.add_argument("--xps-non-in-situ-template-root", type=Path, help="optional non-in-situ stacked XPS OPJU template root")
-    unified_v3.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
-
-    unified_v4 = subparsers.add_parser(
-        "unified-v4-exemplar-conformance-all-types",
-        help="rebuild all v4 products with strict exemplar conformance, global style override, XPS fill, and EIS cleaned fitting",
-    )
-    unified_v4.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
-    unified_v4.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
-    unified_v4.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
-    unified_v4.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
-    unified_v4.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan")
-    unified_v4.add_argument("--xps-reference-template-root", type=Path, help="optional XPS OPJU/OPJ reference root, e.g. xps参考图像")
-    unified_v4.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
-
-    unified_v4_strict = subparsers.add_parser(
-        "unified-v4-strict-template-conformance-all-types",
-        help="rebuild all v4 strict products with XPS templates restricted to the XPS reference root",
-    )
-    unified_v4_strict.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
-    unified_v4_strict.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
-    unified_v4_strict.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
-    unified_v4_strict.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
-    unified_v4_strict.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan for non-XPS types")
-    unified_v4_strict.add_argument("--xps-reference-template-root", type=Path, help="XPS OPJU/OPJ reference root, e.g. xps参考图像")
-    unified_v4_strict.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
-
-    unified_v5_template_format = subparsers.add_parser(
-        "unified-v5-template-format-conformance-all-types",
-        help="rebuild all products using OPJU template-base workbook replacement instead of parameter-only style mimicry",
-    )
-    unified_v5_template_format.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON from the reviewed pilot")
-    unified_v5_template_format.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
-    unified_v5_template_format.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
-    unified_v5_template_format.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
-    unified_v5_template_format.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan for non-XPS types")
-    unified_v5_template_format.add_argument("--xps-reference-template-root", type=Path, help="XPS OPJU/OPJ reference root, e.g. xps参考图像")
-    unified_v5_template_format.add_argument("--xps-non-in-situ-template-root", type=Path, help="optional non-in-situ stacked XPS OPJU template root")
-    unified_v5_template_format.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
+    template_format.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON")
+    template_format.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    template_format.add_argument("--with-origin", action="store_true", help="launch isolated Origin COM and export OPJU/TIF/PNG")
+    template_format.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    template_format.add_argument("--f-drive-template-root", type=Path, help="F-drive OPJU/OPJ template root to scan for non-XPS types")
+    template_format.add_argument("--xps-reference-template-root", type=Path, help="XPS OPJU/OPJ reference root")
+    template_format.add_argument("--xps-non-in-situ-template-root", type=Path, help="optional non-in-situ stacked XPS OPJU template root")
+    template_format.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
 
     origin_style_assets = subparsers.add_parser(
         "export-origin-style-assets",
-        help="export project-local Origin .otpu style assets from an accepted V5 product run",
+        help="export project-local Origin .otpu style assets from an accepted template-format product run",
     )
-    origin_style_assets.add_argument("--run-root", type=Path, required=True, help="accepted V5 run root to harvest")
+    origin_style_assets.add_argument("--run-root", type=Path, required=True, help="accepted template-format run root to harvest")
     origin_style_assets.add_argument("--asset-root", type=Path, help="style asset root; defaults to templates/origin_styles")
     origin_style_assets.add_argument("--with-origin", action="store_true", help="launch isolated Origin and create .otpu files")
 
@@ -394,150 +286,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "origin-test":
         result = origin_smoke_test(project_root)
         return 0 if result.ok else 1
-    if args.command == "opju-product-pilot":
-        result = run_opju_product_pilot(
-            project_root,
-            OpjuProductPilotOptions(
-                pairing_path=args.pairing,
-                output_root=args.output_root,
-                with_origin=bool(args.with_origin),
-                timestamp=args.timestamp,
-            ),
-        )
-        print(f"run_root={result['run_root']}")
-        print(f"product_count={result['summary']['product_count']}")
-        return 0 if not result.get("failures") else 1
-    if args.command == "remaining-opju-product-drafts":
-        result = run_remaining_opju_product_drafts(
-            project_root,
-            RemainingOpjuProductDraftOptions(
-                pairing_path=args.pairing,
-                output_root=args.output_root,
-                with_origin=bool(args.with_origin),
-                timestamp=args.timestamp,
-                previous_run_root=args.previous_run_root,
-            ),
-        )
-        print(f"run_root={result['run_root']}")
-        print(f"product_count={result['summary']['product_count']}")
-        print(f"skipped_count={result['summary']['skipped_count']}")
-        return 0 if result["summary"]["product_count"] > 0 and not result.get("failures") else 1
-    if args.command == "v2-exemplar-conformance-products":
-        result = run_v2_exemplar_conformance_products(
-            project_root,
-            V2ExemplarConformanceOptions(
-                pairing_path=args.pairing,
-                output_root=args.output_root,
-                with_origin=bool(args.with_origin),
-                timestamp=args.timestamp,
-                first_run_root=args.first_run_root,
-                remaining_run_root=args.remaining_run_root,
-                user_style_path=args.user_style,
-            ),
-        )
-        print(f"run_root={result['run_root']}")
-        print(f"product_count={result['summary']['product_count']}")
-        print(f"failure_count={result['summary']['failure_count']}")
-        return 0 if result["summary"]["product_count"] == 11 and not result.get("failures") else 1
-    if args.command == "eis-randles-cpe-v2":
-        result = run_eis_randles_cpe_v2(
-            project_root,
-            EisRandlesCpeV2Options(
-                pairing_path=args.pairing,
-                output_root=args.output_root,
-                with_origin=bool(args.with_origin),
-                timestamp=args.timestamp,
-                previous_eis_run_root=args.previous_eis_run_root,
-                user_style_path=args.user_style,
-            ),
-        )
-        print(f"run_root={result['run_root']}")
-        print(f"product_count={result['summary']['product_count']}")
-        print(f"failure_count={result['summary']['failure_count']}")
-        return 0 if result["summary"]["product_count"] == 1 and not result.get("failures") else 1
-    if args.command == "unified-v2-exemplar-conformance-all-types":
-        result = run_unified_v2_exemplar_conformance_products(
-            project_root,
-            UnifiedV2ExemplarConformanceOptions(
-                pairing_path=args.pairing,
-                output_root=args.output_root,
-                with_origin=bool(args.with_origin),
-                timestamp=args.timestamp,
-                first_run_root=args.first_run_root,
-                remaining_run_root=args.remaining_run_root,
-                eis_v2_run_root=args.eis_v2_run_root,
-                user_style_path=args.user_style,
-            ),
-        )
-        print(f"run_root={result['run_root']}")
-        print(f"product_count={result['summary']['product_count']}")
-        print(f"failure_count={result['summary']['failure_count']}")
-        print(f"eis_imported={result['summary'].get('eis_imported', False)}")
-        return 0 if result["summary"]["product_count"] == 11 and not result.get("failures") else 1
-    if args.command == "unified-v3-real-template-rebuild-all-types":
-        result = run_v3_real_template_rebuild_all_types(
-            project_root,
-            V3RealTemplateRebuildOptions(
-                pairing_path=args.pairing,
-                output_root=args.output_root,
-                with_origin=bool(args.with_origin),
-                timestamp=args.timestamp,
-                f_drive_template_root=args.f_drive_template_root,
-                xps_reference_template_root=args.xps_reference_template_root,
-                xps_non_in_situ_template_root=args.xps_non_in_situ_template_root,
-                user_style_path=args.user_style,
-            ),
-        )
-        print(f"run_root={result['run_root']}")
-        print(f"product_count={result['summary']['product_count']}")
-        print(f"accepted_count={result['summary']['accepted_count']}")
-        print(f"blocked_count={result['summary']['blocked_count']}")
-        print(f"failed_count={result['summary']['failed_count']}")
-        return 0 if result["summary"]["product_count"] == 11 and result["summary"]["failed_count"] == 0 else 1
-    if args.command == "unified-v4-exemplar-conformance-all-types":
-        result = run_v4_exemplar_conformance_all_types(
-            project_root,
-            V4ExemplarConformanceOptions(
-                pairing_path=args.pairing,
-                output_root=args.output_root,
-                with_origin=bool(args.with_origin),
-                timestamp=args.timestamp,
-                f_drive_template_root=args.f_drive_template_root,
-                xps_reference_template_root=args.xps_reference_template_root,
-                user_style_path=args.user_style,
-            ),
-        )
-        print(f"run_root={result['run_root']}")
-        print(f"product_count={result['summary']['product_count']}")
-        print(f"success_count={result['summary']['success_count']}")
-        print(f"blocked_count={result['summary']['blocked_count']}")
-        print(f"failed_count={result['summary']['failed_count']}")
-        return 0 if result["summary"]["product_count"] == 11 and result["summary"]["failed_count"] == 0 else 1
-    if args.command == "unified-v4-strict-template-conformance-all-types":
-        result = run_v4_strict_template_conformance_all_types(
-            project_root,
-            V4StrictTemplateConformanceOptions(
-                pairing_path=args.pairing,
-                output_root=args.output_root,
-                with_origin=bool(args.with_origin),
-                timestamp=args.timestamp,
-                f_drive_template_root=args.f_drive_template_root,
-                xps_reference_template_root=args.xps_reference_template_root,
-                user_style_path=args.user_style,
-            ),
-        )
-        print(f"run_root={result['run_root']}")
-        print(f"product_count={result['summary']['product_count']}")
-        print(f"success_count={result['summary']['success_count']}")
-        print(f"blocked_count={result['summary']['blocked_count']}")
-        print(f"failed_count={result['summary']['failed_count']}")
-        return 0 if (
-            result["summary"]["product_count"] == 11
-            and result["summary"]["success_count"] == 11
-            and result["summary"]["blocked_count"] == 0
-            and result["summary"]["failed_count"] == 0
-        ) else 1
-    if args.command == "unified-v5-template-format-conformance-all-types":
+    if args.command == "template-format-products":
         result = run_template_format_executor(
             project_root,
             TemplateFormatExecutorOptions(

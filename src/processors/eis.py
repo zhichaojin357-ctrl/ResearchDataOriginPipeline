@@ -104,6 +104,8 @@ def clean_eis_file(path: Path) -> EisCleaningResult:
         frequency = _to_float(row.get(selected["frequency_hz"], "")) if selected.get("frequency_hz") else None
         if z_real is None or minus_z_imag is None:
             continue
+        if _looks_like_raw_imaginary_column(selected["minus_z_imag_ohm"]):
+            minus_z_imag = abs(minus_z_imag)
         points.append(EisPoint(row_index, frequency, z_real, minus_z_imag))
     if len(points) < 2:
         raise ValueError(f"EIS table has fewer than 2 numeric Z rows: {path}")
@@ -427,6 +429,15 @@ def _first_matching(columns: list[str], predicate) -> str | None:
         if predicate(_normalize(column)):
             return column
     return None
+
+
+def _looks_like_raw_imaginary_column(column: str) -> bool:
+    normalized = _normalize(column).strip()
+    return (
+        not normalized.startswith("-")
+        and "-z" not in normalized
+        and ("imag" in normalized or normalized.startswith("im") or "z''" in normalized)
+    )
 
 
 def _normalize(value: object) -> str:

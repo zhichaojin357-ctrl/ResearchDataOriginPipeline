@@ -99,6 +99,24 @@ function Get-HeaderLabels([string]$DataFile, [int]$ColumnCount) {
   return @($parts[1..$end] | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 }
 
+function Parse-XYPairs([string]$Spec, [int]$ColumnCount) {
+  $pairs = New-Object System.Collections.Generic.List[object]
+  if ([string]::IsNullOrWhiteSpace($Spec)) { return @() }
+  foreach ($part in ($Spec -split ';')) {
+    $item = [string]$part
+    if ([string]::IsNullOrWhiteSpace($item)) { continue }
+    $pieces = @($item -split ':')
+    if ($pieces.Count -ne 2) { throw "Invalid XYPairs entry: $item" }
+    $x = [int]$pieces[0]
+    $y = [int]$pieces[1]
+    if ($x -lt 1 -or $x -gt $ColumnCount -or $y -lt 1 -or $y -gt $ColumnCount) {
+      throw "XYPairs entry $item is outside ColumnCount $ColumnCount."
+    }
+    $pairs.Add([pscustomobject]@{ X = $x; Y = $y }) | Out-Null
+  }
+  return @($pairs.ToArray())
+}
+
 function Read-DelimitedTable([string]$DataFile) {
   $lines = @(Get-Content -LiteralPath $DataFile)
   if ($lines.Count -eq 0) { return [pscustomobject]@{ Headers = @(); Rows = @() } }
@@ -206,12 +224,19 @@ function New-LegendText([array]$Labels) {
   return ($rows -join "`r`n`r`n")
 }
 
-function Add-DirectCurveLabels($app, [string]$PageName, [array]$Labels, $Style, [string]$DataFile, [int]$ColumnCount) {
+function Add-DirectCurveLabels($app, [string]$PageName, [array]$Labels, $Style, [string]$DataFile, [int]$ColumnCount, [array]$XYPairs = @()) {
   $rows = Import-Csv -LiteralPath $DataFile
   if (-not $rows -or $ColumnCount -lt 2) { return }
   $columns = @($rows[0].PSObject.Properties.Name)
   if ($columns.Count -lt $ColumnCount) { return }
-  $xColumn = $columns[0]
+  $plotPairs = @()
+  if ($XYPairs -and $XYPairs.Count -gt 0) {
+    $plotPairs = @($XYPairs)
+  } else {
+    for ($i = 1; $i -lt $ColumnCount; $i++) {
+      $plotPairs += [pscustomobject]@{ X = 1; Y = ($i + 1) }
+    }
+  }
   $app.Execute('win -a ' + $PageName + '; layer -s 1;') | Out-Null
   $layer = $app.FindGraphLayer($PageName)
   if (-not $layer) { $layer = $app.FindGraphLayer($PageName + '!1') }
@@ -221,9 +246,11 @@ function Add-DirectCurveLabels($app, [string]$PageName, [array]$Labels, $Style, 
   $xOffset = if ($xRange -gt 0) { $xRange * 0.16 } else { 0.10 }
   $yRange = [double]$app.Evaluate('layer.y.to') - [double]$app.Evaluate('layer.y.from')
   $yLabelOffset = if ($yRange -gt 0) { $yRange * 0.035 } else { 0 }
-  for ($i = 1; $i -lt $ColumnCount; $i++) {
-    if (($i - 1) -ge $Labels.Count) { continue }
-    $yColumn = $columns[$i]
+  for ($i = 0; $i -lt $plotPairs.Count; $i++) {
+    if ($i -ge $Labels.Count) { continue }
+    $pair = $plotPairs[$i]
+    $xColumn = $columns[[int]$pair.X - 1]
+    $yColumn = $columns[[int]$pair.Y - 1]
     $point = $null
     $tailValues = New-Object System.Collections.Generic.List[double]
     $tailStart = [Math]::Max(0, $rows.Count - [Math]::Max(25, [int]($rows.Count * 0.04)))
@@ -255,8 +282,8 @@ function Add-DirectCurveLabels($app, [string]$PageName, [array]$Labels, $Style, 
       $labelY = [double]$sortedTail[[int][Math]::Floor($sortedTail.Count / 2)]
     }
     try {
-      $labelText = Format-BoldText ([string]$Labels[$i - 1])
-      $safeName = 'DL' + $i
+      $labelText = Format-BoldText ([string]$Labels[$i])
+      $safeName = 'DL' + ($i + 1)
       $escaped = $labelText.Replace('"', '\"')
       $labelX = [Math]::Min([double]($point.X - $xOffset), [double]($xTo - $xOffset))
       $xValue = [string]$labelX
@@ -598,7 +625,8 @@ function Apply-PlotPolicy($app, [string]$PageName, $Group) {
     $labels = @(Get-GroupValue $Group 'Labels' @())
     $dataFile = [string](Get-GroupValue $Group 'DataFile' '')
     $columnCount = [int](Get-GroupValue $Group 'ColumnCount' 0)
-    Add-DirectCurveLabels $app $PageName $labels (New-CachedGraph4Style) $dataFile $columnCount
+    $xyPairs = Parse-XYPairs ([string](Get-GroupValue $Group 'XYPairs' '')) $columnCount
+    Add-DirectCurveLabels $app $PageName $labels (New-CachedGraph4Style) $dataFile $columnCount $xyPairs
   }
 
   for ($i = 0; $i -lt $layer.DataPlots.Count; $i++) {
@@ -815,6 +843,7 @@ try {
     $dataFile = [string](Get-GroupValue $group 'DataFile')
     $pageName = [string](Get-GroupValue $group 'PageName')
     $cols = [int](Get-GroupValue $group 'ColumnCount')
+    $xyPairs = Parse-XYPairs ([string](Get-GroupValue $group 'XYPairs' '')) $cols
     $plotType = [string]$DefaultPlotType
     $groupPlotType = Get-GroupValue $group 'PlotType' $null
     if ($groupPlotType) { $plotType = [string]$groupPlotType }
@@ -828,8 +857,9 @@ try {
     } else {
       $currentLabels = Get-HeaderLabels $dataFile $cols
     }
-    if ($currentLabels.Count -ne ($cols - 1)) {
-      throw "Label count ($($currentLabels.Count)) must match Y column count ($($cols - 1)) for $pageName."
+    $expectedPlotCount = if ($xyPairs.Count -gt 0) { $xyPairs.Count } else { $cols - 1 }
+    if ($currentLabels.Count -ne $expectedPlotCount) {
+      throw "Label count ($($currentLabels.Count)) must match plot count ($expectedPlotCount) for $pageName."
     }
 
     $table = Read-DelimitedTable $dataFile
@@ -839,8 +869,24 @@ try {
     $dataFileName = [System.IO.Path]::GetFileName($dataFile)
     $dataBookName = Convert-ToSafeOriginName ([System.IO.Path]::GetFileNameWithoutExtension($dataFile)) 'Data'
     Initialize-OriginDataWorkbook $app $dataBookName $dataFileName $table.Headers $table.Rows $cols
+    if ($xyPairs.Count -gt 0) {
+      foreach ($pair in $xyPairs) {
+        $app.Execute('wks.col' + [int]$pair.X + '.type=4; wks.col' + [int]$pair.Y + '.type=1;') | Out-Null
+      }
+    }
 
-    if ($template) {
+    if ($xyPairs.Count -gt 0) {
+      $first = $xyPairs[0]
+      if ($template) {
+        $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(' + [int]$first.X + ',' + [int]$first.Y + ') plot:=' + $plotType + ' ogl:=[<new template:="' + (To-OriginPath $template) + '" name:="' + $pageName + '">];') | Out-Null
+      } else {
+        $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(' + [int]$first.X + ',' + [int]$first.Y + ') plot:=' + $plotType + ' ogl:=[<new name:="' + $pageName + '">];') | Out-Null
+      }
+      for ($pairIndex = 1; $pairIndex -lt $xyPairs.Count; $pairIndex++) {
+        $pair = $xyPairs[$pairIndex]
+        $app.Execute('plotxy iy:=(' + [int]$pair.X + ',' + [int]$pair.Y + ') plot:=' + $plotType + ' ogl:=[' + $pageName + ']Layer1;') | Out-Null
+      }
+    } elseif ($template) {
       $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(1,2:' + $cols + ') plot:=' + $plotType + ' ogl:=[<new template:="' + (To-OriginPath $template) + '" name:="' + $pageName + '">];') | Out-Null
     } else {
       $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(1,2:' + $cols + ') plot:=' + $plotType + ' ogl:=[<new name:="' + $pageName + '">];') | Out-Null
@@ -852,7 +898,7 @@ try {
     Clear-TemplateResidue $app $pageName $currentLabels
     Apply-ReferenceStyle $app $pageName $currentLabels $referenceStyle $group
     Apply-PlotPolicy $app $pageName $group
-    Assert-GraphPageValid $app $pageName ($cols - 1) $currentLabels
+    Assert-GraphPageValid $app $pageName $expectedPlotCount $currentLabels
   }
 
   Sanitize-ProjectPages $app
