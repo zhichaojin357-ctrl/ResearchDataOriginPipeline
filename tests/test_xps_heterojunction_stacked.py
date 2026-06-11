@@ -20,6 +20,7 @@ from src.core.xps_heterojunction import (
     XpsFitRecord,
     _build_direct_origin_xps_script,
 )
+from src.core.project import default_output_root
 
 
 def _write_xps_workbook(path: Path, sheets: dict[str, list[str]]) -> None:
@@ -237,12 +238,12 @@ def test_run_xps_heterojunction_stacked_dry_run_writes_reports_and_tables(tmp_pa
     result = run_xps_heterojunction_stacked(
         project_root,
         {"BOBC": [bobc], "CWO": [], "BC": [bc]},
-        XpsHeterojunctionOptions(output_dir=project_root / "output" / "xps_heterojunction_stacked", with_origin=False),
+        XpsHeterojunctionOptions(output_dir=default_output_root(project_root) / "xps_heterojunction_stacked", with_origin=False),
     )
 
     assert result["will_launch_origin"] is False
     assert result["comparison_count"] == 1
-    output = project_root / "output" / "xps_heterojunction_stacked"
+    output = default_output_root(project_root) / "xps_heterojunction_stacked"
     assert (output / "processed_tables" / "XPS_Bi_BOBC_vs_BC_stacked.csv").exists()
     plot_csv = output / "processed_tables" / "XPS_Bi_BOBC_vs_BC_stacked_origin_plot.csv"
     assert "BOBC component 1" in plot_csv.read_text(encoding="utf-8").splitlines()[0]
@@ -281,7 +282,7 @@ def test_run_xps_heterojunction_stacked_with_origin_updates_required_artifact_pa
         result = run_xps_heterojunction_stacked(
             project_root,
             {"BOBC": [bobc], "CWO": [], "BC": [bc]},
-            XpsHeterojunctionOptions(output_dir=project_root / "output" / "xps_heterojunction_stacked", with_origin=True),
+            XpsHeterojunctionOptions(output_dir=default_output_root(project_root) / "xps_heterojunction_stacked", with_origin=True),
         )
 
     assert export.call_count == 1
@@ -346,12 +347,12 @@ def test_cli_xps_heterojunction_stacked_dry_run_uses_explicit_sample_paths(tmp_p
     )
 
     assert code == 0
-    assert (project_root / "output" / "xps_heterojunction_stacked" / "reports" / "xps_heterojunction_stacked_summary.md").exists()
+    assert (default_output_root(project_root) / "xps_heterojunction_stacked" / "reports" / "xps_heterojunction_stacked_summary.md").exists()
 
 
 def test_cli_xps_heterojunction_stacked_reports_missing_explicit_file_without_outputs(tmp_path: Path, project_root: Path) -> None:
     missing = tmp_path / "missing_bobc.xlsx"
-    output_dir = project_root / "output" / f"_test_missing_xps_input_{tmp_path.name}"
+    output_dir = default_output_root(project_root) / f"_test_missing_xps_input_{tmp_path.name}"
 
     result = subprocess.run(
         [

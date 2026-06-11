@@ -7,8 +7,8 @@ from pathlib import Path
 
 from src.core.metadata import file_hash
 from src.core.output_sanitizer import render_output_path
-from src.core.project import report_path
-from src.core.runtime_paths import resolve_phase1_6_index, resolve_workspace_root
+from src.core.project import default_output_root, report_path
+from src.core.runtime_paths import resolve_output_root, resolve_phase1_6_index, resolve_workspace_root
 
 
 FORBIDDEN_TYPES = {
@@ -37,7 +37,7 @@ FORBIDDEN_TYPE_TOKENS = {
 
 @dataclass(frozen=True)
 class AutoQueueOptions:
-    queue: Path = Path("output/reports/processing_queue.json")
+    queue: Path | None = None
     workspace_root: Path | None = None
     processed_index: Path | None = None
     report_json: Path | None = None
@@ -54,7 +54,8 @@ def run_auto_queue(project_root: Path, options: AutoQueueOptions) -> int:
 
 
 def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
-    queue_path = _resolve_existing(project_root, options.queue)
+    effective_output_root = options.output_root or resolve_output_root(project_root)
+    queue_path = _resolve_existing(project_root, options.queue or _default_queue_path(project_root, effective_output_root))
     workspace_root = resolve_workspace_root(project_root, options.workspace_root)
     processed_index = resolve_phase1_6_index(project_root, options.processed_index)
     processed_hashes = _phase1_6_hashes(processed_index)
@@ -129,13 +130,13 @@ def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
     return {
         "runner": "auto-queue",
         "created_at": datetime.now().isoformat(timespec="seconds"),
-        "source_queue": render_output_path(queue_path, project_root=project_root, output_root=options.output_root),
-        "workspace_root": render_output_path(workspace_root, project_root=project_root, output_root=options.output_root),
-        "processed_index": render_output_path(processed_index, project_root=project_root, output_root=options.output_root),
+        "source_queue": render_output_path(queue_path, project_root=project_root, output_root=effective_output_root),
+        "workspace_root": render_output_path(workspace_root, project_root=project_root, output_root=effective_output_root),
+        "processed_index": render_output_path(processed_index, project_root=project_root, output_root=effective_output_root),
         "options": {
             "dry_run": True,
             "only_type": options.only_type,
-            "output_root": render_output_path(options.output_root, project_root=project_root, output_root=options.output_root) if options.output_root else None,
+            "output_root": render_output_path(effective_output_root, project_root=project_root, output_root=effective_output_root),
         },
         "summary": summary,
         "queue": {"queue_version": "1.0", "created_at": datetime.now().isoformat(timespec="seconds"), "items": accepted},
@@ -146,26 +147,27 @@ def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
 
 
 def write_auto_queue_outputs(project_root: Path, plan: dict, options: AutoQueueOptions) -> tuple[Path, Path, Path]:
+    effective_output_root = options.output_root or resolve_output_root(project_root)
     json_path = _resolve_output(
         project_root,
-        options.report_json or report_path(project_root, "phase1_8_new_auto_process_plan.json", output_root=options.output_root),
+        options.report_json or report_path(project_root, "phase1_8_new_auto_process_plan.json", output_root=effective_output_root),
     )
     md_path = _resolve_output(
         project_root,
-        options.report_md or report_path(project_root, "phase1_8_new_auto_process_plan.md", output_root=options.output_root),
+        options.report_md or report_path(project_root, "phase1_8_new_auto_process_plan.md", output_root=effective_output_root),
     )
     queue_path = _resolve_output(
         project_root,
-        options.queue_out or report_path(project_root, "phase1_8_new_auto_process_queue.json", output_root=options.output_root),
+        options.queue_out or report_path(project_root, "phase1_8_new_auto_process_queue.json", output_root=effective_output_root),
     )
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
-    md_path.write_text(_markdown(plan, queue_path, project_root=project_root, output_root=options.output_root), encoding="utf-8")
+    md_path.write_text(_markdown(plan, queue_path, project_root=project_root, output_root=effective_output_root), encoding="utf-8")
     queue_path.write_text(json.dumps(plan["queue"], ensure_ascii=False, indent=2), encoding="utf-8")
     if options.output_root is None:
         agent_report = project_root / "docs" / "agent_reports" / "phase1_8_new_auto_process_queue_report.md"
         agent_report.parent.mkdir(parents=True, exist_ok=True)
-        agent_report.write_text(_markdown(plan, queue_path, project_root=project_root, output_root=options.output_root), encoding="utf-8")
+        agent_report.write_text(_markdown(plan, queue_path, project_root=project_root, output_root=effective_output_root), encoding="utf-8")
     return json_path, md_path, queue_path
 
 
@@ -222,11 +224,18 @@ def _resolve_path(project_root: Path, path: Path) -> Path:
     return path if path.is_absolute() else project_root / path
 
 
+def _default_queue_path(project_root: Path, output_root: Path | None) -> Path:
+    if output_root is None:
+        return resolve_output_root(project_root) / "reports" / "processing_queue.json"
+    base = output_root if output_root.is_absolute() else project_root / output_root
+    return base / "reports" / "processing_queue.json"
+
+
 def _resolve_output(project_root: Path, path: Path) -> Path:
     resolved = _resolve_path(project_root, path)
-    allowed = [project_root / "output", project_root / "docs"]
+    allowed = [project_root / "output", default_output_root(project_root), resolve_output_root(project_root), project_root / "docs"]
     if not any(_is_under_or_equal(resolved.resolve(), base.resolve()) for base in allowed):
-        raise ValueError(f"Output path must stay under output/ or docs/: {resolved}")
+        raise ValueError(f"Output path must stay under configured output root or docs/: {resolved}")
     return resolved
 
 

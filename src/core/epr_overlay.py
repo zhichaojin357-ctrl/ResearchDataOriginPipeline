@@ -8,6 +8,7 @@ from statistics import median
 
 from src.core.epr_jeol import read_xy_xlsx
 from src.core.output_sanitizer import render_output_path
+from src.core.project import default_output_root
 from src.core.project import output_dir, report_path
 from src.core.runtime_paths import resolve_workspace_root
 from src.origin.adapter import export_plot
@@ -135,6 +136,7 @@ def build_epr_condition_overlay(
 
     data_dir = output_data_dir or output_dir(project_root, "processed_data", "EPR")
     data_dir.mkdir(parents=True, exist_ok=True)
+    output_base = _output_base_for_data_dir(project_root, data_dir)
     slug = f"epr_{group_name.lower()}_overlay"
     plot_csv = data_dir / f"{slug}_processed.csv"
     detail_csv = data_dir / f"{slug}_detail.csv"
@@ -182,22 +184,24 @@ def build_epr_condition_overlay(
             "Intensity (a.u.)",
             data_type="EPR overlay",
             source_file=reference_dir,
+            output_root=output_base,
         )
         status = "success" if origin_result.ok else "fail"
 
     metadata_path = _epr_overlay_metadata_path(project_root, data_dir, slug)
+    render = lambda value: render_output_path(value, project_root=project_root, output_root=output_base)
     metadata_payload = {
         "dataset_id": slug,
-        "metadata_path": render_output_path(metadata_path, project_root=project_root),
+        "metadata_path": render(metadata_path),
         "data_type": "EPR",
         "subtype": "EPR overlay",
         "group": group_name,
         "source_files": [Path(str(trace["path"])).name for trace in traces],
-        "processed_data": render_output_path(plot_csv, project_root=project_root),
-        "detail_csv": render_output_path(detail_csv, project_root=project_root),
-        "origin_file": render_output_path(origin_result.origin_file, project_root=project_root) if origin_result and origin_result.origin_file else None,
-        "figure_tif": render_output_path(origin_result.figure_tif, project_root=project_root) if origin_result and origin_result.figure_tif else None,
-        "preview_png": render_output_path(origin_result.preview_png, project_root=project_root) if origin_result and origin_result.preview_png else None,
+        "processed_data": render(plot_csv),
+        "detail_csv": render(detail_csv),
+        "origin_file": render(origin_result.origin_file) if origin_result and origin_result.origin_file else None,
+        "figure_tif": render(origin_result.figure_tif) if origin_result and origin_result.figure_tif else None,
+        "preview_png": render(origin_result.preview_png) if origin_result and origin_result.preview_png else None,
         "processing_status": status,
         "manual_check_required": True,
         "manual_check_items": [
@@ -234,14 +238,24 @@ def build_epr_condition_overlay(
         "normalization": "max_abs_per_trace" if normalize else "none",
         "background_subtraction": background or "none",
         "background_files": {trace["label"]: trace["background_file"] for trace in traces if trace["background_file"]},
-        "processed_csv": render_output_path(plot_csv, project_root=project_root),
-        "detail_csv": render_output_path(detail_csv, project_root=project_root),
-        "metadata": render_output_path(metadata_path, project_root=project_root),
-        "origin_file": render_output_path(origin_result.origin_file, project_root=project_root) if origin_result and origin_result.origin_file else None,
-        "figure_tif": render_output_path(origin_result.figure_tif, project_root=project_root) if origin_result and origin_result.figure_tif else None,
-        "preview_png": render_output_path(origin_result.preview_png, project_root=project_root) if origin_result and origin_result.preview_png else None,
+        "processed_csv": render(plot_csv),
+        "detail_csv": render(detail_csv),
+        "metadata": render(metadata_path),
+        "origin_file": render(origin_result.origin_file) if origin_result and origin_result.origin_file else None,
+        "figure_tif": render(origin_result.figure_tif) if origin_result and origin_result.figure_tif else None,
+        "preview_png": render(origin_result.preview_png) if origin_result and origin_result.preview_png else None,
         "origin_message": origin_result.message if origin_result else "Origin export not requested",
     }
+
+
+def _output_base_for_data_dir(project_root: Path, data_dir: Path) -> Path:
+    for candidate in (default_output_root(project_root), project_root / "output"):
+        try:
+            data_dir.resolve().relative_to(candidate.resolve())
+            return candidate
+        except ValueError:
+            continue
+    return default_output_root(project_root)
 
 
 def _epr_overlay_metadata_path(project_root: Path, data_dir: Path, slug: str) -> Path:
@@ -249,7 +263,7 @@ def _epr_overlay_metadata_path(project_root: Path, data_dir: Path, slug: str) ->
         return data_dir.parent / "metadata" / slug / "metadata.json"
     if data_dir.parent.name == "processed_data":
         return data_dir.parent.parent / "metadata" / data_dir.name / slug / "metadata.json"
-    return project_root / "output" / "metadata" / "EPR" / slug / "metadata.json"
+    return default_output_root(project_root) / "metadata" / "EPR" / slug / "metadata.json"
 
 
 def _default_reference_dir(project_root: Path) -> Path:

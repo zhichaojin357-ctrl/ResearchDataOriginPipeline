@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from src.core.runtime_paths import create_run_output_layout
+from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.processors.base import process_table_dataset
 from src.processors.calculations import (
     build_hplc_lc_manual_review_reason,
@@ -33,8 +33,15 @@ def _write_csv(path: Path, headers: list[str], rows: list[list[object]]) -> None
 
 
 def _processed_rows(project_root: Path, metadata: dict) -> list[dict[str, str]]:
-    with (project_root / metadata["processed_data"]).open(encoding="utf-8") as handle:
+    with _artifact_path(project_root, metadata["processed_data"]).open(encoding="utf-8") as handle:
         return list(csv.DictReader(handle))
+
+
+def _artifact_path(project_root: Path, rendered_path: str) -> Path:
+    rendered = Path(rendered_path)
+    if rendered.parts and rendered.parts[0] == "output":
+        return resolve_output_root(project_root) / Path(*rendered.parts[1:])
+    return project_root / rendered
 
 
 def _forbidden_quantitation_keys(metadata: dict) -> set[str]:
@@ -315,6 +322,6 @@ def test_hplc_lc_metadata_and_plot_intent_route_into_tmp_run_root(tmp_path: Path
     assert not (tmp_path / "output" / "metadata").exists()
     assert not (tmp_path / "output" / "processed_data").exists()
 
-    metadata_path = tmp_path / metadata["metadata_path"]
+    metadata_path = layout.root / Path(metadata["metadata_path"]).relative_to(f"output/runs/{layout.run_id}")
     recorded = json.loads(metadata_path.read_text(encoding="utf-8"))
     assert recorded["key_results"]["lc_plot_intent"]["plot_type"] == "chromatogram"

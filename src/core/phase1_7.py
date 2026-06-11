@@ -11,6 +11,7 @@ from pathlib import Path
 
 from src.core.origin_batch import plan_origin_batch, OriginBatchOptions
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.core.project import default_output_root
 from src.core.runtime_paths import resolve_optional_f_drive_backup, resolve_phase1_6_index, resolve_phase1_6_package, resolve_workspace_root
 
 
@@ -143,9 +144,9 @@ def audit_phase1_6_package(project_root: Path, package_root: Path | None = None)
 
 
 def write_package_audit(project_root: Path, audit: dict) -> None:
-    _write_json(project_root / "output" / "reports" / "phase1_7_phase1_6_result_package_audit.json", audit)
+    _write_json(default_output_root(project_root) / "reports" / "phase1_7_phase1_6_result_package_audit.json", audit)
     markdown = _package_audit_markdown(audit)
-    _write_text(project_root / "output" / "reports" / "phase1_7_phase1_6_result_package_audit.md", markdown)
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_phase1_6_result_package_audit.md", markdown)
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_phase1_6_result_package_audit.md", markdown)
 
 
@@ -184,10 +185,10 @@ def generate_preview_review_checklist(project_root: Path, package_root: Path | N
 
 
 def write_preview_review_checklist(project_root: Path, checklist: list[dict[str, str]]) -> None:
-    csv_path = project_root / "output" / "reports" / "phase1_7_origin_preview_review_checklist.csv"
+    csv_path = default_output_root(project_root) / "reports" / "phase1_7_origin_preview_review_checklist.csv"
     _write_csv(csv_path, checklist)
     markdown = _table_markdown("Phase 1.7 Origin PNG Preview Review Checklist", checklist)
-    _write_text(project_root / "output" / "reports" / "phase1_7_origin_preview_review_checklist.md", markdown)
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_origin_preview_review_checklist.md", markdown)
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_origin_preview_review_checklist.md", markdown)
 
 
@@ -224,7 +225,7 @@ def generate_gallery(project_root: Path, package_root: Path | None = None) -> di
 
 
 def write_gallery(project_root: Path, gallery: dict) -> None:
-    dashboard = project_root / "output" / "review_dashboard"
+    dashboard = default_output_root(project_root) / "review_dashboard"
     _write_json(dashboard / "phase1_7_preview_gallery_index.json", gallery)
     _write_text(dashboard / "phase1_7_preview_gallery.md", _gallery_markdown(gallery, compact=False))
     _write_text(dashboard / "phase1_7_preview_gallery_by_type.md", _gallery_markdown(gallery, compact=True))
@@ -256,14 +257,14 @@ def generate_high_priority_review(project_root: Path, package_root: Path | None 
 
 def write_high_priority_review(project_root: Path, entries: list[dict[str, str]]) -> None:
     payload = {"count": len(entries), "items": entries}
-    _write_json(project_root / "output" / "reports" / "phase1_7_high_priority_manual_review.json", payload)
+    _write_json(default_output_root(project_root) / "reports" / "phase1_7_high_priority_manual_review.json", payload)
     markdown = _table_markdown("Phase 1.7 High-Priority Manual Review", entries)
-    _write_text(project_root / "output" / "reports" / "phase1_7_high_priority_manual_review.md", markdown)
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_high_priority_manual_review.md", markdown)
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_high_priority_manual_review.md", markdown)
 
 
 def generate_override_decision_table(project_root: Path) -> tuple[list[dict[str, str]], dict]:
-    proposal_path = project_root / "output" / "reports" / "phase1_6_manual_override_proposals_second_wave.json"
+    proposal_path = default_output_root(project_root) / "reports" / "phase1_6_manual_override_proposals_second_wave.json"
     if not proposal_path.exists():
         return [], {"missing": _report_path(project_root, proposal_path)}
     payload = json.loads(proposal_path.read_text(encoding="utf-8"))
@@ -296,12 +297,12 @@ def generate_override_decision_table(project_root: Path) -> tuple[list[dict[str,
 
 
 def write_override_decision_table(project_root: Path, rows: list[dict[str, str]], summary: dict) -> None:
-    csv_path = project_root / "output" / "reports" / "phase1_7_manual_override_decision_table.csv"
+    csv_path = default_output_root(project_root) / "reports" / "phase1_7_manual_override_decision_table.csv"
     _write_csv(csv_path, rows)
     markdown = _table_markdown("Phase 1.7 Manual Override Decision Table", rows)
     if summary:
         markdown += "\n## Source Summary\n\n" + "\n".join(f"- {key}: {value}" for key, value in summary.items()) + "\n"
-    _write_text(project_root / "output" / "reports" / "phase1_7_manual_override_decision_table.md", markdown)
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_manual_override_decision_table.md", markdown)
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_manual_override_decision_table.md", markdown)
 
 
@@ -320,7 +321,7 @@ def write_manifest_runner_report(project_root: Path) -> dict:
 
 def write_origin_com_isolation_proof(project_root: Path, *, run_single_instance: bool = False) -> dict:
     before = _origin_processes()
-    synthetic_dir = project_root / "output" / "reports" / "phase1_7_origin_com_isolation_synthetic"
+    synthetic_dir = default_output_root(project_root) / "reports" / "phase1_7_origin_com_isolation_synthetic"
     synthetic_dir.mkdir(parents=True, exist_ok=True)
     (synthetic_dir / "synthetic.csv").write_text("x,y\n0,0\n1,1\n", encoding="utf-8")
     proof: dict[str, object] = {
@@ -358,9 +359,9 @@ def write_origin_com_isolation_proof(project_root: Path, *, run_single_instance:
         }
         proof["recommendation"] = "two_instances_possible_with_guardrails" if result.returncode == 0 else "proof_blocked"
     proof["origin_processes_after"] = _origin_processes()
-    _write_json(project_root / "output" / "reports" / "phase1_7_origin_com_isolation_proof.json", proof)
+    _write_json(default_output_root(project_root) / "reports" / "phase1_7_origin_com_isolation_proof.json", proof)
     markdown = _origin_proof_markdown(proof)
-    _write_text(project_root / "output" / "reports" / "phase1_7_origin_com_isolation_proof.md", markdown)
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_origin_com_isolation_proof.md", markdown)
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_origin_com_isolation_proof.md", markdown)
     return proof
 
@@ -460,15 +461,15 @@ def write_phase1_7_reports(project_root: Path, instruction_sha: str, command_res
 
 def write_triage_recognition_baseline(project_root: Path) -> dict:
     snapshot = triage_recognition_snapshot(project_root)
-    _write_json(project_root / "output" / "reports" / "phase1_7_triage_recognition_baseline.json", snapshot)
+    _write_json(default_output_root(project_root) / "reports" / "phase1_7_triage_recognition_baseline.json", snapshot)
     markdown = _triage_snapshot_markdown("Phase 1.7 Triage Recognition Baseline", snapshot)
-    _write_text(project_root / "output" / "reports" / "phase1_7_triage_recognition_baseline.md", markdown)
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_triage_recognition_baseline.md", markdown)
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_triage_recognition_baseline.md", markdown)
     return snapshot
 
 
 def triage_recognition_snapshot(project_root: Path) -> dict:
-    manifest = _load_json(project_root / "output" / "reports" / "data_triage_manifest.json", {"items": [], "summary": {}})
+    manifest = _load_json(default_output_root(project_root) / "reports" / "data_triage_manifest.json", {"items": [], "summary": {}})
     items = manifest.get("items", [])
     manual = [item for item in items if item.get("decision") == "MANUAL_REVIEW"]
     summary = manifest.get("summary", {})
@@ -549,15 +550,15 @@ def write_success_pattern_library(project_root: Path) -> dict:
                 "forbidden_claims_that_stayed_blocked": [claim for claim, _count in forbidden_claims.most_common(20)],
             }
         )
-    _write_json(project_root / "output" / "reports" / "phase1_7_success_pattern_library.json", library)
+    _write_json(default_output_root(project_root) / "reports" / "phase1_7_success_pattern_library.json", library)
     markdown = _success_pattern_markdown(library)
-    _write_text(project_root / "output" / "reports" / "phase1_7_success_pattern_library.md", markdown)
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_success_pattern_library.md", markdown)
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_success_pattern_library.md", markdown)
     return library
 
 
 def write_manual_review_error_taxonomy(project_root: Path) -> dict:
-    manifest = _load_json(project_root / "output" / "reports" / "data_triage_manifest.json", {"items": []})
+    manifest = _load_json(default_output_root(project_root) / "reports" / "data_triage_manifest.json", {"items": []})
     manual = [item for item in manifest.get("items", []) if item.get("decision") == "MANUAL_REVIEW"]
     categories = {name: [] for name in _taxonomy_names()}
     for item in manual:
@@ -578,15 +579,15 @@ def write_manual_review_error_taxonomy(project_root: Path) -> dict:
                 "whether_user_confirmation_is_required": _taxonomy_user_required(name),
             }
         )
-    _write_json(project_root / "output" / "reports" / "phase1_7_manual_review_error_taxonomy.json", payload)
+    _write_json(default_output_root(project_root) / "reports" / "phase1_7_manual_review_error_taxonomy.json", payload)
     markdown = _taxonomy_markdown(payload)
-    _write_text(project_root / "output" / "reports" / "phase1_7_manual_review_error_taxonomy.md", markdown)
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_manual_review_error_taxonomy.md", markdown)
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_manual_review_error_taxonomy.md", markdown)
     return payload
 
 
 def write_triage_before_after_comparison(project_root: Path, before: dict | None = None) -> dict:
-    before = before or _load_json(project_root / "output" / "reports" / "phase1_7_triage_recognition_baseline.json", {})
+    before = before or _load_json(default_output_root(project_root) / "reports" / "phase1_7_triage_recognition_baseline.json", {})
     after = triage_recognition_snapshot(project_root)
     comparison = {
         "before": before,
@@ -599,9 +600,9 @@ def write_triage_before_after_comparison(project_root: Path, before: dict | None
         "new_override_proposals": len(_new_override_proposals(project_root)),
         "risk_assessment": _triage_risk_assessment(before, after),
     }
-    _write_json(project_root / "output" / "reports" / "phase1_7_triage_recognition_before_after_comparison.json", comparison)
+    _write_json(default_output_root(project_root) / "reports" / "phase1_7_triage_recognition_before_after_comparison.json", comparison)
     markdown = _comparison_markdown(comparison)
-    _write_text(project_root / "output" / "reports" / "phase1_7_triage_recognition_before_after_comparison.md", markdown)
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_triage_recognition_before_after_comparison.md", markdown)
     _write_text(project_root / "docs" / "agent_reports" / "phase1_7_triage_recognition_before_after_comparison.md", markdown)
     return comparison
 
@@ -609,10 +610,10 @@ def write_triage_before_after_comparison(project_root: Path, before: dict | None
 def write_new_candidates_after_optimization(project_root: Path) -> tuple[list[dict], list[dict]]:
     safe_candidates = _new_safe_candidates(project_root)
     override_proposals = _new_override_proposals(project_root)
-    _write_json(project_root / "output" / "reports" / "phase1_7_new_safe_promotion_candidates.json", {"count": len(safe_candidates), "items": safe_candidates})
-    _write_text(project_root / "output" / "reports" / "phase1_7_new_safe_promotion_candidates.md", _candidate_markdown("Phase 1.7 New Safe Promotion Candidates", safe_candidates))
-    _write_json(project_root / "output" / "reports" / "phase1_7_new_override_proposals_after_optimization.json", {"count": len(override_proposals), "items": override_proposals})
-    _write_text(project_root / "output" / "reports" / "phase1_7_new_override_proposals_after_optimization.md", _candidate_markdown("Phase 1.7 New Override Proposals After Optimization", override_proposals))
+    _write_json(default_output_root(project_root) / "reports" / "phase1_7_new_safe_promotion_candidates.json", {"count": len(safe_candidates), "items": safe_candidates})
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_new_safe_promotion_candidates.md", _candidate_markdown("Phase 1.7 New Safe Promotion Candidates", safe_candidates))
+    _write_json(default_output_root(project_root) / "reports" / "phase1_7_new_override_proposals_after_optimization.json", {"count": len(override_proposals), "items": override_proposals})
+    _write_text(default_output_root(project_root) / "reports" / "phase1_7_new_override_proposals_after_optimization.md", _candidate_markdown("Phase 1.7 New Override Proposals After Optimization", override_proposals))
     return safe_candidates, override_proposals
 
 
@@ -752,7 +753,6 @@ def _package_audit_markdown(audit: dict) -> str:
             issue_lines.append(f"- {issue.get('kind')}: {len(items)}")
     lines.extend(issue_lines or ["- None."])
     return "\n".join(lines) + "\n"
-
 
 def _table_markdown(title: str, rows: list[dict[str, str]]) -> str:
     if not rows:
@@ -903,7 +903,7 @@ def _write_json(path: Path, payload: object) -> None:
 
 
 def _report_path(project_root: Path, path: Path) -> str:
-    return str(render_output_path(path, project_root=project_root))
+    return str(render_output_path(path, project_root=project_root, output_root=default_output_root(project_root)))
 
 
 def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
@@ -953,7 +953,7 @@ def _count_fallback(items: list[dict], fallback: str) -> int:
 
 def _looks_backup(name: str) -> bool:
     lowered = name.casefold()
-    return name.startswith("~$") or any(token in lowered for token in ("backup", "copy", "old", "temp", "tmp", "bak", "备份", "副本", "复制"))
+    return name.startswith("~$") or any(token in lowered for token in ("backup", "copy", "old", "temp", "tmp", "bak", "澶囦唤", "鍓湰", "澶嶅埗"))
 
 
 def _triage_snapshot_markdown(title: str, snapshot: dict) -> str:
@@ -1196,8 +1196,8 @@ def _delta_counts(before: dict, after: dict) -> dict:
 
 
 def _new_safe_candidates(project_root: Path) -> list[dict]:
-    before_manifest = _load_json(project_root / "output" / "reports" / "data_triage_manifest_phase1_7_before_optimization.json", {"items": []})
-    current = _load_json(project_root / "output" / "reports" / "data_triage_manifest.json", {"items": []})
+    before_manifest = _load_json(default_output_root(project_root) / "reports" / "data_triage_manifest_phase1_7_before_optimization.json", {"items": []})
+    current = _load_json(default_output_root(project_root) / "reports" / "data_triage_manifest.json", {"items": []})
     before_by_hash = {item.get("source_hash"): item for item in before_manifest.get("items", []) if item.get("source_hash")}
     processed_hashes = _processed_hashes(project_root)
     candidates = []
@@ -1215,7 +1215,7 @@ def _new_safe_candidates(project_root: Path) -> list[dict]:
 
 
 def _new_override_proposals(project_root: Path) -> list[dict]:
-    current = _load_json(project_root / "output" / "reports" / "data_triage_manifest.json", {"items": []})
+    current = _load_json(default_output_root(project_root) / "reports" / "data_triage_manifest.json", {"items": []})
     processed_hashes = _processed_hashes(project_root)
     proposals = []
     for item in current.get("items", []):

@@ -8,6 +8,7 @@ from pathlib import Path
 from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.metadata import write_metadata
 from src.core.project import claim_policy_path, load_json_compatible_yaml, output_dir
+from src.core.runtime_paths import resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
 from src.origin.adapter import export_plot
 from src.processors.calculations import build_processed_table, bet_numeric, condition_screening_numeric, epr_numeric, type_specific_results
@@ -62,8 +63,9 @@ def process_table_dataset(
     output_slug = f"{source_slug}_{dataset_suffix}" if dataset_suffix else source_slug
     dataset_id = f"{safe_name(data_type)}_{output_slug}"
     profile = SUPPORTED_PROCESSOR_PROFILES.get(data_type)
-    processed_dir = output_dir(project_root, "processed_data", safe_name(data_type), output_root=output_root)
-    metadata_dir = output_dir(project_root, "metadata", safe_name(data_type), output_root=output_root)
+    effective_output_root = output_root or resolve_output_root(project_root)
+    processed_dir = output_dir(project_root, "processed_data", safe_name(data_type), output_root=effective_output_root)
+    metadata_dir = output_dir(project_root, "metadata", safe_name(data_type), output_root=effective_output_root)
     processed_csv = processed_dir / f"{output_slug}_processed.csv"
     if processed_csv.exists() and not force:
         raise FileExistsError(f"Output already exists; rerun with --force to overwrite: {processed_csv}")
@@ -127,7 +129,7 @@ def process_table_dataset(
                 y_title,
                 data_type=data_type,
                 source_file=source_file,
-                output_root=output_root,
+                output_root=effective_output_root,
             )
             status = "success" if origin_result.ok else "fail"
             if not origin_result.ok:
@@ -160,7 +162,7 @@ def process_table_dataset(
         key_results=key_results,
         triage=triage,
         parameters={"algorithm_provenance": _algorithm_provenance(data_type, processor_name, processed_headers, key_results)},
-        output_root=output_root,
+        output_root=effective_output_root,
     )
 
 

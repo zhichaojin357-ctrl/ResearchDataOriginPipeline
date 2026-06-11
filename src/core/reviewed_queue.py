@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.core.output_sanitizer import scrub_output_text
-from src.core.project import report_path
+from src.core.project import default_output_root, report_path
 from src.core.runtime_paths import resolve_phase1_6_index, resolve_workspace_root
 
 
@@ -532,6 +532,7 @@ def _guard_output_path(project_root: Path, path: Path) -> None:
     resolved = path.resolve()
     allowed = [
         (project_root / "output").resolve(),
+        default_output_root(project_root).resolve(),
         (project_root / "docs").resolve(),
         (project_root / "tests" / "fixtures").resolve(),
     ]

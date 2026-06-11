@@ -12,7 +12,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from src.core.runtime_paths import resolve_phase1_6_index
+from src.core.runtime_paths import resolve_output_root, resolve_phase1_6_index
 
 
 def norm_key(path_text: str) -> str:
@@ -82,7 +82,7 @@ def phase16_keys(root: Path) -> set[str]:
 
 
 def build_rows(root: Path) -> tuple[list[dict], list[dict], dict]:
-    manifest_path = root / "output" / "reports" / "data_triage_manifest.json"
+    manifest_path = resolve_output_root(root) / "reports" / "data_triage_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     items = manifest["items"]
 
@@ -233,7 +233,7 @@ def write_report(path: Path, kept: list[dict], excluded: list[dict], summary: di
 
 def main() -> None:
     root = Path.cwd()
-    reports = root / "output" / "reports"
+    reports = resolve_output_root(root) / "reports"
     docs_reports = root / "docs" / "agent_reports"
     docs_reports.mkdir(parents=True, exist_ok=True)
 

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.project import ensure_write_path_allowed
+from src.core.project import default_output_root, ensure_write_path_allowed
 
 
 def file_hash(path: Path) -> str:
@@ -38,6 +38,7 @@ def write_metadata(
     parameters: dict | None = None,
     output_root: Path | None = None,
 ) -> dict:
+    effective_output_root = output_root or (default_output_root(project_root) if project_root is not None else None)
     if processing_status == "success":
         required = {
             "origin_file": origin_file,
@@ -52,15 +53,15 @@ def write_metadata(
             outside_output = [
                 name
                 for name, value in required.items()
-                if value is not None and not _is_under(value, project_root / "output")
+                if value is not None and effective_output_root is not None and not _is_under(value, effective_output_root)
             ]
             if outside_output:
-                raise ValueError("Successful metadata artifacts must be under output/: " + ", ".join(outside_output))
+                raise ValueError("Successful metadata artifacts must be under configured output root: " + ", ".join(outside_output))
 
     def render_path(value: Path | None) -> str | None:
         if value is None:
             return None
-        return render_output_path(value, project_root=project_root, output_root=output_root)
+        return render_output_path(value, project_root=project_root, output_root=_metadata_output_base(effective_output_root))
 
     origin_template_used = None
     if processing_status == "success" and origin_file and figure_tif:
@@ -86,13 +87,13 @@ def write_metadata(
         "manual_check_items": _sanitize_metadata_payload(
             _manual_check_items(processing_status, manual_check_items, preview_png),
             project_root=project_root,
-            output_root=output_root,
+            output_root=effective_output_root,
         ),
-        "forbidden_claims": _sanitize_metadata_payload(forbidden_claims or [], project_root=project_root, output_root=output_root),
-        "warnings": _sanitize_metadata_payload(warnings, project_root=project_root, output_root=output_root),
-        "parameters": _sanitize_metadata_payload(parameters or {}, project_root=project_root, output_root=output_root),
-        "key_results": _sanitize_metadata_payload(key_results, project_root=project_root, output_root=output_root),
-        "triage": _sanitize_metadata_payload(triage or {}, project_root=project_root, output_root=output_root),
+        "forbidden_claims": _sanitize_metadata_payload(forbidden_claims or [], project_root=project_root, output_root=effective_output_root),
+        "warnings": _sanitize_metadata_payload(warnings, project_root=project_root, output_root=effective_output_root),
+        "parameters": _sanitize_metadata_payload(parameters or {}, project_root=project_root, output_root=effective_output_root),
+        "key_results": _sanitize_metadata_payload(key_results, project_root=project_root, output_root=effective_output_root),
+        "triage": _sanitize_metadata_payload(triage or {}, project_root=project_root, output_root=effective_output_root),
         "confidence_level": {
             "data_reading": "medium",
             "plotting": "medium" if processing_status == "success" else "low",
@@ -101,7 +102,7 @@ def write_metadata(
         },
     }
     if project_root is not None:
-        ensure_write_path_allowed(project_root, path)
+        ensure_write_path_allowed(project_root, path, output_root=effective_output_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
     return metadata
@@ -118,14 +119,22 @@ def _manual_check_items(processing_status: str, items: list[str], preview_png: P
 
 def _sanitize_metadata_payload(value: object, *, project_root: Path | None, output_root: Path | None) -> object:
     if isinstance(value, Path):
-        return render_output_path(value, project_root=project_root, output_root=output_root)
+        return render_output_path(value, project_root=project_root, output_root=_metadata_output_base(output_root))
     if isinstance(value, dict):
         return {str(key): _sanitize_metadata_payload(item, project_root=project_root, output_root=output_root) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
         return [_sanitize_metadata_payload(item, project_root=project_root, output_root=output_root) for item in value]
     if isinstance(value, str):
-        return scrub_output_text(value, project_root=project_root, output_root=output_root)
+        return scrub_output_text(value, project_root=project_root, output_root=_metadata_output_base(output_root))
     return value
+
+
+def _metadata_output_base(output_root: Path | None) -> Path | None:
+    if output_root is None:
+        return None
+    if output_root.parent.name == "runs":
+        return output_root.parent.parent
+    return output_root
 
 
 def _is_under(path: Path, parent: Path) -> bool:

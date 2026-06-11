@@ -17,6 +17,10 @@ REQUIRED_OUTPUT_DIRS = (
 )
 
 
+def default_output_root(project_root: Path) -> Path:
+    return (project_root.resolve().parent / "\u8f93\u51fa").resolve()
+
+
 def ensure_dir(path: Path) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
@@ -25,8 +29,10 @@ def ensure_dir(path: Path) -> Path:
 def ensure_write_path_allowed(project_root: Path, path: Path, *, output_root: Path | None = None) -> Path:
     resolved_project = project_root.resolve()
     resolved_path = path.resolve()
+    resolved_default_output = default_output_root(project_root)
     allowed_roots = [
         resolved_project / "output",
+        resolved_default_output,
         resolved_project / "docs",
         resolved_project / "tests" / "fixtures",
         resolved_project / "golden_examples",
@@ -42,7 +48,7 @@ def ensure_write_path_allowed(project_root: Path, path: Path, *, output_root: Pa
 
 
 def output_dir(project_root: Path, *parts: str, output_root: Path | None = None) -> Path:
-    base = output_root if output_root is not None else project_root / "output"
+    base = output_root if output_root is not None else default_output_root(project_root)
     if not base.is_absolute():
         base = project_root / base
     return ensure_dir(ensure_write_path_allowed(project_root, base / Path(*parts), output_root=base))

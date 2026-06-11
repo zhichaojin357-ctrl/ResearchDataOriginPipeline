@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import hashlib
@@ -15,11 +15,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from src.core.output_sanitizer import render_output_path
+from src.core.project import default_output_root
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE, get_plot_policy
 
 
 DEFAULT_ORIGIN_SKILL_DIR = Path(".agents") / "skills" / "originpro-graph-export"
-DEFAULT_PHASE1_6_PACKAGE = Path("output/phase1_6_origin_results_20260531_041538")
+DEFAULT_PHASE1_6_PACKAGE = Path("phase1_6_origin_results_20260531_041538")
 
 STYLE_PROFILE = "Origin Graph4 cached style"
 
@@ -91,7 +92,7 @@ def run_phase1_9_governance(
     package_dir: Path | None = None,
 ) -> Phase19Outputs:
     skill_dir = _resolve_project_path(project_root, skill_dir or DEFAULT_ORIGIN_SKILL_DIR)
-    package_dir = _resolve_project_path(project_root, package_dir or DEFAULT_PHASE1_6_PACKAGE)
+    package_dir = _resolve_project_path(project_root, package_dir) if package_dir else default_output_root(project_root) / DEFAULT_PHASE1_6_PACKAGE
 
     skill_payload = write_origin_plotting_skill_snapshot(project_root, skill_dir)
     journal_csv, journal_md = write_journal_ready_index(project_root, package_dir, skill_payload)
@@ -109,7 +110,7 @@ def run_phase1_9_governance(
     return Phase19Outputs(
         skill_sha256=skill_payload["skill_sha256"],
         snapshot_md=project_root / "docs" / "agent_reports" / "phase1_9_origin_plotting_skill_snapshot.md",
-        snapshot_json=project_root / "output" / "reports" / "phase1_9_origin_plotting_skill_snapshot.json",
+        snapshot_json=default_output_root(project_root) / "reports" / "phase1_9_origin_plotting_skill_snapshot.json",
         journal_index_csv=journal_csv,
         journal_index_md=journal_md,
         structure_report=structure_report,
@@ -168,7 +169,7 @@ def write_origin_plotting_skill_snapshot(project_root: Path, skill_dir: Path) ->
         },
     }
 
-    reports = _ensure_dir(project_root / "output" / "reports")
+    reports = _ensure_dir(default_output_root(project_root) / "reports")
     docs = _ensure_dir(project_root / "docs" / "agent_reports")
     json_path = reports / "phase1_9_origin_plotting_skill_snapshot.json"
     md_path = docs / "phase1_9_origin_plotting_skill_snapshot.md"
@@ -234,7 +235,7 @@ def write_journal_ready_index(project_root: Path, package_dir: Path, skill_paylo
         )
         enriched_rows.append(enriched)
 
-    reports = _ensure_dir(project_root / "output" / "reports")
+    reports = _ensure_dir(default_output_root(project_root) / "reports")
     docs = _ensure_dir(project_root / "docs" / "agent_reports")
     out_csv = reports / "phase1_9_journal_ready_index.csv"
     out_md = reports / "phase1_9_journal_ready_index.md"
@@ -313,7 +314,7 @@ def write_package_integration_report(project_root: Path) -> dict:
             "automatic_scientific_assignment_blocked": True,
         },
     }
-    reports = _ensure_dir(project_root / "output" / "reports")
+    reports = _ensure_dir(default_output_root(project_root) / "reports")
     docs = _ensure_dir(project_root / "docs" / "agent_reports")
     json_path = reports / "phase1_9_package_integration_report.json"
     md_path = docs / "phase1_9_package_integration_report.md"
@@ -355,7 +356,7 @@ def write_data_type_coverage_matrix(project_root: Path, package_report: dict) ->
         {"data_type": "MS", "reader": "mzML/mzXML/MGF/msp standard formats", "algorithm": "spectrum index only", "external_packages": _available_names(installed, ["pymzml", "pyteomics"]), "auto_conclusions": "product assignment blocked"},
         {"data_type": "EIS/LEVM", "reader": "standard tables; LEVM lst parser planned", "algorithm": "Nyquist/Bode candidates; impedance adapter draft fit for visualization", "external_packages": _available_names(installed, ["scipy", "impedance"]), "auto_conclusions": "equivalent-circuit conclusion blocked"},
     ]
-    reports = _ensure_dir(project_root / "output" / "reports")
+    reports = _ensure_dir(default_output_root(project_root) / "reports")
     json_path = reports / "phase1_9_data_type_coverage_matrix.json"
     md_path = reports / "phase1_9_data_type_coverage_matrix.md"
     json_path.write_text(json.dumps({"rows": rows}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -378,8 +379,8 @@ def write_data_type_coverage_matrix(project_root: Path, package_report: dict) ->
 
 
 def write_manual_review_required_final(project_root: Path) -> Path:
-    source_csv = project_root / "output" / "reports" / "phase1_8_manual_review_required_filtered.csv"
-    out = project_root / "output" / "reports" / "phase1_9_manual_review_required_final.xlsx"
+    source_csv = default_output_root(project_root) / "reports" / "phase1_8_manual_review_required_filtered.csv"
+    out = default_output_root(project_root) / "reports" / "phase1_9_manual_review_required_final.xlsx"
     if not source_csv.exists():
         return out
     rows = _read_csv(source_csv)
@@ -387,8 +388,8 @@ def write_manual_review_required_final(project_root: Path) -> Path:
 
     workbook = Workbook()
     sheet = workbook.active
-    sheet.title = "需人工复核"
-    headers = ["序号", "数据类型候选", "文件路径", "原因", "建议操作", "哈希"]
+    sheet.title = "manual_review"
+    headers = ["index", "data_type_candidate", "file_path", "reason", "recommended_action", "source_hash"]
     sheet.append(headers)
     for index, row in enumerate(rows, 1):
         sheet.append(
@@ -397,7 +398,7 @@ def write_manual_review_required_final(project_root: Path) -> Path:
                 row.get("data_type_candidate") or row.get("data_type") or "",
                 row.get("relative_path") or row.get("target_file") or row.get("source_file") or "",
                 row.get("reason") or row.get("manual_review_reason") or row.get("why_not_auto_applied") or "",
-                row.get("recommended_action") or row.get("suggested_user_action") or "人工确认后再处理",
+                row.get("recommended_action") or row.get("suggested_user_action") or "manual confirmation required before processing",
                 row.get("source_hash") or "",
             ]
         )
@@ -434,7 +435,7 @@ def write_journal_figure_qc(project_root: Path, package_dir: Path, skill_payload
         )
     summary = Counter(item["qc_status"] for item in qc_rows)
     payload = {"summary": dict(summary), "rows": qc_rows}
-    reports = _ensure_dir(project_root / "output" / "reports")
+    reports = _ensure_dir(default_output_root(project_root) / "reports")
     json_path = reports / "phase1_9_journal_figure_qc.json"
     md_path = reports / "phase1_9_journal_figure_qc.md"
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -523,7 +524,7 @@ def write_structure_report(project_root: Path) -> Path:
         "",
     ]
     report.write_text("\n".join(lines), encoding="utf-8")
-    (project_root / "output" / "reports" / "phase1_9_project_structure_report.md").write_text(
+    (default_output_root(project_root) / "reports" / "phase1_9_project_structure_report.md").write_text(
         "\n".join(lines), encoding="utf-8"
     )
     return report
@@ -538,7 +539,7 @@ def write_cleanup_report(project_root: Path) -> Path:
     for path in sorted((project_root / "src").rglob("__pycache__")) if (project_root / "src").exists() else []:
         candidates.append(str(path.relative_to(project_root)).replace("\\", "/"))
 
-    reports = _ensure_dir(project_root / "output" / "reports")
+    reports = _ensure_dir(default_output_root(project_root) / "reports")
     docs = _ensure_dir(project_root / "docs" / "agent_reports")
     pending = reports / "pending_cleanup_candidates.md"
     cleanup = docs / "phase1_9_cleanup_and_structure_report.md"
@@ -565,7 +566,7 @@ def write_cleanup_report(project_root: Path) -> Path:
         "- Raw data tree touched: no.",
         "- F-drive backup touched: no.",
         "- Phase 1.5/1.6 formal results touched: no.",
-        f"- Pending cleanup candidate list: `{pending.relative_to(project_root)}`",
+        f"- Pending cleanup candidate list: `{render_output_path(pending, project_root=project_root, output_root=default_output_root(project_root))}`",
         "",
     ]
     cleanup.write_text("\n".join(lines), encoding="utf-8")
@@ -580,7 +581,7 @@ def write_agent_summary(project_root: Path, skill_payload: dict, package_dir: Pa
         "",
         f"- Origin plotting skill snapshot SHA256: `{skill_payload['skill_sha256']}`",
         f"- Phase 1.6 package audited for journal index: `{render_output_path(package_dir, project_root=project_root)}`",
-        f"- Journal-ready index: `{journal_csv.relative_to(project_root)}`",
+        f"- Journal-ready index: `{render_output_path(journal_csv, project_root=project_root, output_root=default_output_root(project_root))}`",
         "- Project structure index files refreshed.",
         "- Raw data and formal result packages were not moved or deleted.",
         "- No real Origin processing was launched.",
@@ -591,19 +592,19 @@ def write_agent_summary(project_root: Path, skill_payload: dict, package_dir: Pa
 
 
 def update_dashboard(project_root: Path, journal_csv: Path) -> Path:
-    dashboard = _ensure_dir(project_root / "output" / "review_dashboard") / "phase1_9_origin_plotting_governance.md"
+    dashboard = _ensure_dir(default_output_root(project_root) / "review_dashboard") / "phase1_9_origin_plotting_governance.md"
     lines = [
         "# Phase 1.9 Origin Plotting Governance",
         "",
         "- Plotting style source: `.agents/skills/originpro-graph-export/SKILL.md`.",
         "- Graph profile: cached Graph4.",
         "- Journal-ready index:",
-        f"  `{journal_csv.relative_to(project_root)}`",
+        f"  `{render_output_path(journal_csv, project_root=project_root, output_root=default_output_root(project_root))}`",
         "- Review the Phase 1.6 PNG/TIF/OPJU outputs against the skill snapshot before manuscript use.",
         "",
     ]
     dashboard.write_text("\n".join(lines), encoding="utf-8")
-    index = project_root / "output" / "review_dashboard" / "index.md"
+    index = default_output_root(project_root) / "review_dashboard" / "index.md"
     if index.exists():
         text = index.read_text(encoding="utf-8")
         link = "- [Phase 1.9 Origin plotting governance](phase1_9_origin_plotting_governance.md)"
@@ -634,7 +635,7 @@ def _write_phase_report_index(project_root: Path) -> Path:
 
 
 def _write_output_report_index(project_root: Path) -> Path:
-    report_dir = _ensure_dir(project_root / "output" / "reports")
+    report_dir = _ensure_dir(default_output_root(project_root) / "reports")
     phase_counts = Counter()
     for path in report_dir.glob("*"):
         if path.is_file():
@@ -686,7 +687,7 @@ def _write_simple_index(path: Path, title: str, description: str) -> Path:
 
 
 def _load_material_color_lookup(project_root: Path) -> dict[str, str]:
-    path = project_root / "output" / "reports" / "phase1_6_material_color_map.json"
+    path = default_output_root(project_root) / "reports" / "phase1_6_material_color_map.json"
     if not path.exists():
         return {}
     try:

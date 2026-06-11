@@ -14,10 +14,11 @@ from src.core.manifest_schema import (
     validate_origin_batch_manifest,
 )
 from src.core.origin_batch import OriginBatchOptions, plan_origin_batch
+from src.core.project import default_output_root
 
 
 def test_standard_phase1_6_manifest_validates_when_available(project_root: Path):
-    manifest = project_root / "output" / "phase1_6_origin_results_20260531_041538" / "index.csv"
+    manifest = default_output_root(project_root) / "phase1_6_origin_results_20260531_041538" / "index.csv"
     if not manifest.exists():
         pytest.skip("real Phase 1.6 package is not available in this checkout")
     assert detect_manifest_type(manifest) == "standard_result_manifest"
@@ -107,7 +108,7 @@ def test_normalized_manifest_dry_run_is_controlled_with_zero_safe_items(tmp_path
         ],
     )
     _write(collection / "workspace_matches" / "a.raw", "raw")
-    output_dir = test_project / "output" / "reports" / "phase1_10_normalized"
+    output_dir = default_output_root(test_project) / "reports" / "phase1_10_normalized"
     normalized = normalize_material_collection_manifest(
         collection / "index.csv",
         test_project,
@@ -145,7 +146,8 @@ def test_origin_batch_cli_explains_material_collection_schema_mismatch(tmp_path:
 
 def test_manifest_normalize_cli_writes_origin_batch_compatible_outputs(tmp_path: Path, project_root: Path):
     test_project = tmp_path / "project"
-    reports_dir = test_project / "output" / "reports"
+    test_project.mkdir(parents=True)
+    reports_dir = default_output_root(test_project) / "reports"
     reports_dir.mkdir(parents=True)
     collection = tmp_path / "collection"
     _write_material_collection_index(collection, [])

@@ -9,6 +9,7 @@ from openpyxl import Workbook
 
 from src.core.process import ProcessOptions, run_process
 from src.core.triage import TriageOptions, run_triage
+from src.core.project import default_output_root
 
 
 def test_unnamed_excel_numeric_fallback_can_be_high_confidence_without_origin():
@@ -180,10 +181,10 @@ def test_manual_review_is_not_processed_by_default_even_after_recognition_improv
             code = run_process(
                 project,
                 project / "input" / "raw_data",
-                ProcessOptions(from_queue=project / "output" / "reports" / "processing_queue.json", force=True),
+                ProcessOptions(from_queue=default_output_root(project) / "reports" / "processing_queue.json", force=True),
             )
 
-        queue = json.loads((project / "output" / "reports" / "processing_queue.json").read_text(encoding="utf-8"))
+        queue = json.loads((default_output_root(project) / "reports" / "processing_queue.json").read_text(encoding="utf-8"))
         assert queue["items"] == []
         assert code == 0
 

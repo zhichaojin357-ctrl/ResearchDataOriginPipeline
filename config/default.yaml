@@ -6,18 +6,18 @@ paths:
   workspace_data: workspace_data
   phase1_2_source_copy: workspace_data/LL_detection_copy_20260530
   workspace_root: workspace_data/LL_detection_copy_20260530
-  phase1_6_origin_results: output/phase1_6_origin_results_20260531_041538
-  output_root: output
-  output: output
-  processed_data: output/processed_data
-  origin_files: output/origin_files
-  figures_tif: output/figures_tif
-  figures_preview: output/figures_preview
-  origin_jobs: output/origin_jobs
-  metadata: output/metadata
-  reports: output/reports
-  triage_manifest: output/reports/data_triage_manifest.json
-  processing_queue: output/reports/processing_queue.json
+  phase1_6_origin_results: ../输出/phase1_6_origin_results_20260531_041538
+  output_root: ../输出
+  output: ../输出
+  processed_data: ../输出/processed_data
+  origin_files: ../输出/origin_files
+  figures_tif: ../输出/figures_tif
+  figures_preview: ../输出/figures_preview
+  origin_jobs: ../输出/origin_jobs
+  metadata: ../输出/metadata
+  reports: ../输出/reports
+  triage_manifest: ../输出/reports/data_triage_manifest.json
+  processing_queue: ../输出/reports/processing_queue.json
 triage:
   enabled: true
   min_confidence: 0.75

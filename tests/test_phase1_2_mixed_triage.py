@@ -10,6 +10,7 @@ from unittest.mock import patch
 from src.core.metadata import file_hash
 from src.core.process import ProcessOptions, _write_processing_summary, run_process
 from src.core.triage import TriageOptions, run_triage
+from src.core.project import default_output_root
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -91,7 +92,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             after = {path: path.read_bytes() for path in raw.rglob("*") if path.is_file()}
             self.assertEqual(before, after)
             self.assertEqual(result["summary"]["total_files"], 7)
-            manifest = json.loads((project / "output" / "reports" / "data_triage_manifest.json").read_text(encoding="utf-8"))
+            manifest = json.loads((default_output_root(project) / "reports" / "data_triage_manifest.json").read_text(encoding="utf-8"))
             decisions = {Path(item["relative_path"]).name: item["decision"] for item in manifest["items"]}
             self.assertEqual(decisions["synthetic_xrd.csv"], "AUTO_PROCESS")
             self.assertEqual(decisions["synthetic_xrd_copy.csv"], "DUPLICATE_SUPPRESSED")
@@ -101,16 +102,16 @@ class Phase12MixedTriageTest(unittest.TestCase):
             self.assertEqual(decisions["sem_image.tif"], "DEFERRED_TYPE")
             self.assertIn(decisions["notes.txt"], {"AUXILIARY_ONLY", "EXCLUDE_INVALID", "MANUAL_REVIEW"})
 
-            queue = json.loads((project / "output" / "reports" / "processing_queue.json").read_text(encoding="utf-8"))
+            queue = json.loads((default_output_root(project) / "reports" / "processing_queue.json").read_text(encoding="utf-8"))
             self.assertEqual(len(queue["items"]), 1)
             self.assertEqual(queue["items"][0]["decision"], "AUTO_PROCESS")
-            self.assertTrue((project / "output" / "reports" / "ambiguous_files.md").exists())
-            self.assertTrue((project / "output" / "reports" / "excluded_files.md").exists())
-            self.assertTrue((project / "output" / "reports" / "duplicate_candidates.md").exists())
-            self.assertTrue((project / "output" / "reports" / "source_hash_index.json").exists())
-            self.assertTrue((project / "output" / "reports" / "traceability_groups.json").exists())
-            self.assertTrue((project / "output" / "reports" / "traceability_groups.md").exists())
-            self.assertTrue((project / "output" / "review_dashboard" / "triage_index.md").exists())
+            self.assertTrue((default_output_root(project) / "reports" / "ambiguous_files.md").exists())
+            self.assertTrue((default_output_root(project) / "reports" / "excluded_files.md").exists())
+            self.assertTrue((default_output_root(project) / "reports" / "duplicate_candidates.md").exists())
+            self.assertTrue((default_output_root(project) / "reports" / "source_hash_index.json").exists())
+            self.assertTrue((default_output_root(project) / "reports" / "traceability_groups.json").exists())
+            self.assertTrue((default_output_root(project) / "reports" / "traceability_groups.md").exists())
+            self.assertTrue((default_output_root(project) / "review_dashboard" / "triage_index.md").exists())
 
     def test_scan_only_subfolders_inside_mixed_reaction_folder_override_header_hints(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -163,7 +164,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             )
             self.assertEqual([item["relative_path"] for item in result["queue"]["items"]], ["01_XRD/sample_group/sample.csv"])
             self.assertEqual(result["queue"]["items"][0]["traceability_group_id"], by_name["sample.csv"]["traceability_group_id"])
-            traceability_groups = json.loads((project / "output" / "reports" / "traceability_groups.json").read_text(encoding="utf-8"))
+            traceability_groups = json.loads((default_output_root(project) / "reports" / "traceability_groups.json").read_text(encoding="utf-8"))
             groups = {group["traceability_group_path"]: group for group in traceability_groups["groups"]}
             self.assertIn("01_XRD/sample_group", groups)
             self.assertEqual(groups["01_XRD/sample_group"]["origin_project_files"], ["01_XRD/sample_group/origin_project/sample_reference.opju"])
@@ -184,20 +185,20 @@ class Phase12MixedTriageTest(unittest.TestCase):
                     project / "input" / "raw_data",
                     ProcessOptions(
                         no_origin=True,
-                        from_queue=project / "output" / "reports" / "processing_queue.json",
+                        from_queue=default_output_root(project) / "reports" / "processing_queue.json",
                         force=True,
                     ),
                 )
 
             self.assertEqual(code, 0)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(len(metadata_files), 1)
             metadata = json.loads(metadata_files[0].read_text(encoding="utf-8"))
             self.assertEqual(metadata["triage"]["triage_decision"], "AUTO_PROCESS")
             self.assertGreaterEqual(metadata["triage"]["confidence_score"], 0.75)
             self.assertIn("queue_id", metadata["triage"])
             self.assertEqual(metadata["processing_status"], "processed_no_origin")
-            dashboard = (project / "output" / "review_dashboard" / "index.md").read_text(encoding="utf-8")
+            dashboard = (default_output_root(project) / "review_dashboard" / "index.md").read_text(encoding="utf-8")
             self.assertIn("Triage Summary", dashboard)
             self.assertIn("Queue items", dashboard)
 
@@ -214,17 +215,17 @@ class Phase12MixedTriageTest(unittest.TestCase):
                     project,
                     project / "input" / "raw_data",
                     ProcessOptions(
-                        from_queue=project / "output" / "reports" / "processing_queue.json",
+                        from_queue=default_output_root(project) / "reports" / "processing_queue.json",
                         force=True,
                     ),
                 )
 
             self.assertEqual(code, 0)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(len(metadata_files), 1)
             metadata = json.loads(metadata_files[0].read_text(encoding="utf-8"))
             self.assertEqual(metadata["processing_status"], "processed_no_origin")
-            summary = json.loads((project / "output" / "reports" / "processing_summary.json").read_text(encoding="utf-8"))
+            summary = json.loads((default_output_root(project) / "reports" / "processing_summary.json").read_text(encoding="utf-8"))
             self.assertEqual(summary["missing_artifacts"], [])
 
     def test_manual_review_promotion_queue_records_audit_fields(self):
@@ -235,7 +236,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             raw.mkdir(parents=True)
             source = raw / "manual_short.csv"
             write_xrd(source, rows=3)
-            queue_path = project / "output" / "reports" / "promoted_queue.json"
+            queue_path = default_output_root(project) / "reports" / "promoted_queue.json"
             queue_path.parent.mkdir(parents=True)
             queue = {
                 "items": [
@@ -280,7 +281,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             )
 
             self.assertEqual(code, 0)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(len(metadata_files), 1)
             triage = json.loads(metadata_files[0].read_text(encoding="utf-8"))["triage"]
             self.assertEqual(triage["triage_decision"], "MANUAL_REVIEW")
@@ -299,7 +300,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             raw.mkdir(parents=True)
             source = raw / "manual_unreviewed.csv"
             write_xrd(source, rows=3)
-            queue_path = project / "output" / "reports" / "unreviewed_manual_queue.json"
+            queue_path = default_output_root(project) / "reports" / "unreviewed_manual_queue.json"
             queue_path.parent.mkdir(parents=True)
             queue_path.write_text(
                 json.dumps(
@@ -330,8 +331,8 @@ class Phase12MixedTriageTest(unittest.TestCase):
             )
 
             self.assertEqual(code, 2)
-            self.assertEqual(list((project / "output" / "metadata").rglob("metadata.json")), [])
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            self.assertEqual(list((default_output_root(project) / "metadata").rglob("metadata.json")), [])
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertIn("manual review queue item requires promotion provenance", failures["failures"][0]["error_message"])
 
@@ -343,8 +344,8 @@ class Phase12MixedTriageTest(unittest.TestCase):
                 "data_type": "EIS",
                 "processing_status": "processed_no_origin",
                 "source_files": [str(project / "input" / "raw_data" / "EIS" / "missing.txt")],
-                "processed_data": str(project / "output" / "processed_data" / "EIS" / "missing.csv"),
-                "metadata_path": str(project / "output" / "metadata" / "EIS" / "missing" / "metadata.json"),
+                "processed_data": str(default_output_root(project) / "processed_data" / "EIS" / "missing.csv"),
+                "metadata_path": str(default_output_root(project) / "metadata" / "EIS" / "missing" / "metadata.json"),
                 "manual_check_required": False,
                 "forbidden_claims": [],
             }
@@ -352,7 +353,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
 
             _write_processing_summary(project, manifest, [metadata], [])
 
-            summary = json.loads((project / "output" / "reports" / "processing_summary.json").read_text(encoding="utf-8"))
+            summary = json.loads((default_output_root(project) / "reports" / "processing_summary.json").read_text(encoding="utf-8"))
             self.assertEqual(
                 summary["missing_artifacts"],
                 [
@@ -379,13 +380,13 @@ class Phase12MixedTriageTest(unittest.TestCase):
                 project / "input" / "raw_data",
                 ProcessOptions(
                     no_origin=True,
-                    from_queue=project / "output" / "reports" / "processing_queue.json",
+                    from_queue=default_output_root(project) / "reports" / "processing_queue.json",
                     force=True,
                 ),
             )
 
             self.assertEqual(code, 0)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(len(metadata_files), 2)
             processed_paths = {
                 json.loads(path.read_text(encoding="utf-8"))["processed_data"]
@@ -408,15 +409,15 @@ class Phase12MixedTriageTest(unittest.TestCase):
                 project / "input" / "raw_data",
                 ProcessOptions(
                     no_origin=True,
-                    from_queue=project / "output" / "reports" / "processing_queue.json",
+                    from_queue=default_output_root(project) / "reports" / "processing_queue.json",
                     force=True,
                 ),
             )
 
             self.assertEqual(code, 2)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(metadata_files, [])
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(len(failures["failures"]), 1)
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertEqual(failures["failures"][0]["triage_decision"], "AUTO_PROCESS")
@@ -430,7 +431,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             source = raw / "synthetic_xrd.csv"
             write_xrd(source)
             run_triage(project, project / "input" / "raw_data", TriageOptions(min_confidence=0.75))
-            phase1_6 = project / "output" / "phase1_6_origin_results_20260531_041538"
+            phase1_6 = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
             phase1_6.mkdir(parents=True)
             (phase1_6 / "index.csv").write_text(f"source_hash\n{file_hash(source)}\n", encoding="utf-8")
 
@@ -439,14 +440,14 @@ class Phase12MixedTriageTest(unittest.TestCase):
                 project / "input" / "raw_data",
                 ProcessOptions(
                     no_origin=True,
-                    from_queue=project / "output" / "reports" / "processing_queue.json",
+                    from_queue=default_output_root(project) / "reports" / "processing_queue.json",
                     force=True,
                 ),
             )
 
             self.assertEqual(code, 2)
-            self.assertEqual(list((project / "output" / "metadata").rglob("metadata.json")), [])
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            self.assertEqual(list((default_output_root(project) / "metadata").rglob("metadata.json")), [])
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertIn("phase1_8_new_auto_process_queue.json", failures["failures"][0]["error_message"])
 
@@ -457,7 +458,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             raw.mkdir(parents=True)
             source = raw / "synthetic_xrd.csv"
             write_xrd(source)
-            phase1_6 = project / "output" / "phase1_6_origin_results_20260531_041538"
+            phase1_6 = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
             phase1_6.mkdir(parents=True)
             (phase1_6 / "index.csv").write_text(f"source_hash\n{file_hash(source)}\n", encoding="utf-8")
 
@@ -468,8 +469,8 @@ class Phase12MixedTriageTest(unittest.TestCase):
             )
 
             self.assertEqual(code, 2)
-            self.assertEqual(list((project / "output" / "metadata").rglob("metadata.json")), [])
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            self.assertEqual(list((default_output_root(project) / "metadata").rglob("metadata.json")), [])
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertIn("phase1_8_new_auto_process_queue.json", failures["failures"][0]["error_message"])
 
@@ -480,7 +481,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             raw.mkdir(parents=True)
             write_xrd(raw / "synthetic_xrd.csv")
             run_triage(project, project / "input" / "raw_data", TriageOptions(min_confidence=0.75))
-            queue_path = project / "output" / "reports" / "processing_queue.json"
+            queue_path = default_output_root(project) / "reports" / "processing_queue.json"
             queue = json.loads(queue_path.read_text(encoding="utf-8"))
             queue["items"][0].pop("source_hash")
             queue_path.write_text(json.dumps(queue, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -496,9 +497,9 @@ class Phase12MixedTriageTest(unittest.TestCase):
             )
 
             self.assertEqual(code, 2)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(metadata_files, [])
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertIn("source hash missing", failures["failures"][0]["error_message"])
 
@@ -509,7 +510,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             raw.mkdir(parents=True)
             source = raw / "synthetic_unknown.csv"
             source.write_text("x,y\n1,2\n3,4\n", encoding="utf-8")
-            queue_path = project / "output" / "reports" / "unknown_queue.json"
+            queue_path = default_output_root(project) / "reports" / "unknown_queue.json"
             queue_path.parent.mkdir(parents=True)
             queue_path.write_text(
                 json.dumps(
@@ -536,8 +537,8 @@ class Phase12MixedTriageTest(unittest.TestCase):
             code = run_process(project, project / "input" / "raw_data", ProcessOptions(no_origin=True, from_queue=queue_path, force=True))
 
             self.assertEqual(code, 2)
-            self.assertEqual(list((project / "output" / "metadata").rglob("metadata.json")), [])
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            self.assertEqual(list((default_output_root(project) / "metadata").rglob("metadata.json")), [])
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertIn("not in processor registry", failures["failures"][0]["error_message"])
 
@@ -548,7 +549,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             raw_root.mkdir(parents=True)
             outside = project / "outside.csv"
             write_xrd(outside)
-            queue_path = project / "output" / "reports" / "unsafe_queue.json"
+            queue_path = default_output_root(project) / "reports" / "unsafe_queue.json"
             queue_path.parent.mkdir(parents=True)
             queue_path.write_text(
                 json.dumps(
@@ -574,8 +575,8 @@ class Phase12MixedTriageTest(unittest.TestCase):
             code = run_process(project, raw_root, ProcessOptions(no_origin=True, from_queue=queue_path, force=True))
 
             self.assertEqual(code, 2)
-            self.assertEqual(list((project / "output" / "metadata").rglob("metadata.json")), [])
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            self.assertEqual(list((default_output_root(project) / "metadata").rglob("metadata.json")), [])
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertIn("outside input root", failures["failures"][0]["error_message"])
 
@@ -586,7 +587,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             raw_root.mkdir(parents=True)
             outside = project / "input" / "outside.csv"
             write_xrd(outside)
-            queue_path = project / "output" / "reports" / "unsafe_queue.json"
+            queue_path = default_output_root(project) / "reports" / "unsafe_queue.json"
             queue_path.parent.mkdir(parents=True)
             queue_path.write_text(
                 json.dumps(
@@ -611,7 +612,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             code = run_process(project, raw_root, ProcessOptions(no_origin=True, from_queue=queue_path, force=True))
 
             self.assertEqual(code, 2)
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertIn("outside input root", failures["failures"][0]["error_message"])
 
@@ -622,7 +623,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             raw_root.mkdir(parents=True)
             source = raw_root / "synthetic_xrd.csv"
             write_xrd(source)
-            queue_path = project / "output" / "reports" / "origin_queue.json"
+            queue_path = default_output_root(project) / "reports" / "origin_queue.json"
             queue_path.parent.mkdir(parents=True)
             queue_path.write_text(
                 json.dumps(
@@ -649,7 +650,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
                 code = run_process(project, project / "input" / "raw_data", ProcessOptions(with_origin=True, from_queue=queue_path, force=True))
 
             self.assertEqual(code, 2)
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "queue_validation")
             self.assertIn("origin_export_allowed", failures["failures"][0]["error_message"])
 
@@ -671,7 +672,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
             decisions = {Path(item["relative_path"]).name: item["decision"] for item in result["items"]}
             self.assertEqual(list(decisions.values()).count("DUPLICATE_SUPPRESSED"), 1)
             self.assertEqual(list(decisions.values()).count("MANUAL_REVIEW"), 1)
-            duplicates = json.loads((project / "output" / "reports" / "duplicate_candidates.json").read_text(encoding="utf-8"))
+            duplicates = json.loads((default_output_root(project) / "reports" / "duplicate_candidates.json").read_text(encoding="utf-8"))
             self.assertEqual(len(duplicates["items"]), 1)
             self.assertTrue(duplicates["items"][0]["suppressed_by"])
 
@@ -694,7 +695,7 @@ class Phase12MixedTriageTest(unittest.TestCase):
                 "--config",
                 str(config / "default.yaml"),
                 "--from-queue",
-                str(project / "output" / "reports" / "processing_queue.json"),
+                str(default_output_root(project) / "reports" / "processing_queue.json"),
                 "--no-origin",
                 "--force",
                 cwd=project,

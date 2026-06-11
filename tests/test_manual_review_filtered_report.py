@@ -6,7 +6,14 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
+from src.core.project import default_output_root
 from scripts.reports.regenerate_manual_review_filtered import build_rows, main as regenerate_main, write_csv, write_xlsx
+
+
+def _project_root(tmp_path: Path) -> Path:
+    project = tmp_path / "ResearchDataOriginPipeline"
+    project.mkdir(parents=True, exist_ok=True)
+    return project
 
 
 def _item(relative_path: str, decision: str, *, data_type: str = "Mott-Schottky", suffix: str = ".csv") -> dict:
@@ -24,7 +31,8 @@ def _item(relative_path: str, decision: str, *, data_type: str = "Mott-Schottky"
 
 
 def test_filtered_manual_review_excludes_same_data_represented_by_auto_process(tmp_path: Path):
-    reports = tmp_path / "output" / "reports"
+    project = _project_root(tmp_path)
+    reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
     manifest = {
         "items": [
@@ -35,7 +43,7 @@ def test_filtered_manual_review_excludes_same_data_represented_by_auto_process(t
     }
     (reports / "data_triage_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
-    kept, excluded, summary = build_rows(tmp_path)
+    kept, excluded, summary = build_rows(project)
 
     assert summary == {"manual_total": 2, "kept": 1, "excluded": 1}
     assert kept[0]["相对路径"] == "BET/sample2.DB3"
@@ -45,9 +53,10 @@ def test_filtered_manual_review_excludes_same_data_represented_by_auto_process(t
 
 
 def test_filtered_manual_review_excludes_phase16_represented_source(tmp_path: Path):
-    reports = tmp_path / "output" / "reports"
+    project = _project_root(tmp_path)
+    reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
-    package = tmp_path / "output" / "phase1_6_origin_results_20260531_041538"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
     package.mkdir(parents=True)
     (reports / "data_triage_manifest.json").write_text(
         json.dumps({"items": [_item("EIS/sampleA.bin", "MANUAL_REVIEW", data_type="EIS", suffix=".bin")]}),
@@ -58,7 +67,7 @@ def test_filtered_manual_review_excludes_phase16_represented_source(tmp_path: Pa
         writer.writeheader()
         writer.writerow({"source_file": "EIS/sampleA.csv", "processed_csv": ""})
 
-    kept, excluded, summary = build_rows(tmp_path)
+    kept, excluded, summary = build_rows(project)
 
     assert summary == {"manual_total": 1, "kept": 0, "excluded": 1}
     assert excluded[0]["排除原因"] == "Phase 1.6 已有成功成果代表"
@@ -97,7 +106,8 @@ def test_filtered_manual_review_outputs_keep_chinese_headers(tmp_path: Path):
 
 
 def test_regenerate_manual_review_filtered_main_smoke(tmp_path: Path, monkeypatch):
-    reports = tmp_path / "output" / "reports"
+    project = _project_root(tmp_path)
+    reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
     (reports / "data_triage_manifest.json").write_text(
         json.dumps({"items": [_item("BET/sample2.DB3", "MANUAL_REVIEW", data_type="BET", suffix=".db3")]}),
@@ -106,11 +116,11 @@ def test_regenerate_manual_review_filtered_main_smoke(tmp_path: Path, monkeypatc
     fake_home = tmp_path / "home_without_desktop"
     fake_home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: fake_home)
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.chdir(project)
 
     regenerate_main()
 
     assert (reports / "phase1_8_manual_review_required_filtered.csv").is_file()
     assert (reports / "phase1_8_manual_review_required_filtered.xlsx").is_file()
-    assert (tmp_path / "docs" / "agent_reports" / "phase1_8_manual_review_required_filtered_report.md").is_file()
+    assert (project / "docs" / "agent_reports" / "phase1_8_manual_review_required_filtered_report.md").is_file()
     assert not (fake_home / "Desktop" / "phase1_8_manual_review_required_filtered.xlsx").exists()

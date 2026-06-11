@@ -4,6 +4,7 @@ import csv
 import json
 from pathlib import Path
 
+from src.core.output_sanitizer import render_output_path
 from src.core.phase1_9 import REQUIRED_JOURNAL_INDEX_COLUMNS
 from src.core.deps import dependency_audit
 from src.core.project import (
@@ -15,12 +16,14 @@ from src.core.project import (
     report_path,
 )
 from src.core.runtime_paths import resolve_workspace_root
+from src.core.runtime_paths import resolve_output_root
 from src.origin.adapter import ORIGIN_DISABLE_ENV_VARS, check_origin_available
 from src.origin.plot_policy import all_plot_policies, validate_graph4_style_config
 
 
 def validate(project_root: Path) -> int:
-    ensure_output_structure(project_root)
+    output_root = resolve_output_root(project_root)
+    ensure_output_structure(project_root, output_root=output_root)
     failures = []
     lines = ["# Validation Report", ""]
 
@@ -37,7 +40,7 @@ def validate(project_root: Path) -> int:
         failures.append("Origin unavailable")
 
     missing_output_dirs = [
-        name for name in REQUIRED_OUTPUT_DIRS if not (project_root / "output" / name).is_dir()
+        name for name in REQUIRED_OUTPUT_DIRS if not (output_root / name).is_dir()
     ]
     lines.append(f"- Required output directories: {'pass' if not missing_output_dirs else 'fail'}")
     if missing_output_dirs:
@@ -120,21 +123,28 @@ def validate(project_root: Path) -> int:
     if found:
         failures.append("PPT forbidden paths exist")
 
-    presentation_artifacts = [
-        path
-        for path in project_root.rglob("*")
-        if path.is_file()
-        and not _is_allowed_source_artifact(project_root, path)
-        and (
-            path.suffix.lower() in {".ppt", ".pptx"}
-            or path.name == "slide_plan.json"
-            or path.name == "ppt_layout.yaml"
-            or path.name == "presentation.pptx"
+    presentation_artifacts = []
+    scan_roots = [project_root]
+    if output_root.resolve() != project_root.resolve() and not _is_under_or_equal(output_root.resolve(), project_root.resolve()):
+        scan_roots.append(output_root)
+    for scan_root in scan_roots:
+        if not scan_root.exists():
+            continue
+        presentation_artifacts.extend(
+            path
+            for path in scan_root.rglob("*")
+            if path.is_file()
+            and not _is_allowed_source_artifact(project_root, path)
+            and (
+                path.suffix.lower() in {".ppt", ".pptx"}
+                or path.name == "slide_plan.json"
+                or path.name == "ppt_layout.yaml"
+                or path.name == "presentation.pptx"
+            )
         )
-    ]
     lines.append(f"- Forbidden presentation artifacts: {'pass' if not presentation_artifacts else 'fail'}")
     if presentation_artifacts:
-        rendered = ", ".join(str(path.relative_to(project_root)) for path in presentation_artifacts)
+        rendered = ", ".join(render_output_path(path, project_root=project_root, output_root=output_root) or str(path) for path in presentation_artifacts)
         lines.append(f"  - {rendered}")
         failures.append("forbidden presentation artifacts exist")
 
@@ -190,8 +200,8 @@ def validate(project_root: Path) -> int:
 
     phase1_9_files = {
         "snapshot_md": project_root / "docs" / "agent_reports" / "phase1_9_origin_plotting_skill_snapshot.md",
-        "snapshot_json": project_root / "output" / "reports" / "phase1_9_origin_plotting_skill_snapshot.json",
-        "journal_index": project_root / "output" / "reports" / "phase1_9_journal_ready_index.csv",
+        "snapshot_json": output_root / "reports" / "phase1_9_origin_plotting_skill_snapshot.json",
+        "journal_index": output_root / "reports" / "phase1_9_journal_ready_index.csv",
     }
     generated_phase1_9_files = {
         name: path
@@ -243,7 +253,7 @@ def validate(project_root: Path) -> int:
 
     if failures:
         lines.extend(["", "## Failures", *[f"- {failure}" for failure in failures]])
-    report_path(project_root, "validation_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    report_path(project_root, "validation_report.md", output_root=output_root).write_text("\n".join(lines) + "\n", encoding="utf-8")
     return 1 if failures else 0
 
 
@@ -263,6 +273,14 @@ def _is_allowed_source_artifact(project_root: Path, path: Path) -> bool:
         except ValueError:
             continue
     return False
+
+
+def _is_under_or_equal(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return path == parent
 
 
 def _phase1_9_journal_policy_field_failures(rows: list[dict[str, str]]) -> list[str]:

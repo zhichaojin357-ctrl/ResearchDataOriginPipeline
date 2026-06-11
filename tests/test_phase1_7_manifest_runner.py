@@ -15,10 +15,11 @@ from src.core.phase1_7 import (
     generate_preview_review_checklist,
     write_origin_com_isolation_proof,
 )
+from src.core.project import default_output_root
 
 
 def test_phase1_6_package_index_can_be_read_when_available(project_root: Path):
-    manifest = project_root / "output" / "phase1_6_origin_results_20260531_041538" / "index.csv"
+    manifest = default_output_root(project_root) / "phase1_6_origin_results_20260531_041538" / "index.csv"
     if not manifest.exists():
         pytest.skip("real Phase 1.6 package is not available in this checkout")
     with manifest.open(encoding="utf-8-sig", newline="") as handle:
@@ -28,7 +29,7 @@ def test_phase1_6_package_index_can_be_read_when_available(project_root: Path):
 
 
 def test_preview_review_checklist_can_be_generated_when_package_available(project_root: Path):
-    manifest = project_root / "output" / "phase1_6_origin_results_20260531_041538" / "index.csv"
+    manifest = default_output_root(project_root) / "phase1_6_origin_results_20260531_041538" / "index.csv"
     if not manifest.exists():
         pytest.skip("real Phase 1.6 package is not available in this checkout")
     checklist = generate_preview_review_checklist(project_root)
@@ -39,7 +40,7 @@ def test_preview_review_checklist_can_be_generated_when_package_available(projec
 
 
 def test_gallery_index_can_be_generated_when_package_available(project_root: Path):
-    manifest = project_root / "output" / "phase1_6_origin_results_20260531_041538" / "index.csv"
+    manifest = default_output_root(project_root) / "phase1_6_origin_results_20260531_041538" / "index.csv"
     if not manifest.exists():
         pytest.skip("real Phase 1.6 package is not available in this checkout")
     gallery = generate_gallery(project_root)
@@ -62,7 +63,7 @@ def test_phase1_7_reports_render_package_paths_without_absolute_prefix(tmp_path:
 
 
 def test_manual_override_decision_table_can_be_generated(project_root: Path):
-    proposals = project_root / "output" / "reports" / "phase1_6_manual_override_proposals_second_wave.json"
+    proposals = default_output_root(project_root) / "reports" / "phase1_6_manual_override_proposals_second_wave.json"
     if not proposals.exists():
         pytest.skip("real manual override proposals are not available in this checkout")
     rows, summary = generate_override_decision_table(project_root)
@@ -149,7 +150,7 @@ def test_manifest_runner_blocks_hash_mismatch(tmp_path: Path, project_root: Path
 def test_manifest_runner_writes_default_reports(tmp_path: Path, project_root: Path):
     test_project = tmp_path / "project"
     package = _make_manifest_package(tmp_path, test_project, complete=True)
-    reports_dir = test_project / "output" / "reports"
+    reports_dir = default_output_root(test_project) / "reports"
     reports_dir.mkdir(parents=True)
     report_json = reports_dir / "manifest_runner_plan.json"
     report_md = reports_dir / "manifest_runner_plan.md"
@@ -201,7 +202,7 @@ def test_manifest_runner_execute_with_origin_exports_planned_items(tmp_path: Pat
     assert (package / "origin_files" / "XPS" / "item.opju").read_bytes() == b"opju"
     assert (package / "figures_tif" / "XPS" / "item.tif").read_bytes() == b"tif"
     assert (package / "previews" / "origin" / "XPS" / "item.png").read_bytes() == b"png"
-    report = json.loads((test_project / "output" / "reports" / "phase1_7_manifest_runner_plan.json").read_text(encoding="utf-8"))
+    report = json.loads((default_output_root(test_project) / "reports" / "phase1_7_manifest_runner_plan.json").read_text(encoding="utf-8"))
     assert report["summary"]["exported_count"] == 1
     assert report["summary"]["failure_count"] == 0
     assert report["execution"]["reason"] == "executed_with_origin"

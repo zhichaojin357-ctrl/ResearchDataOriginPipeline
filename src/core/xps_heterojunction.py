@@ -17,7 +17,7 @@ from typing import Any
 import pandas as pd
 
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.project import load_project_config
+from src.core.project import default_output_root, load_project_config
 from src.core.runtime_paths import resolve_origin_helper, resolve_project_path
 from src.origin.adapter import check_origin_available, write_origin_error
 
@@ -1582,12 +1582,18 @@ def _write_summary_reports(
 def _safe_task_output_dir(project_root: Path, output_dir: Path) -> Path:
     resolved_project = project_root.resolve()
     resolved_output = output_dir.resolve()
-    allowed = resolved_project / "output"
-    try:
-        resolved_output.relative_to(allowed)
-    except ValueError as exc:
-        raise ValueError(f"Refusing to write XPS stacked outputs outside project output/: {output_dir}") from exc
+    allowed_roots = [resolved_project / "output", default_output_root(project_root)]
+    if not any(_is_under_or_equal(resolved_output, allowed.resolve()) for allowed in allowed_roots):
+        raise ValueError(f"Refusing to write XPS stacked outputs outside configured output root: {output_dir}")
     return output_dir
+
+
+def _is_under_or_equal(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return path == parent
 
 
 def _excel_files_in_folder(folder: Path) -> list[Path]:

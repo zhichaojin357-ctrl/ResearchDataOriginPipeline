@@ -8,16 +8,17 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
+from src.core.project import default_output_root
 from src.core.readiness import ReadinessOptions, run_readiness
 
 
 def test_readiness_passes_with_current_required_artifacts(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir()
@@ -59,7 +60,7 @@ def test_readiness_passes_with_current_required_artifacts(tmp_path: Path):
 
 def test_readiness_portable_mode_warns_for_missing_generated_history(tmp_path: Path):
     project = tmp_path / "ResearchDataOriginPipeline"
-    reports = project / "output" / "reports"
+    reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
     _write_active_entry_docs(project)
     _write_passing_validation_report(reports / "validation_report.md")
@@ -85,7 +86,7 @@ def test_readiness_portable_mode_warns_for_missing_generated_history(tmp_path: P
 
 def test_readiness_strict_mode_fails_for_missing_generated_history(tmp_path: Path):
     project = tmp_path / "ResearchDataOriginPipeline"
-    reports = project / "output" / "reports"
+    reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
     _write_active_entry_docs(project)
     _write_passing_validation_report(reports / "validation_report.md")
@@ -107,12 +108,12 @@ def test_readiness_strict_mode_fails_for_missing_generated_history(tmp_path: Pat
 
 
 def test_readiness_fails_on_stale_summary_and_processing_plan_that_would_run(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir()
@@ -146,12 +147,12 @@ def test_readiness_fails_on_stale_summary_and_processing_plan_that_would_run(tmp
 
 
 def test_readiness_fails_when_validation_report_contains_failures(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir()
@@ -192,12 +193,12 @@ def test_readiness_fails_when_validation_report_is_older_than_validation_inputs(
     validate_source = project / "src" / "core" / "validate.py"
     validate_source.parent.mkdir(parents=True)
     validate_source.write_text("# changed validation logic\n", encoding="utf-8")
-    validation_report = project / "output" / "reports" / "validation_report.md"
+    validation_report = default_output_root(project) / "reports" / "validation_report.md"
     os.utime(validation_report, (1000, 1000))
     os.utime(validate_source, (2000, 2000))
 
     code = run_readiness(project, ReadinessOptions(expected_phase1_6_count=1, f_drive_backup=f_backup))
-    report = json.loads((project / "output" / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
+    report = json.loads((default_output_root(project) / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
 
     assert code == 1
     failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
@@ -205,12 +206,12 @@ def test_readiness_fails_when_validation_report_is_older_than_validation_inputs(
 
 
 def test_readiness_fails_when_desktop_review_copy_is_stale(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     desktop_copy = project / "desktop" / "phase1_8_manual_review_required_filtered.xlsx"
     workspace.mkdir(parents=True)
@@ -248,12 +249,12 @@ def test_readiness_fails_when_desktop_review_copy_is_stale(tmp_path: Path):
 
 
 def test_readiness_fails_when_dashboard_points_to_historical_manual_review_list(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir()
@@ -288,12 +289,12 @@ def test_readiness_fails_when_dashboard_points_to_historical_manual_review_list(
 
 
 def test_readiness_fails_when_auto_queue_plan_and_queue_disagree(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir()
@@ -328,7 +329,7 @@ def test_readiness_fails_when_auto_queue_identity_differs_from_plan(tmp_path: Pa
     project = tmp_path / "ResearchDataOriginPipeline"
     f_backup = tmp_path / "fake_f_backup"
     _write_minimal_ready_project(project, f_backup)
-    reports = project / "output" / "reports"
+    reports = default_output_root(project) / "reports"
     planned_item = {
         "queue_id": "planned-1",
         "relative_path": "EIS/planned.csv",
@@ -373,12 +374,12 @@ def test_readiness_fails_when_auto_queue_identity_differs_from_plan(tmp_path: Pa
 
 
 def test_readiness_fails_when_auto_queue_allows_origin(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir()
@@ -410,12 +411,12 @@ def test_readiness_fails_when_auto_queue_allows_origin(tmp_path: Path):
 
 
 def test_readiness_fails_when_auto_queue_lacks_dry_run_provenance(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir()
@@ -450,12 +451,12 @@ def test_readiness_fails_when_auto_queue_lacks_dry_run_provenance(tmp_path: Path
 
 
 def test_readiness_fails_when_manual_review_outputs_disagree(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir()
@@ -487,12 +488,12 @@ def test_readiness_fails_when_manual_review_outputs_disagree(tmp_path: Path):
 
 
 def test_readiness_fails_when_phase1_6_summary_disagrees_with_index(tmp_path: Path):
-    project = tmp_path
+    project = tmp_path / "ResearchDataOriginPipeline"
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     f_backup = project / "fake_f_backup"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir()
@@ -530,7 +531,7 @@ def test_readiness_fails_when_old_project_path_exists(tmp_path: Path):
     (tmp_path / "GroupMeetingAutoPPT").mkdir()
 
     code = run_readiness(project, ReadinessOptions(expected_phase1_6_count=1, f_drive_backup=f_backup))
-    report = json.loads((project / "output" / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
+    report = json.loads((default_output_root(project) / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
 
     assert code == 1
     failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
@@ -547,7 +548,7 @@ def test_readiness_fails_when_active_docs_reference_old_project_path(tmp_path: P
     )
 
     code = run_readiness(project, ReadinessOptions(expected_phase1_6_count=1, f_drive_backup=f_backup))
-    report = json.loads((project / "output" / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
+    report = json.loads((default_output_root(project) / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
 
     assert code == 1
     failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
@@ -561,7 +562,7 @@ def test_readiness_fails_when_required_active_entry_doc_is_missing(tmp_path: Pat
     (project / "README.md").unlink()
 
     code = run_readiness(project, ReadinessOptions(expected_phase1_6_count=1, f_drive_backup=f_backup))
-    report = json.loads((project / "output" / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
+    report = json.loads((default_output_root(project) / "reports" / "readiness_report.json").read_text(encoding="utf-8"))
 
     assert code == 1
     failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
@@ -572,7 +573,7 @@ def test_readiness_fails_when_reviewed_queue_plan_is_older_than_decisions(tmp_pa
     project = tmp_path / "ResearchDataOriginPipeline"
     f_backup = tmp_path / "fake_f_backup"
     _write_minimal_ready_project(project, f_backup)
-    reports = project / "output" / "reports"
+    reports = default_output_root(project) / "reports"
     template = reports / "phase1_8_review_decisions_template.csv"
     plan = reports / "phase1_8_reviewed_queue_plan.json"
     os.utime(plan, (1000, 1000))
@@ -590,7 +591,7 @@ def test_readiness_fails_when_reviewed_queue_input_hashes_do_not_match(tmp_path:
     project = tmp_path / "ResearchDataOriginPipeline"
     f_backup = tmp_path / "fake_f_backup"
     _write_minimal_ready_project(project, f_backup)
-    reports = project / "output" / "reports"
+    reports = default_output_root(project) / "reports"
     plan_path = reports / "phase1_8_reviewed_queue_plan.json"
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
     plan["input_hashes"]["decisions_sha256"] = "0" * 64
@@ -608,7 +609,7 @@ def test_readiness_fails_when_reviewed_queue_has_blocked_approvals(tmp_path: Pat
     project = tmp_path / "ResearchDataOriginPipeline"
     f_backup = tmp_path / "fake_f_backup"
     _write_minimal_ready_project(project, f_backup)
-    reports = project / "output" / "reports"
+    reports = default_output_root(project) / "reports"
     plan_path = reports / "phase1_8_reviewed_queue_plan.json"
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
     plan["summary"]["skipped_count"] = 0
@@ -634,7 +635,7 @@ def test_readiness_fails_when_origin_batch_plan_has_blocked_items(tmp_path: Path
     project = tmp_path / "ResearchDataOriginPipeline"
     f_backup = tmp_path / "fake_f_backup"
     _write_minimal_ready_project(project, f_backup)
-    reports = project / "output" / "reports"
+    reports = default_output_root(project) / "reports"
     plan_path = reports / "phase1_7_manifest_runner_plan.json"
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
     plan["summary"]["skipped_count"] = 0
@@ -654,7 +655,7 @@ def test_readiness_fails_when_origin_batch_plan_would_launch_origin(tmp_path: Pa
     project = tmp_path / "ResearchDataOriginPipeline"
     f_backup = tmp_path / "fake_f_backup"
     _write_minimal_ready_project(project, f_backup)
-    reports = project / "output" / "reports"
+    reports = default_output_root(project) / "reports"
     plan_path = reports / "phase1_7_manifest_runner_plan.json"
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
     plan["summary"]["will_launch_origin"] = True
@@ -671,9 +672,9 @@ def test_readiness_fails_when_origin_batch_plan_would_launch_origin(tmp_path: Pa
 
 def _write_minimal_ready_project(project: Path, f_backup: Path) -> None:
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
-    package = project / "output" / "phase1_6_origin_results_20260531_041538"
-    reports = project / "output" / "reports"
-    dashboard = project / "output" / "review_dashboard"
+    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
     docs = project / "docs" / "agent_reports"
     workspace.mkdir(parents=True)
     f_backup.mkdir(parents=True)
@@ -699,6 +700,7 @@ def _write_minimal_ready_project(project: Path, f_backup: Path) -> None:
 
 
 def _write_active_entry_docs(project: Path) -> None:
+    project.mkdir(parents=True, exist_ok=True)
     for name in ["README.md", "PROJECT_STATUS.md", "TASK_BOARD.md", "AGENT_HANDOFF.md"]:
         (project / name).write_text("ResearchDataOriginPipeline current active document\n", encoding="utf-8")
     docs = project / "docs"
@@ -735,12 +737,15 @@ def _write_passing_validation_report(path: Path) -> None:
         "- Kinetics processor paths: pass\n",
         encoding="utf-8",
     )
-    _write_reviewed_queue_artifacts(path.parents[2])
-    _write_origin_batch_plan(path.parents[2])
+    _write_reviewed_queue_artifacts_in_reports(path.parent)
+    _write_origin_batch_plan_in_reports(path.parent)
 
 
 def _write_origin_batch_plan(project: Path, *, total: int = 1) -> None:
-    reports = project / "output" / "reports"
+    _write_origin_batch_plan_in_reports(default_output_root(project) / "reports", total=total)
+
+
+def _write_origin_batch_plan_in_reports(reports: Path, *, total: int = 1) -> None:
     reports.mkdir(parents=True, exist_ok=True)
     (reports / "phase1_7_manifest_runner_plan.json").write_text(
         json.dumps(
@@ -769,7 +774,10 @@ def _write_origin_batch_plan(project: Path, *, total: int = 1) -> None:
 
 
 def _write_reviewed_queue_artifacts(project: Path) -> None:
-    reports = project / "output" / "reports"
+    _write_reviewed_queue_artifacts_in_reports(default_output_root(project) / "reports")
+
+
+def _write_reviewed_queue_artifacts_in_reports(reports: Path) -> None:
     reports.mkdir(parents=True, exist_ok=True)
     proposals = [
         {

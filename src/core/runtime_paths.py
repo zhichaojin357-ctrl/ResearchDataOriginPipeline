@@ -7,12 +7,13 @@ from datetime import datetime
 from pathlib import Path
 
 from src.core.output_sanitizer import render_output_path
+from src.core.project import default_output_root
 from src.core.project import ensure_write_path_allowed
 from src.core.project import load_project_config
 from src.core.project import _parse_simple_yaml
 
 
-LEGACY_PHASE1_6_PACKAGE = Path("output") / "phase1_6_origin_results_20260531_041538"
+LEGACY_PHASE1_6_PACKAGE = Path("phase1_6_origin_results_20260531_041538")
 LEGACY_WORKSPACE_ROOT = Path("workspace_data") / "LL_detection_copy_20260530"
 LEGACY_F_DRIVE_BACKUP = Path("F:/课题/LL/检测")
 LEGACY_ORIGIN_HELPER = Path("scripts") / "origin" / "origin_plot_from_template.ps1"
@@ -52,7 +53,7 @@ class RunOutputLayout:
 
 def resolve_project_path(project_root: Path, value: str | Path) -> Path:
     path = Path(str(value))
-    return path if path.is_absolute() else project_root / path
+    return path.resolve() if path.is_absolute() else (project_root / path).resolve()
 
 
 def resolve_output_root(
@@ -79,7 +80,7 @@ def resolve_output_root(
         _config_file_value(_resolve_config_path(project_root, default_path), "paths", "output_root"),
         _config_file_value(_resolve_config_path(project_root, default_path), "paths", "output"),
     )
-    return resolve_project_path(project_root, value or "output")
+    return resolve_project_path(project_root, value) if value else default_output_root(project_root)
 
 
 def create_run_output_layout(
@@ -157,10 +158,11 @@ def resolve_phase1_6_package(project_root: Path, override: str | Path | None = N
     if value:
         path = resolve_project_path(project_root, value)
         return path.parent if path.name.casefold() == "index.csv" else path
-    discovered = _latest_existing_dir(project_root / "output", "phase1_6_origin_results_*")
+    output_root = resolve_output_root(project_root)
+    discovered = _latest_existing_dir(output_root, "phase1_6_origin_results_*")
     if discovered is not None:
         return discovered
-    return project_root / LEGACY_PHASE1_6_PACKAGE
+    return output_root / LEGACY_PHASE1_6_PACKAGE.name
 
 
 def resolve_phase1_6_index(project_root: Path, override: str | Path | None = None) -> Path:

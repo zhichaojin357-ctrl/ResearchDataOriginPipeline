@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.core.process import ProcessOptions, run_process
-from src.core.project import ensure_write_path_allowed
+from src.core.project import default_output_root, ensure_write_path_allowed
 from src.core.table_reader import coerce_numeric_rows, read_table
 
 
@@ -48,8 +48,8 @@ class Phase11ProcessCliTest(unittest.TestCase):
                 code = run_process(project, raw, ProcessOptions(no_origin=True, force=True))
 
             self.assertEqual(code, 0)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
-            processed_files = list((project / "output" / "processed_data").rglob("*_processed.csv"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
+            processed_files = list((default_output_root(project) / "processed_data").rglob("*_processed.csv"))
             self.assertGreaterEqual(len(metadata_files), 16)
             self.assertGreaterEqual(len(processed_files), 16)
             for metadata_file in metadata_files:
@@ -71,7 +71,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
                 code = run_process(project, project / "input" / "raw_data", ProcessOptions(force=True))
 
             self.assertEqual(code, 0)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(len(metadata_files), 1)
             metadata = json.loads(metadata_files[0].read_text(encoding="utf-8"))
             self.assertEqual(metadata["processing_status"], "processed_no_origin")
@@ -99,7 +99,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
             project = Path(tmp)
             raw = project / "input" / "raw_data"
             raw.mkdir(parents=True)
-            queue = project / "output" / "reports" / "processing_queue.json"
+            queue = default_output_root(project) / "reports" / "processing_queue.json"
             queue.parent.mkdir(parents=True)
             queue.write_text('{"items": []}', encoding="utf-8")
 
@@ -110,7 +110,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
             raw = self._copy_project_inputs(project)
-            queue = project / "output" / "reports" / "processing_queue.json"
+            queue = default_output_root(project) / "reports" / "processing_queue.json"
             queue.parent.mkdir(parents=True, exist_ok=True)
             queue.write_text('{"items": []}', encoding="utf-8-sig")
 
@@ -165,7 +165,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
             raw = project / "input" / "raw_data"
             (raw / "XRD").mkdir(parents=True)
             (raw / "XRD" / "sample.csv").write_text("2theta,intensity\n10,1\n", encoding="utf-8")
-            missing_queue = project / "output" / "reports" / "missing_queue.json"
+            missing_queue = default_output_root(project) / "reports" / "missing_queue.json"
 
             result = run_cli(
                 "process",
@@ -187,7 +187,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
             raw = project / "input" / "raw_data"
             (raw / "XRD").mkdir(parents=True)
             (raw / "XRD" / "sample.csv").write_text("2theta,intensity\n10,1\n", encoding="utf-8")
-            queue = project / "output" / "reports" / "bad_queue.json"
+            queue = default_output_root(project) / "reports" / "bad_queue.json"
             queue.parent.mkdir(parents=True)
             queue.write_text("[]", encoding="utf-8")
 
@@ -211,7 +211,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
             raw = project / "input" / "raw_data"
             (raw / "XRD").mkdir(parents=True)
             (raw / "XRD" / "sample.csv").write_text("2theta,intensity\n10,1\n", encoding="utf-8")
-            queue = project / "output" / "reports" / "bad_queue.json"
+            queue = default_output_root(project) / "reports" / "bad_queue.json"
             queue.parent.mkdir(parents=True)
             queue.write_text('{"items": {}}', encoding="utf-8")
 
@@ -235,7 +235,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
             raw = project / "input" / "raw_data"
             (raw / "XRD").mkdir(parents=True)
             (raw / "XRD" / "sample.csv").write_text("2theta,intensity\n10,1\n", encoding="utf-8")
-            queue = project / "output" / "reports" / "bad_queue.json"
+            queue = default_output_root(project) / "reports" / "bad_queue.json"
             queue.parent.mkdir(parents=True)
             queue.write_text('{"items": ["not-an-object"]}', encoding="utf-8")
 
@@ -269,7 +269,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
                 code = run_process(project, project / "input" / "raw_data", ProcessOptions(with_origin=True, force=True))
 
             self.assertEqual(code, 2)
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(failures["failures"][0]["failure_stage"], "origin_export")
             self.assertIn("Origin export failed", failures["failures"][0]["error_message"])
 
@@ -284,9 +284,10 @@ class Phase11ProcessCliTest(unittest.TestCase):
                 ProcessOptions(no_origin=True, only_type="XRD", force=True),
             )
             self.assertEqual(only_type, 0)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(len(metadata_files), 1)
             self.assertIn("XRD", str(metadata_files[0]))
+            shutil.rmtree(default_output_root(project), ignore_errors=True)
 
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
@@ -298,7 +299,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
                 ProcessOptions(no_origin=True, only_folder="液相", force=True),
             )
             self.assertEqual(only_folder, 0)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(len(metadata_files), 2)
             for metadata_file in metadata_files:
                 metadata = json.loads(metadata_file.read_text(encoding="utf-8"))
@@ -315,9 +316,9 @@ class Phase11ProcessCliTest(unittest.TestCase):
             code = run_process(project, project / "input" / "raw_data", ProcessOptions(no_origin=True, force=True))
 
             self.assertEqual(code, 2)
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(len(failures["failures"]), 1)
-            summary = json.loads((project / "output" / "reports" / "processing_summary.json").read_text(encoding="utf-8"))
+            summary = json.loads((default_output_root(project) / "reports" / "processing_summary.json").read_text(encoding="utf-8"))
             self.assertEqual(summary["total_dataset_count"], 2)
             self.assertEqual(summary["success_count"], 1)
             self.assertEqual(summary["failure_count"], 1)
@@ -328,7 +329,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
             self.assertNotIn(str(project), json.dumps(failures, ensure_ascii=False))
             self.assertIn(record["failure_stage"], {"read_table", "processing"})
             self.assertTrue(record["manual_fix_hint"])
-            self.assertTrue((project / "output" / "reports" / "processing_failures.md").exists())
+            self.assertTrue((default_output_root(project) / "reports" / "processing_failures.md").exists())
 
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
@@ -344,13 +345,13 @@ class Phase11ProcessCliTest(unittest.TestCase):
             )
 
             self.assertEqual(code, 2)
-            failures = json.loads((project / "output" / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
+            failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(len(failures["failures"]), 1)
 
     def test_path_guard_rejects_writes_outside_allowed_project_areas(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
-            allowed = project / "output" / "reports" / "ok.md"
+            allowed = default_output_root(project) / "reports" / "ok.md"
             outside = project / "input" / "raw_data" / "bad.md"
 
             self.assertEqual(ensure_write_path_allowed(project, allowed), allowed)
@@ -376,7 +377,7 @@ class Phase11ProcessCliTest(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            metadata_files = list((project / "output" / "metadata").rglob("metadata.json"))
+            metadata_files = list((default_output_root(project) / "metadata").rglob("metadata.json"))
             self.assertEqual(len(metadata_files), 1)
 
     def test_chinese_paths_headers_samples_and_encodings_are_read_without_origin(self):

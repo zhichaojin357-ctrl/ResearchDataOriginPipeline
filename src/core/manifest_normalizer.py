@@ -9,6 +9,7 @@ from pathlib import Path
 from src.core.manifest_schema import CANONICAL_MANIFEST_VERSION, CANONICAL_ORIGIN_BATCH_COLUMNS
 from src.core.origin_batch import INPUT_ARTIFACT_FIELDS, ORIGIN_OUTPUT_FIELDS, _missing_or_empty, _resolve_artifact_paths
 from src.core.output_sanitizer import scrub_output_text
+from src.core.project import default_output_root
 
 
 @dataclass(frozen=True)
@@ -32,7 +33,7 @@ def normalize_material_collection_manifest(
     project_root = project_root.absolute()
     manifest_path = manifest_path.absolute()
     collection_root = manifest_path.parent
-    out_dir = output_dir or project_root / "output" / "reports"
+    out_dir = output_dir or default_output_root(project_root) / "reports"
     csv_path = _resolve_output_path(project_root, output_csv or out_dir / "phase1_10_material_collection_normalized_manifest.csv")
     json_path = _resolve_output_path(project_root, output_json or out_dir / "phase1_10_material_collection_normalized_manifest.json")
     md_path = _resolve_output_path(project_root, output_md or out_dir / "phase1_10_material_collection_normalized_manifest.md")
@@ -191,7 +192,7 @@ def _read_rows(path: Path) -> list[dict[str, str]]:
 
 def _resolve_output_path(project_root: Path, path: Path) -> Path:
     resolved = path if path.is_absolute() else project_root / path
-    allowed = [(project_root / "output").resolve(), (project_root / "docs").resolve()]
+    allowed = [(project_root / "output").resolve(), default_output_root(project_root).resolve(), (project_root / "docs").resolve()]
     if not any(_is_under_or_equal(resolved.resolve(), root) for root in allowed):
         raise ValueError(f"Refusing to write normalized manifest outside output/ or docs/: {resolved}")
     return resolved

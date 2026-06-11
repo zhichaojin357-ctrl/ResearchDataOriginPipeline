@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from src.core.project import default_output_root
 from src.core.table_reader import TableReadResult, _configure_excel_for_safe_read, coerce_numeric_rows, read_table, read_table_with_metadata
 from src.processors.base import process_table_dataset
 
@@ -16,9 +17,16 @@ def classification(data_type: str, processor: str) -> dict:
     }
 
 
+def _artifact_path(root: Path, rendered_path: str) -> Path:
+    rendered = Path(rendered_path)
+    if rendered.parts and rendered.parts[0] == "output":
+        return default_output_root(root) / Path(*rendered.parts[1:])
+    return rendered if rendered.is_absolute() else root / rendered
+
+
 class ProcessorBehaviorTest(unittest.TestCase):
     def _processed_rows(self, root: Path, metadata: dict) -> list[dict[str, str]]:
-        with (root / metadata["processed_data"]).open(encoding="utf-8") as handle:
+        with _artifact_path(root, metadata["processed_data"]).open(encoding="utf-8") as handle:
             return list(csv.DictReader(handle))
 
     def test_generic_reader_preserves_first_row_from_headerless_whitespace_numeric_text(self):
@@ -658,7 +666,7 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertEqual(set(rows[0]), {"binding_energy_eV", "raw_intensity", "peak_candidate_flag"})
             self.assertEqual(rows[0]["binding_energy_eV"], "284.0")
             self.assertEqual(rows[1]["raw_intensity"], "20.0")
-            self.assertNotIn("nan", (root / metadata["processed_data"]).read_text(encoding="utf-8").lower())
+            self.assertNotIn("nan", _artifact_path(root, metadata["processed_data"]).read_text(encoding="utf-8").lower())
 
     def test_condition_screening_and_lc_exported_data_candidates(self):
         with tempfile.TemporaryDirectory() as tmpdir:
