@@ -21,6 +21,14 @@ BOBC_LABEL = r"BiOBr\-(0.5)Cl\-(0.5)"
 CWO_LABEL = r"CuWO\-(4)"
 CWO_CARD_LABEL = r"CuWO\-(4) JCPDS card No.04-009-6293"
 XRD_OVERLAY_COLORS = (23709421, 33518174, 16814848, 22106449)
+XRD_SAMPLE_LEGEND_LEFT = 3569
+XRD_SAMPLE_LEGEND_TOP = 650
+XRD_SAMPLE_LEGEND_TEXT_LEFT = 4110
+XRD_SAMPLE_LEGEND_ROW_STEP = 236
+XRD_SAMPLE_LEGEND_WIDTH = 1900
+XRD_SAMPLE_LEGEND_FONT = 67
+XRD_SAMPLE_LEGEND_FONT_SIZE = 26
+XRD_SAMPLE_LEGEND_COLOR = 1
 
 
 @dataclass(frozen=True)
@@ -316,16 +324,40 @@ def _set_template_text_objects(graph: object) -> None:
     legend = layer1_objects["Legend"]
     if legend is not None:
         legend.Text = "\\l(2)\\b( BiOBr\\-(0.5)Cl\\-(0.5))\r\n\\l(1)\\b( CuWO\\-(4))"
-        legend.Top = 864
-        legend.Height = 480
+        legend.Left = XRD_SAMPLE_LEGEND_LEFT
+        legend.Top = XRD_SAMPLE_LEGEND_TOP + XRD_SAMPLE_LEGEND_ROW_STEP
+        legend.Width = XRD_SAMPLE_LEGEND_WIDTH
+        legend.Height = XRD_SAMPLE_LEGEND_ROW_STEP * 2
+        _set_graph_object_format(legend)
+        legend.SetNumProp("border", 0)
         legend.SetNumProp("frame", 0)
+        legend.SetNumProp("fill", 0)
         legend.SetNumProp("fillarea", 0)
     top_text = layer1_objects["Text"]
     if top_text is not None:
         top_text.Text = "\\b(BiCu-10)"
+        top_text.Left = XRD_SAMPLE_LEGEND_TEXT_LEFT
+        top_text.Top = XRD_SAMPLE_LEGEND_TOP
+        top_text.Width = XRD_SAMPLE_LEGEND_WIDTH
+        top_text.Height = XRD_SAMPLE_LEGEND_ROW_STEP
+        _set_graph_object_format(top_text)
     card_text = graph[1].obj.GraphObjects["Text"]
     if card_text is not None:
         card_text.Text = "\\b(\\c17585584(CuWO)\\-(\\c17585584(4))\\c17585584( JCPDS card No.04-009-6293))"
+
+
+def _set_graph_object_format(
+    graph_object: object,
+    *,
+    font: int = XRD_SAMPLE_LEGEND_FONT,
+    size: int = XRD_SAMPLE_LEGEND_FONT_SIZE,
+    color: int = XRD_SAMPLE_LEGEND_COLOR,
+) -> None:
+    for prop, value in (("font", font), ("fsize", size), ("bold", 1), ("color", color)):
+        try:
+            graph_object.SetNumProp(prop, value)
+        except Exception:
+            pass
 
 
 def _enforce_template_plot_colors(graph: object) -> None:

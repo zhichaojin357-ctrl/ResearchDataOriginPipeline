@@ -9,6 +9,7 @@ from src.core.xrd_overlay import (
     build_xrd_overlay_table,
     parse_xrd_reference_card_peaks,
     run_xrd_overlay,
+    _set_template_text_objects,
 )
 from src.core.project import default_output_root
 
@@ -147,8 +148,61 @@ def test_xrd_overlay_cli_parses_required_sources(tmp_path: Path) -> None:
     assert rc == 0
 
 
+def test_xrd_overlay_template_text_uses_uniform_legend_format() -> None:
+    layer1 = _FakeLayer({"Legend": _FakeGraphObject(), "Text": _FakeGraphObject()})
+    layer2 = _FakeLayer({"Text": _FakeGraphObject()})
+    graph = _FakeGraph([layer1, layer2])
+
+    _set_template_text_objects(graph)
+
+    legend = layer1.obj.GraphObjects["Legend"]
+    top_text = layer1.obj.GraphObjects["Text"]
+    card_text = layer2.obj.GraphObjects["Text"]
+    assert legend.Text == "\\l(2)\\b( BiOBr\\-(0.5)Cl\\-(0.5))\r\n\\l(1)\\b( CuWO\\-(4))"
+    assert top_text.Text == "\\b(BiCu-10)"
+    assert legend.props["fsize"] == top_text.props["fsize"] == 26
+    assert legend.props["font"] == top_text.props["font"] == 67
+    assert legend.props["bold"] == top_text.props["bold"] == 1
+    assert legend.props["frame"] == legend.props["fill"] == legend.props["fillarea"] == 0
+    assert top_text.Left == 4110
+    assert legend.Left == 3569
+    assert legend.Top > top_text.Top
+    assert "fsize" not in card_text.props
+
+
 def _write_raw4(path: Path, rows: list[tuple[float, float]]) -> Path:
     lines = [";RAW4.00", "[RawHeader]", "Date=06/10/2026", "", "[Data]", "Angle, PSD"]
     lines.extend(f"{x}, {y}" for x, y in rows)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
+
+
+class _FakeGraphObject:
+    def __init__(self) -> None:
+        self.Text = ""
+        self.Left = 0
+        self.Top = 0
+        self.Width = 0
+        self.Height = 0
+        self.props: dict[str, object] = {}
+
+    def SetNumProp(self, prop: str, value: object) -> None:
+        self.props[prop] = value
+
+
+class _FakeLayerObject:
+    def __init__(self, objects: dict[str, _FakeGraphObject]) -> None:
+        self.GraphObjects = objects
+
+
+class _FakeLayer:
+    def __init__(self, objects: dict[str, _FakeGraphObject]) -> None:
+        self.obj = _FakeLayerObject(objects)
+
+
+class _FakeGraph:
+    def __init__(self, layers: list[_FakeLayer]) -> None:
+        self._layers = layers
+
+    def __getitem__(self, index: int) -> _FakeLayer:
+        return self._layers[index]
