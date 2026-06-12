@@ -80,6 +80,9 @@ class ProductContext:
     y_tick_values: bool = True
     legend_entries: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    external_reference_opju: Path | None = None
+    external_reference_graph: str = ""
+    external_reference_source: str = ""
 
 
 OriginExporter = Callable[[ProductContext], dict[str, object]]
@@ -856,7 +859,7 @@ def _reference_policy_notes(product_key: str) -> list[str]:
     spec = ALL_TYPE_MIMIC_SPECS.get(product_key)
     if spec is not None:
         return list(spec.reference_policy_notes)
-    return ["Reference OPJU is used only as a visual exemplar for manual calibration."]
+    return ["Saved Origin format asset is used only as a visual exemplar for manual calibration."]
 
 
 def _target_product_key(item: dict[str, Any]) -> str | None:

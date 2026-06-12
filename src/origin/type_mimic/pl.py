@@ -16,7 +16,7 @@ SPEC = TypeMimicSpec(
         "no charge-separation conclusion",
     ),
     reference_policy_notes=(
-        "Reference OPJU is used only for PL visual style.",
+        "Saved Origin format asset is used only for PL visual style.",
         "Excitation/emission interpretation remains manual review only.",
     ),
 )

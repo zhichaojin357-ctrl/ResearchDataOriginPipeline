@@ -195,6 +195,8 @@ class TemplateProductBuilderOptions:
     xps_smooth_gradient_fill: bool = False
     cleanup_empty_run_layout_dirs: bool = False
     project_style_asset_fallback: bool = False
+    prefer_project_style_assets: bool = False
+    external_reference_preview_comparison: bool = False
 
 
 def classify_template_candidates(paths: list[Path], *, f_drive_root: Path) -> list[TemplateCandidate]:
@@ -305,6 +307,53 @@ def build_template_candidate_pool(
     return candidates
 
 
+def build_external_reference_candidate_pool(
+    f_drive_paths: list[Path],
+    xps_reference_paths: list[Path],
+    *,
+    f_drive_root: Path,
+    xps_reference_root: Path,
+    xps_non_in_situ_paths: list[Path] | None = None,
+    xps_non_in_situ_root: Path | None = None,
+    xps_reference_templates_for_all_xps: bool = False,
+    xps_templates_from_reference_only: bool = False,
+) -> list[TemplateCandidate]:
+    candidates = build_template_candidate_pool(
+        f_drive_paths,
+        xps_reference_paths,
+        f_drive_root=f_drive_root,
+        xps_reference_root=xps_reference_root,
+        xps_non_in_situ_paths=xps_non_in_situ_paths,
+        xps_non_in_situ_root=xps_non_in_situ_root,
+        xps_reference_templates_for_all_xps=xps_reference_templates_for_all_xps,
+        xps_templates_from_reference_only=xps_templates_from_reference_only,
+    )
+    candidates.extend(classify_template_f_drive_xps_reference_candidates(f_drive_paths, f_drive_root=f_drive_root))
+    return candidates
+
+
+def classify_template_f_drive_xps_reference_candidates(paths: list[Path], *, f_drive_root: Path) -> list[TemplateCandidate]:
+    candidates: list[TemplateCandidate] = []
+    for path in paths:
+        if path.suffix.casefold() not in {".opju", ".opj"}:
+            continue
+        if not _is_relative_to(path, f_drive_root):
+            continue
+        if not _is_f_drive_xps_path(path):
+            continue
+        for product_key in ("XPS_in_situ", "XPS_non_in_situ"):
+            candidates.append(
+                TemplateCandidate(
+                    product_key=product_key,
+                    path=path,
+                    source="f_drive_xps_reference_scan",
+                    path_score=_template_path_score(product_key, path) + 60 + _xps_reference_path_score_bonus(product_key, path),
+                    reason="classified by F-drive XPS folder for external reference comparison",
+                )
+            )
+    return candidates
+
+
 def classify_template_project_style_asset_candidates(project_root: Path) -> list[TemplateCandidate]:
     manifest_path = origin_style_manifest_path(project_root)
     manifest = load_origin_style_manifest(project_root, manifest_path)
@@ -322,9 +371,9 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
         candidates.append(
             TemplateCandidate(
                 product_key=product_key,
-                path=asset.template_opju_path or asset.graph_template_path,
-                source="project_origin_template_asset" if asset.template_opju_path else "project_origin_style_asset",
-                path_score=80 if asset.template_opju_path else 1,
+                path=asset.format_theme_path,
+                source="project_origin_style_asset",
+                path_score=1,
                 status="valid",
                 graph_page=asset.graph_page or "Graph1",
                 layer_count=_manifest_positive_int(raw, ("layer_count", "template_layer_count"), default=1),
@@ -334,9 +383,7 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
                     default=1,
                 ),
                 reason=(
-                    "project-local copied OPJU template fallback"
-                    if asset.template_opju_path
-                    else "project-local cached Origin style asset fallback"
+                    "project-local saved Origin format theme fallback"
                 ),
                 metadata={
                     "style_package": True,
@@ -364,6 +411,7 @@ def _safe_manifest_entry(raw: dict[str, object]) -> dict[str, object]:
         "product_key",
         "data_type",
         "graph_page",
+        "format_theme",
         "graph_template",
         "template_opju",
         "source_opju",
@@ -481,6 +529,33 @@ def select_template(product_key: str, candidates: list[TemplateCandidate]) -> Te
         candidates=tuple(scoped),
         reason="Selected highest-scoring validated graph template or project-local style asset.",
     )
+
+
+def _select_external_reference_template(
+    product: ProductContext,
+    selections: dict[str, TemplateSelection],
+) -> TemplateCandidate | None:
+    product_key = product.product_key
+    selection = selections.get(product_key)
+    if selection is None or selection.status != "selected" or selection.selected is None:
+        return None
+    candidate = _select_template_xps_template_for_product(product, selection) if product_key.startswith("XPS") else selection.selected
+    if candidate.path.suffix.casefold() not in {".opju", ".opj"}:
+        return None
+    if candidate.status not in {"extracted", "valid"}:
+        return None
+    if not candidate.graph_page:
+        return None
+    return candidate
+
+
+def _external_reference_source_path(candidate: TemplateCandidate) -> Path:
+    scan_copy = candidate.metadata.get("scan_copy") if isinstance(candidate.metadata, dict) else None
+    if scan_copy:
+        path = Path(str(scan_copy))
+        if path.is_file():
+            return path
+    return candidate.path
 
 
 def _select_template_xps_template_for_product(product: ProductContext, selection: TemplateSelection) -> TemplateCandidate:
@@ -649,11 +724,14 @@ def run_template_product_builder_all_types(
     roots = root_map or build_default_root_map(project_root)
     output_root = resolve_output_root(project_root, explicit=options.output_root)
     timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
-    use_project_style_assets_only = (
-        options.project_style_asset_fallback
-        and options.f_drive_template_root is None
-        and options.xps_reference_template_root is None
-        and options.xps_non_in_situ_template_root is None
+    use_project_style_assets_only = options.project_style_asset_fallback and (
+        options.prefer_project_style_assets
+        or (
+            options.f_drive_template_root is None
+            and options.xps_reference_template_root is None
+            and options.xps_non_in_situ_template_root is None
+            and not options.external_reference_preview_comparison
+        )
     )
     f_drive_root = options.f_drive_template_root or Path("F:/") / "\u8bfe\u9898" / "LL" / "\u68c0\u6d4b"
     xps_reference_root = options.xps_reference_template_root or roots.get("workspace_xps_reference") or (project_root.parent / "xps\u53c2\u8003\u56fe\u50cf")
@@ -676,6 +754,18 @@ def run_template_product_builder_all_types(
             xps_templates_from_reference_only=options.xps_templates_from_reference_only,
         )
         template_source_root = f_drive_root
+    external_reference_candidates: list[TemplateCandidate] = []
+    if options.external_reference_preview_comparison:
+        external_reference_candidates = build_external_reference_candidate_pool(
+            scan_template_f_drive_template_paths(f_drive_root) if f_drive_root.exists() else [],
+            scan_template_optional_template_paths(xps_reference_root),
+            f_drive_root=f_drive_root,
+            xps_reference_root=xps_reference_root,
+            xps_non_in_situ_paths=scan_template_optional_template_paths(xps_non_in_situ_root),
+            xps_non_in_situ_root=xps_non_in_situ_root,
+            xps_reference_templates_for_all_xps=options.xps_reference_templates_for_all_xps,
+            xps_templates_from_reference_only=options.xps_templates_from_reference_only,
+        )
     layout = create_run_output_layout(
         project_root,
         scope=options.run_scope,
@@ -691,10 +781,25 @@ def run_template_product_builder_all_types(
         _ensure_template_type_dirs(layout.root / TEMPLATE_TYPE_DIRS[product_key])
     validator = template_validator or validate_template_candidates
     validated = validator(candidates, layout.root / "template_scan_copies") if candidates else []
+    external_validated = (
+        validator(external_reference_candidates, layout.root / "template_reference_scan_copies")
+        if external_reference_candidates
+        else []
+    )
     if options.project_style_asset_fallback:
-        validated.extend(classify_template_project_style_asset_candidates(project_root))
+        project_style_candidates = classify_template_project_style_asset_candidates(project_root)
+        if options.prefer_project_style_assets and project_style_candidates:
+            validated = project_style_candidates
+        else:
+            validated.extend(project_style_candidates)
     selections = {product_key: select_template(product_key, validated) for product_key in TEMPLATE_TARGET_TYPES}
+    external_reference_selections = {
+        product_key: select_template(product_key, external_validated)
+        for product_key in TEMPLATE_TARGET_TYPES
+    } if external_validated else {}
     _write_template_discovery_doc(layout.root / "reports" / "template_discovery_and_selection.md", template_source_root, validated, selections)
+    if external_reference_selections:
+        _write_template_selection_summary(layout.root / "reports" / "external_reference_template_selection_summary.md", external_reference_selections)
 
     user_config = load_user_plot_style(project_root, options.user_style_path)
     if options.global_style_override:
@@ -727,12 +832,32 @@ def run_template_product_builder_all_types(
             )
             active_template = _select_template_xps_template_for_product(product, selection)
             if active_template.path != selection.selected.path:
+                reference_dir = "reference_opju" if active_template.path.suffix.casefold() in {".opju", ".opj"} else "format_assets"
                 product = replace(
                     product,
-                    reference_opju_copy=_copy_reference(active_template.path, product.type_root / "reference_opju"),
+                    reference_opju_copy=_copy_reference(active_template.path, product.type_root / reference_dir),
                 )
             if active_template.path != selection.selected.path or active_template.graph_page != selection.selected.graph_page:
                 extra["template"] = _candidate_to_dict(active_template)
+            external_reference = _select_external_reference_template(product, external_reference_selections)
+            if external_reference is not None:
+                external_reference_source = _external_reference_source_path(external_reference)
+                product = replace(
+                    product,
+                    external_reference_opju=external_reference_source,
+                    external_reference_graph=external_reference.graph_page,
+                    external_reference_source=external_reference.source,
+                )
+                external_reference_payload = _candidate_to_dict(external_reference)
+                external_reference_payload["scan_copy"] = _relative_to_run(layout.root, external_reference_source)
+                extra["external_reference_template"] = external_reference_payload
+            elif options.external_reference_preview_comparison:
+                if product.reference_preview_png.exists():
+                    product.reference_preview_png.unlink()
+                extra["external_reference_template"] = {
+                    "status": "missing_external_reference",
+                    "reason": "No validated F-drive/reference OPJU was selected for direct reference preview export.",
+                }
             style = resolve_user_plot_style(product_key, exemplar=active_template.metadata.get("snapshot"), user_config=user_config)
             export_status: dict[str, object] = {"ok": False, "message": "Origin export skipped"}
             if options.with_origin:
@@ -796,7 +921,8 @@ def prepare_template_product(
     _ensure_template_type_dirs(type_root)
     slug = _versioned_template_slug(product_key, slug_version)
     input_copies = [] if product_key == "EPR" else _copy_inputs(pairing.data_paths, type_root / "input_copies")
-    reference_copy = _copy_reference(template.path, type_root / "reference_opju")
+    reference_dir = "reference_opju" if template.path.suffix.casefold() in {".opju", ".opj"} else "format_assets"
+    reference_copy = _copy_reference(template.path, type_root / reference_dir)
     extra: dict[str, object] = {"template": _candidate_to_dict(template)}
     product_pairing = pairing
     if product_key == "EIS":
@@ -2076,6 +2202,12 @@ def _write_columns_csv(path: Path, headers: list[str], columns: list[list[object
 
 
 def _extract_template_product_reference_snapshot(operations: object, product: ProductContext) -> OpjuStyleSnapshot:
+    if product.reference_opju_copy.suffix.casefold() not in {".opju", ".opj"}:
+        return OpjuStyleSnapshot(
+            product.reference_opju_copy.name,
+            "format_theme_source",
+            warnings=["Saved format theme asset is not loaded as an OPJU exemplar."],
+        )
     if not product.product_key.startswith("XPS"):
         return extract_style_snapshot(operations, product.reference_opju_copy)
     load_result = operations.load_project(product.reference_opju_copy)
@@ -2853,15 +2985,17 @@ def _build_template_acceptance(
     conformance = export_status.get("conformance") if isinstance(export_status.get("conformance"), dict) else {}
     strict_readback = export_status.get("strict_style_readback") if isinstance(export_status.get("strict_style_readback"), dict) else {}
     template_base_mode = _is_template_base_origin_status(export_status)
+    saved_format_theme_mode = _is_saved_format_theme_origin_status(export_status)
     cached_style_package_mode = _is_cached_style_package_origin_status(export_status)
+    saved_style_asset_mode = saved_format_theme_mode or cached_style_package_mode
     widths = product_style.get("plot_line_widths", []) if isinstance(product_style, dict) else []
     line_width_ok = _line_widths_accepted(widths)
-    if cached_style_package_mode:
+    if saved_style_asset_mode:
         axis_title_ok = bool(export_status.get("axis_title_bold_policy", True))
     else:
         axis_title_ok = bool(conformance.get("axis_title_bold")) if conformance else bool(export_status.get("axis_title_bold_policy"))
     if strict_readback:
-        if cached_style_package_mode:
+        if saved_style_asset_mode:
             axis_title_ok = axis_title_ok and bool(strict_readback.get("axis_title_visible", True))
         elif template_base_mode:
             axis_title_ok = axis_title_ok and bool(strict_readback.get("axis_title_bold")) and bool(strict_readback.get("axis_title_visible"))
@@ -2902,7 +3036,7 @@ def _build_template_acceptance(
     relevant_readback = _relevant_strict_readback_values(
         strict_readback,
         template_base_mode=template_base_mode,
-        cached_style_package_mode=cached_style_package_mode,
+        saved_style_asset_mode=saved_style_asset_mode,
     )
     if relevant_readback and not all(bool(value) for value in relevant_readback.values()):
         visual_ok = False
@@ -2931,15 +3065,20 @@ def _is_cached_style_package_origin_status(export_status: dict[str, object]) -> 
     return str(origin_processing.get("method", "")) == "cached_style_package_graph_template"
 
 
+def _is_saved_format_theme_origin_status(export_status: dict[str, object]) -> bool:
+    origin_processing = export_status.get("origin_processing") if isinstance(export_status.get("origin_processing"), dict) else {}
+    return str(origin_processing.get("method", "")) == "saved_format_theme_apply"
+
+
 def _relevant_strict_readback_values(
     strict_readback: dict[str, object],
     *,
     template_base_mode: bool,
-    cached_style_package_mode: bool = False,
+    saved_style_asset_mode: bool = False,
 ) -> dict[str, object]:
     if not strict_readback:
         return {}
-    if cached_style_package_mode:
+    if saved_style_asset_mode:
         keys = ("axis_title_visible",)
         return {key: strict_readback.get(key) for key in keys if key in strict_readback}
     if not template_base_mode:
@@ -2958,6 +3097,16 @@ def _write_template_product_metadata(
     acceptance: TemplateAcceptance,
 ) -> Path:
     path = product.type_root / "metadata" / product.slug / "metadata.json"
+    reference_opju_copy = (
+        _safe_metadata_path(product.reference_opju_copy)
+        if product.reference_opju_copy.suffix.casefold() in {".opju", ".opj"}
+        else ""
+    )
+    reference_style_asset_copy = (
+        _safe_metadata_path(product.reference_opju_copy)
+        if product.reference_opju_copy.suffix.casefold() not in {".opju", ".opj"}
+        else ""
+    )
     payload = {
         "dataset_id": product.slug,
         "metadata_path": _safe_metadata_path(path),
@@ -2972,13 +3121,16 @@ def _write_template_product_metadata(
         "template_layer_count": template.layer_count,
         "template_plot_count": template.plot_count,
         "input_copies": [_safe_metadata_path(path) for path in product.input_copies],
-        "reference_opju_copy": _safe_metadata_path(product.reference_opju_copy),
+        "reference_opju_copy": reference_opju_copy,
+        "reference_style_asset_copy": reference_style_asset_copy,
+        "external_reference_template": _external_reference_template_metadata(product),
         "reference_preview_png": _safe_metadata_path(product.reference_preview_png),
         "processed_data": _safe_metadata_path(product.processed_data),
         "origin_file": _safe_metadata_path(product.origin_file),
         "figure_tif": _safe_metadata_path(product.figure_tif),
         "preview_png": _safe_metadata_path(product.preview_png),
         "origin_status": export_status,
+        "external_reference_preview": export_status.get("external_reference_preview", {}),
         "strict_style_readback": export_status.get("strict_style_readback", {}),
         "xps_component_fill": export_status.get("xps_component_fill", {}),
         "origin_processing": export_status.get("origin_processing", {}),
@@ -3000,6 +3152,17 @@ def _write_template_product_metadata(
     return path
 
 
+def _external_reference_template_metadata(product: ProductContext) -> dict[str, object]:
+    if product.external_reference_opju is None:
+        return {"selected": False}
+    return {
+        "selected": True,
+        "source_opju": _relative_to_run(product.type_root.parent, product.external_reference_opju),
+        "graph_page": product.external_reference_graph,
+        "source": product.external_reference_source,
+    }
+
+
 def _write_template_per_type_report(
     run_root: Path,
     product: ProductContext,
@@ -3015,13 +3178,18 @@ def _write_template_per_type_report(
     xps_fill = export_status.get("xps_component_fill") if isinstance(export_status.get("xps_component_fill"), dict) else {}
     origin_processing = export_status.get("origin_processing") if isinstance(export_status.get("origin_processing"), dict) else {}
     epr_processing = export_status.get("epr_origin_processing") if isinstance(export_status.get("epr_origin_processing"), dict) else {}
+    external_reference = _external_reference_template_metadata(product)
+    external_reference_preview = export_status.get("external_reference_preview") if isinstance(export_status.get("external_reference_preview"), dict) else {}
     lines = [
         f"# {product.product_key} template-format report",
         "",
         f"- Status: {acceptance.status}",
         f"- Template path: {_template_display_path(template.path)}",
         f"- Template graph: {template.graph_page}",
-        f"- Template PNG preview: {_relative_to_run(run_root, product.reference_preview_png)}",
+        f"- Reference PNG preview: {_relative_to_run(run_root, product.reference_preview_png)}",
+        f"- External reference OPJU: {external_reference.get('source_opju', '') if external_reference.get('selected') else 'not selected'}",
+        f"- External reference graph: {external_reference.get('graph_page', '') if external_reference.get('selected') else ''}",
+        f"- External reference preview export: {external_reference_preview}",
         f"- Processed data: {_relative_to_run(run_root, product.processed_data)}",
         f"- Generated OPJU: {_relative_to_run(run_root, product.origin_file)}",
         f"- Generated TIF: {_relative_to_run(run_root, product.figure_tif)}",
@@ -3104,6 +3272,9 @@ def _template_product_summary(
         "product_key": product.product_key,
         "template_path": _template_display_path(template.path),
         "template_graph": template.graph_page,
+        "external_reference_opju": _relative_to_run(run_root, product.external_reference_opju) if product.external_reference_opju else "",
+        "external_reference_graph": product.external_reference_graph,
+        "external_reference_source": product.external_reference_source,
         "template_format_mode": str(template_format_plan.get("mode") or ""),
         "origin_processing_method": str(origin_processing.get("method") or ""),
         "status": acceptance.status,
@@ -3235,7 +3406,7 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         conformance = _template_product_conformance(product, metadata)
         style_match_ratio = _template_style_match_ratio(conformance)
         preview_rms = _to_float(image_metrics.get("preview_rms"))
-        cached_style_package_mode = _is_cached_style_package_preview_product(product, metadata)
+        saved_style_asset_mode = _is_saved_style_asset_preview_product(product, metadata)
         strict_reasons = _template_strict_visual_reasons(
             ready=ready,
             plot_count_delta=plot_count_delta,
@@ -3245,11 +3416,11 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         strict_visual_match = not strict_reasons
         strict_status = "strict_visual_match" if strict_visual_match else "blocked_not_one_to_one"
         strict_message = "; ".join(strict_reasons)
-        if cached_style_package_mode and not strict_visual_match:
+        if saved_style_asset_mode and not strict_visual_match:
             strict_status = "manual_check_not_one_to_one"
             if strict_message:
                 strict_message = (
-                    "cached style-package mode records OPJU-template preview comparison as manual-check-only; "
+                    "saved style-asset mode records reference-format preview comparison as manual-check-only; "
                     + strict_message
                 )
         if strict_message and message:
@@ -3265,10 +3436,10 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         product["style_match_ratio"] = style_match_ratio
         product["strict_visual_match"] = strict_visual_match
         product["strict_status"] = strict_status
-        if not strict_visual_match and product.get("status") == "accepted" and not cached_style_package_mode:
+        if not strict_visual_match and product.get("status") == "accepted" and not saved_style_asset_mode:
             product["status"] = "blocked"
             product["notes"] = (str(product.get("notes") or "") + f"; {strict_status}: {strict_message}").strip("; ")
-        elif cached_style_package_mode and not strict_visual_match and product.get("status") == "accepted":
+        elif saved_style_asset_mode and not strict_visual_match and product.get("status") == "accepted":
             product["notes"] = (str(product.get("notes") or "") + f"; {strict_status}: {strict_message}").strip("; ")
         items.append(
             {
@@ -3287,7 +3458,7 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
                 "generated_size": image_metrics.get("generated_size", ""),
                 "strict_visual_match": strict_visual_match,
                 "strict_status": strict_status,
-                "cached_style_package_mode": cached_style_package_mode,
+                "saved_style_asset_mode": saved_style_asset_mode,
                 "message": message,
             }
         )
@@ -3308,21 +3479,21 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         "strict_match_count": sum(1 for item in items if item["strict_visual_match"]),
         "product_count": len(items),
         "items": items,
-        "policy": "Each data type must export the OPJU template graph preview and compare it side-by-side with the regenerated preview; strict match also requires plot-count, style, and image-difference gates.",
-        "no_fabrication_policy": "Missing template series are reported as data gaps, not silently created from OPJU images or copied annotations.",
+        "policy": "Each data type must export the saved reference-format preview and compare it side-by-side with the regenerated preview; strict match also requires plot-count, style, and image-difference gates.",
+        "no_fabrication_policy": "Missing reference-format series are reported as data gaps, not silently created from preview images or copied annotations.",
     }
     (reports / "template_preview_comparison.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     _write_template_data_completeness(reports / "template_data_completeness.md", run_root, completeness_rows)
     lines = [
         "# Template preview comparison audit",
         "",
-        "- Policy: export the corresponding OPJU template graph image before comparing the regenerated product preview.",
+        "- Policy: compare the saved reference-format preview with the regenerated product preview.",
         "- Strict policy: one-to-one status requires matching plot counts, sufficient style readback match, and low preview RMS difference.",
         "- No-fabrication policy: missing source series/reference cards/annotations are reported, not invented.",
         f"- Ready: {audit['ready_count']}/{audit['product_count']}",
         f"- Strict visual match: {audit['strict_match_count']}/{audit['product_count']}",
         "",
-        "| Type | Status | Template Preview | Generated Preview | Side-by-side | Ready | Template Plots | Product Plots | RMS | Strict | Message |",
+        "| Type | Status | Reference Preview | Generated Preview | Side-by-side | Ready | Reference Plots | Product Plots | RMS | Strict | Message |",
         "|---|---:|---|---|---|---:|---:|---:|---:|---:|---|",
     ]
     for item in items:
@@ -3345,19 +3516,19 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
     return audit
 
 
-def _is_cached_style_package_preview_product(product: dict[str, object], metadata: dict[str, object]) -> bool:
-    if str(product.get("template_format_mode") or "") == "cached_style_package":
+def _is_saved_style_asset_preview_product(product: dict[str, object], metadata: dict[str, object]) -> bool:
+    if str(product.get("template_format_mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template"}:
         return True
-    if str(product.get("origin_processing_method") or "") == "cached_style_package_graph_template":
+    if str(product.get("origin_processing_method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template"}:
         return True
     origin_status = metadata.get("origin_status") if isinstance(metadata.get("origin_status"), dict) else {}
     template_format_plan = (
         origin_status.get("template_format_plan") if isinstance(origin_status.get("template_format_plan"), dict) else {}
     )
-    if str(template_format_plan.get("mode") or "") == "cached_style_package":
+    if str(template_format_plan.get("mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template"}:
         return True
     for candidate in (metadata.get("origin_processing"), origin_status.get("origin_processing")):
-        if isinstance(candidate, dict) and str(candidate.get("method") or "") == "cached_style_package_graph_template":
+        if isinstance(candidate, dict) and str(candidate.get("method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template"}:
             return True
     return False
 
@@ -3533,7 +3704,7 @@ def _make_template_preview_side_by_side(reference: Path, generated: Path, output
         font = ImageFont.truetype("arial.ttf", 24)
     except Exception:
         font = ImageFont.load_default()
-    draw.text((12, 10), "Template OPJU export", fill="black", font=font)
+    draw.text((12, 10), "Reference format preview", fill="black", font=font)
     draw.text((left.width + gap + 12, 10), "Regenerated product", fill="black", font=font)
     canvas.paste(left, (0, label_height))
     canvas.paste(right, (left.width + gap, label_height))
@@ -3604,7 +3775,7 @@ def _write_template_final_summary(
         f"- blocked: {sum(1 for item in products if item.get('status') == 'blocked')}",
         f"- failed: {sum(1 for item in products if item.get('status') == 'failed')}",
         f"- Product visible-label audit: {'pass' if _label_audit_passes(label_audit) else 'fail'}",
-        f"- Template-vs-generated preview comparison: {sum(1 for item in products if item.get('template_preview_comparison_ready'))}/{len(products)} ready",
+        f"- Reference-vs-generated preview comparison: {sum(1 for item in products if item.get('template_preview_comparison_ready'))}/{len(products)} ready",
         "- F-drive files modified: no",
         "- Original OPJU/OPJ files modified: no",
         "- Output products committed: no",
@@ -3623,7 +3794,9 @@ def _write_template_final_summary(
                 f"- Status: {product['status']}",
                 f"- Template: {product.get('template_path', '')}",
                 f"- Template graph: {product.get('template_graph', '')}",
-                f"- Template PNG preview: {reference_png}",
+        f"- Reference PNG preview: {reference_png}",
+        f"- External reference OPJU: {product.get('external_reference_opju', '') or 'not selected'}",
+        f"- External reference graph: {product.get('external_reference_graph', '')}",
                 f"- OPJU: {opju}",
                 f"- PNG preview: {png}",
                 f"- Template vs generated comparison: {comparison_text}",
@@ -3904,6 +4077,18 @@ def _product_key_from_f_drive_path(path: Path) -> str | None:
         return "XRD"
     if any(part == "epr" for part in parts):
         return "EPR"
+    if "阻抗" in text:
+        return "EIS"
+    if "拉曼" in text:
+        return "Raman"
+    if "固体紫外" in text or "紫外" in text:
+        return "UV-vis DRS / Tauc"
+    if "激发" in text or "发射" in text:
+        return "PL"
+    if "光电流" in text:
+        return "photocurrent"
+    if "红外" in text:
+        return "FTIR"
     if "闃绘姉" in text or "eis" in text:
         return "EIS"
     if "鎷夋浖" in text or "raman" in text:
@@ -3919,8 +4104,16 @@ def _product_key_from_f_drive_path(path: Path) -> str | None:
     return None
 
 
+def _is_f_drive_xps_path(path: Path) -> bool:
+    return any(part.casefold() == "xps" for part in path.parts)
+
+
 def _has_in_situ_token(text: str) -> bool:
     compact = text.replace("_", "").replace("-", "").replace(" ", "")
+    if "非原位" in text:
+        return False
+    if "原位" in text:
+        return True
     if "noninsitu" in compact or "non in situ" in text:
         return False
     return "鍘熶綅" in text or "insitu" in compact or "insitu" in text or "in situ" in text
@@ -3932,6 +4125,9 @@ def _template_path_score(product_key: str, path: Path) -> int:
     for token in ("bobc", "cwo+bobc", "cwo", "bc"):
         if token in text:
             score += 5
+    for token in ("负数", "没有明显峰", "老版本", "旧版本"):
+        if token in text:
+            score -= 25
     if product_key == "EIS" and ("鎷熷悎" in text or "fit" in text):
         score += 4
     if product_key == "XPS_in_situ" and _has_in_situ_token(text):
@@ -3983,7 +4179,7 @@ def _is_relative_to(path: Path, root: Path) -> bool:
 def _ensure_template_type_dirs(type_root: Path) -> None:
     for name in (
         "input_copies",
-        "reference_opju",
+        "format_assets",
         "reference_exports",
         "processed_data",
         "metadata",

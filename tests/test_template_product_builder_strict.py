@@ -82,21 +82,21 @@ def test_template_candidate_pool_excludes_f_drive_xps_templates(tmp_path: Path) 
 
 
 def test_template_display_path_hides_workspace_prefixes() -> None:
-    template = Path("D:/Codex Project/科研数据处理/ResearchDataOriginPipeline/templates/origin_styles/graph_templates/BET.otpu")
+    template = Path("D:/Codex Project/科研数据处理/ResearchDataOriginPipeline/templates/origin_styles/format_themes/BET.oth")
     external = Path("F:/课题/LL/检测/BET/BOBC.opju")
 
-    assert _template_display_path(template) == "templates/origin_styles/graph_templates/BET.otpu"
+    assert _template_display_path(template) == "templates/origin_styles/format_themes/BET.oth"
     assert _template_display_path(external) == "external/BOBC.opju"
 
 
 def test_project_style_asset_candidate_uses_manifest_plot_count_and_reference_preview(tmp_path: Path) -> None:
     project = tmp_path / "project"
     style_root = project / "templates" / "origin_styles"
-    template = style_root / "graph_templates" / "Raman.otpu"
+    template = style_root / "format_themes" / "Raman.oth"
     reference = style_root / "previews" / "Raman_reference.png"
     template.parent.mkdir(parents=True)
     reference.parent.mkdir(parents=True)
-    template.write_bytes(b"otpu")
+    template.write_bytes(b"oth")
     Image.new("RGB", (16, 12), "white").save(reference)
     (style_root / "manifest.json").write_text(
         json.dumps(
@@ -108,7 +108,7 @@ def test_project_style_asset_candidate_uses_manifest_plot_count_and_reference_pr
                         "data_type": "Raman",
                         "status": "accepted",
                         "graph_page": "Graph4",
-                        "graph_template": "graph_templates/Raman.otpu",
+                        "format_theme": "format_themes/Raman.oth",
                         "reference_preview_png": "previews/Raman_reference.png",
                         "template_plot_count": 3,
                         "layer_count": 1,
@@ -128,14 +128,14 @@ def test_project_style_asset_candidate_uses_manifest_plot_count_and_reference_pr
     assert copied.exists()
 
 
-def test_project_template_asset_prefers_copied_opju_over_graph_template(tmp_path: Path) -> None:
+def test_project_style_asset_prefers_saved_format_theme_over_copied_opju(tmp_path: Path) -> None:
     project = tmp_path / "project"
     style_root = project / "templates" / "origin_styles"
-    graph_template = style_root / "graph_templates" / "photocurrent.otpu"
+    format_theme = style_root / "format_themes" / "photocurrent.oth"
     template_opju = style_root / "reference_opju" / "photocurrent.opju"
-    graph_template.parent.mkdir(parents=True)
+    format_theme.parent.mkdir(parents=True)
     template_opju.parent.mkdir(parents=True)
-    graph_template.write_bytes(b"otpu")
+    format_theme.write_bytes(b"oth")
     template_opju.write_bytes(b"opju")
     (style_root / "manifest.json").write_text(
         json.dumps(
@@ -147,7 +147,7 @@ def test_project_template_asset_prefers_copied_opju_over_graph_template(tmp_path
                         "data_type": "photocurrent",
                         "status": "accepted",
                         "graph_page": "Graph1",
-                        "graph_template": "graph_templates/photocurrent.otpu",
+                        "format_theme": "format_themes/photocurrent.oth",
                         "template_opju": "reference_opju/photocurrent.opju",
                         "template_plot_count": 3,
                     }
@@ -159,9 +159,9 @@ def test_project_template_asset_prefers_copied_opju_over_graph_template(tmp_path
 
     [candidate] = classify_template_project_style_asset_candidates(project)
 
-    assert candidate.path == template_opju
-    assert candidate.source == "project_origin_template_asset"
-    assert candidate.path_score == 80
+    assert candidate.path == format_theme
+    assert candidate.source == "project_origin_style_asset"
+    assert candidate.path_score == 1
     assert candidate.plot_count == 3
 
 
@@ -398,7 +398,7 @@ def test_template_writes_template_vs_generated_preview_comparison(tmp_path: Path
     assert (tmp_path / "reports" / "template_data_completeness.md").exists()
 
 
-def test_cached_style_package_preview_gap_does_not_block_accepted_product(tmp_path: Path) -> None:
+def test_saved_format_theme_preview_gap_does_not_block_accepted_product(tmp_path: Path) -> None:
     generated = tmp_path / "BET" / "figures_preview" / "BET_preview.png"
     metadata = tmp_path / "BET" / "metadata" / "BET.json"
     generated.parent.mkdir(parents=True)
@@ -409,11 +409,11 @@ def test_cached_style_package_preview_gap_does_not_block_accepted_product(tmp_pa
             {
                 "template_plot_count": 3,
                 "origin_status": {
-                    "template_format_plan": {"mode": "cached_style_package"},
-                    "origin_processing": {"method": "cached_style_package_graph_template"},
+                    "template_format_plan": {"mode": "saved_format_theme"},
+                    "origin_processing": {"method": "saved_format_theme_apply"},
                     "product_style": {"plot_count": 1},
                 },
-                "origin_processing": {"method": "cached_style_package_graph_template"},
+                "origin_processing": {"method": "saved_format_theme_apply"},
                 "source_files": ["raw1.csv"],
             }
         ),
@@ -425,16 +425,16 @@ def test_cached_style_package_preview_gap_does_not_block_accepted_product(tmp_pa
         "reference_preview_png": str(tmp_path / "missing_reference.png"),
         "preview_png": str(generated),
         "metadata": str(metadata),
-        "template_format_mode": "cached_style_package",
-        "origin_processing_method": "cached_style_package_graph_template",
-        "notes": "Origin cached style-package export succeeded.",
+        "template_format_mode": "saved_format_theme",
+        "origin_processing_method": "saved_format_theme_apply",
+        "notes": "Origin saved format-theme export succeeded.",
     }
 
     audit = _write_template_preview_comparison(tmp_path, [product])
 
     assert product["status"] == "accepted"
     assert audit["items"][0]["strict_status"] == "manual_check_not_one_to_one"
-    assert audit["items"][0]["cached_style_package_mode"] is True
+    assert audit["items"][0]["saved_style_asset_mode"] is True
     assert "manual-check-only" in product["notes"]
 
 
@@ -750,7 +750,7 @@ def test_cached_style_readback_only_requires_axis_title_visibility() -> None:
     relevant = _relevant_strict_readback_values(
         readback,
         template_base_mode=False,
-        cached_style_package_mode=True,
+        saved_style_asset_mode=True,
     )
 
     assert relevant == {"axis_title_visible": True}

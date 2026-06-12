@@ -19,7 +19,7 @@ SPEC = TypeMimicSpec(
     ),
     reference_policy_notes=(
         "In-situ XPS stays separate from non-in-situ XPS.",
-        "Reference OPJU is only a visual exemplar for manual calibration.",
+        "Saved Origin format asset is only a visual exemplar for manual calibration.",
         "Panel grouping information is metadata for review, not a scientific conclusion.",
     ),
 )

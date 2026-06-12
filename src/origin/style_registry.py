@@ -15,7 +15,8 @@ DEFAULT_STYLE_MANIFEST = Path("templates") / "origin_styles" / "manifest.json"
 class OriginStyleAsset:
     product_key: str
     data_type: str
-    graph_template_path: Path
+    format_theme_path: Path
+    graph_template_path: Path | None = None
     template_opju_path: Path | None = None
     status: str = ""
     graph_page: str = ""
@@ -27,7 +28,10 @@ class OriginStyleAsset:
         return {
             "product_key": self.product_key,
             "data_type": self.data_type,
-            "graph_template": _relative_or_absolute(self.graph_template_path, project_root / "templates" / "origin_styles"),
+            "format_theme": _relative_or_absolute(self.format_theme_path, project_root / "templates" / "origin_styles"),
+            "graph_template": _relative_or_absolute(self.graph_template_path, project_root / "templates" / "origin_styles")
+            if self.graph_template_path
+            else "",
             "template_opju": _relative_or_absolute(self.template_opju_path, project_root / "templates" / "origin_styles")
             if self.template_opju_path
             else "",
@@ -71,8 +75,17 @@ def resolve_origin_style_asset(
         keys = {str(raw.get("product_key", "")), str(raw.get("data_type", ""))}
         if requested not in {_style_key(key) for key in keys}:
             continue
+        format_theme = _resolve_manifest_path(base, raw.get("format_theme"))
         graph_template = _resolve_manifest_path(base, raw.get("graph_template"))
-        if graph_template is None or not graph_template.is_file():
+        if format_theme is None or not format_theme.is_file():
+            if graph_template is None or not graph_template.is_file():
+                continue
+            format_theme = graph_template
+        elif graph_template is not None and not graph_template.is_file():
+            graph_template = None
+        if graph_template is not None and not graph_template.is_file():
+            graph_template = None
+        if format_theme is None or not format_theme.is_file():
             continue
         template_opju = _resolve_manifest_path(base, raw.get("template_opju") or raw.get("source_opju"))
         if template_opju is not None and not template_opju.is_file():
@@ -80,6 +93,7 @@ def resolve_origin_style_asset(
         return OriginStyleAsset(
             product_key=str(raw.get("product_key") or product_key),
             data_type=str(raw.get("data_type") or product_key),
+            format_theme_path=format_theme,
             graph_template_path=graph_template,
             template_opju_path=template_opju,
             status=str(raw.get("status") or ""),

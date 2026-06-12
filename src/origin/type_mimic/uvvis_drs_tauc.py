@@ -16,7 +16,7 @@ SPEC = TypeMimicSpec(
         "no CB or VB position conclusion",
     ),
     reference_policy_notes=(
-        "Reference OPJU may contain DRS and Tauc panels; only safe axis/style traits are used.",
+        "Saved Origin format asset may contain DRS and Tauc panel style traits; only safe axis/style traits are used.",
         "Tauc interval selection remains manual review only.",
     ),
 )

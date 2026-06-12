@@ -16,7 +16,7 @@ SPEC = TypeMimicSpec(
         "no defect or bond assignment",
     ),
     reference_policy_notes=(
-        "Reference OPJU is used only for axis and visual style.",
+        "Saved Origin format asset is used only for axis and visual style.",
         "Scientific peak labels are not copied into the draft.",
     ),
 )

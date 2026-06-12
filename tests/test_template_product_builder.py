@@ -71,13 +71,13 @@ def test_classify_template_xps_reference_root_uses_in_situ_reference_opjus(tmp_p
     assert all(item.path_score > 30 for item in classified)
 
 
-def test_classify_template_project_style_asset_candidates_use_cached_graph_templates(tmp_path: Path) -> None:
+def test_classify_template_project_style_asset_candidates_use_saved_format_themes(tmp_path: Path) -> None:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
-    graph_dir = style_root / "graph_templates"
-    graph_dir.mkdir(parents=True)
-    template = graph_dir / "BET.otpu"
-    template.write_text("cached style package", encoding="utf-8")
+    theme_dir = style_root / "format_themes"
+    theme_dir.mkdir(parents=True)
+    theme = theme_dir / "BET.oth"
+    theme.write_text("saved format theme", encoding="utf-8")
     (style_root / "manifest.json").write_text(
         """{
   "schema_version": 1,
@@ -85,7 +85,7 @@ def test_classify_template_project_style_asset_candidates_use_cached_graph_templ
     {
       "product_key": "BET",
       "data_type": "BET",
-      "graph_template": "graph_templates/BET.otpu",
+      "format_theme": "format_themes/BET.oth",
       "status": "accepted",
       "graph_page": "Graph1",
       "source_run_root": "output/runs/source_run"
@@ -101,25 +101,25 @@ def test_classify_template_project_style_asset_candidates_use_cached_graph_templ
     assert len(candidates) == 1
     candidate = candidates[0]
     assert candidate.product_key == "BET"
-    assert candidate.path == template
+    assert candidate.path == theme
     assert candidate.source == "project_origin_style_asset"
     assert candidate.status == "valid"
     assert candidate.graph_page == "Graph1"
-    assert candidate.metadata["style_asset"]["graph_template"] == "graph_templates/BET.otpu"
+    assert candidate.metadata["style_asset"]["format_theme"] == "format_themes/BET.oth"
 
 
 def test_template_builder_uses_project_style_assets_without_default_external_scan(tmp_path: Path, monkeypatch) -> None:
     project_root = tmp_path / "project"
     project_root.mkdir()
     style_root = project_root / "templates" / "origin_styles"
-    graph_dir = style_root / "graph_templates"
-    graph_dir.mkdir(parents=True)
-    (graph_dir / "BET.otpu").write_bytes(b"otpu")
+    theme_dir = style_root / "format_themes"
+    theme_dir.mkdir(parents=True)
+    (theme_dir / "BET.oth").write_bytes(b"oth")
     (style_root / "manifest.json").write_text(
         """{
   "schema_version": 1,
   "assets": [
-    {"product_key":"BET","data_type":"BET","graph_template":"graph_templates/BET.otpu","status":"accepted","graph_page":"Graph1"}
+    {"product_key":"BET","data_type":"BET","format_theme":"format_themes/BET.oth","status":"accepted","graph_page":"Graph1"}
   ]
 }
 """,

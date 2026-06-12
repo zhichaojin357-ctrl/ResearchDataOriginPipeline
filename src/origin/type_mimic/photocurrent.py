@@ -16,7 +16,7 @@ SPEC = TypeMimicSpec(
         "no photocatalytic mechanism conclusion",
     ),
     reference_policy_notes=(
-        "Reference OPJU is used only as a time-current style exemplar.",
+        "Saved Origin format asset is used only as a time-current style exemplar.",
         "Light on/off labels are not inferred or copied.",
     ),
 )

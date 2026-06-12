@@ -1,20 +1,20 @@
 # Origin Style Assets
 
-## Project-local style package root
+## Project-Local Format Assets
 
-The accepted template-format graph styles are stored inside the project:
+The accepted Origin graph formats are stored inside the project:
 
 ```text
 templates/origin_styles/
 ```
 
-Current assets:
+Current runtime assets:
 
 - `templates/origin_styles/manifest.json`
-- `templates/origin_styles/graph_templates/*.otpu`
+- `templates/origin_styles/format_themes/*.oth`
 - `templates/origin_styles/previews/*.png`
 
-The manifest has one accepted asset for each plotted type:
+The manifest has one accepted `.oth` format theme for each plotted type:
 
 - BET
 - XPS_in_situ
@@ -28,37 +28,26 @@ The manifest has one accepted asset for each plotted type:
 - photocurrent
 - FTIR
 
-## Current implementation status
+## Runtime Boundary
 
-Implemented:
+The `.oth` files are copied Origin graph formats. Product runs create a clean target graph from current processed data, apply the matching `.oth` format theme, then save a new `.opju` and export `.tif`/preview `.png`.
 
-- 11 accepted template-format graph pages exported as project-local `.otpu` Graph Template files.
-- `templates/origin_styles/manifest.json` records product key, data type, graph page, source run, source product OPJU, and preview comparison metadata.
-- `src.origin.style_registry.resolve_origin_style_asset()` resolves a product key or data type to the project-local style package.
-- `run.py export-origin-style-assets` can regenerate the package from a reviewed accepted template-format run.
+Runtime product generation must not use a template OPJU as a data-replacement base. OPJU exemplars are only historical extraction sources and are not required after the `.oth` assets exist.
 
-Boundary:
+## Regeneration
 
-- The current product path must prefer project-local `.otpu` graph templates over copied OPJU projects.
-- Final products are created in a clean Origin project, bind the current processed data, apply the saved graph-template format, then save a new `.opju` and export `.tif`.
-- OPJU exemplars are retained only as compatibility/reference assets for regenerating style packages or emergency fallback when a graph template is missing.
-
-## Dependency boundary
-
-Future style discovery and product generation no longer need the original F-drive OPJU exemplars or the output-run `reference_opju` copies. Code should resolve project-local style packages through:
-
-```python
-from src.origin.style_registry import resolve_origin_style_asset
-```
-
-The OPJU-template path remains available only as a compatibility path when a saved graph template is unavailable.
-
-## Exactness policy
-
-A saved `.otpu` is a style package, not a scientific conclusion and not by itself a final product. Any regenerated product still has to export a preview and pass the visual audit before one-to-one status can be claimed.
-
-## Regeneration command
+Regenerate the project-local format assets from a reviewed accepted product run:
 
 ```powershell
 D:\Python\python.exe run.py export-origin-style-assets --run-root "<output-root>\runs\<accepted-template-format-run>" --with-origin
 ```
+
+`run.py export-origin-style-assets` opens each accepted product OPJU, copies the selected graph format through Origin's Copy Format mechanism, and saves the copied `Origin XML Style` payload as a project-local `.oth` file.
+
+## Verification
+
+Before claiming the asset path is self-contained, run `template-format-products --with-origin` with only `templates/origin_styles/format_themes` available. The expected product metadata is:
+
+- `template_format_plan.mode = saved_format_theme`
+- `origin_processing.method = saved_format_theme_apply`
+- `template_path = templates/origin_styles/format_themes/<type>.oth`

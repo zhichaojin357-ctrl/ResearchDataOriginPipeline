@@ -1,124 +1,19 @@
-# Template discovery and selection
+# Template Discovery and Selection
 
-- F-drive template root scanned: templates/origin_styles
+- Project style root scanned: `templates/origin_styles`
+- Selection policy: prefer project-local saved Origin `.oth` format themes.
+- Runtime policy: create a clean graph from current processed data and apply the saved format theme.
 
-## BET
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/BET.otpu
-- Selected graph/layer: Graph3
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/BET.otpu | valid | Graph3 | 1 | 1 | project-local cached Origin style asset fallback |
-
-## XPS_in_situ
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/XPS_in_situ.otpu
-- Selected graph/layer: Cl_2p
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/XPS_in_situ.otpu | valid | Cl_2p | 1 | 1 | project-local cached Origin style asset fallback |
-
-## XPS_non_in_situ
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/XPS_non_in_situ.otpu
-- Selected graph/layer: XPS_Bi_BOBC_vs_c890fa98
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/XPS_non_in_situ.otpu | valid | XPS_Bi_BOBC_vs_c890fa98 | 1 | 1 | project-local cached Origin style asset fallback |
-
-## XRD
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/XRD.otpu
-- Selected graph/layer: Graph4
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/XRD.otpu | valid | Graph4 | 1 | 1 | project-local cached Origin style asset fallback |
-
-## EPR
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/EPR.otpu
-- Selected graph/layer: ohG
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/EPR.otpu | valid | ohG | 1 | 1 | project-local cached Origin style asset fallback |
-
-## EIS
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/EIS.otpu
-- Selected graph/layer: Graph1
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/EIS.otpu | valid | Graph1 | 1 | 1 | project-local cached Origin style asset fallback |
-
-## Raman
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/Raman.otpu
-- Selected graph/layer: Graph4
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/Raman.otpu | valid | Graph4 | 1 | 1 | project-local cached Origin style asset fallback |
-
-## UV-vis DRS / Tauc
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/UV_vis_DRS_Tauc.otpu
-- Selected graph/layer: Graph1
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/UV_vis_DRS_Tauc.otpu | valid | Graph1 | 1 | 1 | project-local cached Origin style asset fallback |
-
-## PL
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/PL.otpu
-- Selected graph/layer: EXJF
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/PL.otpu | valid | EXJF | 1 | 1 | project-local cached Origin style asset fallback |
-
-## photocurrent
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/photocurrent.otpu
-- Selected graph/layer: Graph1
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/photocurrent.otpu | valid | Graph1 | 1 | 1 | project-local cached Origin style asset fallback |
-
-## FTIR
-- Candidate count: 1
-- Final selection status: selected
-- Selected template: templates/origin_styles/graph_templates/FTIR.otpu
-- Selected graph/layer: Graph1
-- Selection reason: Selected highest-scoring validated graph template or project-local style asset.
-
-| Candidate | Open Status | Graph | Layers | Plots | Reason |
-|---|---:|---|---:|---:|---|
-| templates/origin_styles/graph_templates/FTIR.otpu | valid | Graph1 | 1 | 1 | project-local cached Origin style asset fallback |
+| Product | Selected Format Asset | Graph | Status | Reason |
+|---|---|---|---|---|
+| BET | `templates/origin_styles/format_themes/BET.oth` | Graph3 | selected | project-local saved Origin format theme |
+| XPS_in_situ | `templates/origin_styles/format_themes/XPS_in_situ.oth` | Cl_2p | selected | project-local saved Origin format theme |
+| XPS_non_in_situ | `templates/origin_styles/format_themes/XPS_non_in_situ.oth` | XPS_Bi_BOBC_vs_c890fa98 | selected | project-local saved Origin format theme |
+| XRD | `templates/origin_styles/format_themes/XRD.oth` | Graph4 | selected | project-local saved Origin format theme |
+| EPR | `templates/origin_styles/format_themes/EPR.oth` | ohG | selected | project-local saved Origin format theme |
+| EIS | `templates/origin_styles/format_themes/EIS.oth` | Graph1 | selected | project-local saved Origin format theme |
+| Raman | `templates/origin_styles/format_themes/Raman.oth` | Graph4 | selected | project-local saved Origin format theme |
+| UV-vis DRS / Tauc | `templates/origin_styles/format_themes/UV_vis_DRS_Tauc.oth` | Graph1 | selected | project-local saved Origin format theme |
+| PL | `templates/origin_styles/format_themes/PL.oth` | EXJF | selected | project-local saved Origin format theme |
+| photocurrent | `templates/origin_styles/format_themes/photocurrent.oth` | Graph1 | selected | project-local saved Origin format theme |
+| FTIR | `templates/origin_styles/format_themes/FTIR.oth` | Graph1 | selected | project-local saved Origin format theme |

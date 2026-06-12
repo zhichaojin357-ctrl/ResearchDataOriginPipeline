@@ -16,7 +16,7 @@ SPEC = TypeMimicSpec(
         "no resistance or mechanism interpretation",
     ),
     reference_policy_notes=(
-        "Reference OPJU is used only as a visual exemplar.",
+        "Saved Origin format asset is used only as a visual exemplar.",
         "Nyquist or Bode interpretation remains manual review only.",
     ),
 )

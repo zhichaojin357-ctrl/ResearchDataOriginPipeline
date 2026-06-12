@@ -7,10 +7,10 @@ from src.cli import main
 from src.origin.template_format import build_template_format_plan
 
 
-def test_reference_opju_assets_do_not_embed_workspace_or_assistant_markers() -> None:
+def test_origin_format_theme_assets_do_not_embed_workspace_or_assistant_markers() -> None:
     project_root = Path(__file__).resolve().parents[1]
-    reference_root = project_root / "templates" / "origin_styles" / "reference_opju"
-    assets = sorted(reference_root.glob("*.opju"))
+    theme_root = project_root / "templates" / "origin_styles" / "format_themes"
+    assets = sorted(theme_root.glob("*.oth"))
     forbidden = [
         b"codex",
         b"openai",
@@ -34,11 +34,14 @@ def test_reference_opju_assets_do_not_embed_workspace_or_assistant_markers() -> 
     assert hits == []
 
 
-def test_origin_style_manifest_resolves_project_local_template(tmp_path: Path) -> None:
+def test_origin_style_manifest_resolves_project_local_format_theme(tmp_path: Path) -> None:
     project = tmp_path / "project"
-    asset = project / "templates" / "origin_styles" / "graph_templates" / "BET.otpu"
+    asset = project / "templates" / "origin_styles" / "format_themes" / "BET.oth"
+    fallback_template = project / "templates" / "origin_styles" / "graph_templates" / "BET.otpu"
     asset.parent.mkdir(parents=True)
-    asset.write_bytes(b"otpu")
+    fallback_template.parent.mkdir(parents=True)
+    asset.write_bytes(b"oth")
+    fallback_template.write_bytes(b"otpu")
     manifest = project / "templates" / "origin_styles" / "manifest.json"
     manifest.write_text(
         json.dumps(
@@ -48,6 +51,7 @@ def test_origin_style_manifest_resolves_project_local_template(tmp_path: Path) -
                     {
                         "product_key": "BET",
                         "data_type": "BET",
+                        "format_theme": "format_themes/BET.oth",
                         "graph_template": "graph_templates/BET.otpu",
                         "status": "accepted",
                     }
@@ -63,15 +67,16 @@ def test_origin_style_manifest_resolves_project_local_template(tmp_path: Path) -
 
     assert resolved is not None
     assert resolved.product_key == "BET"
-    assert resolved.graph_template_path == asset
-    assert resolved.graph_template_path.is_file()
+    assert resolved.format_theme_path == asset
+    assert resolved.format_theme_path.is_file()
+    assert resolved.graph_template_path == fallback_template
 
 
-def test_template_plan_uses_project_style_asset_when_opju_is_missing(tmp_path: Path) -> None:
+def test_template_plan_uses_project_format_theme_when_opju_is_missing(tmp_path: Path) -> None:
     project = tmp_path / "project"
-    asset = project / "templates" / "origin_styles" / "graph_templates" / "EPR.otpu"
+    asset = project / "templates" / "origin_styles" / "format_themes" / "EPR.oth"
     asset.parent.mkdir(parents=True)
-    asset.write_bytes(b"otpu")
+    asset.write_bytes(b"oth")
     manifest = project / "templates" / "origin_styles" / "manifest.json"
     manifest.write_text(
         json.dumps(
@@ -81,7 +86,7 @@ def test_template_plan_uses_project_style_asset_when_opju_is_missing(tmp_path: P
                     {
                         "product_key": "EPR",
                         "data_type": "EPR",
-                        "graph_template": "graph_templates/EPR.otpu",
+                        "format_theme": "format_themes/EPR.oth",
                         "status": "accepted",
                     }
                 ],
@@ -96,11 +101,11 @@ def test_template_plan_uses_project_style_asset_when_opju_is_missing(tmp_path: P
     plan = build_template_format_plan(
         "EPR",
         opju_path=tmp_path / "missing.opju",
-        style_package_path=style_asset.graph_template_path if style_asset else None,
+        style_package_path=style_asset.format_theme_path if style_asset else None,
     )
 
     assert plan.status == "ready"
-    assert plan.mode == "cached_style_package"
+    assert plan.mode == "saved_format_theme"
     assert plan.style_package_path == asset
 
 
@@ -124,6 +129,9 @@ def test_style_asset_export_plan_requires_accepted_products(tmp_path: Path) -> N
     bet_opju = run_root / "BET" / "origin_files" / "BET.opju"
     bet_opju.parent.mkdir(parents=True)
     bet_opju.write_bytes(b"opju")
+    preview = run_root / "BET" / "figures_preview" / "BET.png"
+    preview.parent.mkdir(parents=True)
+    preview.write_bytes(b"png")
     bet_meta.write_text(
         json.dumps(
             {
@@ -131,8 +139,8 @@ def test_style_asset_export_plan_requires_accepted_products(tmp_path: Path) -> N
                 "data_type": "BET",
                 "status": "accepted",
                 "template_graph": "Graph3",
-                "origin_file": str(bet_opju),
-                "preview_png": str(run_root / "BET" / "figures_preview" / "BET.png"),
+                "origin_file": "external/BET.opju",
+                "preview_png": "external/BET.png",
             }
         ),
         encoding="utf-8",
@@ -143,7 +151,8 @@ def test_style_asset_export_plan_requires_accepted_products(tmp_path: Path) -> N
     plan = build_origin_style_asset_export_plan(tmp_path / "project", run_root)
 
     assert [item.product_key for item in plan.items] == ["BET"]
-    assert plan.items[0].graph_template_path.name == "BET.otpu"
+    assert plan.items[0].origin_file == bet_opju
+    assert plan.items[0].format_theme_path.name == "BET.oth"
 
 
 def test_style_asset_export_plan_matches_uv_vis_report_name_to_folder(tmp_path: Path) -> None:

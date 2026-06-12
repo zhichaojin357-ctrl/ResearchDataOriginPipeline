@@ -21,7 +21,7 @@ class OriginStyleAssetExportItem:
     status: str
     graph_page: str
     origin_file: Path
-    graph_template_path: Path
+    format_theme_path: Path
     preview_png: Path | None = None
     reference_preview_png: Path | None = None
     comparison_png: Path | None = None
@@ -33,7 +33,7 @@ class OriginStyleAssetExportItem:
             "data_type": self.data_type,
             "status": self.status,
             "graph_page": self.graph_page,
-            "graph_template": _relative_or_absolute(self.graph_template_path, asset_root),
+            "format_theme": _relative_or_absolute(self.format_theme_path, asset_root),
             "preview_png": _relative_or_absolute(self.preview_png, asset_root) if self.preview_png else "",
             "reference_preview_png": _relative_or_absolute(self.reference_preview_png, asset_root) if self.reference_preview_png else "",
             "template_preview_comparison_png": _relative_or_absolute(self.comparison_png, asset_root) if self.comparison_png else "",
@@ -61,12 +61,14 @@ def build_origin_style_asset_export_plan(
         metadata = _metadata_for_product(run_root, product_type)
         if not metadata:
             continue
-        origin_file = Path(str(metadata.get("origin_file") or ""))
-        if not origin_file.is_file():
+        product_dir = Path(str(metadata.get("__product_dir") or ""))
+        generated_origin_file = _metadata_artifact_path(product_dir, metadata.get("origin_file"), "origin_files")
+        theme_source = _theme_source_opju_from_metadata(run_root, metadata) or generated_origin_file
+        if theme_source is None or not theme_source.is_file():
             continue
         product_key = str(metadata.get("product_key") or product_type)
         data_type = str(metadata.get("data_type") or product_type)
-        graph_page = _graph_page_from_metadata(metadata)
+        graph_page = _theme_graph_page_from_metadata(metadata)
         if not graph_page:
             continue
         slug = safe_origin_name(product_key, "Style")
@@ -76,11 +78,11 @@ def build_origin_style_asset_export_plan(
                 data_type=data_type,
                 status=str(metadata.get("status") or comparison.get("status") or ""),
                 graph_page=graph_page,
-                origin_file=origin_file,
-                graph_template_path=root / "graph_templates" / f"{slug}.otpu",
-                preview_png=_existing_path(metadata.get("preview_png")),
-                reference_preview_png=_existing_path(metadata.get("reference_preview_png")),
-                comparison_png=_existing_path(comparison.get("side_by_side_png")),
+                origin_file=theme_source,
+                format_theme_path=root / "format_themes" / f"{slug}.oth",
+                preview_png=_metadata_artifact_path(product_dir, metadata.get("preview_png"), "figures_preview"),
+                reference_preview_png=_metadata_artifact_path(product_dir, metadata.get("reference_preview_png"), "reference_exports"),
+                comparison_png=_run_artifact_path(run_root, comparison.get("side_by_side_png")),
                 preview_rms=_to_float(comparison.get("preview_rms")),
             )
         )
@@ -96,7 +98,7 @@ def export_origin_style_assets(
 ) -> dict[str, object]:
     plan = build_origin_style_asset_export_plan(project_root, run_root, asset_root)
     plan.asset_root.mkdir(parents=True, exist_ok=True)
-    (plan.asset_root / "graph_templates").mkdir(parents=True, exist_ok=True)
+    (plan.asset_root / "format_themes").mkdir(parents=True, exist_ok=True)
     (plan.asset_root / "previews").mkdir(parents=True, exist_ok=True)
     exported: list[dict[str, object]] = []
     failures: list[dict[str, object]] = []
@@ -109,15 +111,15 @@ def export_origin_style_assets(
                 if not getattr(loaded, "ok", False):
                     failures.append({"product_key": item.product_key, "message": getattr(loaded, "message", "load failed")})
                     continue
-                saved = operations.save_graph_template(item.graph_page, item.graph_template_path)
+                saved = operations.save_graph_theme(item.graph_page, item.format_theme_path)
                 if not getattr(saved, "ok", False):
-                    failures.append({"product_key": item.product_key, "message": scrub_output_text(getattr(saved, "message", "template save failed"), project_root=project_root)})
+                    failures.append({"product_key": item.product_key, "message": scrub_output_text(getattr(saved, "message", "format theme save failed"), project_root=project_root)})
                     continue
-                exported.append({"product_key": item.product_key, "graph_template": render_output_path(item.graph_template_path, project_root=project_root)})
+                exported.append({"product_key": item.product_key, "format_theme": render_output_path(item.format_theme_path, project_root=project_root)})
         finally:
             operations.close()
     else:
-        failures.append({"message": "Origin export was not requested; pass --with-origin to create .otpu files."})
+        failures.append({"message": "Origin export was not requested; pass --with-origin to create .oth format theme files."})
 
     entries = []
     for item in plan.items:
@@ -130,7 +132,7 @@ def export_origin_style_assets(
             status=item.status,
             graph_page=item.graph_page,
             origin_file=item.origin_file,
-            graph_template_path=item.graph_template_path,
+            format_theme_path=item.format_theme_path,
             preview_png=preview,
             reference_preview_png=reference,
             comparison_png=comparison,
@@ -142,7 +144,7 @@ def export_origin_style_assets(
         "schema_version": 1,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "asset_root": render_output_path(plan.asset_root, project_root=project_root),
-        "origin_dependency_boundary": "Project-local .otpu Graph Templates are the style-package fallback when external OPJU exemplars are unavailable.",
+        "origin_dependency_boundary": "Project-local .oth Graph Themes store copied Origin graph formats. Product runs create clean target graphs from current data and apply these saved formats without requiring external template OPJU files.",
         "assets": entries,
     }
     manifest_path = plan.asset_root / "manifest.json"
@@ -169,7 +171,7 @@ def _accepted_comparison_items(run_root: Path) -> dict[str, dict[str, object]]:
         if not isinstance(item, dict):
             continue
         product_type = str(item.get("type") or "")
-        if product_type and item.get("status") == "accepted" and bool(item.get("strict_visual_match")):
+        if product_type and item.get("status") == "accepted" and (bool(item.get("ready")) or bool(item.get("strict_visual_match"))):
             accepted[product_type] = item
     return accepted
 
@@ -192,6 +194,8 @@ def _metadata_for_product(run_root: Path, product_type: str) -> dict[str, Any]:
         except json.JSONDecodeError:
             continue
         if isinstance(loaded, dict) and loaded.get("origin_file") and loaded.get("product_key"):
+            loaded["__metadata_file"] = str(path)
+            loaded["__product_dir"] = str(product_dir)
             return loaded
     return {}
 
@@ -212,6 +216,29 @@ def _graph_page_from_metadata(metadata: dict[str, Any]) -> str:
     return str(origin_status.get("reopened_graph") or metadata.get("template_graph") or "").strip()
 
 
+def _theme_graph_page_from_metadata(metadata: dict[str, Any]) -> str:
+    external_preview = metadata.get("external_reference_preview") if isinstance(metadata.get("external_reference_preview"), dict) else {}
+    if external_preview.get("ok") and str(external_preview.get("graph_page") or "").strip():
+        return str(external_preview.get("graph_page")).strip()
+    external_template = metadata.get("external_reference_template") if isinstance(metadata.get("external_reference_template"), dict) else {}
+    if external_template.get("selected") and str(external_template.get("graph_page") or "").strip():
+        return str(external_template.get("graph_page")).strip()
+    return _graph_page_from_metadata(metadata)
+
+
+def _theme_source_opju_from_metadata(run_root: Path, metadata: dict[str, Any]) -> Path | None:
+    external_preview = metadata.get("external_reference_preview") if isinstance(metadata.get("external_reference_preview"), dict) else {}
+    external_template = metadata.get("external_reference_template") if isinstance(metadata.get("external_reference_template"), dict) else {}
+    for value in (
+        external_preview.get("source_opju"),
+        external_template.get("source_opju"),
+    ):
+        path = _run_artifact_path(run_root, value)
+        if path is not None:
+            return path
+    return None
+
+
 def _type_key(product_type: str) -> str:
     text = str(product_type).casefold()
     return "".join(char if char.isalnum() else "_" for char in text).strip("_").replace("__", "_").replace("__", "_")
@@ -222,6 +249,34 @@ def _existing_path(value: object) -> Path | None:
     if not text:
         return None
     path = Path(text)
+    return path if path.is_file() else None
+
+
+def _metadata_artifact_path(product_dir: Path, value: object, preferred_dir: str) -> Path | None:
+    direct = _existing_path(value)
+    if direct is not None:
+        return direct
+    text = str(value or "").strip()
+    if not text or not product_dir.exists():
+        return None
+    name = Path(text).name
+    if not name:
+        return None
+    preferred = product_dir / preferred_dir / name
+    if preferred.is_file():
+        return preferred
+    matches = sorted(path for path in product_dir.rglob(name) if path.is_file())
+    return matches[0] if matches else None
+
+
+def _run_artifact_path(run_root: Path, value: object) -> Path | None:
+    direct = _existing_path(value)
+    if direct is not None:
+        return direct
+    text = str(value or "").strip()
+    if not text:
+        return None
+    path = run_root / text
     return path if path.is_file() else None
 
 

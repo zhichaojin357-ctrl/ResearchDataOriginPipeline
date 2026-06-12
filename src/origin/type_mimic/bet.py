@@ -16,7 +16,7 @@ SPEC = TypeMimicSpec(
         "no BET model-validity conclusion",
     ),
     reference_policy_notes=(
-        "OPJU style is used as visual/layout guidance only.",
+        "Saved Origin format asset is used as visual/layout guidance only.",
         "Summary-only BET tables must not be converted into fake single-point isotherms.",
     ),
 )

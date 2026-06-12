@@ -71,7 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     template_format = subparsers.add_parser(
         "template-format-products",
-        help="generate final OPJU/TIF/PNG products by replacing data inside matched Origin templates",
+        help="generate final OPJU/TIF/PNG products from current data using saved Origin format themes",
     )
     template_format.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON")
     template_format.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
@@ -84,11 +84,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     origin_style_assets = subparsers.add_parser(
         "export-origin-style-assets",
-        help="export project-local Origin .otpu style assets from an accepted template-format product run",
+        help="export project-local Origin .oth format themes from an accepted template-format product run",
     )
     origin_style_assets.add_argument("--run-root", type=Path, required=True, help="accepted template-format run root to harvest")
     origin_style_assets.add_argument("--asset-root", type=Path, help="style asset root; defaults to templates/origin_styles")
-    origin_style_assets.add_argument("--with-origin", action="store_true", help="launch isolated Origin and create .otpu files")
+    origin_style_assets.add_argument("--with-origin", action="store_true", help="launch isolated Origin and create .oth files")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",

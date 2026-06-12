@@ -19,4 +19,4 @@ Acceptance requires:
 - OPJU comments are blank
 - no generated product contains an automation/tool name or absolute local path
 
-If a product falls back to cached style-package mode or reports manual-check-only template comparison, the run is not release evidence for strict template matching.
+If a product falls back to a legacy graph-template mode or reports manual-check-only reference-format comparison, the run is not release evidence for strict one-to-one image matching.

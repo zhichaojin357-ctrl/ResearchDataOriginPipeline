@@ -16,7 +16,7 @@ SPEC = TypeMimicSpec(
         "no conversion or selectivity calculation from ambiguous data",
     ),
     reference_policy_notes=(
-        "Reference OPJU candidates are bar-chart style exemplars only.",
+        "Saved Origin format candidates are bar-chart style exemplars only.",
         "If no clear data table is present, this type is skipped.",
     ),
 )

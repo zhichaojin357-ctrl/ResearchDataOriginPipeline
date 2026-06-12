@@ -42,6 +42,9 @@ EXPORT_FORMATS = {
     "svg": "svg",
 }
 
+ORIGIN_XML_STYLE_CLIPBOARD_FORMAT = "Origin XML Style"
+THEME_APPLY_PAGE = 2
+
 COLOR_MAP = {
     "black": 1,
     "red": 2,
@@ -161,6 +164,46 @@ def _wait_for_file(path: Path, timeout_seconds: float = 8.0) -> bool:
             return True
         time.sleep(0.25)
     return path.exists() and path.stat().st_size > 0
+
+
+def _read_origin_xml_style_clipboard(timeout_seconds: float = 8.0) -> bytes | None:
+    try:
+        import win32clipboard
+    except ImportError:
+        return None
+
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        opened = False
+        try:
+            win32clipboard.OpenClipboard()
+            opened = True
+            fmt = 0
+            while True:
+                fmt = win32clipboard.EnumClipboardFormats(fmt)
+                if fmt == 0:
+                    break
+                try:
+                    name = win32clipboard.GetClipboardFormatName(fmt)
+                except Exception:
+                    continue
+                if name != ORIGIN_XML_STYLE_CLIPBOARD_FORMAT:
+                    continue
+                data = win32clipboard.GetClipboardData(fmt)
+                if isinstance(data, bytes):
+                    return data
+                if isinstance(data, str):
+                    return data.encode("utf-8")
+                return bytes(data)
+        except Exception:
+            time.sleep(0.2)
+        finally:
+            if opened:
+                try:
+                    win32clipboard.CloseClipboard()
+                except Exception:
+                    pass
+    return None
 
 
 class OriginOperations:
@@ -358,6 +401,65 @@ class OriginOperations:
             template_arg = path.name
         graph = self.app.CreatePage(3, safe_origin_name(graph_name, "Graph"), template_arg)
         return OperationResult(True, "Graph created from template", {"graph_name": graph, "template_path": str(path)})
+
+    def save_graph_theme(
+        self,
+        graph_name: str,
+        file_path: str | Path,
+        timeout_seconds: float = 8.0,
+    ) -> OperationResult:
+        output_path = Path(file_path)
+        if output_path.suffix.casefold() != ".oth":
+            output_path = output_path.with_suffix(".oth")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        if output_path.exists():
+            output_path.unlink()
+        graph = quote_labtalk(graph_name)
+        self.run_labtalk(f'win -a "{graph}";')
+        loaded = self.run_labtalk("run.section(,PrepareCopyFormats);")
+        if not loaded.ok:
+            return OperationResult(False, "Origin built-in Copy Format loader failed", {"graph_name": graph_name})
+        self.run_labtalk("__rdop_theme_copy_ok=0;")
+        ok = self.run_labtalk("run -oc {__rdop_theme_copy_ok=CopyFormat()};")
+        copied = bool(getattr(self.app, "LTVar", lambda _name: 0)("__rdop_theme_copy_ok"))
+        if not ok.ok:
+            return OperationResult(False, f"Origin Copy Format command failed for {graph_name}", {"file_path": str(output_path)})
+        if not copied:
+            return OperationResult(False, f"Origin Copy Format did not produce a graph style for {graph_name}")
+        theme_bytes = _read_origin_xml_style_clipboard(timeout_seconds)
+        if not theme_bytes:
+            return OperationResult(
+                False,
+                f"Origin clipboard did not contain {ORIGIN_XML_STYLE_CLIPBOARD_FORMAT!r}",
+                {"graph_name": graph_name, "file_path": str(output_path)},
+            )
+        output_path.write_bytes(theme_bytes)
+        if not _wait_for_file(output_path, timeout_seconds):
+            return OperationResult(False, f"No graph theme produced at {output_path}", {"file_path": str(output_path)})
+        return OperationResult(True, "Graph theme saved", {"graph_name": graph_name, "file_path": str(output_path)})
+
+    def apply_graph_theme(self, graph_name: str, theme_path: str | Path) -> OperationResult:
+        path = Path(theme_path)
+        if not path.is_file():
+            return OperationResult(False, f"Graph theme file not found: {path}")
+        graph = quote_labtalk(graph_name)
+        source = quote_labtalk(to_origin_path(path))
+        self.run_labtalk(f'win -a "{graph}";')
+        loaded = self.run_labtalk("run.section(,PrepareCopyFormats);")
+        if not loaded.ok:
+            return OperationResult(False, "Origin built-in graph theme loader failed", {"graph_name": graph_name})
+        self.run_labtalk("__rdop_theme_apply_ok=0;")
+        ok = self.run_labtalk(
+            f'run -oc {{__rdop_theme_apply_ok=theme_apply_graph_options("{source}", {THEME_APPLY_PAGE}, 0)}};'
+        )
+        applied = bool(getattr(self.app, "LTVar", lambda _name: 0)("__rdop_theme_apply_ok"))
+        if not ok.ok or not applied:
+            return OperationResult(
+                False,
+                f"Origin graph theme apply failed for {graph_name}",
+                {"graph_name": graph_name, "theme_path": str(path)},
+            )
+        return OperationResult(True, "Graph theme applied", {"graph_name": graph_name, "theme_path": str(path)})
 
     def add_plot_to_graph(
         self,

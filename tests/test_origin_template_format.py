@@ -31,7 +31,7 @@ def test_template_format_plan_uses_opju_template_base_when_exemplar_exists(tmp_p
     assert plan.one_to_one_claim_allowed is False
 
 
-def test_template_format_plan_can_use_cached_style_package_when_opju_missing(tmp_path: Path) -> None:
+def test_template_format_plan_can_use_saved_format_theme_when_opju_missing(tmp_path: Path) -> None:
     style_package = tmp_path / "xps_style.oth"
     style_package.write_text("style", encoding="utf-8")
 
@@ -43,13 +43,13 @@ def test_template_format_plan_can_use_cached_style_package_when_opju_missing(tmp
     )
 
     assert plan.status == "ready"
-    assert plan.mode == "cached_style_package"
+    assert plan.mode == "saved_format_theme"
     assert plan.style_package_path == style_package
-    assert "OPJU exemplar missing" in "; ".join(plan.warnings)
+    assert "saved format theme" in "; ".join(plan.warnings)
     assert plan.one_to_one_claim_allowed is False
 
 
-def test_template_format_plan_treats_otpu_source_as_cached_style_package(tmp_path: Path) -> None:
+def test_template_format_plan_treats_otpu_source_as_graph_template_compatibility(tmp_path: Path) -> None:
     style_package = tmp_path / "BET.otpu"
     style_package.write_text("style", encoding="utf-8")
 
@@ -60,7 +60,7 @@ def test_template_format_plan_treats_otpu_source_as_cached_style_package(tmp_pat
     )
 
     assert plan.status == "ready"
-    assert plan.mode == "cached_style_package"
+    assert plan.mode == "cached_graph_template"
     assert plan.source_opju == style_package
     assert plan.style_package_path == style_package
     assert plan.graph_page == "Graph1"

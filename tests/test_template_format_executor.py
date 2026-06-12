@@ -51,6 +51,8 @@ class _FakeTemplateOps:
 class _FakeCachedStyleOps:
     def __init__(self) -> None:
         self.created_from_template: Path | None = None
+        self.created_graphs: list[str] = []
+        self.applied_themes: list[Path] = []
         self.saved_paths: list[Path] = []
         self.exported_paths: list[Path] = []
         self.loaded_paths: list[Path] = []
@@ -81,6 +83,24 @@ class _FakeCachedStyleOps:
     def create_graph_from_template(self, graph_name: str, template_path: Path) -> OperationResult:
         self.created_from_template = template_path
         return OperationResult(True, "created", {"graph_name": graph_name})
+
+    def create_graph(
+        self,
+        graph_name: str,
+        data_book: str,
+        data_sheet: str,
+        x_col: int,
+        y_col: int,
+        plot_type: str = "line",
+        y_error_col: int = 0,
+        title: str = "",
+    ) -> OperationResult:
+        self.created_graphs.append(graph_name)
+        return OperationResult(True, "created", {"graph_name": graph_name, "plot_type": plot_type})
+
+    def apply_graph_theme(self, graph_name: str, theme_path: Path) -> OperationResult:
+        self.applied_themes.append(Path(theme_path))
+        return OperationResult(True, "applied", {"graph_name": graph_name, "theme_path": str(theme_path)})
 
     def add_plot_to_graph(self, *_args: object, **_kwargs: object) -> OperationResult:
         return OperationResult(True, "added")
@@ -258,14 +278,14 @@ def test_template_base_global_policy_preserves_template_legend_text(tmp_path: Pa
     assert "legend -r" not in commands
 
 
-def test_export_template_base_uses_project_style_asset_when_reference_opju_missing(tmp_path: Path, monkeypatch) -> None:
+def test_export_template_base_uses_project_format_theme_when_reference_opju_missing(tmp_path: Path, monkeypatch) -> None:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
-    template = style_root / "graph_templates" / "BET.otpu"
-    template.parent.mkdir(parents=True)
-    template.write_bytes(b"otpu")
+    theme = style_root / "format_themes" / "BET.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
     (style_root / "manifest.json").write_text(
-        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","graph_template":"graph_templates/BET.otpu","status":"accepted"}]}',
+        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","format_theme":"format_themes/BET.oth","status":"accepted"}]}',
         encoding="utf-8",
     )
     processed = tmp_path / "processed.csv"
@@ -277,13 +297,15 @@ def test_export_template_base_uses_project_style_asset_when_reference_opju_missi
     result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
 
     assert result["ok"] is True
-    assert result["template_format_plan"]["mode"] == "cached_style_package"
-    assert result["origin_processing"]["method"] == "cached_style_package_graph_template"
+    assert result["template_format_plan"]["mode"] == "saved_format_theme"
+    assert result["origin_processing"]["method"] == "saved_format_theme_apply"
     assert result["origin_processing"]["neutral_runtime"] is True
-    assert fake.created_from_template is not None
-    assert fake.created_from_template.name == template.name
-    assert "codex" not in str(fake.created_from_template).casefold()
-    assert project_root not in fake.created_from_template.parents
+    assert fake.created_from_template is None
+    assert fake.created_graphs
+    assert fake.applied_themes
+    assert fake.applied_themes[0].name == theme.name
+    assert "codex" not in str(fake.applied_themes[0]).casefold()
+    assert project_root not in fake.applied_themes[0].parents
     assert fake.saved_paths and fake.saved_paths[0] != product.origin_file
     assert fake.exported_paths and product.figure_tif not in fake.exported_paths
     assert product.origin_file.exists()
@@ -292,14 +314,14 @@ def test_export_template_base_uses_project_style_asset_when_reference_opju_missi
     assert fake.closed is True
 
 
-def test_export_template_base_prefers_project_style_asset_over_reference_opju(tmp_path: Path, monkeypatch) -> None:
+def test_export_template_base_prefers_project_format_theme_over_reference_opju(tmp_path: Path, monkeypatch) -> None:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
-    template = style_root / "graph_templates" / "BET.otpu"
-    template.parent.mkdir(parents=True)
-    template.write_bytes(b"otpu")
+    theme = style_root / "format_themes" / "BET.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
     (style_root / "manifest.json").write_text(
-        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","graph_template":"graph_templates/BET.otpu","status":"accepted"}]}',
+        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","format_theme":"format_themes/BET.oth","status":"accepted"}]}',
         encoding="utf-8",
     )
     processed = tmp_path / "processed.csv"
@@ -312,13 +334,13 @@ def test_export_template_base_prefers_project_style_asset_over_reference_opju(tm
     result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
 
     assert result["ok"] is True
-    assert result["template_format_plan"]["mode"] == "cached_style_package"
-    assert result["origin_processing"]["method"] == "cached_style_package_graph_template"
+    assert result["template_format_plan"]["mode"] == "saved_format_theme"
+    assert result["origin_processing"]["method"] == "saved_format_theme_apply"
     assert fake.loaded_paths == []
-    assert fake.created_from_template is not None
-    assert fake.created_from_template.name == template.name
+    assert fake.created_from_template is None
+    assert fake.applied_themes and fake.applied_themes[0].name == theme.name
     commands = "\n".join(fake.commands)
-    assert "xb.fsize=36" in commands
+    assert "xb.fsize=36" not in commands
     assert "legend.background=0" in commands
     assert "legend.bold=1" in commands
     assert "label -s -xb \\b(Relative Pressure);" in commands

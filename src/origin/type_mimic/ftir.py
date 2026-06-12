@@ -16,7 +16,7 @@ SPEC = TypeMimicSpec(
         "no bond or mechanism conclusion",
     ),
     reference_policy_notes=(
-        "Reference OPJU is used only for FTIR axis/style traits.",
+        "Saved Origin format asset is used only for FTIR axis/style traits.",
         "Peak and valley labels remain manual review only.",
     ),
 )

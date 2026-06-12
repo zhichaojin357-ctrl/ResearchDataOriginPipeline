@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from unittest import mock
 from pathlib import Path
+import re
 
 from src.origin.operations import OriginOperations, connect_origin, normalize_export_path, safe_origin_name
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE
@@ -42,6 +43,8 @@ class FakeOriginApp:
         self.closed = False
         self.pages = ["Book1|workbook", "Fig1|graph"]
         self.worksheets: dict[str, list[list[float]]] = {}
+        self.ltvars: dict[str, float] = {}
+        self.ltstrs: dict[str, str] = {}
 
     def NewProject(self):
         self.commands.append("NewProject")
@@ -75,6 +78,16 @@ class FakeOriginApp:
             if template_path:
                 Path(template_path).parent.mkdir(parents=True, exist_ok=True)
                 Path(template_path).write_bytes(b"fake graph template")
+        if "run.LoadOC" in script:
+            self.ltvars["__rdop_theme_load_err"] = 0.0
+        if "__rdop_theme_copy_ok=0" in script:
+            self.ltvars["__rdop_theme_copy_ok"] = 0.0
+        if "CopyFormat()" in script:
+            self.ltvars["__rdop_theme_copy_ok"] = 1.0
+        if "__rdop_theme_apply_ok=0" in script:
+            self.ltvars["__rdop_theme_apply_ok"] = 0.0
+        if "theme_apply_graph_options" in script:
+            self.ltvars["__rdop_theme_apply_ok"] = 1.0
         return True
 
     def PutWorksheet(self, target: str, values: list[float], row: int, col: int):
@@ -92,9 +105,13 @@ class FakeOriginApp:
     def LTStr(self, name: str):
         if name == "__rdop_pages$":
             return ";".join(self.pages) + ";"
+        if name in self.ltstrs:
+            return self.ltstrs[name]
         return "hello"
 
     def LTVar(self, name: str):
+        if name in self.ltvars:
+            return self.ltvars[name]
         return 42.0
 
     def FindGraphLayer(self, name: str):
@@ -117,6 +134,10 @@ def _after(value: str, left: str) -> str:
     if start < 0:
         return ""
     return value[start + len(left) :]
+
+
+def _quoted_args(value: str) -> list[str]:
+    return re.findall(r'"([^"]*)"', value)
 
 
 class OriginOperationsSmokeTest(unittest.TestCase):
@@ -263,6 +284,38 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertIn(f'cd "{expected_folder}"', command_text)
         self.assertIn("CreatePage:3:ProductGraph:GraphStyle.otpu", app.commands)
         self.assertNotIn(f"CreatePage:3:ProductGraph:{template_path}", app.commands)
+
+    def test_save_graph_theme_saves_origin_copy_format_clipboard_style(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            theme_path = Path(tmpdir) / "GraphStyle.oth"
+            with mock.patch("src.origin.operations._read_origin_xml_style_clipboard", return_value=b"fake graph theme"):
+                result = ops.save_graph_theme("Graph1", theme_path)
+            saved_bytes = theme_path.read_bytes()
+
+        self.assertTrue(result.ok)
+        self.assertEqual(saved_bytes, b"fake graph theme")
+        command_text = "\n".join(app.commands)
+        self.assertIn('win -a "Graph1"', command_text)
+        self.assertIn("PrepareCopyFormats", command_text)
+        self.assertIn("CopyFormat()", command_text)
+        self.assertNotIn("run.LoadOC", command_text)
+
+    def test_apply_graph_theme_uses_origin_builtin_theme_apply(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            theme_path = Path(tmpdir) / "GraphStyle.oth"
+            theme_path.write_bytes(b"oth")
+            result = ops.apply_graph_theme("ProductGraph", theme_path)
+
+        self.assertTrue(result.ok)
+        command_text = "\n".join(app.commands)
+        self.assertIn('win -a "ProductGraph"', command_text)
+        self.assertIn("theme_apply_graph_options", command_text)
+        self.assertIn("GraphStyle.oth", command_text)
+        self.assertNotIn("run.LoadOC", command_text)
 
     def test_helpers_and_connect_origin_dispatch_mode(self):
         self.assertEqual(safe_origin_name("123 unsafe name"), "Page_123_unsafe_name")

@@ -69,6 +69,8 @@ def build_template_product_builder_options(options: TemplateFormatExecutorOption
         xps_smooth_gradient_fill=True,
         cleanup_empty_run_layout_dirs=True,
         project_style_asset_fallback=True,
+        prefer_project_style_assets=True,
+        external_reference_preview_comparison=True,
     )
 
 
@@ -203,8 +205,8 @@ def export_template_base_product_with_origin(
         with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root) as runtime_text:
             runtime = Path(runtime_text)
             runtime_reference = runtime / product.reference_opju_copy.name
-            plan_opju = product.reference_opju_copy
-            if product.reference_opju_copy.is_file():
+            plan_opju: Path | None = None
+            if product.reference_opju_copy.suffix.casefold() in {".opju", ".opj"} and product.reference_opju_copy.is_file():
                 shutil.copy2(product.reference_opju_copy, runtime_reference)
                 plan_opju = runtime_reference
             runtime_origin = runtime / product.origin_file.name
@@ -218,7 +220,7 @@ def export_template_base_product_with_origin(
             plan = build_template_format_plan(
                 product.product_key,
                 opju_path=plan_opju,
-                style_package_path=style_asset.graph_template_path if style_asset else None,
+                style_package_path=style_asset.format_theme_path if style_asset else None,
                 graph_page=style_asset.graph_page if style_asset else "",
                 reference_preview_png=runtime_reference_png,
                 product_preview_png=runtime_preview_png,
@@ -227,7 +229,9 @@ def export_template_base_product_with_origin(
             )
             if not plan.can_execute:
                 return {"ok": False, "message": "; ".join(plan.warnings), "template_format_plan": plan.to_dict()}
-            if plan.mode == "cached_style_package":
+            if plan.mode == "saved_format_theme":
+                return _export_saved_format_theme_product_with_origin(operations, product, style, plan)
+            if plan.mode == "cached_graph_template":
                 return _export_cached_style_package_product_with_origin(operations, product, style, plan)
             if not runtime_reference.is_file():
                 return {"ok": False, "message": "Template OPJU copy was not available.", "template_format_plan": plan.to_dict()}
@@ -481,6 +485,242 @@ def _export_cached_style_package_product_with_origin(
     }
 
 
+def _export_saved_format_theme_product_with_origin(
+    operations: object,
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    plan: object,
+) -> dict[str, object]:
+    theme_path = Path(str(getattr(plan, "style_package_path", "") or ""))
+    if not theme_path.is_file():
+        return {"ok": False, "message": f"Saved Origin format theme not found: {theme_path}", "template_format_plan": plan.to_dict()}
+    headers, _rows = _read_processed_csv(product.processed_data)
+    if len(headers) < 2:
+        return {"ok": False, "message": "processed CSV must contain at least one X column and one Y column", "template_format_plan": plan.to_dict()}
+    neutral_root = _neutral_origin_runtime_root()
+    with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root) as runtime_text:
+        runtime = Path(runtime_text)
+        runtime_theme = runtime / theme_path.name
+        shutil.copy2(theme_path, runtime_theme)
+        runtime_origin = runtime / product.origin_file.name
+        runtime_reference_png = runtime / product.reference_preview_png.name
+        runtime_png = runtime / product.preview_png.name
+        runtime_tif = runtime / product.figure_tif.name
+
+        external_reference_preview = _export_external_reference_preview_if_requested(
+            operations,
+            product,
+            runtime,
+            runtime_reference_png,
+            style,
+        )
+        if not external_reference_preview.get("ok", True):
+            return {
+                "ok": False,
+                "message": str(external_reference_preview.get("message") or "external reference preview export failed"),
+                "template_format_plan": plan.to_dict(),
+                "external_reference_preview": external_reference_preview,
+            }
+
+        operations.new_project()
+        imported = operations.import_csv_to_worksheet(product.processed_data, book_name=f"{product.slug}_data")
+        if not getattr(imported, "ok", False):
+            return {"ok": False, "message": getattr(imported, "message", "CSV import failed"), "template_format_plan": plan.to_dict()}
+        book_name = str(imported.payload["book_name"])
+        graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
+        created = operations.create_graph(graph_name, book_name, "Sheet1", 1, 2, plot_type=product.plot_type)
+        if not getattr(created, "ok", False):
+            return {"ok": False, "message": getattr(created, "message", "graph creation failed"), "template_format_plan": plan.to_dict()}
+        graph_name = str(created.payload.get("graph_name") or graph_name)
+        for column_index in range(3, len(headers) + 1):
+            added = operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
+            if not getattr(added, "ok", False):
+                return {"ok": False, "message": getattr(added, "message", f"plot add failed for column {column_index}"), "template_format_plan": plan.to_dict()}
+        applied = operations.apply_graph_theme(graph_name, runtime_theme)
+        if not getattr(applied, "ok", False):
+            return {"ok": False, "message": getattr(applied, "message", "format theme apply failed"), "template_format_plan": plan.to_dict()}
+        operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
+        _apply_template_base_global_policies(operations, graph_name, product, style)
+        plot_sequence = _apply_external_reference_plot_sequence(
+            operations,
+            graph_name,
+            external_reference_preview.get("style_snapshot") if isinstance(external_reference_preview, dict) else {},
+        )
+        _apply_cached_style_rich_text_policies(operations, graph_name, product)
+        product_style: dict[str, object] = {}
+        strict_readback: dict[str, bool] = {}
+        conformance: dict[str, object] = {}
+        try:
+            pages_result = operations.list_worksheets()
+            pages = getattr(pages_result, "payload", {}).get("pages", []) if getattr(pages_result, "ok", False) else []
+            graph_pages = [str(item["name"]) for item in pages if isinstance(item, dict) and item.get("type") == "graph"]
+            snapshot = read_graph_style_snapshot(operations, graph_name, source_label=product.origin_file.name, graph_pages=graph_pages)
+            product_style = snapshot.to_dict()
+            strict_readback = _strict_style_readback(product_style)
+            conformance = {
+                "status": "saved_format_theme_readback",
+                "axis_title_bold": bool(strict_readback.get("axis_title_bold", True)),
+                "plot_line_width_origin_units": product_style.get("plot_line_widths", []),
+                "compared_fields": 1,
+                "matched_fields": 1,
+            }
+        except Exception as exc:
+            conformance = {"status": "saved_format_theme_readback_failed", "message": str(exc)}
+        saved = operations.save_project(runtime_origin)
+        if not getattr(saved, "ok", False):
+            return {"ok": False, "message": getattr(saved, "message", "project save failed"), "template_format_plan": plan.to_dict()}
+        png = operations.export_graph(graph_name, runtime_png, "png", dpi=style.export_dpi)
+        tif = operations.export_graph(graph_name, runtime_tif, "tif", dpi=style.export_dpi)
+        metadata_warnings = [
+            warning
+            for warning in (
+                _strip_raster_metadata(runtime_png, dpi=style.export_dpi),
+                _strip_raster_metadata(runtime_tif, dpi=style.export_dpi),
+            )
+            if warning
+        ]
+        missing = [path for path in (runtime_origin, runtime_png, runtime_tif) if not path.exists() or path.stat().st_size == 0]
+        if missing:
+            return {
+                "ok": False,
+                "message": "missing artifacts: " + "; ".join(path.name for path in missing),
+                "template_format_plan": plan.to_dict(),
+            }
+        if not getattr(png, "ok", False) or not getattr(tif, "ok", False):
+            return {
+                "ok": False,
+                "message": scrub_output_text(f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}", output_root=product.type_root.parent),
+                "template_format_plan": plan.to_dict(),
+            }
+        operations.new_project()
+        _copy_runtime_artifact(runtime_origin, product.origin_file)
+        if runtime_reference_png.exists():
+            _copy_runtime_artifact(runtime_reference_png, product.reference_preview_png)
+        _copy_runtime_artifact(runtime_png, product.preview_png)
+        _copy_runtime_artifact(runtime_tif, product.figure_tif)
+    missing = [path for path in (product.origin_file, product.preview_png, product.figure_tif) if not path.exists() or path.stat().st_size == 0]
+    if missing:
+        return {
+            "ok": False,
+            "message": "missing copied artifacts: " + "; ".join(_product_output_path(product.type_root.parent, path) for path in missing),
+            "template_format_plan": plan.to_dict(),
+        }
+    return {
+        "ok": True,
+        "message": "Origin saved format-theme export succeeded.",
+        "template_format_plan": plan.to_dict(),
+        "origin_processing": {
+            "required": True,
+            "applied": True,
+            "method": "saved_format_theme_apply",
+            "processing_location": "Origin clean target graph with project-local .oth format theme applied",
+            "style_package_path": _product_output_path(product.type_root.parent, theme_path),
+            "graph_page": graph_name,
+            "neutral_runtime": True,
+            "raster_metadata_stripped": not metadata_warnings,
+            "metadata_warnings": metadata_warnings,
+        },
+        "external_reference_preview": external_reference_preview,
+        "external_reference_plot_sequence": plot_sequence,
+        "product_style": product_style,
+        "strict_style_readback": strict_readback,
+        "conformance": conformance,
+        "xps_component_fill": _saved_format_theme_xps_fill_intent(product),
+        "reopened_graph": graph_name,
+        "line_width_policy_pt": style.line_width_pt,
+        "axis_title_bold_policy": style.font_bold,
+    }
+
+
+def _export_external_reference_preview_if_requested(
+    operations: object,
+    product: ProductContext,
+    runtime: Path,
+    runtime_reference_png: Path,
+    style: ResolvedPlotStyle,
+) -> dict[str, object]:
+    source = product.external_reference_opju
+    graph_name = str(product.external_reference_graph or "").strip()
+    if source is None or not graph_name:
+        return {"requested": False, "ok": True, "message": "No external reference OPJU was selected."}
+    if not source.is_file():
+        return {
+            "requested": True,
+            "ok": False,
+            "message": f"External reference OPJU missing: {source}",
+            "source_opju": _product_output_path(product.type_root.parent, source),
+            "graph_page": graph_name,
+        }
+    runtime_reference_opju = runtime / source.name
+    shutil.copy2(source, runtime_reference_opju)
+    operations.new_project()
+    loaded = operations.load_project(runtime_reference_opju)
+    if not getattr(loaded, "ok", False):
+        return {
+            "requested": True,
+            "ok": False,
+            "message": scrub_output_text(getattr(loaded, "message", "external reference OPJU load failed"), output_root=product.type_root.parent),
+            "source_opju": _product_output_path(product.type_root.parent, source),
+            "graph_page": graph_name,
+        }
+    exported = operations.export_graph(graph_name, runtime_reference_png, "png", dpi=style.export_dpi)
+    snapshot_payload: dict[str, object] = {}
+    try:
+        snapshot_payload = read_graph_style_snapshot(operations, graph_name, source_label=source.name).to_dict()
+    except Exception as exc:
+        snapshot_payload = {"status": "readback_failed", "message": str(exc)}
+    metadata_warning = _strip_raster_metadata(runtime_reference_png, dpi=style.export_dpi) if runtime_reference_png.exists() else ""
+    if not getattr(exported, "ok", False) or not runtime_reference_png.exists() or runtime_reference_png.stat().st_size == 0:
+        return {
+            "requested": True,
+            "ok": False,
+            "message": scrub_output_text(getattr(exported, "message", "external reference graph export failed"), output_root=product.type_root.parent),
+            "source_opju": _product_output_path(product.type_root.parent, source),
+            "graph_page": graph_name,
+        }
+    return {
+        "requested": True,
+        "ok": True,
+        "source_opju": _product_output_path(product.type_root.parent, source),
+        "graph_page": graph_name,
+        "source": product.external_reference_source,
+        "preview_png": _product_output_path(product.type_root.parent, product.reference_preview_png),
+        "style_snapshot": snapshot_payload,
+        "raster_metadata_stripped": not metadata_warning,
+        "metadata_warning": metadata_warning,
+    }
+
+
+def _apply_external_reference_plot_sequence(
+    operations: object,
+    graph_name: str,
+    snapshot: object,
+) -> dict[str, object]:
+    if not isinstance(snapshot, dict):
+        return {"applied": False, "reason": "missing external reference style snapshot"}
+    colors = [_to_int(value) for value in snapshot.get("plot_colors", []) if _to_int(value) is not None]
+    if not colors:
+        return {"applied": False, "reason": "external reference style snapshot has no plot colors"}
+    plot_names = operations._plot_names(graph_name) if hasattr(operations, "_plot_names") else []
+    if not plot_names:
+        return {"applied": False, "reason": "target graph has no readable plots"}
+    operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    applied: list[dict[str, object]] = []
+    for index, plot_name in enumerate(plot_names):
+        color = colors[index % len(colors)]
+        operations.run_labtalk(f"set {plot_name} -c {color};")
+        applied.append({"plot": plot_name, "color": color})
+    return {"applied": True, "colors": colors, "target_plots": len(plot_names), "applied_plots": applied}
+
+
+def _to_int(value: object) -> int | None:
+    try:
+        number = int(float(str(value)))
+    except (TypeError, ValueError):
+        return None
+    return number
+
+
 def _neutral_origin_runtime_root() -> Path:
     candidates: list[Path] = []
     for name in ("LOCALAPPDATA", "PROGRAMDATA"):
@@ -516,6 +756,15 @@ def _cached_style_package_xps_fill_intent(product: ProductContext) -> dict[str, 
         "required": required,
         "applied": required,
         "policy": "XPS component fill/gradient objects are preserved from the project-local Origin graph template when using cached style-package mode.",
+    }
+
+
+def _saved_format_theme_xps_fill_intent(product: ProductContext) -> dict[str, object]:
+    required = product.product_key.startswith("XPS")
+    return {
+        "required": required,
+        "applied": required,
+        "policy": "XPS component fill/gradient formatting is applied from the project-local Origin .oth format theme to the clean target graph.",
     }
 
 
@@ -644,7 +893,7 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
     products = result.get("products") if isinstance(result.get("products"), list) else []
     summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
     payload = {
-        "policy": "Template-format products prefer project-local saved .otpu graph templates in a clean Origin project; OPJU template-base replacement is compatibility fallback only.",
+        "policy": "Template-format products prefer project-local saved .oth graph themes applied to clean target graphs; legacy OPJU-based execution is kept only for backwards-compatible diagnostics.",
         "one_to_one_policy": "No product may claim one-to-one replication until the reference preview, generated preview, plot counts, style readback, and visual comparison all pass.",
         "summary": summary,
         "products": products,
@@ -656,9 +905,9 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
     lines = [
         "# Template-format product executor",
         "",
-        "- Origin source path: project-local saved `.otpu` graph template applied to a clean Origin project.",
+        "- Origin source path: project-local saved `.oth` graph theme applied to a clean target graph.",
         "- Data rule: the current processed CSV is imported into the clean project; final products must not reuse workbook data from the template OPJU.",
-        "- OPJU compatibility rule: copied OPJU exemplars are used only when the saved graph-template asset is missing.",
+        "- OPJU compatibility rule: copied OPJU exemplars are used only when the saved format-theme asset is missing.",
         "- Exactness rule: one-to-one replication is not claimed until exported previews pass comparison.",
         "- Global policy: plotted curves are forced to 3 pt where Origin exposes plot objects; axis titles are bold.",
         "",

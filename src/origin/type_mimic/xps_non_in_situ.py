@@ -19,7 +19,7 @@ SPEC = TypeMimicSpec(
     ),
     reference_policy_notes=(
         "Non-in-situ XPS must use a non-in-situ exemplar only.",
-        "Archived exemplars are copied before Origin opens them.",
+        "Saved Origin format assets are copied before Origin opens them.",
         "Panel grouping information is metadata for review, not a valence or mechanism conclusion.",
     ),
 )

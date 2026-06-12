@@ -45,4 +45,4 @@ class TypeMimicSpec:
 
 def ensure_allowed_product_key(product_key: str) -> None:
     if product_key in FORBIDDEN_PRODUCT_TYPES:
-        raise ValueError(f"{product_key} is not allowed in the current OPJU product pilot.")
+        raise ValueError(f"{product_key} is not allowed in the current Origin format product pilot.")
