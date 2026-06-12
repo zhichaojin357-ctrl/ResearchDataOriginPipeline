@@ -91,7 +91,27 @@ def build_template_format_plan(
         "origin_template_or_format_source_required": True,
     }
     warnings: list[str] = []
+    if style_package is not None and _is_supported_style_package(style_package):
+        if source_opju is None or not source_opju.is_file():
+            warnings.append("OPJU exemplar missing; using a saved style package instead of live template project.")
+        else:
+            warnings.append("Project-local saved style package selected; OPJU exemplar is not used as the product base.")
+        return TemplateFormatPlan(
+            data_type=data_type,
+            status="ready",
+            mode="cached_style_package",
+            source_opju=source_opju,
+            graph_page=graph_page,
+            style_package_path=style_package,
+            reference_preview_png=_optional_path(reference_preview_png),
+            product_preview_png=_optional_path(product_preview_png),
+            can_execute=True,
+            one_to_one_claim_allowed=False,
+            plot_intent=intent,
+            warnings=tuple(warnings),
+        )
     if source_opju is not None and source_opju.is_file() and source_opju.suffix.casefold() in {".opju", ".opj"}:
+        warnings.append("Saved style package missing; using OPJU template base compatibility path.")
         return TemplateFormatPlan(
             data_type=data_type,
             status="ready",

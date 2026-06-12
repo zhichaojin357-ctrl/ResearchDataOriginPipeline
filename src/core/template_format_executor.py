@@ -22,7 +22,7 @@ from src.origin.style_registry import resolve_origin_style_asset
 from src.origin.style_mimic import extract_style_snapshot, read_graph_style_snapshot
 from src.origin.template_format import build_template_dataset_updates, build_template_format_plan
 from src.origin.text_format import origin_bold_text
-from src.origin.user_style import ResolvedPlotStyle
+from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overrides
 from src.processors.base import safe_name
 
 
@@ -398,6 +398,8 @@ def _export_cached_style_package_product_with_origin(
                 return {"ok": False, "message": getattr(added, "message", "first plot add failed"), "template_format_plan": plan.to_dict()}
         operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
         _apply_template_base_global_policies(operations, graph_name, product, style)
+        apply_resolved_style_overrides(operations, graph_name, style)
+        _apply_cached_style_rich_text_policies(operations, graph_name, product)
         product_style: dict[str, object] = {}
         strict_readback: dict[str, bool] = {}
         conformance: dict[str, object] = {}
@@ -517,6 +519,31 @@ def _cached_style_package_xps_fill_intent(product: ProductContext) -> dict[str, 
     }
 
 
+def _apply_cached_style_rich_text_policies(operations: object, graph_name: str, product: ProductContext) -> None:
+    commands = _bold_template_axis_title_commands({"xb.text$": product.x_label, "yl.text$": product.y_label})
+    legend_text = _cached_style_legend_text(product.legend_entries)
+    operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    if commands:
+        operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; {commands}')
+    if legend_text:
+        operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; legend.text$ = {legend_text}; legend.bold=1;')
+    operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; '
+        "legend.background=0; legend.border=0; legend.frame=0; legend.fill=0; "
+        "legend.fillColor=0; legend.borderColor=0; legend.lineWidth=0;"
+    )
+
+
+def _cached_style_legend_text(entries: list[str]) -> str:
+    lines: list[str] = []
+    for index, entry in enumerate(entries, start=1):
+        text = origin_bold_text(entry)
+        text = str(text).replace(";", ",").replace("\r", " ").replace("\n", " ").strip()
+        if text:
+            lines.append(f"\\l({index}) {text}")
+    return "\n".join(lines)
+
+
 def _strip_raster_metadata(path: Path, *, dpi: int) -> str:
     try:
         from PIL import Image
@@ -617,7 +644,7 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
     products = result.get("products") if isinstance(result.get("products"), list) else []
     summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
     payload = {
-        "policy": "Template-format products use OPJU template-base workbook replacement for Origin export when --with-origin is enabled.",
+        "policy": "Template-format products prefer project-local saved .otpu graph templates in a clean Origin project; OPJU template-base replacement is compatibility fallback only.",
         "one_to_one_policy": "No product may claim one-to-one replication until the reference preview, generated preview, plot counts, style readback, and visual comparison all pass.",
         "summary": summary,
         "products": products,
@@ -629,9 +656,10 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
     lines = [
         "# Template-format product executor",
         "",
-        "- Origin source path: OPJU template-base workbook replacement.",
-        "- Fallback rule: missing OPJU requires a saved Theme/Graph Template/style package; otherwise plotting is blocked.",
-        "- Exactness rule: one-to-one replication is not claimed until exported reference and product previews pass comparison.",
+        "- Origin source path: project-local saved `.otpu` graph template applied to a clean Origin project.",
+        "- Data rule: the current processed CSV is imported into the clean project; final products must not reuse workbook data from the template OPJU.",
+        "- OPJU compatibility rule: copied OPJU exemplars are used only when the saved graph-template asset is missing.",
+        "- Exactness rule: one-to-one replication is not claimed until exported previews pass comparison.",
         "- Global policy: plotted curves are forced to 3 pt where Origin exposes plot objects; axis titles are bold.",
         "",
         f"- Run root: {render_output_path(run_root, project_root=project_root)}",

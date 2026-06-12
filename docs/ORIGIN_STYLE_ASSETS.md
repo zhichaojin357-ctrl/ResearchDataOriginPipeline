@@ -39,23 +39,23 @@ Implemented:
 
 Boundary:
 
-- The current one-to-one product path is still OPJU template-base workbook replacement, because that preserves the original workbook, graph page, fills, labels, and layer object structure.
-- The `.otpu` files are now the project-local style source for discovery/fallback when external OPJU exemplars are unavailable.
-- Full no-OPJU product generation from `.otpu` still has to create a new graph from the template, bind processed data, export a preview, and pass visual comparison before one-to-one status can be claimed.
+- The current product path must prefer project-local `.otpu` graph templates over copied OPJU projects.
+- Final products are created in a clean Origin project, bind the current processed data, apply the saved graph-template format, then save a new `.opju` and export `.tif`.
+- OPJU exemplars are retained only as compatibility/reference assets for regenerating style packages or emergency fallback when a graph template is missing.
 
 ## Dependency boundary
 
-Future style discovery no longer needs the original F-drive OPJU exemplars or the output-run `reference_opju` copies. Code should resolve project-local style packages through:
+Future style discovery and product generation no longer need the original F-drive OPJU exemplars or the output-run `reference_opju` copies. Code should resolve project-local style packages through:
 
 ```python
 from src.origin.style_registry import resolve_origin_style_asset
 ```
 
-The OPJU-template path remains available for full workbook replacement, but missing external OPJU exemplars should fall back to the project-local `.otpu` style package before blocking.
+The OPJU-template path remains available only as a compatibility path when a saved graph template is unavailable.
 
 ## Exactness policy
 
-A saved `.otpu` is a style package, not a scientific conclusion and not by itself a final product. Any regenerated product still has to export a preview and pass the template-vs-generated visual audit before one-to-one status can be claimed.
+A saved `.otpu` is a style package, not a scientific conclusion and not by itself a final product. Any regenerated product still has to export a preview and pass the visual audit before one-to-one status can be claimed.
 
 ## Regeneration command
 

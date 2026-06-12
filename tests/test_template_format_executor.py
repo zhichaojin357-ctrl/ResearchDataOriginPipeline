@@ -292,6 +292,40 @@ def test_export_template_base_uses_project_style_asset_when_reference_opju_missi
     assert fake.closed is True
 
 
+def test_export_template_base_prefers_project_style_asset_over_reference_opju(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    style_root = project_root / "templates" / "origin_styles"
+    template = style_root / "graph_templates" / "BET.otpu"
+    template.parent.mkdir(parents=True)
+    template.write_bytes(b"otpu")
+    (style_root / "manifest.json").write_text(
+        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","graph_template":"graph_templates/BET.otpu","status":"accepted"}]}',
+        encoding="utf-8",
+    )
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
+    product = replace(_product(tmp_path, processed), legend_entries=["Adsorption", "Desorption"])
+    product.reference_opju_copy.write_bytes(b"opju")
+    fake = _FakeCachedStyleOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
+
+    assert result["ok"] is True
+    assert result["template_format_plan"]["mode"] == "cached_style_package"
+    assert result["origin_processing"]["method"] == "cached_style_package_graph_template"
+    assert fake.loaded_paths == []
+    assert fake.created_from_template is not None
+    assert fake.created_from_template.name == template.name
+    commands = "\n".join(fake.commands)
+    assert "xb.fsize=36" in commands
+    assert "legend.background=0" in commands
+    assert "legend.bold=1" in commands
+    assert "label -s -xb \\b(Relative Pressure);" in commands
+    assert "label -s -yl \\b(Quantity Adsorbed);" in commands
+    assert "legend.text$ = \\l(1) \\b(Adsorption)" in commands
+
+
 def test_export_template_base_uses_neutral_runtime_for_opju_template(tmp_path: Path, monkeypatch) -> None:
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
