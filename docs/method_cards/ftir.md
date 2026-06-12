@@ -1,4 +1,4 @@
-# Method Card: FTIR
+﻿# Method Card: FTIR
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
@@ -46,8 +46,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `signal_type`, `x_axis_reversed`, `baseline_method`, `peak_detection_parameters`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `ftir_processor`.
 
 ## Risk Level

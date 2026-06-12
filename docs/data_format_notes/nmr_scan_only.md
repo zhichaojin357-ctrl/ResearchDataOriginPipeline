@@ -1,8 +1,8 @@
-# Data Format Note: NMR / 核磁 Scan-Only
+﻿# Data Format Note: NMR / 核磁 Scan-Only
 
-## Phase 1 Classification
+## the current automated pipeline Classification
 - Inferred data type: `NMR`
-- Supported in Phase 1: `false`
+- Supported in the current automated pipeline: `false`
 - Selected processor: `none`
 - Special handling: `scan_only`
 - Deferred reason: `nmr_deferred`
@@ -16,7 +16,7 @@
 - Filenames containing solvent, nucleus, frequency, or sample identifiers.
 - Vendor subfolders such as `pdata`, `fid`, or acquisition parameter files.
 
-## Phase 1 Handling
+## the current automated pipeline Handling
 1. Register file paths, extensions, size, and hashes in inventory output.
 2. Preserve folder structure and vendor subfolders.
 3. Mark processing status as deferred.
@@ -31,4 +31,4 @@
 - Do not assign chemical shifts or structures.
 - Do not integrate peaks.
 - Do not infer purity, conversion, or product identity.
-- Do not call Origin for NMR data in Phase 1.
+- Do not call Origin for NMR data in the current automated pipeline.

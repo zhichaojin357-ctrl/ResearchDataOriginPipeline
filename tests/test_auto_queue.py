@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import json
@@ -17,11 +17,11 @@ def _project_root(tmp_path: Path) -> Path:
     return project
 
 
-def test_auto_queue_excludes_phase16_hash_and_accepts_new_auto_process(tmp_path: Path):
+def test_auto_queue_excludes_locked_result_hash_and_accepts_new_auto_process(tmp_path: Path):
     project = _project_root(tmp_path)
     workspace = project / "workspace"
     reports = default_output_root(project) / "reports"
-    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    package = default_output_root(project) / "locked_origin_results_20260531_041538"
     reports.mkdir(parents=True)
     package.mkdir(parents=True)
     old_source = _write(workspace / "EIS" / "old.csv", "x,y\n1,2\n")
@@ -48,7 +48,7 @@ def test_auto_queue_excludes_phase16_hash_and_accepts_new_auto_process(tmp_path:
     assert plan["summary"]["skipped_count"] == 1
     assert plan["accepted_items"][0]["relative_path"] == "EIS/new.csv"
     assert plan["accepted_items"][0]["origin_export_allowed"] is False
-    assert plan["skipped_items"][0]["status"] == "SKIPPED_PHASE1_6_ALREADY_PROCESSED"
+    assert plan["skipped_items"][0]["status"] == "SKIPPED_LOCKED_RESULT_ALREADY_PROCESSED"
 
 
 def test_auto_queue_blocks_hash_mismatch_and_path_traversal(tmp_path: Path):
@@ -114,16 +114,16 @@ def test_auto_queue_writes_plan_and_never_requests_origin_or_process(tmp_path: P
     queue_path.write_text(json.dumps({"items": [_queue_item("EPR/sample.txt", _sha256(source), data_type="EPR")]}), encoding="utf-8")
 
     code = run_auto_queue(project, AutoQueueOptions(queue=queue_path, workspace_root=workspace))
-    plan = json.loads((reports / "phase1_8_new_auto_process_plan.json").read_text(encoding="utf-8"))
-    output_queue = json.loads((reports / "phase1_8_new_auto_process_queue.json").read_text(encoding="utf-8"))
+    plan = json.loads((reports / "auto_process_plan.json").read_text(encoding="utf-8"))
+    output_queue = json.loads((reports / "auto_process_queue.json").read_text(encoding="utf-8"))
 
     assert code == 0
     assert plan["summary"]["will_launch_origin"] is False
     assert plan["summary"]["will_run_process"] is False
     assert output_queue["items"][0]["origin_export_allowed"] is False
-    report_md = (reports / "phase1_8_new_auto_process_plan.md").read_text(encoding="utf-8")
+    report_md = (reports / "auto_process_plan.md").read_text(encoding="utf-8")
     assert str(project) not in report_md
-    assert "- Candidate queue: `output/reports/phase1_8_new_auto_process_queue.json`" in report_md
+    assert "- Candidate queue: `output/reports/auto_process_queue.json`" in report_md
 
 
 def test_auto_queue_rejects_report_outside_output_or_docs(tmp_path: Path):

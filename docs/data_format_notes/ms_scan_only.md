@@ -1,8 +1,8 @@
-# Data Format Note: MS / 质谱 Scan-Only
+﻿# Data Format Note: MS / 质谱 Scan-Only
 
-## Phase 1 Classification
+## the current automated pipeline Classification
 - Inferred data type: `MS`
-- Supported in Phase 1: `false`
+- Supported in the current automated pipeline: `false`
 - Selected processor: `none`
 - Special handling: `scan_only`
 - Deferred reason: `ms_deferred`
@@ -16,12 +16,12 @@
 - Header keywords in exported tables: `m/z`, `intensity`, `retention time`, `RT`.
 - Vendor raw directory/file patterns.
 
-## Phase 1 Handling
+## the current automated pipeline Handling
 1. Register file paths, extensions, size, and hashes in inventory output.
 2. Preserve vendor raw directories as source records.
 3. Mark processing status as deferred.
 4. If `.mzML` or exported CSV exists, note that a future LC-MS/MS processor may be enabled.
-5. Do not plot or identify products in Phase 1.
+5. Do not plot or identify products in the current automated pipeline.
 
 ## Manual Checks Required
 - Confirm ionization mode, adducts, calibration, and instrument type.
@@ -32,4 +32,4 @@
 - Do not assign products automatically.
 - Do not confirm molecular formula.
 - Do not process proprietary raw files.
-- Do not call Origin for MS data in Phase 1.
+- Do not call Origin for MS data in the current automated pipeline.

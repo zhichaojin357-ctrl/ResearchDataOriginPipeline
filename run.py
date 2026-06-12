@@ -1,4 +1,4 @@
-"""CLI entry point for the Phase 1 coding checkpoint."""
+"""CLI entry point for the maintained research-data pipeline."""
 
 from pathlib import Path
 import sys

@@ -8,6 +8,7 @@ from pathlib import Path
 from openpyxl import Workbook, load_workbook
 
 from src.core.output_sanitizer import render_output_path
+from src.core.project import ensure_write_path_allowed
 
 
 DATA_OFFSET_CACQU = 9500
@@ -246,8 +247,10 @@ def export_jeol_cwesr_to_xlsx(
     reference_dir: Path | None = None,
     report_xlsx: Path | None = None,
 ) -> dict[str, object]:
+    ensure_write_path_allowed(Path.cwd(), output_root, output_root=output_root)
     exported = export_data(roots, output_root)
     if reference_dir is not None and report_xlsx is not None:
+        ensure_write_path_allowed(Path.cwd(), report_xlsx, output_root=output_root)
         write_compare_report(reference_dir, exported, report_xlsx)
     return {
         "exported_xlsx": len(exported),

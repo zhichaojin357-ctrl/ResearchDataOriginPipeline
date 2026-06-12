@@ -1,4 +1,4 @@
-# Method Card: Mott-Schottky
+﻿# Method Card: Mott-Schottky
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
@@ -45,8 +45,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `potential_reference`, `frequency_Hz`, `capacitance_unit`, `linear_region_candidates`, `flat_band_candidate`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `mott_schottky_processor`.
 
 ## Risk Level

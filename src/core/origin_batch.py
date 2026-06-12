@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import hashlib
@@ -9,7 +9,7 @@ from pathlib import Path
 
 from src.core.manifest_schema import schema_mismatch_message
 from src.core.output_sanitizer import scrub_output_text
-from src.core.project import default_output_root, report_path
+from src.core.project import default_output_root, ensure_write_path_allowed, report_path
 from src.core.runtime_paths import resolve_workspace_root
 from src.origin.adapter import export_plot
 
@@ -239,18 +239,19 @@ def execute_origin_batch_exports(project_root: Path, options: OriginBatchOptions
 
 
 def write_origin_batch_reports(project_root: Path, plan: dict, options: OriginBatchOptions) -> tuple[Path, Path]:
+    effective_output_root = options.output_root or default_output_root(project_root)
     json_path = options.report_json or report_path(
         project_root,
-        "phase1_7_manifest_runner_plan.json",
+        "origin_batch_plan.json",
         output_root=options.output_root,
     )
     md_path = options.report_md or report_path(
         project_root,
-        "phase1_7_manifest_runner_plan.md",
+        "origin_batch_plan.md",
         output_root=options.output_root,
     )
-    _guard_output_path(project_root, json_path)
-    _guard_output_path(project_root, md_path)
+    _guard_output_path(project_root, json_path, effective_output_root)
+    _guard_output_path(project_root, md_path, effective_output_root)
     json_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     md_path.write_text(_manifest_plan_markdown(plan), encoding="utf-8")
     return json_path, md_path
@@ -282,7 +283,7 @@ def _copy_exported_artifact(source: Path | str | None, target: Path | None) -> N
 def _manifest_plan_markdown(plan: dict) -> str:
     summary = plan["summary"]
     lines = [
-        "# Phase 1.7 Manifest Runner Plan",
+        "# Origin Batch Plan",
         "",
         f"- Manifest: `{plan['manifest']}`",
         f"- Total manifest items: {summary['total_manifest_items']}",
@@ -488,24 +489,8 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _guard_output_path(project_root: Path, path: Path) -> None:
-    resolved = path.resolve()
-    allowed = [
-        (project_root / "output").resolve(),
-        default_output_root(project_root).resolve(),
-        (project_root / "docs").resolve(),
-        (project_root / "tests" / "fixtures").resolve(),
-    ]
-    if not any(_is_under_or_equal(resolved, root) for root in allowed):
-        raise ValueError(f"Refusing to write report outside allowed output areas: {path}")
-
-
-def _is_under_or_equal(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return path == parent
+def _guard_output_path(project_root: Path, path: Path, output_root: Path) -> None:
+    ensure_write_path_allowed(project_root, path, output_root=output_root)
 
 
 def _normalize(value: str) -> str:

@@ -1,53 +1,29 @@
 # Real Data Compatibility Matrix
 
-Current workspace copy: `D:\Codex Project\科研数据处理\数据\workspace_data\LL_detection_copy_20260530`.
+This matrix records the current supported behavior of the maintained pipeline. Fresh counts must be regenerated with the formal `triage`, `readiness`, and `validate` commands before making a release decision.
 
-| data_type | AUTO_PROCESS | MANUAL_REVIEW | Phase 1.6 Origin | Phase 1.8 status | next action |
-|---|---:|---:|---:|---|---|
-| EIS | 46 | 37 | 22 success | 24 new auto-queue candidates after Phase 1.6 exclusion; `.xlsm` and delayed headers supported | review existing previews; use only the generated dry-run queue for future no-Origin processing |
-| photocurrent | 6 | 9 | 3 success | 5 new auto-queue candidates after Phase 1.6 exclusion; no automatic interpretation | confirm current units/on-off intervals |
-| Raman | 0 | 32 | 30 success | headerless-only files remain manual | confirm normalization/offset before any Phase 1.8 queue |
-| Mott-Schottky | 92 | 153 | 90 success | 32 new auto-queue candidates after Phase 1.6 exclusion; CHI delayed-header exports recognized; no CB/VB equivalence | review fit ranges manually before processing new queue |
-| EPR | 44 | 64 | 13 success | 44 new auto-queue candidates after Phase 1.6 exclusion; JEOL cAcqu and verified field-intensity tables recognized; no radical assignment | review field-intensity plots manually |
-| XPS | 0 | 160 | 9 success | raw spectra only | no valence assignment; review raw/background/component exports |
-| XRD | 0 | 69 | 0 | 3 reviewed-queue candidates, high-risk ack required | no phase/crystal-plane assignment |
-| UV-vis DRS | 0 | 14 | 0 | 7 reviewed-queue candidates | review wavelength/reflectance/absorbance mapping |
-| PL | 0 | 19 | 0 | 6 reviewed-queue candidates | no recombination conclusion |
-| FTIR | 0 | 30 | 0 | proposals only | review peak regions manually |
-| BET | 0 | 23 | 0 | proposals only; legacy OPJU/PNG/TSV/CSV outputs exist outside the standardized package | review adsorption/desorption columns before adding to a standard queue |
-| SEM/TEM/NMR/MS | 0 | 0 | 0 | DEFERRED_TYPE scan-only | keep scan-only |
-| reference_literature | 0 | 0 | 0 | REFERENCE_ONLY | keep scan-only |
+| data_type | automated processing | Origin product | required manual checks |
+|---|---|---|---|
+| XRD | reviewed/manual only for real files | supported through template-backed products and the XRD overlay command | no automatic phase, crystal-plane, or reference-card assignment |
+| XPS | reviewed/manual only for raw spectra and fitted exports | supported for in-situ and non-in-situ template-backed products | no automatic valence, electron-transfer, or heterojunction-mechanism conclusion |
+| EPR | supported for verified field-intensity tables; JEOL raw decode is available through the maintained decoder | supported through template-backed products | no automatic radical/species assignment |
+| BET | supported for adsorption/desorption and pore-distribution tables | supported through template-backed products | confirm branch, units, area basis, and pore-size transform |
+| EIS | supported for Nyquist/Bode style tables | supported through template-backed products | no automatic equivalent-circuit conclusion without user-reviewed fit range/model |
+| photocurrent | supported for time-current exports | supported through template-backed products | confirm illumination intervals and units; no automatic carrier-separation conclusion |
+| Mott-Schottky | supported for potential-capacitance exports | supported through template-backed products | confirm fit range and axis transform; no automatic band-edge conclusion |
+| UV-vis DRS / Tauc | supported for reflectance/absorbance/Tauc-style tables | supported through template-backed products | confirm transform mode and wavelength range |
+| PL | supported for emission/intensity tables | supported through template-backed products | no automatic recombination conclusion |
+| FTIR | supported for wavenumber/intensity tables | supported through template-backed products | no automatic functional-group assignment |
+| Raman | supported for shift/intensity tables | supported through template-backed products | no automatic phase/defect assignment |
+| HPLC/LC exported data | supported for exported chromatograms, peak tables, and calibration products | supported for calibration products through the Origin script/module path | confirm standards, units, and regression choice |
+| reaction_condition_screening | supported when a clear condition/value table exists | supported through template-backed products | confirm condition semantics manually |
+| SEM/TEM/NMR/MS | scan-only unless a maintained processor is added | no automatic Origin product | keep as metadata/manual-review records |
+| reference_literature | scan-only | no automatic Origin product | never process as experimental kinetic data |
 
-## Aggregate Counts After Phase 1.8 Reviewed-Queue Gate
+## Regeneration Commands
 
-- Total files: 1644
-- AUTO_PROCESS: 188
-- MANUAL_REVIEW: 618
-- EXCLUDE_INVALID: 113
-- DUPLICATE_SUPPRESSED: 66
-- AUXILIARY_ONLY: 117
-- DEFERRED_TYPE: 525
-- REFERENCE_ONLY: 17
+- `python run.py triage`
+- `python run.py readiness --no-desktop-review-xlsx`
+- `python run.py validate`
 
-The latest triage improvements increase recognition only. They do not process the new AUTO_PROCESS candidates and do not run Origin. Any new real processing should still start with a reviewed no-Origin queue.
-
-Current automatically recognized queue after excluding already locked Phase 1.6 hashes:
-
-- Accepted candidates: 105
-- EPR: 44
-- Mott-Schottky: 32
-- EIS: 24
-- photocurrent: 5
-- Report: `output/reports/phase1_8_new_auto_process_plan.md`
-- Candidate queue: `output/reports/phase1_8_new_auto_process_queue.json`
-
-Historical Phase 1.8 reviewed-queue gate outputs remain available:
-
-- Reviewed-queue proposals: 18
-- Current approved/skipped/blocked dry-run: 0/18/0
-
-Current user-facing manual review workbook:
-
-- Workbook: `output/reports/phase1_8_manual_review_required_filtered.xlsx`
-- Rows requiring user review: 493
-- Same-data rows excluded from main workbook: 125
+Generated reports belong under the configured external output root, usually `../输出/reports` or `../输出/runs/<timestamp>_*`.

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import json
@@ -9,7 +9,7 @@ from pathlib import Path
 from src.core.manifest_schema import CANONICAL_MANIFEST_VERSION, CANONICAL_ORIGIN_BATCH_COLUMNS
 from src.core.origin_batch import INPUT_ARTIFACT_FIELDS, ORIGIN_OUTPUT_FIELDS, _missing_or_empty, _resolve_artifact_paths
 from src.core.output_sanitizer import scrub_output_text
-from src.core.project import default_output_root
+from src.core.project import default_output_root, ensure_write_path_allowed
 
 
 @dataclass(frozen=True)
@@ -34,9 +34,10 @@ def normalize_material_collection_manifest(
     manifest_path = manifest_path.absolute()
     collection_root = manifest_path.parent
     out_dir = output_dir or default_output_root(project_root) / "reports"
-    csv_path = _resolve_output_path(project_root, output_csv or out_dir / "phase1_10_material_collection_normalized_manifest.csv")
-    json_path = _resolve_output_path(project_root, output_json or out_dir / "phase1_10_material_collection_normalized_manifest.json")
-    md_path = _resolve_output_path(project_root, output_md or out_dir / "phase1_10_material_collection_normalized_manifest.md")
+    output_root = out_dir.parent if out_dir.name == "reports" else out_dir
+    csv_path = _resolve_output_path(project_root, output_csv or out_dir / "material_collection_normalized_manifest.csv", output_root)
+    json_path = _resolve_output_path(project_root, output_json or out_dir / "material_collection_normalized_manifest.json", output_root)
+    md_path = _resolve_output_path(project_root, output_md or out_dir / "material_collection_normalized_manifest.md", output_root)
 
     rows = _read_rows(manifest_path)
     items = [_normalize_row(project_root, row, collection_root, manifest_path) for row in rows]
@@ -108,21 +109,20 @@ def _normalize_row(project_root: Path, row: dict[str, str], collection_root: Pat
 
     source_kind = row.get("source_kind", "")
     package_relative = row.get("package_relative_path", "")
-    if source_kind.startswith("phase1_6_"):
-        field = _artifact_field_for_source_kind(source_kind)
-        if field:
-            output[field] = package_relative
-            output["already_result_item"] = "true"
-            if source_kind == "phase1_6_origin_file":
-                output["already_origin_exported"] = "true"
-                output["origin_export_status"] = "success"
+    field = _artifact_field_for_source_kind(source_kind)
+    if field:
+        output[field] = package_relative
+        output["already_result_item"] = "true"
+        if field == "origin_file":
+            output["already_origin_exported"] = "true"
+            output["origin_export_status"] = "success"
 
     reasons = _unsafe_reasons(output, collection_root, row)
     if not reasons:
         output["safe_for_origin_batch"] = "true"
         output["can_origin_batch"] = "true"
         output["origin_export_allowed"] = "true"
-        output["notes"] = "normalized complete result-like item; dry-run only unless explicitly executed in a later phase"
+        output["notes"] = "normalized complete result-like item; dry-run only unless explicitly executed by origin-batch"
     else:
         _set_reason_flags(output, reasons)
         output["cannot_origin_batch_reason"] = "; ".join(reasons)
@@ -166,14 +166,18 @@ def _set_reason_flags(item: dict[str, str], reasons: list[str]) -> None:
 
 
 def _artifact_field_for_source_kind(source_kind: str) -> str | None:
-    return {
-        "phase1_6_processed_csv": "processed_csv",
-        "phase1_6_metadata": "metadata",
-        "phase1_6_origin_file": "origin_file",
-        "phase1_6_figure_tif": "figure_tif",
-        "phase1_6_preview_png": "preview_png",
-        "phase1_6_contact_sheet": "contact_sheet",
-    }.get(source_kind)
+    suffix_map = {
+        "processed_csv": "processed_csv",
+        "metadata": "metadata",
+        "origin_file": "origin_file",
+        "figure_tif": "figure_tif",
+        "preview_png": "preview_png",
+        "contact_sheet": "contact_sheet",
+    }
+    for suffix, field in suffix_map.items():
+        if source_kind == suffix or source_kind.endswith(f"_{suffix}"):
+            return field
+    return None
 
 
 def _extract_note_value(notes: str, key: str) -> str:
@@ -190,11 +194,9 @@ def _read_rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
-def _resolve_output_path(project_root: Path, path: Path) -> Path:
+def _resolve_output_path(project_root: Path, path: Path, output_root: Path) -> Path:
     resolved = path if path.is_absolute() else project_root / path
-    allowed = [(project_root / "output").resolve(), default_output_root(project_root).resolve(), (project_root / "docs").resolve()]
-    if not any(_is_under_or_equal(resolved.resolve(), root) for root in allowed):
-        raise ValueError(f"Refusing to write normalized manifest outside output/ or docs/: {resolved}")
+    ensure_write_path_allowed(project_root, resolved, output_root=output_root)
     return resolved
 
 
@@ -202,17 +204,9 @@ def _report_path(project_root: Path, path: Path) -> str:
     return scrub_output_text(path, project_root=project_root)
 
 
-def _is_under_or_equal(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return path == parent
-
-
 def _markdown(summary: dict, items: list[dict[str, str]]) -> str:
     lines = [
-        "# Phase 1.10 Material Collection Normalized Manifest",
+        "# manifest normalization Material Collection Normalized Manifest",
         "",
         f"- Source manifest: `{summary['source_manifest']}`",
         f"- Total items: {summary['total_items']}",

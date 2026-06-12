@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from src.core.output_sanitizer import render_output_path
+from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.opju_product_pilot import (
     FORBIDDEN_LABELS,
     ProductContext,
@@ -318,25 +318,67 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
         asset = resolve_origin_style_asset(project_root, product_key, manifest_path)
         if asset is None:
             continue
+        style_asset = asset.to_dict(project_root)
         candidates.append(
             TemplateCandidate(
                 product_key=product_key,
-                path=asset.graph_template_path,
-                source="project_origin_style_asset",
-                path_score=1,
+                path=asset.template_opju_path or asset.graph_template_path,
+                source="project_origin_template_asset" if asset.template_opju_path else "project_origin_style_asset",
+                path_score=80 if asset.template_opju_path else 1,
                 status="valid",
                 graph_page=asset.graph_page or "Graph1",
-                layer_count=1,
-                plot_count=1,
-                reason="project-local cached Origin style asset fallback",
+                layer_count=_manifest_positive_int(raw, ("layer_count", "template_layer_count"), default=1),
+                plot_count=_manifest_positive_int(
+                    raw,
+                    ("template_plot_count", "plot_count", "product_plot_count"),
+                    default=1,
+                ),
+                reason=(
+                    "project-local copied OPJU template fallback"
+                    if asset.template_opju_path
+                    else "project-local cached Origin style asset fallback"
+                ),
                 metadata={
                     "style_package": True,
-                    "style_asset": asset.to_dict(project_root),
-                    "manifest_entry": asset.to_dict(project_root),
+                    "style_asset": style_asset,
+                    "manifest_entry": _safe_manifest_entry(raw),
                 },
             )
         )
     return candidates
+
+
+def _manifest_positive_int(raw: dict[str, object], keys: tuple[str, ...], *, default: int) -> int:
+    for key in keys:
+        try:
+            value = int(float(str(raw.get(key, "")).strip()))
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            return value
+    return default
+
+
+def _safe_manifest_entry(raw: dict[str, object]) -> dict[str, object]:
+    keep = {
+        "product_key",
+        "data_type",
+        "graph_page",
+        "graph_template",
+        "template_opju",
+        "source_opju",
+        "preview_png",
+        "reference_preview_png",
+        "template_preview_comparison_png",
+        "data_hint_paths",
+        "status",
+        "template_plot_count",
+        "plot_count",
+        "product_plot_count",
+        "layer_count",
+        "preview_rms",
+    }
+    return {key: raw[key] for key in keep if key in raw}
 
 
 def scan_template_f_drive_template_paths(f_drive_root: Path) -> list[Path]:
@@ -652,7 +694,7 @@ def run_template_product_builder_all_types(
     if options.project_style_asset_fallback:
         validated.extend(classify_template_project_style_asset_candidates(project_root))
     selections = {product_key: select_template(product_key, validated) for product_key in TEMPLATE_TARGET_TYPES}
-    _write_template_discovery_doc(project_root / "docs" / "TEMPLATE_DISCOVERY_AND_SELECTION.md", template_source_root, validated, selections)
+    _write_template_discovery_doc(layout.root / "reports" / "template_discovery_and_selection.md", template_source_root, validated, selections)
 
     user_config = load_user_plot_style(project_root, options.user_style_path)
     if options.global_style_override:
@@ -707,7 +749,6 @@ def run_template_product_builder_all_types(
     products = [_with_label_audit_status(product, label_audit) for product in products]
     template_preview_audit = _write_template_preview_comparison(layout.root, products)
     _write_template_run_reports(layout.root, products, failures, selections, label_audit, template_preview_audit)
-    _write_template_docs(project_root, layout.root, products, failures, selections, label_audit)
     if options.cleanup_empty_run_layout_dirs:
         _cleanup_empty_run_layout_dirs(layout)
     return {
@@ -721,7 +762,7 @@ def run_template_product_builder_all_types(
             "blocked_count": sum(1 for item in products if item.get("status") == "blocked"),
             "failed_count": sum(1 for item in products if item.get("status") == "failed"),
             "with_origin": bool(options.with_origin),
-            "label_audit_pass": int(label_audit.get("hit_count", 0)) == 0,
+            "label_audit_pass": _label_audit_passes(label_audit),
             "template_preview_comparison_ready": int(template_preview_audit.get("ready_count", 0)) == len(products),
         },
     }
@@ -818,7 +859,41 @@ def prepare_template_product(
         legend_entries=list(labels.get("legend_entries", [])) or [header.replace("_", " ") for header in headers[1:]],
         notes=labels.get("notes", "").splitlines() if labels.get("notes") else [],
     )
+    _seed_project_style_reference_preview(template, product.reference_preview_png)
     return product, extra
+
+
+def _seed_project_style_reference_preview(template: TemplateCandidate, target: Path) -> None:
+    if template.source != "project_origin_style_asset" and not template.metadata.get("style_package"):
+        return
+    style_asset = template.metadata.get("style_asset") if isinstance(template.metadata.get("style_asset"), dict) else {}
+    reference = _resolve_project_style_asset_path(template.path, style_asset.get("reference_preview_png"))
+    if reference is None or not reference.is_file():
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(reference, target)
+
+
+def _resolve_project_style_asset_path(template_path: Path, value: object) -> Path | None:
+    text = str(value or "").strip().replace("\\", "/")
+    if not text:
+        return None
+    candidate = Path(text)
+    if candidate.is_absolute():
+        return candidate
+    origin_styles_root: Path | None = None
+    for parent in template_path.resolve().parents:
+        if parent.name == "origin_styles":
+            origin_styles_root = parent
+            break
+    if origin_styles_root is None:
+        return template_path.parent / candidate
+    prefix = "templates/origin_styles/"
+    if text.startswith(prefix):
+        return origin_styles_root / text[len(prefix) :]
+    if text.startswith("origin_styles/"):
+        return origin_styles_root / text[len("origin_styles/") :]
+    return origin_styles_root / candidate
 
 
 def _build_template_aligned_first_batch_table(
@@ -1177,6 +1252,8 @@ def _template_candidate_files(
     limit: int = 12,
 ) -> list[Path]:
     roots: list[Path] = []
+    candidates: list[Path] = _template_data_hint_paths(template, suffixes=suffixes)
+    seen_candidates = {str(path.resolve()) for path in candidates if path.exists()}
     if prefer_template_parent:
         roots.append(template.path.parent)
     roots.extend(path.parent for path in pairing.data_paths)
@@ -1184,7 +1261,6 @@ def _template_candidate_files(
         roots.append(pairing.data_paths[0].parent.parent)
     roots.append(template.path.parent)
     seen_roots: set[str] = set()
-    candidates: list[Path] = []
     for root in roots:
         if not root.exists():
             continue
@@ -1200,6 +1276,10 @@ def _template_candidate_files(
                 continue
             if path.suffix.casefold() == ".txt" and any(token in name for token in ("澶囨敞", "readme", "璇存槑")):
                 continue
+            candidate_key = str(path.resolve())
+            if candidate_key in seen_candidates:
+                continue
+            seen_candidates.add(candidate_key)
             candidates.append(path)
             if len(candidates) >= limit:
                 return _template_ordered_candidate_paths(pairing, candidates, prefer_template_parent=prefer_template_parent)
@@ -1210,6 +1290,23 @@ def _template_ordered_candidate_paths(pairing: TargetPairing, candidates: list[P
     if prefer_template_parent:
         return _template_unique_paths([*candidates, *pairing.data_paths])
     return _template_unique_paths([*pairing.data_paths, *candidates])
+
+
+def _template_data_hint_paths(template: TemplateCandidate, *, suffixes: tuple[str, ...]) -> list[Path]:
+    manifest_entry = template.metadata.get("manifest_entry") if isinstance(template.metadata.get("manifest_entry"), dict) else {}
+    raw_paths = manifest_entry.get("data_hint_paths") if isinstance(manifest_entry.get("data_hint_paths"), list) else []
+    paths: list[Path] = []
+    seen: set[str] = set()
+    for raw in raw_paths:
+        path = Path(str(raw))
+        if not path.is_file() or path.suffix.casefold() not in suffixes:
+            continue
+        key = str(path.resolve())
+        if key in seen:
+            continue
+        seen.add(key)
+        paths.append(path)
+    return paths
 
 
 def _template_unique_paths(paths: list[Path]) -> list[Path]:
@@ -2870,7 +2967,7 @@ def _write_template_product_metadata(
         "xps_subtype": product.pairing.xps_subtype,
         "selected_data_relative_paths": _safe_metadata_paths(_selected_relative_paths(product.pairing, "selected_data_relative_paths")),
         "source_files": [_safe_metadata_path(path) for path in product.pairing.data_paths],
-        "template_path": _safe_metadata_path(template.path),
+        "template_path": _template_display_path(template.path),
         "template_graph": template.graph_page,
         "template_layer_count": template.layer_count,
         "template_plot_count": template.plot_count,
@@ -3090,11 +3187,15 @@ def _failed_product_record(run_root: Path, product_key: str, selection: Template
 
 
 def _with_label_audit_status(product: dict[str, object], label_audit: dict[str, object]) -> dict[str, object]:
-    if int(label_audit.get("hit_count", 0)) != 0 and product.get("status") == "accepted":
+    if not _label_audit_passes(label_audit) and product.get("status") == "accepted":
         product = dict(product)
         product["status"] = "blocked"
         product["notes"] = (str(product.get("notes") or "") + "; no-label audit failed").strip("; ")
     return product
+
+
+def _label_audit_passes(label_audit: dict[str, object]) -> bool:
+    return int(label_audit.get("hit_count", 0)) == 0 and len(label_audit.get("path_only_hits") or []) == 0
 
 
 def _write_template_preview_comparison(run_root: Path, products: list[dict[str, object]]) -> dict[str, object]:
@@ -3105,10 +3206,10 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
     completeness_rows: list[dict[str, object]] = []
     for product in products:
         product_type = str(product.get("type") or product.get("product_key") or "unknown")
-        reference = Path(str(product.get("reference_preview_png") or ""))
-        generated = Path(str(product.get("preview_png") or ""))
+        reference = _resolve_run_relative_artifact(run_root, product.get("reference_preview_png"))
+        generated = _resolve_run_relative_artifact(run_root, product.get("preview_png"))
         side_by_side = comparisons / f"{safe_name(product_type)}_template_vs_generated.png"
-        metadata = _read_template_product_metadata(product)
+        metadata = _read_template_product_metadata(product, run_root)
         reference_ok = reference.exists() and reference.stat().st_size > 0
         generated_ok = generated.exists() and generated.stat().st_size > 0
         ready = False
@@ -3155,7 +3256,7 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
             message = f"{message}; {strict_message}"
         elif strict_message:
             message = strict_message
-        product["template_preview_comparison_png"] = str(side_by_side) if ready else ""
+        product["template_preview_comparison_png"] = _relative_to_run(run_root, side_by_side) if ready else ""
         product["template_preview_comparison_ready"] = ready
         product["template_plot_count"] = template_plot_count
         product["product_plot_count"] = product_plot_count
@@ -3173,9 +3274,9 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
             {
                 "type": product_type,
                 "status": product.get("status", ""),
-                "reference_preview_png": str(reference) if reference_ok else "",
-                "generated_preview_png": str(generated) if generated_ok else "",
-                "side_by_side_png": str(side_by_side) if ready else "",
+                "reference_preview_png": _relative_to_run(run_root, reference) if reference_ok else "",
+                "generated_preview_png": _relative_to_run(run_root, generated) if generated_ok else "",
+                "side_by_side_png": _relative_to_run(run_root, side_by_side) if ready else "",
                 "ready": ready,
                 "template_plot_count": template_plot_count,
                 "product_plot_count": product_plot_count,
@@ -3271,8 +3372,8 @@ def _template_source_files_for_completeness(metadata: dict[str, object]) -> list
     return list(source_files)
 
 
-def _read_template_product_metadata(product: dict[str, object]) -> dict[str, object]:
-    metadata_path = Path(str(product.get("metadata") or ""))
+def _read_template_product_metadata(product: dict[str, object], run_root: Path | None = None) -> dict[str, object]:
+    metadata_path = _resolve_run_relative_artifact(run_root, product.get("metadata")) if run_root else Path(str(product.get("metadata") or ""))
     if not metadata_path.is_file():
         return {}
     try:
@@ -3280,6 +3381,16 @@ def _read_template_product_metadata(product: dict[str, object]) -> dict[str, obj
     except Exception:
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _resolve_run_relative_artifact(run_root: Path | None, value: object) -> Path:
+    text = str(value or "")
+    if not text:
+        return Path("")
+    path = Path(text)
+    if path.is_absolute() or run_root is None:
+        return path
+    return run_root / path
 
 
 def _template_plot_count(product: dict[str, object], metadata: dict[str, object]) -> int:
@@ -3469,25 +3580,9 @@ def _write_template_run_reports(
     _write_template_selection_summary(reports / "template_selection_summary.md", selections)
     _write_template_visual_acceptance_summary(reports / "visual_acceptance_summary.md", run_root, products, relative=True)
     _write_template_conformance_summary(reports / "exemplar_conformance_summary.md", products)
-
-
-def _write_template_docs(
-    project_root: Path,
-    run_root: Path,
-    products: list[dict[str, object]],
-    failures: list[dict[str, str]],
-    selections: dict[str, TemplateSelection],
-    label_audit: dict[str, object],
-) -> None:
-    docs = project_root / "docs"
-    docs.mkdir(parents=True, exist_ok=True)
-    _write_template_root_cause_audit(docs / "TEMPLATE_ROOT_CAUSE_AUDIT.md")
-    _write_template_visual_contract(docs / "TEMPLATE_VISUAL_ACCEPTANCE_CONTRACT.md")
-    _write_template_visual_acceptance_summary(docs / "TEMPLATE_EXPORTED_PREVIEW_VISUAL_AUDIT.md", run_root, products, relative=False)
-    _write_template_final_summary(docs / "TEMPLATE_ALL_TYPES_SUMMARY.md", run_root, products, failures, label_audit, relative=False)
-    _write_template_visual_acceptance_summary(docs / "TEMPLATE_VISUAL_ACCEPTANCE_AUDIT.md", run_root, products, relative=False)
-    _write_template_root_cause_fix_summary(docs / "TEMPLATE_ROOT_CAUSE_FIX_SUMMARY.md")
-    _write_template_manual_review(docs / "TEMPLATE_MANUAL_CALIBRATION_ENTRYPOINT.md", run_root, products, relative=False)
+    _write_template_root_cause_audit(reports / "template_root_cause_audit.md")
+    _write_template_visual_contract(reports / "template_visual_acceptance_contract.md")
+    _write_template_root_cause_fix_summary(reports / "template_root_cause_fix_summary.md")
 
 
 def _write_template_final_summary(
@@ -3508,7 +3603,7 @@ def _write_template_final_summary(
         f"- accepted: {sum(1 for item in products if item.get('status') == 'accepted')}",
         f"- blocked: {sum(1 for item in products if item.get('status') == 'blocked')}",
         f"- failed: {sum(1 for item in products if item.get('status') == 'failed')}",
-        f"- Product visible-label audit: {'pass' if int(label_audit.get('hit_count', 0)) == 0 else 'fail'}",
+        f"- Product visible-label audit: {'pass' if _label_audit_passes(label_audit) else 'fail'}",
         f"- Template-vs-generated preview comparison: {sum(1 for item in products if item.get('template_preview_comparison_ready'))}/{len(products)} ready",
         "- F-drive files modified: no",
         "- Original OPJU/OPJ files modified: no",
@@ -3755,7 +3850,7 @@ def _write_template_no_label_audit(run_root: Path) -> dict[str, object]:
             continue
         for label in FORBIDDEN_LABELS:
             if label.casefold() in path.name.casefold():
-                hits.append({"path": str(path), "location": "filename", "label": label})
+                hits.append({"path": _relative_to_run(run_root, path), "location": "filename", "label": label})
         if path.suffix.casefold() not in {".md", ".csv", ".txt", ".json"}:
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
@@ -3763,12 +3858,23 @@ def _write_template_no_label_audit(run_root: Path) -> dict[str, object]:
             for label in FORBIDDEN_LABELS:
                 if label.casefold() not in line.casefold():
                     continue
-                record = {"path": str(path), "line": line_number, "label": label, "text": line.strip()}
+                record = {
+                    "path": _relative_to_run(run_root, path),
+                    "line": line_number,
+                    "label": label,
+                    "text": scrub_output_text(line.strip(), output_root=run_root),
+                }
                 if ":\\" in line or ":/" in line:
                     path_only_hits.append(record)
                 else:
                     hits.append(record)
-    audit = {"hit_count": len(hits), "hits": hits, "path_only_hits": path_only_hits}
+    audit = {
+        "hit_count": len(hits),
+        "hits": hits,
+        "path_only_hits": path_only_hits,
+        "path_only_hit_count": len(path_only_hits),
+        "pass": len(hits) == 0 and len(path_only_hits) == 0,
+    }
     reports = run_root / "reports"
     reports.mkdir(parents=True, exist_ok=True)
     (reports / "product_no_label_audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -3776,12 +3882,13 @@ def _write_template_no_label_audit(run_root: Path) -> dict[str, object]:
         "# Product visible-label audit",
         "",
         f"- Product-visible hit count: {audit['hit_count']}",
-        f"- Result: {'pass' if audit['hit_count'] == 0 else 'fail'}",
-        f"- Path-only hits recorded separately: {len(path_only_hits)}",
+        f"- Path-only hit count: {len(path_only_hits)}",
+        f"- Result: {'pass' if audit['pass'] else 'fail'}",
         "",
         "## Product-visible hits",
     ]
     lines.extend(["- none"] if not hits else [f"- {hit}" for hit in hits])
+    lines.extend(["", "## Absolute-path hits", *(["- none"] if not path_only_hits else [f"- {hit}" for hit in path_only_hits])])
     (reports / "product_label_audit.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return audit
 
@@ -4005,7 +4112,7 @@ def _kill_new_origin_processes(before_pids: set[int]) -> None:
 def _candidate_to_dict(candidate: TemplateCandidate) -> dict[str, object]:
     return {
         "product_key": candidate.product_key,
-        "path": str(candidate.path),
+        "path": _template_display_path(candidate.path),
         "source": candidate.source,
         "path_score": candidate.path_score,
         "status": candidate.status,

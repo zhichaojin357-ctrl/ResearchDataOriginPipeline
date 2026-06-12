@@ -1,4 +1,4 @@
-# Method Card: XRD
+﻿# Method Card: XRD
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`, `.xy`
@@ -46,8 +46,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `x_axis_unit`, `normalization`, `peak_detection_parameters`, `radiation_source`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `xrd_processor`.
 
 ## Risk Level

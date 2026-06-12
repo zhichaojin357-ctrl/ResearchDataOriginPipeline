@@ -1,4 +1,4 @@
-import unittest
+﻿import unittest
 import sys
 import json
 from pathlib import Path
@@ -11,7 +11,7 @@ from src.processors.profiles import SUPPORTED_PROCESSOR_PROFILES
 
 
 class ProcessorProfilesTest(unittest.TestCase):
-    def test_supported_profiles_cover_exactly_fourteen_phase1_data_types(self):
+    def test_supported_profiles_cover_exactly_fourteen_pipeline_data_types(self):
         self.assertEqual(len(SUPPORTED_PROCESSOR_PROFILES), 14)
 
     def test_profiles_match_supported_registry_entries_exactly(self):
@@ -19,7 +19,7 @@ class ProcessorProfilesTest(unittest.TestCase):
         supported = {
             entry["inferred_data_type"]: entry["selected_processor"]
             for entry in registry["entries"]
-            if entry["supported_in_phase_1"]
+            if entry["supported_in_pipeline"]
         }
 
         self.assertEqual(set(SUPPORTED_PROCESSOR_PROFILES), set(supported))
@@ -31,11 +31,11 @@ class ProcessorProfilesTest(unittest.TestCase):
         by_folder = {entry["folder_name"]: entry for entry in registry["entries"]}
 
         for folder in ["SEM", "TEM", "核磁", "质谱"]:
-            self.assertFalse(by_folder[folder]["supported_in_phase_1"])
+            self.assertFalse(by_folder[folder]["supported_in_pipeline"])
             self.assertEqual(by_folder[folder]["special_handling"], "scan_only")
             self.assertEqual(by_folder[folder]["selected_processor"], "none")
 
-        self.assertFalse(by_folder["动力学"]["supported_in_phase_1"])
+        self.assertFalse(by_folder["动力学"]["supported_in_pipeline"])
         self.assertEqual(by_folder["动力学"]["inferred_data_type"], "reference_literature")
         self.assertEqual(by_folder["动力学"]["special_handling"], "scan_only")
         self.assertEqual(by_folder["动力学"]["selected_processor"], "none")

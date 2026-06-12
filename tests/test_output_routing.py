@@ -192,16 +192,16 @@ def test_auto_queue_can_route_reports_into_run_root_without_agent_report(tmp_pat
         AutoQueueOptions(
             queue=queue_path,
             workspace_root=tmp_path,
-            processed_index=tmp_path / "missing_phase1_6.csv",
+            processed_index=tmp_path / "missing_locked_result.csv",
             output_root=layout.root,
         ),
     )
 
     assert code == 0
-    assert (layout.reports / "phase1_8_new_auto_process_plan.json").exists()
-    assert (layout.reports / "phase1_8_new_auto_process_plan.md").exists()
-    assert (layout.reports / "phase1_8_new_auto_process_queue.json").exists()
-    assert not (tmp_path / "docs" / "agent_reports").exists()
+    assert (layout.reports / "auto_process_plan.json").exists()
+    assert (layout.reports / "auto_process_plan.md").exists()
+    assert (layout.reports / "auto_process_queue.json").exists()
+    assert not (tmp_path / "docs" / "reports").exists()
 
 
 def test_reviewed_queue_template_can_route_into_run_root_without_agent_report(tmp_path: Path):
@@ -237,8 +237,8 @@ def test_reviewed_queue_template_can_route_into_run_root_without_agent_report(tm
     )
 
     assert code == 0
-    assert (layout.reports / "phase1_8_review_decisions_template.csv").exists()
-    assert not (tmp_path / "docs" / "agent_reports").exists()
+    assert (layout.reports / "review_decisions_template.csv").exists()
+    assert not (tmp_path / "docs" / "reports").exists()
 
 
 def test_origin_batch_dry_run_reports_can_route_into_run_root(tmp_path: Path):
@@ -275,8 +275,8 @@ def test_origin_batch_dry_run_reports_can_route_into_run_root(tmp_path: Path):
     code = run_origin_batch(tmp_path, OriginBatchOptions(manifest=manifest, output_root=layout.root))
 
     assert code == 0
-    assert (layout.reports / "phase1_7_manifest_runner_plan.json").exists()
-    assert (layout.reports / "phase1_7_manifest_runner_plan.md").exists()
+    assert (layout.reports / "origin_batch_plan.json").exists()
+    assert (layout.reports / "origin_batch_plan.md").exists()
     assert not (tmp_path / "output" / "reports").exists()
 
 

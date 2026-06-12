@@ -1,4 +1,4 @@
-# Method Card: Raman
+﻿# Method Card: Raman
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
@@ -46,8 +46,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `laser_wavelength_nm`, `baseline_method`, `normalization`, `band_ranges`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `raman_processor`.
 
 ## Risk Level

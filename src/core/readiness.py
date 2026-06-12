@@ -12,17 +12,17 @@ from src.core.project import default_output_root
 from src.core.runtime_paths import (
     resolve_optional_f_drive_backup,
     resolve_output_root,
-    resolve_phase1_6_package,
+    resolve_locked_result_package,
     resolve_workspace_root,
 )
 
 
 @dataclass(frozen=True)
 class ReadinessOptions:
-    expected_phase1_6_count: int = 167
+    expected_locked_result_count: int = 167
     workspace_root: Path | None = None
     f_drive_backup: Path | None = None
-    phase1_6_package: Path | None = None
+    locked_result_package: Path | None = None
     strict_artifacts: bool = False
     check_legacy_project_path: bool = True
     desktop_review_xlsx: Path | None = None
@@ -42,8 +42,7 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
     f_drive_backup = resolve_optional_f_drive_backup(project_root, options.f_drive_backup)
     output_root = resolve_output_root(project_root)
     reports = output_root / "reports"
-    docs_reports = project_root / "docs" / "agent_reports"
-    package = resolve_phase1_6_package(project_root, options.phase1_6_package)
+    package = resolve_locked_result_package(project_root, options.locked_result_package)
 
     _add_artifact_check(
         checks,
@@ -78,34 +77,34 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
     index_rows = _csv_row_count(index)
     _add_artifact_check(
         checks,
-        "phase1_6_index_count",
-        index_rows == options.expected_phase1_6_count,
-        f"{index_rows}/{options.expected_phase1_6_count} rows in {index}",
+        "locked_result_index_count",
+        index_rows == options.expected_locked_result_count,
+        f"{index_rows}/{options.expected_locked_result_count} rows in {index}",
         options,
         artifacts_present=index.is_file(),
     )
     result_summary = package / "result_summary.json"
     _add_artifact_check(
         checks,
-        "phase1_6_result_summary_exists",
+        "locked_result_result_summary_exists",
         result_summary.is_file(),
         str(result_summary),
         options,
         artifacts_present=result_summary.exists(),
     )
-    summary_ok, summary_detail = _phase1_6_summary_status(index, result_summary, options.expected_phase1_6_count)
+    summary_ok, summary_detail = _locked_result_summary_status(index, result_summary, options.expected_locked_result_count)
     _add_artifact_check(
         checks,
-        "phase1_6_result_summary_matches_index",
+        "locked_result_result_summary_matches_index",
         summary_ok,
         summary_detail,
         options,
         artifacts_present=index.exists() or result_summary.exists(),
     )
 
-    manual_csv = reports / "phase1_8_manual_review_required_filtered.csv"
-    manual_xlsx = reports / "phase1_8_manual_review_required_filtered.xlsx"
-    manual_report = reports / "phase1_8_manual_review_required_filtered_report.md"
+    manual_csv = reports / "manual_review_required_filtered.csv"
+    manual_xlsx = reports / "manual_review_required_filtered.xlsx"
+    manual_report = reports / "manual_review_required_filtered_report.md"
     _add_artifact_check(
         checks,
         "manual_review_filtered_csv_exists",
@@ -144,8 +143,8 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
         desktop_ok, desktop_detail = _matching_file_status(manual_xlsx, desktop_xlsx)
         _add_check(checks, "manual_review_desktop_xlsx_matches", desktop_ok, desktop_detail)
 
-    auto_plan = reports / "phase1_8_new_auto_process_plan.json"
-    auto_queue = reports / "phase1_8_new_auto_process_queue.json"
+    auto_plan = reports / "auto_process_plan.json"
+    auto_queue = reports / "auto_process_queue.json"
     auto_summary = _json_summary(auto_plan)
     _add_artifact_check(checks, "auto_queue_plan_exists", auto_plan.is_file(), str(auto_plan), options, artifacts_present=auto_plan.exists())
     _add_artifact_check(checks, "auto_queue_file_exists", auto_queue.is_file(), str(auto_queue), options, artifacts_present=auto_queue.exists())
@@ -167,9 +166,9 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
         artifacts_present=auto_plan.exists() or auto_queue.exists(),
     )
 
-    reviewed_proposals = reports / "phase1_7_new_override_proposals_after_optimization.json"
-    reviewed_decisions = reports / "phase1_8_review_decisions_template.csv"
-    reviewed_plan = reports / "phase1_8_reviewed_queue_plan.json"
+    reviewed_proposals = reports / "override_proposals_after_triage_optimization.json"
+    reviewed_decisions = reports / "review_decisions_template.csv"
+    reviewed_plan = reports / "reviewed_queue_plan.json"
     reviewed_ok, reviewed_detail = _reviewed_queue_status(reviewed_proposals, reviewed_decisions, reviewed_plan)
     _add_artifact_check(
         checks,
@@ -180,8 +179,8 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
         artifacts_present=reviewed_proposals.exists() or reviewed_decisions.exists() or reviewed_plan.exists(),
     )
 
-    origin_batch_plan = reports / "phase1_7_manifest_runner_plan.json"
-    origin_batch_ok, origin_batch_detail = _origin_batch_plan_status(origin_batch_plan, options.expected_phase1_6_count)
+    origin_batch_plan = reports / "origin_batch_plan.json"
+    origin_batch_ok, origin_batch_detail = _origin_batch_plan_status(origin_batch_plan, options.expected_locked_result_count)
     _add_artifact_check(
         checks,
         "origin_batch_dry_run_plan_current",
@@ -198,12 +197,9 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
     stale_summary_terms = [
         "Post-rule/post-AI manual review CSV",
         "Manual review rows after AI-assisted recognition",
-        "Remaining user action: review `phase1_8_manual_review_required_after_ai.csv`",
+        "Remaining user action: review `manual_review_required_after_ai.csv`",
     ]
-    final_summaries = [
-        reports / "phase1_8_final_summary.md",
-        docs_reports / "phase1_8_final_summary.md",
-    ]
+    final_summaries = [reports / "review_queue_final_summary.md"]
     missing_summaries = [path for path in final_summaries if not path.is_file()]
     stale_summaries = [path for path in final_summaries if path.is_file() and _contains_any(path, stale_summary_terms)]
     summary_ok = not missing_summaries and not stale_summaries
@@ -216,7 +212,7 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
         summary_detail_parts.append("; ".join(str(path) for path in final_summaries))
     _add_check(
         checks,
-        "phase1_8_summary_current",
+        "reviewed_queue_summary_current",
         summary_ok,
         "; ".join(summary_detail_parts),
         fail_status="fail" if options.strict_artifacts or stale_summaries else "warning",
@@ -339,14 +335,14 @@ def _load_json(path: Path) -> dict:
     return payload if isinstance(payload, dict) else {}
 
 
-def _phase1_6_summary_status(index_path: Path, summary_path: Path, expected_count: int) -> tuple[bool, str]:
+def _locked_result_summary_status(index_path: Path, summary_path: Path, expected_count: int) -> tuple[bool, str]:
     if not index_path.is_file() or not summary_path.is_file():
         return False, f"missing index or summary: {index_path}; {summary_path}"
     try:
         index_rows = _csv_row_count(index_path)
         summary = _load_json(summary_path)
     except Exception as exc:
-        return False, f"failed to read Phase 1.6 summary/index: {exc}"
+        return False, f"failed to read locked result package summary/index: {exc}"
     total_results = summary.get("total_results")
     by_type = summary.get("by_type")
     if total_results != index_rows or index_rows != expected_count:
@@ -442,10 +438,8 @@ def _active_project_name_status(project_root: Path) -> tuple[bool, str, bool]:
         return False, "stale old project references in active docs: " + "; ".join(stale_hits), False
     if missing_active_docs:
         output_root = resolve_output_root(project_root).resolve()
-        legacy_output_root = (project_root / "output").resolve()
         generated_only = all(
             _is_under_or_equal(Path(path).resolve(), output_root)
-            or _is_under_or_equal(Path(path).resolve(), legacy_output_root)
             for path in missing_active_docs
         )
         return False, "missing active entry docs: " + "; ".join(missing_active_docs), generated_only
@@ -526,13 +520,13 @@ def _auto_queue_status(plan_path: Path, queue_path: Path) -> tuple[bool, str]:
     manual_check_missing = [item.get("queue_id") or item.get("relative_path") for item in items if item.get("manual_check_required") is not True]
     if manual_check_missing:
         return False, f"auto queue items missing manual_check_required=true: {manual_check_missing[:5]}"
-    phase_mismatch = [
+    provenance_mismatch = [
         item.get("queue_id") or item.get("relative_path")
         for item in items
-        if item.get("promoted_by_phase") != "phase1_8_auto_queue_dry_run"
+        if item.get("promoted_by_workflow") != "auto_queue_dry_run"
     ]
-    if phase_mismatch:
-        return False, f"auto queue items missing phase1_8_auto_queue_dry_run provenance: {phase_mismatch[:5]}"
+    if provenance_mismatch:
+        return False, f"auto queue items missing auto_queue_dry_run provenance: {provenance_mismatch[:5]}"
     note_missing = [
         item.get("queue_id") or item.get("relative_path")
         for item in items
@@ -649,11 +643,11 @@ def _dashboard_status(path: Path, stale_terms: list[str]) -> tuple[bool, str]:
         return False, f"missing or empty: {path}"
     text = path.read_text(encoding="utf-8")
     required_terms = [
-        "phase1_8_manual_review_required_filtered.xlsx",
-        "phase1_8_new_auto_process_plan.md",
+        "manual_review_required_filtered.xlsx",
+        "auto_process_plan.md",
     ]
     missing = [term for term in required_terms if term not in text]
-    stale = [term for term in stale_terms + ["phase1_8_manual_review_required_after_ai.csv"] if term in text]
+    stale = [term for term in stale_terms + ["manual_review_required_after_ai.csv"] if term in text]
     if missing:
         return False, f"dashboard missing current links: {', '.join(missing)}"
     if stale:
@@ -686,10 +680,10 @@ def _resolve_path(project_root: Path, path: Path) -> Path:
 
 
 def _resolve_output(project_root: Path, path: Path) -> Path:
-    resolved = _resolve_path(project_root, path)
-    allowed = [project_root / "output", default_output_root(project_root), project_root / "docs"]
-    if not any(_is_under_or_equal(resolved.resolve(), base.resolve()) for base in allowed):
-        raise ValueError(f"Output path must stay under configured output root or docs/: {resolved}")
+    output_root = resolve_output_root(project_root).resolve()
+    resolved = path if path.is_absolute() else output_root / path
+    if not _is_under_or_equal(resolved.resolve(), output_root):
+        raise ValueError(f"Output path must stay under configured output root: {resolved}")
     return resolved
 
 

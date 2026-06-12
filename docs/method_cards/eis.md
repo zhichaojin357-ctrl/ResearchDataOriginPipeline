@@ -1,4 +1,4 @@
-# Method Card: EIS
+﻿# Method Card: EIS
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
@@ -21,7 +21,7 @@
 - Nyquist coordinates: `-Im(Z)` versus `Re(Z)`.
 - Bode magnitude/phase plotting.
 - High-frequency intercept candidate when clearly detectable.
-- No automatic equivalent-circuit fitting in Phase 1.
+- No automatic equivalent-circuit fitting in the current automated pipeline.
 
 ## Recommended Origin Plot Type
 - Nyquist scatter-line plot.
@@ -46,8 +46,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `frequency_unit`, `impedance_unit`, `imaginary_sign_convention`, `plot_panels`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `eis_processor`.
 
 ## Risk Level

@@ -52,7 +52,7 @@ REFERENCE_ONLY = {
 BLOCKED = {
     "matchms": {
         "module": "matchms",
-        "reason": "blocked in Phase 1 because the dry-run would change core numpy/scipy versions",
+        "reason": "blocked because the dry-run would change core numpy/scipy versions",
     },
 }
 

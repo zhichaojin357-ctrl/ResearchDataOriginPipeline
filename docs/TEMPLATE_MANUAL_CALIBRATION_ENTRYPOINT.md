@@ -1,21 +1,22 @@
-# Template-format manual calibration entrypoint
+# Template Manual Calibration Entrypoint
 
-- Run root: D:\Codex Project\科研数据处理\输出\runs\20260611_220000_template_format_with_origin_template_format_products
+Template-format products are produced by `run.py template-format-products`. The command copies or embeds the approved Origin style structure into the generated run so future plotting does not depend on hand-edited external templates.
 
-## Priority previews
-- BET: accepted - BET/figures_preview/BET_BOBC_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 2; style match ratio is unavailable; preview RMS is unavailable
-- XPS_in_situ: accepted - XPS_in_situ/figures_preview/XPS_in_situ_BOBC_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 18; style match ratio is unavailable; preview RMS is unavailable
-- XPS_non_in_situ: accepted - XPS_non_in_situ/figures_preview/XPS_non_in_situ_BOBC_BC_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 12; style match ratio is unavailable; preview RMS is unavailable
-- XRD: accepted - XRD/figures_preview/XRD_BOBC_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 1; style match ratio is unavailable; preview RMS is unavailable
-- EPR: accepted - EPR/figures_preview/EPR_OH_overlay_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 3; style match ratio is unavailable; preview RMS is unavailable
-- EIS: accepted - EIS/figures_preview/EIS_BOBC_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 3; style match ratio is unavailable; preview RMS is unavailable
-- Raman: accepted - Raman/figures_preview/Raman_BOBC_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 1; style match ratio is unavailable; preview RMS is unavailable
-- UV-vis DRS / Tauc: accepted - UV_vis_DRS_Tauc/figures_preview/UV_vis_DRS_Tauc_BOBC_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 1; style match ratio is unavailable; preview RMS is unavailable
-- PL: accepted - PL/figures_preview/PL_BOBC_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 1; style match ratio is unavailable; preview RMS is unavailable
-- photocurrent: accepted - photocurrent/figures_preview/photocurrent_BOBC_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 1; style match ratio is unavailable; preview RMS is unavailable
-- FTIR: accepted - FTIR/figures_preview/FTIR_BOBC_CWO_exemplar_template_format_preview.png - Origin cached style-package export succeeded.; manual_check_not_one_to_one: cached style-package mode records OPJU-template preview comparison as manual-check-only; template/generated preview comparison is not ready; plot count differs from template by 1; style match ratio is unavailable; preview RMS is unavailable
+## Required Acceptance Evidence
 
-## Priority
-- EIS first, because the main change is measured-range Randles-CPE visual segment behavior.
-- Then XPS subtype template availability, because in-situ and non-in-situ templates must not be mixed.
-- Then XRD/BET/EPR and spectroscopy overlays for visual similarity.
+The latest successful run must contain these reports under `../输出/runs/<timestamp>_template_format_*/reports`:
+
+- `template_format_executor_summary.json`
+- `template_preview_comparison.json`
+- `visual_acceptance_summary.md`
+- `product_no_label_audit.json`
+
+Acceptance requires:
+
+- all expected data types are accepted with no failed products
+- strict template comparison is ready and passes for every expected product
+- OPJU-facing names use only the source data filename
+- OPJU comments are blank
+- no generated product contains an automation/tool name or absolute local path
+
+If a product falls back to cached style-package mode or reports manual-check-only template comparison, the run is not release evidence for strict template matching.

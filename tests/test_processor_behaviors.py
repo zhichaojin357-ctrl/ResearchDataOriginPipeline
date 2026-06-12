@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import json
 import tempfile
 import unittest
@@ -289,13 +289,13 @@ class ProcessorBehaviorTest(unittest.TestCase):
                 root,
                 classification("XRD", "xrd_processor"),
                 source_a,
-                triage={"queue_id": "phase1_8_aaaaaaaaaaaaaaaa"},
+                triage={"queue_id": "reviewed_queue_aaaaaaaaaaaaaaaa"},
             )
             metadata_b = process_table_dataset(
                 root,
                 classification("XRD", "xrd_processor"),
                 source_b,
-                triage={"queue_id": "phase1_8_bbbbbbbbbbbbbbbb"},
+                triage={"queue_id": "reviewed_queue_bbbbbbbbbbbbbbbb"},
             )
 
             self.assertNotEqual(metadata_a["dataset_id"], metadata_b["dataset_id"])
@@ -397,7 +397,7 @@ class ProcessorBehaviorTest(unittest.TestCase):
                     {
                         "inferred_data_type": "reference_literature",
                         "selected_processor": "none",
-                        "supported_in_phase_1": False,
+                        "supported_in_pipeline": False,
                     },
                     source,
                 )

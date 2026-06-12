@@ -1,4 +1,4 @@
-# Method Card: Reaction Condition Screening
+﻿# Method Card: Reaction Condition Screening
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`
@@ -47,8 +47,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `condition_columns`, `metric_columns`, `replicate_columns`, `best_candidate_rule`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `condition_screening_processor`.
 
 ## Risk Level

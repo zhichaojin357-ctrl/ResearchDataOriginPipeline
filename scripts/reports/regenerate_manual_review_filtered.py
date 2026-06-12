@@ -12,7 +12,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from src.core.runtime_paths import resolve_output_root, resolve_phase1_6_index
+from src.core.runtime_paths import resolve_locked_result_index, resolve_output_root
 
 
 def norm_key(path_text: str) -> str:
@@ -68,8 +68,8 @@ def action_for(item: dict) -> str:
     return "确认后可进入下一阶段 reviewed queue"
 
 
-def phase16_keys(root: Path) -> set[str]:
-    index_path = resolve_phase1_6_index(root)
+def locked_result_keys(root: Path) -> set[str]:
+    index_path = resolve_locked_result_index(root)
     keys: set[str] = set()
     if not index_path.exists():
         return keys
@@ -86,7 +86,7 @@ def build_rows(root: Path) -> tuple[list[dict], list[dict], dict]:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     items = manifest["items"]
 
-    completed_keys = phase16_keys(root)
+    completed_keys = locked_result_keys(root)
     representative_keys: dict[str, list[dict]] = defaultdict(list)
     for item in items:
         if item.get("decision") in {"AUTO_PROCESS", "DUPLICATE_SUPPRESSED"}:
@@ -101,7 +101,7 @@ def build_rows(root: Path) -> tuple[list[dict], list[dict], dict]:
         reason = ""
         representative = ""
         if key in completed_keys:
-            reason = "Phase 1.6 已有成功成果代表"
+            reason = "locked result package 已有成功成果代表"
         elif key in representative_keys:
             reason = "同一数据已有可自动处理/重复压制格式代表"
             representative = representative_keys[key][0].get("relative_path", "")
@@ -194,7 +194,7 @@ def write_report(path: Path, kept: list[dict], excluded: list[dict], summary: di
     counts = Counter(row["数据类型"] for row in kept)
     excluded_counts = Counter(row["数据类型"] for row in excluded)
     lines = [
-        "# Phase 1.8 最新人工复核清单",
+        "# Manual Review Required Filtered",
         "",
         f"- 生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "- 来源: `output/reports/data_triage_manifest.json` 最新 triage 结果",
@@ -204,11 +204,11 @@ def write_report(path: Path, kept: list[dict], excluded: list[dict], summary: di
         "",
         "## 输出文件",
         "",
-        "- CSV: `output/reports/phase1_8_manual_review_required_filtered.csv`",
-        "- Excel: `output/reports/phase1_8_manual_review_required_filtered.xlsx`",
-        "- 排除审计 CSV: `output/reports/phase1_8_manual_review_excluded_processed_sibling_formats.csv`",
-        "- 排除审计 Excel: `output/reports/phase1_8_manual_review_excluded_processed_sibling_formats.xlsx`",
-        "- 桌面副本: `C:\\Users\\lenovo\\Desktop\\phase1_8_manual_review_required_filtered.xlsx`",
+        "- CSV: `output/reports/manual_review_required_filtered.csv`",
+        "- Excel: `output/reports/manual_review_required_filtered.xlsx`",
+        "- 排除审计 CSV: `output/reports/manual_review_excluded_represented_formats.csv`",
+        "- 排除审计 Excel: `output/reports/manual_review_excluded_represented_formats.xlsx`",
+        "- 桌面副本: `C:\\Users\\lenovo\\Desktop\\manual_review_required_filtered.xlsx`",
         "",
         "## 保留复核统计",
         "",
@@ -225,7 +225,7 @@ def write_report(path: Path, kept: list[dict], excluded: list[dict], summary: di
         "## 说明",
         "",
         "- 本清单只保留最新识别算法后仍无法安全自动分类或处理的文件。",
-        "- 如果同一份数据已有可自动处理格式或 Phase 1.6 成功成果代表，则不再放入人工复核主表，只写入排除审计表。",
+        "- 如果同一份数据已有可自动处理格式或 locked result package 成功成果代表，则不再放入人工复核主表，只写入排除审计表。",
         "- 本步骤没有处理真实数据，没有启动 Origin，没有修改原始数据。",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -234,28 +234,22 @@ def write_report(path: Path, kept: list[dict], excluded: list[dict], summary: di
 def main() -> None:
     root = Path.cwd()
     reports = resolve_output_root(root) / "reports"
-    docs_reports = root / "docs" / "agent_reports"
-    docs_reports.mkdir(parents=True, exist_ok=True)
-
     kept, excluded, summary = build_rows(root)
     kept_headers = ["相对路径", "数据类型", "扩展名", "解析状态", "置信度", "有效性", "主要原因", "建议处理", "源文件哈希", "用户决定", "备注"]
     excluded_headers = ["相对路径", "数据类型", "扩展名", "排除原因", "代表文件", "same_data_key"]
 
     outputs = {
-        "csv": reports / "phase1_8_manual_review_required_filtered.csv",
-        "xlsx": reports / "phase1_8_manual_review_required_filtered.xlsx",
-        "excluded_csv": reports / "phase1_8_manual_review_excluded_processed_sibling_formats.csv",
-        "excluded_xlsx": reports / "phase1_8_manual_review_excluded_processed_sibling_formats.xlsx",
-        "report": reports / "phase1_8_manual_review_required_filtered_report.md",
+        "csv": reports / "manual_review_required_filtered.csv",
+        "xlsx": reports / "manual_review_required_filtered.xlsx",
+        "excluded_csv": reports / "manual_review_excluded_represented_formats.csv",
+        "excluded_xlsx": reports / "manual_review_excluded_represented_formats.xlsx",
+        "report": reports / "manual_review_required_filtered_report.md",
     }
     write_csv(outputs["csv"], kept, kept_headers)
     write_xlsx(outputs["xlsx"], kept, "最新人工复核清单", kept_headers)
     write_csv(outputs["excluded_csv"], excluded, excluded_headers)
     write_xlsx(outputs["excluded_xlsx"], excluded, "已排除同数据格式清单", excluded_headers)
     write_report(outputs["report"], kept, excluded, summary)
-
-    for path in outputs.values():
-        shutil.copy2(path, docs_reports / path.name)
 
     desktop = Path.home() / "Desktop"
     if desktop.exists():

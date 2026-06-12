@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import csv
@@ -9,7 +9,7 @@ from src.processors.base import process_table_dataset
 from src.scanner.scanner import scan_raw_data
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.project import default_output_root, output_dir, report_path
-from src.core.runtime_paths import resolve_phase1_6_index
+from src.core.runtime_paths import resolve_locked_result_index
 
 
 @dataclass(frozen=True)
@@ -77,7 +77,7 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
             if options.fail_fast:
                 break
             continue
-        if not classification["supported_in_phase_1"]:
+        if not classification["supported_in_pipeline"]:
             continue
         try:
             metadata = process_table_dataset(
@@ -169,12 +169,12 @@ def _selected_queue_items(project_root: Path, input_path: Path, options: Process
             raise ValueError(f"queue JSON item {index} must be an object: {queue_path}")
     registry = load_json_compatible_yaml(registry_path(project_root))
     by_type = {entry["inferred_data_type"]: entry for entry in registry["entries"]}
-    raw_queue_duplicate_items = _raw_queue_phase1_6_duplicate_items(project_root, queue_path, queue)
+    raw_queue_duplicate_items = _raw_queue_locked_result_duplicate_items(project_root, queue_path, queue)
     if raw_queue_duplicate_items:
         message = (
             "raw output/reports/processing_queue.json contains source hashes already represented in the "
-            "Phase 1.6 Origin package; run `run.py auto-queue` and process "
-            "output/reports/phase1_8_new_auto_process_queue.json instead"
+            "locked result package; run `run.py auto-queue` and process "
+            "output/reports/auto_process_queue.json instead"
         )
         blocked = []
         for item in raw_queue_duplicate_items:
@@ -227,11 +227,11 @@ def _selected_queue_items(project_root: Path, input_path: Path, options: Process
     return selected
 
 
-def _raw_queue_phase1_6_duplicate_items(project_root: Path, queue_path: Path, queue: dict) -> list[dict]:
+def _raw_queue_locked_result_duplicate_items(project_root: Path, queue_path: Path, queue: dict) -> list[dict]:
     default_queue = report_path(project_root, "processing_queue.json").resolve()
     if queue_path.resolve() != default_queue:
         return []
-    processed_hashes = _phase1_6_processed_hashes(project_root)
+    processed_hashes = _locked_result_processed_hashes(project_root)
     if not processed_hashes:
         return []
     return [
@@ -241,8 +241,8 @@ def _raw_queue_phase1_6_duplicate_items(project_root: Path, queue_path: Path, qu
     ]
 
 
-def _phase1_6_processed_hashes(project_root: Path) -> set[str]:
-    index = resolve_phase1_6_index(project_root)
+def _locked_result_processed_hashes(project_root: Path) -> set[str]:
+    index = resolve_locked_result_index(project_root)
     if not index.is_file():
         return set()
     with index.open("r", encoding="utf-8-sig", newline="") as handle:
@@ -285,7 +285,7 @@ def _classification_for_queue_item(item: dict, by_type: dict[str, dict]) -> dict
     return {
         "inferred_data_type": data_type,
         "selected_processor": item.get("selected_processor") or entry.get("selected_processor", "none"),
-        "supported_in_phase_1": bool(entry.get("supported_in_phase_1", False)),
+        "supported_in_pipeline": bool(entry.get("supported_in_pipeline", False)),
     }
 
 
@@ -294,8 +294,8 @@ def _queue_registry_error(item: dict, by_type: dict[str, dict]) -> str | None:
     entry = by_type.get(data_type)
     if entry is None:
         return f"queue data_type is not in processor registry: {data_type}"
-    if entry.get("supported_in_phase_1") is not True:
-        return f"queue data_type is not supported in Phase 1: {data_type}"
+    if entry.get("supported_in_pipeline") is not True:
+        return f"queue data_type is not supported in pipeline: {data_type}"
     expected_processor = str(entry.get("selected_processor", "none"))
     actual_processor = str(item.get("selected_processor") or expected_processor)
     if actual_processor != expected_processor:
@@ -306,7 +306,7 @@ def _queue_registry_error(item: dict, by_type: dict[str, dict]) -> str | None:
 def _manual_review_queue_provenance_ok(item: dict) -> bool:
     if item.get("original_triage_decision") != "MANUAL_REVIEW":
         return False
-    if not str(item.get("promoted_by_phase", "")).strip():
+    if not str(item.get("promoted_by_workflow", "")).strip():
         return False
     return item.get("promoted_from_manual_review") is True or item.get("current_decision") == "USER_APPROVED_NO_ORIGIN_QUEUE"
 
@@ -333,8 +333,8 @@ def _triage_from_queue_item(item: dict, *, stale: bool = False, message: str | N
     for key in (
         "original_triage_decision",
         "promoted_from_manual_review",
-        "promoted_by_phase",
-        "promoted_batch",
+        "promoted_by_workflow",
+        "promoted_workflow_batch",
         "promoted_confidence",
         "promoted_validity",
         "promotion_reason",

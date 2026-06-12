@@ -6,7 +6,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
-from src.core.epr_overlay import build_epr_condition_overlay
+from src.core.epr_overlay import EprOverlayOptions, build_epr_condition_overlay, run_epr_overlay
 from src.core.project import default_output_root
 
 
@@ -122,3 +122,21 @@ def test_epr_overlay_writes_canonical_metadata_next_to_output_package(tmp_path: 
     assert recorded["metadata_path"] == "run/EPR/metadata/epr_oh_overlay/metadata.json"
     assert recorded["manual_check_required"] is True
     assert recorded["forbidden_claims"] == ["no automatic radical assignment", "no automatic mechanism claim"]
+
+
+def test_epr_overlay_rejects_reports_outside_output_root(tmp_path: Path) -> None:
+    ref = tmp_path / "refs"
+    ref.mkdir()
+    _write_xlsx(ref / "BC-OH-light2.xlsx", [-1, 0, 1, 2])
+    _write_xlsx(ref / "CWO-OH-light2.xlsx", [-10, 0, 10, 20])
+    _write_xlsx(ref / "BOBC-OH-light1.xlsx", [-100, 0, 100, 200])
+
+    try:
+        run_epr_overlay(
+            tmp_path,
+            EprOverlayOptions(reference_dir=ref, group="OH", report_json=tmp_path / "unsafe.json"),
+        )
+    except ValueError as exc:
+        assert "Refusing to write" in str(exc)
+    else:
+        raise AssertionError("Expected EPR overlay report path guard failure")

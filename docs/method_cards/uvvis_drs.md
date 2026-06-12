@@ -1,4 +1,4 @@
-# Method Card: UV-vis DRS
+﻿# Method Card: UV-vis DRS
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
@@ -47,8 +47,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `input_signal_type`, `tauc_transition_type`, `linear_region_candidates`, `Eg_candidate_eV`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `uvvis_drs_processor`.
 
 ## Risk Level

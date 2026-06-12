@@ -1,4 +1,4 @@
-# Method Card: XPS
+﻿# Method Card: XPS
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, exported fitting tables.
@@ -47,8 +47,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `energy_reference`, `background_model`, `fit_source`, `x_axis_reversed`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `xps_processor`.
 
 ## Risk Level

@@ -1,4 +1,4 @@
-# Method Card: EPR
+﻿# Method Card: EPR
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
@@ -24,7 +24,7 @@
 - For 65536-point acquisitions, export 4096 points by averaging each consecutive block of 16 CH1 values.
 - Use only two columns after decode: `magnetic field` and `intensity`.
 - Standalone project export command writes data-only `.xlsx` workbooks with two numeric columns and no header row:
-  `D:\Python\python.exe run.py jeol-epr-decode --out output\epr_jeol_decoded <raw_epr_folder>`.
+  `D:\Python\python.exe run.py jeol-epr-decode --out epr_jeol_decoded <raw_epr_folder>`.
 - Optional reference comparison uses `--reference-dir <known_excel_dir> --report-xlsx <compare.xlsx>`.
 - Do not infer radical identity from decoded spectra.
 
@@ -59,8 +59,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `field_unit`, `microwave_frequency_GHz`, `spin_trap`, `baseline_method`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `epr_processor`.
 
 ## Risk Level

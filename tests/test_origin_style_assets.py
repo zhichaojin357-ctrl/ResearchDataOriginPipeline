@@ -7,6 +7,33 @@ from src.cli import main
 from src.origin.template_format import build_template_format_plan
 
 
+def test_reference_opju_assets_do_not_embed_workspace_or_assistant_markers() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    reference_root = project_root / "templates" / "origin_styles" / "reference_opju"
+    assets = sorted(reference_root.glob("*.opju"))
+    forbidden = [
+        b"codex",
+        b"openai",
+        b"chatgpt",
+        b"assistant",
+        b"Codex Project",
+        b"ResearchDataOriginPipeline",
+        b"D:\\Codex",
+        b"D:/Codex",
+    ]
+
+    assert assets
+    hits: list[str] = []
+    for asset in assets:
+        data = asset.read_bytes()
+        lowered = data.lower()
+        for pattern in forbidden:
+            if pattern.lower() in lowered:
+                hits.append(f"{asset.name}: {pattern.decode('utf-8', 'ignore')}")
+
+    assert hits == []
+
+
 def test_origin_style_manifest_resolves_project_local_template(tmp_path: Path) -> None:
     project = tmp_path / "project"
     asset = project / "templates" / "origin_styles" / "graph_templates" / "BET.otpu"

@@ -1,4 +1,4 @@
-# Method Card: Photocurrent Response
+﻿# Method Card: Photocurrent Response
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
@@ -46,8 +46,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `bias_voltage`, `electrolyte`, `light_source`, `cycle_detection_method`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `photocurrent_processor`.
 
 ## Risk Level

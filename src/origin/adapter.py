@@ -837,10 +837,7 @@ def _write_material_color_report(
     output_root: Path | None = None,
 ) -> None:
     reports = output_dir(project_root, "reports", output_root=output_root)
-    docs = project_root / "docs" / "agent_reports"
-    if output_root is None:
-        docs.mkdir(parents=True, exist_ok=True)
-    json_path = reports / "phase1_6_material_color_map.json"
+    json_path = reports / "locked_result_material_color_map.json"
     existing: dict[str, object] = {}
     if json_path.exists():
         try:
@@ -866,7 +863,7 @@ def _write_material_color_report(
         for item in CURVE_COLOR_PALETTE
     ]
     data = {
-        "policy": "Same inferred material/sample key uses the same Origin curve color across Phase 1.6 exports; uncertain sample-code assignments are marked for user review.",
+        "policy": "Same inferred material/sample key uses the same Origin curve color across locked result package exports; uncertain sample-code assignments are marked for user review.",
         "material_colors": material_colors,
         "assignments": sorted(
             assignment_map.values(),
@@ -875,7 +872,7 @@ def _write_material_color_report(
     }
     json_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     lines = [
-        "# Phase 1.6 Material Color Map",
+        "# locked result package Material Color Map",
         "",
         data["policy"],
         "",
@@ -902,9 +899,7 @@ def _write_material_color_report(
             f"| `{item['dataset_id']}` | {item['curve_index']} | `{item['curve_label']}` | `{item['material_key']}` | {item['color_name']} `{item['hex']}` | {item['inference_confidence']} | {item['requires_user_review']} |"
         )
     text = "\n".join(lines) + "\n"
-    (reports / "phase1_6_material_color_map.md").write_text(text, encoding="utf-8")
-    if output_root is None:
-        (docs / "phase1_6_material_color_map.md").write_text(text, encoding="utf-8")
+    (reports / "locked_result_material_color_map.md").write_text(text, encoding="utf-8")
 
 
 def _sanitize_report_payload(value: object) -> object:

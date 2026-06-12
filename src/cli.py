@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 from pathlib import Path
@@ -10,7 +10,7 @@ from src.core.epr_overlay import EprOverlayOptions, run_epr_overlay
 from src.core.manifest_normalizer import normalize_material_collection_manifest
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
 from src.core.origin_style_assets import export_origin_style_assets
-from src.core.phase1_9 import DEFAULT_ORIGIN_SKILL_DIR, DEFAULT_PHASE1_6_PACKAGE, run_phase1_9_governance
+from src.core.origin_governance import DEFAULT_ORIGIN_SKILL_DIR, run_origin_governance
 from src.core.process import ProcessOptions, run_process
 from src.core.project import configured_path, load_project_config
 from src.core.readiness import ReadinessOptions, run_readiness
@@ -47,12 +47,12 @@ def build_parser() -> argparse.ArgumentParser:
     process.add_argument(
         "--from-queue",
         type=Path,
-        help="process only items from an explicit vetted queue; for current AUTO_PROCESS candidates prefer output/reports/phase1_8_new_auto_process_queue.json",
+        help="process only items from an explicit vetted queue; for current AUTO_PROCESS candidates prefer output/reports/auto_process_queue.json",
     )
     process.add_argument(
         "--auto-select",
         action="store_true",
-        help="legacy shortcut: run triage then process AUTO_PROCESS items; for current Phase 1.8 work prefer auto-queue dry-run plus an explicit vetted queue",
+        help="legacy shortcut: run triage then process AUTO_PROCESS items; for current reviewed queue work prefer auto-queue dry-run plus an explicit vetted queue",
     )
     process.add_argument("--include-ambiguous", action="store_true", help="allow MANUAL_REVIEW queue items to be processed")
 
@@ -92,16 +92,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
-        help="plan Origin exports from a package manifest; dry-run by default and never launches Origin unless explicitly executed in a future phase",
+        help="plan Origin exports from a package manifest; dry-run by default and never launches Origin unless explicitly executed",
     )
     origin_batch.add_argument("--manifest", type=Path, required=True, help="package index.csv or compatible manifest")
     origin_batch.add_argument("--dry-run", action="store_true", help="plan only; this is also the default")
-    origin_batch.add_argument("--execute", action="store_true", help="request real execution; Phase 1.7 planner will block export")
+    origin_batch.add_argument("--execute", action="store_true", help="request real execution; requires --with-origin")
     origin_batch.add_argument("--with-origin", action="store_true", help="required for future real execution; dry-run never launches Origin")
     origin_batch.add_argument("--only-type", help="include only one data_type from the manifest")
     origin_batch.add_argument("--only-missing", action="store_true", help="plan only entries missing Origin outputs")
-    origin_batch.add_argument("--report-json", type=Path, help="optional JSON report path under output/ or docs/")
-    origin_batch.add_argument("--report-md", type=Path, help="optional Markdown report path under output/ or docs/")
+    origin_batch.add_argument("--report-json", type=Path, help="optional JSON report path under the configured output root")
+    origin_batch.add_argument("--report-md", type=Path, help="optional Markdown report path under the configured output root")
     origin_batch.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
 
     manifest_normalize = subparsers.add_parser(
@@ -115,24 +115,24 @@ def build_parser() -> argparse.ArgumentParser:
 
     reviewed_queue = subparsers.add_parser(
         "reviewed-queue",
-        help="build a dry-run queue plan from user-reviewed Phase 1.7 proposal decisions; never launches Origin or process",
+        help="build a dry-run queue plan from user-reviewed result package audit proposal decisions; never launches Origin or process",
     )
-    reviewed_queue.add_argument("--proposals", type=Path, required=True, help="Phase 1.7 review-only proposal JSON")
-    reviewed_queue.add_argument("--decisions", type=Path, help="Phase 1.8 user decision CSV")
+    reviewed_queue.add_argument("--proposals", type=Path, required=True, help="result package audit review-only proposal JSON")
+    reviewed_queue.add_argument("--decisions", type=Path, help="reviewed queue user decision CSV")
     reviewed_queue.add_argument("--write-template", action="store_true", help="write a blank user decision CSV template")
     reviewed_queue.add_argument("--dry-run", action="store_true", help="plan only; this is the only supported mode")
-    reviewed_queue.add_argument("--template-out", type=Path, help="optional template CSV path under output/ or docs/")
-    reviewed_queue.add_argument("--report-json", type=Path, help="optional JSON report path under output/ or docs/")
-    reviewed_queue.add_argument("--report-md", type=Path, help="optional Markdown report path under output/ or docs/")
+    reviewed_queue.add_argument("--template-out", type=Path, help="optional template CSV path under the configured output root")
+    reviewed_queue.add_argument("--report-json", type=Path, help="optional JSON report path under the configured output root")
+    reviewed_queue.add_argument("--report-md", type=Path, help="optional Markdown report path under the configured output root")
     reviewed_queue.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
 
     auto_queue = subparsers.add_parser(
         "auto-queue",
-        help="dry-run a no-Origin candidate queue from current AUTO_PROCESS items, excluding Phase 1.6 processed hashes",
+        help="dry-run a no-Origin candidate queue from current AUTO_PROCESS items, excluding locked result package processed hashes",
     )
     auto_queue.add_argument("--queue", type=Path)
     auto_queue.add_argument("--workspace-root", type=Path, help="workspace data root; defaults to config/env/autodetected project path")
-    auto_queue.add_argument("--processed-index", type=Path, help="Phase 1.6 index.csv or package directory; defaults to config/env/latest package")
+    auto_queue.add_argument("--processed-index", type=Path, help="locked result package index.csv or package directory; defaults to config/env/latest package")
     auto_queue.add_argument("--only-type")
     auto_queue.add_argument("--report-json", type=Path)
     auto_queue.add_argument("--report-md", type=Path)
@@ -198,10 +198,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("deps-audit")
     subparsers.add_parser("validate")
     readiness = subparsers.add_parser("readiness", help="check current project artifacts and dry-run safety state")
-    readiness.add_argument("--expected-phase1-6-count", type=int, default=167)
+    readiness.add_argument("--expected-locked-result-count", type=int, default=167)
     readiness.add_argument("--workspace-root", type=Path, help="workspace data root; defaults to config/env/autodetected project path")
     readiness.add_argument("--f-drive-backup", type=Path, help="optional stable raw backup path; defaults to config/env or detected F-drive path")
-    readiness.add_argument("--phase1-6-package", type=Path, help="Phase 1.6 result package; defaults to config/env/latest package")
+    readiness.add_argument("--locked-result-package", type=Path, help="locked result package directory or index.csv; defaults to config/env/latest package")
     readiness.add_argument(
         "--skip-legacy-project-path-check",
         action="store_true",
@@ -210,7 +210,7 @@ def build_parser() -> argparse.ArgumentParser:
     readiness.add_argument(
         "--desktop-review-xlsx",
         type=Path,
-        default=Path.home() / "Desktop" / "phase1_8_manual_review_required_filtered.xlsx",
+        default=Path.home() / "Desktop" / "manual_review_required_filtered.xlsx",
         help="optional user-facing Excel copy that should match the project report workbook",
     )
     readiness.add_argument(
@@ -221,17 +221,17 @@ def build_parser() -> argparse.ArgumentParser:
     readiness.add_argument(
         "--strict-artifacts",
         action="store_true",
-        help="treat generated historical packages, queues, dashboards, and review workbooks as required artifacts",
+        help="treat generated packages, queues, dashboards, and review workbooks as required artifacts",
     )
     readiness.add_argument("--report-json", type=Path)
     readiness.add_argument("--report-md", type=Path)
 
-    phase1_9 = subparsers.add_parser(
-        "phase1-9-governance",
-        help="generate Phase 1.9 Origin plotting skill snapshot, journal-ready index, and structure reports without processing data",
+    origin_governance = subparsers.add_parser(
+        "origin-governance",
+        help="generate Origin plotting governance reports without processing data",
     )
-    phase1_9.add_argument("--skill-dir", type=Path, default=DEFAULT_ORIGIN_SKILL_DIR)
-    phase1_9.add_argument("--package-dir", type=Path, default=DEFAULT_PHASE1_6_PACKAGE)
+    origin_governance.add_argument("--skill-dir", type=Path, default=DEFAULT_ORIGIN_SKILL_DIR)
+    origin_governance.add_argument("--package-dir", type=Path)
     return parser
 
 
@@ -305,7 +305,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"success_count={result['summary'].get('success_count', result['summary'].get('accepted_count', 0))}")
         print(f"blocked_count={result['summary']['blocked_count']}")
         print(f"failed_count={result['summary']['failed_count']}")
-        return 0 if result["summary"]["product_count"] == 11 and result["summary"]["failed_count"] == 0 else 1
+        summary = result["summary"]
+        accepted_count = int(summary.get("accepted_count", summary.get("success_count", 0)) or 0)
+        return 0 if summary["product_count"] == 11 and accepted_count == 11 and summary["blocked_count"] == 0 and summary["failed_count"] == 0 else 1
     if args.command == "export-origin-style-assets":
         result = export_origin_style_assets(
             project_root,
@@ -388,7 +390,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.output_dir is None:
             output_dir = _resolve_cli_output_root(project_root, args) / "xps_heterojunction_stacked"
         else:
-            output_dir = args.output_dir if args.output_dir.is_absolute() else project_root / args.output_dir
+            output_dir = _resolve_cli_output_directory_arg(project_root, args.output_dir)
         run_xps_heterojunction_stacked(
             project_root,
             sample_files,
@@ -418,9 +420,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"preview_png={result['preview_png']}")
         return 0 if (not args.with_origin or bool(result["origin_status"].get("ok"))) else 1
     if args.command == "jeol-epr-decode":
-        output_root = args.out if args.out.is_absolute() else project_root / args.out
+        output_root = _resolve_cli_output_directory_arg(project_root, args.out)
         reference_dir = args.reference_dir if args.reference_dir is None or args.reference_dir.is_absolute() else project_root / args.reference_dir
-        report_xlsx = args.report_xlsx if args.report_xlsx is None or args.report_xlsx.is_absolute() else project_root / args.report_xlsx
+        report_xlsx = _resolve_cli_output_file(project_root, args.report_xlsx, output_root) if args.report_xlsx is not None else None
         result = export_jeol_cwesr_to_xlsx(
             args.roots,
             output_root,
@@ -454,10 +456,10 @@ def main(argv: list[str] | None = None) -> int:
         return run_readiness(
             project_root,
             ReadinessOptions(
-                expected_phase1_6_count=args.expected_phase1_6_count,
+                expected_locked_result_count=args.expected_locked_result_count,
                 workspace_root=args.workspace_root,
                 f_drive_backup=args.f_drive_backup,
-                phase1_6_package=args.phase1_6_package,
+                locked_result_package=args.locked_result_package,
                 strict_artifacts=args.strict_artifacts,
                 check_legacy_project_path=not args.skip_legacy_project_path_check,
                 desktop_review_xlsx=None if args.no_desktop_review_xlsx else args.desktop_review_xlsx,
@@ -465,8 +467,8 @@ def main(argv: list[str] | None = None) -> int:
                 report_md=args.report_md,
             ),
         )
-    if args.command == "phase1-9-governance":
-        run_phase1_9_governance(project_root, skill_dir=args.skill_dir, package_dir=args.package_dir)
+    if args.command == "origin-governance":
+        run_origin_governance(project_root, skill_dir=args.skill_dir, package_dir=args.package_dir)
         return 0
     raise AssertionError(f"Unhandled command: {args.command}")
 
@@ -490,3 +492,20 @@ def _validate_input_directory(input_path: Path) -> None:
 def _resolve_cli_output_root(project_root: Path, args: argparse.Namespace) -> Path:
     config_path = Path(getattr(args, "config", "config/default.yaml"))
     return resolve_output_root(project_root, explicit=getattr(args, "output_root", None), config_path=config_path)
+
+
+def _resolve_cli_output_file(project_root: Path, path: Path, output_root: Path) -> Path:
+    from src.core.project import ensure_write_path_allowed
+
+    target = path if path.is_absolute() else output_root / path
+    ensure_write_path_allowed(project_root, target, output_root=output_root)
+    return target
+
+
+def _resolve_cli_output_directory_arg(project_root: Path, path: Path) -> Path:
+    from src.core.project import ensure_write_path_allowed
+
+    configured_root = resolve_output_root(project_root)
+    target = path if path.is_absolute() else configured_root / path
+    ensure_write_path_allowed(project_root, target, output_root=target)
+    return target

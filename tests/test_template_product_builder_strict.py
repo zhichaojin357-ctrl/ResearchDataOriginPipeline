@@ -14,8 +14,10 @@ from src.core.template_product_builder import (
     _build_template_epr_table,
     _build_template_xy_multisource_table,
     _template_bet_series_label_from_path,
+    _template_candidate_files,
     _template_display_path,
     _template_same_x_overlay_table,
+    _seed_project_style_reference_preview,
     _force_template_axis_titles_visible,
     _position_template_axis_titles_outside_plot,
     _preferred_template_xps_graph_name,
@@ -28,6 +30,7 @@ from src.core.template_product_builder import (
     _write_template_identity_origin_processing_plan,
     _xps_peak_annotations_from_processed_data,
     build_template_candidate_pool,
+    classify_template_project_style_asset_candidates,
     TemplateCandidate,
     TemplateSelection,
     is_template_xps_component_curve_header,
@@ -84,6 +87,115 @@ def test_template_display_path_hides_workspace_prefixes() -> None:
 
     assert _template_display_path(template) == "templates/origin_styles/graph_templates/BET.otpu"
     assert _template_display_path(external) == "external/BOBC.opju"
+
+
+def test_project_style_asset_candidate_uses_manifest_plot_count_and_reference_preview(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    template = style_root / "graph_templates" / "Raman.otpu"
+    reference = style_root / "previews" / "Raman_reference.png"
+    template.parent.mkdir(parents=True)
+    reference.parent.mkdir(parents=True)
+    template.write_bytes(b"otpu")
+    Image.new("RGB", (16, 12), "white").save(reference)
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "Raman",
+                        "data_type": "Raman",
+                        "status": "accepted",
+                        "graph_page": "Graph4",
+                        "graph_template": "graph_templates/Raman.otpu",
+                        "reference_preview_png": "previews/Raman_reference.png",
+                        "template_plot_count": 3,
+                        "layer_count": 1,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    [candidate] = classify_template_project_style_asset_candidates(project)
+    copied = tmp_path / "run" / "Raman" / "reference_exports" / "Raman_reference.png"
+    _seed_project_style_reference_preview(candidate, copied)
+
+    assert candidate.plot_count == 3
+    assert candidate.layer_count == 1
+    assert copied.exists()
+
+
+def test_project_template_asset_prefers_copied_opju_over_graph_template(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    graph_template = style_root / "graph_templates" / "photocurrent.otpu"
+    template_opju = style_root / "reference_opju" / "photocurrent.opju"
+    graph_template.parent.mkdir(parents=True)
+    template_opju.parent.mkdir(parents=True)
+    graph_template.write_bytes(b"otpu")
+    template_opju.write_bytes(b"opju")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "photocurrent",
+                        "data_type": "photocurrent",
+                        "status": "accepted",
+                        "graph_page": "Graph1",
+                        "graph_template": "graph_templates/photocurrent.otpu",
+                        "template_opju": "reference_opju/photocurrent.opju",
+                        "template_plot_count": 3,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    [candidate] = classify_template_project_style_asset_candidates(project)
+
+    assert candidate.path == template_opju
+    assert candidate.source == "project_origin_template_asset"
+    assert candidate.path_score == 80
+    assert candidate.plot_count == 3
+
+
+def test_template_candidate_files_prioritize_manifest_data_hints(tmp_path: Path) -> None:
+    hinted = tmp_path / "hinted" / "XWM-LL-260421-1-BOBC-All Pore.XLS"
+    sibling = tmp_path / "pairing" / "ZPF-LL-20260327-4-BOBC-BET.XLS"
+    template_path = tmp_path / "project" / "templates" / "origin_styles" / "reference_opju" / "BET.opju"
+    for path in (hinted, sibling, template_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"placeholder")
+    pairing = TargetPairing(
+        product_key="BET",
+        data_type="BET",
+        xps_subtype="",
+        data_root_label="tmp",
+        data_paths=[sibling],
+        opju_root_label="tmp",
+        reference_opju=template_path,
+    )
+    template = TemplateCandidate(
+        product_key="BET",
+        path=template_path,
+        source="project_origin_template_asset",
+        status="valid",
+        graph_page="Graph3",
+        layer_count=1,
+        plot_count=8,
+        metadata={"manifest_entry": {"data_hint_paths": [str(hinted)]}},
+    )
+
+    candidates = _template_candidate_files(pairing, template, suffixes=(".xls", ".xlsx"), prefer_template_parent=True)
+
+    assert candidates[0] == hinted
+    assert sibling in candidates
 
 
 def test_template_candidate_pool_can_add_non_in_situ_xps_stack_templates(tmp_path: Path) -> None:
@@ -276,7 +388,7 @@ def test_template_writes_template_vs_generated_preview_comparison(tmp_path: Path
     assert side_by_side.exists()
     assert (tmp_path / "reports" / "template_preview_comparison.md").exists()
     assert audit["ready_count"] == 1
-    assert audit["items"][0]["side_by_side_png"] == str(side_by_side)
+    assert audit["items"][0]["side_by_side_png"] == "reports/template_preview_comparisons/BET_template_vs_generated.png"
     assert audit["items"][0]["preview_rms"] > 0
     assert audit["items"][0]["template_plot_count"] == 3
     assert audit["items"][0]["product_plot_count"] == 1
@@ -324,6 +436,49 @@ def test_cached_style_package_preview_gap_does_not_block_accepted_product(tmp_pa
     assert audit["items"][0]["strict_status"] == "manual_check_not_one_to_one"
     assert audit["items"][0]["cached_style_package_mode"] is True
     assert "manual-check-only" in product["notes"]
+
+
+def test_template_preview_comparison_resolves_run_relative_artifacts(tmp_path: Path) -> None:
+    reference = tmp_path / "BET" / "reference_exports" / "BET_reference.png"
+    generated = tmp_path / "BET" / "figures_preview" / "BET_preview.png"
+    metadata = tmp_path / "BET" / "metadata" / "BET.json"
+    reference.parent.mkdir(parents=True)
+    generated.parent.mkdir(parents=True)
+    metadata.parent.mkdir(parents=True)
+    Image.new("RGB", (16, 12), "white").save(reference)
+    Image.new("RGB", (16, 12), "white").save(generated)
+    metadata.write_text(
+        json.dumps(
+            {
+                "template_plot_count": 1,
+                "origin_status": {
+                    "product_style": {"plot_count": 1},
+                    "conformance": {"compared_fields": 4, "matched_fields": 4},
+                },
+                "source_files": ["raw1.csv"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    product = {
+        "type": "BET",
+        "status": "accepted",
+        "reference_preview_png": "BET/reference_exports/BET_reference.png",
+        "preview_png": "BET/figures_preview/BET_preview.png",
+        "metadata": "BET/metadata/BET.json",
+    }
+
+    audit = _write_template_preview_comparison(tmp_path, [product])
+
+    assert audit["ready_count"] == 1
+    assert audit["strict_match_count"] == 1
+    assert audit["items"][0]["ready"] is True
+    assert audit["items"][0]["strict_visual_match"] is True
+    assert audit["items"][0]["reference_preview_png"] == "BET/reference_exports/BET_reference.png"
+    assert audit["items"][0]["generated_preview_png"] == "BET/figures_preview/BET_preview.png"
+    assert audit["items"][0]["side_by_side_png"] == "reports/template_preview_comparisons/BET_template_vs_generated.png"
+    report = (tmp_path / "reports" / "template_preview_comparison.json").read_text(encoding="utf-8")
+    assert str(tmp_path) not in report
 
 
 def test_template_xy_alignment_uses_adjacent_real_sources_without_fabricating_missing_series(tmp_path: Path) -> None:

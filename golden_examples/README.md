@@ -4,4 +4,4 @@ Golden fixtures and reference outputs used for behavior checks.
 
 ## Contents
 
-- `phase1_1/`
+- `synthetic_pipeline/`

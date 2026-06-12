@@ -70,7 +70,7 @@ def _temp_project(tmpdir: str) -> Path:
 
 
 class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
-    def test_phase1_plot_types_are_explicitly_mapped(self) -> None:
+    def test_pipeline_plot_types_are_explicitly_mapped(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"

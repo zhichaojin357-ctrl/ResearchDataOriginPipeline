@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import re
@@ -13,13 +13,13 @@ from src.core.project import load_project_config
 from src.core.project import _parse_simple_yaml
 
 
-LEGACY_PHASE1_6_PACKAGE = Path("phase1_6_origin_results_20260531_041538")
+DEFAULT_LOCKED_RESULT_PACKAGE_NAME = Path("locked_origin_results_20260531_041538")
 LEGACY_WORKSPACE_ROOT = Path("workspace_data") / "LL_detection_copy_20260530"
 LEGACY_F_DRIVE_BACKUP = Path("F:/课题/LL/检测")
 LEGACY_ORIGIN_HELPER = Path("scripts") / "origin" / "origin_plot_from_template.ps1"
 LEGACY_ORIGIN_REFERENCE_PATTERN = r"D:\OriginFlies\Manual Save\CWO+BOBC+*.opju"
 
-PHASE1_6_PACKAGE_ENV = "RESEARCHDATAORIGINPIPELINE_PHASE1_6_PACKAGE"
+LOCKED_RESULT_PACKAGE_ENV = "RESEARCHDATAORIGINPIPELINE_LOCKED_RESULT_PACKAGE"
 WORKSPACE_ROOT_ENV = "RESEARCHDATAORIGINPIPELINE_WORKSPACE_ROOT"
 F_DRIVE_BACKUP_ENV = "RESEARCHDATAORIGINPIPELINE_F_DRIVE_BACKUP"
 ORIGIN_HELPER_ENV = "RESEARCHDATAORIGINPIPELINE_ORIGIN_HELPER"
@@ -64,23 +64,23 @@ def resolve_output_root(
 ) -> Path:
     explicit_value = str(explicit).strip() if explicit is not None else ""
     if explicit_value:
-        return resolve_project_path(project_root, explicit_value)
+        return _checked_output_root(project_root, resolve_project_path(project_root, explicit_value))
 
     local_path = project_root / "config" / "local.yaml"
     value = _config_file_value(local_path, "paths", "output_root")
     if value:
-        return resolve_project_path(project_root, value)
+        return _checked_output_root(project_root, resolve_project_path(project_root, value))
 
     value = _first_nonempty(os.environ.get(OUTPUT_ROOT_ENV), os.environ.get(OUTPUT_ROOT_COMPAT_ENV))
     if value:
-        return resolve_project_path(project_root, value)
+        return _checked_output_root(project_root, resolve_project_path(project_root, value))
 
     default_path = Path(config_path) if config_path is not None else Path("config/default.yaml")
     value = _first_nonempty(
         _config_file_value(_resolve_config_path(project_root, default_path), "paths", "output_root"),
         _config_file_value(_resolve_config_path(project_root, default_path), "paths", "output"),
     )
-    return resolve_project_path(project_root, value) if value else default_output_root(project_root)
+    return _checked_output_root(project_root, resolve_project_path(project_root, value)) if value else default_output_root(project_root)
 
 
 def create_run_output_layout(
@@ -149,27 +149,41 @@ def _safe_run_scope(value: str) -> str:
     return cleaned.strip("_") or "run"
 
 
-def resolve_phase1_6_package(project_root: Path, override: str | Path | None = None) -> Path:
-    value = _first_nonempty(
+def _checked_output_root(project_root: Path, output_root: Path) -> Path:
+    ensure_write_path_allowed(project_root, output_root, output_root=output_root)
+    return output_root
+
+
+def resolve_locked_result_package(project_root: Path, override: str | Path | None = None) -> Path:
+    explicit_value = _first_nonempty(
         str(override) if override is not None else None,
-        os.environ.get(PHASE1_6_PACKAGE_ENV),
-        _config_value(project_root, "paths", "phase1_6_origin_results"),
+        os.environ.get(LOCKED_RESULT_PACKAGE_ENV),
     )
-    if value:
-        path = resolve_project_path(project_root, value)
+    if explicit_value:
+        path = resolve_project_path(project_root, explicit_value)
         return path.parent if path.name.casefold() == "index.csv" else path
+
+    configured_value = _config_value(project_root, "paths", "locked_origin_results")
+    if configured_value:
+        path = resolve_project_path(project_root, configured_value)
+        if path.exists():
+            return path.parent if path.name.casefold() == "index.csv" else path
+
     output_root = resolve_output_root(project_root)
-    discovered = _latest_existing_dir(output_root, "phase1_6_origin_results_*")
+    discovered = _latest_existing_dir_with_index(output_root, "*origin_results*")
     if discovered is not None:
         return discovered
-    return output_root / LEGACY_PHASE1_6_PACKAGE.name
+    if configured_value:
+        path = resolve_project_path(project_root, configured_value)
+        return path.parent if path.name.casefold() == "index.csv" else path
+    return output_root / DEFAULT_LOCKED_RESULT_PACKAGE_NAME.name
 
 
-def resolve_phase1_6_index(project_root: Path, override: str | Path | None = None) -> Path:
+def resolve_locked_result_index(project_root: Path, override: str | Path | None = None) -> Path:
     if override is not None:
         path = resolve_project_path(project_root, override)
         return path if path.suffix.casefold() == ".csv" else path / "index.csv"
-    return resolve_phase1_6_package(project_root) / "index.csv"
+    return resolve_locked_result_package(project_root) / "index.csv"
 
 
 def resolve_workspace_root(project_root: Path, override: str | Path | None = None) -> Path:
@@ -178,7 +192,7 @@ def resolve_workspace_root(project_root: Path, override: str | Path | None = Non
         os.environ.get(WORKSPACE_ROOT_ENV),
         _config_value(project_root, "paths", "workspace_root"),
         _config_value(project_root, "paths", "current_workspace_copy"),
-        _config_value(project_root, "paths", "phase1_2_source_copy"),
+        _config_value(project_root, "paths", "workspace_source_copy"),
     )
     return resolve_project_path(project_root, value or LEGACY_WORKSPACE_ROOT)
 
@@ -228,6 +242,15 @@ def _latest_existing_dir(parent: Path, pattern: str) -> Path | None:
     if not parent.exists():
         return None
     candidates = [item for item in parent.glob(pattern) if item.is_dir()]
+    if not candidates:
+        return None
+    return sorted(candidates, key=lambda item: (item.stat().st_mtime, item.name), reverse=True)[0]
+
+
+def _latest_existing_dir_with_index(parent: Path, pattern: str) -> Path | None:
+    if not parent.exists():
+        return None
+    candidates = [item for item in parent.glob(pattern) if item.is_dir() and (item / "index.csv").is_file()]
     if not candidates:
         return None
     return sorted(candidates, key=lambda item: (item.stat().st_mtime, item.name), reverse=True)[0]

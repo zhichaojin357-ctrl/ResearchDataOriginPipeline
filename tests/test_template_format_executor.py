@@ -17,6 +17,7 @@ from src.core.template_format_executor import (
     export_template_base_product_with_origin,
 )
 from src.origin.operations import OperationResult
+from src.origin.style_mimic import OpjuStyleSnapshot
 from src.origin.user_style import ResolvedPlotStyle
 
 
@@ -52,11 +53,27 @@ class _FakeCachedStyleOps:
         self.created_from_template: Path | None = None
         self.saved_paths: list[Path] = []
         self.exported_paths: list[Path] = []
+        self.loaded_paths: list[Path] = []
         self.closed = False
         self.commands: list[str] = []
 
     def new_project(self) -> OperationResult:
         return OperationResult(True, "new")
+
+    def load_project(self, path: Path) -> OperationResult:
+        self.loaded_paths.append(Path(path))
+        return OperationResult(True, "loaded")
+
+    def list_worksheets(self) -> OperationResult:
+        return OperationResult(True, "listed", {"pages": [{"name": "Graph1", "type": "graph"}]})
+
+    def get_graph_plot_dataset_names(self, _graph_name: str, layer_index: int = 1) -> OperationResult:
+        if layer_index != 1:
+            return OperationResult(False, "missing layer")
+        return OperationResult(True, "ok", {"plot_dataset_names": ["Book1_B"]})
+
+    def replace_template_workbook_columns(self, _workbook_columns: dict[str, dict[int, list[float]]]) -> OperationResult:
+        return OperationResult(True, "replaced", {"updated_columns": [{"book_name": "Book1", "column_index": 2}]})
 
     def import_csv_to_worksheet(self, _path: Path, book_name: str = "", delimiter: str = ",") -> OperationResult:
         return OperationResult(True, "imported", {"book_name": book_name or "Book1"})
@@ -275,6 +292,43 @@ def test_export_template_base_uses_project_style_asset_when_reference_opju_missi
     assert fake.closed is True
 
 
+def test_export_template_base_uses_neutral_runtime_for_opju_template(tmp_path: Path, monkeypatch) -> None:
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    product.reference_opju_copy.write_bytes(b"opju")
+    fake = _FakeCachedStyleOps()
+
+    snapshot = OpjuStyleSnapshot(
+        source_opju="reference.opju",
+        status="extracted",
+        graph_page="Graph1",
+        graph_pages=["Graph1"],
+        layer_count=1,
+        plot_count=1,
+        plot_line_widths=[1500.0],
+        audit_numeric_values={"xb.show": 1, "yl.show": 1, "xb.bold": 1, "yl.bold": 1},
+        audit_string_values={"xb.text$": "X", "yl.text$": "Y"},
+    )
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+    monkeypatch.setattr("src.core.template_format_executor.extract_style_snapshot", lambda *_args, **_kwargs: snapshot)
+    monkeypatch.setattr("src.core.template_format_executor.read_graph_style_snapshot", lambda *_args, **_kwargs: snapshot)
+    monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle())
+
+    assert result["ok"] is True
+    assert result["template_format_plan"]["mode"] == "opju_template_base"
+    assert fake.saved_paths and fake.saved_paths[0] != product.origin_file
+    assert product.origin_file not in fake.saved_paths
+    assert product.figure_tif not in fake.exported_paths
+    assert product.preview_png not in fake.exported_paths
+    assert product.origin_file.exists()
+    assert product.figure_tif.exists()
+    assert product.preview_png.exists()
+    assert fake.closed is True
+
+
 def test_strip_raster_metadata_removes_tiff_description_paths(tmp_path: Path) -> None:
     from PIL import Image, TiffImagePlugin
 
@@ -290,6 +344,8 @@ def test_strip_raster_metadata_removes_tiff_description_paths(tmp_path: Path) ->
     cleaned = figure.read_bytes()
     assert b"Codex Project" not in cleaned
     assert b":\\" not in cleaned
+    with Image.open(figure) as image:
+        assert image.info["dpi"] == (600.0, 600.0)
 
 
 def test_cli_template_format_products_passes_options(tmp_path: Path, monkeypatch) -> None:
@@ -334,7 +390,7 @@ def test_cli_template_format_products_passes_options(tmp_path: Path, monkeypatch
         ]
     )
 
-    assert code == 0
+    assert code == 1
     assert captured["project"] == project_root
     options = captured["options"]
     assert isinstance(options, TemplateFormatExecutorOptions)

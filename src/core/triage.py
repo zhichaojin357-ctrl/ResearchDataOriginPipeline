@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import json
@@ -114,7 +114,7 @@ def _triage_file(project_root: Path, root: Path, path: Path, entries: list[dict]
     selected_entry = _select_entry(folder_entry, filename_entry, header_entry)
     data_type = selected_entry["inferred_data_type"] if selected_entry else "unknown"
     selected_processor = selected_entry["selected_processor"] if selected_entry else "none"
-    supported = bool(selected_entry and selected_entry["supported_in_phase_1"])
+    supported = bool(selected_entry and selected_entry["supported_in_pipeline"])
     folder_conflict = bool(folder_entry and header_entry and folder_entry["inferred_data_type"] != header_entry["inferred_data_type"])
     conflict_level = _folder_header_conflict_level(folder_entry, filename_entry, header_entry, parser)
     confidence = _confidence_score(path, suffix, folder_entry, filename_entry, header_entry, selected_entry, parser)
@@ -155,7 +155,7 @@ def _triage_file(project_root: Path, root: Path, path: Path, entries: list[dict]
         "data_type_candidate": data_type,
         "subtype_candidate": data_type,
         "selected_processor": selected_processor,
-        "supported_in_phase_1": supported,
+        "supported_in_pipeline": supported,
         "confidence_score": confidence,
         "validity_score": validity,
         "decision": decision,
@@ -420,7 +420,7 @@ def _is_folder_scan_only(entry: dict | None) -> bool:
     return (
         entry.get("special_handling") == "scan_only"
         or entry.get("inferred_data_type") == "reference_literature"
-        or not entry.get("supported_in_phase_1", False)
+        or not entry.get("supported_in_pipeline", False)
     )
 
 
@@ -710,7 +710,7 @@ def _decision(
     reasons = []
     if entry and data_type == "reference_literature":
         return "REFERENCE_ONLY", ["reference_literature_scan_only"]
-    if entry and not entry.get("supported_in_phase_1", False):
+    if entry and not entry.get("supported_in_pipeline", False):
         return "DEFERRED_TYPE", ["deferred_scan_only"]
     if size == 0:
         return "EXCLUDE_INVALID", ["empty_file"]
@@ -730,7 +730,7 @@ def _decision(
         return "EXCLUDE_INVALID", reasons + ["insufficient_numeric_table"]
     if folder_conflict:
         return "MANUAL_REVIEW", reasons + [f"{conflict_level}_folder_header_type_conflict"]
-    if confidence >= options.min_confidence and validity >= options.min_confidence and entry and entry.get("supported_in_phase_1", False) and not reasons:
+    if confidence >= options.min_confidence and validity >= options.min_confidence and entry and entry.get("supported_in_pipeline", False) and not reasons:
         if parser.get("recognition_fallbacks"):
             return "AUTO_PROCESS", ["high_confidence_valid_numeric_data_with_safe_numeric_fallback"]
         return "AUTO_PROCESS", ["high_confidence_valid_numeric_data"]
@@ -788,7 +788,7 @@ def _evidence(
 
 def _manual_check_items(data_type: str, decision: str) -> list[str]:
     if decision in {"DEFERRED_TYPE", "REFERENCE_ONLY"}:
-        return ["scan only; do not process in Phase 1.2"]
+        return ["scan only; do not process in current"]
     if decision == "DUPLICATE_SUPPRESSED":
         return ["duplicate suppressed; inspect representative before processing"]
     if decision == "MANUAL_REVIEW":
@@ -811,7 +811,7 @@ def _suppress_exact_duplicates(items: list[dict]) -> None:
         candidates = [
             item for item in group
             if item["decision"] in {"AUTO_PROCESS", "MANUAL_REVIEW"}
-            and item["supported_in_phase_1"]
+            and item["supported_in_pipeline"]
             and item["parser_probe_status"] == "success"
         ]
         auto_candidates = [item for item in candidates if item["decision"] == "AUTO_PROCESS"]
@@ -876,7 +876,7 @@ def _build_queue(
     return {
         "queue_version": "1.0",
         "created_at": _now(),
-        "config_hash": "phase1_2_rules_v1",
+        "config_hash": "data_selection_rules_v1",
         "min_confidence": min_confidence,
         "source_root": render_output_path(source_root, project_root=project_root, output_root=output_root),
         "items": queue_items,

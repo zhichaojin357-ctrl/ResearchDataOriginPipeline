@@ -1,10 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 from pathlib import Path
 
 
-CANONICAL_MANIFEST_VERSION = "phase1_10_origin_batch_manifest_v1"
+CANONICAL_MANIFEST_VERSION = "origin_batch_manifest_v1"
 
 CANONICAL_ORIGIN_BATCH_COLUMNS = [
     "manifest_version",
@@ -115,11 +115,11 @@ def explain_schema_mismatch(path: Path) -> dict:
         **validation,
         "suggested_command": (
             "D:\\Python\\python.exe run.py manifest-normalize --manifest "
-            f"{path} --output-csv output/reports/phase1_10_material_collection_normalized_manifest.csv"
+            f"{path} --output-csv output/reports/material_collection_normalized_manifest.csv"
         )
         if detected == "material_collection_manifest"
         else "Use a standard result package index.csv or generate a compatible manifest first.",
-        "normalized_manifest_path": "output/reports/phase1_10_material_collection_normalized_manifest.csv"
+        "normalized_manifest_path": "output/reports/material_collection_normalized_manifest.csv"
         if detected == "material_collection_manifest"
         else "",
         "safe_items_known": "unknown",

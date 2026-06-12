@@ -1,4 +1,4 @@
-﻿version: phase1_2_mixed_v1
+﻿version: data_selection_rules_v1
 source_policy:
   original_data_read_only: true
   do_not_write_to_raw_data: true

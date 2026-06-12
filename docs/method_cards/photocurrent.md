@@ -1,4 +1,4 @@
-# Method Card: Photocurrent
+﻿# Method Card: Photocurrent
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
@@ -46,8 +46,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `current_unit`, `time_unit`, `light_cycle_source`, `electrode_area_cm2`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `photocurrent_processor`.
 
 ## Risk Level

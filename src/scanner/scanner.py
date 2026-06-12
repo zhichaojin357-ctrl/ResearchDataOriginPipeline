@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from dataclasses import dataclass
@@ -14,7 +14,7 @@ class Classification:
     folder_name: str
     physical_presence: str
     inferred_data_type: str
-    supported_in_phase_1: bool
+    supported_in_pipeline: bool
     selected_processor: str
     expected_file_extensions: list[str]
     special_handling: str
@@ -30,7 +30,7 @@ class Classification:
             "folder_name": self.folder_name,
             "physical_presence": self.physical_presence,
             "inferred_data_type": self.inferred_data_type,
-            "supported_in_phase_1": self.supported_in_phase_1,
+            "supported_in_pipeline": self.supported_in_pipeline,
             "selected_processor": self.selected_processor,
             "expected_file_extensions": self.expected_file_extensions,
             "special_handling": self.special_handling,
@@ -116,11 +116,11 @@ def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | N
                 folder_name=entry["folder_name"],
                 physical_presence="present" if folders else "absent",
                 inferred_data_type=entry["inferred_data_type"],
-                supported_in_phase_1=bool(entry["supported_in_phase_1"]),
+                supported_in_pipeline=bool(entry["supported_in_pipeline"]),
                 selected_processor=entry["selected_processor"],
                 expected_file_extensions=list(entry.get("extensions", [])),
                 special_handling=entry["special_handling"],
-                reason="registry match from Phase 1 configuration",
+                reason="registry match from processor registry configuration",
                 confidence="high" if folders else "planning",
                 folder_path=str(folders[0]) if folders else None,
                 folder_paths=[str(folder) for folder in folders],
@@ -199,12 +199,12 @@ def _write_classification_report(project_root: Path, manifest: dict, *, output_r
         f"Scan root: `{manifest['scan_root']}`",
         f"Raw file count: {manifest['raw_file_count']}",
         "",
-        "| folder_name | physical_presence | inferred_data_type | supported_in_phase_1 | selected_processor | special_handling | file_count |",
+        "| folder_name | physical_presence | inferred_data_type | supported_in_pipeline | selected_processor | special_handling | file_count |",
         "|---|---:|---|---:|---|---|---:|",
     ]
     for item in manifest["classifications"]:
         lines.append(
-            "| {folder_name} | {physical_presence} | {inferred_data_type} | {supported_in_phase_1} | {selected_processor} | {special_handling} | {count} |".format(
+            "| {folder_name} | {physical_presence} | {inferred_data_type} | {supported_in_pipeline} | {selected_processor} | {special_handling} | {count} |".format(
                 count=len(item["files"]),
                 **item,
             )

@@ -16,6 +16,7 @@ class OriginStyleAsset:
     product_key: str
     data_type: str
     graph_template_path: Path
+    template_opju_path: Path | None = None
     status: str = ""
     graph_page: str = ""
     source_run_root: str = ""
@@ -27,6 +28,9 @@ class OriginStyleAsset:
             "product_key": self.product_key,
             "data_type": self.data_type,
             "graph_template": _relative_or_absolute(self.graph_template_path, project_root / "templates" / "origin_styles"),
+            "template_opju": _relative_or_absolute(self.template_opju_path, project_root / "templates" / "origin_styles")
+            if self.template_opju_path
+            else "",
             "status": self.status,
             "graph_page": self.graph_page,
             "source_run_root": render_output_path(self.source_run_root) if self.source_run_root else "",
@@ -70,10 +74,14 @@ def resolve_origin_style_asset(
         graph_template = _resolve_manifest_path(base, raw.get("graph_template"))
         if graph_template is None or not graph_template.is_file():
             continue
+        template_opju = _resolve_manifest_path(base, raw.get("template_opju") or raw.get("source_opju"))
+        if template_opju is not None and not template_opju.is_file():
+            template_opju = None
         return OriginStyleAsset(
             product_key=str(raw.get("product_key") or product_key),
             data_type=str(raw.get("data_type") or product_key),
             graph_template_path=graph_template,
+            template_opju_path=template_opju,
             status=str(raw.get("status") or ""),
             graph_page=str(raw.get("graph_page") or ""),
             source_run_root=str(raw.get("source_run_root") or manifest.get("source_run_root") or ""),

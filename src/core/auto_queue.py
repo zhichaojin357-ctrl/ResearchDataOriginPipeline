@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from dataclasses import dataclass
@@ -7,8 +7,8 @@ from pathlib import Path
 
 from src.core.metadata import file_hash
 from src.core.output_sanitizer import render_output_path
-from src.core.project import default_output_root, report_path
-from src.core.runtime_paths import resolve_output_root, resolve_phase1_6_index, resolve_workspace_root
+from src.core.project import ensure_write_path_allowed, report_path
+from src.core.runtime_paths import resolve_output_root, resolve_locked_result_index, resolve_workspace_root
 
 
 FORBIDDEN_TYPES = {
@@ -57,8 +57,8 @@ def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
     effective_output_root = options.output_root or resolve_output_root(project_root)
     queue_path = _resolve_existing(project_root, options.queue or _default_queue_path(project_root, effective_output_root))
     workspace_root = resolve_workspace_root(project_root, options.workspace_root)
-    processed_index = resolve_phase1_6_index(project_root, options.processed_index)
-    processed_hashes = _phase1_6_hashes(processed_index)
+    processed_index = resolve_locked_result_index(project_root, options.processed_index)
+    processed_hashes = _locked_result_hashes(processed_index)
     queue_payload = json.loads(queue_path.read_text(encoding="utf-8"))
     if not isinstance(queue_payload, dict):
         raise ValueError(f"auto-queue JSON must be an object with an items list: {queue_path}")
@@ -91,7 +91,7 @@ def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
             blocked.append({**base, "status": "BLOCKED_MISSING_HASH", "reason": "source_hash_missing"})
             continue
         if source_hash in processed_hashes:
-            skipped.append({**base, "status": "SKIPPED_PHASE1_6_ALREADY_PROCESSED", "reason": "source_hash_in_phase1_6"})
+            skipped.append({**base, "status": "SKIPPED_LOCKED_RESULT_ALREADY_PROCESSED", "reason": "source_hash_in_locked_result"})
             continue
         if source_hash in seen_hashes:
             skipped.append({**base, "status": "SKIPPED_DUPLICATE_IN_QUEUE", "reason": "duplicate_source_hash_in_current_queue"})
@@ -123,7 +123,7 @@ def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
         "accepted_count": len(accepted),
         "skipped_count": len(skipped),
         "blocked_count": len(blocked),
-        "phase1_6_hashes": len(processed_hashes),
+        "locked_result_hashes": len(processed_hashes),
         "will_run_process": False,
         "will_launch_origin": False,
     }
@@ -150,24 +150,23 @@ def write_auto_queue_outputs(project_root: Path, plan: dict, options: AutoQueueO
     effective_output_root = options.output_root or resolve_output_root(project_root)
     json_path = _resolve_output(
         project_root,
-        options.report_json or report_path(project_root, "phase1_8_new_auto_process_plan.json", output_root=effective_output_root),
+        options.report_json or report_path(project_root, "auto_process_plan.json", output_root=effective_output_root),
+        effective_output_root,
     )
     md_path = _resolve_output(
         project_root,
-        options.report_md or report_path(project_root, "phase1_8_new_auto_process_plan.md", output_root=effective_output_root),
+        options.report_md or report_path(project_root, "auto_process_plan.md", output_root=effective_output_root),
+        effective_output_root,
     )
     queue_path = _resolve_output(
         project_root,
-        options.queue_out or report_path(project_root, "phase1_8_new_auto_process_queue.json", output_root=effective_output_root),
+        options.queue_out or report_path(project_root, "auto_process_queue.json", output_root=effective_output_root),
+        effective_output_root,
     )
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     md_path.write_text(_markdown(plan, queue_path, project_root=project_root, output_root=effective_output_root), encoding="utf-8")
     queue_path.write_text(json.dumps(plan["queue"], ensure_ascii=False, indent=2), encoding="utf-8")
-    if options.output_root is None:
-        agent_report = project_root / "docs" / "agent_reports" / "phase1_8_new_auto_process_queue_report.md"
-        agent_report.parent.mkdir(parents=True, exist_ok=True)
-        agent_report.write_text(_markdown(plan, queue_path, project_root=project_root, output_root=effective_output_root), encoding="utf-8")
     return json_path, md_path, queue_path
 
 
@@ -175,8 +174,8 @@ def _queue_item(item: dict) -> dict:
     output = dict(item)
     output["origin_export_allowed"] = False
     output["manual_check_required"] = True
-    output["promoted_by_phase"] = output.get("promoted_by_phase") or "phase1_8_auto_queue_dry_run"
-    output["queue_note"] = "New AUTO_PROCESS candidate not represented in Phase 1.6; no processing has been run by auto-queue."
+    output["promoted_by_workflow"] = output.get("promoted_by_workflow") or "auto_queue_dry_run"
+    output["queue_note"] = "New AUTO_PROCESS candidate not represented in locked result package; no processing has been run by auto-queue."
     return output
 
 
@@ -199,7 +198,7 @@ def _resolve_source(workspace_root: Path, item: dict) -> tuple[Path, dict | None
     return candidate, None
 
 
-def _phase1_6_hashes(index_path: Path) -> set[str]:
+def _locked_result_hashes(index_path: Path) -> set[str]:
     if not index_path.exists():
         return set()
     import csv
@@ -231,11 +230,9 @@ def _default_queue_path(project_root: Path, output_root: Path | None) -> Path:
     return base / "reports" / "processing_queue.json"
 
 
-def _resolve_output(project_root: Path, path: Path) -> Path:
+def _resolve_output(project_root: Path, path: Path, output_root: Path) -> Path:
     resolved = _resolve_path(project_root, path)
-    allowed = [project_root / "output", default_output_root(project_root), resolve_output_root(project_root), project_root / "docs"]
-    if not any(_is_under_or_equal(resolved.resolve(), base.resolve()) for base in allowed):
-        raise ValueError(f"Output path must stay under configured output root or docs/: {resolved}")
+    ensure_write_path_allowed(project_root, resolved, output_root=output_root)
     return resolved
 
 
@@ -268,7 +265,7 @@ def _markdown(plan: dict, queue_path: Path, *, project_root: Path, output_root: 
     summary = plan["summary"]
     rendered_queue_path = render_output_path(queue_path, project_root=project_root, output_root=output_root)
     lines = [
-        "# Phase 1.8 New AUTO_PROCESS Queue Plan",
+        "# AUTO_PROCESS Queue Plan",
         "",
         f"- Created at: {plan['created_at']}",
         f"- Source queue: `{plan['source_queue']}`",
@@ -277,7 +274,7 @@ def _markdown(plan: dict, queue_path: Path, *, project_root: Path, output_root: 
         f"- Accepted new candidates: {summary['accepted_count']}",
         f"- Skipped: {summary['skipped_count']}",
         f"- Blocked: {summary['blocked_count']}",
-        f"- Phase 1.6 processed hashes: {summary['phase1_6_hashes']}",
+        f"- locked result package processed hashes: {summary['locked_result_hashes']}",
         "- Will run process: false",
         "- Will launch Origin: false",
         "",
@@ -300,7 +297,7 @@ def _markdown(plan: dict, queue_path: Path, *, project_root: Path, output_root: 
         "- This planner is dry-run only.",
         "- It does not call `process`.",
         "- It does not launch Origin.",
-        "- It excludes source hashes already present in the Phase 1.6 Origin package.",
-        "- The resulting queue is for a future explicit no-Origin run after review.",
+        "- It excludes source hashes already present in the locked result package.",
+        "- The resulting queue is for an explicit no-Origin run after review.",
     ]
     return "\n".join(lines) + "\n"

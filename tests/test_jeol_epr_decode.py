@@ -1,6 +1,7 @@
-import csv
+﻿import csv
 import importlib.util
 import json
+import os
 import struct
 import sys
 import tempfile
@@ -28,7 +29,7 @@ def classification(data_type: str, processor: str) -> dict:
     return {
         "inferred_data_type": data_type,
         "selected_processor": processor,
-        "supported_in_phase_1": True,
+        "supported_in_pipeline": True,
     }
 
 
@@ -201,7 +202,7 @@ class JeolEprDecodeTest(unittest.TestCase):
             x_values, y_values = decode_jeol_cacqu_series(source)
             write_data_xlsx(ref / "CWO-O3-dark.xlsx", x_values, y_values)
 
-            report = root / "compare.xlsx"
+            report = root / "decoded" / "compare.xlsx"
             export_jeol_cwesr_to_xlsx([source_root], root / "decoded", reference_dir=ref, report_xlsx=report)
 
             self.assertTrue(report.is_file())
@@ -212,6 +213,20 @@ class JeolEprDecodeTest(unittest.TestCase):
             finally:
                 workbook.close()
             self.assertEqual(rows[1][-1], "PASS")
+
+    def test_compare_report_must_stay_under_decode_output_root(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_root = root / "raw"
+            source_root.mkdir()
+            source = source_root / "CWO-O3-dark"
+            write_synthetic_jeol_cacqu(source)
+            ref = root / "reference"
+            x_values, y_values = decode_jeol_cacqu_series(source)
+            write_data_xlsx(ref / "CWO-O3-dark.xlsx", x_values, y_values)
+
+            with self.assertRaisesRegex(ValueError, "Refusing to write"):
+                export_jeol_cwesr_to_xlsx([source_root], root / "decoded", reference_dir=ref, report_xlsx=root / "compare.xlsx")
 
     def test_jeol_epr_decode_cli_exports_data_only_workbook(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -225,6 +240,29 @@ class JeolEprDecodeTest(unittest.TestCase):
             code = cli_main(["jeol-epr-decode", "--out", str(out), str(source_root)])
 
             self.assertEqual(code, 0)
+            x_values, y_values = read_xy_xlsx(out / source_root.name / "BOBC-O3-light1.xlsx")
+            self.assertEqual(len(x_values), DEFAULT_EXPORT_POINTS)
+            self.assertEqual(y_values[0], 7.5)
+
+    def test_jeol_epr_decode_cli_relative_out_uses_external_output_root(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            project = root / "project"
+            project.mkdir()
+            source_root = root / "raw"
+            source_root.mkdir()
+            source = source_root / "BOBC-O3-light1"
+            write_synthetic_jeol_cacqu(source)
+            old_cwd = Path.cwd()
+            try:
+                os.chdir(project)
+                code = cli_main(["jeol-epr-decode", "--out", "output/epr_decoded", str(source_root)])
+            finally:
+                os.chdir(old_cwd)
+
+            out = default_output_root(project) / "output" / "epr_decoded"
+            self.assertEqual(code, 0)
+            self.assertFalse((project / "output").exists())
             x_values, y_values = read_xy_xlsx(out / source_root.name / "BOBC-O3-light1.xlsx")
             self.assertEqual(len(x_values), DEFAULT_EXPORT_POINTS)
             self.assertEqual(y_values[0], 7.5)

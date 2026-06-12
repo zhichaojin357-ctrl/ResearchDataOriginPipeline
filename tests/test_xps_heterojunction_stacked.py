@@ -350,6 +350,33 @@ def test_cli_xps_heterojunction_stacked_dry_run_uses_explicit_sample_paths(tmp_p
     assert (default_output_root(project_root) / "xps_heterojunction_stacked" / "reports" / "xps_heterojunction_stacked_summary.md").exists()
 
 
+def test_cli_xps_relative_output_dir_is_routed_to_external_output_root(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bobc = tmp_path / "BOBCfit.xlsx"
+    bc = tmp_path / "BCfit.xlsx"
+    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    _write_xps_workbook(bc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    monkeypatch.chdir(project_root)
+
+    code = main(
+        [
+            "xps-heterojunction-stacked",
+            "--bobc",
+            str(bobc),
+            "--bc",
+            str(bc),
+            "--dry-run",
+            "--output-dir",
+            "output/xps_custom",
+        ]
+    )
+
+    assert code == 0
+    assert not (project_root / "output").exists()
+    assert (default_output_root(project_root) / "output" / "xps_custom" / "reports" / "xps_heterojunction_stacked_summary.md").exists()
+
+
 def test_cli_xps_heterojunction_stacked_reports_missing_explicit_file_without_outputs(tmp_path: Path, project_root: Path) -> None:
     missing = tmp_path / "missing_bobc.xlsx"
     output_dir = default_output_root(project_root) / f"_test_missing_xps_input_{tmp_path.name}"

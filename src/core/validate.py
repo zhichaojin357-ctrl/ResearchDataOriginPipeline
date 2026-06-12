@@ -1,11 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import json
 from pathlib import Path
 
 from src.core.output_sanitizer import render_output_path
-from src.core.phase1_9 import REQUIRED_JOURNAL_INDEX_COLUMNS
+from src.core.origin_governance import REQUIRED_JOURNAL_INDEX_COLUMNS
 from src.core.deps import dependency_audit
 from src.core.project import (
     REQUIRED_OUTPUT_DIRS,
@@ -62,14 +62,14 @@ def validate(project_root: Path) -> int:
         failures.append("missing required config files: " + ", ".join(missing_config))
 
     lines.append(f"- Processor registry entries: {len(registry['entries'])}")
-    supported_entries = [entry for entry in registry["entries"] if entry["supported_in_phase_1"]]
-    lines.append(f"- Phase 1 supported entries: {len(supported_entries)}")
+    supported_entries = [entry for entry in registry["entries"] if entry["supported_in_pipeline"]]
+    lines.append(f"- Pipeline-supported entries: {len(supported_entries)}")
     if len(supported_entries) != 14:
         failures.append("supported registry count is not 14")
     required_registry_fields = set(registry.get("required_fields", [])) | {
         "folder_name",
         "inferred_data_type",
-        "supported_in_phase_1",
+        "supported_in_pipeline",
         "selected_processor",
         "special_handling",
     }
@@ -103,8 +103,8 @@ def validate(project_root: Path) -> int:
             continue
         entry = matches[0]
         deferred_seen.append(f"{entry.get('folder_name')}={inferred_type}")
-        if entry.get("supported_in_phase_1") is not False:
-            deferred_failures.append(f"{entry.get('folder_name')} supported_in_phase_1 must be false")
+        if entry.get("supported_in_pipeline") is not False:
+            deferred_failures.append(f"{entry.get('folder_name')} supported_in_pipeline must be false")
         if entry.get("special_handling") != "scan_only":
             deferred_failures.append(f"{entry.get('folder_name')} special_handling must be scan_only")
         if entry.get("selected_processor") != "none":
@@ -198,45 +198,45 @@ def validate(project_root: Path) -> int:
     if failed_origin_contracts:
         failures.append("Origin plotting contract invalid: " + ", ".join(failed_origin_contracts))
 
-    phase1_9_files = {
-        "snapshot_md": project_root / "docs" / "agent_reports" / "phase1_9_origin_plotting_skill_snapshot.md",
-        "snapshot_json": output_root / "reports" / "phase1_9_origin_plotting_skill_snapshot.json",
-        "journal_index": output_root / "reports" / "phase1_9_journal_ready_index.csv",
+    origin_governance_files = {
+        "snapshot_md": output_root / "reports" / "origin_plotting_skill_snapshot.md",
+        "snapshot_json": output_root / "reports" / "origin_plotting_skill_snapshot.json",
+        "journal_index": output_root / "reports" / "journal_ready_index.csv",
     }
-    generated_phase1_9_files = {
+    generated_origin_governance_files = {
         name: path
-        for name, path in phase1_9_files.items()
+        for name, path in origin_governance_files.items()
         if name != "snapshot_md"
     }
-    if any(path.exists() for path in generated_phase1_9_files.values()):
-        missing_phase1_9 = [name for name, path in phase1_9_files.items() if not path.exists()]
-        lines.append(f"- Phase 1.9 plotting governance files: {'pass' if not missing_phase1_9 else 'fail'}")
-        if missing_phase1_9:
-            failures.append("missing Phase 1.9 plotting governance files: " + ", ".join(missing_phase1_9))
+    if any(path.exists() for path in generated_origin_governance_files.values()):
+        missing_origin_governance = [name for name, path in origin_governance_files.items() if not path.exists()]
+        lines.append(f"- Origin governance plotting governance files: {'pass' if not missing_origin_governance else 'fail'}")
+        if missing_origin_governance:
+            failures.append("missing Origin governance plotting governance files: " + ", ".join(missing_origin_governance))
         else:
-            snapshot = json.loads(phase1_9_files["snapshot_json"].read_text(encoding="utf-8"))
+            snapshot = json.loads(origin_governance_files["snapshot_json"].read_text(encoding="utf-8"))
             skill_hash = snapshot.get("skill_sha256")
-            snapshot_text = phase1_9_files["snapshot_md"].read_text(encoding="utf-8")
+            snapshot_text = origin_governance_files["snapshot_md"].read_text(encoding="utf-8")
             hash_ok = bool(skill_hash) and skill_hash in snapshot_text
-            lines.append(f"- Phase 1.9 plotting skill SHA256 recorded: {'pass' if hash_ok else 'fail'}")
+            lines.append(f"- Origin governance plotting skill SHA256 recorded: {'pass' if hash_ok else 'fail'}")
             if not hash_ok:
-                failures.append("Phase 1.9 plotting skill SHA256 not recorded consistently")
-            with phase1_9_files["journal_index"].open(encoding="utf-8-sig", newline="") as handle:
+                failures.append("Origin governance plotting skill SHA256 not recorded consistently")
+            with origin_governance_files["journal_index"].open(encoding="utf-8-sig", newline="") as handle:
                 reader = csv.DictReader(handle)
                 headers = set(reader.fieldnames or [])
                 rows = list(reader)
             missing_columns = sorted(REQUIRED_JOURNAL_INDEX_COLUMNS - headers)
-            lines.append(f"- Phase 1.9 journal-ready index columns: {'pass' if not missing_columns else 'fail'}")
+            lines.append(f"- Origin governance journal-ready index columns: {'pass' if not missing_columns else 'fail'}")
             if missing_columns:
-                failures.append("Phase 1.9 journal-ready index missing columns: " + ", ".join(missing_columns))
+                failures.append("Origin governance journal-ready index missing columns: " + ", ".join(missing_columns))
             if rows:
                 skill_column_ok = all(row.get("plotting_skill_sha256") == skill_hash for row in rows)
-                lines.append(f"- Phase 1.9 journal-ready index skill hash: {'pass' if skill_column_ok else 'fail'}")
+                lines.append(f"- Origin governance journal-ready index skill hash: {'pass' if skill_column_ok else 'fail'}")
                 if not skill_column_ok:
-                    failures.append("Phase 1.9 journal-ready index contains inconsistent plotting skill hashes")
-                policy_field_failures = _phase1_9_journal_policy_field_failures(rows)
+                    failures.append("Origin governance journal-ready index contains inconsistent plotting skill hashes")
+                policy_field_failures = _origin_governance_journal_policy_field_failures(rows)
                 lines.append(
-                    f"- Phase 1.9 journal-ready index policy values: "
+                    f"- Origin governance journal-ready index policy values: "
                     f"{'pass' if not policy_field_failures else 'fail'}"
                 )
                 if policy_field_failures:
@@ -244,9 +244,9 @@ def validate(project_root: Path) -> int:
                         lines.append(f"  - {failure}")
                     if len(policy_field_failures) > 10:
                         lines.append(f"  - ... {len(policy_field_failures) - 10} more")
-                    failures.append("Phase 1.9 journal-ready index policy values invalid")
+                    failures.append("Origin governance journal-ready index policy values invalid")
     else:
-        lines.append("- Phase 1.9 plotting governance files: not checked (no generated output artifacts)")
+        lines.append("- Origin governance plotting governance files: not checked (no generated output artifacts)")
     lines.append("- max_threads = 5")
     lines.append("- max_depth = 1")
     lines.append(f"- Claim policy forbidden claims: {len(claim.get('forbidden_claims', []))}")
@@ -283,7 +283,7 @@ def _is_under_or_equal(path: Path, parent: Path) -> bool:
         return path == parent
 
 
-def _phase1_9_journal_policy_field_failures(rows: list[dict[str, str]]) -> list[str]:
+def _origin_governance_journal_policy_field_failures(rows: list[dict[str, str]]) -> list[str]:
     bool_fields = ["y_axis_visible", "y_ticks_visible", "y_tick_values_visible"]
     allowed_bool_values = {"true", "false"}
     allowed_marker_modes = {

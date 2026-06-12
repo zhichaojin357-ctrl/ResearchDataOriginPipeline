@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import json
@@ -52,11 +52,11 @@ def test_filtered_manual_review_excludes_same_data_represented_by_auto_process(t
     assert excluded[0]["代表文件"] == "Mott/sample1.csv"
 
 
-def test_filtered_manual_review_excludes_phase16_represented_source(tmp_path: Path):
+def test_filtered_manual_review_excludes_locked_result_represented_source(tmp_path: Path):
     project = _project_root(tmp_path)
     reports = default_output_root(project) / "reports"
     reports.mkdir(parents=True)
-    package = default_output_root(project) / "phase1_6_origin_results_20260531_041538"
+    package = default_output_root(project) / "locked_origin_results_20260531_041538"
     package.mkdir(parents=True)
     (reports / "data_triage_manifest.json").write_text(
         json.dumps({"items": [_item("EIS/sampleA.bin", "MANUAL_REVIEW", data_type="EIS", suffix=".bin")]}),
@@ -70,7 +70,7 @@ def test_filtered_manual_review_excludes_phase16_represented_source(tmp_path: Pa
     kept, excluded, summary = build_rows(project)
 
     assert summary == {"manual_total": 1, "kept": 0, "excluded": 1}
-    assert excluded[0]["排除原因"] == "Phase 1.6 已有成功成果代表"
+    assert excluded[0]["排除原因"] == "locked result package 已有成功成果代表"
 
 
 def test_filtered_manual_review_outputs_keep_chinese_headers(tmp_path: Path):
@@ -120,7 +120,7 @@ def test_regenerate_manual_review_filtered_main_smoke(tmp_path: Path, monkeypatc
 
     regenerate_main()
 
-    assert (reports / "phase1_8_manual_review_required_filtered.csv").is_file()
-    assert (reports / "phase1_8_manual_review_required_filtered.xlsx").is_file()
-    assert (project / "docs" / "agent_reports" / "phase1_8_manual_review_required_filtered_report.md").is_file()
-    assert not (fake_home / "Desktop" / "phase1_8_manual_review_required_filtered.xlsx").exists()
+    assert (reports / "manual_review_required_filtered.csv").is_file()
+    assert (reports / "manual_review_required_filtered.xlsx").is_file()
+    assert not (project / "docs" / "reports" / "manual_review_required_filtered_report.md").exists()
+    assert not (fake_home / "Desktop" / "manual_review_required_filtered.xlsx").exists()

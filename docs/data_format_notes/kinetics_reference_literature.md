@@ -1,9 +1,9 @@
-# Data Format Note: 动力学 Reference Literature Handling
+﻿# Data Format Note: 动力学 Reference Literature Handling
 
-## Phase 1 Classification
+## the current automated pipeline Classification
 - Folder: `动力学`
 - Inferred data type: `reference_literature`
-- Supported in Phase 1: `false`
+- Supported in the current automated pipeline: `false`
 - Selected processor: `none`
 - Special handling: `scan_only`
 - Deferred reason: `文献资料文件夹，不是实验动力学数据`
@@ -17,7 +17,7 @@
 - Literature/document extensions rather than numeric experiment exports.
 - Citation metadata files such as RIS, BibTeX, or EndNote libraries.
 
-## Phase 1 Handling
+## the current automated pipeline Handling
 1. Register file paths, extensions, size, and hashes in inventory output.
 2. Preserve folder and filename metadata.
 3. Mark as `reference_literature`.
@@ -33,4 +33,4 @@
 - Do not fit kinetic curves.
 - Do not extract rate constants.
 - Do not plot kinetics data.
-- Do not treat this folder as supported experimental data in Phase 1.
+- Do not treat this folder as supported experimental data in the current automated pipeline.

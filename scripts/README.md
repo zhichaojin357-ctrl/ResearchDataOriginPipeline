@@ -1,6 +1,6 @@
 # Scripts
 
-Operational scripts are kept here. Deprecated scripts should move to `scripts/archive/` only after no CLI or documentation entrypoint references them.
+Operational helper scripts are kept here. Formal processing entrypoints remain `run.py` and `src/cli.py`; scripts are only supporting tools for reporting, Origin integration, or format verification.
 
 Organize scripts by function first and data type second. Use `scripts/data_types/<data_type>/` only for scripts that are strongly bound to one instrument, one data type, or one raw format.
 
@@ -8,7 +8,6 @@ Organize scripts by function first and data type second. Use `scripts/data_types
 
 - `archive/`
 - `data_types/`
-- `maintenance/`
 - `one_off/`
 - `origin/`
 - `reports/`
@@ -17,14 +16,7 @@ Current classified helpers:
 
 - `reports/regenerate_manual_review_filtered.py`: reusable manual-review report generator.
 - `origin/origin_plot_from_template.ps1`: project-local Origin helper used by the formal Origin adapter; imports data by writing neutral workbook cells so OPJU outputs do not inherit source-file paths.
-- `maintenance/dry_run_output_cleanup_plan.py`: read-only output directory inventory helper; it never deletes files.
-- `maintenance/dry_run_tracked_output_reports_policy.py`: read-only tracked report policy classifier; it never changes Git or report files.
-- `maintenance/opju_exemplar_regression.py`: OPJU exemplar regression/comparison helper, not a production processor.
 - `one_off/verify_jeol_epr_decode_against_exports.py`: JEOL EPR decode verification helper kept for traceability.
 - `data_types/hplc_lc/plot_hplc_calibration_origin.ps1`: HPLC/LC calibration-curve Origin script using the fixed completed OPJU template.
-- `data_types/xps/build_xps_in_situ_20260506.py`: XPS-specific historical helper.
 
-Do not use old root paths as current entrypoints:
-
-- `scripts/regenerate_manual_review_filtered.py`
-- `scripts/build_xps_in_situ_20260506.py`
+Do not add root-level script entrypoints. Put new helpers under the functional folder that owns them and keep formal data processing in `run.py`/`src/cli.py`.

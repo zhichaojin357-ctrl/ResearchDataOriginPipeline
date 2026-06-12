@@ -1,4 +1,4 @@
-# Method Card: BET
+﻿# Method Card: BET
 
 ## Common File Formats
 - `.csv`, `.txt`, `.tsv`, `.xlsx`, `.xls`, `.dat`, exported instrument reports.
@@ -54,8 +54,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `adsorbate`, `temperature_K`, `degassing_condition`, `surface_area_source`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `bet_processor`.
 
 ## Risk Level

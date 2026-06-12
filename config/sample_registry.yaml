@@ -1,6 +1,6 @@
 registry_status: planning_placeholder
 raw_data_scan:
-  last_scan_report: docs/agent_reports/data_mapper_report.md
+  last_scan_report: docs/REAL_DATA_COMPATIBILITY_MATRIX.md
   observed_raw_child_count: 0
   note: "input/raw_data was empty during the planning checkpoint scan on 2026-05-30."
 samples: []

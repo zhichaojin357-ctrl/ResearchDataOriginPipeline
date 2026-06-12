@@ -6,25 +6,27 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from src.core.auto_queue import AutoQueueOptions, plan_auto_queue
 from src.core.project import default_output_root, load_project_config
 from src.core.readiness import ReadinessOptions, run_readiness
 from src.core.runtime_paths import create_run_output_layout
-from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern, resolve_output_root, resolve_phase1_6_index
+from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern, resolve_output_root, resolve_locked_result_index
 from src.core.xps_heterojunction import discover_default_xps_sample_files
 from src.origin.adapter import build_origin_plot_job
 
 
-def test_phase16_index_auto_discovers_latest_package(tmp_path: Path):
+def test_locked_result_index_auto_discovers_latest_package(tmp_path: Path):
     output_root = default_output_root(tmp_path)
-    older = output_root / "phase1_6_origin_results_20260101_000000"
-    newer = output_root / "phase1_6_origin_results_20260201_000000"
+    older = output_root / "locked_origin_results_20260101_000000"
+    newer = output_root / "locked_origin_results_20260201_000000"
     older.mkdir(parents=True)
     newer.mkdir(parents=True)
     (older / "index.csv").write_text("source_hash\nold\n", encoding="utf-8")
     (newer / "index.csv").write_text("source_hash\nnew\n", encoding="utf-8")
 
-    assert resolve_phase1_6_index(tmp_path) == newer / "index.csv"
+    assert resolve_locked_result_index(tmp_path) == newer / "index.csv"
 
 
 def test_default_output_root_is_workspace_sibling_output_folder(tmp_path: Path):
@@ -72,6 +74,24 @@ def test_output_root_resolution_priority_uses_explicit_then_local_then_env(tmp_p
     assert resolve_output_root(tmp_path) == env_root
 
 
+def test_project_internal_output_root_is_rejected(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    project.mkdir()
+
+    with pytest.raises(ValueError, match="inside project tree"):
+        resolve_output_root(project, explicit=Path("output"))
+
+
+def test_local_config_project_internal_output_root_is_rejected(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    config = project / "config"
+    config.mkdir(parents=True)
+    (config / "local.yaml").write_text("paths:\n  output_root: output\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="inside project tree"):
+        resolve_output_root(project)
+
+
 def test_create_run_output_layout_uses_configured_external_output_root(tmp_path: Path):
     config = tmp_path / "config"
     config.mkdir()
@@ -96,7 +116,7 @@ def test_create_run_output_layout_uses_configured_external_output_root(tmp_path:
     assert not Path(manifest["output_root"]).is_absolute()
 
 
-def test_auto_queue_uses_env_phase16_package_when_processed_index_not_explicit(tmp_path: Path, monkeypatch):
+def test_auto_queue_uses_locked_result_env_package_when_processed_index_not_explicit(tmp_path: Path, monkeypatch):
     workspace = tmp_path / "workspace"
     source = _write(workspace / "EIS" / "old.csv", "x,y\n1,2\n")
     source_hash = _sha256(source)
@@ -112,7 +132,7 @@ def test_auto_queue_uses_env_phase16_package_when_processed_index_not_explicit(t
         writer = csv.DictWriter(handle, fieldnames=["source_hash"])
         writer.writeheader()
         writer.writerow({"source_hash": source_hash})
-    monkeypatch.setenv("RESEARCHDATAORIGINPIPELINE_PHASE1_6_PACKAGE", str(package))
+    monkeypatch.setenv("RESEARCHDATAORIGINPIPELINE_LOCKED_RESULT_PACKAGE", str(package))
 
     plan = plan_auto_queue(tmp_path, AutoQueueOptions(queue=queue_path, workspace_root=workspace))
 
@@ -130,7 +150,7 @@ def test_readiness_can_skip_legacy_project_path_check(tmp_path: Path):
     code = run_readiness(
         project,
         ReadinessOptions(
-            expected_phase1_6_count=1,
+            expected_locked_result_count=1,
             f_drive_backup=None,
             check_legacy_project_path=False,
         ),
@@ -243,16 +263,6 @@ def test_xps_in_situ_quality_check_uses_output_relative_file_keys(tmp_path: Path
     assert "xps_in_situ_combined.tif" in result["files_saved"]
 
 
-def test_phase1_7_baseline_uses_current_python_executable(tmp_path: Path):
-    from src.core.phase1_7 import write_baseline_report
-
-    write_baseline_report(tmp_path, "sha", {"pytest": {"exit_code": 0, "summary": f"ok {tmp_path}"}})
-    report = (tmp_path / "docs" / "agent_reports" / "phase1_7_baseline.md").read_text(encoding="utf-8")
-
-    assert "- Current Python interpreter: `external/python.exe`" in report
-    assert str(tmp_path) not in report
-
-
 def _queue_item(relative_path: str, source_hash: str, *, data_type: str = "EIS") -> dict:
     return {
         "queue_id": source_hash[:16],
@@ -281,10 +291,10 @@ def _sha256(path: Path) -> str:
 def _write_minimal_readiness_project(project: Path) -> None:
     workspace = project / "workspace_data" / "LL_detection_copy_20260530"
     output_root = default_output_root(project)
-    package = output_root / "phase1_6_origin_results_20260531_041538"
+    package = output_root / "locked_origin_results_20260531_041538"
     reports = output_root / "reports"
     dashboard = output_root / "review_dashboard"
-    docs = project / "docs" / "agent_reports"
+    docs = project / "docs" / "reports"
     workspace.mkdir(parents=True)
     package.mkdir(parents=True)
     reports.mkdir(parents=True)
@@ -298,19 +308,19 @@ def _write_minimal_readiness_project(project: Path) -> None:
         json.dumps({"total_results": 1, "by_type": {"EIS": 1}}),
         encoding="utf-8",
     )
-    (reports / "phase1_8_manual_review_required_filtered.csv").write_text("relative_path\na.csv\n", encoding="utf-8")
-    _write_review_xlsx(reports / "phase1_8_manual_review_required_filtered.xlsx")
-    (reports / "phase1_8_manual_review_required_filtered_report.md").write_text("Rows requiring user review: 1\n", encoding="utf-8")
-    (reports / "phase1_8_new_auto_process_plan.json").write_text(
+    (reports / "manual_review_required_filtered.csv").write_text("relative_path\na.csv\n", encoding="utf-8")
+    _write_review_xlsx(reports / "manual_review_required_filtered.xlsx")
+    (reports / "manual_review_required_filtered_report.md").write_text("Rows requiring user review: 1\n", encoding="utf-8")
+    (reports / "auto_process_plan.json").write_text(
         json.dumps({"summary": {"accepted_count": 1, "blocked_count": 0, "will_run_process": False, "will_launch_origin": False}}),
         encoding="utf-8",
     )
-    (reports / "phase1_8_new_auto_process_queue.json").write_text(
-        json.dumps({"items": [{"origin_export_allowed": False, "manual_check_required": True, "promoted_by_phase": "phase1_8_auto_queue_dry_run", "queue_note": "New AUTO_PROCESS candidate not represented in Phase 1.6; no processing has been run by auto-queue."}]}),
+    (reports / "auto_process_queue.json").write_text(
+        json.dumps({"items": [{"origin_export_allowed": False, "manual_check_required": True, "promoted_by_workflow": "auto_queue_dry_run", "queue_note": "New AUTO_PROCESS candidate not represented in locked result package; no processing has been run by auto-queue."}]}),
         encoding="utf-8",
     )
-    (reports / "phase1_8_final_summary.md").write_text("Current manual-review workbook\n", encoding="utf-8")
-    (docs / "phase1_8_final_summary.md").write_text("Current manual-review workbook\n", encoding="utf-8")
+    (reports / "review_queue_final_summary.md").write_text("Current manual-review workbook\n", encoding="utf-8")
+    (docs / "review_queue_final_summary.md").write_text("Current manual-review workbook\n", encoding="utf-8")
     (reports / "validation_report.md").write_text(
         "# Validation Report\n\n"
         "- Deferred/reference registry semantics: pass\n"
@@ -318,7 +328,7 @@ def _write_minimal_readiness_project(project: Path) -> None:
         "- Kinetics processor paths: pass\n",
         encoding="utf-8",
     )
-    (reports / "phase1_7_manifest_runner_plan.json").write_text(
+    (reports / "origin_batch_plan.json").write_text(
         json.dumps(
             {
                 "summary": {"total_manifest_items": 1, "planned_count": 0, "skipped_count": 1, "blocked_count": 0, "will_launch_origin": False},
@@ -329,14 +339,14 @@ def _write_minimal_readiness_project(project: Path) -> None:
         ),
         encoding="utf-8",
     )
-    (reports / "phase1_7_new_override_proposals_after_optimization.json").write_text(json.dumps({"items": [], "count": 0}), encoding="utf-8")
-    (reports / "phase1_8_review_decisions_template.csv").write_text("proposal_id\n", encoding="utf-8")
-    (reports / "phase1_8_reviewed_queue_plan.json").write_text(
+    (reports / "override_proposals_after_triage_optimization.json").write_text(json.dumps({"items": [], "count": 0}), encoding="utf-8")
+    (reports / "review_decisions_template.csv").write_text("proposal_id\n", encoding="utf-8")
+    (reports / "reviewed_queue_plan.json").write_text(
         json.dumps(
             {
                 "input_hashes": {
-                    "proposals_sha256": _sha256(reports / "phase1_7_new_override_proposals_after_optimization.json"),
-                    "decisions_sha256": _sha256(reports / "phase1_8_review_decisions_template.csv"),
+                    "proposals_sha256": _sha256(reports / "override_proposals_after_triage_optimization.json"),
+                    "decisions_sha256": _sha256(reports / "review_decisions_template.csv"),
                 },
                 "summary": {"total_proposals": 0, "decision_rows": 0, "approved_count": 0, "skipped_count": 0, "blocked_count": 0, "queue_item_count": 0, "will_launch_origin": False, "will_run_process": False},
             }
@@ -349,8 +359,8 @@ def _write_minimal_readiness_project(project: Path) -> None:
     (docs_root / "REAL_DATA_INTAKE_GUIDE.md").write_text("ResearchDataOriginPipeline\n", encoding="utf-8")
     (docs_root / "REAL_DATA_COMPATIBILITY_MATRIX.md").write_text("ResearchDataOriginPipeline\n", encoding="utf-8")
     dashboard.joinpath("index.md").write_text(
-        "[Current](../reports/phase1_8_manual_review_required_filtered.xlsx)\n"
-        "[Plan](../reports/phase1_8_new_auto_process_plan.md)\n",
+        "[Current](../reports/manual_review_required_filtered.xlsx)\n"
+        "[Plan](../reports/auto_process_plan.md)\n",
         encoding="utf-8",
     )
 

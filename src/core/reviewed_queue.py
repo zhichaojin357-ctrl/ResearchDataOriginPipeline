@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import hashlib
@@ -9,7 +9,7 @@ from pathlib import Path
 
 from src.core.output_sanitizer import scrub_output_text
 from src.core.project import default_output_root, report_path
-from src.core.runtime_paths import resolve_phase1_6_index, resolve_workspace_root
+from src.core.runtime_paths import resolve_locked_result_index, resolve_output_root, resolve_workspace_root
 
 
 APPROVE_DECISION = "approve_for_no_origin_queue"
@@ -94,7 +94,7 @@ def load_proposals(project_root: Path, proposals_path: Path) -> list[dict]:
         if not isinstance(item, dict):
             raise ValueError(f"proposal JSON item {index} must be an object: {path}")
         proposal = dict(item)
-        proposal.setdefault("proposal_id", f"P18-{index:03d}")
+        proposal.setdefault("proposal_id", f"RQ-{index:03d}")
         proposals.append(proposal)
     return proposals
 
@@ -102,7 +102,7 @@ def load_proposals(project_root: Path, proposals_path: Path) -> list[dict]:
 def write_decision_template(project_root: Path, proposals: list[dict], options: ReviewedQueueOptions) -> Path:
     template_path = options.template_out or report_path(
         project_root,
-        "phase1_8_review_decisions_template.csv",
+        "review_decisions_template.csv",
         output_root=options.output_root,
     )
     _guard_output_path(project_root, template_path)
@@ -123,7 +123,7 @@ def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: Revi
     decision_rows = _read_decision_rows(decisions_path)
     decisions, duplicate_decision_ids = _decision_lookup(decision_rows)
     triage_items = _load_current_triage_items(project_root, options.triage_manifest, options.output_root)
-    processed_hashes = _phase1_6_processed_hashes(project_root, options.processed_index)
+    processed_hashes = _locked_result_processed_hashes(project_root, options.processed_index)
     planned = []
     skipped = []
     blocked = []
@@ -188,12 +188,12 @@ def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: Revi
 def write_reviewed_queue_reports(project_root: Path, plan: dict, options: ReviewedQueueOptions) -> tuple[Path, Path]:
     json_path = options.report_json or report_path(
         project_root,
-        "phase1_8_reviewed_queue_plan.json",
+        "reviewed_queue_plan.json",
         output_root=options.output_root,
     )
     md_path = options.report_md or report_path(
         project_root,
-        "phase1_8_reviewed_queue_plan.md",
+        "reviewed_queue_plan.md",
         output_root=options.output_root,
     )
     _guard_output_path(project_root, json_path)
@@ -201,10 +201,6 @@ def write_reviewed_queue_reports(project_root: Path, plan: dict, options: Review
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     md_path.write_text(_plan_markdown(plan), encoding="utf-8")
-    if options.output_root is None:
-        agent_report = project_root / "docs" / "agent_reports" / "phase1_8_reviewed_queue_report.md"
-        agent_report.parent.mkdir(parents=True, exist_ok=True)
-        agent_report.write_text(_plan_markdown(plan), encoding="utf-8")
     return json_path, md_path
 
 
@@ -269,7 +265,7 @@ def _approval_block(
     if stale_block:
         return stale_block
     if source_hash in processed_hashes:
-        return {"status": "BLOCKED_ALREADY_PROCESSED", "reason": "source_hash_in_phase1_6_package"}
+        return {"status": "BLOCKED_ALREADY_PROCESSED", "reason": "source_hash_in_locked_result_package"}
     return None
 
 
@@ -277,7 +273,7 @@ def _approved_queue_item(proposal: dict, decision: dict) -> dict:
     source_hash = str(proposal.get("source_hash", ""))
     data_type = str(proposal.get("proposed_data_type", ""))
     return {
-        "queue_id": f"phase1_8_{source_hash[:16]}",
+        "queue_id": f"reviewed_queue_{source_hash[:16]}",
         "relative_path": str(proposal.get("relative_path", "")),
         "source_hash": source_hash,
         "data_type": data_type,
@@ -286,7 +282,7 @@ def _approved_queue_item(proposal: dict, decision: dict) -> dict:
         "current_decision": "USER_APPROVED_NO_ORIGIN_QUEUE",
         "decision": "AUTO_PROCESS",
         "promoted_from_manual_review": True,
-        "promoted_by_phase": "phase1_8",
+        "promoted_by_workflow": "reviewed_queue",
         "promoted_confidence": proposal.get("confidence_score", 0),
         "promoted_validity": proposal.get("validity_score", 0),
         "promotion_reason": str(proposal.get("reason", "")),
@@ -403,8 +399,8 @@ def _current_triage_state_block(proposal: dict, triage_item: dict) -> dict | Non
     decision = str(triage_item.get("decision", ""))
     if decision != "MANUAL_REVIEW":
         return {"status": "BLOCKED_STALE_PROPOSAL", "reason": f"current_triage_decision_is_{decision}"}
-    if triage_item.get("supported_in_phase_1") is not True:
-        return {"status": "BLOCKED_POLICY", "reason": "current_triage_not_supported_in_phase_1"}
+    if triage_item.get("supported_in_pipeline") is not True:
+        return {"status": "BLOCKED_POLICY", "reason": "current_triage_not_supported_in_pipeline"}
     if triage_item.get("parser_probe_status") != "success":
         return {"status": "BLOCKED_POLICY", "reason": "current_parser_probe_not_success"}
     proposed_type = str(proposal.get("proposed_data_type", "")).strip()
@@ -438,8 +434,8 @@ def _load_current_triage_items(
     return items
 
 
-def _phase1_6_processed_hashes(project_root: Path, processed_index: Path | None = None) -> set[str]:
-    index_path = resolve_phase1_6_index(project_root, processed_index)
+def _locked_result_processed_hashes(project_root: Path, processed_index: Path | None = None) -> set[str]:
+    index_path = resolve_locked_result_index(project_root, processed_index)
     if not index_path.exists():
         return set()
     with index_path.open(encoding="utf-8-sig", newline="") as handle:
@@ -530,14 +526,9 @@ def _resolve_existing_path(project_root: Path, raw_path: Path) -> Path:
 
 def _guard_output_path(project_root: Path, path: Path) -> None:
     resolved = path.resolve()
-    allowed = [
-        (project_root / "output").resolve(),
-        default_output_root(project_root).resolve(),
-        (project_root / "docs").resolve(),
-        (project_root / "tests" / "fixtures").resolve(),
-    ]
-    if not any(_is_under_or_equal(resolved, root) for root in allowed):
-        raise ValueError(f"Refusing to write reviewed-queue report outside allowed output areas: {path}")
+    output_root = resolve_output_root(project_root).resolve()
+    if not _is_under_or_equal(resolved, output_root):
+        raise ValueError(f"Refusing to write reviewed-queue report outside configured output root: {path}")
 
 
 def _is_under_or_equal(path: Path, parent: Path) -> bool:
@@ -552,7 +543,7 @@ def _plan_markdown(plan: dict) -> str:
     summary = plan["summary"]
     input_hashes = plan.get("input_hashes", {})
     lines = [
-        "# Phase 1.8 Reviewed Queue Plan",
+        "# Reviewed Queue Plan",
         "",
         f"- Total proposals: {summary['total_proposals']}",
         f"- Decision rows: {summary['decision_rows']}",
@@ -590,7 +581,7 @@ def _plan_markdown(plan: dict) -> str:
             "",
             "- This planner does not launch Origin.",
             "- This planner does not run real data processing.",
-            "- Approved rows are only dry-run queue candidates until a future explicit processing phase.",
+            "- Approved rows are only dry-run queue candidates until an explicit processing run.",
         ]
     )
     return "\n".join(lines) + "\n"

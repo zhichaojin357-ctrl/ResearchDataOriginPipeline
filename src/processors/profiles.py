@@ -32,7 +32,7 @@ SUPPORTED_PROCESSOR_PROFILES = MappingProxyType(
             "BET",
             "bet_processor",
             ("confirm reported surface area, pore volume, and pore diameter source tables",),
-            ("do not infer pore structure from Phase 1 exported tables alone",),
+            ("do not infer pore structure from exported tables alone",),
             ("adsorption-desorption isotherm", "pore size distribution if exported"),
         ),
         "EPR": _profile(

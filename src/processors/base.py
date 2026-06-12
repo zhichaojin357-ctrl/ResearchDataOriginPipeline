@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import hashlib
@@ -53,7 +53,7 @@ def process_table_dataset(
     data_type = classification["inferred_data_type"]
     processor_name = classification["selected_processor"]
     if (
-        classification.get("supported_in_phase_1") is False
+        classification.get("supported_in_pipeline") is False
         or processor_name == "none"
         or data_type == "reference_literature"
     ):
@@ -182,7 +182,7 @@ def process_table_dataset(
     manual_check_items = list(
         profile["manual_check_items"]
         if profile
-        else MANUAL_CHECK_ITEMS.get(data_type, ("manual_check_required by Phase 1 policy",))
+        else MANUAL_CHECK_ITEMS.get(data_type, ("manual_check_required by pipeline policy",))
     )
     forbidden_claims = _forbidden_claims(project_root, data_type, profile)
     plot_type = _metadata_plot_type(data_type, key_results, profile)
@@ -416,7 +416,7 @@ def _queue_dataset_suffix(triage: dict | None) -> str:
 def process_supported(project_root: Path, manifest: dict, *, no_origin: bool = True, force: bool = True, output_root: Path | None = None) -> list[dict]:
     results = []
     for classification in manifest["classifications"]:
-        if not classification["supported_in_phase_1"]:
+        if not classification["supported_in_pipeline"]:
             continue
         for file_name in classification["files"]:
             results.append(

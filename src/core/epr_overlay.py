@@ -8,7 +8,7 @@ from statistics import median
 
 from src.core.epr_jeol import read_xy_xlsx
 from src.core.output_sanitizer import render_output_path
-from src.core.project import default_output_root
+from src.core.project import default_output_root, ensure_write_path_allowed
 from src.core.project import output_dir, report_path
 from src.core.runtime_paths import resolve_workspace_root
 from src.origin.adapter import export_plot
@@ -72,8 +72,9 @@ def run_epr_overlay(project_root: Path, options: EprOverlayOptions) -> int:
         "forbidden_claims": ["no automatic radical assignment", "no automatic mechanism claim"],
         "items": rows,
     }
-    output_json = options.report_json or report_path(project_root, "epr_overlay_report.json")
-    output_md = options.report_md or report_path(project_root, "epr_overlay_report.md")
+    output_root = default_output_root(project_root)
+    output_json = _resolve_output_file(project_root, options.report_json or report_path(project_root, "epr_overlay_report.json"), output_root)
+    output_md = _resolve_output_file(project_root, options.report_md or report_path(project_root, "epr_overlay_report.md"), output_root)
     _write_json(project_root, output_json, payload)
     _write_md(project_root, output_md, payload)
     return 0 if all(item["status"] in {"table_only", "success"} for item in rows) else 2
@@ -249,12 +250,6 @@ def build_epr_condition_overlay(
 
 
 def _output_base_for_data_dir(project_root: Path, data_dir: Path) -> Path:
-    for candidate in (default_output_root(project_root), project_root / "output"):
-        try:
-            data_dir.resolve().relative_to(candidate.resolve())
-            return candidate
-        except ValueError:
-            continue
     return default_output_root(project_root)
 
 
@@ -351,13 +346,13 @@ def _validate_common_x(series: list[list[float]]) -> None:
 
 
 def _write_json(project_root: Path, path: Path, payload: dict) -> None:
-    target = path if path.is_absolute() else project_root / path
+    target = _resolve_output_file(project_root, path, default_output_root(project_root))
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _write_md(project_root: Path, path: Path, payload: dict) -> None:
-    target = path if path.is_absolute() else project_root / path
+    target = _resolve_output_file(project_root, path, default_output_root(project_root))
     lines = [
         "# EPR Overlay Report",
         "",
@@ -379,3 +374,9 @@ def _write_md(project_root: Path, path: Path, payload: dict) -> None:
         )
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _resolve_output_file(project_root: Path, path: Path, output_root: Path) -> Path:
+    target = path if path.is_absolute() else output_root / path
+    ensure_write_path_allowed(project_root, target, output_root=output_root)
+    return target

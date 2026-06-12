@@ -1,4 +1,4 @@
-# Method Card: PL
+﻿# Method Card: PL
 
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
@@ -46,8 +46,8 @@
 - `warnings`, `parameters`, `key_results`, `confidence_level`
 - Extra recommended fields: `excitation_wavelength_nm`, `normalization`, `integration_ranges`
 
-## Phase 1 Implementation Status
-- Supported in Phase 1.
+## the current automated pipeline Implementation Status
+- Supported in the current automated pipeline.
 - Planned processor: `pl_processor`.
 
 ## Risk Level
