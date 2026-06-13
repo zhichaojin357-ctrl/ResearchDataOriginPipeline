@@ -8,6 +8,7 @@ from pathlib import Path
 
 from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.metadata import write_metadata
+from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.project import claim_policy_path, load_json_compatible_yaml, output_dir
 from src.core.runtime_paths import resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
@@ -304,9 +305,13 @@ def _origin_axis_titles(headers: list[str], data_type: str = "") -> tuple[str, s
         "FTIR": ("Wavenumber (cm-1)", "Intensity (a.u.)"),
         "PL": ("Wavelength (nm)", "Intensity (a.u.)"),
         "EPR": ("Magnetic Field (G)", "Intensity (a.u.)"),
-        "XRD": ("2theta (degree)", "Intensity (a.u.)"),
+        "XRD": (XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE),
     }
-    if data_type in axis_by_type and normalized[:2] in (["x", "intensity"], ["magnetic_field", "intensity"]):
+    if data_type in axis_by_type and normalized[:2] in (
+        ["x", "intensity"],
+        ["magnetic_field", "intensity"],
+        ["two_theta_deg", "intensity"],
+    ):
         return axis_by_type[data_type]
     if data_type == "EIS" and normalized[:4] == [
         "cleaned_z_real_ohm",

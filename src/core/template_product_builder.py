@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Callable
 
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.opju_product_pilot import (
     FORBIDDEN_LABELS,
     ProductContext,
@@ -1163,8 +1164,8 @@ def _build_template_xrd_multisource_table(pairing: TargetPairing, template: Temp
     ]
     visual_plot_count = len(series)
     labels = {
-        "x_label": "2theta (degree)",
-        "y_label": "Intensity (a.u.)",
+        "x_label": XRD_X_AXIS_TITLE,
+        "y_label": XRD_Y_AXIS_TITLE,
         "title": "XRD pilot",
         "plot_type": "line",
         "y_tick_values": "false",

@@ -321,8 +321,8 @@ class ProcessorBehaviorTest(unittest.TestCase):
                 process_table_dataset(root, classification("XRD", "xrd_processor"), source, no_origin=False)
 
             args, kwargs = export_plot.call_args
-            self.assertEqual(args[3], "two_theta_deg")
-            self.assertEqual(args[4], "intensity")
+            self.assertEqual(args[3], "2θ (degree)")
+            self.assertEqual(args[4], "Intensity (a.u.)")
             self.assertEqual(kwargs["data_type"], "XRD")
 
     def test_photocurrent_outputs_peak_and_steady_current_candidates(self):

@@ -13,9 +13,12 @@ from pathlib import Path
 from src.core.metadata import file_hash
 from src.core.opju_product_pilot import extract_xrd_raw_data_rows
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.runtime_paths import create_run_output_layout, resolve_origin_helper, resolve_output_root
 from src.origin.adapter import check_origin_available, write_origin_error, write_origin_success
+from src.origin.operations import quote_labtalk
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE, get_plot_policy
+from src.origin.text_format import origin_bold_text
 
 
 BICU_LABEL = "BiCu-10"
@@ -256,6 +259,7 @@ def _replace_graph4_template_data_with_originpro(options: XrdOverlayOptions, art
 
             _remove_template_bicu30_plot(graph)
             _set_template_text_objects(graph)
+            op.lt_exec(_xrd_axis_title_labtalk("Graph4"))
             _enforce_template_plot_colors(graph)
 
             graph.save_fig(str(runtime_png), type="png", replace=True, width=GRAPH4_FIXED_STYLE.page_width)
@@ -364,6 +368,17 @@ def _set_template_text_objects(graph: object) -> None:
         card_text.Text = "\\b(\\c17585584(CuWO)\\-(\\c17585584(4))\\c17585584( JCPDS card No.04-009-6293))"
 
 
+def _xrd_axis_title_labtalk(graph_name: str) -> str:
+    x_title = _quote_origin_rich_text(origin_bold_text(XRD_X_AXIS_TITLE))
+    y_title = _quote_origin_rich_text(origin_bold_text(XRD_Y_AXIS_TITLE))
+    graph = quote_labtalk(graph_name)
+    return f'win -a "{graph}"; xb.text$="{x_title}"; yl.text$="{y_title}"; xb.show=1; yl.show=1;'
+
+
+def _quote_origin_rich_text(value: object) -> str:
+    return str(value).replace('"', '\\"')
+
+
 def _set_graph_object_format(
     graph_object: object,
     *,
@@ -418,8 +433,8 @@ def _origin_job_script(
         "  ShowYTicks = $false\n"
         "  ShowYTickValues = $false\n"
         "  ShowXTickValues = $true\n"
-        "  XTitle = '2theta (degree)'\n"
-        "  YTitle = 'Intensity (a.u.)'\n"
+        f"  XTitle = {_ps_quote(XRD_X_AXIS_TITLE)}\n"
+        f"  YTitle = {_ps_quote(XRD_Y_AXIS_TITLE)}\n"
         "}"
     )
     lines = [

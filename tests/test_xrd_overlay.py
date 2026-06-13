@@ -5,11 +5,15 @@ from pathlib import Path
 
 from src.cli import main
 from src.core.xrd_overlay import (
+    XrdOverlayArtifacts,
     XrdOverlayOptions,
+    XrdOverlayTable,
     build_xrd_overlay_table,
     parse_xrd_reference_card_peaks,
     run_xrd_overlay,
+    _origin_job_script,
     _set_template_text_objects,
+    _xrd_axis_title_labtalk,
 )
 from src.core.project import default_output_root
 
@@ -168,6 +172,45 @@ def test_xrd_overlay_template_text_uses_uniform_legend_format() -> None:
     assert legend.Left == 3569
     assert legend.Top > top_text.Top
     assert "fsize" not in card_text.props
+
+
+def test_xrd_overlay_origin_script_uses_greek_theta_axis_title(tmp_path: Path) -> None:
+    table = XrdOverlayTable(
+        headers=["two_theta_deg", "BOBC"],
+        rows=[[5.0, 1.0], [6.0, 2.0]],
+        legend_labels=["BOBC"],
+        origin_ocolors=[16814848],
+        metadata={},
+    )
+    options = XrdOverlayOptions(
+        bicu_source=tmp_path / "bicu.txt",
+        bobc_source=tmp_path / "bobc.txt",
+        cwo_source=tmp_path / "cwo.txt",
+        cwo_card=tmp_path / "card.txt",
+        reference_opju=tmp_path / "reference.opju",
+    )
+    artifacts = XrdOverlayArtifacts(
+        processed_data=tmp_path / "processed.csv",
+        metadata=tmp_path / "metadata.json",
+        report=tmp_path / "report.md",
+        origin_file=tmp_path / "plot.opju",
+        figure_tif=tmp_path / "plot.tif",
+        preview_png=tmp_path / "plot.png",
+        job_script=tmp_path / "job.ps1",
+    )
+
+    script = _origin_job_script(tmp_path, options, table, artifacts)
+
+    assert "XTitle = '2θ (degree)'" in script
+    assert "2theta (degree)" not in script
+
+
+def test_xrd_overlay_direct_origin_path_sets_greek_theta_axis_title() -> None:
+    labtalk = _xrd_axis_title_labtalk("Graph4")
+
+    assert 'xb.text$="\\b(2θ (degree))"' in labtalk
+    assert 'yl.text$="\\b(Intensity (a.u.))"' in labtalk
+    assert "2theta (degree)" not in labtalk
 
 
 def _write_raw4(path: Path, rows: list[tuple[float, float]]) -> Path:

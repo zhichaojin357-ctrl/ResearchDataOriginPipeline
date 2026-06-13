@@ -11,6 +11,7 @@ from typing import Callable, Iterable, Any
 
 from src.core.epr_jeol import read_xy_xlsx
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.table_reader import read_table
 from src.core.xps_heterojunction import (
@@ -287,8 +288,8 @@ def _build_processed_plot_table(
     if pairing.product_key == "XRD":
         rows = extract_xrd_raw_data_rows(pairing.data_paths[0])
         return ["two_theta_deg", "intensity"], rows, {
-            "x_label": "2theta (degree)",
-            "y_label": "Intensity (a.u.)",
+            "x_label": XRD_X_AXIS_TITLE,
+            "y_label": XRD_Y_AXIS_TITLE,
             "title": "XRD pilot",
             "plot_type": "line",
         }

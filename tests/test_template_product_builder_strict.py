@@ -12,6 +12,7 @@ from src.core.template_product_builder import (
     _apply_template_xps_peak_annotations,
     _apply_template_xps_y_axis_title_overlay,
     _build_template_epr_table,
+    _build_template_xrd_multisource_table,
     _build_template_xy_multisource_table,
     _template_bet_series_label_from_path,
     _template_candidate_files,
@@ -584,6 +585,22 @@ def test_template_simple_types_write_origin_processing_plan(tmp_path: Path) -> N
     assert "col(3)=col(1)" in script
     assert "col(4)=col(2)" in script
     assert "wks.col1.hidden=1" in script
+
+
+def test_template_xrd_multisource_labels_use_greek_theta_axis_title(tmp_path: Path) -> None:
+    xrd_source = tmp_path / "XRD" / "bobc.txt"
+    xrd_source.parent.mkdir()
+    xrd_source.write_text(
+        "\n".join([";RAW4.00", "[Data]", "Angle, PSD", "5, 824", "6, 900", ""]),
+        encoding="utf-8",
+    )
+    pairing = TargetPairing("XRD", "XRD", "", "root", [xrd_source], "root", tmp_path / "template.opju")
+    template = TemplateCandidate("XRD", tmp_path / "template.opju", "unit", graph_page="Graph4", plot_count=1)
+
+    table = _build_template_xrd_multisource_table(pairing, template)
+
+    assert table is not None
+    assert table["labels"]["x_label"] == "2θ (degree)"
 
 
 def test_template_origin_processing_script_supports_xps_normalize_offset() -> None:

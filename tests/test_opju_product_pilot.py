@@ -9,6 +9,7 @@ from openpyxl import Workbook
 from src.core.opju_product_pilot import (
     ProductContext,
     TargetPairing,
+    _build_processed_plot_table,
     extract_xrd_raw_data_rows,
     export_product_with_origin,
     load_target_pairings,
@@ -65,6 +66,19 @@ def test_extract_xrd_raw_data_rows_uses_only_bracketed_data_section(tmp_path: Pa
     rows = extract_xrd_raw_data_rows(raw)
 
     assert rows == [[5.0, 824.0], [5.01946, 894.0], [5.03892, 849.0]]
+
+
+def test_xrd_product_label_uses_greek_theta_axis_title(tmp_path: Path) -> None:
+    raw = tmp_path / "xrd.txt"
+    raw.write_text(
+        "\n".join([";RAW4.00", "[Data]", "Angle, PSD", "5, 824", "6, 900", ""]),
+        encoding="utf-8",
+    )
+    pairing = TargetPairing("XRD", "XRD", "", "root", [raw], "root", tmp_path / "style.opju")
+
+    _headers, _rows, labels = _build_processed_plot_table(pairing)
+
+    assert labels["x_label"] == "2θ (degree)"
 
 
 def test_export_product_with_origin_creates_output_parents_before_saving(tmp_path: Path, monkeypatch) -> None:
