@@ -94,7 +94,7 @@ def build_default_root_map(project_root: Path) -> dict[str, Path]:
     return {
         "f_drive_detection": Path("F:/\u8bfe\u9898/LL/\u68c0\u6d4b"),
         "project_data": parent / "\u6570\u636e",
-        "origin_manual_save": Path("D:/OriginFlies/Manual Save"),
+        "origin_manual_save": project_root.resolve() / "templates" / "origin_styles" / "reference_opju",
         "workspace_xps_data": parent / "26.6.3\u7ec4\u4f1a\u6570\u636e" / "XPS",
         "workspace_xps_reference": parent / "xps\u53c2\u8003\u56fe\u50cf",
         "workspace_group_data": parent / "26.6.3\u7ec4\u4f1a\u6570\u636e",

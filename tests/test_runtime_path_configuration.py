@@ -193,6 +193,13 @@ def test_origin_helper_script_can_be_configured(tmp_path: Path):
     assert job.helper_script == helper
 
 
+def test_default_origin_reference_pattern_uses_project_local_xrd_asset(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    project.mkdir()
+
+    assert resolve_origin_reference_pattern(project) == "templates/origin_styles/reference_opju/XRD.opju"
+
+
 def test_local_config_overlays_default_and_origin_paths(tmp_path: Path):
     config = tmp_path / "config"
     config.mkdir()

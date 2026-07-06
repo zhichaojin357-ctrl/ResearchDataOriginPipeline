@@ -36,7 +36,7 @@ The manifest has one accepted `.oth` format theme for each plotted type:
 
 The `.oth` files are copied Origin graph formats saved from Origin's Copy Format payload. The `.otpu` files are saved graph templates for complex multi-layer graphs. The style JSON snapshots store readback values such as plot colours so newly added data plots can be styled without reopening the source OPJU. The `data_snapshots/*.json` files store the reviewed template graph's plotted datasets, layer/plot mapping, paired X/Y worksheet columns, and per-plot style readback. This is the audit trail that proves a template-data replay used data embedded in the OPJU rather than adjacent raw text files.
 
-Runtime product generation creates a clean target graph from current processed data and applies the matching `.oth` asset. Project-local `reference_opju/*.opju` copies are retained only as recovery/extraction sources for inspecting reviewed examples; they are not used as the default data-replacement base for XRD products. This avoids carrying multi-layer template residue into current products while still keeping the external F-drive/source OPJU unnecessary after assets are harvested.
+Runtime product generation creates a clean target graph from current processed data and applies the matching `.oth` asset whenever a saved format theme is sufficient. Project-local `reference_opju/*.opju` copies are retained as recovery/extraction sources and as the default exact multi-layer donor for reviewed XRD standard-card overlays. This keeps the external F-drive/source OPJU unnecessary after assets are harvested while still allowing XRD jobs that require the reviewed Graph4 layer structure to run from a project-local asset.
 
 ## Regeneration
 

@@ -55,23 +55,19 @@ function Require-File([string]$Path) {
 }
 
 function Find-DefaultReferenceOpju {
-  $root = 'D:\OriginFlies\Manual Save'
-  if (-not (Test-Path -LiteralPath $root)) {
-    throw "Default Origin reference directory not found."
+  $scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+  $projectRoot = Split-Path -Parent (Split-Path -Parent $scriptRoot)
+  $relativeReference = 'templates\origin_styles\reference_opju\XRD.opju'
+  $candidates = @(
+    Join-Path $projectRoot $relativeReference,
+    Join-Path (Get-Location).Path $relativeReference
+  )
+  foreach ($candidate in $candidates) {
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+      return (Resolve-Path -LiteralPath $candidate).Path
+    }
   }
-
-  $labelSuffix = [string][char]0x6807 + [string][char]0x5361
-  $candidates = @(Get-ChildItem -LiteralPath $root -Filter 'CWO+BOBC+*.opju' -File -ErrorAction Stop)
-  if ($candidates.Count -eq 0) {
-    throw "No default Origin reference OPJU matched CWO+BOBC+*.opju."
-  }
-
-  $preferred = @($candidates | Where-Object { $_.BaseName -like ('*' + $labelSuffix + '*') } | Sort-Object LastWriteTime -Descending)
-  if ($preferred.Count -gt 0) {
-    return $preferred[0].FullName
-  }
-
-  return (@($candidates | Sort-Object LastWriteTime -Descending))[0].FullName
+  throw "Default project-local Origin reference OPJU not found: $relativeReference"
 }
 
 function Get-GroupValue($Group, [string]$Name, $Default = $null) {

@@ -263,8 +263,10 @@ def _read_plot_style_value(project_root: Path, key: str, default: str) -> str:
     return default
 
 
-def _resolve_reference_opju(pattern: str) -> Path | None:
+def _resolve_reference_opju(project_root: Path, pattern: str) -> Path | None:
     path = Path(pattern)
+    if not path.is_absolute():
+        path = (project_root / path).resolve()
     if "*" not in pattern and "?" not in pattern:
         return path if path.exists() else None
     parent = path.parent
@@ -971,7 +973,7 @@ def build_origin_plot_job(
         preview_png=preview_dir / f"{page_name}.png",
         job_script=job_dir / f"{dataset_id}.ps1",
         helper_script=resolve_origin_helper(project_root),
-        reference_opju=_resolve_reference_opju(reference_search_pattern) if refresh_reference_style else None,
+        reference_opju=_resolve_reference_opju(project_root, reference_search_pattern) if refresh_reference_style else None,
         reference_search_pattern=reference_search_pattern,
         reference_graph=_read_plot_style_value(project_root, "default_graph_page", "Graph4"),
         automation_entrypoint=_read_plot_style_value(project_root, "automation_entrypoint", "Origin.Application"),

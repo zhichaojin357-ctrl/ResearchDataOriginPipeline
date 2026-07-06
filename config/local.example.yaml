@@ -8,5 +8,5 @@ xps_heterojunction:
   bc_candidate_files: F:/课题/LL/检测/XPS/26010989730/BC-11/bc拟合后的数据.xlsx;F:/课题/LL/检测/XPS/26010989730/bc拟合后的数据.xlsx
 origin_template:
   helper_script: scripts/origin/origin_plot_from_template.ps1
-  default_reference_project: D:/OriginFlies/Manual Save/CWO+BOBC+*.opju
-  reference_search_pattern: D:/OriginFlies/Manual Save/CWO+BOBC+*.opju
+  default_reference_project: templates/origin_styles/reference_opju/XRD.opju
+  reference_search_pattern: templates/origin_styles/reference_opju/XRD.opju

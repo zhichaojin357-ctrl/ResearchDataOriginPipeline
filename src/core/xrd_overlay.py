@@ -7,7 +7,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from src.core.metadata import file_hash
@@ -34,6 +34,7 @@ XRD_SAMPLE_LEGEND_WIDTH = 1900
 XRD_SAMPLE_LEGEND_FONT = 67
 XRD_SAMPLE_LEGEND_FONT_SIZE = 26
 XRD_SAMPLE_LEGEND_COLOR = 1
+DEFAULT_XRD_REFERENCE_OPJU = Path("templates") / "origin_styles" / "reference_opju" / "XRD.opju"
 
 
 @dataclass(frozen=True)
@@ -42,7 +43,7 @@ class XrdOverlayOptions:
     bobc_source: Path
     cwo_source: Path
     cwo_card: Path
-    reference_opju: Path = Path(r"D:\OriginFlies\Manual Save\CWO+BOBC+标卡.opju")
+    reference_opju: Path = DEFAULT_XRD_REFERENCE_OPJU
     output_root: Path | None = None
     with_origin: bool = False
     timestamp: str | None = None
@@ -134,6 +135,7 @@ def parse_xrd_reference_card_peaks(path: Path) -> list[tuple[float, float]]:
 
 def run_xrd_overlay(project_root: Path, options: XrdOverlayOptions) -> dict[str, object]:
     project_root = project_root.resolve()
+    options = replace(options, reference_opju=_resolve_reference_opju(project_root, options.reference_opju))
     _validate_inputs(options)
     output_root = resolve_output_root(project_root, explicit=options.output_root)
     input_paths = [options.bicu_source, options.bobc_source, options.cwo_source, options.cwo_card]
@@ -164,8 +166,8 @@ def run_xrd_overlay(project_root: Path, options: XrdOverlayOptions) -> dict[str,
     export_status: dict[str, object] = {"ok": False, "message": "Origin export skipped by --dry-run/--no-origin."}
     if options.with_origin:
         export_status = _export_xrd_overlay_with_origin(project_root, options, table, artifacts)
-    metadata = _write_metadata(layout.root, options, table, artifacts, export_status)
-    report = _write_report(layout.root, options, table, artifacts, export_status)
+    metadata = _write_metadata(project_root, layout.root, options, table, artifacts, export_status)
+    report = _write_report(project_root, layout.root, options, table, artifacts, export_status)
     return {
         "run_root": _relative(project_root, layout.root),
         "processed_data": _relative(project_root, artifacts.processed_data),
@@ -474,6 +476,7 @@ def _export_tif_with_originpro(artifacts: XrdOverlayArtifacts) -> dict[str, obje
 
 
 def _write_metadata(
+    project_root: Path,
     run_root: Path,
     options: XrdOverlayOptions,
     table: XrdOverlayTable,
@@ -487,9 +490,9 @@ def _write_metadata(
         "processor_name": "xrd_overlay_processor",
         "processing_status": "success" if export_status.get("ok") else ("fail" if options.with_origin else "processed_no_origin"),
         "source_files": [
-            _output_display_path(run_root, options.bicu_source),
-            _output_display_path(run_root, options.bobc_source),
-            _output_display_path(run_root, options.cwo_source),
+            _output_display_path(project_root, run_root, options.bicu_source),
+            _output_display_path(project_root, run_root, options.bobc_source),
+            _output_display_path(project_root, run_root, options.cwo_source),
         ],
         "source_hashes": {
             "BiCu-10": file_hash(options.bicu_source),
@@ -501,7 +504,7 @@ def _write_metadata(
         "origin_file": _relative(run_root, artifacts.origin_file) if artifacts.origin_file.exists() else None,
         "figure_tif": _relative(run_root, artifacts.figure_tif) if artifacts.figure_tif.exists() else None,
         "preview_png": _relative(run_root, artifacts.preview_png) if artifacts.preview_png.exists() else None,
-        "origin_reference_opju": _output_display_path(run_root, options.reference_opju),
+        "origin_reference_opju": _output_display_path(project_root, run_root, options.reference_opju),
         "origin_status": _sanitize_output_value(run_root, export_status),
         "plot_type": "normalized offset XRD overlay with CuWO4 reference-card sticks",
         "manual_check_required": True,
@@ -524,6 +527,7 @@ def _write_metadata(
 
 
 def _write_report(
+    project_root: Path,
     run_root: Path,
     options: XrdOverlayOptions,
     table: XrdOverlayTable,
@@ -538,8 +542,8 @@ def _write_report(
         f"- Origin OPJU: `{_relative(run_root, artifacts.origin_file) if artifacts.origin_file.exists() else 'not exported'}`",
         f"- TIF: `{_relative(run_root, artifacts.figure_tif) if artifacts.figure_tif.exists() else 'not exported'}`",
         f"- PNG preview: `{_relative(run_root, artifacts.preview_png) if artifacts.preview_png.exists() else 'not exported'}`",
-        f"- Reference OPJU: `{_output_display_path(run_root, options.reference_opju)}`",
-        f"- CWO reference card: `{_output_display_path(run_root, options.cwo_card)}`",
+        f"- Reference OPJU: `{_output_display_path(project_root, run_root, options.reference_opju)}`",
+        f"- CWO reference card: `{_output_display_path(project_root, run_root, options.cwo_card)}`",
         "",
         "## Series",
         "",
@@ -570,6 +574,10 @@ def _validate_inputs(options: XrdOverlayOptions) -> None:
             raise FileNotFoundError(f"{label} does not exist or is not a file: {path}")
     if options.with_origin and (not options.reference_opju.exists() or not options.reference_opju.is_file()):
         raise FileNotFoundError(f"reference_opju does not exist or is not a file: {options.reference_opju}")
+
+
+def _resolve_reference_opju(project_root: Path, reference_opju: Path) -> Path:
+    return reference_opju if reference_opju.is_absolute() else (project_root / reference_opju).resolve()
 
 
 def _numeric_xy_points(rows: list[list[float]]) -> list[tuple[float, float]]:
@@ -706,8 +714,8 @@ def _relative(root: Path, path: Path) -> str:
         return str(path)
 
 
-def _output_display_path(run_root: Path, path: Path) -> str:
-    rendered = render_output_path(path, output_root=run_root)
+def _output_display_path(project_root: Path, run_root: Path, path: Path) -> str:
+    rendered = render_output_path(path, project_root=project_root, output_root=run_root)
     return rendered or Path(path).name
 
 

@@ -126,6 +126,34 @@ def test_run_xrd_overlay_dry_run_does_not_require_reference_opju(tmp_path: Path)
     assert metadata["origin_reference_opju"].endswith("missing_reference.opju")
 
 
+def test_run_xrd_overlay_defaults_to_project_local_reference_opju(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    reference = project_root / "templates" / "origin_styles" / "reference_opju" / "XRD.opju"
+    reference.parent.mkdir(parents=True)
+    reference.write_bytes(b"opju")
+    bicu = _write_raw4(tmp_path / "BOBCshuirecwo.txt", [(5.0, 10.0), (6.0, 20.0)])
+    bobc = _write_raw4(tmp_path / "BOBCshuire.txt", [(5.0, 6.0), (6.0, 12.0)])
+    cwo = _write_raw4(tmp_path / "cwo.txt", [(5.0, 4.0), (6.0, 8.0)])
+    card = tmp_path / "CWO PDF#04-009-6293.txt"
+    card.write_text("5.0 x 100\n6.0 x 50\n", encoding="utf-8")
+
+    result = run_xrd_overlay(
+        project_root,
+        XrdOverlayOptions(
+            bicu_source=bicu,
+            bobc_source=bobc,
+            cwo_source=cwo,
+            cwo_card=card,
+            output_root=project_root / "output",
+            with_origin=False,
+            timestamp="20260610_120002",
+        ),
+    )
+
+    metadata = json.loads((project_root / result["metadata"]).read_text(encoding="utf-8"))
+    assert metadata["origin_reference_opju"] == "templates/origin_styles/reference_opju/XRD.opju"
+
+
 def test_xrd_overlay_cli_parses_required_sources(tmp_path: Path) -> None:
     bicu = _write_raw4(tmp_path / "BOBCshuirecwo.txt", [(5.0, 10.0), (6.0, 20.0)])
     bobc = _write_raw4(tmp_path / "BOBCshuire.txt", [(5.0, 6.0), (6.0, 12.0)])

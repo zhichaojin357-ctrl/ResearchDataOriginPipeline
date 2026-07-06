@@ -35,3 +35,11 @@ def test_origin_helper_stdout_uses_leaf_names_for_generated_artifacts() -> None:
     assert 'Write-Output ("EXPORT_DIR=" + (Split-Path -Leaf $ExportDir))' in text
     assert 'Write-Output ("REFERENCE=" + (Split-Path -Leaf $ReferenceOpju))' in text
     assert "CodexOrigin" not in text
+
+
+def test_origin_helper_defaults_to_project_local_reference_opju() -> None:
+    text = _helper_text()
+
+    assert "D:\\OriginFlies\\Manual Save" not in text
+    assert "CWO+BOBC+*.opju" not in text
+    assert "templates\\origin_styles\\reference_opju\\XRD.opju" in text

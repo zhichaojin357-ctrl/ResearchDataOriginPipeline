@@ -19,7 +19,7 @@ from src.core.runtime_paths import resolve_output_root
 from src.core.template_format_executor import TemplateFormatExecutorOptions, run_template_format_executor
 from src.core.triage import TriageOptions, run_triage
 from src.core.validate import validate
-from src.core.xrd_overlay import XrdOverlayOptions, run_xrd_overlay
+from src.core.xrd_overlay import DEFAULT_XRD_REFERENCE_OPJU, XrdOverlayOptions, run_xrd_overlay
 from src.core.xrd_no_card_overlay import XrdNoCardOverlayOptions, discover_xrd_text_sources, run_xrd_no_card_overlay
 from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
 from src.origin.adapter import origin_smoke_test
@@ -180,8 +180,8 @@ def build_parser() -> argparse.ArgumentParser:
     xrd_overlay.add_argument(
         "--reference-opju",
         type=Path,
-        default=Path(r"D:\OriginFlies\Manual Save\CWO+BOBC+标卡.opju"),
-        help="Origin OPJU reference whose Graph4 style is used",
+        default=DEFAULT_XRD_REFERENCE_OPJU,
+        help="Origin OPJU reference whose Graph4 style is used; defaults to the project-local XRD template asset",
     )
     xrd_overlay.add_argument("--output-root", type=Path, help="optional output root; defaults to configured output root")
     xrd_origin = xrd_overlay.add_mutually_exclusive_group()

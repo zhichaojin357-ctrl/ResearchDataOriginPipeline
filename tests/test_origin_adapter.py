@@ -413,6 +413,33 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             self.assertIn("PNG preview was not exported", script)
             self.assertNotIn("expGraph type:=tif", script)
 
+    def test_origin_reference_pattern_resolves_relative_to_project_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            config = project_root / "config"
+            config.mkdir()
+            (config / "plot_style.yaml").write_text(
+                "\n".join(
+                    [
+                        "line_width: 3",
+                        "axis_line_width: 3",
+                        "origin_template:",
+                        "  refresh_reference_style: true",
+                        "  reference_search_pattern: templates/origin_styles/reference_opju/XRD.opju",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            reference = project_root / "templates" / "origin_styles" / "reference_opju" / "XRD.opju"
+            reference.parent.mkdir(parents=True)
+            reference.write_text("placeholder", encoding="utf-8")
+            data = project_root / "processed.csv"
+            data.write_text("x,Sample A\n0,1\n", encoding="utf-8")
+
+            job = build_origin_plot_job(project_root, "XRD sample", data, "2theta", "Intensity", "XRD")
+
+            self.assertEqual(job.reference_opju, reference)
+
     def test_origin_page_name_includes_stable_hash_within_origin_short_name_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = _temp_project(tmpdir)
