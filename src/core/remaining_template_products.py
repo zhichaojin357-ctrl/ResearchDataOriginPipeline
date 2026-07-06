@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from src.core.opju_product_pilot import (
+from src.core.template_product_common import (
     ProductContext,
     TargetPairing,
     build_default_root_map,
@@ -362,7 +362,7 @@ def _write_remaining_reports(
         "visible_label_audit": label_audit,
         "previous_completed_run_id": previous_run_root.name if previous_run_root else "",
     }
-    (reports / "remaining_opju_product_drafts_summary.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    (reports / "remaining_template_products_summary.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     _write_final_summary(run_root, products, failures, skipped, with_origin, label_audit, previous_run_root)
     _write_manual_review_checklist(run_root, products, failures, skipped, previous_run_root)
     _write_per_type_status(run_root, products, failures, skipped)

@@ -6,6 +6,7 @@ __pycache__/
 # Local Codex/session state
 .codex/
 .agents/
+docs/agent_reports/
 config/local.yaml
 config/*.local.yaml
 
@@ -33,6 +34,7 @@ output/final_locked_results/
 output/hplc_calibration_origin*/
 output/hplc_template_inspect*/
 output/requests/
+output/diagnostics/
 outputs/
 
 # Keep lightweight review/report outputs versioned
@@ -62,6 +64,7 @@ output/reports/pending_cleanup_candidates.md
 output/reports/processing_*.md
 output/reports/readiness_report*.md
 output/reports/traceability_groups.md
+output/reports/triage_index.md
 output/reports/validation_report.md
 output/reports/phase1_*.md
 output/reports/bet_*.md

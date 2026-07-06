@@ -387,6 +387,7 @@
         ".xlsx",
         ".xls",
         ".dat",
+        ".dpt",
         ".spc"
       ],
       "header_keywords": [],

@@ -267,7 +267,7 @@ class JeolEprDecodeTest(unittest.TestCase):
             self.assertEqual(len(x_values), DEFAULT_EXPORT_POINTS)
             self.assertEqual(y_values[0], 7.5)
 
-    def test_one_off_reference_verifier_cleans_decoded_test_outputs(self):
+    def test_validation_reference_verifier_cleans_decoded_test_outputs(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             source_root = root / "raw"
@@ -280,7 +280,7 @@ class JeolEprDecodeTest(unittest.TestCase):
             report_json = root / "report.json"
             report_md = root / "report.md"
 
-            script = Path(__file__).resolve().parents[1] / "scripts" / "one_off" / "verify_jeol_epr_decode_against_exports.py"
+            script = Path(__file__).resolve().parents[1] / "scripts" / "validation" / "verify_jeol_epr_decode_against_exports.py"
             spec = importlib.util.spec_from_file_location("verify_jeol_epr_decode_against_exports", script)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)

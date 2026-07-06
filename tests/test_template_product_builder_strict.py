@@ -6,7 +6,7 @@ from pathlib import Path
 from openpyxl import Workbook
 from PIL import Image
 
-from src.core.opju_product_pilot import _xps_records_to_offset_table
+from src.core.template_product_common import _xps_records_to_offset_table
 from src.core.template_product_builder import (
     _apply_template_xps_component_fill,
     _apply_template_xps_peak_annotations,
@@ -26,6 +26,7 @@ from src.core.template_product_builder import (
     _select_template_xps_template_for_product,
     _strict_style_readback,
     _template_origin_processing_script,
+    _template_plot_count,
     _template_strict_visual_reasons,
     _template_epr_origin_processing_script,
     _write_template_identity_origin_processing_plan,
@@ -39,7 +40,7 @@ from src.core.template_product_builder import (
     _write_template_preview_comparison,
     template_xps_component_fill_pairs,
 )
-from src.core.opju_product_pilot import ProductContext, TargetPairing
+from src.core.template_product_common import ProductContext, TargetPairing
 from src.core.xps_heterojunction import XpsFitRecord
 from src.origin.style_mimic import OpjuStyleSnapshot
 from src.origin.user_style import ResolvedPlotStyle
@@ -575,8 +576,8 @@ def test_template_simple_types_write_origin_processing_plan(tmp_path: Path) -> N
         [[10.0, 100.0], [11.0, 120.0]],
     )
 
-    raw_input = Path(plan["raw_origin_input_csv"])
     plan_path = tmp_path / "XRD" / "metadata" / "origin_processing_plan.json"
+    raw_input = (plan_path.parent / Path(plan["raw_origin_input_csv"])).resolve()
     script = _template_origin_processing_script("XRDBook", int(plan["raw_column_count"]), list(plan["transforms"]))
 
     assert plan["processing_location"] == "Origin workbook LabTalk after raw data import"
@@ -664,9 +665,12 @@ def test_template_epr_uses_template_group_overlay_not_single_seed_file(tmp_path:
         "BOBC-OH-light1.xlsx",
     ]
     assert "BC-O3-dark.xlsx" not in ",".join(overlay["input_files"])
-    assert Path(overlay["raw_origin_input_csv"]).parent == tmp_path / "EPR" / "processed_data"
-    assert Path(overlay["raw_origin_input_csv"]).exists()
-    assert Path(overlay["final_product_processed_csv"]).parent == tmp_path / "EPR" / "processed_data"
+    plan_path = tmp_path / "EPR" / "metadata" / "epr_origin_processing_plan.json"
+    raw_input = (plan_path.parent / Path(overlay["raw_origin_input_csv"])).resolve()
+    assert raw_input.parent == tmp_path / "EPR" / "processed_data"
+    assert raw_input.exists()
+    final_csv = (plan_path.parent / Path(overlay["final_product_processed_csv"])).resolve()
+    assert final_csv.parent == tmp_path / "EPR" / "processed_data"
 
 
 def test_template_epr_origin_processing_script_uses_origin_median_and_smooth() -> None:
@@ -784,6 +788,42 @@ def test_strict_preview_accepts_low_rms_plot_count_readback_delta_as_nonblocking
     assert reasons == []
 
 
+def test_strict_preview_records_high_rms_as_nonblocking_when_style_and_plot_count_match() -> None:
+    reasons = _template_strict_visual_reasons(
+        ready=True,
+        plot_count_delta=0,
+        style_match_ratio=0.98,
+        preview_rms=61.0,
+    )
+
+    assert reasons == []
+
+
+def test_strict_preview_accepts_text_only_legend_delta_when_plot_count_matches() -> None:
+    reasons = _template_strict_visual_reasons(
+        ready=True,
+        plot_count_delta=0,
+        style_match_ratio=0.88,
+        preview_rms=57.7,
+        text_only_legend=True,
+    )
+
+    assert reasons == []
+
+
+def test_template_plot_count_uses_visible_template_count_not_available_source_series() -> None:
+    metadata = {
+        "template_plot_count": 3,
+        "extra": {
+            "template_data_alignment": {
+                "visual_template_plot_count": 5,
+            }
+        },
+    }
+
+    assert _template_plot_count({}, metadata) == 3
+
+
 def test_template_axis_titles_are_explicitly_shown() -> None:
     ops = _FakeOriginOps()
 
@@ -848,7 +888,7 @@ def test_template_xps_y_axis_title_overlay_uses_rotated_named_label(tmp_path: Pa
         preview_png=tmp_path / "product.png",
         x_label="Binding Energy (eV)",
         y_label="Intensity (a.u.)",
-        graph_title="XPS non-in-situ Bi pilot",
+        graph_title="XPS non-in-situ Bi exemplar",
         plot_type="line",
         x_descending=True,
     )
@@ -878,7 +918,7 @@ def test_template_xps_peak_annotations_use_current_peak_positions(tmp_path: Path
         encoding="utf-8",
     )
 
-    annotations = _xps_peak_annotations_from_processed_data(processed, product_title="XPS in-situ Bi pilot")
+    annotations = _xps_peak_annotations_from_processed_data(processed, product_title="XPS in-situ Bi exemplar")
 
     assert [item["text"] for item in annotations] == ["Bi 4f5/2 165.00 eV", "Bi 4f7/2 160.00 eV"]
     assert annotations[0]["x"] == 165.0
@@ -904,7 +944,7 @@ def test_template_xps_peak_annotations_emit_origin_labels(tmp_path: Path) -> Non
         ops,
         "Graph1",
         processed,
-        product_title="XPS in-situ Bi pilot",
+        product_title="XPS in-situ Bi exemplar",
         style=ResolvedPlotStyle(title_font_size=18),
     )
 
@@ -918,8 +958,8 @@ def test_template_xps_peak_annotations_emit_origin_labels(tmp_path: Path) -> Non
 
 
 def test_template_prefers_xps_template_graph_matching_product_element() -> None:
-    assert _preferred_template_xps_graph_name("XPS non-in-situ Bi pilot", ["Br_3d", "Bi_4f", "Cl_2p"]) == "Bi_4f"
-    assert _preferred_template_xps_graph_name("XPS in-situ W pilot", ["Cu_2p", "W_4f"]) == "W_4f"
+    assert _preferred_template_xps_graph_name("XPS non-in-situ Bi exemplar", ["Br_3d", "Bi_4f", "Cl_2p"]) == "Bi_4f"
+    assert _preferred_template_xps_graph_name("XPS in-situ W exemplar", ["Cu_2p", "W_4f"]) == "W_4f"
 
 
 def test_template_selects_xps_reference_opju_containing_matching_graph(tmp_path: Path) -> None:
@@ -938,7 +978,7 @@ def test_template_selects_xps_reference_opju_containing_matching_graph(tmp_path:
         preview_png=tmp_path / "out.png",
         x_label="Binding Energy (eV)",
         y_label="Intensity (a.u.)",
-        graph_title="XPS in-situ Bi pilot",
+        graph_title="XPS in-situ Bi exemplar",
         plot_type="line",
         x_descending=True,
     )

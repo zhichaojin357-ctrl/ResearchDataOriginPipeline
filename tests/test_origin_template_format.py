@@ -81,6 +81,22 @@ def test_template_format_plan_blocks_without_opju_or_style_package(tmp_path: Pat
     assert "No OPJU exemplar or saved style package" in "; ".join(plan.warnings)
 
 
+def test_template_format_plan_can_use_embedded_snapshot_without_opju(tmp_path: Path) -> None:
+    plan = build_template_format_plan(
+        "EPR",
+        opju_path=tmp_path / "missing.opju",
+        graph_page="EPR0519OH",
+        embedded_snapshot_available=True,
+    )
+
+    assert plan.status == "ready"
+    assert plan.mode == "embedded_template_snapshot"
+    assert plan.can_execute is True
+    assert plan.graph_page == "EPR0519OH"
+    assert plan.plot_intent["origin_template_or_format_source_required"] is False
+    assert "embedded Origin template snapshot" in "; ".join(plan.warnings)
+
+
 def test_parse_origin_dataset_name_handles_book_column_tokens() -> None:
     assert parse_origin_dataset_name("Book8_B") == ("Book8", 1)
     assert parse_origin_dataset_name("Book10_AA") == ("Book10", 26)
@@ -100,6 +116,26 @@ def test_template_dataset_updates_map_processed_columns_to_template_workbooks() 
     assert updates.workbook_columns["Book1"][0] == [0.0, 1.0]
     assert updates.workbook_columns["Book1"][1] == [10.0, 11.0]
     assert updates.workbook_columns["Book1"][2] == [20.0, 21.0]
+
+
+def test_template_dataset_updates_can_replace_paired_xy_columns() -> None:
+    headers = ["x", "sample_a", "sample_b", "sample_c"]
+    rows = [[5.0, 10.0, 20.0, 30.0], [6.0, 11.0, 21.0, 31.0]]
+
+    updates = build_template_dataset_updates(
+        ["Book2_B", "Book2_D", "Book3_F"],
+        headers,
+        rows,
+        paired_xy_columns=True,
+    )
+
+    assert updates.status == "ready"
+    assert updates.workbook_columns["Book2"][0] == [5.0, 6.0]
+    assert updates.workbook_columns["Book2"][1] == [10.0, 11.0]
+    assert updates.workbook_columns["Book2"][2] == [5.0, 6.0]
+    assert updates.workbook_columns["Book2"][3] == [20.0, 21.0]
+    assert updates.workbook_columns["Book3"][4] == [5.0, 6.0]
+    assert updates.workbook_columns["Book3"][5] == [30.0, 31.0]
 
 
 def test_template_dataset_updates_report_duplicate_dataset_references() -> None:

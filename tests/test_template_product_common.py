@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 from openpyxl import Workbook
 
-from src.core.opju_product_pilot import (
+from src.core.template_product_common import (
     ProductContext,
     TargetPairing,
     _build_processed_plot_table,
@@ -103,7 +103,7 @@ def test_export_product_with_origin_creates_output_parents_before_saving(tmp_pat
         legend_entries=["measured"],
     )
     fake = _FakeOriginOps()
-    monkeypatch.setattr("src.core.opju_product_pilot.connect_origin", lambda **_kwargs: fake)
+    monkeypatch.setattr("src.core.template_product_common.connect_origin", lambda **_kwargs: fake)
 
     result = export_product_with_origin(product)
 

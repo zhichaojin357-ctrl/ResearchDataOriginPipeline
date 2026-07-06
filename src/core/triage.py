@@ -26,7 +26,7 @@ DECISIONS = (
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".gif", ".webp"}
 DOC_EXTENSIONS = {".pdf", ".doc", ".docx", ".ppt", ".pptx", ".caj", ".ris", ".bib", ".enw", ".enl"}
-TABLE_EXTENSIONS = {".csv", ".txt", ".tsv", ".xlsx", ".xls", ".xlsm", ".dat", ".xy", ".z", ".mpt"}
+TABLE_EXTENSIONS = {".csv", ".txt", ".tsv", ".xlsx", ".xls", ".xlsm", ".dat", ".dpt", ".xy", ".z", ".mpt"}
 ORIGIN_PROJECT_EXTENSIONS = {".opju", ".opj", ".ogwu", ".ogw", ".otpu"}
 BACKUP_PATTERNS = ("backup", "copy", "old", "temp", "tmp", "bak", "备份", "副本", "复件", "旧", "临时")
 TRACEABILITY_ROLE_FOLDERS = {

@@ -9,7 +9,7 @@ from src.core.epr_jeol import export_jeol_cwesr_to_xlsx
 from src.core.epr_overlay import EprOverlayOptions, run_epr_overlay
 from src.core.manifest_normalizer import normalize_material_collection_manifest
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
-from src.core.origin_style_assets import export_origin_style_assets
+from src.core.origin_style_assets import export_origin_style_assets, run_origin_style_asset_replay
 from src.core.origin_governance import DEFAULT_ORIGIN_SKILL_DIR, run_origin_governance
 from src.core.process import ProcessOptions, run_process
 from src.core.project import configured_path, load_project_config
@@ -20,6 +20,7 @@ from src.core.template_format_executor import TemplateFormatExecutorOptions, run
 from src.core.triage import TriageOptions, run_triage
 from src.core.validate import validate
 from src.core.xrd_overlay import XrdOverlayOptions, run_xrd_overlay
+from src.core.xrd_no_card_overlay import XrdNoCardOverlayOptions, discover_xrd_text_sources, run_xrd_no_card_overlay
 from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
 from src.origin.adapter import origin_smoke_test
 from src.scanner.scanner import scan_raw_data
@@ -81,14 +82,30 @@ def build_parser() -> argparse.ArgumentParser:
     template_format.add_argument("--xps-reference-template-root", type=Path, help="XPS OPJU/OPJ reference root")
     template_format.add_argument("--xps-non-in-situ-template-root", type=Path, help="optional non-in-situ stacked XPS OPJU template root")
     template_format.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
+    template_format.add_argument("--exemplar-driven", action="store_true", help="use the OPJU selected in the pairing plan for each data type instead of project-local .oth style assets")
+    template_format.add_argument("--compact-output", action="store_true", help="write deliverables under products/<type> with minimal top-level output folders")
+    template_format.add_argument("--only-type", help="run template-format generation for one product type first, for example XRD")
 
     origin_style_assets = subparsers.add_parser(
         "export-origin-style-assets",
-        help="export project-local Origin .oth format themes from an accepted template-format product run",
+        help="export project-local Origin .oth format themes and .otpu graph templates",
     )
-    origin_style_assets.add_argument("--run-root", type=Path, required=True, help="accepted template-format run root to harvest")
+    origin_style_assets.add_argument("--run-root", type=Path, help="accepted template-format run root to harvest")
+    origin_style_assets.add_argument("--template-plan", type=Path, help="JSON plan with multiple template OPJU items to harvest")
+    origin_style_assets.add_argument("--template-opju", type=Path, help="single OPJU/OPJ template to harvest directly")
+    origin_style_assets.add_argument("--product-key", help="product key for --template-opju, for example XRD")
+    origin_style_assets.add_argument("--data-type", help="data type label for --template-opju; defaults to --product-key")
+    origin_style_assets.add_argument("--graph-page", help="graph page to save from --template-opju, for example Graph4")
     origin_style_assets.add_argument("--asset-root", type=Path, help="style asset root; defaults to templates/origin_styles")
     origin_style_assets.add_argument("--with-origin", action="store_true", help="launch isolated Origin and create .oth files")
+
+    origin_style_replay = subparsers.add_parser(
+        "origin-style-asset-replay",
+        help="export source-template and project-local asset graph previews and compare them pixel-by-pixel",
+    )
+    origin_style_replay.add_argument("--template-plan", type=Path, required=True, help="JSON plan with template OPJU items")
+    origin_style_replay.add_argument("--output-dir", type=Path, required=True, help="single output folder for replay products")
+    origin_style_replay.add_argument("--with-origin", action="store_true", help="launch isolated Origin and export comparison products")
 
     origin_batch = subparsers.add_parser(
         "origin-batch",
@@ -171,6 +188,22 @@ def build_parser() -> argparse.ArgumentParser:
     xrd_origin.add_argument("--dry-run", action="store_true", help="write processed table, metadata, and report without launching Origin")
     xrd_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF/PNG")
     xrd_overlay.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+
+    xrd_no_card = subparsers.add_parser(
+        "xrd-no-card-overlay",
+        help="build a user-reviewed no-card XRD overlay from one directory or explicit XRD text sources",
+    )
+    xrd_no_card.add_argument("--input-dir", type=Path, help="directory containing XRD TXT/CSV/DAT/XY sources")
+    xrd_no_card.add_argument("--source", type=Path, action="append", default=[], help="explicit XRD source file; repeat for multiple curves")
+    xrd_no_card.add_argument("--labels", nargs="*", help="direct labels for sources; defaults to source stems")
+    xrd_no_card.add_argument("--output-root", type=Path, help="optional output root; defaults to configured output root")
+    xrd_no_card.add_argument("--output-stem", default="XRD_BOBXC1_X_no_card_overlay")
+    xrd_no_card.add_argument("--reference-opju", type=Path, help="optional Origin OPJU reference whose Graph4 style is inspected")
+    xrd_no_card.add_argument("--reference-graph", default="Graph4")
+    xrd_no_card_origin = xrd_no_card.add_mutually_exclusive_group()
+    xrd_no_card_origin.add_argument("--dry-run", action="store_true", help="write processed table, metadata, and report without launching Origin")
+    xrd_no_card_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF/PNG")
+    xrd_no_card.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
 
     jeol_epr = subparsers.add_parser(
         "jeol-epr-decode",
@@ -298,6 +331,9 @@ def main(argv: list[str] | None = None) -> int:
                 xps_reference_template_root=args.xps_reference_template_root,
                 xps_non_in_situ_template_root=args.xps_non_in_situ_template_root,
                 user_style_path=args.user_style,
+                exemplar_driven=bool(args.exemplar_driven),
+                compact_output=bool(args.compact_output),
+                only_type=args.only_type,
             ),
         )
         print(f"run_root={result['run_root']}")
@@ -307,13 +343,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"failed_count={result['summary']['failed_count']}")
         summary = result["summary"]
         accepted_count = int(summary.get("accepted_count", summary.get("success_count", 0)) or 0)
-        return 0 if summary["product_count"] == 11 and accepted_count == 11 and summary["blocked_count"] == 0 and summary["failed_count"] == 0 else 1
+        required_count = int(summary.get("required_product_count", 11) or 11)
+        return 0 if summary["product_count"] == required_count and accepted_count == required_count and summary["blocked_count"] == 0 and summary["failed_count"] == 0 else 1
     if args.command == "export-origin-style-assets":
         result = export_origin_style_assets(
             project_root,
             args.run_root,
             asset_root=args.asset_root,
             with_origin=bool(args.with_origin),
+            template_plan=args.template_plan,
+            template_opju=args.template_opju,
+            product_key=args.product_key,
+            data_type=args.data_type,
+            graph_page=args.graph_page,
         )
         print(f"asset_root={result['asset_root']}")
         print(f"manifest={result['manifest']}")
@@ -321,6 +363,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"exported_count={result['exported_count']}")
         print(f"failure_count={result['failure_count']}")
         return 0 if result["planned_count"] > 0 and result["planned_count"] == result["exported_count"] and result["failure_count"] == 0 else 1
+    if args.command == "origin-style-asset-replay":
+        output_dir = args.output_dir if args.output_dir.is_absolute() else project_root / args.output_dir
+        result = run_origin_style_asset_replay(
+            project_root,
+            args.template_plan if args.template_plan.is_absolute() else project_root / args.template_plan,
+            output_dir,
+            with_origin=bool(args.with_origin),
+        )
+        print(f"output_dir={result['output_dir']}")
+        print(f"planned_count={result['planned_count']}")
+        print(f"compared_count={result['compared_count']}")
+        print(f"failure_count={result['failure_count']}")
+        return 0 if result["planned_count"] > 0 and result["planned_count"] == result["compared_count"] and result["failure_count"] == 0 else 1
     if args.command == "origin-batch":
         return run_origin_batch(
             project_root,
@@ -410,6 +465,32 @@ def main(argv: list[str] | None = None) -> int:
                 output_root=_resolve_cli_output_root(project_root, args),
                 with_origin=bool(args.with_origin),
                 timestamp=args.timestamp,
+            ),
+        )
+        print(f"run_root={result['run_root']}")
+        print(f"processed_data={result['processed_data']}")
+        print(f"metadata={result['metadata']}")
+        print(f"origin_file={result['origin_file']}")
+        print(f"figure_tif={result['figure_tif']}")
+        print(f"preview_png={result['preview_png']}")
+        return 0 if (not args.with_origin or bool(result["origin_status"].get("ok"))) else 1
+    if args.command == "xrd-no-card-overlay":
+        sources = list(args.source or [])
+        if args.input_dir is not None:
+            sources.extend(discover_xrd_text_sources(args.input_dir))
+        if not sources:
+            raise ValueError("xrd-no-card-overlay requires --input-dir or at least one --source")
+        result = run_xrd_no_card_overlay(
+            project_root,
+            XrdNoCardOverlayOptions(
+                sources=tuple(sources),
+                labels=tuple(args.labels or ()),
+                output_root=_resolve_cli_output_root(project_root, args),
+                with_origin=bool(args.with_origin),
+                timestamp=args.timestamp,
+                output_stem=args.output_stem,
+                reference_opju=args.reference_opju,
+                reference_graph=args.reference_graph,
             ),
         )
         print(f"run_root={result['run_root']}")

@@ -30,13 +30,17 @@ def ensure_write_path_allowed(project_root: Path, path: Path, *, output_root: Pa
     resolved_project = project_root.resolve()
     resolved_path = path.resolve()
     resolved_default_output = default_output_root(project_root)
+    resolved_project_output = (resolved_project / "output").resolve()
     allowed_roots = [
         resolved_default_output,
     ]
     if output_root is not None:
         resolved_output_root = output_root if output_root.is_absolute() else resolved_project / output_root
         resolved_output_root = resolved_output_root.resolve()
-        if _is_under_or_equal(resolved_output_root, resolved_project):
+        if _is_under_or_equal(resolved_output_root, resolved_project) and not _is_under_or_equal(
+            resolved_output_root,
+            resolved_project_output,
+        ):
             raise ValueError(f"Refusing to write runtime outputs inside project tree: {output_root}")
         allowed_roots.append(resolved_output_root)
     if not any(_is_under_or_equal(resolved_path, root) for root in allowed_roots):

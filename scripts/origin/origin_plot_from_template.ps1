@@ -28,7 +28,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$AxisTitleFont = 67
+$AxisTitleFont = 71
 $AxisTitleSize = 36
 
 function To-OriginPath([string]$Path) {
@@ -199,9 +199,9 @@ function Test-ChemicalFormulaToken([string]$Token) {
   if ([string]::IsNullOrWhiteSpace($Token)) { return $false }
   if ($Token -match '\\-\(') { return $false }
   if ($Token -notmatch '\d') { return $false }
-  if ($Token -notmatch '[A-Z]') { return $false }
-  if ($Token -match '\d+[a-z]') { return $false }
-  if ($Token -match '^(XRD|XPS|EPR|FTIR|PL|Raman)\d*$') { return $false }
+  if ($Token -cnotmatch '[A-Z]') { return $false }
+  if ($Token -cmatch '\d+[a-z]') { return $false }
+  if ($Token -cmatch '^(XRD|XPS|EPR|FTIR|PL|Raman)\d*$') { return $false }
   return $true
 }
 
@@ -216,10 +216,14 @@ function Format-ChemicalFormulaSubscripts([string]$Text) {
   })
 }
 
-function New-LegendText([array]$Labels) {
+function New-LegendText([array]$Labels, [bool]$IncludeLineSamples = $true) {
   $rows = New-Object System.Collections.Generic.List[string]
   for ($i = 0; $i -lt $Labels.Count; $i++) {
-    $rows.Add('\l(' + ($i + 1) + ')\b( ' + (Format-LegendLabel $Labels[$i]) + ')')
+    if ($IncludeLineSamples) {
+      $rows.Add('\l(' + ($i + 1) + ')\b( ' + (Format-LegendLabel $Labels[$i]) + ')')
+    } else {
+      $rows.Add('\b(' + (Format-LegendLabel $Labels[$i]) + ')')
+    }
   }
   return ($rows -join "`r`n`r`n")
 }
@@ -289,7 +293,7 @@ function Add-DirectCurveLabels($app, [string]$PageName, [array]$Labels, $Style, 
       $xValue = [string]$labelX
       $yValue = [string]([double]($labelY + $yLabelOffset))
       $app.Execute('label -r ' + $safeName + ';') | Out-Null
-      $app.Execute('label -n ' + $safeName + ' "' + $escaped + '"; ' + $safeName + '.x=' + $xValue + '; ' + $safeName + '.y=' + $yValue + '; ' + $safeName + '.font=67; ' + $safeName + '.fsize=' + $Style.LegendSize + '; ' + $safeName + '.bold=1; ' + $safeName + '.color=' + $Style.TextColor + ';') | Out-Null
+      $app.Execute('label -n ' + $safeName + ' "' + $escaped + '"; ' + $safeName + '.x=' + $xValue + '; ' + $safeName + '.y=' + $yValue + '; ' + $safeName + '.font=' + $Style.LegendFont + '; ' + $safeName + '.fsize=' + $Style.LegendSize + '; ' + $safeName + '.bold=1; ' + $safeName + '.color=' + $Style.TextColor + ';') | Out-Null
     } catch {}
   }
 }
@@ -324,8 +328,8 @@ function New-CachedGraph4Style {
     YTo = 19000.0
     YStep = 5000.0
     AxisThickness = 3.0
-    XLabelFont = 67
-    YLabelFont = 67
+    XLabelFont = 71
+    YLabelFont = 71
     XLabelSize = 28.0
     YLabelSize = 36.0
     XTicks = 2
@@ -339,7 +343,7 @@ function New-CachedGraph4Style {
     LegendTop = 827
     LegendWidth = 1800
     LegendHeight = 893
-    LegendFont = 67
+    LegendFont = 71
     LegendSize = 26.0
     # Okabe-Ito inspired, colorblind-accessible Origin OColor values from color(r,g,b).
     # Order avoids relying on red/green alone and keeps black available for the 8th trace.
@@ -393,19 +397,19 @@ function Get-ReferenceStyle($app, [string]$PageName) {
     LegendTop = [int]($pageHeight * 0.15)
     LegendWidth = [int]($pageWidth * 0.28)
     LegendHeight = [int]($pageHeight * 0.18)
-    LegendFont = 67
+    LegendFont = 71
     LegendSize = 26
     Palette = @()
   }
 
   if ($xb) {
     try { $style.TextColor = [double]$xb.GetNumProp('color') } catch {}
+    try { $style.XTitleFont = [int]$xb.GetNumProp('font') } catch {}
   }
   if ($yl) {
     try { $style.TextColor = [double]$yl.GetNumProp('color') } catch {}
+    try { $style.YTitleFont = [int]$yl.GetNumProp('font') } catch {}
   }
-  $style.XTitleFont = $AxisTitleFont
-  $style.YTitleFont = $AxisTitleFont
   $style.XTitleSize = $AxisTitleSize
   $style.YTitleSize = $AxisTitleSize
   if ($legend) {
@@ -504,7 +508,7 @@ function Apply-ReferenceStyle($app, [string]$PageName, [array]$Labels, $Style, $
   $app.Execute('page.kar=0; page.width=' + $Style.PageWidth + '; page.height=' + $Style.PageHeight + '; page.customwidth=1; page.customheight=1;') | Out-Null
   $app.Execute('layer.left=' + $Style.LayerLeft + '; layer.top=' + $Style.LayerTop + '; layer.width=' + $Style.LayerWidth + '; layer.height=' + $Style.LayerHeight + ';') | Out-Null
   $app.Execute('layer.x.thickness=' + $Style.AxisThickness + '; layer.y.thickness=' + $Style.AxisThickness + ';') | Out-Null
-  $app.Execute('layer.x.label.font=67; layer.y.label.font=67; layer.x.label.bold=1; layer.y.label.bold=1;') | Out-Null
+  $app.Execute('layer.x.label.font=' + $Style.XLabelFont + '; layer.y.label.font=' + $Style.YLabelFont + '; layer.x.label.bold=1; layer.y.label.bold=1;') | Out-Null
   $app.Execute('layer.x.label.pt=' + $Style.XLabelSize + '; layer.y.label.pt=' + $Style.YLabelSize + ';') | Out-Null
   $app.Execute('layer.x.ticks=' + $Style.XTicks + '; layer.y.ticks=' + $Style.YTicks + ';') | Out-Null
 
@@ -533,12 +537,12 @@ function Apply-ReferenceStyle($app, [string]$PageName, [array]$Labels, $Style, $
   if ($xb) {
     $xTitle = Get-GroupValue $Group 'XTitle' $null
     if ($xTitle) { $xb.Text = Format-BoldText ([string]$xTitle) } else { $xb.Text = Format-BoldText $xb.Text }
-    Set-GraphObjectFormat $xb $AxisTitleFont $AxisTitleSize $Style.TextColor
+    Set-GraphObjectFormat $xb $Style.XTitleFont $AxisTitleSize $Style.TextColor
   }
   if ($yl) {
     $yTitle = Get-GroupValue $Group 'YTitle' $null
     if ($yTitle) { $yl.Text = Format-BoldText ([string]$yTitle) } else { $yl.Text = Format-BoldText $yl.Text }
-    Set-GraphObjectFormat $yl $AxisTitleFont $AxisTitleSize $Style.TextColor
+    Set-GraphObjectFormat $yl $Style.YTitleFont $AxisTitleSize $Style.TextColor
     # Keep the fixed Graph4 layer geometry, but prevent the bold 36 pt Y title
     # from falling outside the export page on large negative tick ranges.
     try {
@@ -552,12 +556,13 @@ function Apply-ReferenceStyle($app, [string]$PageName, [array]$Labels, $Style, $
     $legend = Get-GraphObjectByName $layer 'Legend'
   }
   if ($legend) {
-    $legend.Text = New-LegendText $Labels
+    $includeLegendLineSamples = Convert-ToBoolean (Get-GroupValue $Group 'LegendLineSamples' $true) $true
+    $legend.Text = New-LegendText $Labels $includeLegendLineSamples
     $legend.Left = [int]$Style.LegendLeft
     $legend.Top = [int]$Style.LegendTop
     $legend.Width = [int]$Style.LegendWidth
     $legend.Height = [int]([Math]::Max($Style.LegendHeight, 220 * [Math]::Max(1, $Labels.Count)))
-    Set-GraphObjectFormat $legend 67 $Style.LegendSize $Style.TextColor
+    Set-GraphObjectFormat $legend $Style.LegendFont $Style.LegendSize $Style.TextColor
     try { $legend.SetNumProp('border', 0) | Out-Null } catch {}
     try { $legend.SetNumProp('frame', 0) | Out-Null } catch {}
     try { $legend.SetNumProp('fill', 0) | Out-Null } catch {}
@@ -571,7 +576,7 @@ function Apply-ReferenceStyle($app, [string]$PageName, [array]$Labels, $Style, $
     try { $txt = $obj.Text } catch {}
     if ($txt -and $obj.Name -notin @('XT','YR')) {
       $obj.Text = Format-BoldText $txt
-      Set-GraphObjectFormat $obj 67 $Style.LegendSize $Style.TextColor
+      Set-GraphObjectFormat $obj $Style.LegendFont $Style.LegendSize $Style.TextColor
     }
   }
 

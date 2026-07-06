@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.core.metadata import file_hash
-from src.core.opju_product_pilot import extract_xrd_raw_data_rows
+from src.core.template_product_common import extract_xrd_raw_data_rows
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.runtime_paths import create_run_output_layout, resolve_origin_helper, resolve_output_root

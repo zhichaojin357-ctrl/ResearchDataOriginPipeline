@@ -299,17 +299,23 @@ class OriginOperations:
         data = self.app.GetWorksheet(target)
         if data is None:
             return OperationResult(False, f"Worksheet not found: {target}")
-        rows = list(data)
+        try:
+            rows = list(data)
+        except TypeError:
+            return OperationResult(False, f"Worksheet data is not iterable: {target}")
         if not rows:
             return OperationResult(True, "Worksheet data read", {"columns": []})
-        column_count = len(rows[0])
+        try:
+            column_count = len(rows[0])
+        except TypeError:
+            return OperationResult(False, f"Worksheet row data is not iterable: {target}")
         columns = [[row[index] for row in rows] for index in range(column_count)]
         return OperationResult(True, "Worksheet data read", {"target": target, "columns": columns})
 
     def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
-        layer = self.app.FindGraphLayer(f"[{graph_name}]Layer{int(layer_index)}")
+        layer = self._graph_layer(graph_name, layer_index)
         if not layer:
-            return OperationResult(False, f"Graph layer not found: [{graph_name}]Layer{int(layer_index)}")
+            return OperationResult(False, f"Graph layer not found: [{graph_name}]{int(layer_index)}")
         data_plots = layer.DataPlots
         names = [str(data_plots.Item(index).Name) for index in range(data_plots.Count)]
         return OperationResult(
@@ -317,6 +323,21 @@ class OriginOperations:
             "Graph plot dataset names read",
             {"graph_name": graph_name, "layer_index": int(layer_index), "plot_dataset_names": names},
         )
+
+    def _graph_layer(self, graph_name: str, layer_index: int = 1) -> Any:
+        graph = str(graph_name)
+        index = int(layer_index)
+        candidates = [f"[{graph}]{index}", f"[{graph}]Layer{index}"]
+        if index == 1:
+            candidates.extend([f"[{graph}]", graph])
+        for reference in candidates:
+            try:
+                layer = self.app.FindGraphLayer(reference)
+            except Exception:
+                layer = None
+            if layer:
+                return layer
+        return None
 
     def replace_template_workbook_columns(self, workbook_columns: dict[str, dict[int, Iterable[float]]]) -> OperationResult:
         updated: list[dict[str, object]] = []
@@ -326,17 +347,30 @@ class OriginOperations:
             target = f"[{book_name}]Sheet1"
             for column_index, values in sorted(columns.items()):
                 column_values = [float(value) for value in values]
-                self.app.PutWorksheet(target, column_values, 0, int(column_index))
+                write_mode = self._put_template_workbook_column(target, column_values, int(column_index))
                 updated.append(
                     {
                         "book_name": str(book_name),
                         "column_index": int(column_index),
                         "rows": len(column_values),
+                        "write_mode": write_mode,
                     }
                 )
         if not updated:
             return OperationResult(False, "No template workbook columns were provided")
         return OperationResult(True, "Template workbook columns replaced", {"updated_columns": updated})
+
+    def _put_template_workbook_column(self, target: str, column_values: list[float], column_index: int) -> str:
+        try:
+            self.app.PutWorksheet(target, column_values, 0, column_index)
+            return "single"
+        except Exception:
+            if len(column_values) <= 1:
+                raise
+            chunk_size = 512
+            for row_start in range(0, len(column_values), chunk_size):
+                self.app.PutWorksheet(target, column_values[row_start : row_start + chunk_size], row_start, column_index)
+            return f"chunked_{chunk_size}"
 
     def import_csv_to_worksheet(self, file_path: str | Path, book_name: str = "", delimiter: str = ",") -> OperationResult:
         path = Path(file_path)
@@ -579,12 +613,90 @@ class OriginOperations:
             {"exported": exported, "failures": failures},
         )
 
-    def _plot_names(self, graph_name: str) -> list[str]:
+    def replace_legend_with_plain_text_labels(
+        self,
+        graph_name: str,
+        entries: Iterable[str],
+        font_name: str = "Arial",
+        font_size: int = 26,
+        max_entries: int = 12,
+        prefer_existing_text: bool = False,
+    ) -> OperationResult:
+        labels = [_legend_entry_text(entry) for entry in entries]
+        labels = [label for label in labels if label][: max(0, int(max_entries))]
+        graph = quote_labtalk(graph_name)
         layer = self.app.FindGraphLayer(f"[{graph_name}]Layer1")
         if not layer:
-            return []
-        data_plots = layer.DataPlots
-        return [data_plots.Item(index).Name for index in range(data_plots.Count)]
+            return OperationResult(False, f"Graph layer not found: [{graph_name}]Layer1")
+        try:
+            self.run_labtalk(f'win -a "{graph}";')
+            objects = _graph_object_infos(layer)
+            legend = _find_legend_info(objects)
+            if prefer_existing_text:
+                existing_labels = _existing_plain_legend_labels(objects, legend)
+                if existing_labels:
+                    labels = existing_labels[: max(0, int(max_entries))]
+            text_objects = _plain_legend_text_objects(objects, legend)
+            data_anchor = _plain_legend_data_anchor(self) if legend else None
+            base_left, base_top = _plain_legend_anchor(objects, legend)
+            row_step = max(220, int(font_size) * 10)
+            delete_names = _plain_legend_delete_names(objects, legend)
+            self.run_labtalk(f'win -a "{graph}"; legend.show=0;')
+            for name in delete_names:
+                self.run_labtalk(f'win -a "{graph}"; label -r {quote_labtalk(name)};')
+            layer = self.app.FindGraphLayer(f"[{graph_name}]Layer1")
+            created_labels = _write_plain_legend_labels(
+                self,
+                layer,
+                graph,
+                labels,
+                text_objects,
+                data_anchor=data_anchor,
+                fallback_left=base_left,
+                fallback_top=base_top,
+                row_step=row_step,
+                font_name=font_name,
+                font_size=int(font_size),
+            )
+        except Exception as exc:
+            return OperationResult(False, f"Plain-text legend replacement failed: {exc}")
+        return OperationResult(
+            True,
+            "Legend line samples replaced by plain text labels",
+            {
+                "graph_name": graph_name,
+                "deleted_objects": delete_names,
+                "created_labels": created_labels,
+                "anchor_left": base_left,
+                "anchor_top": base_top,
+                "anchor_data": {"x": data_anchor[0], "y": data_anchor[1]} if data_anchor else {},
+                "font_name": font_name,
+                "font_size": int(font_size),
+                "text_source": "existing_legend" if prefer_existing_text else "entries",
+            },
+        )
+
+    def _plot_names(self, graph_name: str) -> list[str]:
+        names: list[str] = []
+        for layer_index in range(1, self._graph_layer_count(graph_name) + 1):
+            layer = self._graph_layer(graph_name, layer_index)
+            if not layer:
+                if names:
+                    break
+                continue
+            data_plots = layer.DataPlots
+            names.extend(str(data_plots.Item(index).Name) for index in range(data_plots.Count))
+        return names
+
+    def _graph_layer_count(self, graph_name: str) -> int:
+        try:
+            self.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; __rdop_page_nlayers=page.nlayers;')
+            count = int(float(self.app.LTVar("__rdop_page_nlayers")))
+        except Exception:
+            count = 1
+        if count <= 0:
+            return 1
+        return min(count, 24)
 
     def set_plot_style(
         self,
@@ -817,3 +929,325 @@ def _legend_text_from_entries(entries: list[str]) -> str:
 def _legend_entry_text(entry: object) -> str:
     text = origin_bold_text(entry)
     return str(text).replace(";", ",").replace("\r", " ").replace("\n", " ").strip()
+
+
+def _graph_object_infos(layer: object) -> list[dict[str, object]]:
+    collection = getattr(layer, "GraphObjects", None)
+    if collection is None:
+        return []
+    try:
+        count = int(getattr(collection, "Count", 0))
+    except Exception:
+        return []
+    if count <= 0:
+        return []
+    base_index = 0
+    try:
+        collection.Item(0)
+    except Exception:
+        base_index = 1
+    infos: list[dict[str, object]] = []
+    for offset in range(count):
+        try:
+            graph_object = collection.Item(offset + base_index)
+        except Exception:
+            continue
+        name = str(getattr(graph_object, "Name", "") or "")
+        if not name:
+            continue
+        infos.append(
+            {
+                "name": name,
+                "object": graph_object,
+                "text": str(getattr(graph_object, "Text", "") or ""),
+                "left": _graph_object_float(graph_object, "Left"),
+                "top": _graph_object_float(graph_object, "Top"),
+                "width": _graph_object_float(graph_object, "Width"),
+                "height": _graph_object_float(graph_object, "Height"),
+            }
+        )
+    return infos
+
+
+def _find_graph_object(layer: object, name: str) -> object | None:
+    for info in _graph_object_infos(layer):
+        if str(info.get("name", "")).casefold() == name.casefold():
+            return info.get("object")
+    return None
+
+
+def _graph_object_float(graph_object: object, attr: str) -> float:
+    try:
+        return float(getattr(graph_object, attr))
+    except Exception:
+        return 0.0
+
+
+def _find_legend_info(objects: list[dict[str, object]]) -> dict[str, object] | None:
+    for info in objects:
+        if str(info.get("name", "")).casefold() == "legend":
+            return info
+    return None
+
+
+def _plain_legend_anchor(
+    objects: list[dict[str, object]],
+    legend: dict[str, object] | None,
+) -> tuple[int, int]:
+    if legend:
+        text_objects = _plain_legend_text_objects(objects, legend)
+        if text_objects:
+            left = min(float(info.get("left", 3600.0)) for info in text_objects)
+            top = min(float(info.get("top", 650.0)) for info in text_objects)
+            return int(round(left)), int(round(top))
+        else:
+            left = max(0.0, float(legend.get("left", 3600.0)))
+            top = float(legend.get("top", 650.0))
+        return int(round(left)), int(round(top))
+    existing = [info for info in objects if str(info.get("name", "")).casefold().startswith("rdop_plain_legend_")]
+    if existing:
+        left = min(float(info.get("left", 3600.0)) for info in existing)
+        top = min(float(info.get("top", 650.0)) for info in existing)
+        return int(round(left)), int(round(top))
+    return 3600, 650
+
+
+def _plain_legend_delete_names(
+    objects: list[dict[str, object]],
+    legend: dict[str, object] | None,
+) -> list[str]:
+    text_objects = _plain_legend_text_objects(objects, legend)
+    text_names = {str(info.get("name", "") or "").casefold() for info in text_objects}
+    names: list[str] = []
+    for info in objects:
+        name = str(info.get("name", "") or "")
+        if not name:
+            continue
+        lowered = name.casefold()
+        if lowered == "legend" or lowered.startswith("rdop_plain_legend_"):
+            names.append(name)
+            continue
+        if legend and _is_plain_legend_related_object(info, legend):
+            if lowered.startswith("line") or (lowered.startswith("text") and lowered not in text_names):
+                names.append(name)
+    return names
+
+
+def _plain_legend_text_objects(
+    objects: list[dict[str, object]],
+    legend: dict[str, object] | None,
+) -> list[dict[str, object]]:
+    if legend is None:
+        return []
+    text_objects = [
+        info
+        for info in objects
+        if str(info.get("name", "")).casefold().startswith("text")
+        and _is_plain_legend_related_object(info, legend)
+    ]
+    text_objects.sort(key=lambda item: (float(item.get("top", 0.0)), float(item.get("left", 0.0))))
+    return text_objects
+
+
+def _plain_legend_data_anchor(operations: "OriginOperations") -> tuple[float, float] | None:
+    x_value = _operation_float(operations.get_labtalk_variable("legend.x").payload.get("value"))
+    y_value = _operation_float(operations.get_labtalk_variable("legend.y").payload.get("value"))
+    if x_value is None or y_value is None:
+        return None
+    return x_value, y_value
+
+
+def _operation_float(value: object) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def _write_plain_legend_labels(
+    operations: "OriginOperations",
+    layer: object | None,
+    graph: str,
+    labels: list[str],
+    text_objects: list[dict[str, object]],
+    *,
+    data_anchor: tuple[float, float] | None,
+    fallback_left: int,
+    fallback_top: int,
+    row_step: int,
+    font_name: str,
+    font_size: int,
+) -> list[str]:
+    if not labels:
+        return []
+    if text_objects:
+        return _write_plain_legend_text_object_rows(
+            operations,
+            layer,
+            graph,
+            labels,
+            text_objects,
+            fallback_left=fallback_left,
+            fallback_top=fallback_top,
+            row_step=row_step,
+            font_name=font_name,
+            font_size=font_size,
+        )
+    return _write_plain_legend_single_block(
+        operations,
+        layer,
+        graph,
+        labels,
+        data_anchor=data_anchor,
+        fallback_left=fallback_left,
+        fallback_top=fallback_top,
+        font_name=font_name,
+        font_size=font_size,
+    )
+
+
+def _write_plain_legend_text_object_rows(
+    operations: "OriginOperations",
+    layer: object | None,
+    graph: str,
+    labels: list[str],
+    text_objects: list[dict[str, object]],
+    *,
+    fallback_left: int,
+    fallback_top: int,
+    row_step: int,
+    font_name: str,
+    font_size: int,
+) -> list[str]:
+    created: list[str] = []
+    for index, label in enumerate(labels, start=1):
+        if index <= len(text_objects):
+            name = str(text_objects[index - 1].get("name", "") or f"rdop_plain_legend_{index}")
+            label_object = text_objects[index - 1].get("object")
+        else:
+            name = f"rdop_plain_legend_{index}"
+            operations.run_labtalk(f'win -a "{graph}"; label -n {name} -s " ";')
+            label_object = _find_graph_object(layer, name) if layer else None
+            if label_object is not None:
+                label_object.Left = fallback_left
+                label_object.Top = fallback_top + row_step * (index - 1)
+        if label_object is not None:
+            label_object.Text = label
+        _style_plain_legend_object(operations, graph, name, font_name, font_size)
+        created.append(name)
+    for extra in text_objects[len(labels) :]:
+        name = str(extra.get("name", "") or "")
+        if name:
+            operations.run_labtalk(f'win -a "{graph}"; label -r {quote_labtalk(name)};')
+    return created
+
+
+def _write_plain_legend_single_block(
+    operations: "OriginOperations",
+    layer: object | None,
+    graph: str,
+    labels: list[str],
+    *,
+    data_anchor: tuple[float, float] | None,
+    fallback_left: int,
+    fallback_top: int,
+    font_name: str,
+    font_size: int,
+) -> list[str]:
+    name = "rdop_plain_legend"
+    operations.run_labtalk(f'win -a "{graph}"; label -n {name} -s " ";')
+    label_object = _find_graph_object(layer, name) if layer else None
+    if label_object is not None:
+        label_object.Text = "\r\n".join(labels)
+        if data_anchor is None:
+            label_object.Left = fallback_left
+            label_object.Top = fallback_top
+    if data_anchor is not None:
+        x_value, y_value = data_anchor
+        operations.run_labtalk(f'win -a "{graph}"; {name}.x={x_value:g}; {name}.y={y_value:g};')
+    _style_plain_legend_object(operations, graph, name, font_name, font_size)
+    return [name]
+
+
+def _style_plain_legend_object(
+    operations: "OriginOperations",
+    graph: str,
+    name: str,
+    font_name: str,
+    font_size: int,
+) -> None:
+    operations.run_labtalk(
+        f'win -a "{graph}"; '
+        f'{name}.font$="{quote_labtalk(font_name)}"; '
+        f"{name}.fsize={int(font_size)}; "
+        f"{name}.bold=1; {name}.color=color(black); "
+        f"{name}.background=0; {name}.border=0; {name}.frame=0; {name}.fill=0;"
+    )
+
+
+def _is_plain_legend_related_object(info: dict[str, object], legend: dict[str, object]) -> bool:
+    left = float(info.get("left", 0.0))
+    top = float(info.get("top", 0.0))
+    legend_left = float(legend.get("left", 0.0))
+    legend_top = float(legend.get("top", 0.0))
+    legend_width = max(float(legend.get("width", 0.0)), 1.0)
+    legend_height = max(float(legend.get("height", 0.0)), 1.0)
+    return (
+        legend_left - 800 <= left <= legend_left + legend_width + 800
+        and legend_top - 700 <= top <= legend_top + legend_height + 800
+    )
+
+
+def _existing_plain_legend_labels(
+    objects: list[dict[str, object]],
+    legend: dict[str, object] | None,
+) -> list[str]:
+    if legend is None:
+        return []
+    text_objects = [
+        info
+        for info in objects
+        if str(info.get("name", "")).casefold().startswith("text")
+        and _is_plain_legend_related_object(info, legend)
+    ]
+    text_objects.sort(key=lambda item: (float(item.get("top", 0.0)), float(item.get("left", 0.0))))
+    labels: list[str] = []
+    for info in text_objects:
+        label = _clean_existing_legend_label(str(info.get("text", "") or ""))
+        if label:
+            labels.append(label)
+    labels.extend(_legend_labels_from_text(str(legend.get("text", "") or "")))
+    labels = [label for label in labels if label and "%(" not in label]
+    return labels
+
+
+def _legend_labels_from_text(value: str) -> list[str]:
+    text = value.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not text:
+        return []
+    labels: list[str] = []
+    pattern = re.compile(r"(?:\\|/)l\(\d+\)\s*(.*?)(?=(?:\\|/)l\(\d+\)|$)", re.DOTALL)
+    matches = list(pattern.finditer(text))
+    if matches:
+        for match in matches:
+            label = _clean_existing_legend_label(match.group(1))
+            if label:
+                labels.append(label)
+        return labels
+    for line in text.split("\n"):
+        label = _clean_existing_legend_label(line)
+        if label:
+            labels.append(label)
+    return labels
+
+
+def _clean_existing_legend_label(value: str) -> str:
+    text = value.replace("/", "\\").replace("\r", " ").replace("\n", " ").strip()
+    text = re.sub(r"^\\l\(\d+\)\s*", "", text).strip()
+    text = text.strip(" /	")
+    if not text:
+        return ""
+    if text.startswith("\\b("):
+        return text
+    return origin_bold_text(text)

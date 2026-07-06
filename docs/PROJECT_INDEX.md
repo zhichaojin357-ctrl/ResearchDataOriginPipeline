@@ -14,7 +14,10 @@
 - `src/core/origin_batch.py`: manifest-backed Origin batch dry-run/execution planner.
 - `src/core/template_format_executor.py`: all-types template-format product command wrapper.
 - `src/core/template_product_builder.py`: template-backed product generation and comparison reports.
+- `src/core/template_product_common.py`: shared OPJU-backed product data structures and table helpers.
+- `src/core/remaining_template_products.py`: remaining non-XPS/XRD template-product helpers with manual-review boundaries.
 - `src/core/xrd_overlay.py`: XRD overlay workflow.
+- `src/core/xrd_no_card_overlay.py`: no-card XRD overlay workflow.
 - `src/core/origin_governance.py`: Origin plotting governance and journal-ready report generation.
 - `src/core/readiness.py`: project readiness checks.
 - `src/core/validate.py`: configuration, dependency, output, safety, and Origin contract validation.
@@ -53,6 +56,7 @@
 - `scripts/reports/regenerate_manual_review_filtered.py`
 - `scripts/origin/origin_plot_from_template.ps1`
 - `scripts/data_types/hplc_lc/plot_hplc_calibration_origin.ps1`
-- `scripts/one_off/verify_jeol_epr_decode_against_exports.py`
+- `scripts/data_types/xrd/plot_xrd_no_card_overlay_origin.py`
+- `scripts/validation/verify_jeol_epr_decode_against_exports.py`
 
 Scripts are helpers only. New production behavior belongs in `src` and must be reachable from `run.py`.

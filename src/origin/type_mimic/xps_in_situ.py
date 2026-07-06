@@ -5,12 +5,12 @@ from src.origin.type_mimic.common import TypeMimicSpec
 
 SPEC = TypeMimicSpec(
     product_key="XPS_in_situ",
-    output_slug="XPS_in_situ_BOBC_exemplar_pilot",
+    output_slug="XPS_in_situ_BOBC_exemplar",
     manual_review_items=(
         "Confirm BOBC, dark, and light sample mapping.",
         "Confirm binding-energy calibration and display direction.",
         "Confirm fitted component/background/envelope/residual roles manually.",
-        "Panel grouping is reported as a pilot overlay and must be manually checked before final layout use.",
+        "Panel grouping is reported as an exemplar overlay and must be manually checked before final layout use.",
     ),
     forbidden_claims_avoided=(
         "no valence assignment",

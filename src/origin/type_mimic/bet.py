@@ -5,11 +5,11 @@ from src.origin.type_mimic.common import TypeMimicSpec
 
 SPEC = TypeMimicSpec(
     product_key="BET",
-    output_slug="BET_BOBC_exemplar_pilot",
+    output_slug="BET_BOBC_exemplar",
     manual_review_items=(
         "Confirm adsorption/desorption branch mapping and units.",
         "Confirm whether the plotted table should remain an isotherm or use pore-distribution data.",
-        "Do not infer pore structure quality or BET model validity from this pilot.",
+        "Do not infer pore structure quality or BET model validity from this exemplar.",
     ),
     forbidden_claims_avoided=(
         "no pore-structure conclusion",

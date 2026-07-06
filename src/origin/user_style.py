@@ -117,7 +117,7 @@ def _style_from_exemplar(exemplar: OpjuStyleSnapshot | dict[str, Any] | None) ->
     values: dict[str, object] = {}
     line_width = _median_number(widths)
     if line_width is not None:
-        values["line_width_pt"] = line_width / 10.0 if line_width > 10 else line_width
+        values["line_width_pt"] = line_width / 500.0 if line_width > 100 else line_width
     axis_width = _first_number(layout, "layer.x.thickness", "layer.y.thickness")
     if axis_width is not None:
         values["axis_line_width_pt"] = axis_width

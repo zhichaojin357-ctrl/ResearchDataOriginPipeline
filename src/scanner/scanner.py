@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -69,6 +70,7 @@ def _matching_folders(raw_root: Path, entry: dict) -> list[Path]:
 def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | None = None) -> dict:
     ensure_output_structure(project_root, output_root=output_root)
     registry = load_json_compatible_yaml(registry_path(project_root))
+    entries = list(registry["entries"])
     input_path = input_path.absolute()
     classifications: list[Classification] = []
     all_files = []
@@ -86,30 +88,56 @@ def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | N
                 )
 
     classified_paths: set[str] = set()
-    unsupported_files_in_known_folders = []
-    for entry in registry["entries"]:
+    matched_folders_by_entry: dict[int, list[Path]] = {}
+    file_candidates: dict[str, list[tuple[tuple[int, int, int, int, int], int, Path]]] = {}
+    unsupported_candidates: dict[str, list[tuple[tuple[int, int, int, int, int], int, dict]]] = {}
+    for entry_index, entry in enumerate(entries):
         folders = _matching_folders(input_path, entry)
-        files = []
+        matched_folders_by_entry[entry_index] = folders
         if folders:
             allowed = {ext.lower() for ext in entry.get("extensions", [])}
             for folder in folders:
                 for path in folder.rglob("*"):
                     if not path.is_file():
                         continue
+                    score = _entry_path_score(input_path, path, entry, entry_index)
                     if not allowed or path.suffix.lower() in allowed:
-                        files.append(str(path))
+                        file_candidates.setdefault(str(path.resolve()), []).append((score, entry_index, path))
                     else:
-                        unsupported_files_in_known_folders.append(
-                            {
-                                "path": str(path),
-                                "relative_path": str(path.relative_to(input_path)),
-                                "suffix": path.suffix.lower(),
-                                "size": path.stat().st_size,
-                                "matched_folder_name": entry["folder_name"],
-                                "inferred_data_type": entry["inferred_data_type"],
-                            }
+                        unsupported_candidates.setdefault(str(path.resolve()), []).append(
+                            (
+                                score,
+                                entry_index,
+                                {
+                                    "path": str(path),
+                                    "relative_path": str(path.relative_to(input_path)),
+                                    "suffix": path.suffix.lower(),
+                                    "size": path.stat().st_size,
+                                    "matched_folder_name": entry["folder_name"],
+                                    "inferred_data_type": entry["inferred_data_type"],
+                                },
+                            )
                         )
-            classified_paths.update(str(Path(path).resolve()) for path in files)
+
+    files_by_entry: dict[int, list[Path]] = {index: [] for index in range(len(entries))}
+    for resolved_path, candidates in file_candidates.items():
+        _score, entry_index, path = max(candidates, key=lambda item: item[0])
+        files_by_entry[entry_index].append(path)
+        classified_paths.add(resolved_path)
+
+    unsupported_files_in_known_folders = []
+    unsupported_paths_by_entry: dict[int, list[Path]] = {index: [] for index in range(len(entries))}
+    for resolved_path, candidates in unsupported_candidates.items():
+        if resolved_path in classified_paths:
+            continue
+        _score, entry_index, item = max(candidates, key=lambda candidate: candidate[0])
+        unsupported_files_in_known_folders.append(item)
+        unsupported_paths_by_entry[entry_index].append(Path(str(item["path"])))
+
+    for entry_index, entry in enumerate(entries):
+        folders = matched_folders_by_entry.get(entry_index, [])
+        files = sorted(files_by_entry.get(entry_index, []), key=lambda path: str(path).casefold())
+        relevant_folders = _relevant_folders_for_entry(input_path, entry, folders, files + unsupported_paths_by_entry.get(entry_index, []))
         classifications.append(
             Classification(
                 id=entry["id"],
@@ -122,9 +150,9 @@ def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | N
                 special_handling=entry["special_handling"],
                 reason="registry match from processor registry configuration",
                 confidence="high" if folders else "planning",
-                folder_path=str(folders[0]) if folders else None,
-                folder_paths=[str(folder) for folder in folders],
-                files=files,
+                folder_path=str(relevant_folders[0]) if relevant_folders else None,
+                folder_paths=[str(folder) for folder in relevant_folders],
+                files=[str(path) for path in files],
             )
         )
 
@@ -150,6 +178,58 @@ def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | N
     _write_classification_report(project_root, output_manifest, output_root=output_root)
     _write_unclassified_manifest(project_root, output_manifest, output_root=output_root)
     return manifest
+
+
+def _entry_path_score(raw_root: Path, path: Path, entry: dict, entry_index: int) -> tuple[int, int, int, int, int]:
+    try:
+        relative = path.relative_to(raw_root)
+    except ValueError:
+        relative = path
+    segments = [_normalize_path_segment(part) for part in relative.parts[:-1]]
+    keywords = [entry["folder_name"], *entry.get("folder_keywords", [])]
+    best = (0, -1, 0, 0, -entry_index)
+    for segment_index, segment in enumerate(segments):
+        for keyword_index, keyword in enumerate(keywords):
+            normalized_keyword = _normalize_path_segment(str(keyword))
+            if not normalized_keyword:
+                continue
+            if segment == normalized_keyword:
+                strength = 100 if keyword_index == 0 else 90
+            elif _keyword_matches(normalized_keyword, segment):
+                strength = 50 if keyword_index == 0 else 40
+            else:
+                continue
+            best = max(best, (strength, segment_index, len(normalized_keyword), -keyword_index, -entry_index))
+    return best
+
+
+def _relevant_folders_for_entry(raw_root: Path, entry: dict, folders: list[Path], assigned_paths: list[Path]) -> list[Path]:
+    exact = (raw_root / entry["folder_name"]).resolve()
+    selected: list[Path] = []
+    for folder in folders:
+        resolved_folder = folder.resolve()
+        if resolved_folder == exact or any(_is_under_or_equal(path.resolve(), resolved_folder) for path in assigned_paths):
+            selected.append(folder)
+    return selected
+
+
+def _is_under_or_equal(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return path == parent
+
+
+def _normalize_path_segment(value: str) -> str:
+    return value.replace("\\", "/").casefold().strip()
+
+
+def _keyword_matches(normalized_keyword: str, normalized_value: str) -> bool:
+    if re.fullmatch(r"[a-z0-9]{1,4}", normalized_keyword):
+        pattern = rf"(?<![a-z0-9]){re.escape(normalized_keyword)}(?![a-z0-9])"
+        return re.search(pattern, normalized_value) is not None
+    return normalized_keyword in normalized_value
 
 
 def _render_manifest_for_output(manifest: dict, *, project_root: Path, output_root: Path | None = None) -> dict:

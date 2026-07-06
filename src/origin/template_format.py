@@ -81,6 +81,7 @@ def build_template_format_plan(
     product_preview_png: str | Path | None = None,
     curve_line_width_pt: float = 3.0,
     axis_title_bold: bool = True,
+    embedded_snapshot_available: bool = False,
 ) -> TemplateFormatPlan:
     source_opju = Path(opju_path) if opju_path is not None and str(opju_path).strip() else None
     style_package = Path(style_package_path) if style_package_path is not None and str(style_package_path).strip() else None
@@ -178,6 +179,22 @@ def build_template_format_plan(
             plot_intent=intent,
             warnings=tuple(warnings),
         )
+    if embedded_snapshot_available:
+        warnings.append("No live OPJU template is required; using the reviewed embedded Origin template snapshot.")
+        return TemplateFormatPlan(
+            data_type=data_type,
+            status="ready",
+            mode="embedded_template_snapshot",
+            source_opju=source_opju,
+            graph_page=graph_page,
+            style_package_path=style_package,
+            reference_preview_png=_optional_path(reference_preview_png),
+            product_preview_png=_optional_path(product_preview_png),
+            can_execute=True,
+            one_to_one_claim_allowed=False,
+            plot_intent={**intent, "origin_template_or_format_source_required": False},
+            warnings=tuple(warnings),
+        )
     warnings.append("No OPJU exemplar or saved style package is available; one-to-one plotting must be blocked.")
     return TemplateFormatPlan(
         data_type=data_type,
@@ -196,7 +213,7 @@ def build_template_format_plan(
 
 
 def parse_origin_dataset_name(name: str) -> tuple[str, int] | None:
-    match = re.match(r"^(.+)_([A-Za-z]+)$", str(name).strip())
+    match = re.match(r"^(.+)_([A-Za-z]+)(?:@\d+)?$", str(name).strip())
     if not match:
         return None
     book_name = match.group(1)
@@ -217,6 +234,7 @@ def build_template_dataset_updates(
     rows: list[list[object]] | tuple[tuple[object, ...], ...],
     *,
     allow_partial: bool = False,
+    paired_xy_columns: bool = False,
 ) -> TemplateDatasetUpdates:
     parsed: list[tuple[str, str, int]] = []
     counts: dict[str, int] = {}
@@ -253,7 +271,8 @@ def build_template_dataset_updates(
         if series_index > data_series_count and not allow_partial:
             break
         book_updates = workbook_columns.setdefault(book_name, {})
-        book_updates[0] = x_values
+        target_x_col = max(target_y_col - 1, 0) if paired_xy_columns else 0
+        book_updates[target_x_col] = x_values
         if series_index > data_series_count:
             book_updates[target_y_col] = [math.nan for _row in rows]
         else:

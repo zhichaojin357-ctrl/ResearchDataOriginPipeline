@@ -74,22 +74,28 @@ def test_output_root_resolution_priority_uses_explicit_then_local_then_env(tmp_p
     assert resolve_output_root(tmp_path) == env_root
 
 
-def test_project_internal_output_root_is_rejected(tmp_path: Path):
+def test_project_output_root_is_allowed(tmp_path: Path):
     project = tmp_path / "ResearchDataOriginPipeline"
     project.mkdir()
 
-    with pytest.raises(ValueError, match="inside project tree"):
-        resolve_output_root(project, explicit=Path("output"))
+    assert resolve_output_root(project, explicit=Path("output")) == (project / "output").resolve()
 
 
-def test_local_config_project_internal_output_root_is_rejected(tmp_path: Path):
+def test_local_config_project_output_root_is_allowed(tmp_path: Path):
     project = tmp_path / "ResearchDataOriginPipeline"
     config = project / "config"
     config.mkdir(parents=True)
     (config / "local.yaml").write_text("paths:\n  output_root: output\n", encoding="utf-8")
 
+    assert resolve_output_root(project) == (project / "output").resolve()
+
+
+def test_project_internal_non_output_root_is_rejected(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    project.mkdir()
+
     with pytest.raises(ValueError, match="inside project tree"):
-        resolve_output_root(project)
+        resolve_output_root(project, explicit=Path("input/raw_data"))
 
 
 def test_create_run_output_layout_uses_configured_external_output_root(tmp_path: Path):
@@ -100,7 +106,7 @@ def test_create_run_output_layout_uses_configured_external_output_root(tmp_path:
 
     layout = create_run_output_layout(
         tmp_path,
-        scope="external pilot",
+        scope="external exemplar",
         command="process",
         mode="no_origin",
         timestamp="20260604_120000",
@@ -108,11 +114,11 @@ def test_create_run_output_layout_uses_configured_external_output_root(tmp_path:
         dry_run=False,
     )
 
-    assert layout.root == external_root / "runs" / "20260604_120000_external_pilot"
+    assert layout.root == external_root / "runs" / "20260604_120000_external_exemplar"
     assert layout.reports.is_dir()
     assert not (tmp_path / "output").exists()
     manifest = json.loads(layout.manifest.read_text(encoding="utf-8"))
-    assert manifest["output_root"] == "output/20260604_120000_external_pilot"
+    assert manifest["output_root"] == "output/20260604_120000_external_exemplar"
     assert not Path(manifest["output_root"]).is_absolute()
 
 

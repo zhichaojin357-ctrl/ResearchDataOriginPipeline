@@ -2,6 +2,7 @@
 
 import json
 import csv
+import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -65,10 +66,11 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
     results: list[dict] = []
     failures: list[dict] = []
 
+    skipped_auxiliary: list[dict] = []
     if options.from_queue is not None:
         work_items = _selected_queue_items(project_root, input_path, options)
     else:
-        work_items = _work_items_from_manifest(manifest, options)
+        work_items, skipped_auxiliary = _work_items_from_manifest(manifest, options, project_root=project_root)
 
     for classification, source, triage_data in work_items:
         if triage_data and triage_data.get("stale_queue_item"):
@@ -111,31 +113,86 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
         f"Successful/no-Origin processed datasets: {len(successes)}",
         f"Successful Origin exports: {len(origin_successes)}",
         f"Failed or incomplete datasets: {len(failures)}",
+        f"Skipped auxiliary/reference sources: {len(skipped_auxiliary)}",
         "",
     ]
     for item in results:
         report.append(f"- `{item['dataset_id']}`: {item['processing_status']}")
     report_path(project_root, "processing_report.md", output_root=options.output_root).write_text("\n".join(report) + "\n", encoding="utf-8")
     report_path(project_root, "processing_report.json", output_root=options.output_root).write_text(
-        json.dumps({"results": results}, ensure_ascii=False, indent=2),
+        json.dumps({"results": results, "skipped_auxiliary": skipped_auxiliary}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    _write_processing_skipped_auxiliary(project_root, skipped_auxiliary, output_root=options.output_root)
     _write_processing_failures(project_root, failures, output_root=options.output_root)
-    _write_processing_summary(project_root, manifest, results, failures, output_root=options.output_root)
+    _write_processing_summary(project_root, manifest, results, failures, skipped_auxiliary=skipped_auxiliary, output_root=options.output_root)
     _write_review_dashboard(project_root, manifest, results, failures, output_root=options.output_root)
     return 2 if failures else 0
 
 
-def _work_items_from_manifest(manifest: dict, options: ProcessOptions) -> list[tuple[dict, Path, dict | None]]:
+def _work_items_from_manifest(
+    manifest: dict,
+    options: ProcessOptions,
+    *,
+    project_root: Path | None = None,
+) -> tuple[list[tuple[dict, Path, dict | None]], list[dict]]:
     selected = []
+    skipped_auxiliary = []
     for classification in manifest["classifications"]:
         if options.only_type and _normalize(classification["inferred_data_type"]) != _normalize(options.only_type):
             continue
         if options.only_folder and not _folder_matches(classification, options.only_folder):
             continue
         for file_name in classification["files"]:
-            selected.append((classification, Path(file_name), None))
-    return selected
+            source = Path(file_name)
+            skip_reason = _manifest_auxiliary_skip_reason(classification, source)
+            if skip_reason:
+                skipped_auxiliary.append(_skipped_auxiliary_item(classification, source, skip_reason, project_root=project_root, output_root=options.output_root))
+                continue
+            selected.append((classification, source, None))
+    return selected, skipped_auxiliary
+
+
+def _manifest_auxiliary_skip_reason(classification: dict, source: Path) -> str | None:
+    if not classification.get("supported_in_pipeline", False):
+        return None
+    suffix = source.suffix.casefold()
+    data_type = str(classification.get("inferred_data_type") or "")
+    name = source.name.casefold()
+    if suffix in {".pdf", ".doc", ".docx", ".ppt", ".pptx", ".caj", ".ris", ".bib", ".enw", ".enl"}:
+        return "document_or_report_not_primary_numeric_data"
+    if data_type == "XRD" and _xrd_reference_card_name(source):
+        return "xrd_reference_card_not_sample_pattern"
+    if suffix in {".txt", ".md"} and _note_like_name(name):
+        return "note_or_instruction_file_not_primary_numeric_data"
+    return None
+
+
+def _xrd_reference_card_name(source: Path) -> bool:
+    name = source.name.casefold()
+    return bool("pdf#" in name or "标准卡片" in name or re.search(r"\bstandard[-_\s]*card\b", name))
+
+
+def _note_like_name(name: str) -> bool:
+    stem = Path(name).stem.casefold().strip()
+    return stem in {"备注", "note", "notes", "readme"} or any(token in stem for token in ("说明", "教程", "instruction"))
+
+
+def _skipped_auxiliary_item(
+    classification: dict,
+    source: Path,
+    reason: str,
+    *,
+    project_root: Path | None = None,
+    output_root: Path | None = None,
+) -> dict:
+    return {
+        "source_file": render_output_path(source, project_root=project_root, output_root=output_root),
+        "inferred_data_type": classification.get("inferred_data_type"),
+        "selected_processor": classification.get("selected_processor"),
+        "skip_reason": reason,
+        "handling": "recorded_only_not_processed",
+    }
 
 
 def _normalize_origin_mode(options: ProcessOptions) -> ProcessOptions:
@@ -483,7 +540,38 @@ def _write_processing_failures(project_root: Path, failures: list[dict], *, outp
     report_path(project_root, "processing_failures.md", output_root=output_root).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _write_processing_summary(project_root: Path, manifest: dict, results: list[dict], failures: list[dict], *, output_root: Path | None = None) -> None:
+def _write_processing_skipped_auxiliary(project_root: Path, skipped: list[dict], *, output_root: Path | None = None) -> None:
+    report_path(project_root, "processing_skipped_auxiliary.json", output_root=output_root).write_text(
+        json.dumps({"items": skipped}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    lines = [
+        "# Processing Skipped Auxiliary Sources",
+        "",
+        f"Skipped count: {len(skipped)}",
+        "",
+        "| source_file | inferred_data_type | selected_processor | skip_reason | handling |",
+        "|---|---|---|---|---|",
+    ]
+    for item in skipped:
+        lines.append(
+            "| {source_file} | {inferred_data_type} | {selected_processor} | {skip_reason} | {handling} |".format(
+                **{key: _md_cell(value) for key, value in item.items()}
+            )
+        )
+    report_path(project_root, "processing_skipped_auxiliary.md", output_root=output_root).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _write_processing_summary(
+    project_root: Path,
+    manifest: dict,
+    results: list[dict],
+    failures: list[dict],
+    *,
+    skipped_auxiliary: list[dict] | None = None,
+    output_root: Path | None = None,
+) -> None:
+    skipped_auxiliary = skipped_auxiliary or []
     type_stats: dict[str, dict[str, int]] = {}
     result_sources = set()
     for metadata in results:
@@ -530,6 +618,7 @@ def _write_processing_summary(project_root: Path, manifest: dict, results: list[
         "total_dataset_count": len(results) + len(exception_failures),
         "success_count": sum(1 for item in results if item["processing_status"] in {"success", "processed_no_origin"}),
         "failure_count": failed_dataset_count,
+        "skipped_auxiliary_count": len(skipped_auxiliary),
         "deferred_count": sum(1 for item in deferred if item["physical_presence"] == "present"),
         "reference_literature_count": sum(1 for item in reference if item["physical_presence"] == "present"),
         "processor_stats": type_stats,
@@ -547,6 +636,7 @@ def _write_processing_summary(project_root: Path, manifest: dict, results: list[
         f"- Total datasets: {summary['total_dataset_count']}",
         f"- Success count: {summary['success_count']}",
         f"- Failure count: {summary['failure_count']}",
+        f"- Skipped auxiliary/reference source count: {summary['skipped_auxiliary_count']}",
         f"- Deferred present count: {summary['deferred_count']}",
         f"- Reference literature present count: {summary['reference_literature_count']}",
         "",
@@ -560,6 +650,9 @@ def _write_processing_summary(project_root: Path, manifest: dict, results: list[
     lines.extend(["", "## Manual Check Required"])
     for dataset_id in manual_checks:
         lines.append(f"- {dataset_id}")
+    lines.extend(["", "## Skipped Auxiliary/Reference Sources"])
+    for item in skipped_auxiliary:
+        lines.append(f"- {item['source_file']}: {item['skip_reason']}")
     report_path(project_root, "processing_summary.md", output_root=output_root).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -588,6 +681,7 @@ def _write_review_dashboard(project_root: Path, manifest: dict, results: list[di
         f"- Total datasets: {summary['total_dataset_count']}",
         f"- Success count: {summary['success_count']}",
         f"- Failure count: {summary['failure_count']}",
+        f"- Skipped auxiliary/reference source count: {summary.get('skipped_auxiliary_count', 0)}",
         f"- Deferred present count: {summary['deferred_count']}",
         f"- Reference literature present count: {summary['reference_literature_count']}",
     ]

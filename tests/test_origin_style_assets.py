@@ -38,10 +38,19 @@ def test_origin_style_manifest_resolves_project_local_format_theme(tmp_path: Pat
     project = tmp_path / "project"
     asset = project / "templates" / "origin_styles" / "format_themes" / "BET.oth"
     fallback_template = project / "templates" / "origin_styles" / "graph_templates" / "BET.otpu"
+    snapshot = project / "templates" / "origin_styles" / "snapshots" / "BET.json"
+    data_snapshot = project / "templates" / "origin_styles" / "data_snapshots" / "BET.json"
+    template_opju = project / "templates" / "origin_styles" / "reference_opju" / "BET.opju"
     asset.parent.mkdir(parents=True)
     fallback_template.parent.mkdir(parents=True)
+    snapshot.parent.mkdir(parents=True)
+    data_snapshot.parent.mkdir(parents=True)
+    template_opju.parent.mkdir(parents=True)
     asset.write_bytes(b"oth")
     fallback_template.write_bytes(b"otpu")
+    snapshot.write_text("{}", encoding="utf-8")
+    data_snapshot.write_text("{}", encoding="utf-8")
+    template_opju.write_bytes(b"opju")
     manifest = project / "templates" / "origin_styles" / "manifest.json"
     manifest.write_text(
         json.dumps(
@@ -53,6 +62,9 @@ def test_origin_style_manifest_resolves_project_local_format_theme(tmp_path: Pat
                         "data_type": "BET",
                         "format_theme": "format_themes/BET.oth",
                         "graph_template": "graph_templates/BET.otpu",
+                        "style_snapshot": "snapshots/BET.json",
+                        "data_snapshot": "data_snapshots/BET.json",
+                        "template_opju": "reference_opju/BET.opju",
                         "status": "accepted",
                     }
                 ],
@@ -70,6 +82,9 @@ def test_origin_style_manifest_resolves_project_local_format_theme(tmp_path: Pat
     assert resolved.format_theme_path == asset
     assert resolved.format_theme_path.is_file()
     assert resolved.graph_template_path == fallback_template
+    assert resolved.style_snapshot_path == snapshot
+    assert resolved.data_snapshot_path == data_snapshot
+    assert resolved.template_opju_path == template_opju
 
 
 def test_template_plan_uses_project_format_theme_when_opju_is_missing(tmp_path: Path) -> None:
@@ -153,6 +168,418 @@ def test_style_asset_export_plan_requires_accepted_products(tmp_path: Path) -> N
     assert [item.product_key for item in plan.items] == ["BET"]
     assert plan.items[0].origin_file == bet_opju
     assert plan.items[0].format_theme_path.name == "BET.oth"
+    assert plan.items[0].graph_template_path is not None
+    assert plan.items[0].graph_template_path.name == "BET.otpu"
+    assert plan.items[0].style_snapshot_path is not None
+    assert plan.items[0].style_snapshot_path.name == "BET.json"
+
+
+def test_style_asset_export_plan_can_harvest_single_template_opju(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    template = tmp_path / "reference.opju"
+    template.write_bytes(b"opju")
+
+    from src.core.origin_style_assets import build_origin_style_asset_export_plan
+
+    plan = build_origin_style_asset_export_plan(
+        project,
+        None,
+        template_opju=template,
+        product_key="XRD",
+        data_type="XRD",
+        graph_page="Graph4",
+    )
+
+    assert [item.product_key for item in plan.items] == ["XRD"]
+    assert plan.items[0].origin_file == template
+    assert plan.items[0].graph_page == "Graph4"
+    assert plan.items[0].source_mode == "direct_template_opju"
+    assert plan.items[0].format_theme_path == project / "templates" / "origin_styles" / "format_themes" / "XRD.oth"
+    assert plan.items[0].graph_template_path == project / "templates" / "origin_styles" / "graph_templates" / "XRD.otpu"
+    assert plan.items[0].style_snapshot_path == project / "templates" / "origin_styles" / "snapshots" / "XRD.json"
+    assert plan.items[0].data_snapshot_path == project / "templates" / "origin_styles" / "data_snapshots" / "XRD.json"
+    assert plan.items[0].template_opju_path == project / "templates" / "origin_styles" / "reference_opju" / "XRD.opju"
+
+
+def test_style_asset_export_plan_can_harvest_template_plan(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    template = tmp_path / "bet.opju"
+    template.write_bytes(b"opju")
+    plan_json = tmp_path / "plan.json"
+    plan_json.write_text(
+        json.dumps(
+            {
+                "items": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "source_opju": str(template),
+                        "graph_page": "Graph5",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from src.core.origin_style_assets import build_origin_style_asset_export_plan
+
+    plan = build_origin_style_asset_export_plan(project, None, template_plan=plan_json)
+
+    assert [item.product_key for item in plan.items] == ["BET"]
+    assert plan.items[0].origin_file == template
+    assert plan.items[0].graph_page == "Graph5"
+    assert plan.items[0].format_theme_path == project / "templates" / "origin_styles" / "format_themes" / "BET.oth"
+    assert plan.items[0].data_snapshot_path == project / "templates" / "origin_styles" / "data_snapshots" / "BET.json"
+    assert plan.items[0].source_mode == "direct_template_opju"
+
+
+def test_template_plan_can_use_style_source_product_key(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    template = tmp_path / "xps_non.opju"
+    template.write_bytes(b"opju")
+    theme = project / "templates" / "origin_styles" / "format_themes" / "XPS_in_situ.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    manifest = project / "templates" / "origin_styles" / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "XPS_in_situ",
+                        "data_type": "XPS",
+                        "format_theme": "format_themes/XPS_in_situ.oth",
+                        "status": "accepted",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    plan_json = tmp_path / "plan.json"
+    plan_json.write_text(
+        json.dumps(
+            {
+                "items": [
+                    {
+                        "product_key": "XPS_non_in_situ",
+                        "data_type": "XPS",
+                        "source_opju": str(template),
+                        "graph_page": "Bi_4f",
+                        "style_source_product_key": "XPS_in_situ",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from src.core.origin_style_assets import build_origin_style_asset_export_plan, build_origin_style_asset_replay_plan
+
+    export_plan = build_origin_style_asset_export_plan(project, None, template_plan=plan_json)
+    replay_plan = build_origin_style_asset_replay_plan(project, plan_json, tmp_path / "out")
+
+    assert export_plan.items[0].style_source_product_key == "XPS_in_situ"
+    assert export_plan.items[0].style_source_theme_path == theme
+    assert replay_plan.items[0].style_source_product_key == "XPS_in_situ"
+    assert replay_plan.items[0].style_source_theme_path == theme
+
+
+def test_style_asset_manifest_merge_preserves_other_assets_and_existing_previews(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {"product_key": "BET", "format_theme": "format_themes/BET.oth"},
+                    {
+                        "product_key": "XRD",
+                        "format_theme": "format_themes/old_XRD.oth",
+                        "preview_png": "previews/XRD_preview.png",
+                        "preview_rms": 48.0,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from src.core.origin_style_assets import _merge_origin_style_manifest_entries
+
+    merged = _merge_origin_style_manifest_entries(
+        manifest,
+        [
+            {
+                "product_key": "XRD",
+                "format_theme": "format_themes/XRD.oth",
+                "graph_template": "graph_templates/XRD.otpu",
+                "style_snapshot": "snapshots/XRD.json",
+                "data_snapshot": "data_snapshots/XRD.json",
+                "template_opju": "reference_opju/XRD.opju",
+                "preview_png": "",
+                "preview_rms": None,
+            }
+        ],
+    )
+
+    assert [entry["product_key"] for entry in merged] == ["BET", "XRD"]
+    xrd = merged[1]
+    assert xrd["format_theme"] == "format_themes/XRD.oth"
+    assert xrd["graph_template"] == "graph_templates/XRD.otpu"
+    assert xrd["style_snapshot"] == "snapshots/XRD.json"
+    assert xrd["data_snapshot"] == "data_snapshots/XRD.json"
+    assert xrd["template_opju"] == "reference_opju/XRD.opju"
+    assert xrd["preview_png"] == "previews/XRD_preview.png"
+    assert xrd["preview_rms"] == 48.0
+
+
+def test_style_asset_manifest_direct_template_harvest_clears_stale_previews(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "XRD",
+                        "format_theme": "format_themes/old_XRD.oth",
+                        "graph_template": "graph_templates/old_XRD.otpu",
+                        "preview_png": "previews/old_preview.png",
+                        "reference_preview_png": "previews/old_reference.png",
+                        "template_preview_comparison_png": "previews/old_comparison.png",
+                        "preview_rms": 48.0,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from src.core.origin_style_assets import _merge_origin_style_manifest_entries
+
+    merged = _merge_origin_style_manifest_entries(
+        manifest,
+        [
+            {
+                "product_key": "XRD",
+                "source_mode": "direct_template_opju",
+                "format_theme": "format_themes/XRD.oth",
+                "graph_template": "",
+                "preview_png": "",
+                "reference_preview_png": "",
+                "template_preview_comparison_png": "",
+                "preview_rms": None,
+            }
+        ],
+    )
+
+    xrd = merged[0]
+    assert xrd["format_theme"] == "format_themes/XRD.oth"
+    assert xrd["graph_template"] == ""
+    assert xrd["preview_png"] == ""
+    assert xrd["reference_preview_png"] == ""
+    assert xrd["template_preview_comparison_png"] == ""
+    assert xrd["preview_rms"] is None
+
+
+def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
+    from src.core.origin_style_assets import read_graph_data_snapshot
+    from src.origin.operations import OperationResult
+
+    class FakeOriginOps:
+        def __init__(self) -> None:
+            self.variables = {"__rdop_plot_style_value": float("nan")}
+            self.layer_names = {
+                1: ["Book2_B", "Book2_D", "Book2_F"],
+                2: ["Book2_H"],
+                3: ["Book3_F"],
+            }
+            self.columns = {
+                "Book2": [
+                    [10.0, 11.0],
+                    [100.0, 101.0],
+                    [20.0, 21.0],
+                    [200.0, 201.0],
+                    [30.0, 31.0],
+                    [300.0, 301.0],
+                    [15.287, 18.192],
+                    [25.3, 0.2],
+                ],
+                "Book3": [
+                    [1.0],
+                    [2.0],
+                    [3.0],
+                    [4.0],
+                    [32.0, 33.0],
+                    [500.0, 501.0],
+                ],
+            }
+            self.styles = {
+                ("Book2_H", "-c"): 22106449.0,
+                ("Book2_H", "-cl"): 22106449.0,
+                ("Book2_H", "-wp"): 0.5,
+                ("Book3_F", "-c"): 23709421.0,
+                ("Book3_F", "-wp"): 3.0,
+            }
+
+        def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+            names = self.layer_names.get(layer_index)
+            if names is None:
+                return OperationResult(False, "missing layer")
+            return OperationResult(True, "ok", {"plot_dataset_names": names})
+
+        def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"columns": self.columns[book_name]})
+
+        def run_labtalk(self, script: str) -> OperationResult:
+            stripped = script.strip()
+            if stripped == "__rdop_plot_style_value=nan;":
+                self.variables["__rdop_plot_style_value"] = float("nan")
+                return OperationResult(True, "ok")
+            parts = stripped.rstrip(";").split()
+            if len(parts) == 4 and parts[0] == "get" and parts[3] == "__rdop_plot_style_value":
+                value = self.styles.get((parts[1], parts[2]), float("nan"))
+                self.variables["__rdop_plot_style_value"] = value
+                return OperationResult(True, "ok")
+            return OperationResult(False, "unsupported")
+
+        def get_labtalk_variable(self, name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"value": self.variables.get(name)})
+
+    snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph4", source_label="CWO+BOBC+标卡.opju")
+
+    assert snapshot["plot_count"] == 5
+    assert snapshot["layer_count_with_plots"] == 3
+    plots = {plot["y_dataset"]: plot for plot in snapshot["plots"]}
+    assert plots["Book2_B"]["x_dataset"] == "Book2_A"
+    assert plots["Book2_H"]["x_dataset"] == "Book2_G"
+    assert plots["Book2_H"]["x_values"] == [15.287, 18.192]
+    assert plots["Book2_H"]["y_values"] == [25.3, 0.2]
+    assert plots["Book2_H"]["style"]["color"] == 22106449.0
+    assert plots["Book2_H"]["style"]["line_width_pt"] == 0.5
+    assert plots["Book3_F"]["x_dataset"] == "Book3_E"
+    assert plots["Book3_F"]["layer_index"] == 3
+    assert plots["Book3_F"]["style"]["color"] == 23709421.0
+
+
+def test_graph_data_snapshot_falls_back_to_default_sheet_and_plot_instance_names() -> None:
+    from src.core.origin_style_assets import read_graph_data_snapshot
+    from src.origin.operations import OperationResult
+
+    class FakeOriginOps:
+        def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+            if layer_index == 1:
+                return OperationResult(True, "ok", {"plot_dataset_names": ["Book1_G", "Book1_G@2"]})
+            return OperationResult(False, "missing")
+
+        def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
+            if sheet_name == "Sheet1":
+                return OperationResult(False, "Worksheet data is not iterable")
+            return OperationResult(
+                True,
+                "ok",
+                {
+                    "columns": [
+                        [0.0],
+                        [1.0],
+                        [2.0],
+                        [3.0],
+                        [4.0],
+                        [5.0, 6.0],
+                        [50.0, 60.0],
+                    ]
+                },
+            )
+
+        def run_labtalk(self, script: str) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def get_labtalk_variable(self, name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"value": float("nan")})
+
+    snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph1")
+    plots = snapshot["plots"]
+
+    assert [plot["status"] for plot in plots] == ["ready", "ready"]
+    assert [plot["y_dataset"] for plot in plots] == ["Book1_G", "Book1_G@2"]
+    assert [plot["x_dataset"] for plot in plots] == ["Book1_F", "Book1_F"]
+    assert [plot["sheet_name"] for plot in plots] == ["", ""]
+    assert plots[1]["y_values"] == [50.0, 60.0]
+
+
+def test_style_asset_export_loads_working_copy_not_source_opju(tmp_path: Path, monkeypatch) -> None:
+    from src.core import origin_style_assets
+    from src.origin.operations import OperationResult
+
+    project = tmp_path / "project"
+    source_dir = tmp_path / "manual_save"
+    source_dir.mkdir()
+    source = source_dir / "CWO+BOBC+标卡.opju"
+    source.write_bytes(b"opju")
+    loaded_paths: list[Path] = []
+
+    class Snapshot:
+        def to_dict(self) -> dict[str, object]:
+            return {"graph_page": "Graph4"}
+
+    class FakeOriginOps:
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def load_project(self, file_path: Path) -> OperationResult:
+            loaded_paths.append(Path(file_path))
+            return OperationResult(True, "ok")
+
+        def save_project(self, file_path: Path) -> OperationResult:
+            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(file_path).write_bytes(b"opju")
+            return OperationResult(True, "ok")
+
+        def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+            if layer_index == 1:
+                return OperationResult(True, "ok", {"plot_dataset_names": ["Book2_B"]})
+            return OperationResult(False, "missing layer")
+
+        def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"columns": [[10.0], [100.0]]})
+
+        def save_graph_theme(self, graph_name: str, file_path: Path) -> OperationResult:
+            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(file_path).write_bytes(b"oth")
+            return OperationResult(True, "ok")
+
+        def save_graph_template(self, graph_name: str, file_path: Path) -> OperationResult:
+            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(file_path).write_bytes(b"otpu")
+            return OperationResult(True, "ok")
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(origin_style_assets, "connect_origin", lambda **_kwargs: FakeOriginOps())
+    monkeypatch.setattr(origin_style_assets, "read_graph_style_snapshot", lambda *_args, **_kwargs: Snapshot())
+
+    result = origin_style_assets.export_origin_style_assets(
+        project,
+        None,
+        asset_root=project / "templates" / "origin_styles",
+        with_origin=True,
+        template_opju=source,
+        product_key="XRD",
+        data_type="XRD",
+        graph_page="Graph4",
+    )
+
+    assert result["exported_count"] == 1
+    assert loaded_paths
+    assert loaded_paths[0] != source
+    assert loaded_paths[0].parent != source.parent
+    assert loaded_paths[0].name == "XRD.opju"
+    data_snapshot = project / "templates" / "origin_styles" / "data_snapshots" / "XRD.json"
+    assert json.loads(data_snapshot.read_text(encoding="utf-8"))["plots"][0]["x_dataset"] == "Book2_A"
 
 
 def test_style_asset_export_plan_matches_uv_vis_report_name_to_folder(tmp_path: Path) -> None:
@@ -201,11 +628,27 @@ def test_cli_export_origin_style_assets_passes_options(tmp_path: Path, monkeypat
     asset_root = project_root / "templates" / "origin_styles"
     captured: dict[str, object] = {}
 
-    def fake_export(project: Path, run: Path, *, asset_root: Path | None = None, with_origin: bool = False) -> dict[str, object]:
+    def fake_export(
+        project: Path,
+        run: Path | None = None,
+        *,
+        asset_root: Path | None = None,
+        with_origin: bool = False,
+        template_plan: Path | None = None,
+        template_opju: Path | None = None,
+        product_key: str | None = None,
+        data_type: str | None = None,
+        graph_page: str | None = None,
+    ) -> dict[str, object]:
         captured["project"] = project
         captured["run_root"] = run
         captured["asset_root"] = asset_root
         captured["with_origin"] = with_origin
+        captured["template_plan"] = template_plan
+        captured["template_opju"] = template_opju
+        captured["product_key"] = product_key
+        captured["data_type"] = data_type
+        captured["graph_page"] = graph_page
         return {
             "asset_root": str(asset_root),
             "manifest": str(asset_root / "manifest.json") if asset_root else "",
@@ -234,4 +677,105 @@ def test_cli_export_origin_style_assets_passes_options(tmp_path: Path, monkeypat
         "run_root": run_root,
         "asset_root": asset_root,
         "with_origin": True,
+        "template_plan": None,
+        "template_opju": None,
+        "product_key": None,
+        "data_type": None,
+        "graph_page": None,
     }
+
+
+def test_cli_origin_style_asset_replay_passes_options(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    plan = project_root / "plan.json"
+    plan.write_text('{"items":[]}', encoding="utf-8")
+    output_dir = project_root / "output" / "runs" / "replay"
+    captured: dict[str, object] = {}
+
+    def fake_replay(project: Path, plan_path: Path, out: Path, *, with_origin: bool = False) -> dict[str, object]:
+        captured["project"] = project
+        captured["plan_path"] = plan_path
+        captured["output_dir"] = out
+        captured["with_origin"] = with_origin
+        return {
+            "output_dir": str(out),
+            "planned_count": 1,
+            "compared_count": 1,
+            "failure_count": 0,
+        }
+
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr("src.cli.run_origin_style_asset_replay", fake_replay)
+
+    code = main(
+        [
+            "origin-style-asset-replay",
+            "--template-plan",
+            str(plan),
+            "--output-dir",
+            str(output_dir),
+            "--with-origin",
+        ]
+    )
+
+    assert code == 0
+    assert captured == {
+        "project": project_root,
+        "plan_path": plan,
+        "output_dir": output_dir,
+        "with_origin": True,
+    }
+
+
+def test_replay_comparison_writes_side_by_side_without_diff_png(tmp_path: Path) -> None:
+    from PIL import Image
+
+    from src.core.origin_style_assets import _compare_replay_pngs
+
+    source = tmp_path / "source.png"
+    asset = tmp_path / "asset.png"
+    Image.new("RGBA", (2, 2), "white").save(source)
+    Image.new("RGBA", (2, 2), "white").save(asset)
+
+    comparison = _compare_replay_pngs(source, asset, tmp_path)
+
+    assert comparison["exact_pixel_match"] is True
+    assert "diff_png" not in comparison
+    assert (tmp_path / "side_by_side.png").is_file()
+    assert not (tmp_path / "diff.png").exists()
+
+
+def test_export_replay_graph_copies_opju_into_product_dir(tmp_path: Path) -> None:
+    from src.core.origin_style_assets import _export_replay_graph
+    from src.origin.operations import OperationResult
+
+    source_opju = tmp_path / "asset.opju"
+    source_opju.write_bytes(b"origin-project")
+    product_dir = tmp_path / "products" / "BET"
+    product_dir.mkdir(parents=True)
+
+    class FakeOriginOps:
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def load_project(self, file_path: Path) -> OperationResult:
+            assert file_path.name == "project_asset.opju"
+            return OperationResult(True, "ok")
+
+        def list_worksheets(self) -> OperationResult:
+            return OperationResult(True, "ok", {"pages": [{"name": "Graph5", "type": "graph"}]})
+
+        def export_graph(self, graph_name: str, file_path: Path, fmt: str, dpi: int = 600) -> OperationResult:
+            assert graph_name == "Graph5"
+            assert dpi == 600
+            Path(file_path).write_bytes(fmt.encode("ascii"))
+            return OperationResult(True, "ok")
+
+    result = _export_replay_graph(FakeOriginOps(), source_opju, "Graph5", product_dir, "project_asset")
+
+    exported_opju = product_dir / "BET.opju"
+    assert result["ok"] is True
+    assert result["opju"] == str(exported_opju)
+    assert result["opju_size"] == len(b"origin-project")
+    assert exported_opju.read_bytes() == b"origin-project"

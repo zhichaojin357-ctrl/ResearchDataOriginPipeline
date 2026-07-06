@@ -30,6 +30,10 @@ STYLE_LAYOUT_FIELDS = (
     "layer.y.minor",
     "layer.x.label.pt",
     "layer.y.label.pt",
+    "layer.x.label.show",
+    "layer.y.label.show",
+    "layer.x.showLabels",
+    "layer.y.showLabels",
     "layer.x.label.bold",
     "layer.y.label.bold",
     "layer.x.label.offset",
@@ -224,8 +228,15 @@ def read_graph_style_snapshot(
     )
 
 
-def apply_style_snapshot(operations: object, graph_name: str, snapshot: OpjuStyleSnapshot | dict[str, Any]) -> bool:
+def apply_style_snapshot(
+    operations: object,
+    graph_name: str,
+    snapshot: OpjuStyleSnapshot | dict[str, Any],
+    *,
+    apply_default_font: bool = True,
+) -> bool:
     layout_values = snapshot.layout_values if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("layout_values", {})
+    audit_numeric = snapshot.audit_numeric_values if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("audit_numeric_values", {})
     if not isinstance(layout_values, dict) or not layout_values:
         return False
     commands = []
@@ -233,13 +244,65 @@ def apply_style_snapshot(operations: object, graph_name: str, snapshot: OpjuStyl
         number = _to_float(value)
         if number is not None and math.isfinite(number):
             commands.append(f"{key}={number};")
+    if isinstance(audit_numeric, dict):
+        for key in ("layer.x.label.show", "layer.y.label.show", "layer.x.showLabels", "layer.y.showLabels"):
+            if key in layout_values:
+                continue
+            number = _to_float(audit_numeric.get(key))
+            if number is not None and math.isfinite(number):
+                commands.append(f"{key}={number};")
     if not commands:
         return False
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
     operations.run_labtalk("page.kar=0; page.customwidth=1; page.customheight=1; " + " ".join(commands))
-    if hasattr(operations, "set_graph_font"):
+    _apply_plot_style_snapshot(operations, graph_name, snapshot)
+    if apply_default_font and hasattr(operations, "set_graph_font"):
         operations.set_graph_font(graph_name)
     return True
+
+
+def _apply_plot_style_snapshot(
+    operations: object,
+    graph_name: str,
+    snapshot: OpjuStyleSnapshot | dict[str, Any],
+) -> None:
+    plot_names = _plot_names(operations, graph_name)
+    if not plot_names:
+        return
+    widths = snapshot.plot_line_widths if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("plot_line_widths", [])
+    colors = snapshot.plot_colors if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("plot_colors", [])
+    shapes = snapshot.marker_shapes if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("marker_shapes", [])
+    sizes = snapshot.marker_sizes if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("marker_sizes", [])
+    operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    for index, plot_name in enumerate(plot_names):
+        commands: list[str] = []
+        if index < len(widths):
+            width = _origin_line_width_to_set_value(widths[index])
+            if width is not None:
+                commands.append(f"set {plot_name} -wp {width:g};")
+        if index < len(colors):
+            color = _to_float(colors[index])
+            if color is not None and math.isfinite(color):
+                commands.append(f"set {plot_name} -c {int(round(color))};")
+        if index < len(shapes):
+            shape = _to_float(shapes[index])
+            if shape is not None and math.isfinite(shape):
+                commands.append(f"set {plot_name} -k {int(round(shape))};")
+        if index < len(sizes):
+            size = _to_float(sizes[index])
+            if size is not None and math.isfinite(size):
+                commands.append(f"set {plot_name} -z {int(round(size))};")
+        if commands:
+            operations.run_labtalk(" ".join(commands))
+
+
+def _origin_line_width_to_set_value(value: object) -> float | None:
+    number = _to_float(value)
+    if number is None or not math.isfinite(number):
+        return None
+    if number > 100:
+        return max(0.1, number / 500.0)
+    return number
 
 
 def _read_numeric_fields(operations: object, fields: tuple[str, ...]) -> dict[str, float]:

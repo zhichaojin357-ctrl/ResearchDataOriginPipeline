@@ -58,6 +58,18 @@ def test_user_style_override_maps_xps_group_to_xps_key() -> None:
     assert style.tick_label_font_size == 20
 
 
+def test_exemplar_origin_line_width_units_convert_to_points() -> None:
+    exemplar = OpjuStyleSnapshot(
+        source_opju="reference.opju",
+        status="extracted",
+        plot_line_widths=[1500.0, 1500.0, 1500.0],
+    )
+
+    style = resolve_user_plot_style("XRD", exemplar=exemplar, user_config={})
+
+    assert style.line_width_pt == 3.0
+
+
 def test_apply_resolved_style_overrides_emits_line_width_and_bold_axis_policy() -> None:
     fake = _FakeOps()
     style = resolve_user_plot_style("XRD", user_config={"global": {"line_width_pt": 3.0, "font_bold": True}})

@@ -288,7 +288,11 @@ def _best_header_row(frame):
         data.columns = headers
         data = data.dropna(how="all")
         numeric_rows = sum(1 for _idx, row in data.iterrows() if any(_to_float(value) is not None for value in row))
-        numeric_columns = sum(1 for column in data.columns if any(_to_float(value) is not None for value in data[column].tolist()))
+        numeric_columns = sum(
+            1
+            for column_index in range(len(data.columns))
+            if any(_to_float(value) is not None for value in data.iloc[:, column_index].tolist())
+        )
         header_bonus = _header_bonus(headers)
         score = numeric_rows * max(numeric_columns, 1) + header_bonus * 10 - _header_penalty(headers) * 5
         scored.append((score, header_bonus, numeric_rows, numeric_columns, -header_index, data, header_index))
@@ -354,7 +358,9 @@ def _read_text(path: Path) -> str:
 
 
 def _text_header_scan_limit(text: str) -> int:
-    first_lines = "\n".join(text.splitlines()[:30]).casefold()
+    first_lines = "\n".join(text.splitlines()[:100]).casefold()
+    if "amperometric i-t curve" in first_lines or "time/sec" in first_lines:
+        return 100
     metadata_markers = (
         "instrument model",
         "impedance - potential",
@@ -364,13 +370,17 @@ def _text_header_scan_limit(text: str) -> int:
         "amplitude",
         "quiet time",
     )
-    return 30 if any(marker in first_lines for marker in metadata_markers) else 10
+    return 80 if any(marker in first_lines for marker in metadata_markers) else 10
 
 
 def _zplotw_table_result(text: str) -> TableReadResult | None:
     lines = text.splitlines()
     first_block = "\n".join(lines[:20]).casefold()
-    if "zplotw data file" not in first_block and not any("freq(hz)" in line.casefold() for line in lines[:30]):
+    if (
+        "zplotw data file" not in first_block
+        and "z60w data file" not in first_block
+        and not any(_has_frequency_hz_header(line) for line in lines[:80])
+    ):
         return None
 
     header_index = None
@@ -378,9 +388,10 @@ def _zplotw_table_result(text: str) -> TableReadResult | None:
     for index, line in enumerate(lines[:80]):
         cleaned = line.strip().strip('"').strip()
         lowered = cleaned.casefold()
-        if "freq(hz)" in lowered and "z'" in lowered and "z''" in lowered:
+        if _has_frequency_hz_header(lowered) and "z'" in lowered and "z''" in lowered:
             header_index = index
-            headers = _dedupe_headers([part for part in re.split(r"\s+", cleaned) if part])
+            normalized = re.sub(r"freq\s*\(\s*hz\s*\)", "Freq(Hz)", cleaned, flags=re.IGNORECASE)
+            headers = _dedupe_headers([part for part in re.split(r"\s+", normalized) if part])
             break
     if header_index is None or len(headers) < 3:
         return None
@@ -417,6 +428,10 @@ def _zplotw_table_result(text: str) -> TableReadResult | None:
             }
         },
     )
+
+
+def _has_frequency_hz_header(line: str) -> bool:
+    return re.search(r"\bfreq\s*\(\s*hz\s*\)", line.casefold()) is not None
 
 
 def _bracketed_data_table_result(text: str) -> TableReadResult | None:

@@ -93,6 +93,8 @@ def build_default_root_map(project_root: Path) -> dict[str, Path]:
     parent = project_root.resolve().parent
     return {
         "f_drive_detection": Path("F:/\u8bfe\u9898/LL/\u68c0\u6d4b"),
+        "project_data": parent / "\u6570\u636e",
+        "origin_manual_save": Path("D:/OriginFlies/Manual Save"),
         "workspace_xps_data": parent / "26.6.3\u7ec4\u4f1a\u6570\u636e" / "XPS",
         "workspace_xps_reference": parent / "xps\u53c2\u8003\u56fe\u50cf",
         "workspace_group_data": parent / "26.6.3\u7ec4\u4f1a\u6570\u636e",
@@ -171,7 +173,7 @@ def export_product_with_origin(product: ProductContext) -> dict[str, object]:
             return {"ok": False, "message": _product_status_message(product, imported.message), "style": style}
         book_name = str(imported.payload["book_name"])
         headers = _csv_header(product.processed_data)
-        graph_name = safe_name(product.slug)[:24] or "PilotGraph"
+        graph_name = safe_name(product.slug)[:24] or "ProductGraph"
         created = operations.create_graph(graph_name, book_name, "Sheet1", 1, 2, plot_type=product.plot_type)
         if not created.ok:
             return {"ok": False, "message": _product_status_message(product, created.message), "style": style}
@@ -180,7 +182,7 @@ def export_product_with_origin(product: ProductContext) -> dict[str, object]:
             operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
         if not apply_style_snapshot(operations, graph_name, snapshot):
             operations.apply_graph4_fixed_style(graph_name)
-        _apply_pilot_layout(operations, graph_name)
+        _apply_product_layout(operations, graph_name)
         operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
         operations.set_graph_font(
             graph_name,
@@ -282,7 +284,7 @@ def _build_processed_plot_table(
         return headers, processed_rows, {
             "x_label": "Relative Pressure (P/P_0)",
             "y_label": "Quantity Adsorbed (cm3/g STP)",
-            "title": "BET isotherm pilot",
+            "title": "BET isotherm exemplar",
             "plot_type": "line+symbol",
         }
     if pairing.product_key == "XRD":
@@ -290,7 +292,7 @@ def _build_processed_plot_table(
         return ["two_theta_deg", "intensity"], rows, {
             "x_label": XRD_X_AXIS_TITLE,
             "y_label": XRD_Y_AXIS_TITLE,
-            "title": "XRD pilot",
+            "title": "XRD exemplar",
             "plot_type": "line",
         }
     if pairing.product_key == "EPR":
@@ -299,7 +301,7 @@ def _build_processed_plot_table(
         return ["magnetic_field", "intensity"], rows, {
             "x_label": "Magnetic Field (G)",
             "y_label": "Intensity (a.u.)",
-            "title": "EPR pilot",
+            "title": "EPR exemplar",
             "plot_type": "line",
             "y_ticks": "false",
             "y_tick_values": "false",
@@ -335,7 +337,7 @@ def _build_xps_in_situ_table(
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
         "y_label": "Intensity (a.u.)",
-        "title": f"XPS in-situ {element} pilot",
+        "title": f"XPS in-situ {element} exemplar",
         "plot_type": "line",
         "x_descending": "true",
         "y_ticks": "false",
@@ -364,7 +366,7 @@ def _build_xps_non_in_situ_table(
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
         "y_label": "Intensity (a.u.)",
-        "title": f"XPS non-in-situ {comparison.element} pilot",
+        "title": f"XPS non-in-situ {comparison.element} exemplar",
         "plot_type": "line",
         "x_descending": "true",
         "y_ticks": "false",
@@ -601,7 +603,7 @@ def _product_output_path(run_root: Path, path: Path | str) -> str:
 def _write_per_type_report(run_root: Path, product: ProductContext, export_status: dict[str, object]) -> Path:
     path = product.type_root / "reports" / f"{product.slug}_report.md"
     lines = [
-        f"# {product.product_key} pilot report",
+        f"# {product.product_key} exemplar report",
         "",
         f"- Status: {'success' if bool(export_status.get('ok')) else 'origin_failed'}",
         f"- Data root label: {product.pairing.data_root_label}",
@@ -641,7 +643,7 @@ def _write_manual_checklist(
     lines = [
         "# Manual calibration checklist",
         "",
-        "This pilot writes product OPJU/TIF/PNG artifacts only for BET, XPS in-situ, XPS non-in-situ, XRD, and EPR.",
+        "This workflow writes product OPJU/TIF/PNG artifacts only for BET, XPS in-situ, XPS non-in-situ, XRD, and EPR.",
         "",
     ]
     for product in products:
@@ -685,11 +687,11 @@ def _write_summary(
     }
     reports = run_root / "reports"
     reports.mkdir(parents=True, exist_ok=True)
-    (reports / "opju_product_pilot_summary.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    lines = ["# OPJU product pilot summary", "", f"- Products prepared: {len(products)}", f"- Failures: {len(failures)}", f"- Origin requested: {with_origin}", ""]
+    (reports / "template_product_common_summary.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    lines = ["# OPJU product summary", "", f"- Products prepared: {len(products)}", f"- Failures: {len(failures)}", f"- Origin requested: {with_origin}", ""]
     for product in products:
         lines.append(f"- {product['product_key']}: {product['status']}")
-    (reports / "opju_product_pilot_summary.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    (reports / "template_product_common_summary.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     final_lines = [
         "# Final summary",
         "",
@@ -822,7 +824,7 @@ def _manual_items(product_key: str) -> list[str]:
     return {
         "BET": [
             "Confirm adsorption/desorption branch mapping, unit labels, and whether the plotted table is isotherm or pore-distribution data.",
-            "Do not infer pore structure or BET model validity from this pilot plot alone.",
+            "Do not infer pore structure or BET model validity from this exemplar plot alone.",
         ],
         "XPS_in_situ": [
             "Confirm BOBC, dark, and light sample mapping and binding-energy calibration.",
@@ -830,7 +832,7 @@ def _manual_items(product_key: str) -> list[str]:
         ],
         "XPS_non_in_situ": [
             "Confirm BOBC/BC or CWO/BC comparison choice and fitted component assignments.",
-            "Do not infer valence, electron-transfer direction, or S-scheme mechanism from this pilot plot.",
+            "Do not infer valence, electron-transfer direction, or S-scheme mechanism from this exemplar plot.",
         ],
         "XRD": [
             "Confirm whether reference-card lines from the exemplar should be copied before any final figure.",
@@ -908,7 +910,31 @@ def _root_for_label(root_map: dict[str, Path], label: str) -> Path:
 
 def _resolve_pairing_path(root: Path, value: str) -> Path:
     path = Path(value)
-    return path if path.is_absolute() else root / path
+    resolved = path if path.is_absolute() else root / path
+    if resolved.exists():
+        return resolved
+    repaired = _resolve_existing_opju_in_same_directory(resolved)
+    return repaired or resolved
+
+
+def _resolve_existing_opju_in_same_directory(path: Path) -> Path | None:
+    if path.suffix.casefold() not in {".opju", ".opj"} or not path.parent.is_dir():
+        return None
+    candidates = sorted(
+        candidate for candidate in path.parent.iterdir() if candidate.is_file() and candidate.suffix.casefold() == path.suffix.casefold()
+    )
+    if len(candidates) == 1:
+        return candidates[0]
+    expected_tokens = set(re.findall(r"[A-Za-z0-9]+", path.stem.casefold()))
+    if expected_tokens:
+        token_matches = [
+            candidate
+            for candidate in candidates
+            if expected_tokens.issubset(set(re.findall(r"[A-Za-z0-9]+", candidate.stem.casefold())))
+        ]
+        if len(token_matches) == 1:
+            return token_matches[0]
+    return None
 
 
 def _try_extract_reference_style(operations: object, reference_opju: Path) -> dict[str, object]:
@@ -957,7 +983,7 @@ def _apply_reference_style(operations: object, graph_name: str, style: dict[str,
     return True
 
 
-def _apply_pilot_layout(operations: object, graph_name: str) -> None:
+def _apply_product_layout(operations: object, graph_name: str) -> None:
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
     operations.run_labtalk(
         "page.kar=0; page.customwidth=1; page.customheight=1; "

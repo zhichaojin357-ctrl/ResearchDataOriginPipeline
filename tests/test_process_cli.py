@@ -348,6 +348,51 @@ class ProcessCliTest(unittest.TestCase):
             failures = json.loads((default_output_root(project) / "reports" / "processing_failures.json").read_text(encoding="utf-8"))
             self.assertEqual(len(failures["failures"]), 1)
 
+    def test_process_manifest_skips_auxiliary_reports_cards_and_notes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            raw = project / "input" / "raw_data"
+            xrd = raw / "XRD"
+            bet = raw / "BET"
+            photocurrent = raw / "20260109 光电流"
+            xrd.mkdir(parents=True)
+            bet.mkdir(parents=True)
+            photocurrent.mkdir(parents=True)
+            (xrd / "sample.csv").write_text("2theta,intensity\n10,1\n20,4\n", encoding="utf-8")
+            (xrd / "PDF#00-029-0914.txt").write_text("PDF#00-029-0914\nnot a sample pattern\n", encoding="utf-8")
+            (bet / "instrument_report.PDF").write_bytes(b"%PDF-1.4\nnot a table\n")
+            (photocurrent / "备注.txt").write_text("测试说明，不是原始数据表\n", encoding="utf-8")
+
+            code = run_process(project, raw, ProcessOptions(no_origin=True, force=True, output_root=Path(tmp) / "output"))
+
+            self.assertEqual(code, 0)
+            metadata_files = list((Path(tmp) / "output" / "metadata").rglob("metadata.json"))
+            self.assertEqual(len(metadata_files), 1)
+            skipped = json.loads((Path(tmp) / "output" / "reports" / "processing_skipped_auxiliary.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                {Path(item["source_file"]).name for item in skipped["items"]},
+                {"PDF#00-029-0914.txt", "instrument_report.PDF", "备注.txt"},
+            )
+            summary = json.loads((Path(tmp) / "output" / "reports" / "processing_summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["skipped_auxiliary_count"], 3)
+            self.assertEqual(summary["failure_count"], 0)
+
+    def test_process_supports_ftir_dpt_ascii_exports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            raw = project / "input" / "raw_data" / "红外"
+            raw.mkdir(parents=True)
+            (raw / "sample.dpt").write_text("3997.68120,1.00069\n3995.75275,1.00068\n3993.82429,1.00067\n", encoding="utf-8")
+
+            code = run_process(project, project / "input" / "raw_data", ProcessOptions(no_origin=True, force=True, output_root=Path(tmp) / "output"))
+
+            self.assertEqual(code, 0)
+            metadata_files = list((Path(tmp) / "output" / "metadata" / "FTIR").rglob("metadata.json"))
+            self.assertEqual(len(metadata_files), 1)
+            metadata = json.loads(metadata_files[0].read_text(encoding="utf-8"))
+            self.assertEqual(metadata["data_type"], "FTIR")
+            self.assertEqual(metadata["processing_status"], "processed_no_origin")
+
     def test_path_guard_rejects_writes_outside_allowed_project_areas(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)

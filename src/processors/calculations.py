@@ -198,10 +198,11 @@ def build_processed_table(
 
     if data_type == "EPR":
         max_abs = max((abs(y) for _, y in numeric), default=None)
+        frequency_lookup = epr_frequency_lookup(rows)
         output = []
         for field, intensity in numeric:
             normalized = intensity / max_abs if max_abs else None
-            frequency = epr_frequency_for_field(rows, field)
+            frequency = epr_frequency_for_field(rows, field, frequency_lookup)
             output.append([field, intensity, normalized, epr_g_candidate(field, frequency)])
         if any(row[3] is not None for row in output):
             return ["magnetic_field", "intensity", "normalized_intensity", "g_candidate_optional"], output
@@ -990,7 +991,7 @@ def epr_extrema_results(numeric: list[tuple[float, float]], rows: list[dict[str,
         return {}
     min_field, _ = min(numeric, key=lambda item: item[1])
     max_field, _ = max(numeric, key=lambda item: item[1])
-    frequency = epr_frequency_for_field(rows, max_field)
+    frequency = epr_frequency_for_field(rows, max_field, epr_frequency_lookup(rows))
     result = {
         "minimum_intensity_field": float(min_field),
         "maximum_intensity_field": float(max_field),
@@ -1008,7 +1009,8 @@ def epr_package_results(numeric: list[tuple[float, float]], rows: list[dict[str,
 
     fields = [field for field, _ in numeric]
     intensities = [intensity for _, intensity in numeric]
-    frequencies = [epr_frequency_for_field(rows, field) for field in fields]
+    frequency_lookup = epr_frequency_lookup(rows)
+    frequencies = [epr_frequency_for_field(rows, field, frequency_lookup) for field in fields]
     result = epr_adapter.process_or_analyze(
         fields,
         intensities,
@@ -1027,14 +1029,28 @@ def epr_numeric(rows: list[dict[str, str]], fallback: list[tuple[float, float]])
     return output or fallback
 
 
-def epr_frequency_for_field(rows: list[dict[str, str]], field: float) -> float | None:
+def epr_frequency_lookup(rows: list[dict[str, str]]) -> dict[float, float]:
+    lookup: dict[float, float] = {}
     for row in rows:
         row_field = first_numeric(row, ["magnetic field", "field"])
-        if row_field is None or abs(row_field - field) > 1e-9:
+        if row_field is None:
             continue
         frequency = first_numeric(row, ["microwave frequency", "frequency ghz", "ghz"])
-        if frequency is not None:
-            return frequency
+        if frequency is None:
+            continue
+        lookup.setdefault(_epr_field_key(row_field), frequency)
+    return lookup
+
+
+def epr_frequency_for_field(
+    rows: list[dict[str, str]],
+    field: float,
+    lookup: dict[float, float] | None = None,
+) -> float | None:
+    frequency_lookup = lookup if lookup is not None else epr_frequency_lookup(rows)
+    key = _epr_field_key(field)
+    if key in frequency_lookup:
+        return frequency_lookup[key]
     return None
 
 
@@ -1044,6 +1060,10 @@ def epr_g_candidate(field_value: float, frequency_ghz: float | None) -> float | 
     # g = h * nu / (mu_B * B). For fields exported in gauss, B_mT = G / 10.
     field_mt = field_value / 10.0 if field_value > 1000 else field_value
     return 71.4477 * frequency_ghz / field_mt
+
+
+def _epr_field_key(field: float) -> float:
+    return round(float(field), 9)
 
 
 def mott_schottky_linear_results(numeric: list[tuple[float, float]]) -> dict:

@@ -5,7 +5,7 @@ from src.origin.type_mimic.common import TypeMimicSpec
 
 SPEC = TypeMimicSpec(
     product_key="XPS_non_in_situ",
-    output_slug="XPS_non_in_situ_BOBC_BC_exemplar_pilot",
+    output_slug="XPS_non_in_situ_BOBC_BC_exemplar",
     manual_review_items=(
         "Confirm BOBC/BC or CWO/BC comparison choice.",
         "Confirm binding-energy calibration and display direction.",

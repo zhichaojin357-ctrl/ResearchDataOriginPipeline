@@ -9,6 +9,7 @@ from pathlib import Path
 from src.cli import build_parser
 from src.core.metadata import write_metadata
 from src.core.project import default_output_root, REQUIRED_OUTPUT_DIRS
+from src.scanner.scanner import scan_raw_data
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -160,6 +161,23 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertEqual(len(xrd["files"]), 2)
             self.assertEqual(len(manifest["unsupported_files_in_known_folders"]), 1)
             self.assertEqual(manifest["unsupported_files_in_known_folders"][0]["relative_path"], "batch2\\my_XRD_export\\note.unsupported")
+
+    def test_scan_assigns_overlapping_keyword_folders_to_most_specific_classification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            raw = project / "input" / "raw_data"
+            photocurrent = raw / "20260109 光电流"
+            response = raw / "光电流响应"
+            photocurrent.mkdir(parents=True)
+            response.mkdir(parents=True)
+            (photocurrent / "pc.txt").write_text("Time/sec, Current/A\n0.1,1e-7\n0.2,2e-7\n", encoding="utf-8")
+            (response / "response.txt").write_text("Time/sec, Current/A\n0.1,3e-7\n0.2,4e-7\n", encoding="utf-8")
+
+            manifest = scan_raw_data(project, raw, output_root=Path(tmp) / "output")
+            by_type = {item["inferred_data_type"]: item for item in manifest["classifications"]}
+
+            self.assertEqual([Path(path).name for path in by_type["photocurrent"]["files"]], ["pc.txt"])
+            self.assertEqual([Path(path).name for path in by_type["photocurrent_response"]["files"]], ["response.txt"])
 
     def test_process_xrd_writes_processed_data_and_failure_metadata_when_origin_unavailable(self):
         with tempfile.TemporaryDirectory() as tmp:

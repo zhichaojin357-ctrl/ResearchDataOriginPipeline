@@ -17,6 +17,8 @@ class OriginStyleAsset:
     data_type: str
     format_theme_path: Path
     graph_template_path: Path | None = None
+    style_snapshot_path: Path | None = None
+    data_snapshot_path: Path | None = None
     template_opju_path: Path | None = None
     status: str = ""
     graph_page: str = ""
@@ -31,6 +33,12 @@ class OriginStyleAsset:
             "format_theme": _relative_or_absolute(self.format_theme_path, project_root / "templates" / "origin_styles"),
             "graph_template": _relative_or_absolute(self.graph_template_path, project_root / "templates" / "origin_styles")
             if self.graph_template_path
+            else "",
+            "style_snapshot": _relative_or_absolute(self.style_snapshot_path, project_root / "templates" / "origin_styles")
+            if self.style_snapshot_path
+            else "",
+            "data_snapshot": _relative_or_absolute(self.data_snapshot_path, project_root / "templates" / "origin_styles")
+            if self.data_snapshot_path
             else "",
             "template_opju": _relative_or_absolute(self.template_opju_path, project_root / "templates" / "origin_styles")
             if self.template_opju_path
@@ -90,11 +98,19 @@ def resolve_origin_style_asset(
         template_opju = _resolve_manifest_path(base, raw.get("template_opju") or raw.get("source_opju"))
         if template_opju is not None and not template_opju.is_file():
             template_opju = None
+        style_snapshot = _resolve_manifest_path(base, raw.get("style_snapshot"))
+        if style_snapshot is not None and not style_snapshot.is_file():
+            style_snapshot = None
+        data_snapshot = _resolve_manifest_path(base, raw.get("data_snapshot"))
+        if data_snapshot is not None and not data_snapshot.is_file():
+            data_snapshot = None
         return OriginStyleAsset(
             product_key=str(raw.get("product_key") or product_key),
             data_type=str(raw.get("data_type") or product_key),
             format_theme_path=format_theme,
             graph_template_path=graph_template,
+            style_snapshot_path=style_snapshot,
+            data_snapshot_path=data_snapshot,
             template_opju_path=template_opju,
             status=str(raw.get("status") or ""),
             graph_page=str(raw.get("graph_page") or ""),

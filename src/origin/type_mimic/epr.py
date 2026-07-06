@@ -5,7 +5,7 @@ from src.origin.type_mimic.common import TypeMimicSpec
 
 SPEC = TypeMimicSpec(
     product_key="EPR",
-    output_slug="EPR_BC_O3_dark_exemplar_pilot",
+    output_slug="EPR_BC_O3_dark_exemplar",
     manual_review_items=(
         "Confirm condition grouping manually.",
         "Confirm radical assignment manually if labels are needed.",

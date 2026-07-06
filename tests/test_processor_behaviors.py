@@ -112,6 +112,70 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertIn("Z''(b)", result.rows[0])
             self.assertEqual(coerce_numeric_rows(result.rows), [(1000000.0, 61.32), (812830.5, 61.321)])
 
+    def test_text_reader_accepts_z60w_eis_export_with_spaced_frequency_header(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "bobc-z60w.txt"
+            source.write_text(
+                "\n".join(
+                    [
+                        '"Z60W Data File: Version 1.1"',
+                        '""',
+                        '""',
+                        "0,2,0,1,0.01,100000",
+                        "71",
+                        '"  Freq (Hz)    Ampl     Bias   Time(Sec)   Z\'(a)    Z\'\'(b)    GD   Err   Range"',
+                        "100000,0,0,0,5.3440234422322,-1.04536632441473,0,0,0",
+                        "79433,0,0,0,5.41929828179486,-1.03747488174572,0,0,0",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = read_table_with_metadata(source)
+
+            self.assertEqual(result.header_row_index, 5)
+            self.assertEqual(len(result.rows), 2)
+            self.assertIn("Freq(Hz)", result.rows[0])
+            self.assertIn("Z'(a)", result.rows[0])
+            self.assertIn("Z''(b)", result.rows[0])
+            self.assertEqual(coerce_numeric_rows(result.rows), [(100000.0, 5.3440234422322), (79433.0, 5.41929828179486)])
+
+    def test_text_reader_scans_long_chi_amperometric_metadata_before_data_header(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "photocurrent_ocp.txt"
+            lines = [
+                "Jan. 15, 2026   19:05:59",
+                "Amperometric i-t Curve",
+                "File: 1-bco-2(ocp).bin",
+                "Data Source:  Experiment",
+                "Instrument Model:  CHI760E",
+                "",
+                "Init E (V) = 0.238",
+                "Sample Interval (s) = 0.1",
+                "Run Time (sec) = 260",
+                "Results:",
+                "",
+                "Channel 1:",
+            ]
+            for index in range(6):
+                lines.extend([f"tp = {19.4 + index * 40:.2f}s", f"ip = {4.3 - index * 0.2:.3f}e-7A", ""])
+            lines.extend(
+                [
+                    "Time/sec, Current/A",
+                    "",
+                    "1.000e-1, 1.197e-7",
+                    "2.000e-1, 1.015e-7",
+                    "3.000e-1, 8.988e-8",
+                ]
+            )
+            source.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+            result = read_table_with_metadata(source)
+
+            self.assertGreaterEqual(result.header_row_index or 0, 30)
+            self.assertEqual(list(result.rows[0].keys()), ["Time/sec", "Current/A"])
+            self.assertEqual(coerce_numeric_rows(result.rows), [(0.1, 1.197e-7), (0.2, 1.015e-7), (0.3, 8.988e-8)])
+
     def test_generic_reader_accepts_xlsm_workbooks_without_excel_com(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             source = Path(tmpdir) / "eis.xlsm"
@@ -212,6 +276,23 @@ class ProcessorBehaviorTest(unittest.TestCase):
 
             self.assertEqual(set(rows[0]), {"x", "x.1", "intensity"})
             self.assertEqual(coerce_numeric_rows(rows), [(1.0, 5.0), (2.0, 7.0)])
+
+    def test_excel_header_scoring_handles_duplicate_column_labels(self):
+        import pandas as pd
+
+        from src.core import table_reader
+
+        frame = pd.DataFrame([
+            ["x", "x", "intensity"],
+            [1, 10, 5],
+            [2, 20, 7],
+        ])
+
+        with patch("src.core.table_reader._dedupe_headers", side_effect=lambda headers: headers):
+            data, _header_index, _numeric_rows, numeric_columns, _header_bonus = table_reader._best_header_row(frame)
+
+        self.assertEqual(numeric_columns, 3)
+        self.assertEqual(list(data.iloc[:, 0]), [1, 2])
 
     def test_generic_reader_handles_gbk_encoded_chinese_headers(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1038,6 +1119,20 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertAlmostEqual(metadata["key_results"]["g_candidate_at_max_intensity"], 2.0005, places=3)
             rows = self._processed_rows(root, metadata)
             self.assertIn("g_candidate_optional", rows[0])
+
+    def test_epr_frequency_lookup_supports_constant_time_reuse(self):
+        from src.processors.calculations import epr_frequency_for_field, epr_frequency_lookup
+
+        rows = [
+            {"magnetic field": str(3400 + index), "microwave frequency GHz": "9.8"}
+            for index in range(1000)
+        ]
+
+        lookup = epr_frequency_lookup(rows)
+
+        self.assertEqual(len(lookup), 1000)
+        self.assertEqual(epr_frequency_for_field([], 3500, lookup), 9.8)
+        self.assertEqual(epr_frequency_for_field([], 3500.0000000001, lookup), 9.8)
 
     def test_mott_schottky_reports_linear_x_intercept_candidate(self):
         with tempfile.TemporaryDirectory() as tmpdir:

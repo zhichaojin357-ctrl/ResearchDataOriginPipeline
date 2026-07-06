@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.core.remaining_opju_product_drafts import (
+from src.core.remaining_template_products import (
     load_remaining_pairings,
 )
 

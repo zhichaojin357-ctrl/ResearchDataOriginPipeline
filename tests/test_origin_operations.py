@@ -24,10 +24,41 @@ class FakeDataPlots:
         return self._items[index]
 
 
+class FakeGraphObject:
+    def __init__(
+        self,
+        name: str,
+        text: str = "",
+        left: float = 0,
+        top: float = 0,
+        width: float = 0,
+        height: float = 0,
+    ):
+        self.Name = name
+        self.Text = text
+        self.Left = left
+        self.Top = top
+        self.Width = width
+        self.Height = height
+
+
+class FakeGraphObjects:
+    def __init__(self, items: list[FakeGraphObject]):
+        self._items = items
+
+    @property
+    def Count(self) -> int:
+        return len(self._items)
+
+    def Item(self, index: int) -> FakeGraphObject:
+        return self._items[index]
+
+
 class FakeLayer:
-    def __init__(self, app: "FakeOriginApp"):
+    def __init__(self, app: "FakeOriginApp", plot_names: list[str] | None = None):
         self._app = app
-        self.DataPlots = FakeDataPlots(["Book1_B", "Book1_C"])
+        self.DataPlots = FakeDataPlots(plot_names or ["Book1_B", "Book1_C"])
+        self.GraphObjects = FakeGraphObjects(app.graph_objects)
 
     def Execute(self, script: str) -> bool:
         self._app.Execute(script)
@@ -45,6 +76,14 @@ class FakeOriginApp:
         self.worksheets: dict[str, list[list[float]]] = {}
         self.ltvars: dict[str, float] = {}
         self.ltstrs: dict[str, str] = {}
+        self.putworksheet_fail_above: int | None = None
+        self.putworksheet_calls: list[tuple[str, int, int, int]] = []
+        self.graph_objects: list[FakeGraphObject] = [
+            FakeGraphObject("Legend", "\\l(1)\\b(A)", 3569, 827, 1800, 893),
+            FakeGraphObject("Line", "", 3558, 676, 496, 82),
+            FakeGraphObject("Text", "\\b(Old)", 4111, 587, 823, 251),
+            FakeGraphObject("LineOutside", "", 100, 100, 200, 50),
+        ]
 
     def NewProject(self):
         self.commands.append("NewProject")
@@ -88,16 +127,25 @@ class FakeOriginApp:
             self.ltvars["__rdop_theme_apply_ok"] = 0.0
         if "theme_apply_graph_options" in script:
             self.ltvars["__rdop_theme_apply_ok"] = 1.0
+        for name in re.findall(r"label\s+-r\s+([A-Za-z0-9_]+)", script):
+            self.graph_objects[:] = [item for item in self.graph_objects if item.Name != name]
+        for name in re.findall(r"label\s+-n\s+([A-Za-z0-9_]+)\s+-s", script):
+            if not any(item.Name == name for item in self.graph_objects):
+                self.graph_objects.append(FakeGraphObject(name, "", 0, 0, 0, 0))
         return True
 
     def PutWorksheet(self, target: str, values: list[float], row: int, col: int):
+        self.putworksheet_calls.append((target, len(values), row, col))
+        if self.putworksheet_fail_above is not None and len(values) > self.putworksheet_fail_above:
+            raise RuntimeError("simulated PutWorksheet memory lock")
         rows = self.worksheets.setdefault(target, [])
         for index, value in enumerate(values):
-            while len(rows) <= index:
+            row_index = int(row) + index
+            while len(rows) <= row_index:
                 rows.append([])
-            while len(rows[index]) <= col:
-                rows[index].append(float("nan"))
-            rows[index][col] = value
+            while len(rows[row_index]) <= col:
+                rows[row_index].append(float("nan"))
+            rows[row_index][col] = value
 
     def GetWorksheet(self, target: str):
         return self.worksheets.get(target)
@@ -178,6 +226,16 @@ class OriginOperationsSmokeTest(unittest.TestCase):
             self.assertTrue(imported.ok)
             self.assertEqual(imported.payload["columns"], 2)
 
+    def test_get_worksheet_data_handles_non_iterable_origin_return(self):
+        app = FakeOriginApp()
+        app.worksheets["[Bad]Sheet1"] = 1  # Origin can return a status code for inaccessible worksheet refs.
+        ops = OriginOperations(app)
+
+        read = ops.get_worksheet_data("Bad", "Sheet1")
+
+        self.assertFalse(read.ok)
+        self.assertIn("not iterable", read.message)
+
     def test_template_workbook_column_replacement_operations(self):
         app = FakeOriginApp()
         ops = OriginOperations(app)
@@ -198,7 +256,111 @@ class OriginOperationsSmokeTest(unittest.TestCase):
 
         self.assertTrue(replaced.ok)
         self.assertEqual(app.worksheets["[Book1]Sheet1"], [[0.0, 10.0, 20.0], [1.0, 11.0, 21.0]])
-        self.assertIn({"book_name": "Book1", "column_index": 2, "rows": 2}, replaced.payload["updated_columns"])
+        self.assertEqual(replaced.payload["updated_columns"][2]["book_name"], "Book1")
+        self.assertEqual(replaced.payload["updated_columns"][2]["column_index"], 2)
+        self.assertEqual(replaced.payload["updated_columns"][2]["rows"], 2)
+        self.assertEqual(replaced.payload["updated_columns"][2]["write_mode"], "single")
+
+    def test_graph_plot_dataset_names_use_numeric_layer_references_for_multilayer_graphs(self):
+        class MultiLayerOriginApp(FakeOriginApp):
+            def FindGraphLayer(self, name: str):
+                if name in {"[Fig1]1", "[Fig1]Layer1", "[Fig1]", "Fig1"}:
+                    return FakeLayer(self, ["Book1_B", "Book1_D"])
+                if name == "[Fig1]2":
+                    return FakeLayer(self, ["Book1_F"])
+                if name == "[Fig1]3":
+                    return FakeLayer(self, ["Book2_B"])
+                return None
+
+        app = MultiLayerOriginApp()
+        ops = OriginOperations(app)
+
+        layer2 = ops.get_graph_plot_dataset_names("Fig1", layer_index=2)
+        all_names = ops._plot_names("Fig1")
+
+        self.assertTrue(layer2.ok)
+        self.assertEqual(layer2.payload["plot_dataset_names"], ["Book1_F"])
+        self.assertEqual(all_names, ["Book1_B", "Book1_D", "Book1_F", "Book2_B"])
+
+    def test_template_workbook_column_replacement_falls_back_to_chunks(self):
+        app = FakeOriginApp()
+        app.putworksheet_fail_above = 512
+        ops = OriginOperations(app)
+
+        values = [float(index) for index in range(1200)]
+        replaced = ops.replace_template_workbook_columns({"Book1": {1: values}})
+
+        self.assertTrue(replaced.ok)
+        self.assertEqual(app.worksheets["[Book1]Sheet1"][0][1], 0.0)
+        self.assertEqual(app.worksheets["[Book1]Sheet1"][1199][1], 1199.0)
+        self.assertEqual(replaced.payload["updated_columns"][0]["write_mode"], "chunked_512")
+        self.assertGreater(len(app.putworksheet_calls), 2)
+
+    def test_replace_legend_with_plain_text_labels_removes_template_line_samples(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+
+        result = ops.replace_legend_with_plain_text_labels("Fig1", ["BOBC", "BiCu-10"], font_name="Arial", font_size=26)
+
+        self.assertTrue(result.ok)
+        names = [item.Name for item in app.graph_objects]
+        self.assertNotIn("Legend", names)
+        self.assertNotIn("Line", names)
+        self.assertIn("Text", names)
+        self.assertIn("LineOutside", names)
+        labels = {item.Name: item for item in app.graph_objects if item.Name == "Text" or item.Name.startswith("rdop_plain_legend_")}
+        self.assertEqual(labels["Text"].Text, r"\b(BOBC)")
+        self.assertEqual(labels["rdop_plain_legend_2"].Text, r"\b(BiCu-10)")
+        self.assertEqual(labels["Text"].Left, 4111)
+        self.assertEqual(labels["Text"].Top, 587)
+        self.assertEqual(labels["rdop_plain_legend_2"].Left, 4111)
+        self.assertEqual(labels["rdop_plain_legend_2"].Top, 847)
+        command_text = "\n".join(app.commands)
+        self.assertIn("label -r Legend", command_text)
+        self.assertIn("label -r Line", command_text)
+        self.assertNotIn("label -r Text", command_text)
+        self.assertNotIn('label -n rdop_plain_legend_1 -s " "', command_text)
+        self.assertIn('label -n rdop_plain_legend_2 -s " "', command_text)
+        self.assertNotIn("label -n rdop_plain_legend_1 -s \\b(BOBC)", command_text)
+
+    def test_replace_legend_with_plain_text_labels_can_reuse_template_text(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+
+        result = ops.replace_legend_with_plain_text_labels(
+            "Fig1",
+            ["Fallback A", "Fallback B"],
+            font_name="Arial",
+            font_size=26,
+            prefer_existing_text=True,
+        )
+
+        self.assertTrue(result.ok)
+        labels = {item.Name: item for item in app.graph_objects if item.Name == "Text" or item.Name.startswith("rdop_plain_legend_")}
+        self.assertEqual(labels["Text"].Text, r"\b(Old)")
+        self.assertEqual(labels["rdop_plain_legend_2"].Text, r"\b(A)")
+        self.assertEqual(result.payload["text_source"], "existing_legend")
+
+    def test_replace_legend_with_plain_text_labels_uses_native_legend_data_anchor(self):
+        app = FakeOriginApp()
+        app.graph_objects = [
+            FakeGraphObject("Legend", "\\l(1)\\b(A)\r\n\\l(2)\\b(B)", 100, 200, 500, 300),
+            FakeGraphObject("Line", "", 120, 220, 80, 10),
+        ]
+        app.ltvars["legend.x"] = 0.456
+        app.ltvars["legend.y"] = 20.074
+        ops = OriginOperations(app)
+
+        result = ops.replace_legend_with_plain_text_labels("Fig1", ["BOBC", "CWO"], font_name="Arial", font_size=26)
+
+        self.assertTrue(result.ok)
+        labels = {item.Name: item for item in app.graph_objects if item.Name.startswith("rdop_plain_legend")}
+        self.assertEqual(list(labels), ["rdop_plain_legend"])
+        self.assertEqual(labels["rdop_plain_legend"].Text, "\\b(BOBC)\r\n\\b(CWO)")
+        command_text = "\n".join(app.commands)
+        self.assertIn("rdop_plain_legend.x=0.456", command_text)
+        self.assertIn("rdop_plain_legend.y=20.074", command_text)
+        self.assertEqual(result.payload["anchor_data"], {"x": 0.456, "y": 20.074})
 
     def test_graph_style_and_export_operations(self):
         app = FakeOriginApp()

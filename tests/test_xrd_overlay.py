@@ -15,6 +15,13 @@ from src.core.xrd_overlay import (
     _set_template_text_objects,
     _xrd_axis_title_labtalk,
 )
+from src.core.xrd_no_card_overlay import (
+    XrdNoCardOverlayOptions,
+    build_xrd_no_card_overlay_table,
+    run_xrd_no_card_overlay,
+    _origin_process_ids,
+    _terminate_task_origin_processes,
+)
 from src.core.project import default_output_root
 
 
@@ -213,9 +220,102 @@ def test_xrd_overlay_direct_origin_path_sets_greek_theta_axis_title() -> None:
     assert "2theta (degree)" not in labtalk
 
 
+def test_xrd_no_card_overlay_accepts_mixed_xrd_text_formats(tmp_path: Path) -> None:
+    raw4 = _write_raw4(tmp_path / "bob.txt", [(5.0, 10.0), (6.0, 20.0), (7.0, 15.0)])
+    exported = _write_simple_xrd_export(tmp_path / "BOB0.5C0.5.TXT", [(5.0, 2.0), (6.0, 6.0), (7.0, 4.0)])
+
+    table = build_xrd_no_card_overlay_table((raw4, exported), ("bob", "BOB0.5C0.5"))
+
+    assert table.headers == ["two_theta_deg", "bob", "BOB0.5C0.5"]
+    assert table.metadata["standard_card_added"] is False
+    assert table.metadata["point_counts"] == {"bob": 3, "BOB0.5C0.5": 3}
+    assert table.rows[0][1] > table.rows[0][2]
+
+
+def test_run_xrd_no_card_overlay_dry_run_writes_metadata_without_origin(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    raw4 = _write_raw4(tmp_path / "bob.txt", [(5.0, 10.0), (6.0, 20.0), (7.0, 15.0)])
+    exported = _write_simple_xrd_export(tmp_path / "BOB0.5C0.5.TXT", [(5.0, 2.0), (6.0, 6.0), (7.0, 4.0)])
+
+    result = run_xrd_no_card_overlay(
+        project_root,
+        XrdNoCardOverlayOptions(
+            sources=(raw4, exported),
+            output_root=project_root / "output",
+            with_origin=False,
+            timestamp="20260705_120000",
+        ),
+    )
+
+    metadata = json.loads((project_root / result["metadata"]).read_text(encoding="utf-8"))
+    assert result["will_launch_origin"] is False
+    assert metadata["processing_status"] == "processed_no_origin"
+    assert metadata["standard_card_added"] is False
+    assert metadata["origin_file"] is None
+    assert "no standard-card sticks" in " ".join(metadata["manual_check_items"])
+
+
+def test_xrd_no_card_overlay_cli_parses_input_dir(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    input_dir = tmp_path / "BOBXC1-X"
+    input_dir.mkdir()
+    _write_raw4(input_dir / "bob.txt", [(5.0, 10.0), (6.0, 20.0), (7.0, 15.0)])
+
+    rc = main(
+        [
+            "xrd-no-card-overlay",
+            "--input-dir",
+            str(input_dir),
+            "--output-root",
+            str(project_root / "output"),
+            "--timestamp",
+            "20260705_120001",
+            "--dry-run",
+        ]
+    )
+
+    assert rc == 0
+
+
+def test_xrd_no_card_origin_cleanup_preserves_preexisting_origin_pid(monkeypatch) -> None:
+    calls: list[list[str]] = []
+
+    class Completed:
+        stdout = "24740\n12345\nnot-a-pid\n"
+        stderr = ""
+        returncode = 0
+
+    def fake_run(command, **_kwargs):
+        calls.append(list(command))
+        return Completed()
+
+    monkeypatch.setattr("src.core.xrd_no_card_overlay.subprocess.run", fake_run)
+
+    assert _origin_process_ids({24740}) == [12345]
+    _terminate_task_origin_processes({24740})
+
+    stop_command = calls[-1][-1]
+    assert "12345" in stop_command
+    assert "24740" not in stop_command
+
+
 def _write_raw4(path: Path, rows: list[tuple[float, float]]) -> Path:
     lines = [";RAW4.00", "[RawHeader]", "Date=06/10/2026", "", "[Data]", "Angle, PSD"]
     lines.extend(f"{x}, {y}" for x, y in rows)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def _write_simple_xrd_export(path: Path, rows: list[tuple[float, float]]) -> Path:
+    lines = [
+        "Sample\tLL-1",
+        "Start\t5",
+        "Stop\t80",
+        "Step\t0.1",
+    ]
+    lines.extend(f"{x}\t{y}" for x, y in rows)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
 
