@@ -12,6 +12,9 @@ from pathlib import Path
 
 from src.core.project import _parse_simple_yaml, output_dir
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.core.powershell_helpers import ps_array as _ps_array
+from src.core.powershell_helpers import ps_int_array as _ps_int_array
+from src.core.powershell_helpers import ps_quote as _ps_quote
 from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern
 from src.origin.operations import connect_origin
 from src.origin.plot_policy import Graph4FixedStyle, PlotPolicy, all_plot_policies, get_plot_policy, validate_graph4_style_config
@@ -280,18 +283,6 @@ def _csv_header(path: Path) -> list[str]:
     with path.open(encoding="utf-8", newline="") as handle:
         reader = csv.reader(handle)
         return next(reader, [])
-
-
-def _ps_quote(value: str | Path) -> str:
-    return "'" + str(value).replace("'", "''") + "'"
-
-
-def _ps_array(values: tuple[str, ...]) -> str:
-    return "@(" + ", ".join(_ps_quote(value) for value in values) + ")"
-
-
-def _ps_int_array(values: tuple[int, ...]) -> str:
-    return "@(" + ", ".join(str(int(value)) for value in values) + ")"
 
 
 def _ps_xy_pairs(pairs: tuple[tuple[int, int], ...]) -> str:

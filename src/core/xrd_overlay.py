@@ -14,6 +14,9 @@ from src.core.metadata import file_hash
 from src.core.template_product_common import extract_xrd_raw_data_rows
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
+from src.core.powershell_helpers import ps_array as _ps_array
+from src.core.powershell_helpers import ps_int_array as _ps_int_array
+from src.core.powershell_helpers import ps_quote as _ps_quote
 from src.core.runtime_paths import create_run_output_layout, resolve_origin_helper, resolve_output_root
 from src.origin.adapter import check_origin_available, write_origin_error, write_origin_success
 from src.origin.operations import quote_labtalk
@@ -693,18 +696,6 @@ def _to_float(value: object) -> float | None:
     except (TypeError, ValueError):
         return None
     return parsed if math.isfinite(parsed) else None
-
-
-def _ps_quote(value: str | Path) -> str:
-    return "'" + str(value).replace("'", "''") + "'"
-
-
-def _ps_array(values: list[str]) -> str:
-    return "@(" + ", ".join(_ps_quote(value) for value in values) + ")"
-
-
-def _ps_int_array(values: list[int]) -> str:
-    return "@(" + ", ".join(str(int(value)) for value in values) + ")"
 
 
 def _relative(root: Path, path: Path) -> str:
