@@ -55,7 +55,7 @@ D:\Python\python.exe run.py export-origin-style-assets --template-opju "<templat
 To harvest a reviewed set of OPJU templates directly:
 
 ```powershell
-D:\Python\python.exe run.py export-origin-style-assets --template-plan "output\runs\<run>\template_harvest_plan.json" --with-origin
+D:\Python\python.exe run.py export-origin-style-assets --template-plan "<output-root>\runs\<run>\template_harvest_plan.json" --with-origin
 ```
 
 `run.py export-origin-style-assets` first copies each accepted product OPJU or directly supplied template OPJU to a task-owned temporary working copy, then opens that copy in Origin. This avoids locking or modifying the user's reviewed template file. It saves a sanitized project-local OPJU copy, copies the selected graph format through Origin's Copy Format mechanism, saves the copied `Origin XML Style` payload as a project-local `.oth` file, attempts to save the selected graph page as a project-local `.otpu` graph template, and writes a `data_snapshots/<type>.json` template-data snapshot. Origin-native saves are performed through ASCII temporary paths and then copied back to the project asset directory, because LabTalk `save -t` can fail on non-ASCII output paths. If Origin refuses `save -t` for a graph page, the `.otpu` field is left empty; the project-local `reference_opju`, `.oth`, style snapshot, and data snapshot remain the authoritative self-contained asset set.
@@ -84,7 +84,7 @@ For XRD with standard-card templates, expected metadata is also:
 For template-asset replay verification, run:
 
 ```powershell
-D:\Python\python.exe run.py origin-style-asset-replay --template-plan "output\runs\<run>\template_harvest_plan.json" --output-dir "output\runs\<run>" --with-origin
+D:\Python\python.exe run.py origin-style-asset-replay --template-plan "<output-root>\runs\<run>\template_harvest_plan.json" --output-dir "<output-root>\runs\<run>" --with-origin
 ```
 
 This exports `source_template.png/.tif/.opju`, `project_asset.png/.tif`, a product-named `.opju` such as `BET.opju`, `side_by_side.png`, and `comparison.json` for each data type. `comparison.json` records the RMS and difference bounding box; a separate pixel-difference image is not written to product folders. A replay is accepted only when the source template export and the project-local asset export are pixel-identical (`rms = 0`, `exact_pixel_match = true`).

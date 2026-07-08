@@ -307,6 +307,21 @@ class JeolEprDecodeTest(unittest.TestCase):
             self.assertEqual(report["exact_reference_match_count"], 1)
             self.assertIn("verified JEOL cAcqu 默认导出", report_md.read_text(encoding="utf-8"))
 
+    def test_validation_reference_verifier_defaults_to_configured_output_root(self):
+        script = Path(__file__).resolve().parents[1] / "scripts" / "validation" / "verify_jeol_epr_decode_against_exports.py"
+        spec = importlib.util.spec_from_file_location("verify_jeol_epr_decode_against_exports_defaults", script)
+        module = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+
+        args = module.parse_args(["--keep-decoded"])
+        script_text = script.read_text(encoding="utf-8")
+
+        self.assertEqual(args.report_json, module.DEFAULT_OUTPUT_ROOT / "reports" / "jeol_epr_decode_reference_check.json")
+        self.assertEqual(args.report_md, module.DEFAULT_OUTPUT_ROOT / "reports" / "jeol_epr_decode_reference_check.md")
+        self.assertNotIn('PROJECT_ROOT / "output"', script_text)
+
 
 if __name__ == "__main__":
     unittest.main()

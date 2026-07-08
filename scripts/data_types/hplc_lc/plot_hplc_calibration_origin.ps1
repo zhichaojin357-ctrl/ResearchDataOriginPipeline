@@ -25,6 +25,29 @@ function Resolve-RunPath([string]$Path, [string]$BaseDir) {
   return [System.IO.Path]::GetFullPath((Join-Path $BaseDir $Path))
 }
 
+function Get-ProjectOutputRoot([string]$ProjectRoot) {
+  foreach ($configPath in @((Join-Path $ProjectRoot 'config\local.yaml'), (Join-Path $ProjectRoot 'config\default.yaml'))) {
+    if (-not (Test-Path -LiteralPath $configPath)) { continue }
+    $section = ''
+    foreach ($rawLine in Get-Content -LiteralPath $configPath -Encoding UTF8) {
+      $line = ($rawLine -replace '#.*$', '').TrimEnd()
+      if ([string]::IsNullOrWhiteSpace($line)) { continue }
+      if (($rawLine -notmatch '^\s') -and ($line -match '^([^:]+):\s*$')) {
+        $section = $Matches[1].Trim()
+        continue
+      }
+      if (($section -eq 'paths') -and ($line -match '^(output_root|output):\s*(.+)$')) {
+        $value = $Matches[2].Trim().Trim('"').Trim([char]39)
+        if (-not [string]::IsNullOrWhiteSpace($value)) {
+          return Resolve-RunPath $value $ProjectRoot
+        }
+      }
+    }
+  }
+  $outputName = [string]([char]36755) + [string]([char]20986)
+  return [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $ProjectRoot) $outputName))
+}
+
 function Has-AssistantTrace([string]$Text) {
   if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
   return ($Text -match '(?i)(codex|chatgpt|openai)')
@@ -463,7 +486,7 @@ function Compare-ImageFiles([string]$TemplatePath, [string]$GeneratedPath, [doub
 
 $projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 if ([string]::IsNullOrWhiteSpace($OutputDir)) {
-  $OutputDir = Join-Path $projectRoot 'output\hplc_calibration_origin'
+  $OutputDir = Join-Path (Get-ProjectOutputRoot $projectRoot) 'hplc_calibration_origin'
 }
 $OutputDir = Resolve-RunPath $OutputDir $projectRoot
 if ([string]::IsNullOrWhiteSpace($Stamp)) {

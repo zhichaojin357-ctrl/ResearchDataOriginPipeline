@@ -30,7 +30,9 @@ def test_hplc_calibration_script_requires_explicit_hplc_opju_template() -> None:
     assert "New-NeutralOriginStage" in text
     assert "Set-HplcTextObjectBounds" in text
     assert "Assert-HplcTextObjectBounds" in text
+    assert "Get-ProjectOutputRoot" in text
     assert "$stageTemplateDir" in text
+    assert "Join-Path $projectRoot 'output\\hplc_calibration_origin'" not in text
     assert "Join-Path $OutputDir 'origin_templates'" not in text
     assert "$dataFileName = $Substance + '_calibration_data.tsv'" in text
     assert "wks.longname$=" in text

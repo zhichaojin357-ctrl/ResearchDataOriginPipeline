@@ -23,9 +23,10 @@ from src.core.epr_jeol import (  # noqa: E402
     rms_delta,
     write_data_xlsx,
 )
-from src.core.runtime_paths import resolve_workspace_root  # noqa: E402
+from src.core.runtime_paths import resolve_output_root, resolve_workspace_root  # noqa: E402
 
 
+DEFAULT_OUTPUT_ROOT = resolve_output_root(PROJECT_ROOT)
 DEFAULT_EPR_ROOT = resolve_workspace_root(PROJECT_ROOT) / "EPR"
 DEFAULT_RAW_ROOTS = [
     DEFAULT_EPR_ROOT / "20260410-3",
@@ -54,8 +55,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("raw_roots", nargs="*", type=Path, help="Raw JEOL EPR directories. Defaults to the LL EPR batch.")
     parser.add_argument("--reference-dir", type=Path, default=DEFAULT_REFERENCE_DIR)
-    parser.add_argument("--report-json", type=Path, default=PROJECT_ROOT / "output" / "reports" / "jeol_epr_decode_reference_check.json")
-    parser.add_argument("--report-md", type=Path, default=PROJECT_ROOT / "output" / "reports" / "jeol_epr_decode_reference_check.md")
+    parser.add_argument("--report-json", type=Path, default=DEFAULT_OUTPUT_ROOT / "reports" / "jeol_epr_decode_reference_check.json")
+    parser.add_argument("--report-md", type=Path, default=DEFAULT_OUTPUT_ROOT / "reports" / "jeol_epr_decode_reference_check.md")
     parser.add_argument("--keep-decoded", action="store_true", help="Keep decoded test workbooks instead of deleting them.")
     parser.add_argument("--decoded-out", type=Path, default=None, help="Decoded workbook output directory when --keep-decoded is used.")
     return parser.parse_args(argv)
@@ -212,7 +213,7 @@ def run(argv: list[str] | None = None) -> int:
     decoded_root: Path
     cleaned = False
     if args.keep_decoded:
-        decoded_root = (args.decoded_out or PROJECT_ROOT / "output" / "epr_jeol_decoded").resolve()
+        decoded_root = (args.decoded_out or DEFAULT_OUTPUT_ROOT / "epr_jeol_decoded").resolve()
         decoded_root.mkdir(parents=True, exist_ok=True)
     else:
         temp_dir_obj = tempfile.TemporaryDirectory(prefix="jeol_epr_decode_check_")
