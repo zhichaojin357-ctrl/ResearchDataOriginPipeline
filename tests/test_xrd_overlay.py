@@ -25,6 +25,11 @@ from src.core.xrd_no_card_overlay import (
 from src.core.project import default_output_root
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+XRD_NO_CARD_ORIGIN_SCRIPT = PROJECT_ROOT / "scripts" / "data_types" / "xrd" / "plot_xrd_no_card_overlay_origin.py"
+XRD_NO_CARD_WRAPPER = PROJECT_ROOT / "src" / "core" / "xrd_no_card_overlay.py"
+
+
 def test_build_xrd_overlay_table_orders_requested_series_and_card(tmp_path: Path) -> None:
     bicu = _write_raw4(tmp_path / "BOBCshuirecwo.txt", [(5.0, 10.0), (6.0, 20.0), (7.0, 15.0)])
     bobc = _write_raw4(tmp_path / "BOBCshuire.txt", [(5.0, 4.0), (6.0, 8.0), (7.0, 6.0)])
@@ -305,6 +310,41 @@ def test_xrd_no_card_overlay_cli_parses_input_dir(tmp_path: Path) -> None:
     )
 
     assert rc == 0
+
+
+def test_xrd_no_card_overlay_rejects_missing_explicit_reference(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    source = _write_raw4(tmp_path / "bob.txt", [(5.0, 10.0), (6.0, 20.0)])
+
+    try:
+        run_xrd_no_card_overlay(
+            project_root,
+            XrdNoCardOverlayOptions(
+                sources=(source,),
+                output_root=project_root / "output",
+                with_origin=False,
+                reference_opju=tmp_path / "missing_reference.opju",
+            ),
+        )
+    except FileNotFoundError as exc:
+        assert "Explicit XRD no-card reference OPJU does not exist" in str(exc)
+    else:
+        raise AssertionError("missing explicit reference OPJU should fail")
+
+
+def test_xrd_no_card_origin_script_restricts_output_dir_to_output_root() -> None:
+    script_text = XRD_NO_CARD_ORIGIN_SCRIPT.read_text(encoding="utf-8")
+    wrapper_text = XRD_NO_CARD_WRAPPER.read_text(encoding="utf-8")
+
+    assert "def ensure_output_dir_allowed(output_dir: Path, output_root: Path | None) -> Path:" in script_text
+    assert "resolve_output_root(PROJECT_ROOT, explicit=output_root)" in script_text
+    assert "is_under_or_equal(resolved_output_dir, resolved_output_root)" in script_text
+    assert "--output-dir must stay under the configured output root" in script_text
+    assert 'parser.add_argument("--output-root", type=Path, default=None)' in script_text
+    assert "args.output_dir = ensure_output_dir_allowed(args.output_dir, args.output_root)" in script_text
+    assert '"--output-root",' in wrapper_text
+    assert "str(artifacts.script_output_dir.parents[1])" in wrapper_text
 
 
 def test_xrd_no_card_origin_cleanup_preserves_preexisting_origin_pid(monkeypatch) -> None:

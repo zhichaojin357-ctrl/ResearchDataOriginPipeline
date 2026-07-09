@@ -2228,11 +2228,6 @@ def _xps_raw_series_any(record: XpsFitRecord, keys: tuple[str, ...], point_count
     return [None] * point_count
 
 
-def _write_json_file(path: Path, payload: dict[str, object]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(_safe_metadata_payload(payload), ensure_ascii=False, indent=2), encoding="utf-8")
-
-
 def export_template_product_with_origin(product: ProductContext, style: ResolvedPlotStyle) -> dict[str, object]:
     operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
     try:
@@ -2925,14 +2920,6 @@ def _infer_template_epr_reference_dir(data_paths: list[Path], group_name: str) -
     raise FileNotFoundError(
         f"Could not find EPR {group_name} reference directory containing all required files: {', '.join(required)}"
     )
-
-
-def _read_template_plot_csv(path: Path) -> tuple[list[str], list[list[float | str | None]]]:
-    with path.open(encoding="utf-8", newline="") as handle:
-        reader = csv.reader(handle)
-        headers = next(reader)
-        rows = [[_coerce_csv_cell(cell) for cell in row] for row in reader]
-    return headers, rows
 
 
 def _coerce_csv_cell(value: str) -> float | str | None:
@@ -4860,14 +4847,6 @@ def _copy_template_for_scan(source: Path, scan_copy_root: Path, index: int) -> P
     return target
 
 
-def _candidate_status_from_snapshot(snapshot: OpjuStyleSnapshot) -> str:
-    if snapshot.status != "extracted":
-        return snapshot.status
-    if snapshot.layer_count <= 0 or snapshot.plot_count <= 0 or not snapshot.graph_page:
-        return "data_only"
-    return "extracted"
-
-
 def _candidate_status_from_snapshot_payload(snapshot: dict[str, object]) -> str:
     status = str(snapshot.get("status") or "")
     if status != "extracted":
@@ -4875,14 +4854,6 @@ def _candidate_status_from_snapshot_payload(snapshot: dict[str, object]) -> str:
     if int(snapshot.get("layer_count") or 0) <= 0 or int(snapshot.get("plot_count") or 0) <= 0 or not snapshot.get("graph_page"):
         return "data_only"
     return "extracted"
-
-
-def _candidate_reason(snapshot: OpjuStyleSnapshot) -> str:
-    if snapshot.status != "extracted":
-        return "; ".join(snapshot.warnings) or snapshot.status
-    if snapshot.layer_count <= 0 or snapshot.plot_count <= 0:
-        return "data-only or incomplete graph object"
-    return "graph/layer/plot object readback succeeded"
 
 
 def _candidate_reason_from_payload(snapshot: dict[str, object]) -> str:

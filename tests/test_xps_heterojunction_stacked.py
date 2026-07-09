@@ -19,6 +19,7 @@ from src.core.xps_heterojunction import (
     XpsComparison,
     XpsFitRecord,
     _build_direct_origin_xps_script,
+    _validated_origin_artifacts,
 )
 from src.core.project import default_output_root
 
@@ -274,9 +275,11 @@ def test_run_xps_heterojunction_stacked_with_origin_updates_required_artifact_pa
         assert "figures_preview" not in output_dirs
         origin = output_dirs["origin_projects"] / f"{comparison.name}.opju"
         tif = output_dirs["figures_tif"] / f"{comparison.name}.tif"
-        for path in (origin, tif):
+        preview = output_dirs["origin_projects"] / "origin_jobs" / f"{comparison.name}.png"
+        for path in (origin, tif, preview):
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("artifact", encoding="utf-8")
-        return {"ok": True, "origin_file": origin, "figure_tif": tif, "preview_png": None, "message": "fake"}
+        return {"ok": True, "origin_file": origin, "figure_tif": tif, "preview_png": preview, "message": "fake"}
 
     with patch("src.core.xps_heterojunction._export_origin_for_comparison", side_effect=fake_export) as export:
         result = run_xps_heterojunction_stacked(
@@ -291,7 +294,37 @@ def test_run_xps_heterojunction_stacked_with_origin_updates_required_artifact_pa
     assert figure["status"] == "success"
     assert figure["origin_file"].endswith(".opju")
     assert figure["figure_tif"].endswith(".tif")
-    assert figure["preview_png"] == ""
+    assert figure["preview_png"].endswith(".png")
+
+
+def test_xps_origin_success_requires_preview_png(tmp_path: Path) -> None:
+    origin = tmp_path / "plot.opju"
+    tif = tmp_path / "plot.tif"
+    for path in (origin, tif):
+        path.write_text("artifact", encoding="utf-8")
+
+    checked = _validated_origin_artifacts({"ok": True, "origin_file": origin, "figure_tif": tif, "preview_png": None})
+
+    assert checked["ok"] is False
+    assert "preview_png" in checked["message"]
+
+
+def test_cli_xps_with_origin_returns_failure_when_export_status_fails(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bobc = tmp_path / "BOBCfit.xlsx"
+    bc = tmp_path / "BCfit.xlsx"
+    bobc.write_text("placeholder", encoding="utf-8")
+    bc.write_text("placeholder", encoding="utf-8")
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(
+        "src.cli.run_xps_heterojunction_stacked",
+        lambda *_args, **_kwargs: {"figures": [{"status": "origin_failed"}]},
+    )
+
+    code = main(["xps-heterojunction-stacked", "--bobc", str(bobc), "--bc", str(bc), "--with-origin"])
+
+    assert code == 1
 
 
 def test_direct_origin_xps_generated_script_compiles(tmp_path: Path) -> None:

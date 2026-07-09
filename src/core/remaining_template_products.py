@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import json
 import math
 import re
 from dataclasses import dataclass
@@ -11,30 +10,16 @@ from typing import Any, Callable
 from src.core.template_product_common import (
     ProductContext,
     TargetPairing,
-    build_default_root_map,
-    export_product_with_origin,
-    _copy_inputs,
-    _copy_reference,
-    _csv_x_bounds,
     _forbidden_claims,
     _load_pairing_items,
     _manual_items,
-    _product_output_path,
     _reference_policy_notes,
     _relative_to_run,
     _resolve_pairing_path,
     _root_for_label,
-    _selected_relative_paths,
-    _write_csv,
-    _write_no_label_audit,
-    _write_per_type_report,
-    _write_product_metadata,
 )
-from src.core.output_sanitizer import scrub_output_text
-from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table_with_metadata
 from src.origin.operations import connect_origin, quote_labtalk
-from src.origin.type_mimic import REMAINING_TYPE_MIMIC_SPECS
 from src.processors.base import safe_name
 
 
@@ -136,39 +121,6 @@ def validate_mott_schottky_exemplar(pairing: TargetPairing) -> ReferenceValidati
         )
     finally:
         operations.close()
-
-
-def _prepare_remaining_product(run_root: Path, pairing: TargetPairing) -> ProductContext:
-    spec = REMAINING_TYPE_MIMIC_SPECS[pairing.product_key]
-    type_root = run_root / REMAINING_TYPE_DIRS[pairing.product_key]
-    _ensure_type_dirs(type_root)
-    processed_data = type_root / "processed_data" / f"{spec.output_slug}.csv"
-    input_copies = _copy_inputs(pairing.data_paths, type_root / "input_copies")
-    reference_copy = _copy_reference(pairing.reference_opju, type_root / "reference_opju")
-    headers, rows, labels = _build_remaining_processed_plot_table(pairing)
-    _write_csv(processed_data, headers, rows)
-    return ProductContext(
-        product_key=pairing.product_key,
-        slug=spec.output_slug,
-        pairing=pairing,
-        type_root=type_root,
-        processed_data=processed_data,
-        input_copies=input_copies,
-        reference_opju_copy=reference_copy,
-        reference_preview_png=type_root / "reference_exports" / f"{spec.output_slug}_reference_preview.png",
-        origin_file=type_root / "origin_files" / f"{spec.output_slug}.opju",
-        figure_tif=type_root / "figures_tif" / f"{spec.output_slug}.tif",
-        preview_png=type_root / "figures_preview" / f"{spec.output_slug}_preview.png",
-        x_label=labels["x_label"],
-        y_label=labels["y_label"],
-        graph_title=labels["title"],
-        plot_type=labels.get("plot_type", "line"),
-        x_descending=labels.get("x_descending", "false") == "true",
-        y_ticks=labels.get("y_ticks", "true") == "true",
-        y_tick_values=labels.get("y_tick_values", "true") == "true",
-        legend_entries=[header.replace("_", " ") for header in headers[1:]],
-        notes=labels.get("notes", "").splitlines() if labels.get("notes") else [],
-    )
 
 
 def _build_remaining_processed_plot_table(pairing: TargetPairing) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
@@ -315,60 +267,6 @@ def _ftir_overlay_table(paths: list[Path]) -> tuple[list[str], list[list[float |
     }
 
 
-def _product_summary(
-    run_root: Path,
-    product: ProductContext,
-    export_status: dict[str, object],
-    metadata: Path,
-    report: Path,
-) -> dict[str, object]:
-    return {
-        "product_key": product.product_key,
-        "data_root_label": product.pairing.data_root_label,
-        "selected_data_relative_paths": _selected_relative_paths(product.pairing, "selected_data_relative_paths"),
-        "opju_root_label": product.pairing.opju_root_label,
-        "selected_opju_relative_path": _selected_relative_paths(product.pairing, "selected_opju_relative_path"),
-        "processed_data": _product_output_path(run_root, product.processed_data),
-        "origin_file": _product_output_path(run_root, product.origin_file),
-        "figure_tif": _product_output_path(run_root, product.figure_tif),
-        "preview_png": _product_output_path(run_root, product.preview_png),
-        "reference_opju_copy": _product_output_path(run_root, product.reference_opju_copy),
-        "reference_preview_png": _product_output_path(run_root, product.reference_preview_png),
-        "metadata": _product_output_path(run_root, metadata),
-        "report": _product_output_path(run_root, report),
-        "status": "success" if bool(export_status.get("ok")) else "origin_failed",
-        "origin_message": str(export_status.get("message") or ""),
-    }
-
-
-def _write_remaining_reports(
-    run_root: Path,
-    products: list[dict[str, object]],
-    failures: list[dict[str, str]],
-    skipped: list[dict[str, object]],
-    with_origin: bool,
-    label_audit: dict[str, object],
-    previous_run_root: Path | None,
-) -> None:
-    reports = run_root / "reports"
-    reports.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "with_origin": with_origin,
-        "products": products,
-        "failures": failures,
-        "skipped": skipped,
-        "product_count": len(products),
-        "failure_count": len(failures),
-        "visible_label_audit": label_audit,
-        "previous_completed_run_id": previous_run_root.name if previous_run_root else "",
-    }
-    (reports / "remaining_template_products_summary.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    _write_final_summary(run_root, products, failures, skipped, with_origin, label_audit, previous_run_root)
-    _write_manual_review_checklist(run_root, products, failures, skipped, previous_run_root)
-    _write_per_type_status(run_root, products, failures, skipped)
-    _write_deferred_or_failed_types(run_root, failures, skipped)
-
-
 def _write_final_summary(
     run_root: Path,
     products: list[dict[str, object]],
@@ -501,100 +399,6 @@ def _write_deferred_or_failed_types(
     for item in skipped:
         lines.append(f"- {item['data_type']}: {item['decision']} - {item.get('reason', '')}")
     (run_root / "reports" / "deferred_or_failed_types.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-
-
-def _write_hplc_lc_report(run_root: Path, items: list[dict[str, object]]) -> None:
-    lines = [
-        "# Deferred HPLC/LC",
-        "",
-        "- Decision: deferred_hplc_lc_pdf_only_no_opju",
-        "- Origin figure generated: no",
-        "- OCR performed: no",
-        "- Conversion/selectivity/yield calculated: no",
-        "- Product identity assigned: no",
-        "",
-        "## Reviewed samples",
-    ]
-    if not items:
-        lines.append("- none")
-    for item in items:
-        lines.append(f"- {item['relative_path']} ({item['suffix']}, {item['size_bytes']} bytes)")
-    (run_root / "reports" / "deferred_hplc_lc.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-
-
-def _write_previous_completed_links(run_root: Path, previous_run: Path | None) -> None:
-    links_dir = run_root / "previous_completed_links"
-    links_dir.mkdir(parents=True, exist_ok=True)
-    lines = ["# Previous completed products", ""]
-    if previous_run is None:
-        lines.append("- Previous run: not found")
-    else:
-        lines.append(f"- Previous run id: {previous_run.name}")
-        lines.append("")
-        for product_type in PREVIOUS_COMPLETED_TYPES:
-            lines.append(f"- {product_type}: see previous completed run")
-    (links_dir / "previous_completed_products.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-
-
-def _hplc_lc_deferred_items(pairing_path: Path, root_map: dict[str, Path]) -> list[dict[str, object]]:
-    items = []
-    for item in _load_pairing_items(pairing_path):
-        if str(item.get("data_type") or "") != "HPLC/LC exported data":
-            continue
-        root_label = str(item.get("selected_data_root_label") or "")
-        root = root_map.get(root_label)
-        for rel in item.get("selected_data_relative_paths") or []:
-            path = _resolve_pairing_path(root, str(rel)) if root else Path(str(rel))
-            items.append(
-                {
-                    "root_label": root_label,
-                    "relative_path": str(rel),
-                    "suffix": path.suffix.casefold(),
-                    "size_bytes": path.stat().st_size if path.exists() else 0,
-                    "exists": path.exists(),
-                }
-            )
-    return items
-
-
-def _reaction_condition_skip(root_map: dict[str, Path]) -> dict[str, object]:
-    f_root = root_map.get("f_drive_detection")
-    reaction_root = (f_root / "\u5149\u53cd\u5e94\u7684\u6761\u4ef6\u7b5b\u9009") if f_root else None
-    data_candidates: list[str] = []
-    opju_candidates: list[str] = []
-    if reaction_root is not None and reaction_root.exists():
-        for path in reaction_root.rglob("*"):
-            if not path.is_file():
-                continue
-            suffix = path.suffix.casefold()
-            if suffix == ".opju":
-                opju_candidates.append(str(path.relative_to(f_root)))
-            elif suffix in {".csv", ".txt", ".xlsx", ".xls"}:
-                data_candidates.append(str(path.relative_to(f_root)))
-    return {
-        "data_type": "reaction_condition_screening",
-        "decision": "skipped_no_clear_data_pair",
-        "reason": "OPJU candidates exist, but no clear exported data table was found in the reviewed reaction-condition folder.",
-        "details": {
-            "opju_candidate_count": len(opju_candidates),
-            "data_candidate_count": len(data_candidates),
-            "opju_candidates_sample": opju_candidates[:10],
-            "data_candidates_sample": data_candidates[:10],
-        },
-    }
-
-
-def _latest_previous_completed_run(output_root: Path) -> Path | None:
-    runs = output_root / "runs"
-    if not runs.exists():
-        return None
-    candidates = []
-    for item in runs.iterdir():
-        if not item.is_dir():
-            continue
-        if all((item / product_type).is_dir() for product_type in PREVIOUS_COMPLETED_TYPES):
-            candidates.append(item)
-    return sorted(candidates, key=lambda path: (path.stat().st_mtime, path.name), reverse=True)[0] if candidates else None
 
 
 def _remaining_product_key(item: dict[str, Any]) -> str | None:

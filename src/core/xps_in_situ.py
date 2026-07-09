@@ -10,6 +10,7 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.image_artifacts import ensure_tif_600_dpi_metadata
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.xps_heterojunction import (
     XpsFitRecord,
@@ -204,12 +205,10 @@ def build_xps_in_situ_outputs(
         "missing": missing,
         "element_sources": element_sources,
         "origin_file": origin_status.get("origin_file"),
-        "figure_tif": _output_path(output_dir, output_dir / "xps_in_situ_combined.tif")
-        if (output_dir / "xps_in_situ_combined.tif").exists()
-        else None,
-        "preview_png": _output_path(output_dir, output_dir / "xps_in_situ_combined.png")
-        if (output_dir / "xps_in_situ_combined.png").exists()
-        else None,
+        "figure_tif": origin_status.get("figure_tif")
+        or (_output_path(output_dir, output_dir / "xps_in_situ_combined.tif") if (output_dir / "xps_in_situ_combined.tif").exists() else None),
+        "preview_png": origin_status.get("preview_png")
+        or (_output_path(output_dir, output_dir / "xps_in_situ_combined.png") if (output_dir / "xps_in_situ_combined.png").exists() else None),
         "processing_status": "success" if origin_status.get("ok") else "processed_no_origin",
         "origin_status": _sanitize_output_payload(origin_status, output_dir),
         "quality_checks": quality_checks,
@@ -701,6 +700,7 @@ def _try_write_origin_project(
             origin_file,
             output_dir / "xps_in_situ_combined_origin_preview.png",
             output_dir / "xps_in_situ_combined.png",
+            output_dir / "xps_in_situ_combined.tif",
         )
     except Exception as exc:
         write_origin_error(project_root, f"xps_in_situ_combined: {exc}")
@@ -711,9 +711,10 @@ def _try_write_origin_project(
             "message": scrub_output_text(exc, output_root=output_dir),
         }
     preview_png = output_dir / "xps_in_situ_combined_origin_preview.png"
+    figure_tif = output_dir / "xps_in_situ_combined.tif"
     missing = [
         str(path.name)
-        for path in (origin_file, preview_png)
+        for path in (origin_file, preview_png, figure_tif)
         if not path.exists() or path.stat().st_size <= 0
     ]
     if missing:
@@ -729,6 +730,8 @@ def _try_write_origin_project(
         "requested": True,
         "ok": True,
         "origin_file": _output_path(output_dir, origin_file),
+        "figure_tif": _output_path(output_dir, figure_tif),
+        "preview_png": _output_path(output_dir, preview_png),
         "message": "Origin project saved with final figure image page plus editable worksheets and graph pages.",
     }
 
@@ -738,6 +741,7 @@ def _write_origin_project(
     origin_file: Path,
     preview_png: Path,
     final_png: Path,
+    figure_tif: Path,
 ) -> None:
     import originpro as op
 
@@ -809,6 +813,8 @@ def _write_origin_project(
         op.lt_exec('doc -e W { page.comments$=""; page.comment$=""; wks.comments$=""; wks.comment$=""; }; doc -e P { page.comments$=""; page.comment$=""; };')
         op.save(str(origin_file))
         graph.save_fig(str(preview_png), type="png", replace=True, width=2800)
+        graph.save_fig(str(figure_tif), type="tif", replace=True, width=3600)
+        ensure_tif_600_dpi_metadata(figure_tif)
     finally:
         op.exit()
 

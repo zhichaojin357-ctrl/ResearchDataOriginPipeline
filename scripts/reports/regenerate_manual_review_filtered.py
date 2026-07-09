@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import json
 import re
-import shutil
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -208,7 +207,6 @@ def write_report(path: Path, kept: list[dict], excluded: list[dict], summary: di
         "- Excel: `output/reports/manual_review_required_filtered.xlsx`",
         "- 排除审计 CSV: `output/reports/manual_review_excluded_represented_formats.csv`",
         "- 排除审计 Excel: `output/reports/manual_review_excluded_represented_formats.xlsx`",
-        "- 桌面副本: `C:\\Users\\lenovo\\Desktop\\manual_review_required_filtered.xlsx`",
         "",
         "## 保留复核统计",
         "",
@@ -250,11 +248,6 @@ def main() -> None:
     write_csv(outputs["excluded_csv"], excluded, excluded_headers)
     write_xlsx(outputs["excluded_xlsx"], excluded, "已排除同数据格式清单", excluded_headers)
     write_report(outputs["report"], kept, excluded, summary)
-
-    desktop = Path.home() / "Desktop"
-    if desktop.exists():
-        shutil.copy2(outputs["xlsx"], desktop / outputs["xlsx"].name)
-        shutil.copy2(outputs["csv"], desktop / outputs["csv"].name)
 
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(json.dumps(Counter(row["数据类型"] for row in kept), ensure_ascii=False, indent=2))

@@ -12,7 +12,6 @@ from typing import Callable, Iterable, Any
 from src.core.epr_jeol import read_xy_xlsx
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
-from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.table_reader import read_table
 from src.core.xps_heterojunction import (
     XpsFitRecord,
@@ -224,40 +223,6 @@ def export_product_with_origin(product: ProductContext) -> dict[str, object]:
         operations.close()
 
 
-def _prepare_product(run_root: Path, pairing: TargetPairing) -> ProductContext:
-    slug = DEFAULT_PRODUCT_SLUGS.get(pairing.product_key, safe_name(pairing.product_key))
-    type_dir = safe_name(pairing.product_key)
-    type_root = run_root / type_dir
-    _ensure_type_product_dirs(type_root)
-    processed_data = type_root / "processed_data" / f"{slug}.csv"
-    input_copies = _copy_inputs(pairing.data_paths, type_root / "input_copies")
-    reference_copy = _copy_reference(pairing.reference_opju, type_root / "reference_opju")
-    headers, rows, labels = _build_processed_plot_table(pairing)
-    _write_csv(processed_data, headers, rows)
-    return ProductContext(
-        product_key=pairing.product_key,
-        slug=slug,
-        pairing=pairing,
-        type_root=type_root,
-        processed_data=processed_data,
-        input_copies=input_copies,
-        reference_opju_copy=reference_copy,
-        reference_preview_png=type_root / "reference_exports" / f"{slug}_reference_preview.png",
-        origin_file=type_root / "origin_files" / f"{slug}.opju",
-        figure_tif=type_root / "figures_tif" / f"{slug}.tif",
-        preview_png=type_root / "figures_preview" / f"{slug}_preview.png",
-        x_label=labels["x_label"],
-        y_label=labels["y_label"],
-        graph_title=labels["title"],
-        plot_type=labels.get("plot_type", "line"),
-        x_descending=labels.get("x_descending", "false") == "true",
-        y_ticks=labels.get("y_ticks", "true") == "true",
-        y_tick_values=labels.get("y_tick_values", "true") == "true",
-        legend_entries=[header.replace("_", " ") for header in headers[1:]],
-        notes=labels.get("notes", "").splitlines() if labels.get("notes") else [],
-    )
-
-
 def _ensure_type_product_dirs(type_root: Path) -> None:
     for name in (
         "input_copies",
@@ -430,14 +395,6 @@ def _normalized_record_series(record: XpsFitRecord, key: str, offset: float, poi
     if span <= 0:
         return [offset if value is not None else None for value in raw]
     return [((value - minimum) / span + offset) if value is not None else None for value in raw]
-
-
-def _normalized_record_series_any(record: XpsFitRecord, keys: Iterable[str], offset: float, point_count: int) -> list[float | None]:
-    for key in keys:
-        series = _normalized_record_series(record, key, offset, point_count)
-        if any(value is not None for value in series):
-            return series
-    return [None] * point_count
 
 
 def _normalized_record_series_for_xps_mode(
@@ -634,128 +591,6 @@ def _write_per_type_report(run_root: Path, product: ProductContext, export_statu
     return path
 
 
-def _write_manual_checklist(
-    run_root: Path,
-    products: list[dict[str, object]],
-    failures: list[dict[str, str]],
-    skipped: list[dict[str, str]],
-) -> None:
-    lines = [
-        "# Manual calibration checklist",
-        "",
-        "This workflow writes product OPJU/TIF/PNG artifacts only for BET, XPS in-situ, XPS non-in-situ, XRD, and EPR.",
-        "",
-    ]
-    for product in products:
-        key = str(product["product_key"])
-        lines.append(f"## {key}")
-        for item in _manual_items(key):
-            lines.append(f"- {item}")
-        lines.append("")
-    if failures:
-        lines.append("## Failed product preparations")
-        for failure in failures:
-            lines.append(f"- {failure['product_key']}: {failure['message']}")
-        lines.append("")
-    if skipped:
-        lines.append("## Deferred or skipped input types")
-        for item in skipped:
-            lines.append(f"- {item['data_type']}: {item['decision']}")
-        lines.append("")
-    path = run_root / "reports" / "manual_calibration_checklist.md"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    (run_root / "reports" / "manual_review_checklist.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-
-
-def _write_summary(
-    run_root: Path,
-    products: list[dict[str, object]],
-    failures: list[dict[str, str]],
-    skipped: list[dict[str, str]],
-    with_origin: bool,
-    label_audit: dict[str, object],
-) -> None:
-    payload = {
-        "with_origin": with_origin,
-        "products": products,
-        "failures": failures,
-        "skipped": skipped,
-        "product_count": len(products),
-        "failure_count": len(failures),
-        "visible_label_audit": label_audit,
-    }
-    reports = run_root / "reports"
-    reports.mkdir(parents=True, exist_ok=True)
-    (reports / "template_product_common_summary.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    lines = ["# OPJU product summary", "", f"- Products prepared: {len(products)}", f"- Failures: {len(failures)}", f"- Origin requested: {with_origin}", ""]
-    for product in products:
-        lines.append(f"- {product['product_key']}: {product['status']}")
-    (reports / "template_product_common_summary.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    final_lines = [
-        "# Final summary",
-        "",
-        f"- Products prepared: {len(products)}",
-        f"- Failures: {len(failures)}",
-        f"- Origin requested: {with_origin}",
-        f"- Visible-label audit result: {'pass' if int(label_audit.get('hit_count', 0)) == 0 else 'fail'}",
-        f"- Visible-label audit hit count: {label_audit.get('hit_count', 0)}",
-        "- F-drive files modified: no",
-        "- Original OPJU/OPJ files modified: no",
-        "- Output products committed: no",
-        "",
-        "## Products",
-    ]
-    for product in products:
-        key = str(product["product_key"])
-        source_rel = [str(item) for item in product.get("selected_data_relative_paths", []) if str(item)]
-        opju_rel = [str(item) for item in product.get("selected_opju_relative_path", []) if str(item)]
-        final_lines.extend(
-            [
-                f"### {key}",
-                f"- Status: {product['status']}",
-                f"- Failure reason: {product['origin_message'] or 'none'}",
-                f"- Selected data root label: {product.get('data_root_label', 'see metadata')}",
-                f"- Selected data: {', '.join(source_rel) if source_rel else 'see metadata'}",
-                f"- Selected OPJU root label: {product.get('opju_root_label', 'see metadata')}",
-                f"- Selected OPJU: {', '.join(opju_rel) if opju_rel else 'see metadata'}",
-                f"- Generated OPJU: {_relative_to_run(run_root, Path(str(product['origin_file'])))}",
-                f"- Generated TIF: {_relative_to_run(run_root, Path(str(product['figure_tif'])))}",
-                f"- Generated PNG preview: {_relative_to_run(run_root, Path(str(product['preview_png'])))}",
-                f"- Manual review report: {_relative_to_run(run_root, Path(str(product['report'])))}",
-                f"- Manual review needs: {'; '.join(_manual_items(key))}",
-                f"- Forbidden scientific claims avoided: {'; '.join(_forbidden_claims(key))}",
-                f"- Visible-label audit result: {'pass' if int(label_audit.get('hit_count', 0)) == 0 else 'fail'}",
-                "",
-            ]
-        )
-    if failures:
-        final_lines.append("## Failures")
-        for failure in failures:
-            final_lines.append(f"- {failure['product_key']}: {failure['message']}")
-        final_lines.append("")
-    if skipped:
-        final_lines.append("## Deferred or skipped")
-        for item in skipped:
-            final_lines.append(f"- {item['data_type']}: {item['decision']}")
-        final_lines.append("")
-    (reports / "final_summary.md").write_text("\n".join(final_lines).rstrip() + "\n", encoding="utf-8")
-    with (reports / "per_type_status.csv").open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(["product_key", "status", "origin_file", "figure_tif", "preview_png", "manual_review_report"])
-        for product in products:
-            writer.writerow(
-                [
-                    product["product_key"],
-                    product["status"],
-                    _relative_to_run(run_root, Path(str(product["origin_file"]))),
-                    _relative_to_run(run_root, Path(str(product["figure_tif"]))),
-                    _relative_to_run(run_root, Path(str(product["preview_png"]))),
-                    _relative_to_run(run_root, Path(str(product["report"]))),
-                ]
-            )
-
-
 def _write_no_label_audit(run_root: Path) -> dict[str, object]:
     hits = []
     self_audit_names = {"product_label_audit.md", "product_no_codex_label_audit.md"}
@@ -875,21 +710,6 @@ def _target_product_key(item: dict[str, Any]) -> str | None:
     return None
 
 
-def _skipped_pairing_items(pairing_path: Path) -> list[dict[str, str]]:
-    skipped = []
-    for item in _load_pairing_items(pairing_path):
-        if _target_product_key(item) is not None:
-            continue
-        data_type = str(item.get("data_type") or "")
-        if not data_type:
-            continue
-        decision = str(item.get("generation_decision") or "skipped_not_in_current_scope")
-        if data_type == "HPLC/LC exported data":
-            decision = "deferred"
-        skipped.append({"data_type": data_type, "decision": decision})
-    return skipped
-
-
 def _load_pairing_items(pairing_path: Path) -> list[dict[str, Any]]:
     text = pairing_path.read_text(encoding="utf-8")
     try:
@@ -935,52 +755,6 @@ def _resolve_existing_opju_in_same_directory(path: Path) -> Path | None:
         if len(token_matches) == 1:
             return token_matches[0]
     return None
-
-
-def _try_extract_reference_style(operations: object, reference_opju: Path) -> dict[str, object]:
-    result = operations.load_project(reference_opju)
-    if not result.ok:
-        return {"status": "load_failed", "message": result.message}
-    pages = operations.list_worksheets()
-    graph_pages = [item["name"] for item in pages.payload.get("pages", []) if item.get("type") == "graph"]
-    if not graph_pages:
-        return {"status": "no_graph_pages"}
-    graph_name = str(graph_pages[0])
-    operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
-    fields = (
-        "page.width",
-        "page.height",
-        "layer.left",
-        "layer.top",
-        "layer.width",
-        "layer.height",
-        "layer.x.thickness",
-        "layer.y.thickness",
-    )
-    values: dict[str, float] = {}
-    for field_name in fields:
-        read = operations.get_labtalk_variable(field_name)
-        value = _to_float(read.payload.get("value"))
-        if value is not None and math.isfinite(value):
-            values[field_name] = value
-    return {"status": "extracted", "graph_page": graph_name, "values": values}
-
-
-def _apply_reference_style(operations: object, graph_name: str, style: dict[str, object]) -> bool:
-    values = style.get("values")
-    if not isinstance(values, dict) or not values:
-        return False
-    commands = []
-    for key, value in values.items():
-        number = _to_float(value)
-        if number is not None and math.isfinite(number):
-            commands.append(f"{key}={number};")
-    if not commands:
-        return False
-    operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
-    operations.run_labtalk("page.kar=0; page.customwidth=1; page.customheight=1; " + " ".join(commands))
-    operations.set_graph_font(graph_name)
-    return True
 
 
 def _apply_product_layout(operations: object, graph_name: str) -> None:

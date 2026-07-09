@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from src.core.file_utils import file_sha256 as _file_sha256
+from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.output_sanitizer import scrub_output_text
 from src.core.project import default_output_root
 from src.core.runtime_paths import (
@@ -667,14 +668,6 @@ def _matching_file_status(source: Path, copy: Path) -> tuple[bool, str]:
     return True, f"{copy} matches {source.name} ({source_hash})"
 
 
-def _file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _resolve_path(project_root: Path, path: Path) -> Path:
     return path if path.is_absolute() else project_root / path
 
@@ -685,11 +678,3 @@ def _resolve_output(project_root: Path, path: Path) -> Path:
     if not _is_under_or_equal(resolved.resolve(), output_root):
         raise ValueError(f"Output path must stay under configured output root: {resolved}")
     return resolved
-
-
-def _is_under_or_equal(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return path == parent

@@ -33,7 +33,7 @@ class Phase1ContractsTest(unittest.TestCase):
         args = build_parser().parse_args(["readiness"])
 
         self.assertEqual(args.command, "readiness")
-        self.assertEqual(args.desktop_review_xlsx, Path.home() / "Desktop" / "manual_review_required_filtered.xlsx")
+        self.assertIsNone(args.desktop_review_xlsx)
 
     def test_readiness_cli_can_skip_desktop_review_workbook_check(self):
         args = build_parser().parse_args(["readiness", "--no-desktop-review-xlsx"])

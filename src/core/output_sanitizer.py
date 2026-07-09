@@ -59,6 +59,16 @@ def scrub_output_text(text: object, *, project_root: Path | None = None, output_
     return ASSISTANT_TRACE_PATTERN.sub("local", rendered)
 
 
+def sanitize_report_payload(project_root: Path, value: object, output_root: Path | None = None) -> object:
+    if isinstance(value, dict):
+        return {str(key): sanitize_report_payload(project_root, item, output_root) for key, item in value.items()}
+    if isinstance(value, list):
+        return [sanitize_report_payload(project_root, item, output_root) for item in value]
+    if isinstance(value, str):
+        return scrub_output_text(value, project_root=project_root, output_root=output_root)
+    return value
+
+
 def _external_text_path(match: re.Match[str]) -> str:
     text = match.group(0).strip()
     tail = text.rstrip("/").split("/")[-1].strip("`'\" .,)]}")

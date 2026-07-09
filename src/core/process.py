@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from src.core.file_utils import is_under_or_equal
 from src.processors.base import process_table_dataset
 from src.scanner.scanner import scan_raw_data
 from src.core.output_sanitizer import render_output_path, scrub_output_text
@@ -329,11 +330,7 @@ def _resolve_queue_source(input_path: Path, item: dict) -> tuple[Path, str | Non
 
 
 def _is_under_or_equal(path: Path, parent: Path) -> bool:
-    try:
-        path.resolve().relative_to(parent.resolve())
-        return True
-    except ValueError:
-        return path.resolve() == parent.resolve()
+    return is_under_or_equal(path.resolve(), parent.resolve())
 
 
 def _classification_for_queue_item(item: dict, by_type: dict[str, dict]) -> dict:

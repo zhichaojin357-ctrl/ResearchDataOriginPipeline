@@ -124,3 +124,22 @@ def test_regenerate_manual_review_filtered_main_smoke(tmp_path: Path, monkeypatc
     assert (reports / "manual_review_required_filtered.xlsx").is_file()
     assert not (project / "docs" / "reports" / "manual_review_required_filtered_report.md").exists()
     assert not (fake_home / "Desktop" / "manual_review_required_filtered.xlsx").exists()
+
+
+def test_regenerate_manual_review_filtered_does_not_copy_to_desktop(tmp_path: Path, monkeypatch):
+    project = _project_root(tmp_path)
+    reports = default_output_root(project) / "reports"
+    reports.mkdir(parents=True)
+    (reports / "data_triage_manifest.json").write_text(
+        json.dumps({"items": [_item("BET/sample2.DB3", "MANUAL_REVIEW", data_type="BET", suffix=".db3")]}),
+        encoding="utf-8",
+    )
+    fake_home = tmp_path / "home"
+    (fake_home / "Desktop").mkdir(parents=True)
+    monkeypatch.setattr(Path, "home", lambda: fake_home)
+    monkeypatch.chdir(project)
+
+    regenerate_main()
+
+    assert (reports / "manual_review_required_filtered.xlsx").is_file()
+    assert not (fake_home / "Desktop" / "manual_review_required_filtered.xlsx").exists()

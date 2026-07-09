@@ -1,14 +1,14 @@
 ﻿from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.core.file_utils import file_sha256 as _file_sha256
 from src.core.manifest_schema import schema_mismatch_message
-from src.core.output_sanitizer import scrub_output_text
+from src.core.output_sanitizer import sanitize_report_payload as _sanitize_report_payload
 from src.core.project import default_output_root, ensure_write_path_allowed, report_path
 from src.core.runtime_paths import resolve_workspace_root
 from src.origin.adapter import export_plot
@@ -481,14 +481,6 @@ def _origin_status(row: dict[str, str]) -> str:
     return row.get("origin_status") or row.get("origin_export_status", "")
 
 
-def _file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _guard_output_path(project_root: Path, path: Path, output_root: Path) -> None:
     ensure_write_path_allowed(project_root, path, output_root=output_root)
 
@@ -503,13 +495,3 @@ def _reason_counts(items: list[dict]) -> dict[str, int]:
         reason = str(item.get("reason", "unknown"))
         counts[reason] = counts.get(reason, 0) + 1
     return counts
-
-
-def _sanitize_report_payload(project_root: Path, value: object, output_root: Path | None = None) -> object:
-    if isinstance(value, dict):
-        return {str(key): _sanitize_report_payload(project_root, item, output_root) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_sanitize_report_payload(project_root, item, output_root) for item in value]
-    if isinstance(value, str):
-        return scrub_output_text(value, project_root=project_root, output_root=output_root)
-    return value

@@ -48,3 +48,25 @@ def test_origin_export_reports_failure_when_expected_artifacts_are_missing() -> 
         assert status["requested"] is True
         assert status["ok"] is False
         assert "missing or empty" in status["message"]
+
+
+def test_origin_export_success_requires_opju_tif_and_preview() -> None:
+    with TemporaryDirectory() as tmpdir:
+        project = Path(tmpdir)
+        output_dir = project / "outputs"
+        output_dir.mkdir()
+
+        def fake_write(_panel_records, origin_file: Path, preview_png: Path, _final_png: Path, figure_tif: Path) -> None:
+            for path in (origin_file, preview_png, figure_tif):
+                path.write_text("artifact", encoding="utf-8")
+
+        with patch("src.core.xps_in_situ.check_origin_available", return_value=(True, "ok")), patch(
+            "src.core.xps_in_situ._write_origin_project",
+            side_effect=fake_write,
+        ):
+            status = _try_write_origin_project(project, {}, output_dir)
+
+        assert status["ok"] is True
+        assert status["origin_file"] == "xps_in_situ_combined.opju"
+        assert status["figure_tif"] == "xps_in_situ_combined.tif"
+        assert status["preview_png"] == "xps_in_situ_combined_origin_preview.png"

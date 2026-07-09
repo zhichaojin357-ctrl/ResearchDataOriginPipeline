@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.metadata import file_hash
 from src.core.output_sanitizer import render_output_path
 from src.core.project import ensure_write_path_allowed, report_path
@@ -234,14 +235,6 @@ def _resolve_output(project_root: Path, path: Path, output_root: Path) -> Path:
     resolved = _resolve_path(project_root, path)
     ensure_write_path_allowed(project_root, resolved, output_root=output_root)
     return resolved
-
-
-def _is_under_or_equal(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return path == parent
 
 
 def _normalize(value: object) -> str:

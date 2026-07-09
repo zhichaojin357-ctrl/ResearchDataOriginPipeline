@@ -16,6 +16,9 @@ from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.runtime_paths import create_run_output_layout, resolve_origin_reference_pattern, resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
+from src.core.xrd_helpers import interpolated_y as _interpolated_y
+from src.core.xrd_helpers import relative_path as _relative
+from src.core.xrd_helpers import to_finite_float as _to_float
 from src.origin.adapter import check_origin_available, write_origin_error, write_origin_success
 from src.processors.base import safe_name
 
@@ -196,6 +199,8 @@ def _export_with_existing_script(
         str(artifacts.processed_data),
         "--output-dir",
         str(artifacts.script_output_dir),
+        "--output-root",
+        str(artifacts.script_output_dir.parents[1]),
         "--reference-graph",
         options.reference_graph,
         "--output-stem",
@@ -333,7 +338,10 @@ def _validate_sources(sources: tuple[Path, ...]) -> None:
 
 def _resolve_reference_opju(project_root: Path, reference_opju: Path | None) -> Path | None:
     if reference_opju is not None:
-        return reference_opju if reference_opju.exists() else None
+        path = reference_opju if reference_opju.is_absolute() else project_root / reference_opju
+        if not path.exists():
+            raise FileNotFoundError(f"Explicit XRD no-card reference OPJU does not exist: {reference_opju}")
+        return path
     pattern = resolve_origin_reference_pattern(project_root)
     path = Path(pattern)
     if "*" not in pattern and "?" not in pattern:
@@ -367,22 +375,6 @@ def _normalized_offset_y(points: list[tuple[float, float]], x_value: float, offs
     return offset + (raw - low) / (high - low)
 
 
-def _interpolated_y(points: list[tuple[float, float]], x_value: float) -> float | None:
-    if x_value < points[0][0] or x_value > points[-1][0]:
-        return None
-    for index, (point_x, point_y) in enumerate(points):
-        if abs(point_x - x_value) <= 1e-12:
-            return point_y
-        if point_x > x_value and index > 0:
-            prev_x, prev_y = points[index - 1]
-            span = point_x - prev_x
-            if span == 0:
-                return point_y
-            fraction = (x_value - prev_x) / span
-            return prev_y + fraction * (point_y - prev_y)
-    return points[-1][1]
-
-
 def _offset_for_index(index: int, count: int) -> float:
     return xrd_no_card_offset_for_index(index, count)
 
@@ -407,19 +399,6 @@ def _remove_stale_outputs(artifacts: XrdNoCardOverlayArtifacts) -> None:
     for path in (artifacts.origin_file, artifacts.figure_tif, artifacts.preview_png):
         if path.exists():
             path.unlink()
-
-
-def _origin_processes_running() -> list[str]:
-    try:
-        completed = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", "Get-Process -Name Origin* -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProcessName"],
-            text=True,
-            capture_output=True,
-            timeout=10,
-        )
-    except Exception:
-        return []
-    return [line.strip() for line in completed.stdout.splitlines() if line.strip()]
 
 
 def _origin_process_ids(exclude: set[int] | None = None) -> list[int]:
@@ -472,21 +451,6 @@ def _copy_artifact(source: Path, target: Path) -> None:
     if target.exists():
         target.unlink()
     shutil.copy2(source, target)
-
-
-def _to_float(value: object) -> float | None:
-    try:
-        parsed = float(str(value).strip())
-    except (TypeError, ValueError):
-        return None
-    return parsed if math.isfinite(parsed) else None
-
-
-def _relative(root: Path, path: Path) -> str:
-    try:
-        return str(path.resolve().relative_to(root.resolve())).replace("\\", "/")
-    except ValueError:
-        return str(path)
 
 
 def _display_path(root: Path, path: Path | None) -> str:

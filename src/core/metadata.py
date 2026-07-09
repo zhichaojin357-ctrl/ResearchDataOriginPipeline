@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 
+from src.core.file_utils import file_sha256, is_under_or_equal
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.project import default_output_root, ensure_write_path_allowed
 
 
 def file_hash(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+    return file_sha256(path)
 
 
 def write_metadata(
@@ -138,8 +134,4 @@ def _metadata_output_base(output_root: Path | None) -> Path | None:
 
 
 def _is_under(path: Path, parent: Path) -> bool:
-    try:
-        path.resolve().relative_to(parent.resolve())
-        return True
-    except ValueError:
-        return False
+    return is_under_or_equal(path.resolve(), parent.resolve())

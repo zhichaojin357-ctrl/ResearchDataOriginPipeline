@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.output_sanitizer import render_output_path
 from src.core.project import ensure_output_structure, load_json_compatible_yaml, output_dir, registry_path, report_path
 
@@ -211,14 +212,6 @@ def _relevant_folders_for_entry(raw_root: Path, entry: dict, folders: list[Path]
         if resolved_folder == exact or any(_is_under_or_equal(path.resolve(), resolved_folder) for path in assigned_paths):
             selected.append(folder)
     return selected
-
-
-def _is_under_or_equal(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return path == parent
 
 
 def _normalize_path_segment(value: str) -> str:

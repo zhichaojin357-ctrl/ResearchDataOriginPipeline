@@ -3,17 +3,17 @@ from __future__ import annotations
 import csv
 import json
 import math
-import os
 import re
 import shutil
 import tempfile
 import traceback
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any
 
 from src.core.template_product_common import ProductContext, _product_output_path
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.core.origin_runtime import copy_runtime_artifact as _copy_runtime_artifact
+from src.core.origin_runtime import neutral_origin_runtime_root as _neutral_origin_runtime_root
 from src.core.template_product_builder import (
     TemplateProductBuilderOptions,
     _csv_bounds_for_columns,
@@ -1263,35 +1263,6 @@ def _to_int(value: object) -> int | None:
     return number
 
 
-def _neutral_origin_runtime_root() -> Path:
-    candidates: list[Path] = []
-    for name in ("LOCALAPPDATA", "PROGRAMDATA"):
-        value = os.environ.get(name)
-        if value:
-            candidates.append(Path(value) / "ResearchDataOriginPipeline" / "origin_runtime")
-    candidates.append(Path.home() / "AppData" / "Local" / "ResearchDataOriginPipeline" / "origin_runtime")
-    candidates.append(Path("C:/ResearchDataOriginPipeline/origin_runtime"))
-    candidates.append(Path(tempfile.gettempdir()) / "ResearchDataOriginPipeline" / "origin_runtime")
-    for candidate in candidates:
-        if "codex" in str(candidate).casefold():
-            continue
-        try:
-            candidate.mkdir(parents=True, exist_ok=True)
-            return candidate
-        except OSError:
-            continue
-    fallback = Path(tempfile.gettempdir()) / "ResearchDataOriginPipeline" / "origin_runtime"
-    fallback.mkdir(parents=True, exist_ok=True)
-    return fallback
-
-
-def _copy_runtime_artifact(source: Path, target: Path) -> None:
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if target.exists():
-        target.unlink()
-    shutil.copy2(source, target)
-
-
 def _cached_style_package_xps_fill_intent(product: ProductContext) -> dict[str, object]:
     required = product.product_key.startswith("XPS")
     return {
@@ -2065,62 +2036,6 @@ def _style_graph_object(
     return True
 
 
-def _set_graph_object_text_and_style(
-    operations: object,
-    graph_name: str,
-    object_name: str,
-    text: str,
-    *,
-    font_name: str,
-    font_size: int,
-    color: int,
-    left: int | None = None,
-    top: int | None = None,
-    width: int | None = None,
-    height: int | None = None,
-) -> bool:
-    app = getattr(operations, "app", None)
-    if app is None:
-        return False
-    try:
-        layer = app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(graph_name)
-    except Exception:
-        return False
-    if not layer:
-        return False
-    graph_object = _find_origin_graph_object(layer, object_name)
-    if graph_object is None:
-        return False
-    font_code = _origin_font_code(app, font_name)
-    try:
-        graph_object.Text = text
-        if left is not None:
-            graph_object.Left = left
-        if top is not None:
-            graph_object.Top = top
-        if width is not None:
-            graph_object.Width = width
-        if height is not None:
-            graph_object.Height = height
-    except Exception:
-        return False
-    for prop, value in (
-        ("font", font_code),
-        ("fsize", int(font_size)),
-        ("bold", 1),
-        ("color", int(color)),
-        ("background", 0),
-        ("border", 0),
-        ("frame", 0),
-        ("fill", 0),
-    ):
-        try:
-            graph_object.SetNumProp(prop, value)
-        except Exception:
-            pass
-    return True
-
-
 def _xrd_standard_card_legend_y(product: ProductContext) -> float:
     try:
         headers, _rows = _read_processed_csv(product.processed_data)
@@ -2169,13 +2084,6 @@ def _xrd_card_label_from_header(header: str) -> str:
     if match:
         return rf"\b({material} JCPDS card No.{match.group(1)})"
     return rf"\b({material} JCPDS card)"
-
-
-def _origin_slash_rich_text(text: object) -> str:
-    value = str(text or "")
-    value = value.replace("\\", "/")
-    value = re.sub(r"/+$", "", value)
-    return value
 
 
 def _xrd_standard_card_keeps_line_sample_legend(product: ProductContext) -> bool:
@@ -2401,11 +2309,6 @@ def _clean_exemplar_legend_entry(value: object) -> str:
 def _origin_rich_text_for_labtalk(value: object) -> str:
     text = str(value or "").replace("/", "\\").replace("\r", " ").replace("\n", " ").strip()
     return re.sub(r"\\+$", "", text).strip()
-
-
-def _plain_legend_label_text(entry: object) -> str:
-    text = origin_bold_text(entry)
-    return str(text).replace(";", ",").replace("\r", " ").replace("\n", " ").strip()
 
 
 def _strip_raster_metadata(path: Path, *, dpi: int) -> str:

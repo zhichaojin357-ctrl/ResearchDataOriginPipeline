@@ -243,8 +243,8 @@ def build_parser() -> argparse.ArgumentParser:
     readiness.add_argument(
         "--desktop-review-xlsx",
         type=Path,
-        default=Path.home() / "Desktop" / "manual_review_required_filtered.xlsx",
-        help="optional user-facing Excel copy that should match the project report workbook",
+        default=None,
+        help="optional external Excel copy that should match the project report workbook; disabled by default",
     )
     readiness.add_argument(
         "--no-desktop-review-xlsx",
@@ -446,12 +446,14 @@ def main(argv: list[str] | None = None) -> int:
             output_dir = _resolve_cli_output_root(project_root, args) / "xps_heterojunction_stacked"
         else:
             output_dir = _resolve_cli_output_directory_arg(project_root, args.output_dir)
-        run_xps_heterojunction_stacked(
+        result = run_xps_heterojunction_stacked(
             project_root,
             sample_files,
             XpsHeterojunctionOptions(output_dir=output_dir, with_origin=bool(args.with_origin)),
             pre_manual_review=notes,
         )
+        if args.with_origin and any(figure.get("status") != "success" for figure in result.get("figures", [])):
+            return 1
         return 0
     if args.command == "xrd-overlay":
         result = run_xrd_overlay(

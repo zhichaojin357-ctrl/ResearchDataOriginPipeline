@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import json
 import math
-import os
 import shutil
 import subprocess
 import tempfile
@@ -13,11 +12,16 @@ from pathlib import Path
 from src.core.metadata import file_hash
 from src.core.template_product_common import extract_xrd_raw_data_rows
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.core.origin_runtime import copy_runtime_artifact as _copy_runtime_artifact
+from src.core.origin_runtime import neutral_origin_runtime_root as _neutral_origin_runtime_root
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.powershell_helpers import ps_array as _ps_array
 from src.core.powershell_helpers import ps_int_array as _ps_int_array
 from src.core.powershell_helpers import ps_quote as _ps_quote
 from src.core.runtime_paths import create_run_output_layout, resolve_origin_helper, resolve_output_root
+from src.core.xrd_helpers import interpolated_y as _interpolated_y
+from src.core.xrd_helpers import relative_path as _relative
+from src.core.xrd_helpers import to_finite_float as _to_float
 from src.origin.adapter import check_origin_available, write_origin_error, write_origin_success
 from src.origin.operations import quote_labtalk
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE, get_plot_policy
@@ -603,22 +607,6 @@ def _normalized_offset_y(points: list[tuple[float, float]], x_value: float, offs
     return offset + y_value / max_y
 
 
-def _interpolated_y(points: list[tuple[float, float]], x_value: float) -> float | None:
-    if x_value < points[0][0] or x_value > points[-1][0]:
-        return None
-    for index, (point_x, point_y) in enumerate(points):
-        if abs(point_x - x_value) <= 1e-12:
-            return point_y
-        if point_x > x_value and index > 0:
-            prev_x, prev_y = points[index - 1]
-            span = point_x - prev_x
-            if span == 0:
-                return point_y
-            fraction = (x_value - prev_x) / span
-            return prev_y + fraction * (point_y - prev_y)
-    return points[-1][1]
-
-
 def _reference_stick_values(grid: list[float], peaks: list[tuple[float, float]]) -> list[float]:
     if not grid or not peaks:
         return [0.0 for _x in grid]
@@ -659,50 +647,6 @@ def _ensure_tif_600_dpi(path: Path) -> None:
         target_height = max(1, round(output.height * (GRAPH4_FIXED_STYLE.page_width / output.width)))
         output = output.resize((GRAPH4_FIXED_STYLE.page_width, target_height))
     output.save(path, format="TIFF", dpi=(600, 600), compression="tiff_lzw")
-
-
-def _neutral_origin_runtime_root() -> Path:
-    candidates: list[Path] = []
-    for name in ("LOCALAPPDATA", "PROGRAMDATA"):
-        value = os.environ.get(name)
-        if value:
-            candidates.append(Path(value) / "ResearchDataOriginPipeline" / "origin_runtime")
-    candidates.append(Path.home() / "AppData" / "Local" / "ResearchDataOriginPipeline" / "origin_runtime")
-    candidates.append(Path("C:/ResearchDataOriginPipeline/origin_runtime"))
-    candidates.append(Path(tempfile.gettempdir()) / "ResearchDataOriginPipeline" / "origin_runtime")
-    for candidate in candidates:
-        if "codex" in str(candidate).casefold():
-            continue
-        try:
-            candidate.mkdir(parents=True, exist_ok=True)
-            return candidate
-        except OSError:
-            continue
-    fallback = Path(tempfile.gettempdir()) / "ResearchDataOriginPipeline" / "origin_runtime"
-    fallback.mkdir(parents=True, exist_ok=True)
-    return fallback
-
-
-def _copy_runtime_artifact(source: Path, target: Path) -> None:
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if target.exists():
-        target.unlink()
-    shutil.copy2(source, target)
-
-
-def _to_float(value: object) -> float | None:
-    try:
-        parsed = float(str(value).strip())
-    except (TypeError, ValueError):
-        return None
-    return parsed if math.isfinite(parsed) else None
-
-
-def _relative(root: Path, path: Path) -> str:
-    try:
-        return str(path.resolve().relative_to(root.resolve())).replace("\\", "/")
-    except ValueError:
-        return str(path)
 
 
 def _output_display_path(project_root: Path, run_root: Path, path: Path) -> str:

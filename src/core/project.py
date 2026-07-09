@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from src.core.file_utils import is_under_or_equal as _is_under_or_equal
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REQUIRED_OUTPUT_DIRS = (
@@ -57,14 +59,6 @@ def output_dir(project_root: Path, *parts: str, output_root: Path | None = None)
 
 def report_path(project_root: Path, name: str, *, output_root: Path | None = None) -> Path:
     return output_dir(project_root, "reports", output_root=output_root) / name
-
-
-def _is_under_or_equal(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return path == parent
 
 
 def load_json_compatible_yaml(path: Path):

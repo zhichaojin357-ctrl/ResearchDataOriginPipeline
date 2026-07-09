@@ -747,6 +747,8 @@ def test_replay_comparison_writes_side_by_side_without_diff_png(tmp_path: Path) 
 
 
 def test_export_replay_graph_copies_opju_into_product_dir(tmp_path: Path) -> None:
+    from PIL import Image
+
     from src.core.origin_style_assets import _export_replay_graph
     from src.origin.operations import OperationResult
 
@@ -769,7 +771,10 @@ def test_export_replay_graph_copies_opju_into_product_dir(tmp_path: Path) -> Non
         def export_graph(self, graph_name: str, file_path: Path, fmt: str, dpi: int = 600) -> OperationResult:
             assert graph_name == "Graph5"
             assert dpi == 600
-            Path(file_path).write_bytes(fmt.encode("ascii"))
+            if fmt == "tif":
+                Image.new("RGB", (2, 2), "white").save(file_path, format="TIFF", dpi=(300, 300))
+            else:
+                Image.new("RGB", (2, 2), "white").save(file_path, format="PNG")
             return OperationResult(True, "ok")
 
     result = _export_replay_graph(FakeOriginOps(), source_opju, "Graph5", product_dir, "project_asset")
@@ -779,3 +784,5 @@ def test_export_replay_graph_copies_opju_into_product_dir(tmp_path: Path) -> Non
     assert result["opju"] == str(exported_opju)
     assert result["opju_size"] == len(b"origin-project")
     assert exported_opju.read_bytes() == b"origin-project"
+    with Image.open(result["tif"]) as image:
+        assert tuple(round(float(value)) for value in image.info.get("dpi", (0, 0))) == (600, 600)

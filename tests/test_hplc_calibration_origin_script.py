@@ -28,6 +28,8 @@ def test_hplc_calibration_script_requires_explicit_hplc_opju_template() -> None:
     assert "Set-OriginWorksheetColumn" in text
     assert "Sanitize-ProjectPages" in text
     assert "New-NeutralOriginStage" in text
+    assert "Assert-UnderOrEqual $OutputDir $projectOutputRoot" in text
+    assert "OutputDir must stay under the configured output root" in text
     assert "Set-HplcTextObjectBounds" in text
     assert "Assert-HplcTextObjectBounds" in text
     assert "Get-ProjectOutputRoot" in text
@@ -52,6 +54,10 @@ def test_hplc_calibration_script_exports_expected_artifact_set() -> None:
     assert "origin_run_log.txt" in text
     assert "figures_preview" in text
     assert "figures_tif" in text
+    assert "metadata\\HPLC_calibration_curves" in text
+    assert "metadata.json" in text
+    assert "METADATA=" in text
+    assert "manual_check_required" in text
     assert "expGraph type:=png" in text
     assert "expGraph type:=tif" in text
     assert "600" in text

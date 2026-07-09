@@ -1,13 +1,14 @@
 ﻿from __future__ import annotations
 
 import csv
-import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from src.core.output_sanitizer import scrub_output_text
+from src.core.file_utils import file_sha256 as _file_sha256
+from src.core.file_utils import is_under_or_equal as _is_under_or_equal
+from src.core.output_sanitizer import sanitize_report_payload as _sanitize_report_payload
 from src.core.project import default_output_root, report_path
 from src.core.runtime_paths import resolve_locked_result_index, resolve_output_root, resolve_workspace_root
 
@@ -494,26 +495,8 @@ def _forbidden_claims(data_type: str) -> list[str]:
     return [claims[data_type]] if data_type in claims else []
 
 
-def _file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _truthy(value: object) -> bool:
     return str(value).strip().casefold() in {"1", "true", "yes", "y", "ack", "acknowledged"}
-
-
-def _sanitize_report_payload(project_root: Path, value: object, output_root: Path | None = None) -> object:
-    if isinstance(value, dict):
-        return {str(key): _sanitize_report_payload(project_root, item, output_root) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_sanitize_report_payload(project_root, item, output_root) for item in value]
-    if isinstance(value, str):
-        return scrub_output_text(value, project_root=project_root, output_root=output_root)
-    return value
 
 
 def _resolve_existing_path(project_root: Path, raw_path: Path) -> Path:
@@ -529,14 +512,6 @@ def _guard_output_path(project_root: Path, path: Path) -> None:
     output_root = resolve_output_root(project_root).resolve()
     if not _is_under_or_equal(resolved, output_root):
         raise ValueError(f"Refusing to write reviewed-queue report outside configured output root: {path}")
-
-
-def _is_under_or_equal(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return path == parent
 
 
 def _plan_markdown(plan: dict) -> str:

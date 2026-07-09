@@ -48,6 +48,15 @@ function Get-ProjectOutputRoot([string]$ProjectRoot) {
   return [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $ProjectRoot) $outputName))
 }
 
+function Assert-UnderOrEqual([string]$Path, [string]$Parent, [string]$Message) {
+  $resolvedPath = [System.IO.Path]::GetFullPath($Path).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+  $resolvedParent = [System.IO.Path]::GetFullPath($Parent).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+  if ($resolvedPath.Equals($resolvedParent, [System.StringComparison]::OrdinalIgnoreCase)) { return }
+  $prefix = $resolvedParent + [System.IO.Path]::DirectorySeparatorChar
+  if ($resolvedPath.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) { return }
+  throw $Message
+}
+
 function Has-AssistantTrace([string]$Text) {
   if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
   return ($Text -match '(?i)(codex|chatgpt|openai)')
@@ -489,6 +498,8 @@ if ([string]::IsNullOrWhiteSpace($OutputDir)) {
   $OutputDir = Join-Path (Get-ProjectOutputRoot $projectRoot) 'hplc_calibration_origin'
 }
 $OutputDir = Resolve-RunPath $OutputDir $projectRoot
+$projectOutputRoot = Get-ProjectOutputRoot $projectRoot
+Assert-UnderOrEqual $OutputDir $projectOutputRoot ("OutputDir must stay under the configured output root: " + $OutputDir)
 if ([string]::IsNullOrWhiteSpace($Stamp)) {
   $Stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 }
@@ -506,13 +517,14 @@ $dataDir = Join-Path $OutputDir 'processed_data'
 $originDir = Join-Path $OutputDir 'origin_files'
 $previewDir = Join-Path $OutputDir 'figures_preview'
 $tifDir = Join-Path $OutputDir 'figures_tif'
+$metadataDir = Join-Path $OutputDir 'metadata\HPLC_calibration_curves'
 $comparisonDir = Join-Path $OutputDir 'template_comparison'
 $templatePreviewDir = Join-Path $comparisonDir 'template_preview'
 $templateTifDir = Join-Path $comparisonDir 'template_tif'
 $logDir = Join-Path $OutputDir 'logs'
 $stageRoot = New-NeutralOriginStage $Stamp $projectRoot
 $stageTemplateDir = Join-Path $stageRoot 'origin_templates'
-New-Item -ItemType Directory -Path $dataDir, $originDir, $previewDir, $tifDir, $comparisonDir, $logDir, $stageTemplateDir -Force | Out-Null
+New-Item -ItemType Directory -Path $dataDir, $originDir, $previewDir, $tifDir, $metadataDir, $comparisonDir, $logDir, $stageTemplateDir -Force | Out-Null
 
 $script:LogPath = Join-Path $logDir 'origin_run_log.txt'
 if (Test-Path -LiteralPath $script:LogPath) { Remove-Item -LiteralPath $script:LogPath -Force }
@@ -653,9 +665,31 @@ if (-not $KeepIntermediate) {
   try { Remove-NeutralOriginStage $stageRoot } catch { Write-Log ('Origin stage cleanup skipped: ' + $_.Exception.Message) }
 }
 
+$metadataPath = Join-Path $metadataDir 'metadata.json'
+$metadataPayload = [ordered]@{
+  dataset_id = ('HPLC_calibration_curves_' + $Stamp)
+  data_type = 'HPLC/LC exported data'
+  processing_status = 'success'
+  manual_check_required = $true
+  origin_file = (To-RunRelativePath $outputOpju $OutputDir)
+  processed_data = (To-RunRelativePath (Join-Path $dataDir 'final_calibration_data.tsv') $OutputDir)
+  figure_tif = @($series | ForEach-Object { To-RunRelativePath $generatedTifMap[$_.Page] $OutputDir })
+  preview_png = @($series | ForEach-Object { To-RunRelativePath $generatedPreviewMap[$_.Page] $OutputDir })
+  template_comparison_report = if ($ExportTemplateComparison) { To-RunRelativePath $comparisonReport $OutputDir } else { $null }
+  manual_check_items = @(
+    'confirm HPLC calibration point identity, integration boundaries, and calibration applicability before quantitative use',
+    'confirm Origin graph formatting against the accepted HPLC calibration template comparison report'
+  )
+  forbidden_claims = @(
+    'do not infer product identity, yield, selectivity, or mechanism from calibration-curve plotting alone'
+  )
+}
+($metadataPayload | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath $metadataPath -Encoding UTF8
+
 Write-Output ("OUTPUT_DIR=" + (Split-Path -Leaf $OutputDir))
 Write-Output ("OPJU=" + (To-RunRelativePath $outputOpju $OutputDir))
 Write-Output ("DATA=" + (To-RunRelativePath (Join-Path $dataDir 'final_calibration_data.tsv') $OutputDir))
+Write-Output ("METADATA=" + (To-RunRelativePath $metadataPath $OutputDir))
 Write-Output ("LOG=" + (To-RunRelativePath $script:LogPath $OutputDir))
 if ($ExportTemplateComparison) {
   Write-Output ("COMPARISON_REPORT=" + (To-RunRelativePath $comparisonReport $OutputDir))

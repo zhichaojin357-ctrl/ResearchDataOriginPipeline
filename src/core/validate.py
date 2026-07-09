@@ -4,6 +4,7 @@ import csv
 import json
 from pathlib import Path
 
+from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.output_sanitizer import render_output_path
 from src.core.origin_governance import REQUIRED_JOURNAL_INDEX_COLUMNS
 from src.core.deps import dependency_audit
@@ -273,14 +274,6 @@ def _is_allowed_source_artifact(project_root: Path, path: Path) -> bool:
         except ValueError:
             continue
     return False
-
-
-def _is_under_or_equal(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return path == parent
 
 
 def _origin_governance_journal_policy_field_failures(rows: list[dict[str, str]]) -> list[str]:

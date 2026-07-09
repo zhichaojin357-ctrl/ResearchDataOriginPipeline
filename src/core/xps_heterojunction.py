@@ -7,7 +7,6 @@ import json
 import math
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
@@ -16,12 +15,10 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.image_artifacts import ensure_tif_600_dpi_metadata
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.powershell_helpers import ps_array as _ps_array
-from src.core.powershell_helpers import ps_int_array as _ps_int_array
-from src.core.powershell_helpers import ps_quote as _ps_quote
-from src.core.project import default_output_root, ensure_write_path_allowed, load_project_config
-from src.core.runtime_paths import resolve_origin_helper, resolve_project_path
+from src.core.project import ensure_write_path_allowed, load_project_config
+from src.core.runtime_paths import resolve_project_path
 from src.origin.adapter import check_origin_available, write_origin_error
 
 
@@ -296,6 +293,7 @@ def run_xps_heterojunction_stacked(
         origin_artifacts = {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": ""}
         if options.with_origin:
             origin_artifacts = _export_origin_for_comparison(project_root, comparison, plot_csv, dirs, peak_details)
+            origin_artifacts = _validated_origin_artifacts(origin_artifacts)
         metadata_path = dirs["metadata"] / comparison.name / "metadata.json"
         metadata = {
             "dataset_id": comparison.name,
@@ -438,7 +436,7 @@ def _export_origin_for_comparison(
     preview_png = job_dir / f"{comparison.name}.png"
     page_name = _safe_origin_page_name(comparison.name)
     job_script = job_dir / f"{comparison.name}_origin_xps_renderer.py"
-    for artifact in (origin_file, figure_tif):
+    for artifact in (origin_file, figure_tif, preview_png):
         if artifact.exists():
             artifact.unlink()
     script = _build_direct_origin_xps_script(comparison, plot_csv, origin_file, preview_png, figure_tif, page_name, peak_details)
@@ -478,7 +476,26 @@ def _export_origin_for_comparison(
         message = "Missing or empty Origin artifacts: " + ", ".join(str(path) for path in missing)
         write_origin_error(project_root, f"{comparison.name}: {message}")
         return {"ok": False, "origin_file": origin_file if origin_file.exists() else None, "figure_tif": figure_tif if figure_tif.exists() else None, "preview_png": preview_png if preview_png.exists() else None, "message": message}
+    ensure_tif_600_dpi_metadata(figure_tif)
     return {"ok": True, "origin_file": origin_file, "figure_tif": figure_tif, "preview_png": preview_png, "message": "Origin COM export succeeded"}
+
+
+def _validated_origin_artifacts(origin_artifacts: dict[str, Any]) -> dict[str, Any]:
+    if not origin_artifacts.get("ok"):
+        return origin_artifacts
+    required = ("origin_file", "figure_tif", "preview_png")
+    missing: list[str] = []
+    for key in required:
+        value = origin_artifacts.get(key)
+        path = value if isinstance(value, Path) else Path(str(value)) if value else None
+        if path is None or not path.exists() or path.stat().st_size == 0:
+            missing.append(key)
+    if not missing:
+        return origin_artifacts
+    updated = dict(origin_artifacts)
+    updated["ok"] = False
+    updated["message"] = "Origin success missing required artifacts: " + ", ".join(missing)
+    return updated
 
 
 def _display_sample_name(sample: str) -> str:
@@ -813,285 +830,6 @@ finally:
 """
 
 
-def _build_xps_origin_script(
-    comparison: XpsComparison,
-    plot_csv: Path,
-    origin_file: Path,
-    preview_dir: Path,
-    page_name: str,
-    project_root: Path | None = None,
-) -> str:
-    header = _csv_header(plot_csv)
-    x_values = _csv_x_values(plot_csv)
-    x_from = max(x_values)
-    x_to = min(x_values)
-    x_step = _nice_step(abs(x_from - x_to))
-    y_min, y_max = _csv_y_range(plot_csv)
-    y_pad = (y_max - y_min) * 0.08 if y_max > y_min else 1.0
-    group = (
-        "@{\n"
-        f"  DataFile = {_ps_quote(plot_csv)}\n"
-        f"  PageName = {_ps_quote(page_name)}\n"
-        f"  ColumnCount = {len(header)}\n"
-        f"  Labels = {_ps_array(tuple(header[1:]))}\n"
-        f"  Palette = {_ps_int_array(XPS_STACKED_PALETTE)}\n"
-        "  PlotType = '200'\n"
-        "  XTitle = 'Binding Energy / eV'\n"
-        "  YTitle = 'Intensity / a.u.'\n"
-        f"  XFrom = {x_from}\n"
-        f"  XTo = {x_to}\n"
-        f"  XStep = {x_step}\n"
-        f"  YFrom = {y_min - y_pad}\n"
-        f"  YTo = {y_max + y_pad}\n"
-        "}"
-    )
-    return "\n".join(
-        [
-            "$ErrorActionPreference = 'Stop'",
-            f"$groups = @({group})",
-            f"& {_ps_quote(resolve_origin_helper(project_root or Path.cwd()))} -ReferenceGraph 'Graph4' -OutputOpju {_ps_quote(origin_file)} -ExportDir {_ps_quote(preview_dir)} -Groups $groups -Headless -CloseOrigin",
-            f"if (-not (Test-Path -LiteralPath {_ps_quote(origin_file)})) {{ throw 'OPJU was not exported.' }}",
-            f"if (-not (Test-Path -LiteralPath {_ps_quote(preview_dir / (page_name + '.png'))})) {{ throw 'PNG preview was not exported.' }}",
-        ]
-    ) + "\n"
-
-
-def _export_tif_from_opju(origin_file: Path, page_name: str, figure_tif: Path) -> None:
-    figure_tif.parent.mkdir(parents=True, exist_ok=True)
-    script = "\n".join(
-        [
-            "$ErrorActionPreference = 'Stop'",
-            "$app = New-Object -ComObject Origin.Application",
-            "$app.Visible = 0",
-            f"if (-not $app.Load({_ps_quote(str(origin_file).replace(chr(92), '/'))})) {{ throw 'Failed to load OPJU for TIF export.' }}",
-            (
-                "$app.Execute("
-                + _ps_quote(
-                    f"win -a {page_name}; expGraph type:=tif path:=\"{str(figure_tif.parent).replace(chr(92), '/')}\" filename:=\"{figure_tif.stem}\" overwrite:=replace;"
-                )
-                + ") | Out-Null"
-            ),
-            "$app.Exit() | Out-Null",
-        ]
-    ) + "\n"
-    script_path = origin_file.parent / "origin_jobs" / f"{figure_tif.stem}_export_tif.ps1"
-    script_path.parent.mkdir(parents=True, exist_ok=True)
-    script_path.write_text(script, encoding="utf-8-sig")
-    completed = None
-    try:
-        for attempt in range(3):
-            _wait_for_no_origin_process()
-            completed = subprocess.run(
-                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path)],
-                text=True,
-                capture_output=True,
-                timeout=180,
-            )
-            _wait_for_no_origin_process()
-            if completed.returncode == 0 and figure_tif.exists() and figure_tif.stat().st_size > 0:
-                break
-            time.sleep(2.0 + attempt)
-    finally:
-        try:
-            script_path.unlink()
-        except OSError:
-            pass
-    if completed is None or completed.returncode:
-        details = (completed.stderr or completed.stdout or "Origin TIF export failed").strip()
-        raise RuntimeError(details)
-    if not figure_tif.exists() or figure_tif.stat().st_size == 0:
-        raise RuntimeError(f"Origin did not export TIF: {figure_tif.name}")
-
-
-def _annotate_origin_graph(
-    origin_file: Path,
-    page_name: str,
-    preview_png: Path,
-    figure_tif: Path,
-    peak_details: list[dict[str, Any]],
-    series_labels: list[str],
-) -> None:
-    if not peak_details:
-        return
-    _wait_for_no_origin_process()
-    preview_png.parent.mkdir(parents=True, exist_ok=True)
-    figure_tif.parent.mkdir(parents=True, exist_ok=True)
-    script_path = origin_file.parent / "origin_jobs" / f"{preview_png.stem}_annotate.py"
-    sample_name_map: dict[str, str] = {}
-    for series_label in series_labels:
-        sample = series_label.split(" ", 1)[0] if " " in series_label else series_label
-        if sample not in sample_name_map:
-            sample_name_map[sample] = _display_sample_name(sample)
-    payload = {
-        "origin_file": str(origin_file),
-        "page_name": page_name,
-        "preview_png": str(preview_png),
-        "figure_tif": str(figure_tif),
-        "peaks": peak_details,
-        "series_labels": series_labels,
-        "sample_name_map": sample_name_map,
-    }
-    script = f"""from __future__ import annotations
-
-import json
-import originpro as op
-from originpro.utils import ocolor
-
-payload = json.loads({json.dumps(json.dumps(payload, ensure_ascii=False))})
-
-BASE_COLORS = {json.dumps(COMPONENT_COLORS)}
-
-def _hex_to_rgb(value):
-    value = value.lstrip("#")
-    return tuple(int(value[i:i+2], 16) for i in (0, 2, 4))
-
-def _blend_to_white(hex_color, fraction):
-    r, g, b = _hex_to_rgb(hex_color)
-    return tuple(int(255 - (255 - channel) * fraction) for channel in (r, g, b))
-
-def _color_cmd(rgb):
-    return "color(%d,%d,%d)" % rgb
-
-def _sample_from_label(label):
-    return label.split(" ", 1)[0] if " " in label else label
-
-op.set_show(False)
-try:
-    if not op.open(payload["origin_file"]):
-        raise RuntimeError("failed to open Origin project")
-    graph = op.find_graph(payload["page_name"])
-    if graph is None:
-        raise RuntimeError("graph page not found: " + payload["page_name"])
-    layer = graph[0]
-    x_from = layer.get_float("x.from")
-    x_to = layer.get_float("x.to")
-    x_min, x_max = min(x_from, x_to), max(x_from, x_to)
-    y_from = layer.get_float("y.from")
-    y_to = layer.get_float("y.to")
-    y_min, y_max = min(y_from, y_to), max(y_from, y_to)
-    y_span = y_max - y_min
-    plots = layer.plot_list()
-    for index, (plot, series_label) in enumerate(zip(plots, payload["series_labels"]), start=1):
-        lower = series_label.lower()
-        if " fill upper " in lower:
-            parts = series_label.rsplit("fill upper", 1)
-            level = int(parts[1].strip()) if len(parts) == 2 else 1
-            component_match = __import__("re").search(r"component (\\d+)", series_label)
-            component_index = int(component_match.group(1)) if component_match else 1
-            base = BASE_COLORS[(component_index - 1) % len(BASE_COLORS)]
-            fraction = max(0.16, level / {COMPONENT_GRADIENT_LEVELS})
-            rgb = _blend_to_white(base, fraction)
-            color_value = ocolor(rgb)
-            plot.set_cmd("-lw 0", "-c " + _color_cmd(rgb))
-            plot.set_fill_area(above=color_value, type=9, below=color_value)
-        elif " fill lower " in lower:
-            plot.set_cmd("-lw 0", "-c color(255,255,255)")
-        elif " component " in lower and " line" in lower:
-            component_match = __import__("re").search(r"component (\\d+)", series_label)
-            component_index = int(component_match.group(1)) if component_match else 1
-            plot.color = BASE_COLORS[(component_index - 1) % len(BASE_COLORS)]
-            plot.set_cmd("-lw 1.2")
-        elif " measured" in lower:
-            plot.color = "#B8B8B8"
-            plot.set_cmd("-lw 1.0")
-        elif "backgnd" in lower or "background" in lower:
-            plot.color = "#8A8A8A"
-            plot.set_cmd("-lw 1.1")
-        elif "envelope" in lower:
-            plot.color = "#000000"
-            plot.set_cmd("-lw 2.2")
-    for prop, value in (
-        ("x2.showAxes", 0),
-        ("x2.ticks", 0),
-        ("x2.showLabels", 0),
-        ("y.ticks", 0),
-        ("y.label.show", 0),
-        ("y2.showAxes", 0),
-        ("y2.ticks", 0),
-        ("y2.showLabels", 0),
-    ):
-        try:
-            layer.set_int(prop, value)
-        except Exception:
-            pass
-    op.lt_exec("layer.x.tick.label.bold=1; layer.x.tick.label.pt=30; layer.x.tickthickness=3; layer.x.thickness=3;")
-    layer.tickstyle = 1
-    legend = layer.label("Legend")
-    if legend is not None:
-        try:
-            legend.remove()
-        except Exception:
-            pass
-    sample_order = []
-    for series_label in payload["series_labels"]:
-        sample = _sample_from_label(series_label)
-        if sample not in sample_order:
-            sample_order.append(sample)
-    for sample_index, sample in enumerate(sample_order[:2]):
-        y_label = sample_index * 1.45 + 0.28
-        sample_label = layer.add_label(payload["sample_name_map"].get(sample, sample), x_max - (x_max - x_min) * 0.08, y_label)
-        if sample_label is not None:
-            sample_label.set_int("attach", 0)
-            sample_label.set_int("font", 67)
-            sample_label.set_float("fsize", 16)
-            sample_label.set_int("bold", 1)
-            sample_label.set_int("color", 1)
-    for index, peak in enumerate(payload["peaks"]):
-        x = float(peak["binding_energy_eV"])
-        y = float(peak.get("normalized_y", y_min + y_span * 0.5))
-        y = max(y_min + y_span * 0.08, min(y, y_max - y_span * 0.08))
-        assignment = str(peak.get("peak_assignment") or "").strip()
-        text = (assignment + "\\n" if assignment else "") + ("%.2f eV" % x)
-        label = layer.add_label(text, x, y)
-        if label is None:
-            continue
-        label.set_int("attach", 0)
-        label.set_int("font", 67)
-        label.set_float("fsize", 13)
-        label.set_int("bold", 1)
-        label.set_int("color", 8421504)
-        label.set_float("x1", max(x_min, min(x, x_max)))
-        label.set_float("y1", y)
-    op.save(payload["origin_file"])
-    exported = graph.save_fig(payload["preview_png"], type="png", replace=True, width=2400)
-    if not exported:
-        raise RuntimeError("failed to export annotated PNG")
-    exported_tif = graph.save_fig(payload["figure_tif"], type="tif", replace=True, width=3600)
-    if not exported_tif:
-        raise RuntimeError("failed to export annotated TIF")
-finally:
-    op.exit()
-"""
-    script_path.write_text(script, encoding="utf-8")
-    try:
-        completed = subprocess.run(
-            [sys.executable, str(script_path)],
-            text=True,
-            capture_output=True,
-            timeout=240,
-        )
-    finally:
-        try:
-            script_path.unlink()
-        except OSError:
-            pass
-    try:
-        _wait_for_no_origin_process()
-    except RuntimeError:
-        _stop_headless_origin_processes()
-        try:
-            _wait_for_no_origin_process(timeout_seconds=30.0)
-        except RuntimeError:
-            pass
-    if completed.returncode:
-        details = (completed.stderr or completed.stdout or "Origin annotation script failed").strip()
-        raise RuntimeError(details)
-    if not preview_png.exists() or preview_png.stat().st_size == 0:
-        raise RuntimeError(f"Origin did not export annotated PNG: {preview_png.name}")
-    if not figure_tif.exists() or figure_tif.stat().st_size == 0:
-        raise RuntimeError(f"Origin did not export annotated TIF: {figure_tif.name}")
-
-
 def _wait_for_no_origin_process(timeout_seconds: float = 90.0) -> None:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
@@ -1416,19 +1154,6 @@ def _annotation_component_labels(record: XpsFitRecord, labels: list[str]) -> lis
 def _highest_local_peak(numeric: list[tuple[float, float]]) -> tuple[float, float] | None:
     peaks = _top_local_peaks(numeric, limit=1)
     return peaks[0] if peaks else None
-
-
-def _interpolated_background(record: XpsFitRecord, binding_energy: float) -> float | None:
-    closest: tuple[float, float] | None = None
-    for row in record.data:
-        binding = _to_float(row.get("binding_energy_eV"))
-        background = _to_float(row.get("background"))
-        if binding is None or background is None:
-            continue
-        distance = abs(binding - binding_energy)
-        if closest is None or distance < closest[0]:
-            closest = (distance, background)
-    return closest[1] if closest else None
 
 
 def _infer_peak_assignment(region: str, binding_energy: float) -> str:

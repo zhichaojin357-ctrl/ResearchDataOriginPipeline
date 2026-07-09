@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from src.core.image_artifacts import ensure_tif_600_dpi_metadata
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.origin.operations import connect_origin, quote_labtalk, safe_origin_name
 from src.origin.style_mimic import read_graph_style_snapshot
@@ -651,6 +652,8 @@ def _export_replay_graph(
             shutil.copy2(runtime_png, final_png)
         if runtime_tif.exists():
             shutil.copy2(runtime_tif, final_tif)
+        if final_tif.exists():
+            ensure_tif_600_dpi_metadata(final_tif)
         if runtime_opju.exists():
             shutil.copy2(runtime_opju, final_opju)
         return {

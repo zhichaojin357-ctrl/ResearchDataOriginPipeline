@@ -4,14 +4,21 @@ import argparse
 import json
 import math
 import shutil
+import sys
 import tempfile
 import time
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import pandas as pd
 import win32com.client
 from PIL import Image
 
+from src.core.file_utils import is_under_or_equal  # noqa: E402
+from src.core.runtime_paths import resolve_output_root  # noqa: E402
 
 PAGE_NAME = "XRD_no_card_overlay"
 PALETTE = [
@@ -50,6 +57,14 @@ def wait_for_file(path: Path, timeout_seconds: float = 10.0) -> None:
             return
         time.sleep(0.25)
     raise RuntimeError(f"Origin output was not created: {path}")
+
+
+def ensure_output_dir_allowed(output_dir: Path, output_root: Path | None) -> Path:
+    resolved_output_root = resolve_output_root(PROJECT_ROOT, explicit=output_root).resolve()
+    resolved_output_dir = output_dir.resolve()
+    if not is_under_or_equal(resolved_output_dir, resolved_output_root):
+        raise ValueError(f"--output-dir must stay under the configured output root: {output_dir}")
+    return resolved_output_dir
 
 
 def ensure_tif_600_dpi(path: Path, min_width: int = 6432) -> None:
@@ -298,6 +313,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build a no-card XRD overlay in Origin using the XRD-specific COM workflow.")
     parser.add_argument("--input-csv", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--output-root", type=Path, default=None)
     parser.add_argument("--reference-opju", type=Path, default=Path(""))
     parser.add_argument("--reference-graph", default="Graph4")
     parser.add_argument("--output-stem", default="XRD_26.7.2_no_card_final")
@@ -311,6 +327,7 @@ def main() -> None:
     labels = list(args.labels or [str(column) for column in data.columns[1:]])
     if len(labels) != len(data.columns) - 1:
         raise ValueError(f"expected {len(data.columns) - 1} labels for Y columns, got {len(labels)} labels")
+    args.output_dir = ensure_output_dir_allowed(args.output_dir, args.output_root)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     opju = args.output_dir / f"{args.output_stem}.opju"
     metadata = args.output_dir / f"{args.output_stem}_metadata.json"
