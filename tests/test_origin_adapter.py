@@ -122,9 +122,11 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             self.assertEqual(job.plot_type_code, "203")
             self.assertEqual(job.plot_policy.plot_primitive, "column")
             self.assertTrue(job.plot_policy.y_tick_values_visible)
+            self.assertFalse(job.show_legend)
             self.assertIn("PlotType = '203'", script)
             self.assertIn("PlotPrimitive = 'column'", script)
             self.assertIn("ShowYTickValues = $true", script)
+            self.assertIn("ShowLegend = $false", script)
 
     def test_spectral_policy_hides_only_y_numeric_tick_values_in_job_script(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

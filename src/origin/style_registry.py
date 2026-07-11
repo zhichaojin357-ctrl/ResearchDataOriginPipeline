@@ -80,7 +80,11 @@ class OriginStyleAsset:
 
 
 def origin_style_manifest_path(project_root: Path, manifest_path: Path | None = None) -> Path:
-    return manifest_path if manifest_path is not None else project_root / DEFAULT_STYLE_MANIFEST
+    root = project_root.resolve()
+    if manifest_path is None:
+        return root / DEFAULT_STYLE_MANIFEST
+    path = Path(manifest_path)
+    return path.resolve() if path.is_absolute() else root / path
 
 
 def load_origin_style_manifest(project_root: Path, manifest_path: Path | None = None) -> dict[str, Any]:
@@ -326,7 +330,7 @@ def _is_within(path: Path, root: Path) -> bool:
     try:
         path.resolve().relative_to(root.resolve())
         return True
-    except ValueError:
+    except (OSError, RuntimeError, ValueError):
         return False
 
 
@@ -345,8 +349,8 @@ def resolve_origin_style_asset(
         keys = {str(raw.get("product_key", "")), str(raw.get("data_type", ""))}
         if requested not in {_style_key(key) for key in keys}:
             continue
-        format_theme = _resolve_manifest_path(base, raw.get("format_theme"))
-        graph_template = _resolve_manifest_path(base, raw.get("graph_template"))
+        format_theme = _resolve_local_manifest_path(base, raw.get("format_theme"))
+        graph_template = _resolve_local_manifest_path(base, raw.get("graph_template"))
         if format_theme is None or not format_theme.is_file():
             if graph_template is None or not graph_template.is_file():
                 continue
@@ -357,13 +361,13 @@ def resolve_origin_style_asset(
             graph_template = None
         if format_theme is None or not format_theme.is_file():
             continue
-        template_opju = _resolve_manifest_path(base, raw.get("template_opju") or raw.get("source_opju"))
+        template_opju = _resolve_local_manifest_path(base, raw.get("template_opju") or raw.get("source_opju"))
         if template_opju is not None and not template_opju.is_file():
             template_opju = None
-        style_snapshot = _resolve_manifest_path(base, raw.get("style_snapshot"))
+        style_snapshot = _resolve_local_manifest_path(base, raw.get("style_snapshot"))
         if style_snapshot is not None and not style_snapshot.is_file():
             style_snapshot = None
-        data_snapshot = _resolve_manifest_path(base, raw.get("data_snapshot"))
+        data_snapshot = _resolve_local_manifest_path(base, raw.get("data_snapshot"))
         if data_snapshot is not None and not data_snapshot.is_file():
             data_snapshot = None
         return OriginStyleAsset(
@@ -377,8 +381,8 @@ def resolve_origin_style_asset(
             status=str(raw.get("status") or ""),
             graph_page=str(raw.get("graph_page") or ""),
             source_run_root=str(raw.get("source_run_root") or manifest.get("source_run_root") or ""),
-            preview_png=_resolve_manifest_path(base, raw.get("preview_png")),
-            reference_preview_png=_resolve_manifest_path(base, raw.get("reference_preview_png")),
+            preview_png=_resolve_local_manifest_path(base, raw.get("preview_png")),
+            reference_preview_png=_resolve_local_manifest_path(base, raw.get("reference_preview_png")),
         )
     return None
 
@@ -389,6 +393,11 @@ def _resolve_manifest_path(base: Path, value: object) -> Path | None:
         return None
     path = Path(text)
     return path if path.is_absolute() else base / path
+
+
+def _resolve_local_manifest_path(base: Path, value: object) -> Path | None:
+    path = _resolve_manifest_path(base, value)
+    return path if path is not None and _is_within(path, base) else None
 
 
 def _relative_or_absolute(path: Path | None, base: Path) -> str:

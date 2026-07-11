@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from src.core.project import default_output_root
 from src.core.table_reader import TableReadResult, _configure_excel_for_safe_read, coerce_numeric_rows, read_table, read_table_with_metadata
-from src.processors.base import process_table_dataset
+from src.processors.base import _origin_axis_titles, process_table_dataset
 from src.processors.calculations import mott_schottky_numeric
 
 
@@ -1214,6 +1214,36 @@ class ProcessorBehaviorTest(unittest.TestCase):
             rows = self._processed_rows(root, metadata)
             self.assertIn("frequency_optional", rows[0])
             self.assertEqual(rows[1]["frequency_optional"], "2000.0")
+
+    def test_hplc_processed_headers_use_publication_axis_titles(self):
+        self.assertEqual(
+            _origin_axis_titles(
+                ["retention_time_min", "signal"],
+                "HPLC/LC exported data",
+                ["Retention time (min)", "Signal"],
+            ),
+            ("Retention time (min)", "Detector response"),
+        )
+
+    def test_reaction_screening_axis_title_keeps_source_response_semantics(self):
+        self.assertEqual(
+            _origin_axis_titles(
+                ["condition", "response_value", "best_condition_candidate_flag"],
+                "reaction_condition_screening",
+                ["solvent", "yield (%)"],
+            ),
+            ("Condition", "Yield (%)"),
+        )
+
+    def test_reaction_screening_axis_title_does_not_match_rate_inside_substrate(self):
+        self.assertEqual(
+            _origin_axis_titles(
+                ["condition", "response_value", "best_condition_candidate_flag"],
+                "reaction_condition_screening",
+                ["substrate", "yield"],
+            ),
+            ("Condition", "Yield"),
+        )
 
 
 if __name__ == "__main__":

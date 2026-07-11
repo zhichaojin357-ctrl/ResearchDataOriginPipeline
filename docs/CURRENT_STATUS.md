@@ -1,6 +1,6 @@
 # Current Status
 
-The project is being cleaned into a final runtime pipeline. The active code path is `run.py` -> `src/cli.py` -> `src/core`/`src/processors`/`src/origin`.
+The project is maintained as a final runtime pipeline. The active code path is `run.py` -> `src/cli.py` -> `src/core`/`src/processors`/`src/origin`.
 
 ## Active Scope
 

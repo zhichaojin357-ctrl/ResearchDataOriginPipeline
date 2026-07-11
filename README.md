@@ -7,7 +7,7 @@ Formal entrypoints are `run.py` and `src/cli.py`. Helper scripts under `scripts/
 ## Current Rules
 
 - Raw data is read-only.
-- Default output root is the configured sibling folder `../输出`; override it with `config/local.yaml`, `RDOP_OUTPUT_ROOT`, or `--output-root`.
+- Default output root is the configured sibling folder `../输出`; override it with `config/local.yaml`, `RESEARCH_PIPELINE_OUTPUT_ROOT` (or the compatibility name `RESEARCHDATAORIGINPIPELINE_OUTPUT_ROOT`), or `--output-root`.
 - Every successful Origin job must save `.opju`, `.tif`, and a preview image.
 - Output labels and Origin-facing workbook metadata must not contain Codex names, full local paths, or comments copied from source files.
 - SEM, TEM, NMR, MS, and kinetics/reference folders are scan-only unless an explicit processor is added and tested.

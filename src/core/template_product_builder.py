@@ -64,7 +64,12 @@ from src.origin.embedded_template_snapshots import (
     embedded_template_snapshot_dict,
 )
 from src.origin.operations import connect_origin, quote_labtalk
-from src.origin.style_registry import load_origin_style_manifest, origin_style_manifest_path, resolve_origin_style_asset
+from src.origin.style_registry import (
+    load_origin_style_manifest,
+    origin_style_manifest_path,
+    resolve_origin_style_asset,
+    validate_origin_style_asset_integrity,
+)
 from src.origin.style_mimic import OpjuStyleSnapshot, apply_style_snapshot, extract_style_snapshot, read_graph_style_snapshot
 from src.origin.text_format import origin_bold_text
 from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overrides, load_user_plot_style, resolve_user_plot_style
@@ -155,6 +160,7 @@ PREFERRED_EPR_TEMPLATE_DIR_PARTS = (
 )
 
 OriginExporter = Callable[[ProductContext, ResolvedPlotStyle], dict[str, object]]
+PROJECT_LOCAL_TEMPLATE_SOURCES = frozenset({"project_origin_style_asset", "embedded_template_snapshot"})
 
 
 @dataclass(frozen=True)
@@ -777,6 +783,8 @@ def run_template_product_builder_all_types(
     output_root = resolve_output_root(project_root, explicit=options.output_root)
     timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
     target_types = _template_target_types(options)
+    if options.asset_only:
+        _require_asset_only_style_integrity(project_root, target_types)
     first_pairings = {item.product_key: item for item in load_target_pairings(options.pairing_path, roots)}
     remaining_pairings = {item.product_key: item for item in load_remaining_pairings(options.pairing_path, roots)}
     remaining_pairings = _repair_mott_pairings(remaining_pairings, roots)
@@ -907,12 +915,25 @@ def run_template_product_builder_all_types(
     for product_key in target_types:
         selection = selections[product_key]
         if selection.status != "selected" or selection.selected is None:
-            record = _blocked_product_record(layout.root, product_key, selection, compact=options.compact_output)
+            record = _blocked_product_record(
+                layout.root,
+                product_key,
+                selection,
+                compact=options.compact_output,
+                asset_only=options.asset_only,
+            )
             products.append(record)
             continue
         pairing = first_pairings.get(product_key) or remaining_pairings.get(product_key)
         if pairing is None:
-            record = _blocked_product_record(layout.root, product_key, selection, reason="No reviewed real-data pairing found.", compact=options.compact_output)
+            record = _blocked_product_record(
+                layout.root,
+                product_key,
+                selection,
+                reason="No reviewed real-data pairing found.",
+                compact=options.compact_output,
+                asset_only=options.asset_only,
+            )
             products.append(record)
             continue
         try:
@@ -969,10 +990,30 @@ def run_template_product_builder_all_types(
                 asset_only=options.asset_only,
             )
             report = _write_template_per_type_report(layout.root, product, export_status, style, extra, active_template, acceptance)
-            products.append(_template_product_summary(layout.root, product, export_status, metadata, report, active_template, acceptance))
+            products.append(
+                _template_product_summary(
+                    layout.root,
+                    product,
+                    export_status,
+                    metadata,
+                    report,
+                    active_template,
+                    acceptance,
+                    asset_only=options.asset_only,
+                )
+            )
         except Exception as exc:
             failures.append({"product_key": product_key, "message": str(exc)})
-            products.append(_failed_product_record(layout.root, product_key, selection, str(exc), compact=options.compact_output))
+            products.append(
+                _failed_product_record(
+                    layout.root,
+                    product_key,
+                    selection,
+                    str(exc),
+                    compact=options.compact_output,
+                    asset_only=options.asset_only,
+                )
+            )
 
     label_audit = _write_template_no_label_audit(layout.root)
     products = [_with_label_audit_status(product, label_audit) for product in products]
@@ -1012,6 +1053,16 @@ def _merge_global_style_override(user_config: dict[str, object], override: dict[
     global_config = merged.get("global") if isinstance(merged.get("global"), dict) else {}
     merged["global"] = {**dict(global_config), **dict(override)}
     return merged
+
+
+def _require_asset_only_style_integrity(project_root: Path, target_types: tuple[str, ...]) -> None:
+    result = validate_origin_style_asset_integrity(project_root, required_product_keys=target_types)
+    failures = [str(item) for item in result.get("failures", [])]
+    if int(result.get("schema_version", 0) or 0) < 2:
+        failures.insert(0, "Origin style manifest schema v2 is required for hash-verified asset-only generation")
+    if not bool(result.get("ok")) or failures:
+        details = "; ".join(failures) or "unknown style-asset integrity failure"
+        raise ValueError(f"Asset-only style integrity check failed: {details}")
 
 
 def _template_target_types(options: TemplateProductBuilderOptions) -> tuple[str, ...]:
@@ -4110,9 +4161,9 @@ def _write_template_product_metadata(
         "asset_only": bool(asset_only),
         "external_template_dependency": False
         if asset_only
-        else template.source not in {"project_origin_style_asset", "embedded_template_snapshot"},
+        else template.source not in PROJECT_LOCAL_TEMPLATE_SOURCES,
         "project_style_asset_path": _template_display_path(template.path)
-        if template.source in {"project_origin_style_asset", "embedded_template_snapshot"}
+        if template.source in PROJECT_LOCAL_TEMPLATE_SOURCES
         else "",
         "input_copies": [_safe_metadata_path(path) for path in product.input_copies],
         "reference_opju_copy": reference_opju_copy,
@@ -4274,6 +4325,8 @@ def _template_product_summary(
     report: Path,
     template: TemplateCandidate,
     acceptance: TemplateAcceptance,
+    *,
+    asset_only: bool = False,
 ) -> dict[str, object]:
     origin_processing = export_status.get("origin_processing") if isinstance(export_status.get("origin_processing"), dict) else {}
     template_format_plan = (
@@ -4284,6 +4337,11 @@ def _template_product_summary(
         "product_key": product.product_key,
         "template_path": _template_display_path(template.path),
         "template_graph": template.graph_page,
+        "asset_only": bool(asset_only),
+        "external_template_dependency": False if asset_only else template.source not in PROJECT_LOCAL_TEMPLATE_SOURCES,
+        "project_style_asset_path": _template_display_path(template.path)
+        if template.source in PROJECT_LOCAL_TEMPLATE_SOURCES
+        else "",
         "external_reference_opju": _relative_to_run(run_root, product.external_reference_opju) if product.external_reference_opju else "",
         "external_reference_graph": product.external_reference_graph,
         "external_reference_source": product.external_reference_source,
@@ -4320,11 +4378,13 @@ def _blocked_product_record(
     *,
     reason: str | None = None,
     compact: bool = False,
+    asset_only: bool = False,
 ) -> dict[str, object]:
     type_root = _template_type_root(run_root, product_key, compact=compact)
     _ensure_template_type_dirs(type_root, compact=compact)
     report = type_root / "report.md" if compact else type_root / "reports" / f"{TEMPLATE_PRODUCT_SLUGS[product_key]}_report.md"
     message = reason or selection.reason
+    selected_source = selection.selected.source if selection.selected is not None else ""
     report.write_text(
         "\n".join(
             [
@@ -4343,6 +4403,13 @@ def _blocked_product_record(
         "product_key": product_key,
         "template_path": _template_display_path(selection.selected.path) if selection.selected else "",
         "template_graph": selection.selected.graph_page if selection.selected else "",
+        "asset_only": bool(asset_only),
+        "external_template_dependency": False
+        if asset_only
+        else bool(selected_source and selected_source not in PROJECT_LOCAL_TEMPLATE_SOURCES),
+        "project_style_asset_path": _template_display_path(selection.selected.path)
+        if selection.selected is not None and selected_source in PROJECT_LOCAL_TEMPLATE_SOURCES
+        else "",
         "status": "blocked",
         "origin_file": "",
         "figure_tif": "",
@@ -4364,8 +4431,23 @@ def _blocked_product_record(
     }
 
 
-def _failed_product_record(run_root: Path, product_key: str, selection: TemplateSelection, message: str, *, compact: bool = False) -> dict[str, object]:
-    record = _blocked_product_record(run_root, product_key, selection, reason=message, compact=compact)
+def _failed_product_record(
+    run_root: Path,
+    product_key: str,
+    selection: TemplateSelection,
+    message: str,
+    *,
+    compact: bool = False,
+    asset_only: bool = False,
+) -> dict[str, object]:
+    record = _blocked_product_record(
+        run_root,
+        product_key,
+        selection,
+        reason=message,
+        compact=compact,
+        asset_only=asset_only,
+    )
     record["status"] = "failed"
     return record
 

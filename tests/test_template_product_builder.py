@@ -15,6 +15,7 @@ from src.core.template_product_builder import (
     TEMPLATE_TARGET_TYPES,
     TemplateProductBuilderOptions,
     TemplateCandidate,
+    TemplateSelection,
     classify_template_project_style_asset_candidates,
     classify_template_xps_reference_candidates,
     classify_template_candidates,
@@ -33,6 +34,7 @@ from src.core.template_product_builder import (
     _template_xrd_normalized_offset_rows,
     _template_xrd_target_sample_series_count,
     _write_template_preview_comparison,
+    _blocked_product_record,
 )
 from src.core.template_product_common import TargetPairing
 from src.core.template_product_common import _resolve_pairing_path
@@ -201,6 +203,10 @@ def test_asset_only_builder_never_scans_external_template_roots(tmp_path: Path, 
 
     monkeypatch.setattr("src.core.template_product_builder.scan_template_f_drive_template_paths", fail_external_scan)
     monkeypatch.setattr("src.core.template_product_builder.scan_template_optional_template_paths", fail_external_scan)
+    monkeypatch.setattr(
+        "src.core.template_product_builder.validate_origin_style_asset_integrity",
+        lambda *_args, **_kwargs: {"ok": True, "schema_version": 2, "failures": []},
+    )
 
     result = run_template_product_builder_all_types(
         project_root,
@@ -222,6 +228,59 @@ def test_asset_only_builder_never_scans_external_template_roots(tmp_path: Path, 
     assert manifest["mode"] == "asset_only_no_origin"
     assert len(manifest["input_paths"]) == 2
     assert all("external_" not in value for value in manifest["input_paths"])
+
+
+def test_asset_only_builder_requires_hash_verified_v2_manifest(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"theme")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "graph_page": "Graph1",
+                        "format_theme": "format_themes/BET.oth",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    pairing = tmp_path / "pairing.json"
+    pairing.write_text("[]", encoding="utf-8")
+
+    try:
+        run_template_product_builder_all_types(
+            project,
+            TemplateProductBuilderOptions(pairing_path=pairing, asset_only=True, only_type="BET"),
+        )
+    except ValueError as exc:
+        assert "schema v2 is required" in str(exc)
+    else:
+        raise AssertionError("asset-only generation must reject a manifest without mandatory hashes")
+
+
+def test_blocked_product_records_report_external_template_dependency(tmp_path: Path) -> None:
+    external = TemplateCandidate(
+        product_key="BET",
+        path=tmp_path / "external.opju",
+        source="f_drive_scan",
+        status="valid",
+        graph_page="Graph1",
+    )
+    selection = TemplateSelection(product_key="BET", status="selected", selected=external, candidates=(external,))
+
+    normal = _blocked_product_record(tmp_path / "normal", "BET", selection)
+    asset_only = _blocked_product_record(tmp_path / "asset", "BET", selection, asset_only=True)
+
+    assert normal["external_template_dependency"] is True
+    assert asset_only["external_template_dependency"] is False
 
 
 def test_asset_only_builder_rejects_exemplar_driven_mode(tmp_path: Path) -> None:

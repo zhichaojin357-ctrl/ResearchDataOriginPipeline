@@ -24,7 +24,7 @@ DECISIONS = (
     "REFERENCE_ONLY",
 )
 
-TRIAGE_POLICY_VERSION = "triage_policy_v1"
+TRIAGE_POLICY_VERSION = "triage_policy_v2"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".gif", ".webp"}
 DOC_EXTENSIONS = {".pdf", ".doc", ".docx", ".ppt", ".pptx", ".caj", ".ris", ".bib", ".enw", ".enl"}
@@ -39,8 +39,44 @@ TRACEABILITY_ROLE_FOLDERS = {
 }
 
 ROLE_NEEDLES = {
-    "x": ("2theta", "2θ", "two theta", "angle", "wavelength", "wavenumber", "raman", "potential", "frequency", "time", "retention", "binding energy", "magnetic field", "field"),
-    "y": ("intensity", "counts", "current", "absorbance", "reflectance", "transmittance", "area", "height", "signal", "mau", "quantity"),
+    "x": (
+        "2theta",
+        "2θ",
+        "two theta",
+        "angle",
+        "wavelength",
+        "wavenumber",
+        "raman",
+        "potential",
+        "frequency",
+        "time",
+        "retention",
+        "binding energy",
+        "magnetic field",
+        "field",
+        "condition",
+        "solvent",
+        "catalyst",
+    ),
+    "y": (
+        "intensity",
+        "counts",
+        "current",
+        "absorbance",
+        "reflectance",
+        "transmittance",
+        "area",
+        "height",
+        "signal",
+        "mau",
+        "quantity",
+        "yield",
+        "conversion",
+        "selectivity",
+        "response",
+        "value",
+        "rate",
+    ),
 }
 
 MIN_ROWS = {
@@ -117,12 +153,12 @@ def _triage_file(project_root: Path, root: Path, path: Path, entries: list[dict]
     data_type = selected_entry["inferred_data_type"] if selected_entry else "unknown"
     selected_processor = selected_entry["selected_processor"] if selected_entry else "none"
     supported = bool(selected_entry and selected_entry["supported_in_pipeline"])
-    folder_conflict = bool(folder_entry and header_entry and folder_entry["inferred_data_type"] != header_entry["inferred_data_type"])
     conflict_level = _folder_header_conflict_level(folder_entry, filename_entry, header_entry, parser)
-    confidence = _confidence_score(path, suffix, folder_entry, filename_entry, header_entry, selected_entry, parser)
-    validity = _validity_score(parser, data_type, suffix)
+    folder_conflict = conflict_level != "none"
+    confidence = _confidence_score(suffix, folder_entry, filename_entry, header_entry, selected_entry, parser)
+    validity = _validity_score(parser, data_type)
     decision, reasons = _decision(path, suffix, size, parser, selected_entry, data_type, confidence, validity, folder_conflict, conflict_level, options)
-    evidence = _evidence(folder_entry, filename_entry, header_entry, parser, suffix, size, folder_conflict, conflict_level)
+    evidence = _evidence(folder_entry, filename_entry, header_entry, parser, suffix, size, folder_conflict, conflict_level, data_type)
     file_id = hashlib.sha256(str(relative_to_root).encode("utf-8", errors="replace")).hexdigest()[:16]
     source_hash = file_hash(path) if path.is_file() else ""
     return {
@@ -142,6 +178,7 @@ def _triage_file(project_root: Path, root: Path, path: Path, entries: list[dict]
         "filename_type_hint": filename_entry["inferred_data_type"] if filename_entry else None,
         "header_type_hint": header_entry["inferred_data_type"] if header_entry else None,
         "numeric_shape_hint": parser["numeric_shape_hint"],
+        "processable_row_count": _processable_row_count(parser, data_type),
         "encoding_detected": parser["encoding_detected"],
         "sheet_name": parser["sheet_name"],
         "sheet_scores": parser.get("sheet_scores", {}),
@@ -413,6 +450,8 @@ def _entry_from_path(relative_path: str, entries: list[dict]) -> dict | None:
 def _select_entry(folder_entry: dict | None, filename_entry: dict | None, header_entry: dict | None) -> dict | None:
     if _is_folder_scan_only(folder_entry):
         return folder_entry
+    if _folder_header_types_compatible(folder_entry, header_entry):
+        return folder_entry
     return header_entry or folder_entry or filename_entry
 
 
@@ -472,6 +511,11 @@ def _header_type_scores(text: str) -> dict[str, int]:
     add("UV-vis DRS", int(_has(text, "wavelength", "波长")) + int(_has(text, "reflectance", "反射", "absorbance", "吸光", "kubelka", "f r")))
     add("EIS", int(_has(text, "frequency", "频率", "hz")) + int(_has(text, "re z", "zreal", "z real", "z'")) + int(_has(text, "im z", "zimag", "z imag", "z\"", "phase")))
     add("photocurrent", int(_has(text, "time", "时间")) + int(_has(text, "photocurrent", "current", "电流")))
+    explicit_condition = _has(text, "condition", "solvent", "catalyst", "条件", "溶剂", "催化剂")
+    condition_or_label = explicit_condition or _has(text, "label")
+    specific_response = _has(text, "yield", "conversion", "selectivity", "response", "rate", "产率", "转化率", "选择性")
+    generic_response = explicit_condition and _has(text, "value")
+    add("reaction_condition_screening", int(condition_or_label) + int(specific_response or generic_response))
     add("XPS", int(_has(text, "binding energy", "结合能", "be ev")) + int(_has(text, "cps", "counts", "计数", "raw intensity", "intensity", "强度")))
     add("PL", int(_has(text, "pl", "photoluminescence", "emission", "excitation")) + int(_has(text, "wavelength", "波长")) + int(_has(text, "intensity", "强度")))
     add("FTIR", int(_has(text, "wavenumber", "波数", "cm 1")) + int(_has(text, "transmittance", "透过", "absorbance", "吸光")) + int(_has(text, "ftir", "infrared")))
@@ -530,7 +574,6 @@ def _keyword_matches(normalized_keyword: str, normalized_value: str) -> bool:
 
 
 def _confidence_score(
-    path: Path,
     suffix: str,
     folder_entry: dict | None,
     filename_entry: dict | None,
@@ -543,7 +586,10 @@ def _confidence_score(
         score += 0.35
     if filename_entry and selected_entry and filename_entry["inferred_data_type"] == selected_entry["inferred_data_type"]:
         score += 0.15
-    if header_entry and selected_entry and header_entry["inferred_data_type"] == selected_entry["inferred_data_type"]:
+    if header_entry and selected_entry and (
+        header_entry["inferred_data_type"] == selected_entry["inferred_data_type"]
+        or _folder_header_types_compatible(selected_entry, header_entry)
+    ):
         score += 0.4
     if selected_entry and suffix in {ext.lower() for ext in selected_entry.get("extensions", [])}:
         score += 0.1
@@ -602,10 +648,10 @@ def _sheet_name_supports_type(sheet_name: str, data_type: str) -> bool:
     return any(token in text for token in tokens)
 
 
-def _validity_score(parser: dict, data_type: str, suffix: str) -> float:
+def _validity_score(parser: dict, data_type: str) -> float:
     if parser["parser_probe_status"] != "success":
         return 0.0
-    rows = int(parser["numeric_shape_hint"]["rows"])
+    rows = _processable_row_count(parser, data_type)
     cols = int(parser["numeric_shape_hint"]["numeric_columns"])
     min_rows = MIN_ROWS.get(data_type, 2)
     score = 0.25
@@ -613,7 +659,7 @@ def _validity_score(parser: dict, data_type: str, suffix: str) -> float:
         score += 0.35
     elif rows >= max(2, min_rows // 3):
         score += 0.15
-    if cols >= 2:
+    if cols >= _minimum_numeric_columns(parser, data_type):
         score += 0.25
     if parser["column_role_candidates"]:
         score += 0.15
@@ -652,9 +698,9 @@ def _decision(
         reasons.append("backup_or_temp_name")
     if parser["parser_probe_status"] != "success":
         return ("MANUAL_REVIEW" if entry else "EXCLUDE_INVALID"), reasons + ["parser_probe_not_success"]
-    rows = int(parser["numeric_shape_hint"]["rows"])
+    rows = _processable_row_count(parser, data_type)
     cols = int(parser["numeric_shape_hint"]["numeric_columns"])
-    if rows < 2 or cols < 2:
+    if rows < 2 or cols < _minimum_numeric_columns(parser, data_type):
         return "EXCLUDE_INVALID", reasons + ["insufficient_numeric_table"]
     if folder_conflict:
         return "MANUAL_REVIEW", reasons + [f"{conflict_level}_folder_header_type_conflict"]
@@ -673,7 +719,12 @@ def _is_backup_name(name: str) -> bool:
 
 
 def _folder_header_conflict_level(folder_entry: dict | None, filename_entry: dict | None, header_entry: dict | None, parser: dict) -> str:
-    if not folder_entry or not header_entry or folder_entry["inferred_data_type"] == header_entry["inferred_data_type"]:
+    if (
+        not folder_entry
+        or not header_entry
+        or folder_entry["inferred_data_type"] == header_entry["inferred_data_type"]
+        or _folder_header_types_compatible(folder_entry, header_entry)
+    ):
         return "none"
     if _is_folder_scan_only(folder_entry):
         return "severe"
@@ -695,6 +746,7 @@ def _evidence(
     size: int,
     folder_conflict: bool,
     conflict_level: str,
+    data_type: str,
 ) -> list[str]:
     evidence = [f"extension={suffix or 'none'}", f"file_size_bytes={size}", f"parser_probe_status={parser['parser_probe_status']}"]
     if folder_entry:
@@ -709,9 +761,74 @@ def _evidence(
     shape = parser["numeric_shape_hint"]
     evidence.append(f"numeric_rows={shape['rows']}")
     evidence.append(f"numeric_columns={shape['numeric_columns']}")
+    processable_rows = _processable_row_count(parser, data_type)
+    if processable_rows != int(shape["rows"]):
+        evidence.append(f"processable_rows={processable_rows}")
     for fallback in parser.get("recognition_fallbacks", []):
         evidence.append(f"recognition_fallback={fallback}")
     return evidence
+
+
+def _folder_header_types_compatible(folder_entry: dict | None, header_entry: dict | None) -> bool:
+    if not folder_entry or not header_entry:
+        return False
+    return (
+        folder_entry.get("inferred_data_type"),
+        header_entry.get("inferred_data_type"),
+    ) == ("photocurrent_response", "photocurrent")
+
+
+def _processable_row_count(parser: dict, data_type: str) -> int:
+    numeric_rows = int(parser.get("numeric_shape_hint", {}).get("rows", 0))
+    if data_type != "reaction_condition_screening" or not _reaction_condition_schema(parser):
+        return numeric_rows
+    return max(numeric_rows, int(parser.get("header_quality", {}).get("row_count", 0)))
+
+
+def _minimum_numeric_columns(parser: dict, data_type: str) -> int:
+    if data_type == "reaction_condition_screening" and _reaction_condition_schema(parser):
+        return 1
+    return 2
+
+
+def _reaction_condition_schema(parser: dict) -> bool:
+    headers = [_normalized_header(header) for header in parser.get("observed_column_headers", [])]
+    condition_columns = {
+        index
+        for index, header in enumerate(headers)
+        if _header_has_role(header, "condition", "solvent", "catalyst", "label", "条件", "溶剂", "催化剂")
+    }
+    response_columns = {
+        index
+        for index, header in enumerate(headers)
+        if _header_has_role(
+            header,
+            "yield",
+            "conversion",
+            "selectivity",
+            "response",
+            "value",
+            "rate",
+            "产率",
+            "转化率",
+            "选择性",
+        )
+    }
+    numeric_columns = int(parser.get("numeric_shape_hint", {}).get("numeric_columns", 0))
+    has_distinct_roles = any(x_index != y_index for x_index in condition_columns for y_index in response_columns)
+    return has_distinct_roles and numeric_columns >= 1
+
+
+def _header_has_role(header: str, *needles: str) -> bool:
+    text = header.replace("_", " ")
+    for needle in needles:
+        normalized = _normalized_header(needle)
+        if normalized.isascii():
+            if re.search(rf"(?<![a-z0-9]){re.escape(normalized)}(?![a-z0-9])", text):
+                return True
+        elif normalized in text:
+            return True
+    return False
 
 
 def _manual_check_items(data_type: str, decision: str) -> list[str]:

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
+
+import yaml
 
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 
@@ -124,6 +127,35 @@ def configured_path(project_root: Path, config: dict, section: str, key: str, de
 
 
 def _parse_simple_yaml(text: str) -> dict:
+    try:
+        loaded = yaml.safe_load(text)
+    except yaml.YAMLError:
+        repaired = _escape_double_quoted_windows_paths(text)
+        try:
+            loaded = yaml.safe_load(repaired)
+        except yaml.YAMLError:
+            return _parse_legacy_simple_yaml(text)
+    if loaded is None:
+        return {}
+    if not isinstance(loaded, dict):
+        raise ValueError("Project configuration must be a YAML mapping")
+    return loaded
+
+
+def _escape_double_quoted_windows_paths(text: str) -> str:
+    pattern = re.compile(
+        r'^(?P<prefix>\s*[^#\s][^:\r\n]*:\s*)"(?P<path>(?:[A-Za-z]:\\|\\\\)[^"\r\n]*)"(?P<suffix>\s*(?:#.*)?)$',
+        re.MULTILINE,
+    )
+
+    def replace(match: re.Match[str]) -> str:
+        escaped = match.group("path").replace("\\", "\\\\")
+        return f'{match.group("prefix")}"{escaped}"{match.group("suffix")}'
+
+    return pattern.sub(replace, text)
+
+
+def _parse_legacy_simple_yaml(text: str) -> dict:
     result: dict[str, object] = {}
     current_section: str | None = None
     for raw_line in text.splitlines():

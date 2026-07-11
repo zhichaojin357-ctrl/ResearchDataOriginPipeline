@@ -186,10 +186,87 @@ def test_manual_review_is_not_processed_by_default_even_after_recognition_improv
 
         queue = json.loads((default_output_root(project) / "reports" / "processing_queue.json").read_text(encoding="utf-8"))
         assert queue["items"] == []
-        assert queue["policy_version"] == "triage_policy_v1"
+        assert queue["policy_version"] == "triage_policy_v2"
         assert len(queue["config_hash"]) == 64
         int(queue["config_hash"], 16)
         assert code == 0
+
+
+def test_photocurrent_response_folder_is_compatible_with_generic_time_current_headers(tmp_path: Path):
+    raw = tmp_path / "input" / "raw_data" / "光电流响应"
+    raw.mkdir(parents=True)
+    rows = "\n".join(f"{index},{index * 1e-6}" for index in range(20))
+    (raw / "response.txt").write_text("Time/sec,Current/A\n" + rows + "\n", encoding="utf-8")
+
+    result = run_triage(tmp_path, tmp_path / "input" / "raw_data", TriageOptions(explain=True))
+    item = result["items"][0]
+
+    assert item["folder_type_hint"] == "photocurrent_response"
+    assert item["header_type_hint"] == "photocurrent"
+    assert item["data_type_candidate"] == "photocurrent_response"
+    assert item["folder_type_conflict"] is False
+    assert item["decision"] == "AUTO_PROCESS"
+
+
+def test_reaction_condition_table_accepts_categorical_condition_and_numeric_response(tmp_path: Path):
+    raw = tmp_path / "input" / "raw_data" / "光反应的条件筛选"
+    raw.mkdir(parents=True)
+    (raw / "screening.csv").write_text(
+        "condition,yield\nSolvent A,42.1\nSolvent B,57.8\nSolvent C,51.4\n",
+        encoding="utf-8",
+    )
+
+    result = run_triage(tmp_path, tmp_path / "input" / "raw_data", TriageOptions(explain=True))
+    item = result["items"][0]
+
+    assert item["header_type_hint"] == "reaction_condition_screening"
+    assert item["data_type_candidate"] == "reaction_condition_screening"
+    assert item["numeric_shape_hint"]["numeric_columns"] == 1
+    assert item["processable_row_count"] == 3
+    assert item["column_role_candidates"] == {"x": ["condition"], "y": ["yield"]}
+    assert item["decision"] == "AUTO_PROCESS"
+
+
+def test_reaction_condition_table_accepts_generic_value_response(tmp_path: Path):
+    raw = tmp_path / "input" / "raw_data" / "condition screening"
+    raw.mkdir(parents=True)
+    (raw / "screening.csv").write_text(
+        "condition,value\nSolvent A,42.1\nSolvent B,57.8\nSolvent C,51.4\n",
+        encoding="utf-8",
+    )
+
+    result = run_triage(tmp_path, tmp_path / "input" / "raw_data", TriageOptions(explain=True))
+    item = result["items"][0]
+
+    assert item["data_type_candidate"] == "reaction_condition_screening"
+    assert item["numeric_shape_hint"]["numeric_columns"] == 1
+    assert item["processable_row_count"] == 3
+    assert item["column_role_candidates"] == {"x": ["condition"], "y": ["value"]}
+    assert item["decision"] == "AUTO_PROCESS"
+
+
+def test_reaction_condition_requires_separate_condition_and_response_columns(tmp_path: Path):
+    raw = tmp_path / "input" / "raw_data" / "condition screening"
+    raw.mkdir(parents=True)
+    (raw / "screening.csv").write_text("condition_value\n1\n2\n3\n", encoding="utf-8")
+
+    result = run_triage(tmp_path, tmp_path / "input" / "raw_data", TriageOptions(explain=True))
+    item = result["items"][0]
+
+    assert item["data_type_candidate"] == "reaction_condition_screening"
+    assert item["decision"] == "EXCLUDE_INVALID"
+    assert "insufficient_numeric_table" in item["decision_reasons"]
+
+
+def test_generic_label_value_table_is_not_misclassified_as_reaction_screening(tmp_path: Path):
+    raw = tmp_path / "input" / "raw_data" / "misc"
+    raw.mkdir(parents=True)
+    (raw / "data.csv").write_text("label,value\nA,1\nB,2\nC,3\n", encoding="utf-8")
+
+    result = run_triage(tmp_path, tmp_path / "input" / "raw_data", TriageOptions(explain=True))
+    item = result["items"][0]
+
+    assert item["data_type_candidate"] != "reaction_condition_screening"
 
 
 def _write_unnamed_excel(path: Path, rows: int) -> None:

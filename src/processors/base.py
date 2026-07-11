@@ -111,7 +111,7 @@ def process_table_dataset(
         if warning:
             warnings.append(str(warning))
         warnings.append("EIS Randles-CPE curve is a draft visualization for manual review, not a final equivalent-circuit conclusion.")
-        x_title, y_title = _origin_axis_titles(headers, data_type)
+        x_title, y_title = _origin_axis_titles(headers, data_type, _source_headers(rows))
         if no_origin:
             origin_result = None
             status = "processed_no_origin"
@@ -157,10 +157,7 @@ def process_table_dataset(
             "y_min": min(y_values),
             "y_max": max(y_values),
         }
-        if data_type == "HPLC/LC exported data":
-            key_results.update(type_specific_results(data_type, numeric, rows))
-        else:
-            key_results.update(type_specific_results(data_type, numeric, rows))
+        key_results.update(type_specific_results(data_type, numeric, rows))
         if data_type == "UV-vis DRS":
             warnings.append("Eg candidate requires configured Tauc interval selection.")
         if (
@@ -172,7 +169,7 @@ def process_table_dataset(
             )
         if data_type == "HPLC/LC exported data" and key_results.get("lc_quantification_blocked_reason"):
             warnings.append(str(key_results["lc_quantification_blocked_reason"]))
-        x_title, y_title = _origin_axis_titles(headers, data_type)
+        x_title, y_title = _origin_axis_titles(headers, data_type, _source_headers(rows))
         if no_origin:
             origin_result = None
             status = "processed_no_origin"
@@ -318,12 +315,20 @@ def _forbidden_claims(project_root: Path, data_type: str, profile: dict | None) 
     return deduped
 
 
-def _origin_axis_titles(headers: list[str], data_type: str = "") -> tuple[str, str]:
+def _origin_axis_titles(
+    headers: list[str],
+    data_type: str = "",
+    source_headers: list[str] | None = None,
+) -> tuple[str, str]:
     normalized = [header.strip().lower() for header in headers]
     if normalized[:2] == ["relative_pressure_p_p0", "adsorbed_volume"]:
         return "Relative Pressure (P/P0)", "Quantity Adsorbed (cm3/g STP)"
     if normalized[:2] == ["time_s", "photocurrent_ua"]:
         return "Time (s)", "Photocurrent (uA)"
+    if data_type == "HPLC/LC exported data" and normalized[:2] == ["retention_time_min", "signal"]:
+        return "Retention time (min)", "Detector response"
+    if data_type == "reaction_condition_screening" and normalized[:2] == ["condition", "response_value"]:
+        return "Condition", _reaction_response_axis_title(source_headers or [])
     axis_by_type = {
         "Raman": ("Raman Shift (cm-1)", "Intensity (a.u.)"),
         "FTIR": ("Wavenumber (cm-1)", "Intensity (a.u.)"),
@@ -349,6 +354,30 @@ def _origin_axis_titles(headers: list[str], data_type: str = "") -> tuple[str, s
     if len(headers) == 1:
         return headers[0], "signal"
     return "x", "y"
+
+
+def _source_headers(rows: list[dict[str, str]]) -> list[str]:
+    return list(rows[0]) if rows else []
+
+
+def _reaction_response_axis_title(source_headers: list[str]) -> str:
+    response_titles = {
+        "yield": "Yield",
+        "conversion": "Conversion",
+        "selectivity": "Selectivity",
+        "rate": "Rate",
+        "response": "Response",
+        "value": "Response",
+    }
+    for header in source_headers:
+        words = set(re.findall(r"[a-z]+|%", header.casefold().replace("_", " ")))
+        for token, title in response_titles.items():
+            if token not in words:
+                continue
+            if "%" in words or "percent" in words:
+                return f"{title} (%)"
+            return title
+    return "Response"
 
 
 def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str], key_results: dict) -> dict:

@@ -1,5 +1,5 @@
 {
-  "policy_status": "planning_draft_json_compatible_yaml",
+  "policy_status": "maintained_claim_policy_v1",
   "global_rules": {
     "no_auto_mechanism_claims": true,
     "require_manual_check_for_high_risk": true,

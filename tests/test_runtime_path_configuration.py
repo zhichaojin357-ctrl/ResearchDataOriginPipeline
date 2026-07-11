@@ -122,6 +122,26 @@ def test_create_run_output_layout_uses_configured_external_output_root(tmp_path:
     assert not Path(manifest["output_root"]).is_absolute()
 
 
+def test_create_run_output_layout_resolves_relative_output_base_from_project_root(tmp_path: Path, monkeypatch):
+    project = tmp_path / "project"
+    project.mkdir()
+    unrelated_cwd = tmp_path / "cwd"
+    unrelated_cwd.mkdir()
+    monkeypatch.chdir(unrelated_cwd)
+
+    layout = create_run_output_layout(
+        project,
+        scope="relative base",
+        command="process",
+        mode="no_origin",
+        timestamp="20260711_150000",
+        output_base=Path("output/runs"),
+    )
+
+    assert layout.root == project / "output" / "runs" / "20260711_150000_relative_base"
+    assert layout.manifest.is_file()
+
+
 def test_auto_queue_uses_locked_result_env_package_when_processed_index_not_explicit(tmp_path: Path, monkeypatch):
     workspace = tmp_path / "workspace"
     source = _write(workspace / "EIS" / "old.csv", "x,y\n1,2\n")
@@ -214,6 +234,29 @@ def test_local_config_overlays_default_and_origin_paths(tmp_path: Path):
     assert loaded["paths"]["workspace_root"] == "workspace_data/local"
     assert resolve_origin_helper(tmp_path) == tmp_path / "tools" / "helper.ps1"
     assert resolve_origin_reference_pattern(tmp_path) == "refs/*.opju"
+
+
+def test_project_config_uses_full_yaml_parsing_for_quoted_hash_and_numbers(tmp_path: Path):
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "default.yaml").write_text(
+        'paths:\n  raw_data: "input/#batch-1"\ntriage:\n  min_confidence: 0.8\n',
+        encoding="utf-8",
+    )
+
+    loaded = load_project_config(tmp_path, Path("config/default.yaml"))
+
+    assert loaded["paths"]["raw_data"] == "input/#batch-1"
+    assert loaded["triage"]["min_confidence"] == 0.8
+
+
+def test_project_config_rejects_non_mapping_yaml_root(tmp_path: Path):
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "default.yaml").write_text("- paths\n- output\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must be a YAML mapping"):
+        load_project_config(tmp_path, Path("config/default.yaml"))
 
 
 def test_xps_default_discovery_reads_configured_sample_dirs(tmp_path: Path):

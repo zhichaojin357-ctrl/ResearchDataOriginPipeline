@@ -43,3 +43,18 @@ def test_origin_helper_defaults_to_project_local_reference_opju() -> None:
     assert "D:\\OriginFlies\\Manual Save" not in text
     assert "CWO+BOBC+*.opju" not in text
     assert "templates\\origin_styles\\reference_opju\\XRD.opju" in text
+
+
+def test_origin_helper_enforces_unframed_or_hidden_legends() -> None:
+    text = _helper_text()
+
+    assert "Get-GroupValue $Group 'ShowLegend' $true" in text
+    assert "legend.show=0;" in text
+    assert "$legend.Destroy()" in text
+    assert "Visible legend text is missing" in text
+    assert "$legend.SetNumProp('background', 0)" in text
+    assert "$legend.SetNumProp('lineWidth', 0)" in text
+    assert (
+        "legend.show=1; legend.background=0; legend.border=0; legend.frame=0; legend.fill=0; "
+        "legend.fillColor=0; legend.borderColor=0; legend.lineWidth=0;"
+    ) in text

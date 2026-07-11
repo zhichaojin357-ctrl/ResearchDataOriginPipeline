@@ -2,12 +2,20 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 from src.cli import main
 from src.core.file_utils import file_sha256
 from src.core.project import default_output_root
 from src.origin.template_format import build_template_format_plan
-from src.origin.style_registry import load_origin_style_manifest, validate_origin_style_asset_integrity
+from src.origin.style_registry import (
+    load_origin_style_manifest,
+    origin_style_manifest_path,
+    resolve_origin_style_asset,
+    validate_origin_style_asset_integrity,
+)
 
 
 def test_origin_format_theme_assets_do_not_embed_workspace_or_assistant_markers() -> None:
@@ -139,6 +147,44 @@ def test_origin_style_manifest_rejects_unsupported_schema(tmp_path: Path) -> Non
         assert "Unsupported Origin style manifest schema_version 99" in str(exc)
     else:
         raise AssertionError("unsupported schema should fail")
+
+
+def test_origin_style_manifest_relative_override_is_project_relative(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    manifest = project / "config" / "style-manifest.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text('{"schema_version":1,"assets":[]}', encoding="utf-8")
+
+    loaded = load_origin_style_manifest(project, Path("config/style-manifest.json"))
+
+    assert origin_style_manifest_path(project, Path("config/style-manifest.json")) == manifest
+    assert loaded["assets"] == []
+
+
+def test_origin_style_resolver_rejects_assets_outside_manifest_root(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    outside_theme = tmp_path / "outside.oth"
+    outside_theme.write_bytes(b"external")
+    manifest = project / "templates" / "origin_styles" / "manifest.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "graph_page": "Graph1",
+                        "format_theme": str(outside_theme),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert resolve_origin_style_asset(project, "BET") is None
 
 
 def test_origin_style_manifest_v2_reports_malformed_snapshot_counts(tmp_path: Path) -> None:
@@ -533,6 +579,141 @@ def test_style_asset_manifest_direct_template_harvest_clears_stale_previews(tmp_
     assert xrd["reference_preview_png"] == ""
     assert xrd["template_preview_comparison_png"] == ""
     assert xrd["preview_rms"] is None
+
+
+def test_style_asset_manifest_merge_deduplicates_existing_product_keys(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {"product_key": "BET", "format_theme": "format_themes/old.oth"},
+                    {"product_key": "BET", "format_theme": "format_themes/current.oth"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from src.core.origin_style_assets import _merge_origin_style_manifest_entries
+
+    merged = _merge_origin_style_manifest_entries(manifest, [])
+
+    assert merged == [{"product_key": "BET", "format_theme": "format_themes/current.oth"}]
+
+
+def test_style_asset_manifest_merge_refuses_to_overwrite_malformed_manifest(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text("{malformed", encoding="utf-8")
+
+    from src.core.origin_style_assets import _merge_origin_style_manifest_entries
+
+    with pytest.raises(json.JSONDecodeError):
+        _merge_origin_style_manifest_entries(manifest, [{"product_key": "BET"}])
+
+
+def test_style_asset_export_without_origin_does_not_rewrite_manifest(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    asset_root = project / "templates" / "origin_styles"
+    asset_root.mkdir(parents=True)
+    manifest = asset_root / "manifest.json"
+    original = '{"schema_version":2,"generated_at":"keep","assets":[]}'
+    manifest.write_text(original, encoding="utf-8")
+    source = tmp_path / "BET.opju"
+    source.write_bytes(b"opju")
+
+    from src.core.origin_style_assets import export_origin_style_assets
+
+    result = export_origin_style_assets(
+        project,
+        template_opju=source,
+        product_key="BET",
+        data_type="BET",
+        graph_page="Graph1",
+        with_origin=False,
+    )
+
+    assert result["exported_count"] == 0
+    assert result["failure_count"] == 1
+    assert manifest.read_text(encoding="utf-8") == original
+
+
+def test_successful_style_asset_export_writes_valid_v2_manifest_and_preserves_metadata(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    project = tmp_path / "project"
+    asset_root = project / "templates" / "origin_styles"
+    asset_root.mkdir(parents=True)
+    manifest = asset_root / "manifest.json"
+    manifest.write_text('{"schema_version":2,"custom_metadata":"keep","assets":[]}', encoding="utf-8")
+    source = tmp_path / "BET.opju"
+    source.write_bytes(b"source-opju")
+
+    class FakeOriginOperations:
+        def new_project(self):
+            return SimpleNamespace(ok=True)
+
+        def load_project(self, _path: Path):
+            return SimpleNamespace(ok=True, message="")
+
+        def save_project(self, path: Path):
+            path.write_bytes(b"saved-opju")
+            return SimpleNamespace(ok=True, message="")
+
+        def save_graph_theme(self, _graph_page: str, path: Path):
+            path.write_bytes(b"saved-theme")
+            return SimpleNamespace(ok=True, message="")
+
+        def save_graph_template(self, _graph_page: str, path: Path):
+            path.write_bytes(b"saved-template")
+            return SimpleNamespace(ok=True, message="")
+
+        def close(self):
+            return SimpleNamespace(ok=True)
+
+    monkeypatch.setattr("src.core.origin_style_assets.connect_origin", lambda **_kwargs: FakeOriginOperations())
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.read_graph_style_snapshot",
+        lambda *_args, **_kwargs: SimpleNamespace(to_dict=lambda: {"layer_count": 1, "plot_count": 2}),
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.read_graph_data_snapshot",
+        lambda *_args, **_kwargs: {"schema_version": 2, "layers": [{"layer_index": 1}], "plots": []},
+    )
+
+    from src.core.origin_style_assets import export_origin_style_assets
+
+    result = export_origin_style_assets(
+        project,
+        template_opju=source,
+        product_key="BET",
+        data_type="BET",
+        graph_page="Graph1",
+        with_origin=True,
+    )
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+
+    assert result["exported_count"] == 1
+    assert result["failure_count"] == 0
+    assert payload["schema_version"] == 2
+    assert payload["custom_metadata"] == "keep"
+    assert payload["assets"][0]["file_integrity"]["format_theme"]["sha256"] == file_sha256(
+        asset_root / "format_themes" / "BET.oth"
+    )
+    assert validate_origin_style_asset_integrity(project, required_product_keys=("BET",))["ok"] is True
+
+
+def test_style_asset_manifest_writer_preserves_existing_schema_and_uses_v2_for_new_manifest(tmp_path: Path) -> None:
+    from src.core.origin_style_assets import _origin_style_manifest_schema_version_for_write
+
+    manifest = tmp_path / "manifest.json"
+    assert _origin_style_manifest_schema_version_for_write(manifest) == 2
+    manifest.write_text('{"schema_version":1,"assets":[]}', encoding="utf-8")
+    assert _origin_style_manifest_schema_version_for_write(manifest) == 1
+    manifest.write_text('{"schema_version":2,"assets":[]}', encoding="utf-8")
+    assert _origin_style_manifest_schema_version_for_write(manifest) == 2
 
 
 def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:

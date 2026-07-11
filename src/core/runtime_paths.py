@@ -52,7 +52,7 @@ class RunOutputLayout:
 
 
 def resolve_project_path(project_root: Path, value: str | Path) -> Path:
-    path = Path(str(value))
+    path = Path(str(value)).expanduser()
     return path.resolve() if path.is_absolute() else (project_root / path).resolve()
 
 
@@ -100,7 +100,7 @@ def create_run_output_layout(
     normalized_scope = _safe_run_scope(scope)
     run_timestamp = timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
     run_id = f"{run_timestamp}_{normalized_scope}"
-    base = output_base or resolve_output_root(project_root) / "runs"
+    base = resolve_project_path(project_root, output_base) if output_base is not None else resolve_output_root(project_root) / "runs"
     root = base / run_id
     ensure_write_path_allowed(project_root, root, output_root=base)
     directories = {name: root / name for name in RUN_OUTPUT_SUBDIRS}

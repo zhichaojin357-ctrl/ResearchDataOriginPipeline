@@ -64,6 +64,7 @@ class OriginPlotJob:
     xy_column_pairs: tuple[tuple[int, int], ...]
     curve_colors: tuple[int, ...]
     color_assignments: tuple[dict[str, object], ...]
+    show_legend: bool
     x_title: str
     y_title: str
 
@@ -981,6 +982,7 @@ def build_origin_plot_job(
         xy_column_pairs=xy_column_pairs,
         curve_colors=curve_colors,
         color_assignments=color_assignments,
+        show_legend=data_type != "reaction_condition_screening",
         x_title=x_title,
         y_title=y_title,
     )
@@ -1003,6 +1005,7 @@ def build_origin_invocation_script(job: OriginPlotJob) -> str:
         f"  ShowYTicks = ${str(job.plot_policy.y_ticks_visible).lower()}\n"
         f"  ShowYTickValues = ${str(job.plot_policy.y_tick_values_visible).lower()}\n"
         f"  ShowXTickValues = ${str(job.plot_policy.x_tick_values_visible).lower()}\n"
+        f"  ShowLegend = ${str(job.show_legend).lower()}\n"
         f"  XTitle = {_ps_quote(job.x_title)}\n"
         f"  YTitle = {_ps_quote(job.y_title)}\n"
         "}"

@@ -1,5 +1,5 @@
 {
-  "registry_status": "planning_draft_json_compatible_yaml",
+  "registry_status": "maintained_runtime_registry_v1",
   "generated_from": [
     "AGENTS.md",
     "docs/REAL_DATA_COMPATIBILITY_MATRIX.md",

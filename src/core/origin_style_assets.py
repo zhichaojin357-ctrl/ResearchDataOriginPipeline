@@ -15,7 +15,7 @@ from src.core.image_artifacts import ensure_tif_600_dpi_metadata
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.origin.operations import connect_origin, quote_labtalk, safe_origin_name
 from src.origin.style_mimic import read_graph_style_snapshot
-from src.origin.style_registry import resolve_origin_style_asset
+from src.origin.style_registry import load_origin_style_manifest, resolve_origin_style_asset
 from src.origin.template_format import parse_origin_dataset_name
 
 
@@ -281,6 +281,7 @@ def export_origin_style_assets(
     (plan.asset_root / "reference_opju").mkdir(parents=True, exist_ok=True)
     (plan.asset_root / "previews").mkdir(parents=True, exist_ok=True)
     exported: list[dict[str, object]] = []
+    exported_items: list[OriginStyleAssetExportItem] = []
     failures: list[dict[str, object]] = []
     if with_origin:
         operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
@@ -352,6 +353,9 @@ def export_origin_style_assets(
                 if not getattr(saved, "ok", False):
                     failures.append({"product_key": item.product_key, "message": scrub_output_text(getattr(saved, "message", "format theme save failed"), project_root=project_root)})
                     continue
+                if not item.format_theme_path.is_file() or item.format_theme_path.stat().st_size <= 0:
+                    failures.append({"product_key": item.product_key, "message": "format theme save did not produce a non-empty file"})
+                    continue
                 saved_template = None
                 if item.graph_template_path is not None:
                     runtime_graph_template = runtime_dir / f"{safe_origin_name(item.product_key, 'Template')}.otpu"
@@ -391,6 +395,7 @@ def export_origin_style_assets(
                         else "",
                     }
                 )
+                exported_items.append(item)
         finally:
             operations.close()
             for runtime_dir in runtime_dirs_to_cleanup:
@@ -398,8 +403,9 @@ def export_origin_style_assets(
     else:
         failures.append({"message": "Origin export was not requested; pass --with-origin to create .oth format theme files."})
 
+    manifest_path = plan.asset_root / "manifest.json"
     entries = []
-    for item in plan.items:
+    for item in exported_items:
         preview = _copy_preview(item.preview_png, plan.asset_root, item.product_key, "preview")
         reference = _copy_preview(item.reference_preview_png, plan.asset_root, item.product_key, "reference")
         comparison = _copy_preview(item.comparison_png, plan.asset_root, item.product_key, "comparison")
@@ -424,16 +430,19 @@ def export_origin_style_assets(
         )
         entries.append(manifest_item.manifest_entry(plan.asset_root))
 
-    entries = _merge_origin_style_manifest_entries(plan.asset_root / "manifest.json", entries)
-    manifest = {
-        "schema_version": 1,
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "asset_root": render_output_path(plan.asset_root, project_root=project_root),
-        "origin_dependency_boundary": "Project-local .oth Graph Themes store copied Origin graph formats, .otpu Graph Templates preserve complex graph-layer structure when needed, JSON snapshots store readback plot colours and key numeric style values, and reference_opju/*.opju stores reviewed complex templates that require exact multi-layer/data-replacement reuse. Product runs use these project-local assets without requiring external template OPJU files.",
-        "assets": entries,
-    }
-    manifest_path = plan.asset_root / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    if entries:
+        entries = _merge_origin_style_manifest_entries(manifest_path, entries)
+        manifest = _origin_style_manifest_for_write(manifest_path)
+        manifest.update(
+            {
+                "schema_version": _origin_style_manifest_schema_version_for_write(manifest_path),
+                "generated_at": datetime.now().isoformat(timespec="seconds"),
+                "asset_root": render_output_path(plan.asset_root, project_root=project_root),
+                "origin_dependency_boundary": "Project-local .oth Graph Themes store copied Origin graph formats, .otpu Graph Templates preserve complex graph-layer structure when needed, JSON snapshots store readback plot colours and key numeric style values, and reference_opju/*.opju stores reviewed complex templates that require exact multi-layer/data-replacement reuse. Product runs use these project-local assets without requiring external template OPJU files.",
+                "assets": entries,
+            }
+        )
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return {
         "asset_root": render_output_path(plan.asset_root, project_root=project_root),
         "manifest": render_output_path(manifest_path, project_root=project_root),
@@ -1254,13 +1263,8 @@ def _read_plot_style_properties(operations: object, dataset: str) -> dict[str, f
 def _merge_origin_style_manifest_entries(manifest_path: Path, new_entries: list[dict[str, object]]) -> list[dict[str, object]]:
     if not manifest_path.is_file():
         return new_entries
-    try:
-        existing = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return new_entries
-    existing_entries = existing.get("assets") if isinstance(existing, dict) else []
-    if not isinstance(existing_entries, list):
-        return new_entries
+    existing = load_origin_style_manifest(manifest_path.parent, manifest_path)
+    existing_entries = existing["assets"]
     by_key: dict[str, dict[str, object]] = {}
     order: list[str] = []
     for entry in existing_entries:
@@ -1270,7 +1274,8 @@ def _merge_origin_style_manifest_entries(manifest_path: Path, new_entries: list[
         if not key:
             continue
         by_key[key] = dict(entry)
-        order.append(key)
+        if key not in order:
+            order.append(key)
     for entry in new_entries:
         key = _entry_key(entry)
         if not key:
@@ -1289,6 +1294,19 @@ def _merge_origin_style_manifest_entries(manifest_path: Path, new_entries: list[
         if key not in order:
             order.append(key)
     return [by_key[key] for key in order if key in by_key]
+
+
+def _origin_style_manifest_schema_version_for_write(manifest_path: Path) -> int:
+    if not manifest_path.is_file():
+        return 2
+    manifest = load_origin_style_manifest(manifest_path.parent, manifest_path)
+    return int(manifest["schema_version"])
+
+
+def _origin_style_manifest_for_write(manifest_path: Path) -> dict[str, object]:
+    if not manifest_path.is_file():
+        return {}
+    return dict(load_origin_style_manifest(manifest_path.parent, manifest_path))
 
 
 def _preview_fields_should_clear(entry: dict[str, object]) -> bool:

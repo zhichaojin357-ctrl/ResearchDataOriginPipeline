@@ -546,12 +546,26 @@ function Apply-ReferenceStyle($app, [string]$PageName, [array]$Labels, $Style, $
     } catch {}
   }
 
+  $showLegend = Convert-ToBoolean (Get-GroupValue $Group 'ShowLegend' $true) $true
   $legend = Get-GraphObjectByName $layer 'Legend'
-  if (-not $legend) {
-    $app.Execute('legend;') | Out-Null
-    $legend = Get-GraphObjectByName $layer 'Legend'
+  if (-not $showLegend) {
+    if ($legend) {
+      try {
+        $legend.Destroy() | Out-Null
+        $legend = $null
+      } catch {
+        try { $legend.Show = 0 } catch {}
+      }
+    }
+    $app.Execute('legend.show=0;') | Out-Null
+  } else {
+    if (-not $legend) {
+      $app.Execute('legend;') | Out-Null
+      $legend = Get-GraphObjectByName $layer 'Legend'
+    }
   }
-  if ($legend) {
+  if ($showLegend -and $legend) {
+    try { $legend.Show = 1 } catch {}
     $includeLegendLineSamples = Convert-ToBoolean (Get-GroupValue $Group 'LegendLineSamples' $true) $true
     $legend.Text = New-LegendText $Labels $includeLegendLineSamples
     $legend.Left = [int]$Style.LegendLeft
@@ -559,10 +573,14 @@ function Apply-ReferenceStyle($app, [string]$PageName, [array]$Labels, $Style, $
     $legend.Width = [int]$Style.LegendWidth
     $legend.Height = [int]([Math]::Max($Style.LegendHeight, 220 * [Math]::Max(1, $Labels.Count)))
     Set-GraphObjectFormat $legend $Style.LegendFont $Style.LegendSize $Style.TextColor
+    try { $legend.SetNumProp('background', 0) | Out-Null } catch {}
     try { $legend.SetNumProp('border', 0) | Out-Null } catch {}
     try { $legend.SetNumProp('frame', 0) | Out-Null } catch {}
     try { $legend.SetNumProp('fill', 0) | Out-Null } catch {}
-    $app.Execute('legend.frame=0; legend.border=0; legend.fill=0;') | Out-Null
+    try { $legend.SetNumProp('fillColor', 0) | Out-Null } catch {}
+    try { $legend.SetNumProp('borderColor', 0) | Out-Null } catch {}
+    try { $legend.SetNumProp('lineWidth', 0) | Out-Null } catch {}
+    $app.Execute('legend.show=1; legend.background=0; legend.border=0; legend.frame=0; legend.fill=0; legend.fillColor=0; legend.borderColor=0; legend.lineWidth=0;') | Out-Null
   }
 
   for ($i = 0; $i -lt $layer.GraphObjects.Count; $i++) {
@@ -735,7 +753,7 @@ function Assert-PngOutput([string]$ExportDir, [string]$PageName) {
   }
 }
 
-function Assert-GraphPageValid($app, [string]$PageName, [int]$ExpectedPlots, [array]$CurrentLabels) {
+function Assert-GraphPageValid($app, [string]$PageName, [int]$ExpectedPlots, [array]$CurrentLabels, $Group) {
   $app.Execute('win -a ' + $PageName + '; layer -s 1;') | Out-Null
   $layer = $app.FindGraphLayer($PageName)
   if (-not $layer) { $layer = $app.FindGraphLayer($PageName + '!1') }
@@ -745,10 +763,39 @@ function Assert-GraphPageValid($app, [string]$PageName, [int]$ExpectedPlots, [ar
     throw "Generated graph $PageName expected $ExpectedPlots data plots, got $($layer.DataPlots.Count)"
   }
 
+  $showLegend = Convert-ToBoolean (Get-GroupValue $Group 'ShowLegend' $true) $true
   for ($i = 0; $i -lt $layer.GraphObjects.Count; $i++) {
     $obj = $layer.GraphObjects.Item($i)
     $txt = ''
     try { $txt = [string]$obj.Text } catch {}
+
+    if ($obj.Name -eq 'Legend') {
+      if (-not $showLegend) {
+        $visible = 0
+        try { $visible = [double]$obj.GetNumProp('show') } catch {}
+        if ($visible -gt 0) {
+          throw "Legend must be hidden on ${PageName}."
+        }
+        continue
+      }
+      if (-not $txt) {
+        throw "Visible legend text is missing on ${PageName}."
+      }
+      if ($txt -match '%\(') {
+        throw "Legend still contains Origin placeholders on $PageName`: $txt"
+      }
+      foreach ($property in @('background', 'border', 'frame', 'fill', 'lineWidth')) {
+        try {
+          $value = [double]$obj.GetNumProp($property)
+          if ([Math]::Abs($value) -gt 0.05) {
+            throw "Legend property $property must be zero on ${PageName}; got $value."
+          }
+        } catch {
+          if ($_.Exception.Message -match '^Legend property ') { throw }
+        }
+      }
+    }
+
     if (-not $txt) { continue }
 
     if ($obj.Name -in @('XB','YL')) {
@@ -762,10 +809,6 @@ function Assert-GraphPageValid($app, [string]$PageName, [int]$ExpectedPlots, [ar
       if ($txt -notmatch '\\b\(') {
         throw "Axis title $($obj.Name) is not bold-wrapped on ${PageName}: $txt"
       }
-    }
-
-    if ($obj.Name -eq 'Legend' -and $txt -match '%\(') {
-      throw "Legend still contains Origin placeholders on $PageName`: $txt"
     }
 
     if (($txt -match 'BiCu|CuWO|BiOBr|JCPDS|04-009|card') -and -not (Test-CurrentText $txt $CurrentLabels)) {
@@ -899,7 +942,7 @@ try {
     Clear-TemplateResidue $app $pageName $currentLabels
     Apply-ReferenceStyle $app $pageName $currentLabels $referenceStyle $group
     Apply-PlotPolicy $app $pageName $group
-    Assert-GraphPageValid $app $pageName $expectedPlotCount $currentLabels
+    Assert-GraphPageValid $app $pageName $expectedPlotCount $currentLabels $group
   }
 
   Sanitize-ProjectPages $app
