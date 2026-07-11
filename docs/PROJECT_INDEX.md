@@ -14,6 +14,7 @@
 - `src/core/origin_batch.py`: manifest-backed Origin batch dry-run/execution planner.
 - `src/core/template_format_executor.py`: all-types template-format product command wrapper.
 - `src/core/template_product_builder.py`: template-backed product generation and comparison reports.
+- `src/core/origin_style_assets.py`: style harvest and exact pixel-replay verification; external source OPJU access is confined to these explicit workflows.
 - `src/core/template_product_common.py`: shared OPJU-backed product data structures and table helpers.
 - `src/core/remaining_template_products.py`: remaining non-XPS/XRD template-product helpers with manual-review boundaries.
 - `src/core/xrd_overlay.py`: XRD overlay workflow.
@@ -34,6 +35,7 @@
 
 - `src/origin/adapter.py`: Origin job construction and plot policy integration.
 - `src/origin/operations.py`: Origin COM operations, project saving, export, and metadata sanitization.
+- `src/origin/style_registry.py`: schema v1/v2 style-manifest loading, project-local asset resolution, and SHA-256 integrity validation.
 - `scripts/origin/origin_plot_from_template.ps1`: project-local helper used by formal Origin automation.
 
 ## Documentation Kept In Runtime

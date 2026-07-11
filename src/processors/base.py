@@ -117,19 +117,25 @@ def process_table_dataset(
             status = "processed_no_origin"
             warnings.append("Origin export skipped by --no-origin.")
         else:
-            origin_result = export_plot(
-                project_root,
-                dataset_id,
-                processed_csv,
-                x_title,
-                y_title,
-                data_type=data_type,
-                source_file=source_file,
-                output_root=effective_output_root,
-            )
-            status = "success" if origin_result.ok else "fail"
-            if not origin_result.ok:
-                warnings.append(origin_result.message)
+            try:
+                origin_result = export_plot(
+                    project_root,
+                    dataset_id,
+                    processed_csv,
+                    x_title,
+                    y_title,
+                    data_type=data_type,
+                    source_file=source_file,
+                    output_root=effective_output_root,
+                )
+            except Exception as exc:
+                origin_result = None
+                status = "fail"
+                warnings.append(f"Origin export failed: {exc}")
+            else:
+                status = "success" if origin_result.ok else "fail"
+                if not origin_result.ok:
+                    warnings.append(origin_result.message)
     elif not numeric:
         warnings.append("No two-column numeric data could be read.")
         processed_csv.write_text("x,y\n", encoding="utf-8")
@@ -157,6 +163,13 @@ def process_table_dataset(
             key_results.update(type_specific_results(data_type, numeric, rows))
         if data_type == "UV-vis DRS":
             warnings.append("Eg candidate requires configured Tauc interval selection.")
+        if (
+            data_type in {"photocurrent", "photocurrent_response"}
+            and key_results.get("photocurrent_input_current_unit") == "unknown"
+        ):
+            warnings.append(
+                "Photocurrent current unit was not recognized from the column header; values were assumed A and converted to uA."
+            )
         if data_type == "HPLC/LC exported data" and key_results.get("lc_quantification_blocked_reason"):
             warnings.append(str(key_results["lc_quantification_blocked_reason"]))
         x_title, y_title = _origin_axis_titles(headers, data_type)
@@ -165,19 +178,25 @@ def process_table_dataset(
             status = "processed_no_origin"
             warnings.append("Origin export skipped by --no-origin.")
         else:
-            origin_result = export_plot(
-                project_root,
-                dataset_id,
-                processed_csv,
-                x_title,
-                y_title,
-                data_type=data_type,
-                source_file=source_file,
-                output_root=effective_output_root,
-            )
-            status = "success" if origin_result.ok else "fail"
-            if not origin_result.ok:
-                warnings.append(origin_result.message)
+            try:
+                origin_result = export_plot(
+                    project_root,
+                    dataset_id,
+                    processed_csv,
+                    x_title,
+                    y_title,
+                    data_type=data_type,
+                    source_file=source_file,
+                    output_root=effective_output_root,
+                )
+            except Exception as exc:
+                origin_result = None
+                status = "fail"
+                warnings.append(f"Origin export failed: {exc}")
+            else:
+                status = "success" if origin_result.ok else "fail"
+                if not origin_result.ok:
+                    warnings.append(origin_result.message)
 
     metadata_path = metadata_dir / output_slug / "metadata.json"
     manual_check_items = list(
@@ -185,6 +204,11 @@ def process_table_dataset(
         if profile
         else MANUAL_CHECK_ITEMS.get(data_type, ("manual_check_required by pipeline policy",))
     )
+    if (
+        data_type in {"photocurrent", "photocurrent_response"}
+        and key_results.get("photocurrent_input_current_unit") == "unknown"
+    ):
+        manual_check_items.append("Confirm the photocurrent input current unit; processing assumed A before conversion to uA.")
     forbidden_claims = _forbidden_claims(project_root, data_type, profile)
     plot_type = _metadata_plot_type(data_type, key_results, profile)
     return write_metadata(

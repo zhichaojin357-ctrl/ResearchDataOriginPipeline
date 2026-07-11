@@ -8,6 +8,7 @@ from unittest.mock import patch
 from src.core.project import default_output_root
 from src.core.table_reader import TableReadResult, _configure_excel_for_safe_read, coerce_numeric_rows, read_table, read_table_with_metadata
 from src.processors.base import process_table_dataset
+from src.processors.calculations import mott_schottky_numeric
 
 
 def classification(data_type: str, processor: str) -> dict:
@@ -28,6 +29,32 @@ class ProcessorBehaviorTest(unittest.TestCase):
     def _processed_rows(self, root: Path, metadata: dict) -> list[dict[str, str]]:
         with _artifact_path(root, metadata["processed_data"]).open(encoding="utf-8") as handle:
             return list(csv.DictReader(handle))
+
+    def test_mott_schottky_validates_unlabeled_capacitance_and_reciprocal_square_columns(self):
+        rows = []
+        for potential, capacitance in [(-0.25, -4.0e-5), (-0.20, -3.5e-5), (-0.15, -3.0e-5), (-0.10, -2.5e-5)]:
+            rows.append(
+                {
+                    "Potential/V": str(potential),
+                    "Z'/ohm": "30",
+                    "Unnamed: 7": str(capacitance),
+                    "Unnamed: 8": str(1.0 / (capacitance * capacitance)),
+                }
+            )
+
+        numeric = mott_schottky_numeric(rows, [])
+
+        self.assertEqual([item[0] for item in numeric], [-0.25, -0.20, -0.15, -0.10])
+        self.assertAlmostEqual(numeric[0][1], 625000000.0, delta=1e-3)
+
+    def test_mott_schottky_does_not_guess_unrelated_unlabeled_columns(self):
+        rows = [
+            {"Potential/V": "-0.25", "Unnamed: 7": "2", "Unnamed: 8": "7"},
+            {"Potential/V": "-0.20", "Unnamed: 7": "3", "Unnamed: 8": "8"},
+            {"Potential/V": "-0.15", "Unnamed: 7": "4", "Unnamed: 8": "9"},
+        ]
+
+        self.assertEqual(mott_schottky_numeric(rows, []), [])
 
     def test_generic_reader_preserves_first_row_from_headerless_whitespace_numeric_text(self):
         with tempfile.TemporaryDirectory() as tmpdir:

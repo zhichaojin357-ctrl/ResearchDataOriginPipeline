@@ -38,6 +38,15 @@ class JeolEprDecodeResult:
     ch2: list[float] | None
 
 
+@dataclass(frozen=True)
+class JeolEprExportSeries:
+    x_values: list[float]
+    y_values: list[float]
+    x_unit: str
+    axis_source: str
+    raw_source: Path | None
+
+
 def looks_like_jeol_cwesr_file(path: Path) -> bool:
     """Return true for JEOL JES-FA/JES-X3-like binary EPR files."""
     if not path.is_file() or path.suffix.lower() in {".xlsx", ".xls", ".csv", ".txt"}:
@@ -163,10 +172,65 @@ def read_xy_xlsx(path: Path) -> tuple[list[float], list[float]]:
         workbook.close()
 
 
+def read_verified_jeol_export_series(path: Path) -> JeolEprExportSeries:
+    """Read a JEOL Excel export and repair its field grid from matching raw data.
+
+    The legacy 4096-point exports contain the verified block-averaged signal but
+    may retain only the first 1/16 of the raw magnetic-field span.  Replace that
+    grid only when a same-name JEOL raw file is found and its decoded signal
+    matches the workbook values.
+    """
+    export_x, export_y = read_xy_xlsx(path)
+    raw_source = _matching_jeol_raw_source(path)
+    if raw_source is None or not export_y:
+        return JeolEprExportSeries(export_x, export_y, "", "excel_export", None)
+
+    try:
+        decoded = read_jeol_cacqu(raw_source)
+        decoded_x, decoded_y = to_export_series(decoded, points=len(export_y))
+    except (OSError, ValueError, struct.error):
+        return JeolEprExportSeries(export_x, export_y, "", "excel_export", None)
+
+    decoded_x = [round(value, 4) for value in decoded_x]
+    decoded_y = [round(value, 3) for value in decoded_y]
+    if len(decoded_y) != len(export_y) or max_abs_delta(decoded_y, export_y) > 5e-4:
+        return JeolEprExportSeries(export_x, export_y, "", "excel_export", None)
+    return JeolEprExportSeries(
+        decoded_x,
+        export_y,
+        decoded.header.x_unit.strip(),
+        "verified_jeol_raw_header",
+        raw_source,
+    )
+
+
+def _matching_jeol_raw_source(export_path: Path) -> Path | None:
+    epr_root = next((parent for parent in export_path.parents if parent.name.casefold() == "epr"), None)
+    if epr_root is None:
+        return None
+    stem = export_path.stem
+    preferred = epr_root / export_path.parent.name / stem
+    if looks_like_jeol_cwesr_file(preferred):
+        return preferred
+    matches = [
+        candidate
+        for candidate in epr_root.rglob(stem)
+        if candidate.is_file() and looks_like_jeol_cwesr_file(candidate)
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    same_group = [candidate for candidate in matches if candidate.parent.name == export_path.parent.name]
+    return same_group[0] if len(same_group) == 1 else None
+
+
 def collect_raw_files(roots: list[Path]) -> list[tuple[Path, Path]]:
     """Collect JEOL-like raw files after checking the processType header."""
     pairs: list[tuple[Path, Path]] = []
     for root in roots:
+        if not root.exists():
+            raise FileNotFoundError(f"JEOL EPR input root does not exist: {root}")
+        if not root.is_dir():
+            raise NotADirectoryError(f"JEOL EPR input root is not a directory: {root}")
         for path in sorted(root.rglob("*")):
             if looks_like_jeol_cwesr_file(path):
                 pairs.append((root, path))
@@ -275,6 +339,10 @@ def rms_delta(left: list[float], right: list[float]) -> float:
 
 def to_export_series(decoded: JeolEprDecodeResult, *, points: int = DEFAULT_EXPORT_POINTS) -> tuple[list[float], list[float]]:
     raw_points = decoded.header.data_length
+    if points <= 0:
+        raise ValueError(f"JEOL EPR export points must be positive, got {points}")
+    if raw_points < 2:
+        raise ValueError(f"JEOL EPR raw_points must be at least 2, got {raw_points}")
     if raw_points % points:
         raise ValueError(f"JEOL EPR raw_points {raw_points} must be divisible by export points {points}")
     repeats = raw_points // points
@@ -283,7 +351,10 @@ def to_export_series(decoded: JeolEprDecodeResult, *, points: int = DEFAULT_EXPO
         for index in range(points)
     ]
     x_step = decoded.header.x_range / (raw_points - 1)
-    x_values = [decoded.header.x_offset + x_step * index for index in range(points)]
+    x_values = [
+        decoded.header.x_offset + x_step * (index * repeats + (repeats - 1) / 2)
+        for index in range(points)
+    ]
     return x_values, y_values
 
 

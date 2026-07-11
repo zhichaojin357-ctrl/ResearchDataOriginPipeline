@@ -4,6 +4,7 @@ import csv
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
+from src.core.image_artifacts import ensure_tif_600_dpi_metadata
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.template_product_common import (
@@ -37,7 +39,7 @@ from src.core.template_product_common import (
     build_default_root_map,
     load_target_pairings,
 )
-from src.core.epr_jeol import read_xy_xlsx
+from src.core.epr_jeol import read_verified_jeol_export_series
 from src.core.epr_overlay import DEFAULT_EPR_GROUPS
 from src.core.remaining_template_products import (
     _build_remaining_processed_plot_table,
@@ -67,7 +69,7 @@ from src.origin.style_mimic import OpjuStyleSnapshot, apply_style_snapshot, extr
 from src.origin.text_format import origin_bold_text
 from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overrides, load_user_plot_style, resolve_user_plot_style
 from src.processors.base import safe_name
-from src.processors.calculations import bet_processed_table
+from src.processors.calculations import bet_processed_table, mott_schottky_numeric
 from src.processors.eis import (
     EisFitResult,
     EisPoint,
@@ -93,13 +95,11 @@ TEMPLATE_TARGET_TYPES = (
     "PL",
     "photocurrent",
     "FTIR",
+    "Mott-Schottky",
 )
 
 TEMPLATE_ACCEPTED_TYPES = TEMPLATE_TARGET_TYPES
-TEMPLATE_EXEMPLAR_DRIVEN_TARGET_TYPES = (
-    *TEMPLATE_TARGET_TYPES,
-    "Mott-Schottky",
-)
+TEMPLATE_EXEMPLAR_DRIVEN_TARGET_TYPES = TEMPLATE_TARGET_TYPES
 
 TEMPLATE_TYPE_DIRS = {
     "BET": "BET",
@@ -212,6 +212,7 @@ class TemplateProductBuilderOptions:
     project_style_asset_fallback: bool = False
     prefer_project_style_assets: bool = False
     external_reference_preview_comparison: bool = False
+    asset_only: bool = False
     exemplar_driven: bool = False
     compact_output: bool = False
     only_type: str | None = None
@@ -386,6 +387,7 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
         if asset is None:
             continue
         style_asset = asset.to_dict(project_root)
+        snapshot_layer_count, snapshot_plot_count = _style_asset_snapshot_counts(asset.style_snapshot_path)
         candidates.append(
             TemplateCandidate(
                 product_key=product_key,
@@ -394,11 +396,15 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
                 path_score=1,
                 status="valid",
                 graph_page=asset.graph_page or "Graph1",
-                layer_count=_manifest_positive_int(raw, ("layer_count", "template_layer_count"), default=1),
+                layer_count=_manifest_positive_int(
+                    raw,
+                    ("layer_count", "template_layer_count"),
+                    default=snapshot_layer_count,
+                ),
                 plot_count=_manifest_positive_int(
                     raw,
                     ("template_plot_count", "plot_count", "product_plot_count"),
-                    default=1,
+                    default=snapshot_plot_count,
                 ),
                 reason=(
                     "project-local saved Origin format theme fallback"
@@ -411,6 +417,17 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
             )
         )
     return candidates
+
+
+def _style_asset_snapshot_counts(path: Path | None) -> tuple[int, int]:
+    if path is None:
+        return 1, 1
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Origin style snapshot must be a JSON object: {path}")
+    layer_count = _manifest_positive_int(payload, ("layer_count",), default=1)
+    plot_count = _manifest_positive_int(payload, ("plot_count",), default=1)
+    return layer_count, plot_count
 
 
 def _manifest_positive_int(raw: dict[str, object], keys: tuple[str, ...], *, default: int) -> int:
@@ -714,7 +731,15 @@ def is_template_xrd_reference_stick_header(header: str) -> bool:
 
 
 def is_template_xps_component_curve_header(header: str) -> bool:
-    return "_component_" in header and not header.endswith("_fill_baseline")
+    return (
+        "_component_" in header
+        and not header.endswith("_fill_baseline")
+        and not header.endswith("_fill_upper")
+    )
+
+
+def is_template_xps_component_fill_upper_header(header: str) -> bool:
+    return "_component_" in header and header.endswith("_fill_upper")
 
 
 def is_template_xps_component_fill_baseline_header(header: str) -> bool:
@@ -725,7 +750,10 @@ def template_xps_component_fill_pairs(headers: list[str]) -> list[tuple[int, int
     pairs: list[tuple[int, int]] = []
     series_headers = headers[1:]
     for plot_index, header in enumerate(series_headers, start=1):
-        if not is_template_xps_component_curve_header(header):
+        if not (
+            is_template_xps_component_curve_header(header)
+            or is_template_xps_component_fill_upper_header(header)
+        ):
             continue
         baseline_plot_index = plot_index + 1
         baseline_header_index = baseline_plot_index - 1
@@ -742,6 +770,8 @@ def run_template_product_builder_all_types(
     origin_exporter: OriginExporter | None = None,
     template_validator: Callable[[list[TemplateCandidate], Path], list[TemplateCandidate]] | None = None,
 ) -> dict[str, object]:
+    if options.asset_only and options.exemplar_driven:
+        raise ValueError("asset_only and exemplar_driven are mutually exclusive")
     project_root = project_root.resolve()
     roots = root_map or build_default_root_map(project_root)
     output_root = resolve_output_root(project_root, explicit=options.output_root)
@@ -749,10 +779,11 @@ def run_template_product_builder_all_types(
     target_types = _template_target_types(options)
     first_pairings = {item.product_key: item for item in load_target_pairings(options.pairing_path, roots)}
     remaining_pairings = {item.product_key: item for item in load_remaining_pairings(options.pairing_path, roots)}
+    remaining_pairings = _repair_mott_pairings(remaining_pairings, roots)
     if options.exemplar_driven:
         first_pairings, remaining_pairings = _repair_exemplar_driven_pairings(first_pairings, remaining_pairings, roots)
     pairings_by_key = {**remaining_pairings, **first_pairings}
-    use_project_style_assets_only = (not options.exemplar_driven) and options.project_style_asset_fallback and (
+    use_project_style_assets_only = options.asset_only or ((not options.exemplar_driven) and options.project_style_asset_fallback and (
         options.prefer_project_style_assets
         or (
             options.f_drive_template_root is None
@@ -760,10 +791,11 @@ def run_template_product_builder_all_types(
             and options.xps_non_in_situ_template_root is None
             and not options.external_reference_preview_comparison
         )
-    )
-    f_drive_root = options.f_drive_template_root or Path("F:/") / "\u8bfe\u9898" / "LL" / "\u68c0\u6d4b"
-    xps_reference_root = options.xps_reference_template_root or roots.get("workspace_xps_reference") or (project_root.parent / "xps\u53c2\u8003\u56fe\u50cf")
-    xps_non_in_situ_root = options.xps_non_in_situ_template_root
+    ))
+    local_style_root = project_root / "templates" / "origin_styles"
+    f_drive_root = local_style_root if options.asset_only else (options.f_drive_template_root or Path("F:/") / "\u8bfe\u9898" / "LL" / "\u68c0\u6d4b")
+    xps_reference_root = local_style_root if options.asset_only else (options.xps_reference_template_root or roots.get("workspace_xps_reference") or (project_root.parent / "xps\u53c2\u8003\u56fe\u50cf"))
+    xps_non_in_situ_root = None if options.asset_only else options.xps_non_in_situ_template_root
     if options.exemplar_driven:
         candidates = _build_pairing_template_candidates(pairings_by_key, target_types)
         template_source_root = options.pairing_path
@@ -786,7 +818,7 @@ def run_template_product_builder_all_types(
         )
         template_source_root = f_drive_root
     external_reference_candidates: list[TemplateCandidate] = []
-    if options.external_reference_preview_comparison and not options.exemplar_driven:
+    if options.external_reference_preview_comparison and not options.exemplar_driven and not options.asset_only:
         external_reference_candidates = build_external_reference_candidate_pool(
             scan_template_f_drive_template_paths(f_drive_root) if f_drive_root.exists() else [],
             scan_template_optional_template_paths(xps_reference_root),
@@ -801,8 +833,12 @@ def run_template_product_builder_all_types(
         project_root,
         scope=options.run_scope,
         command=options.command_name,
-        mode="with_origin" if options.with_origin else "no_origin",
-        input_paths=[options.pairing_path, template_source_root, xps_reference_root],
+        mode=("asset_only_with_origin" if options.with_origin else "asset_only_no_origin")
+        if options.asset_only
+        else ("with_origin" if options.with_origin else "no_origin"),
+        input_paths=[options.pairing_path, template_source_root]
+        if options.asset_only
+        else [options.pairing_path, template_source_root, xps_reference_root],
         timestamp=timestamp,
         no_origin=not options.with_origin,
         dry_run=False,
@@ -836,7 +872,7 @@ def run_template_product_builder_all_types(
             else []
         )
     )
-    if options.project_style_asset_fallback and not options.exemplar_driven:
+    if (options.project_style_asset_fallback or options.asset_only) and not options.exemplar_driven:
         project_style_candidates = classify_template_project_style_asset_candidates(project_root)
         if options.prefer_project_style_assets and project_style_candidates:
             validated = project_style_candidates
@@ -922,7 +958,16 @@ def run_template_product_builder_all_types(
             if options.with_origin:
                 export_status = exporter(product, style)
             acceptance = _build_template_acceptance(product, export_status, active_template, extra)
-            metadata = _write_template_product_metadata(layout.root, product, export_status, style, extra, active_template, acceptance)
+            metadata = _write_template_product_metadata(
+                layout.root,
+                product,
+                export_status,
+                style,
+                extra,
+                active_template,
+                acceptance,
+                asset_only=options.asset_only,
+            )
             report = _write_template_per_type_report(layout.root, product, export_status, style, extra, active_template, acceptance)
             products.append(_template_product_summary(layout.root, product, export_status, metadata, report, active_template, acceptance))
         except Exception as exc:
@@ -952,6 +997,10 @@ def run_template_product_builder_all_types(
             "with_origin": bool(options.with_origin),
             "label_audit_pass": _label_audit_passes(label_audit),
             "template_preview_comparison_ready": int(template_preview_audit.get("ready_count", 0)) == len(products),
+            "asset_only": bool(options.asset_only),
+            "external_template_dependency": False if options.asset_only else any(
+                bool(item.get("external_template_dependency")) for item in products
+            ),
             "exemplar_driven": bool(options.exemplar_driven),
             "compact_output": bool(options.compact_output),
         },
@@ -1041,13 +1090,21 @@ def _repair_exemplar_driven_pairings(
         repaired = _select_preferred_epr_exemplar_pairing(epr, roots)
         if repaired is not None:
             repaired_first["EPR"] = repaired
+    repaired_remaining = _repair_mott_pairings(remaining_pairings, roots)
+    return repaired_first, repaired_remaining
+
+
+def _repair_mott_pairings(
+    remaining_pairings: dict[str, TargetPairing],
+    roots: dict[str, Path],
+) -> dict[str, TargetPairing]:
     repaired_remaining = dict(remaining_pairings)
     mott = repaired_remaining.get("Mott-Schottky")
     if mott is not None and _mott_pairing_needs_repair(mott):
         repaired = _select_mott_exemplar_pairing(mott, roots)
         if repaired is not None:
             repaired_remaining["Mott-Schottky"] = repaired
-    return repaired_first, repaired_remaining
+    return repaired_remaining
 
 
 def _select_preferred_epr_exemplar_pairing(pairing: TargetPairing, roots: dict[str, Path]) -> TargetPairing | None:
@@ -1194,14 +1251,6 @@ def _relative_to_root(root: Path, path: Path) -> str:
 
 def _skipped_template_types(options: TemplateProductBuilderOptions, roots: dict[str, Path]) -> list[dict[str, object]]:
     skipped = list(SKIPPED_TEMPLATE_TYPES)
-    if not options.exemplar_driven:
-        skipped.append(
-            {
-                "type": "Mott-Schottky",
-                "status": "skipped",
-                "reason": "Mott-Schottky is only included when --exemplar-driven is requested because old pairing plans may point to mismatched XRD exemplars.",
-            }
-        )
     if options.exemplar_driven:
         skipped.extend(_unfinished_or_unpaired_exemplar_report_items(roots))
     return skipped
@@ -1275,10 +1324,16 @@ def prepare_template_product(
         headers, rows, labels, eis_extra = _build_template_eis_table(
             pairing,
             type_root,
+            template,
             strict_semicircle_branch=eis_strict_semicircle_branch,
             compact_output=compact_output,
         )
         extra.update(eis_extra)
+        eis_overlay = eis_extra.get("eis_overlay") if isinstance(eis_extra.get("eis_overlay"), dict) else {}
+        eis_input_files = [Path(value) for value in eis_overlay.get("source_files", []) if str(value).strip()]
+        if eis_input_files:
+            input_copies = [] if compact_output else _copy_inputs(eis_input_files, type_root / "input_copies")
+            product_pairing = replace(pairing, data_paths=eis_input_files)
     elif product_key == "EPR":
         headers, rows, labels, epr_extra = _build_template_epr_table(
             pairing,
@@ -1425,8 +1480,9 @@ def _build_template_bet_multisource_table(pairing: TargetPairing, template: Temp
         suffixes=(".xls", ".xlsx"),
         exclude_name_tokens=("micdir",),
         prefer_template_parent=True,
-        limit=target_files,
+        limit=max(target_files * 8, 32),
     )
+    candidates, cohort = _select_template_bet_candidate_cohort(candidates, target_files)
     series: list[tuple[str, list[list[float | str | None]]]] = []
     used_files: list[Path] = []
     for path in candidates:
@@ -1456,11 +1512,20 @@ def _build_template_bet_multisource_table(pairing: TargetPairing, template: Temp
         "plot_type": "line+symbol",
         "notes": "Multiple real BET source exports were used to match the OPJU exemplar curve structure; no BET model conclusion is generated.",
     }
+    alignment = _template_alignment_payload(
+        pairing,
+        template,
+        used_files,
+        len(headers) - 1,
+        "template_aligned_bet_coherent_material_cohort",
+    )
+    alignment["selected_materials"] = [_template_bet_series_label_from_path(path) for path in used_files]
+    alignment["cohort_directory"] = str(cohort) if cohort is not None else ""
     return {
         "headers": headers,
         "rows": rows,
         "labels": labels,
-        "alignment": _template_alignment_payload(pairing, template, used_files, len(headers) - 1, "template_aligned_bet_adjacent_sources"),
+        "alignment": alignment,
     }
 
 
@@ -1475,6 +1540,53 @@ def _template_bet_series_label_from_path(path: Path) -> str:
     if "bobc" in stem:
         return "BOBC"
     return _template_series_label_from_path(path)
+
+
+def _select_template_bet_candidate_cohort(
+    candidates: list[Path],
+    target_files: int,
+) -> tuple[list[Path], Path | None]:
+    if target_files <= 0 or not candidates:
+        return [], None
+    unique = _template_unique_paths(candidates)
+    groups: dict[Path, list[Path]] = {}
+    for path in unique:
+        for parent in path.parents:
+            groups.setdefault(parent, []).append(path)
+
+    eligible: list[tuple[tuple[int, int, int, int], Path, list[Path]]] = []
+    for parent, paths in groups.items():
+        material_count = len({_template_bet_series_label_from_path(path).casefold() for path in paths})
+        if material_count < target_files:
+            continue
+        score = (
+            min(material_count, target_files),
+            -abs(len(paths) - target_files),
+            len(parent.parts),
+            -len(str(parent)),
+        )
+        eligible.append((score, parent, paths))
+    if eligible:
+        _score, cohort, pool = max(eligible, key=lambda item: item[0])
+    else:
+        cohort, pool = None, unique
+
+    selected: list[Path] = []
+    seen_materials: set[str] = set()
+    for path in sorted(pool, key=lambda item: str(item).casefold()):
+        material = _template_bet_series_label_from_path(path).casefold()
+        if material in seen_materials:
+            continue
+        seen_materials.add(material)
+        selected.append(path)
+        if len(selected) >= target_files:
+            return selected, cohort
+    for path in unique:
+        if path not in selected:
+            selected.append(path)
+        if len(selected) >= target_files:
+            break
+    return selected, cohort
 
 
 def _build_template_xrd_multisource_table(pairing: TargetPairing, template: TemplateCandidate) -> dict[str, object] | None:
@@ -1499,7 +1611,7 @@ def _build_template_xrd_multisource_table(pairing: TargetPairing, template: Temp
                 continue
         if len(rows) < 2:
             continue
-        series.append((_template_series_label_from_path(path), rows))
+        series.append((_template_xy_series_label(pairing.product_key, path), rows))
         used_files.append(path)
         if len(series) >= target_series:
             break
@@ -1619,7 +1731,7 @@ def _template_xrd_reference_stick_series(
 
 
 def _template_xrd_reference_card_files(pairing: TargetPairing, template: TemplateCandidate) -> list[Path]:
-    roots = [template.path.parent, *[path.parent for path in pairing.data_paths]]
+    roots = [pairing.reference_opju.parent, template.path.parent, *[path.parent for path in pairing.data_paths]]
     candidates: list[Path] = []
     seen: set[str] = set()
     for root in roots:
@@ -1693,22 +1805,35 @@ def _build_template_xy_multisource_table(pairing: TargetPairing, template: Templ
         candidates = _template_photocurrent_candidate_files(pairing, template, target_series)
     if pairing.product_key == "PL":
         candidates = _template_pl_candidate_files(pairing, template, target_series)
+    if pairing.product_key == "Mott-Schottky":
+        candidates = _template_mott_candidate_files(pairing, candidates, target_series)
     series: list[tuple[str, list[list[float | str | None]]]] = []
     used_files: list[Path] = []
     for path in candidates:
         try:
-            rows = _data_points_rows(path) if pairing.product_key == "UV-vis DRS / Tauc" else _coerced_xy_rows(path)
+            if pairing.product_key == "UV-vis DRS / Tauc":
+                rows = _data_points_rows(path)
+            elif pairing.product_key == "Mott-Schottky":
+                rows = _template_mott_schottky_rows(path)
+            else:
+                rows = _coerced_xy_rows(path)
         except Exception:
             continue
         if len(rows) < 2:
             continue
-        series.append((_template_series_label_from_path(path), rows))
+        series.append((_template_xy_series_label(pairing.product_key, path), rows))
         used_files.append(path)
         if len(series) >= target_series:
             break
     if not series:
         return None
     x_header, y_suffix, labels = _template_xy_labels(pairing.product_key)
+    labels = dict(labels)
+    if pairing.product_key == "Mott-Schottky":
+        labels["legend_entries"] = [
+            f"{label}Hz BiOBr0.5Cl0.5"
+            for label, _values in series[:3]
+        ]
     headers, rows = _template_same_x_overlay_table(x_header, [(f"{label}_{y_suffix}", values) for label, values in series])
     return {
         "headers": headers,
@@ -1864,12 +1989,17 @@ def _template_xy_suffixes(product_key: str) -> tuple[str, ...]:
 
 def _template_pl_candidate_files(pairing: TargetPairing, template: TemplateCandidate, target_series: int) -> list[Path]:
     graph = str(template.graph_page or "").casefold()
-    preferred = "ex" if graph.startswith("ex") else "em"
+    preferred = "EX" if graph.startswith("ex") else "EM"
     parent = pairing.data_paths[0].parent if pairing.data_paths else template.path.parent
-    files = sorted(parent.glob(f"*{preferred}*.txt"), key=lambda item: item.name.casefold())
-    if len(files) >= target_series:
-        return files
-    return _template_candidate_files(pairing, template, suffixes=(".txt",), limit=max(target_series * 3, 9))
+    scan_pattern = re.compile(rf"^\s*\d+\s*-\s*{preferred}\s*-", re.IGNORECASE)
+    files = sorted(
+        (path for path in parent.glob("*.txt") if scan_pattern.search(path.stem)),
+        key=_template_numbered_series_sort_key,
+    )
+    if files:
+        return files[:target_series]
+    candidates = _template_candidate_files(pairing, template, suffixes=(".txt",), limit=max(target_series * 3, 9))
+    return [path for path in candidates if scan_pattern.search(path.stem)][:target_series]
 
 
 def _template_photocurrent_candidate_files(pairing: TargetPairing, template: TemplateCandidate, target_series: int) -> list[Path]:
@@ -1885,9 +2015,86 @@ def _template_photocurrent_candidate_files(pairing: TargetPairing, template: Tem
         for path in sorted(root.rglob("*.txt"), key=lambda item: str(item)):
             if "ocp" in path.name.casefold():
                 candidates.append(path)
-            if len(candidates) >= target_series:
-                return _template_unique_paths(candidates)
-    return _template_unique_paths([*pairing.data_paths, *candidates])
+    candidates = _template_unique_paths([*pairing.data_paths, *candidates])
+    candidates.sort(key=lambda path: _template_photocurrent_series_sort_key(path))
+    return candidates[:target_series]
+
+
+def _template_numbered_series_sort_key(path: Path) -> tuple[int, str]:
+    match = re.match(r"^\s*(\d+)", path.stem)
+    return (int(match.group(1)) if match else 10_000, path.name.casefold())
+
+
+def _template_xy_series_label(product_key: str, path: Path) -> str:
+    if product_key == "PL":
+        match = re.match(r"^\s*(\d+)", path.stem)
+        cohort = [part.strip() for part in path.parent.name.split("+") if part.strip()]
+        if match and len(cohort) >= int(match.group(1)):
+            return _canonical_material_label(cohort[int(match.group(1)) - 1])
+    if product_key == "photocurrent":
+        return _template_photocurrent_series_label(path)
+    return _template_series_label_from_path(path)
+
+
+def _template_photocurrent_series_sort_key(path: Path) -> tuple[int, str]:
+    label = _template_photocurrent_series_label(path).casefold()
+    rank = {"bobc": 0, "cwo": 1, "bicu-10": 2, "bicu": 2}.get(label, 100)
+    return (rank, str(path).casefold())
+
+
+def _template_photocurrent_series_label(path: Path) -> str:
+    parent_label = _canonical_material_label(path.parent.name)
+    if parent_label.casefold() == "bicu":
+        for parent in path.parents:
+            match = re.search(r"bicu\s*[-_]?\s*(\d+(?:\.\d+)?)", parent.name, re.IGNORECASE)
+            if match:
+                return f"BiCu-{match.group(1)}"
+    return parent_label or _template_series_label_from_path(path)
+
+
+def _canonical_material_label(value: str) -> str:
+    text = str(value).strip().replace("_", "-")
+    compact = re.sub(r"\s+", "", text).casefold()
+    if compact == "bobc":
+        return "BOBC"
+    if compact == "cwo":
+        return "CWO"
+    if compact == "bc":
+        return "BC"
+    if compact == "bicu":
+        return "BiCu"
+    match = re.fullmatch(r"bicu-?(\d+(?:\.\d+)?)", compact)
+    if match:
+        return f"BiCu-{match.group(1)}"
+    return text
+
+
+def _template_mott_candidate_files(
+    pairing: TargetPairing,
+    candidates: list[Path],
+    target_series: int,
+) -> list[Path]:
+    preferred = [path for path in pairing.data_paths if path.is_file()]
+    pool = preferred if len(preferred) >= target_series else _template_unique_paths([*preferred, *candidates])
+
+    def frequency_key(path: Path) -> tuple[int, float, str]:
+        values = re.findall(r"\d+(?:\.\d+)?", path.stem)
+        if not values:
+            return (1, 0.0, path.name.casefold())
+        return (0, float(values[-1]), path.name.casefold())
+
+    ordered = sorted(pool, key=frequency_key)
+    if len(ordered) <= target_series:
+        return ordered
+    start = max(0, (len(ordered) - target_series) // 2)
+    return ordered[start : start + target_series]
+
+
+def _template_mott_schottky_rows(path: Path) -> list[list[float | str | None]]:
+    numeric = mott_schottky_numeric(read_table(path), [])
+    if len(numeric) < 2:
+        raise ValueError(f"Mott-Schottky source does not contain a validated potential/1-C-squared pair: {path}")
+    return [[potential, one_over_c2] for potential, one_over_c2 in numeric]
 
 
 def _template_xy_labels(product_key: str) -> tuple[str, str, dict[str, str]]:
@@ -1932,8 +2139,8 @@ def _template_xy_labels(product_key: str) -> tuple[str, str, dict[str, str]]:
         }
     if product_key == "Mott-Schottky":
         return "potential_v", "one_over_c_squared", {
-            "x_label": "Potential (V)",
-            "y_label": "1/C^2 (a.u.)",
+            "x_label": "Potential (V vs Ag/AgCl)",
+            "y_label": "C^-2 (10^8 cm^4 F^-2)",
             "title": "Mott-Schottky draft",
             "plot_type": "line+symbol",
             "notes": "Potential/capacitance-derived columns require manual confirmation; no carrier type, carrier density, or band position is inferred.",
@@ -2102,68 +2309,95 @@ def _write_template_xps_origin_processing_plan(
             f"{sample}_measured_raw",
             _xps_raw_series(record, "raw_intensity", point_count),
         )
-        transforms.append(
-            {
-                "header": f"{sample}_measured",
+        measured_transform = {
+            "header": f"{sample}_measured",
+            "kind": "normalize_with_offset",
+            "source_col": measured_col,
+            "scale_col": measured_col,
+            "offset": offset,
+        }
+        envelope_values = _xps_raw_series(record, "envelope", point_count)
+        envelope_transform: dict[str, object] | None = None
+        if any(value is not None for value in envelope_values):
+            envelope_col = add_raw_column(f"{sample}_envelope_raw", envelope_values)
+            envelope_transform = {
+                "header": f"{sample}_envelope",
                 "kind": "normalize_with_offset",
-                "source_col": measured_col,
+                "source_col": envelope_col,
                 "scale_col": measured_col,
                 "offset": offset,
             }
-        )
-        envelope_values = _xps_raw_series(record, "envelope", point_count)
-        if any(value is not None for value in envelope_values):
-            envelope_col = add_raw_column(f"{sample}_envelope_raw", envelope_values)
-            transforms.append(
-                {
-                    "header": f"{sample}_envelope",
-                    "kind": "normalize_with_offset",
-                    "source_col": envelope_col,
-                    "scale_col": measured_col,
-                    "offset": offset,
-                }
-            )
         background_values = _xps_raw_series_any(
             record,
             tuple(key for key in ("background", record.background_label, "Backgnd.", "Background") if key),
             point_count,
         )
         background_col = add_raw_column(f"{sample}_background_raw", background_values)
+        background_transform: dict[str, object] | None = None
         if any(value is not None for value in background_values):
-            transforms.append(
-                {
-                    "header": f"{sample}_background",
-                    "kind": "normalize_with_offset",
-                    "source_col": background_col,
-                    "scale_col": measured_col,
-                    "offset": offset,
-                }
-            )
+            background_transform = {
+                "header": f"{sample}_background",
+                "kind": "normalize_with_offset",
+                "source_col": background_col,
+                "scale_col": measured_col,
+                "offset": offset,
+            }
+        component_transforms: list[tuple[dict[str, object], dict[str, object]]] = []
         for component_index, label in enumerate(record.component_labels, start=1):
             component_values = _xps_raw_series_any(record, (_component_key(label), label), point_count)
             if not any(value is not None for value in component_values):
                 continue
             component_col = add_raw_column(f"{sample}_component_{component_index}_raw", component_values)
-            transforms.append(
-                {
-                    "header": f"{sample}_component_{component_index}",
-                    "kind": "normalize_with_offset",
-                    "source_col": component_col,
-                    "scale_col": measured_col,
-                    "offset": offset,
-                }
+            component_transform = {
+                "header": f"{sample}_component_{component_index}",
+                "kind": "normalize_with_offset",
+                "source_col": component_col,
+                "scale_col": measured_col,
+                "offset": offset,
+            }
+            baseline_transform = {
+                "header": f"{sample}_component_{component_index}_fill_baseline",
+                "kind": "normalize_with_offset",
+                "source_col": background_col,
+                "scale_col": measured_col,
+                "offset": offset,
+                "baseline_for_component_col": component_col,
+            }
+            component_transforms.append((component_transform, baseline_transform))
+
+        if xps_component_fill_mode != "template_line_fill":
+            transforms.append(measured_transform)
+            if envelope_transform is not None:
+                transforms.append(envelope_transform)
+            if background_transform is not None:
+                transforms.append(background_transform)
+            transforms.extend(component for component, _baseline in component_transforms)
+            continue
+
+        if len(component_transforms) != 2:
+            raise ValueError(
+                f"XPS template Origin processing requires exactly two fitted components for {record.sample}; found {len(component_transforms)}"
             )
-            if xps_component_fill_mode == "template_line_fill":
-                transforms.append(
-                    {
-                        "header": f"{sample}_component_{component_index}_fill_baseline",
-                        "kind": "normalize_with_offset",
-                        "source_col": background_col,
-                        "scale_col": measured_col,
-                        "offset": offset,
-                        "baseline_for_component_col": component_col,
-                    }
+        if background_transform is None:
+            raise ValueError(f"XPS template Origin processing requires a real background curve for {record.sample}")
+        if envelope_transform is None:
+            raise ValueError(f"XPS template Origin processing requires a real envelope curve for {record.sample}")
+        if pairing.product_key == "XPS_in_situ":
+            transforms.append(measured_transform)
+            for component_transform, baseline_transform in component_transforms:
+                transforms.extend((component_transform, baseline_transform))
+            transforms.extend((background_transform, envelope_transform))
+        else:
+            for component_transform, baseline_transform in component_transforms:
+                component_header = str(component_transform["header"])
+                transforms.extend(
+                    (
+                        {**component_transform, "header": f"{component_header}_fill_upper"},
+                        baseline_transform,
+                        {**component_transform, "header": f"{component_header}_line"},
+                    )
                 )
+            transforms.extend((measured_transform, background_transform, envelope_transform))
     raw_rows = [
         [column[row_index] for column in raw_columns]
         for row_index in range(point_count)
@@ -2277,11 +2511,16 @@ def export_template_product_with_origin(product: ProductContext, style: Resolved
         elif product.product_key == "EIS" and len(headers) >= 4:
             operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 3, 4, plot_type=product.plot_type)
         else:
-            max_column = len(headers) if product.product_key.startswith("XPS") else min(len(headers), 10)
-            for column_index in range(3, max_column + 1):
+            for column_index in range(3, len(headers) + 1):
                 header = headers[column_index - 1] if column_index - 1 < len(headers) else ""
                 plot_type = template_plot_type_for_header(product.product_key, header, product.plot_type)
                 added = operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=plot_type)
+                if not getattr(added, "ok", False):
+                    return {
+                        "ok": False,
+                        "message": getattr(added, "message", f"Origin plot add failed for column {column_index}"),
+                        "exemplar_style": exemplar_style,
+                    }
                 if added.ok and product.product_key.startswith("XPS") and is_template_xps_component_curve_header(header):
                     xps_fill_intent["component_plot_count"] = int(xps_fill_intent["component_plot_count"]) + 1
         if not apply_style_snapshot(operations, graph_name, exemplar_snapshot):
@@ -2292,8 +2531,8 @@ def export_template_product_with_origin(product: ProductContext, style: Resolved
             graph_name,
             font_name=style.font_family,
             axis_title_size=style.axis_title_font_size,
-            x_tick_label_size=style.tick_label_font_size,
-            y_tick_label_size=style.tick_label_font_size,
+            x_tick_label_size=style.x_tick_label_font_size,
+            y_tick_label_size=style.y_tick_label_font_size,
             legend_font_size=style.legend_font_size,
             annotation_font_size=style.title_font_size,
         )
@@ -2356,6 +2595,16 @@ def export_template_product_with_origin(product: ProductContext, style: Resolved
             }
         if not png.ok or not tif.ok:
             return {"ok": False, "message": f"{png.message}; {tif.message}", "exemplar_style": exemplar_style}
+        try:
+            ensure_tif_600_dpi_metadata(product.figure_tif)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "message": str(exc),
+                "exemplar_style": exemplar_style,
+                "product_style": product_snapshot.to_dict(),
+                "conformance": conformance.to_dict(),
+            }
         return {
             "ok": True,
             "message": "Origin isolated template export succeeded after save/reopen/readback",
@@ -2695,10 +2944,20 @@ def _extract_template_product_reference_snapshot(operations: object, product: Pr
 def _build_template_eis_table(
     pairing: TargetPairing,
     type_root: Path,
+    template: TemplateCandidate | None = None,
     *,
     strict_semicircle_branch: bool = False,
     compact_output: bool = False,
 ) -> tuple[list[str], list[list[float | None]], dict[str, str], dict[str, object]]:
+    expected_plot_count = int(template.plot_count or 0) if template is not None else 0
+    if expected_plot_count > 2:
+        return _build_template_eis_overlay_table(
+            pairing,
+            type_root,
+            expected_plot_count=expected_plot_count,
+            strict_semicircle_branch_requested=strict_semicircle_branch,
+            compact_output=compact_output,
+        )
     cleaning = clean_eis_file(pairing.data_paths[0])
     if strict_semicircle_branch:
         cleaning = select_eis_semicircle_main_branch(cleaning)
@@ -2800,6 +3059,214 @@ def _build_template_eis_table(
     )
 
 
+def _build_template_eis_overlay_table(
+    pairing: TargetPairing,
+    type_root: Path,
+    *,
+    expected_plot_count: int,
+    strict_semicircle_branch_requested: bool,
+    compact_output: bool,
+) -> tuple[list[str], list[list[float | None]], dict[str, str], dict[str, object]]:
+    source_files = _discover_template_eis_overlay_sources(pairing, expected_plot_count)
+    cleanings = [(path, clean_eis_file(path)) for path in source_files]
+    if any(len(cleaning.raw_points) < 2 for _path, cleaning in cleanings):
+        raise ValueError("EIS template overlay contains a source with fewer than two measured points")
+
+    headers: list[str] = []
+    columns: list[list[float | None]] = []
+    legend_entries: list[str] = []
+    scale = 0.001
+    for path, cleaning in cleanings:
+        label = _template_series_label_from_path(path)
+        headers.extend((f"{label}_z_real_kohm", f"{label}_minus_z_imag_kohm"))
+        columns.extend(
+            (
+                [point.z_real_ohm * scale for point in cleaning.raw_points],
+                [point.minus_z_imag_ohm * scale for point in cleaning.raw_points],
+            )
+        )
+        legend_entries.append(label.replace("_", " "))
+    row_count = max((len(column) for column in columns), default=0)
+    rows = [
+        [column[row_index] if row_index < len(column) else None for column in columns]
+        for row_index in range(row_count)
+    ]
+
+    sidecar_root = type_root / "debug" if compact_output else type_root / "processed_data"
+    metadata_root = type_root / "debug" if compact_output else type_root / "metadata"
+    report_root = type_root / "debug" if compact_output else type_root / "reports"
+    raw_path = sidecar_root / "raw_eis_data.csv"
+    cleaned_path = sidecar_root / "cleaned_eis_data.csv"
+    ignored_path = sidecar_root / "ignored_eis_points.csv"
+    metadata_path = metadata_root / "eis_cleaning_and_fit_metadata.json"
+    fit_parameters_path = metadata_root / "eis_fit_parameters.json"
+    ignored_report_path = report_root / "ignored_points_report.md"
+    _write_csv(raw_path, headers, rows)
+
+    cleaned_columns: list[list[float | None]] = []
+    for _path, cleaning in cleanings:
+        cleaned_columns.extend(
+            (
+                [point.z_real_ohm * scale for point in cleaning.cleaned_points],
+                [point.minus_z_imag_ohm * scale for point in cleaning.cleaned_points],
+            )
+        )
+    cleaned_row_count = max((len(column) for column in cleaned_columns), default=0)
+    cleaned_rows = [
+        [column[row_index] if row_index < len(column) else None for column in cleaned_columns]
+        for row_index in range(cleaned_row_count)
+    ]
+    _write_csv(cleaned_path, headers, cleaned_rows)
+
+    ignored_headers = ["source_file", "source_index", "frequency_hz", "z_real_ohm", "minus_z_imag_ohm", "reason"]
+    ignored_rows: list[list[float | str | None]] = []
+    for path, cleaning in cleanings:
+        for ignored in cleaning.ignored_points:
+            point = ignored.point
+            ignored_rows.append(
+                [path.name, point.source_index, point.frequency_hz, point.z_real_ohm, point.minus_z_imag_ohm, ignored.reason]
+            )
+    _write_csv(ignored_path, ignored_headers, ignored_rows)
+
+    series_metadata = [
+        {
+            "source_file": str(path),
+            "plot_label": legend_entries[index],
+            "raw_point_count": len(cleaning.raw_points),
+            "cleaned_point_count": len(cleaning.cleaned_points),
+            "ignored_point_count": len(cleaning.ignored_points),
+            "cleaning": cleaning.to_metadata(),
+        }
+        for index, (path, cleaning) in enumerate(cleanings)
+    ]
+    aggregate_cleaning = {
+        "source_count": len(cleanings),
+        "raw_point_count": sum(len(cleaning.raw_points) for _path, cleaning in cleanings),
+        "cleaned_point_count": sum(len(cleaning.cleaned_points) for _path, cleaning in cleanings),
+        "ignored_point_count": sum(len(cleaning.ignored_points) for _path, cleaning in cleanings),
+    }
+    eis_metadata = {
+        "mode": "reviewed_template_multi_source_overlay",
+        "cleaning": aggregate_cleaning,
+        "series": series_metadata,
+        "fit": {"status": "not_run", "reason": "The reviewed EIS template is a measured multi-source overlay, not a fitted-curve product."},
+        "full_fit": {},
+        "raw_data": _template_run_relative_path(type_root, raw_path),
+        "cleaned_data": _template_run_relative_path(type_root, cleaned_path),
+        "ignored_points": _template_run_relative_path(type_root, ignored_path),
+        "fit_curve": "",
+        "fit_parameters": _template_run_relative_path(type_root, fit_parameters_path),
+        "ignored_points_report": _template_run_relative_path(type_root, ignored_report_path),
+        "full_fit_curve_debug": "",
+        "strict_semicircle_branch": False,
+        "strict_semicircle_branch_requested": bool(strict_semicircle_branch_requested),
+        "expected_plot_count": expected_plot_count,
+        "plotted_source_count": len(source_files),
+        "main_plot_curve_policy": "All real measured sweep points are retained because the reviewed template overlays measured Nyquist curves without a draft fit.",
+        "equivalent_circuit_policy": "No equivalent-circuit fit or mechanistic interpretation is generated for this template overlay.",
+    }
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(eis_metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    fit_parameters_path.write_text(json.dumps(eis_metadata["fit"], ensure_ascii=False, indent=2), encoding="utf-8")
+    ignored_report_path.parent.mkdir(parents=True, exist_ok=True)
+    ignored_lines = [
+        "# EIS ignored points report",
+        "",
+        f"- Source curves: {len(source_files)}",
+        f"- Raw points: {aggregate_cleaning['raw_point_count']}",
+        f"- Cleaned diagnostic points: {aggregate_cleaning['cleaned_point_count']}",
+        f"- Ignored diagnostic points: {aggregate_cleaning['ignored_point_count']}",
+        "- Main plot policy: retain all real measured sweep points to match the reviewed multi-source template.",
+        "",
+        "| source_file | source_index | frequency_hz | z_real_ohm | minus_z_imag_ohm | reason |",
+        "|---|---:|---:|---:|---:|---|",
+    ]
+    ignored_lines.extend(
+        f"| {row[0]} | {row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]} |"
+        for row in ignored_rows
+    )
+    ignored_report_path.write_text("\n".join(ignored_lines).rstrip() + "\n", encoding="utf-8")
+
+    labels = {
+        "x_label": "Z' (kOhm)",
+        "y_label": "-Z'' (kOhm)",
+        "title": "EIS measured overlay",
+        "plot_type": "line+symbol",
+        "legend_entries": ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"],
+        "notes": "Measured multi-source Nyquist overlay; equivalent-circuit interpretation requires manual review.",
+    }
+    overlay = {
+        "source_files": [str(path) for path in source_files],
+        "expected_plot_count": expected_plot_count,
+        "plotted_source_count": len(source_files),
+        "series_labels": legend_entries,
+        "selection_policy": "Select one reviewed real EIS source family with exactly the template plot count; never duplicate or synthesize curves.",
+    }
+    return headers, rows, labels, {"eis_cleaning": eis_metadata, "eis_overlay": overlay}
+
+
+def _discover_template_eis_overlay_sources(pairing: TargetPairing, expected_plot_count: int) -> list[Path]:
+    if expected_plot_count < 1:
+        raise ValueError("EIS template plot count must be positive")
+    roots = [pairing.reference_opju.parent, pairing.reference_opju.parent.parent]
+    roots.extend(path.parent for path in pairing.data_paths)
+    roots.extend(path.parent.parent for path in pairing.data_paths)
+    grouped: dict[Path, list[Path]] = {}
+    seen_files: set[str] = set()
+    suffixes = {".txt", ".csv", ".xls", ".xlsx", ".xlsm"}
+    for root in _template_unique_paths(roots):
+        if not root.is_dir():
+            continue
+        for path in sorted(root.rglob("*"), key=lambda item: str(item).casefold()):
+            if not path.is_file() or path.suffix.casefold() not in suffixes:
+                continue
+            name = path.name.casefold()
+            if any(token in name for token in ("readme", "report", "fit", "summary", "汇总")):
+                continue
+            key = str(path.resolve())
+            if key in seen_files:
+                continue
+            seen_files.add(key)
+            try:
+                cleaning = clean_eis_file(path)
+            except Exception:
+                continue
+            if len(cleaning.raw_points) < 10:
+                continue
+            grouped.setdefault(path.parent, []).append(path)
+
+    eligible = [(parent, paths) for parent, paths in grouped.items() if len(paths) >= expected_plot_count]
+    if not eligible:
+        raise ValueError(
+            f"Could not find a real EIS source family with {expected_plot_count} curves near the reviewed pairing; curves will not be duplicated or fabricated"
+        )
+    reference_dates = [int(value) for value in re.findall(r"20\d{6}", str(pairing.reference_opju))]
+    reference_date = reference_dates[-1] if reference_dates else None
+
+    def score(item: tuple[Path, list[Path]]) -> tuple[int, int, int, int, str]:
+        parent, paths = item
+        date_tokens = [int(value) for value in re.findall(r"20\d{6}", str(parent))]
+        date_distance = abs(date_tokens[-1] - reference_date) if date_tokens and reference_date is not None else 99999999
+        text_count = sum(path.suffix.casefold() == ".txt" for path in paths)
+        return (
+            int(len(paths) == expected_plot_count),
+            -abs(len(paths) - expected_plot_count),
+            -date_distance,
+            text_count,
+            str(parent).casefold(),
+        )
+
+    selected_parent, selected_paths = max(eligible, key=score)
+    del selected_parent
+    ordered = sorted(
+        selected_paths,
+        key=lambda path: (0 if path.suffix.casefold() == ".txt" else 1, path.name.casefold()),
+    )[:expected_plot_count]
+    if len(ordered) != expected_plot_count:
+        raise ValueError(f"EIS source selection returned {len(ordered)} curves; expected {expected_plot_count}")
+    return ordered
+
+
 def _build_template_epr_table(
     pairing: TargetPairing,
     type_root: Path,
@@ -2816,9 +3283,24 @@ def _build_template_epr_table(
         path = reference_dir / file_name
         if not path.is_file():
             raise FileNotFoundError(f"EPR overlay input missing for {group_name}: {path}")
-        x_values, y_values = read_xy_xlsx(path)
-        traces.append({"label": label, "file_name": file_name, "path": path, "x": x_values, "y": y_values})
+        export = read_verified_jeol_export_series(path)
+        traces.append(
+            {
+                "label": label,
+                "file_name": file_name,
+                "path": path,
+                "x": export.x_values,
+                "y": export.y_values,
+                "field_unit": export.x_unit,
+                "field_axis_source": export.axis_source,
+                "raw_source": export.raw_source,
+            }
+        )
     _validate_template_epr_common_x([trace["x"] for trace in traces])
+    field_units = {str(trace["field_unit"]) for trace in traces if str(trace["field_unit"]).strip()}
+    if len(field_units) > 1:
+        raise ValueError(f"EPR template inputs use inconsistent field units: {sorted(field_units)}")
+    field_unit = next(iter(field_units), "G")
     sidecar_root = type_root / "debug" if compact_output else type_root / "processed_data"
     plan_root = type_root / "debug" if compact_output else type_root / "metadata"
     raw_csv = sidecar_root / f"epr_{group_name.lower()}_overlay_origin_raw_input.csv"
@@ -2839,6 +3321,13 @@ def _build_template_epr_table(
         "group": group_name,
         "input_files": [str(trace["path"]) for trace in traces],
         "labels": [str(trace["label"]) for trace in traces],
+        "field_unit": field_unit,
+        "field_axis_sources": {str(trace["label"]): str(trace["field_axis_source"]) for trace in traces},
+        "verified_raw_sources": {
+            str(trace["label"]): Path(str(trace["raw_source"])).name
+            for trace in traces
+            if trace["raw_source"] is not None
+        },
         "baseline_correction": "Origin LabTalk edge-region median baseline subtraction",
         "smoothing": "Origin smooth X-Function, adjacent averaging, npts=7",
         "normalization": "none",
@@ -2851,7 +3340,7 @@ def _build_template_epr_table(
     headers = ["magnetic_field", *[str(trace["label"]) for trace in traces]]
     rows = [[row[0], *row[1:]] for row in raw_rows]
     labels = {
-        "x_label": "Magnetic Field (G)",
+        "x_label": f"Magnetic Field ({field_unit})",
         "y_label": "Intensity (a.u.)",
         "title": f"EPR {group_name} overlay exemplar",
         "plot_type": "line",
@@ -3105,14 +3594,17 @@ def _legend_bold_readback(numeric: dict[str, object], strings: dict[str, object]
 
 
 def _apply_template_axis_range(operations: object, graph_name: str, product: ProductContext) -> None:
-    if product.product_key not in {"EIS", "XRD"}:
+    if product.product_key not in {"EIS", "XRD", "EPR", "UV-vis DRS / Tauc"}:
         return
     if product.product_key == "EIS":
         x_min, x_max = _csv_bounds_for_columns(product.processed_data, (0, 2))
         y_min, y_max = _csv_bounds_for_columns(product.processed_data, (1, 3))
-    else:
+    elif product.product_key == "XRD":
         x_min, x_max = _csv_x_bounds(product.processed_data)
         y_min, y_max = _csv_y_bounds(product.processed_data)
+    else:
+        x_min, x_max = _csv_x_bounds(product.processed_data)
+        y_min, y_max = None, None
     if x_min is not None and x_max is not None:
         operations.set_axis_range(graph_name, x_min=x_max if product.x_descending else x_min, x_max=x_min if product.x_descending else x_max)
     if y_min is not None and y_max is not None and y_max > y_min:
@@ -3267,7 +3759,7 @@ def _xps_peak_annotations_from_processed_data(processed_data: Path, *, product_t
             continue
         peak_x, peak_y = max(points, key=lambda item: item[1])
         sample = header.rsplit("_component_", 1)[0]
-        component = header.rsplit("_component_", 1)[-1]
+        component = re.sub(r"_(?:line|fill_upper)$", "", header.rsplit("_component_", 1)[-1])
         annotations.append(
             {
                 "sample": sample,
@@ -3485,12 +3977,19 @@ def _build_template_acceptance(
         notes.append("axis title bold/readback did not pass")
     if product.product_key == "EIS":
         eis = extra.get("eis_cleaning", {}) if isinstance(extra.get("eis_cleaning"), dict) else {}
-        full = eis.get("full_fit", {}) if isinstance(eis, dict) else {}
-        fit = eis.get("fit", {}) if isinstance(eis, dict) else {}
-        strict_branch = bool(eis.get("strict_semicircle_branch")) if isinstance(eis, dict) else False
-        if not strict_branch and full.get("point_count") == fit.get("point_count"):
-            visual_ok = False
-            notes.append("EIS main plot was not clipped to measured-range visual segment")
+        if eis.get("mode") == "reviewed_template_multi_source_overlay":
+            expected = int(eis.get("expected_plot_count") or 0)
+            plotted = int(eis.get("plotted_source_count") or 0)
+            if expected <= 0 or plotted != expected:
+                visual_ok = False
+                notes.append(f"EIS measured overlay plotted {plotted} real curves but template requires {expected}")
+        else:
+            full = eis.get("full_fit", {}) if isinstance(eis, dict) else {}
+            fit = eis.get("fit", {}) if isinstance(eis, dict) else {}
+            strict_branch = bool(eis.get("strict_semicircle_branch")) if isinstance(eis, dict) else False
+            if not strict_branch and full.get("point_count") == fit.get("point_count"):
+                visual_ok = False
+                notes.append("EIS main plot was not clipped to measured-range visual segment")
     if product.product_key.startswith("XPS"):
         fill = export_status.get("xps_component_fill") if isinstance(export_status.get("xps_component_fill"), dict) else {}
         if not fill.get("applied"):
@@ -3580,6 +4079,8 @@ def _write_template_product_metadata(
     extra: dict[str, object],
     template: TemplateCandidate,
     acceptance: TemplateAcceptance,
+    *,
+    asset_only: bool = False,
 ) -> Path:
     compact = product.processed_data.parent == product.type_root
     path = product.type_root / "metadata.json" if compact else product.type_root / "metadata" / product.slug / "metadata.json"
@@ -3606,6 +4107,13 @@ def _write_template_product_metadata(
         "template_graph": template.graph_page,
         "template_layer_count": template.layer_count,
         "template_plot_count": template.plot_count,
+        "asset_only": bool(asset_only),
+        "external_template_dependency": False
+        if asset_only
+        else template.source not in {"project_origin_style_asset", "embedded_template_snapshot"},
+        "project_style_asset_path": _template_display_path(template.path)
+        if template.source in {"project_origin_style_asset", "embedded_template_snapshot"}
+        else "",
         "input_copies": [_safe_metadata_path(path) for path in product.input_copies],
         "reference_opju_copy": reference_opju_copy,
         "reference_style_asset_copy": reference_style_asset_copy,
@@ -3705,22 +4213,37 @@ def _write_template_per_type_report(
         eis = extra.get("eis_cleaning", {}) if isinstance(extra.get("eis_cleaning"), dict) else {}
         cleaning = eis.get("cleaning", {}) if isinstance(eis, dict) else {}
         fit = eis.get("fit", {}) if isinstance(eis, dict) else {}
-        lines.extend(
-            [
-                "",
-                "## EIS cleaning and draft fit",
-                f"- Raw data: {eis.get('raw_data', 'not generated') if isinstance(eis, dict) else 'not generated'}",
-                f"- Cleaned data: {eis.get('cleaned_data', 'not generated') if isinstance(eis, dict) else 'not generated'}",
-                f"- Ignored points table: {eis.get('ignored_points', 'not generated') if isinstance(eis, dict) else 'not generated'}",
-                f"- Main-plot fit curve: {eis.get('fit_curve', 'not generated') if isinstance(eis, dict) else 'not generated'}",
-                f"- Full fit debug curve: {eis.get('full_fit_curve_debug', 'not generated') if isinstance(eis, dict) else 'not generated'}",
-                f"- Ignored points: {cleaning.get('ignored_point_count', 0)}",
-                f"- Fit model: {fit.get('model', 'Model A: Rs + (Rct || CPE)')}",
-                f"- Fitted Rs/Rct/Q/n: {fit.get('parameters', {})}",
-                f"- Semicircle classification: {fit.get('semicircle_classification', 'manual_review')}",
-                "- Circuit ambiguity: manual review required",
-            ]
-        )
+        if eis.get("mode") == "reviewed_template_multi_source_overlay":
+            lines.extend(
+                [
+                    "",
+                    "## EIS measured overlay",
+                    f"- Real source curves: {eis.get('plotted_source_count', 0)} / template {eis.get('expected_plot_count', 0)}",
+                    f"- Raw measured data: {eis.get('raw_data', 'not generated')}",
+                    f"- Cleaned diagnostic data: {eis.get('cleaned_data', 'not generated')}",
+                    f"- Ignored points table: {eis.get('ignored_points', 'not generated')}",
+                    f"- Ignored diagnostic points: {cleaning.get('ignored_point_count', 0)}",
+                    "- Draft fit: not run; the reviewed template is a measured multi-source overlay",
+                    "- Equivalent-circuit interpretation: manual review required",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "",
+                    "## EIS cleaning and draft fit",
+                    f"- Raw data: {eis.get('raw_data', 'not generated') if isinstance(eis, dict) else 'not generated'}",
+                    f"- Cleaned data: {eis.get('cleaned_data', 'not generated') if isinstance(eis, dict) else 'not generated'}",
+                    f"- Ignored points table: {eis.get('ignored_points', 'not generated') if isinstance(eis, dict) else 'not generated'}",
+                    f"- Main-plot fit curve: {eis.get('fit_curve', 'not generated') if isinstance(eis, dict) else 'not generated'}",
+                    f"- Full fit debug curve: {eis.get('full_fit_curve_debug', 'not generated') if isinstance(eis, dict) else 'not generated'}",
+                    f"- Ignored points: {cleaning.get('ignored_point_count', 0)}",
+                    f"- Fit model: {fit.get('model', 'Model A: Rs + (Rct || CPE)')}",
+                    f"- Fitted Rs/Rct/Q/n: {fit.get('parameters', {})}",
+                    f"- Semicircle classification: {fit.get('semicircle_classification', 'manual_review')}",
+                    "- Circuit ambiguity: manual review required",
+                ]
+            )
     visual_notes_path = product.type_root.joinpath("debug", "visual_diff_notes.md")
     visual_notes_path.parent.mkdir(parents=True, exist_ok=True)
     visual_notes_path.write_text(
@@ -3921,6 +4444,9 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
                 preview_rms=preview_rms,
                 text_only_legend=_template_text_only_legend_policy(product, metadata),
             )
+        plot_count_reason = f"plot count differs from template by {plot_count_delta}"
+        if plot_count_delta != 0 and plot_count_reason not in strict_reasons:
+            strict_reasons.append(plot_count_reason)
         strict_visual_match = not strict_reasons
         if embedded_snapshot_mode:
             strict_status = "embedded_template_snapshot_match" if strict_visual_match else "blocked_embedded_template_snapshot"
@@ -3929,7 +4455,8 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         else:
             strict_status = "strict_visual_match" if strict_visual_match else "blocked_not_one_to_one"
         strict_message = "; ".join(strict_reasons)
-        if saved_style_asset_mode and not strict_visual_match:
+        hard_plot_count_failure = plot_count_delta != 0
+        if saved_style_asset_mode and not strict_visual_match and not hard_plot_count_failure:
             strict_status = "manual_check_not_one_to_one"
             if strict_message:
                 strict_message = (
@@ -3949,7 +4476,11 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         product["style_match_ratio"] = style_match_ratio
         product["strict_visual_match"] = strict_visual_match
         product["strict_status"] = strict_status
-        if not strict_visual_match and product.get("status") == "accepted" and not saved_style_asset_mode:
+        if (
+            not strict_visual_match
+            and product.get("status") == "accepted"
+            and (not saved_style_asset_mode or hard_plot_count_failure)
+        ):
             product["status"] = "blocked"
             product["notes"] = (str(product.get("notes") or "") + f"; {strict_status}: {strict_message}").strip("; ")
         elif saved_style_asset_mode and not strict_visual_match and product.get("status") == "accepted":
@@ -4190,10 +4721,9 @@ def _template_strict_visual_reasons(
     reasons: list[str] = []
     if not ready:
         reasons.append("template/generated preview comparison is not ready")
-    low_rms_visual_match = preview_rms is not None and preview_rms <= 35.0
     strong_style_match = style_match_ratio is not None and style_match_ratio >= 0.90
     text_only_legend_match = bool(text_only_legend and plot_count_delta == 0 and style_match_ratio is not None and style_match_ratio >= 0.88)
-    if plot_count_delta != 0 and not (low_rms_visual_match and strong_style_match):
+    if plot_count_delta != 0:
         reasons.append(f"plot count differs from template by {plot_count_delta}")
     if style_match_ratio is None:
         reasons.append("style match ratio is unavailable")

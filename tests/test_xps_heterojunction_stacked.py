@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import subprocess
+import sys
 from unittest.mock import patch
 
 import pandas as pd
+import pytest
 
 from src.cli import main
 from src.core.xps_heterojunction import (
@@ -327,6 +329,87 @@ def test_cli_xps_with_origin_returns_failure_when_export_status_fails(tmp_path: 
     assert code == 1
 
 
+def test_cli_xps_returns_failure_when_no_figures_are_planned(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bobc = tmp_path / "BOBCfit.xlsx"
+    bc = tmp_path / "BCfit.xlsx"
+    bobc.write_text("placeholder", encoding="utf-8")
+    bc.write_text("placeholder", encoding="utf-8")
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr("src.cli.run_xps_heterojunction_stacked", lambda *_args, **_kwargs: {"figures": []})
+
+    code = main(["xps-heterojunction-stacked", "--bobc", str(bobc), "--bc", str(bc), "--dry-run"])
+
+    assert code == 1
+
+
+def test_cli_xps_rejects_output_directory_that_contains_an_input_file(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    input_root = tmp_path / "inputs"
+    input_root.mkdir()
+    bobc = input_root / "BOBCfit.xlsx"
+    bc = input_root / "BCfit.xlsx"
+    bobc.write_text("placeholder", encoding="utf-8")
+    bc.write_text("placeholder", encoding="utf-8")
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(
+        "src.cli.run_xps_heterojunction_stacked",
+        lambda *_args, **_kwargs: {"figures": [{"status": "planned"}]},
+    )
+
+    with pytest.raises(ValueError, match="overlaps protected input"):
+        main(
+            [
+                "xps-heterojunction-stacked",
+                "--bobc",
+                str(bobc),
+                "--bc",
+                str(bc),
+                "--dry-run",
+                "--output-dir",
+                str(input_root),
+            ]
+        )
+
+
+def test_cli_xps_allows_an_independent_external_output_directory(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    input_root = tmp_path / "inputs"
+    input_root.mkdir()
+    bobc = input_root / "BOBCfit.xlsx"
+    bc = input_root / "BCfit.xlsx"
+    bobc.write_text("placeholder", encoding="utf-8")
+    bc.write_text("placeholder", encoding="utf-8")
+    external_output = tmp_path / "external-output"
+    captured: dict[str, Path] = {}
+
+    def fake_run(_project_root: Path, _sample_files, options: XpsHeterojunctionOptions, **_kwargs) -> dict:
+        captured["output_dir"] = options.output_dir
+        return {"figures": [{"status": "planned"}]}
+
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr("src.cli.run_xps_heterojunction_stacked", fake_run)
+
+    code = main(
+        [
+            "xps-heterojunction-stacked",
+            "--bobc",
+            str(bobc),
+            "--bc",
+            str(bc),
+            "--dry-run",
+            "--output-dir",
+            str(external_output),
+        ]
+    )
+
+    assert code == 0
+    assert captured["output_dir"] == external_output
+
+
 def test_direct_origin_xps_generated_script_compiles(tmp_path: Path) -> None:
     plot_csv = tmp_path / "plot.csv"
     plot_csv.write_text("binding_energy_eV,CWO measured,BC measured\n1,2,3\n", encoding="utf-8")
@@ -416,7 +499,7 @@ def test_cli_xps_heterojunction_stacked_reports_missing_explicit_file_without_ou
 
     result = subprocess.run(
         [
-            "D:\\Python\\python.exe",
+            sys.executable,
             "run.py",
             "xps-heterojunction-stacked",
             "--bobc",

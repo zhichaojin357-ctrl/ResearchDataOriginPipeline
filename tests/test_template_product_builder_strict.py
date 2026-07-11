@@ -14,10 +14,15 @@ from src.core.template_product_builder import (
     _build_template_epr_table,
     _build_template_xrd_multisource_table,
     _build_template_xy_multisource_table,
+    _select_template_bet_candidate_cohort,
     _template_bet_series_label_from_path,
     _template_candidate_files,
     _template_display_path,
+    _template_mott_candidate_files,
+    _template_photocurrent_candidate_files,
+    _template_pl_candidate_files,
     _template_same_x_overlay_table,
+    _template_xy_series_label,
     _seed_project_style_reference_preview,
     _force_template_axis_titles_visible,
     _position_template_axis_titles_outside_plot,
@@ -83,6 +88,27 @@ def test_template_candidate_pool_excludes_f_drive_xps_templates(tmp_path: Path) 
     assert any(candidate.product_key == "BET" and candidate.source == "f_drive_scan" for candidate in candidates)
 
 
+def test_template_mott_candidate_selection_matches_centered_reviewed_frequency_window(tmp_path: Path) -> None:
+    paths = []
+    for frequency in range(1000, 4001, 500):
+        path = tmp_path / f"{frequency}.xlsx"
+        path.write_bytes(b"xlsx")
+        paths.append(path)
+    pairing = TargetPairing(
+        product_key="Mott-Schottky",
+        data_type="Mott-Schottky",
+        xps_subtype="",
+        data_root_label="test",
+        data_paths=paths,
+        opju_root_label="test",
+        reference_opju=tmp_path / "reference.opju",
+    )
+
+    selected = _template_mott_candidate_files(pairing, paths, 5)
+
+    assert [path.stem for path in selected] == ["1500", "2000", "2500", "3000", "3500"]
+
+
 def test_template_display_path_hides_workspace_prefixes() -> None:
     template = Path("D:/Codex Project/科研数据处理/ResearchDataOriginPipeline/templates/origin_styles/format_themes/BET.oth")
     external = Path("F:/课题/LL/检测/BET/BOBC.opju")
@@ -128,6 +154,40 @@ def test_project_style_asset_candidate_uses_manifest_plot_count_and_reference_pr
     assert candidate.plot_count == 3
     assert candidate.layer_count == 1
     assert copied.exists()
+
+
+def test_project_style_asset_candidate_uses_snapshot_plot_count_when_manifest_omits_it(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    snapshot = style_root / "snapshots" / "BET.json"
+    theme.parent.mkdir(parents=True)
+    snapshot.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    snapshot.write_text(json.dumps({"layer_count": 2, "plot_count": 6}), encoding="utf-8")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "status": "accepted",
+                        "graph_page": "Graph5",
+                        "format_theme": "format_themes/BET.oth",
+                        "style_snapshot": "snapshots/BET.json",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    [candidate] = classify_template_project_style_asset_candidates(project)
+
+    assert candidate.layer_count == 2
+    assert candidate.plot_count == 6
 
 
 def test_project_style_asset_prefers_saved_format_theme_over_copied_opju(tmp_path: Path) -> None:
@@ -232,6 +292,8 @@ def test_template_xps_component_fill_keeps_template_line_plot_not_area_plot() ->
     assert template_plot_type_for_header("XPS_non_in_situ", "BOBC_component_1", "line") == "line"
     assert template_plot_type_for_header("BET", "BOBC_component_1", "line+symbol") == "line+symbol"
     assert is_template_xps_component_curve_header("BOBC_component_1")
+    assert is_template_xps_component_curve_header("BOBC_component_1_line")
+    assert not is_template_xps_component_curve_header("BOBC_component_1_fill_upper")
     assert not is_template_xps_component_curve_header("BOBC_component_1_fill_baseline")
 
 
@@ -290,6 +352,46 @@ def test_template_xps_components_are_followed_by_template_fill_baselines() -> No
     assert rows[0][6] == 0.0
     assert rows[1][6] == 0.2
     assert template_xps_component_fill_pairs(headers) == [(3, 4), (5, 6)]
+
+    in_situ_headers, _in_situ_rows = _xps_records_to_offset_table(
+        [record],
+        include_envelope=True,
+        include_components=True,
+        component_fill_mode="template_line_fill",
+        series_layout="in_situ_template",
+    )
+    assert in_situ_headers == [
+        "binding_energy_eV",
+        "BOBC_measured",
+        "BOBC_component_1",
+        "BOBC_component_1_fill_baseline",
+        "BOBC_component_2",
+        "BOBC_component_2_fill_baseline",
+        "BOBC_background",
+        "BOBC_envelope",
+    ]
+    assert template_xps_component_fill_pairs(in_situ_headers) == [(2, 3), (4, 5)]
+
+    non_in_situ_headers, _non_in_situ_rows = _xps_records_to_offset_table(
+        [record],
+        include_envelope=True,
+        include_components=True,
+        component_fill_mode="template_line_fill",
+        series_layout="non_in_situ_template",
+    )
+    assert non_in_situ_headers == [
+        "binding_energy_eV",
+        "BOBC_component_1_fill_upper",
+        "BOBC_component_1_fill_baseline",
+        "BOBC_component_1_line",
+        "BOBC_component_2_fill_upper",
+        "BOBC_component_2_fill_baseline",
+        "BOBC_component_2_line",
+        "BOBC_measured",
+        "BOBC_background",
+        "BOBC_envelope",
+    ]
+    assert template_xps_component_fill_pairs(non_in_situ_headers) == [(1, 2), (4, 5)]
 
 
 def test_template_xps_fill_baseline_is_masked_to_component_valid_points() -> None:
@@ -400,7 +502,7 @@ def test_template_writes_template_vs_generated_preview_comparison(tmp_path: Path
     assert (tmp_path / "reports" / "template_data_completeness.md").exists()
 
 
-def test_saved_format_theme_preview_gap_does_not_block_accepted_product(tmp_path: Path) -> None:
+def test_saved_format_theme_does_not_exempt_nonzero_plot_count_delta(tmp_path: Path) -> None:
     generated = tmp_path / "BET" / "figures_preview" / "BET_preview.png"
     metadata = tmp_path / "BET" / "metadata" / "BET.json"
     generated.parent.mkdir(parents=True)
@@ -434,10 +536,10 @@ def test_saved_format_theme_preview_gap_does_not_block_accepted_product(tmp_path
 
     audit = _write_template_preview_comparison(tmp_path, [product])
 
-    assert product["status"] == "accepted"
-    assert audit["items"][0]["strict_status"] == "manual_check_not_one_to_one"
+    assert product["status"] == "blocked"
+    assert audit["items"][0]["strict_status"] == "blocked_not_one_to_one"
     assert audit["items"][0]["saved_style_asset_mode"] is True
-    assert "manual-check-only" in product["notes"]
+    assert audit["items"][0]["plot_count_delta"] == -2
 
 
 def test_template_preview_comparison_resolves_run_relative_artifacts(tmp_path: Path) -> None:
@@ -673,6 +775,71 @@ def test_template_epr_uses_template_group_overlay_not_single_seed_file(tmp_path:
     assert final_csv.parent == tmp_path / "EPR" / "processed_data"
 
 
+def test_template_bet_selects_one_material_each_from_coherent_cohort(tmp_path: Path) -> None:
+    bet_root = tmp_path / "BET"
+    seed = bet_root / "new_single" / "20260701-BOBC.XLS"
+    scattered = bet_root / "old_single" / "20260101-CWO.XLS"
+    cohort = bet_root / "grouped" / "20260421"
+    grouped = [
+        cohort / "1-BOBC-All Pore.XLS",
+        cohort / "2-CWO-All Pore.XLS",
+        cohort / "3-BiCu-All Pore.XLS",
+        cohort / "4-BOBC-4-XIN-All Pore.XLS",
+    ]
+    for path in [seed, scattered, *grouped]:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"placeholder")
+
+    selected, selected_cohort = _select_template_bet_candidate_cohort(
+        [seed, scattered, *grouped],
+        3,
+    )
+
+    assert selected_cohort == cohort
+    assert [_template_bet_series_label_from_path(path) for path in selected] == ["BOBC", "CWO", "BiCu"]
+
+
+def test_template_pl_selects_only_requested_scan_family_and_material_labels(tmp_path: Path) -> None:
+    root = tmp_path / "PL" / "bobc+cwo+bc"
+    root.mkdir(parents=True)
+    for index, emission in ((1, 640), (2, 445), (3, 630)):
+        (root / f"{index}-EM-ex340nm.txt").write_text("360 1\n361 2\n", encoding="utf-8")
+        (root / f"{index}-EX-em{emission}nm.txt").write_text("250 1\n251 2\n", encoding="utf-8")
+    pairing = TargetPairing("PL", "PL", "", "root", [root / "1-EM-ex340nm.txt"], "root", tmp_path / "pl.opju")
+    template = TemplateCandidate("PL", tmp_path / "pl.opju", "unit", graph_page="EXJF", plot_count=3)
+
+    selected = _template_pl_candidate_files(pairing, template, 3)
+    built = _build_template_xy_multisource_table(pairing, template)
+
+    assert [path.name for path in selected] == ["1-EX-em640nm.txt", "2-EX-em445nm.txt", "3-EX-em630nm.txt"]
+    assert [_template_xy_series_label("PL", path) for path in selected] == ["BOBC", "CWO", "BC"]
+    assert built is not None
+    assert built["headers"] == ["wavelength_nm", "BOBC_counts", "CWO_counts", "BC_counts"]
+    assert len(set(built["headers"])) == len(built["headers"])
+
+
+def test_template_photocurrent_uses_sample_directory_labels(tmp_path: Path) -> None:
+    root = tmp_path / "photocurrent" / "1bobc+2cwo+3bicu-10"
+    paths = [
+        root / "BOBC" / "1-(OCP).txt",
+        root / "CWO" / "2-(OCP).txt",
+        root / "bicu" / "1-(OCP)-bicu.txt",
+    ]
+    for path in paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("0 1\n1 2\n", encoding="utf-8")
+    pairing = TargetPairing("photocurrent", "photocurrent", "", "root", [paths[0]], "root", tmp_path / "pc.opju")
+    template = TemplateCandidate("photocurrent", tmp_path / "pc.opju", "unit", graph_page="Graph1", plot_count=3)
+
+    selected = _template_photocurrent_candidate_files(pairing, template, 3)
+    built = _build_template_xy_multisource_table(pairing, template)
+
+    assert [_template_xy_series_label("photocurrent", path) for path in selected] == ["BOBC", "CWO", "BiCu-10"]
+    assert built is not None
+    assert built["headers"] == ["time_s", "BOBC_current_a", "CWO_current_a", "BiCu-10_current_a"]
+    assert len(set(built["headers"])) == len(built["headers"])
+
+
 def test_template_epr_origin_processing_script_uses_origin_median_and_smooth() -> None:
     script = _template_epr_origin_processing_script("EPRBook", ["BC", "CWO", "BOBC"])
 
@@ -777,7 +944,7 @@ def test_cached_style_readback_only_requires_axis_title_visibility() -> None:
     assert relevant == {"axis_title_visible": True}
 
 
-def test_strict_preview_accepts_low_rms_plot_count_readback_delta_as_nonblocking() -> None:
+def test_strict_preview_rejects_plot_count_delta_even_with_low_rms_and_strong_style_match() -> None:
     reasons = _template_strict_visual_reasons(
         ready=True,
         plot_count_delta=-2,
@@ -785,7 +952,7 @@ def test_strict_preview_accepts_low_rms_plot_count_readback_delta_as_nonblocking
         preview_rms=24.9,
     )
 
-    assert reasons == []
+    assert reasons == ["plot count differs from template by -2"]
 
 
 def test_strict_preview_records_high_rms_as_nonblocking_when_style_and_plot_count_match() -> None:

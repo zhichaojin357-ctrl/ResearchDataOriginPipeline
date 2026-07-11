@@ -9,7 +9,7 @@ from pathlib import Path
 from src.core.file_utils import file_sha256 as _file_sha256
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.output_sanitizer import sanitize_report_payload as _sanitize_report_payload
-from src.core.project import default_output_root, report_path
+from src.core.project import report_path
 from src.core.runtime_paths import resolve_locked_result_index, resolve_output_root, resolve_workspace_root
 
 
@@ -78,7 +78,7 @@ def run_reviewed_queue(project_root: Path, options: ReviewedQueueOptions) -> int
     if options.decisions is not None:
         plan = plan_reviewed_queue(project_root, proposals, options)
         write_reviewed_queue_reports(project_root, plan, options)
-        return 0
+        return 1 if plan["summary"]["blocked_count"] else 0
     return 0
 
 
@@ -175,6 +175,8 @@ def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: Revi
             "approved_count": len(planned),
             "skipped_count": len(skipped),
             "blocked_count": len(blocked),
+            "plan_complete": not blocked,
+            "blocked_semantics": "blocked items are explicitly approved rows that could not form safe executable queue entries",
             "queue_item_count": len(planned),
             "will_launch_origin": False,
             "will_run_process": False,
@@ -525,6 +527,7 @@ def _plan_markdown(plan: dict) -> str:
         f"- Approved queue items: {summary['approved_count']}",
         f"- Skipped items: {summary['skipped_count']}",
         f"- Blocked items: {summary['blocked_count']}",
+        f"- Plan complete: {str(summary['plan_complete']).lower()}",
         f"- Will launch Origin: {summary['will_launch_origin']}",
         f"- Will run process: {summary['will_run_process']}",
         f"- Proposals SHA256: `{input_hashes.get('proposals_sha256', '')}`",

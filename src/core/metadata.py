@@ -35,24 +35,19 @@ def write_metadata(
     output_root: Path | None = None,
 ) -> dict:
     effective_output_root = output_root or (default_output_root(project_root) if project_root is not None else None)
+    if project_root is not None and effective_output_root is not None and not effective_output_root.is_absolute():
+        effective_output_root = project_root / effective_output_root
+    if project_root is not None:
+        ensure_write_path_allowed(project_root, path, output_root=effective_output_root)
     if processing_status == "success":
-        required = {
-            "origin_file": origin_file,
-            "figure_tif": figure_tif,
-            "preview_png": preview_png,
-            "processed_data": processed_data,
-        }
-        missing = [name for name, value in required.items() if value is None or not value.exists()]
-        if missing:
-            raise ValueError("Successful metadata requires existing artifacts: " + ", ".join(missing))
-        if project_root is not None:
-            outside_output = [
-                name
-                for name, value in required.items()
-                if value is not None and effective_output_root is not None and not _is_under(value, effective_output_root)
-            ]
-            if outside_output:
-                raise ValueError("Successful metadata artifacts must be under configured output root: " + ", ".join(outside_output))
+        _validate_success_contract(
+            metadata_path=path,
+            origin_file=origin_file,
+            figure_tif=figure_tif,
+            preview_png=preview_png,
+            processed_data=processed_data,
+            output_root=effective_output_root,
+        )
 
     def render_path(value: Path | None) -> str | None:
         if value is None:
@@ -97,11 +92,89 @@ def write_metadata(
             "interpretation": "low",
         },
     }
-    if project_root is not None:
-        ensure_write_path_allowed(project_root, path, output_root=effective_output_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    if processing_status == "success" and (not path.is_file() or path.stat().st_size <= 0):
+        raise ValueError(f"Successful metadata target must be a non-empty metadata.json file: {path}")
     return metadata
+
+
+def _validate_success_contract(
+    *,
+    metadata_path: Path,
+    origin_file: Path | None,
+    figure_tif: Path | None,
+    preview_png: Path | None,
+    processed_data: Path | None,
+    output_root: Path | None,
+) -> None:
+    if metadata_path.name.casefold() != "metadata.json":
+        raise ValueError(f"Successful metadata target must be named metadata.json: {metadata_path}")
+
+    required = {
+        "origin_file": origin_file,
+        "figure_tif": figure_tif,
+        "preview_png": preview_png,
+        "processed_data": processed_data,
+    }
+    missing = [name for name, value in required.items() if value is None or not value.is_file()]
+    if missing:
+        raise ValueError("Successful metadata requires existing artifact files: " + ", ".join(missing))
+
+    expected_extensions = {
+        "origin_file": ".opju",
+        "figure_tif": ".tif",
+        "preview_png": ".png",
+        "processed_data": ".csv",
+    }
+    wrong_extensions = [
+        name
+        for name, value in required.items()
+        if value is not None and value.suffix.casefold() != expected_extensions[name]
+    ]
+    if wrong_extensions:
+        details = ", ".join(f"{name}={required[name]}" for name in wrong_extensions)
+        raise ValueError(f"Successful metadata artifacts have incorrect extensions: {details}")
+
+    empty = [name for name, value in required.items() if value is not None and value.stat().st_size <= 0]
+    if empty:
+        raise ValueError("Successful metadata artifacts must be non-empty: " + ", ".join(empty))
+
+    if output_root is not None:
+        outside_output = [
+            name
+            for name, value in required.items()
+            if value is not None and not _is_under(value, output_root)
+        ]
+        if outside_output:
+            raise ValueError("Successful metadata artifacts must be under configured output root: " + ", ".join(outside_output))
+
+    assert figure_tif is not None
+    _validate_tif_600_dpi(figure_tif)
+
+
+def _validate_tif_600_dpi(path: Path) -> None:
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise ValueError("Successful metadata requires Pillow to validate the 600 dpi TIF contract") from exc
+
+    try:
+        with Image.open(path) as image:
+            if image.format != "TIFF":
+                raise ValueError(f"figure_tif is not a readable TIFF image: {path}")
+            dpi = image.info.get("dpi")
+    except (OSError, SyntaxError) as exc:
+        raise ValueError(f"figure_tif is not a readable TIFF image: {path}") from exc
+
+    if not isinstance(dpi, (tuple, list)) or len(dpi) < 2:
+        raise ValueError(f"figure_tif is missing 600 dpi metadata: {path}")
+    try:
+        x_dpi, y_dpi = float(dpi[0]), float(dpi[1])
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"figure_tif has invalid dpi metadata: {path}") from exc
+    if x_dpi < 600 or y_dpi < 600:
+        raise ValueError(f"figure_tif must be at least 600 dpi on both axes; found {x_dpi:g} x {y_dpi:g}: {path}")
 
 
 def _manual_check_items(processing_status: str, items: list[str], preview_png: Path | None) -> list[str]:

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from src.core.file_utils import file_sha256, is_under_or_equal
 from src.core.image_artifacts import ensure_tif_600_dpi_metadata
 from src.core.origin_runtime import copy_runtime_artifact
@@ -81,4 +83,23 @@ def test_ensure_tif_600_dpi_metadata_updates_dpi_without_changing_pixels(tmp_pat
 
     with Image.open(path) as image:
         assert image.size == (10, 8)
+        assert image.getpixel((0, 0)) == (255, 255, 255)
         assert tuple(round(value) for value in image.info.get("dpi", (0, 0))) == (600, 600)
+
+
+def test_ensure_tif_600_dpi_metadata_fails_closed_when_pillow_is_unavailable(tmp_path: Path, monkeypatch) -> None:
+    import builtins
+
+    path = tmp_path / "figure.tif"
+    path.write_bytes(b"tiff-placeholder")
+    original_import = builtins.__import__
+
+    def fail_pillow_import(name: str, *args, **kwargs):
+        if name == "PIL" or name.startswith("PIL."):
+            raise ImportError("Pillow unavailable")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fail_pillow_import)
+
+    with pytest.raises(RuntimeError, match="Pillow"):
+        ensure_tif_600_dpi_metadata(path)

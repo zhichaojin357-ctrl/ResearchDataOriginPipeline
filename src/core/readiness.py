@@ -9,7 +9,6 @@ from pathlib import Path
 from src.core.file_utils import file_sha256 as _file_sha256
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.output_sanitizer import scrub_output_text
-from src.core.project import default_output_root
 from src.core.runtime_paths import (
     resolve_optional_f_drive_backup,
     resolve_output_root,
@@ -220,7 +219,11 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
     )
 
     dashboard_path = output_root / "review_dashboard" / "index.md"
-    dashboard_ok, dashboard_detail = _dashboard_status(dashboard_path, stale_summary_terms)
+    dashboard_ok, dashboard_detail = _dashboard_status(
+        dashboard_path,
+        stale_summary_terms,
+        strict_artifacts=options.strict_artifacts,
+    )
     _add_artifact_check(
         checks,
         "review_dashboard_current",
@@ -639,13 +642,17 @@ def _origin_batch_plan_status(plan_path: Path, expected_count: int) -> tuple[boo
     )
 
 
-def _dashboard_status(path: Path, stale_terms: list[str]) -> tuple[bool, str]:
+def _dashboard_status(path: Path, stale_terms: list[str], *, strict_artifacts: bool = False) -> tuple[bool, str]:
     if not path.is_file() or path.stat().st_size == 0:
         return False, f"missing or empty: {path}"
     text = path.read_text(encoding="utf-8")
-    required_terms = [
+    optional_terms = [
         "manual_review_required_filtered.xlsx",
         "auto_process_plan.md",
+    ]
+    reports_dir = path.parent.parent / "reports"
+    required_terms = [
+        term for term in optional_terms if strict_artifacts or (reports_dir / term).is_file()
     ]
     missing = [term for term in required_terms if term not in text]
     stale = [term for term in stale_terms + ["manual_review_required_after_ai.csv"] if term in text]

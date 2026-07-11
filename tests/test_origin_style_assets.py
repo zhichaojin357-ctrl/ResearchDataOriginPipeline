@@ -4,7 +4,10 @@ import json
 from pathlib import Path
 
 from src.cli import main
+from src.core.file_utils import file_sha256
+from src.core.project import default_output_root
 from src.origin.template_format import build_template_format_plan
+from src.origin.style_registry import load_origin_style_manifest, validate_origin_style_asset_integrity
 
 
 def test_origin_format_theme_assets_do_not_embed_workspace_or_assistant_markers() -> None:
@@ -32,6 +35,153 @@ def test_origin_format_theme_assets_do_not_embed_workspace_or_assistant_markers(
                 hits.append(f"{asset.name}: {pattern.decode('utf-8', 'ignore')}")
 
     assert hits == []
+
+
+def test_origin_style_manifest_v1_remains_compatible(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "graph_page": "Graph1",
+                        "format_theme": "format_themes/BET.oth",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = validate_origin_style_asset_integrity(project, required_product_keys=("BET",))
+
+    assert result["ok"] is True
+    assert result["schema_version"] == 1
+    assert any("no mandatory per-file hash" in warning for warning in result["warnings"])
+
+
+def test_origin_style_manifest_v2_detects_asset_tampering(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    snapshot = style_root / "snapshots" / "BET.json"
+    data_snapshot = style_root / "data_snapshots" / "BET.json"
+    for path in (theme, snapshot, data_snapshot):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    theme.write_bytes(b"accepted-theme")
+    snapshot.write_text('{"layer_count":1,"plot_count":2}', encoding="utf-8")
+    data_snapshot.write_text('{"layers":[{"layer_index":1}],"plots":[{"y_dataset":"B","y_values":[1]}]}', encoding="utf-8")
+    files = {
+        "format_theme": theme,
+        "style_snapshot": snapshot,
+        "data_snapshot": data_snapshot,
+    }
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "status": "accepted",
+                        "graph_page": "Graph1",
+                        "format_theme": "format_themes/BET.oth",
+                        "style_snapshot": "snapshots/BET.json",
+                        "data_snapshot": "data_snapshots/BET.json",
+                        "asset_kind": "oth",
+                        "sha256": file_sha256(theme),
+                        "file_size_bytes": theme.stat().st_size,
+                        "expected_layer_count": 1,
+                        "expected_plot_count": 2,
+                        "harvested_at": "2026-07-11T12:00:00",
+                        "source_mode": "test",
+                        "file_integrity": {
+                            field: {
+                                "kind": path.suffix.lstrip("."),
+                                "sha256": file_sha256(path),
+                                "size_bytes": path.stat().st_size,
+                            }
+                            for field, path in files.items()
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    valid = validate_origin_style_asset_integrity(project, required_product_keys=("BET",))
+    theme.write_bytes(b"tampered-theme")
+    tampered = validate_origin_style_asset_integrity(project, required_product_keys=("BET",))
+
+    assert valid["ok"] is True
+    assert tampered["ok"] is False
+    assert any("sha256 mismatch" in failure for failure in tampered["failures"])
+
+
+def test_origin_style_manifest_rejects_unsupported_schema(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    manifest = project / "templates" / "origin_styles" / "manifest.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text('{"schema_version":99,"assets":[]}', encoding="utf-8")
+
+    try:
+        load_origin_style_manifest(project)
+    except ValueError as exc:
+        assert "Unsupported Origin style manifest schema_version 99" in str(exc)
+    else:
+        raise AssertionError("unsupported schema should fail")
+
+
+def test_origin_style_manifest_v2_reports_malformed_snapshot_counts(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    snapshot = style_root / "snapshots" / "BET.json"
+    theme.parent.mkdir(parents=True)
+    snapshot.parent.mkdir(parents=True)
+    theme.write_bytes(b"theme")
+    snapshot.write_text('{"layer_count":"invalid","plot_count":1}', encoding="utf-8")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "graph_page": "Graph1",
+                        "format_theme": "format_themes/BET.oth",
+                        "style_snapshot": "snapshots/BET.json",
+                        "asset_kind": "oth",
+                        "sha256": file_sha256(theme),
+                        "file_size_bytes": theme.stat().st_size,
+                        "expected_layer_count": 1,
+                        "expected_plot_count": 1,
+                        "harvested_at": "2026-07-11T12:00:00",
+                        "source_mode": "test",
+                        "file_integrity": {
+                            "format_theme": {"kind": "oth", "sha256": file_sha256(theme), "size_bytes": theme.stat().st_size},
+                            "style_snapshot": {"kind": "json", "sha256": file_sha256(snapshot), "size_bytes": snapshot.stat().st_size},
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = validate_origin_style_asset_integrity(project, required_product_keys=("BET",))
+
+    assert result["ok"] is False
+    assert any("not an integer" in failure for failure in result["failures"])
 
 
 def test_origin_style_manifest_resolves_project_local_format_theme(tmp_path: Path) -> None:
@@ -434,6 +584,13 @@ def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
         def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
             return OperationResult(True, "ok", {"columns": self.columns[book_name]})
 
+        def get_worksheet_column_designations(self, book_name: str, sheet_name: str) -> OperationResult:
+            designations = {
+                "Book2": ["X", "Y", "X", "Y", "X", "Y", "X", "Y"],
+                "Book3": ["N", "N", "N", "N", "X", "Y"],
+            }
+            return OperationResult(True, "ok", {"column_designations": designations[book_name]})
+
         def run_labtalk(self, script: str) -> OperationResult:
             stripped = script.strip()
             if stripped == "__rdop_plot_style_value=nan;":
@@ -494,6 +651,9 @@ def test_graph_data_snapshot_falls_back_to_default_sheet_and_plot_instance_names
                 },
             )
 
+        def get_worksheet_column_designations(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"column_designations": ["N", "N", "N", "N", "N", "X", "Y"]})
+
         def run_labtalk(self, script: str) -> OperationResult:
             return OperationResult(True, "ok")
 
@@ -508,6 +668,111 @@ def test_graph_data_snapshot_falls_back_to_default_sheet_and_plot_instance_names
     assert [plot["x_dataset"] for plot in plots] == ["Book1_F", "Book1_F"]
     assert [plot["sheet_name"] for plot in plots] == ["", ""]
     assert plots[1]["y_values"] == [50.0, 60.0]
+
+
+def test_graph_data_snapshot_supports_shared_x_for_multiple_y_columns() -> None:
+    from src.core.origin_style_assets import read_graph_data_snapshot
+    from src.origin.operations import OperationResult
+
+    class FakeOriginOps:
+        def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+            if layer_index == 1:
+                return OperationResult(True, "ok", {"plot_dataset_names": ["Book1_B", "Book1_C"]})
+            return OperationResult(False, "missing")
+
+        def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"columns": [[1.0, 2.0], [10.0, 20.0], [100.0, 200.0]]})
+
+        def get_worksheet_column_designations(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"column_designations": ["X", "Y", "Y"]})
+
+    snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph1")
+
+    assert snapshot["status"] == "ready"
+    assert [plot["x_dataset"] for plot in snapshot["plots"]] == ["Book1_A", "Book1_A"]
+    assert [plot["x_values"] for plot in snapshot["plots"]] == [[1.0, 2.0], [1.0, 2.0]]
+
+
+def test_graph_data_snapshot_prefers_explicit_plot_mapping_over_column_designations() -> None:
+    from src.core.origin_style_assets import read_graph_data_snapshot
+    from src.origin.operations import OperationResult
+
+    class FakeOriginOps:
+        def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+            if layer_index == 1:
+                return OperationResult(
+                    True,
+                    "ok",
+                    {
+                        "plot_dataset_names": ["Book1_B", "Book1_C"],
+                        "plot_x_dataset_names": ["Book1_A", "Book1_A"],
+                    },
+                )
+            return OperationResult(False, "missing")
+
+        def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"columns": [[1.0, 2.0], [10.0, 20.0], [100.0, 200.0]]})
+
+        def get_worksheet_column_designations(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"column_designations": ["X", "X", "Y"]})
+
+    snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph1")
+
+    assert snapshot["status"] == "ready"
+    assert [plot["x_dataset"] for plot in snapshot["plots"]] == ["Book1_A", "Book1_A"]
+    assert {plot["x_mapping_source"] for plot in snapshot["plots"]} == {"graph_plot_mapping"}
+
+
+def test_graph_data_snapshot_uses_origin_findx_readback_when_designations_are_not_exposed() -> None:
+    from src.core.origin_style_assets import read_graph_data_snapshot
+    from src.origin.operations import OperationResult
+
+    class FakeOriginOps:
+        def __init__(self) -> None:
+            self.x_column = float("nan")
+
+        def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+            if layer_index == 1:
+                return OperationResult(True, "ok", {"plot_dataset_names": ["Book1_C"]})
+            return OperationResult(False, "missing")
+
+        def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"columns": [[1.0, 2.0], [10.0, 20.0], [100.0, 200.0]]})
+
+        def run_labtalk(self, script: str) -> OperationResult:
+            if ".findX()" in script:
+                self.x_column = 1.0
+                return OperationResult(True, "ok")
+            return OperationResult(False, "unsupported")
+
+        def get_labtalk_variable(self, name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"value": self.x_column})
+
+    snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph1")
+
+    assert snapshot["status"] == "ready"
+    assert snapshot["plots"][0]["x_dataset"] == "Book1_A"
+    assert snapshot["plots"][0]["x_mapping_source"] == "origin_wks_col_findx"
+
+
+def test_graph_data_snapshot_fails_when_x_mapping_cannot_be_read_reliably() -> None:
+    from src.core.origin_style_assets import read_graph_data_snapshot
+    from src.origin.operations import OperationResult
+
+    class FakeOriginOps:
+        def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+            if layer_index == 1:
+                return OperationResult(True, "ok", {"plot_dataset_names": ["Book1_C"]})
+            return OperationResult(False, "missing")
+
+        def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"columns": [[1.0], [2.0], [3.0]]})
+
+    snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph1")
+
+    assert snapshot["status"] == "failed"
+    assert snapshot["plots"][0]["status"] == "x_mapping_unavailable"
+    assert "x_dataset" not in snapshot["plots"][0]
 
 
 def test_style_asset_export_loads_working_copy_not_source_opju(tmp_path: Path, monkeypatch) -> None:
@@ -545,6 +810,9 @@ def test_style_asset_export_loads_working_copy_not_source_opju(tmp_path: Path, m
 
         def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
             return OperationResult(True, "ok", {"columns": [[10.0], [100.0]]})
+
+        def get_worksheet_column_designations(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"column_designations": ["X", "Y"]})
 
         def save_graph_theme(self, graph_name: str, file_path: Path) -> OperationResult:
             Path(file_path).parent.mkdir(parents=True, exist_ok=True)
@@ -690,7 +958,7 @@ def test_cli_origin_style_asset_replay_passes_options(tmp_path: Path, monkeypatc
     project_root.mkdir()
     plan = project_root / "plan.json"
     plan.write_text('{"items":[]}', encoding="utf-8")
-    output_dir = project_root / "output" / "runs" / "replay"
+    output_dir = default_output_root(project_root) / "runs" / "replay"
     captured: dict[str, object] = {}
 
     def fake_replay(project: Path, plan_path: Path, out: Path, *, with_origin: bool = False) -> dict[str, object]:
@@ -786,3 +1054,76 @@ def test_export_replay_graph_copies_opju_into_product_dir(tmp_path: Path) -> Non
     assert exported_opju.read_bytes() == b"origin-project"
     with Image.open(result["tif"]) as image:
         assert tuple(round(float(value)) for value in image.info.get("dpi", (0, 0))) == (600, 600)
+
+
+def test_export_replay_graph_rejects_missing_requested_graph_page(tmp_path: Path) -> None:
+    from PIL import Image
+
+    from src.core.origin_style_assets import _export_replay_graph
+    from src.origin.operations import OperationResult
+
+    source_opju = tmp_path / "asset.opju"
+    source_opju.write_bytes(b"origin-project")
+    product_dir = tmp_path / "products" / "BET"
+    product_dir.mkdir(parents=True)
+    exported_graphs: list[str] = []
+
+    class FakeOriginOps:
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def load_project(self, _file_path: Path) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def list_worksheets(self) -> OperationResult:
+            return OperationResult(True, "ok", {"pages": [{"name": "Graph5", "type": "graph"}]})
+
+        def export_graph(self, graph_name: str, file_path: Path, fmt: str, dpi: int = 600) -> OperationResult:
+            exported_graphs.append(graph_name)
+            if fmt == "tif":
+                Image.new("RGB", (2, 2), "white").save(file_path, format="TIFF", dpi=(600, 600))
+            else:
+                Image.new("RGB", (2, 2), "white").save(file_path, format="PNG")
+            return OperationResult(True, "ok")
+
+    result = _export_replay_graph(FakeOriginOps(), source_opju, "MissingGraph", product_dir, "project_asset")
+
+    assert result["ok"] is False
+    assert result["requested_graph_page"] == "MissingGraph"
+    assert result["graph_pages"] == ["Graph5"]
+    assert exported_graphs == []
+
+
+def test_export_replay_graph_rejects_corrupt_tif_even_when_origin_reports_success(tmp_path: Path) -> None:
+    from PIL import Image
+
+    from src.core.origin_style_assets import _export_replay_graph
+    from src.origin.operations import OperationResult
+
+    source_opju = tmp_path / "asset.opju"
+    source_opju.write_bytes(b"origin-project")
+    product_dir = tmp_path / "products" / "BET"
+    product_dir.mkdir(parents=True)
+
+    class FakeOriginOps:
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def load_project(self, _file_path: Path) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def list_worksheets(self) -> OperationResult:
+            return OperationResult(True, "ok", {"pages": [{"name": "Graph5", "type": "graph"}]})
+
+        def export_graph(self, _graph_name: str, file_path: Path, fmt: str, dpi: int = 600) -> OperationResult:
+            if fmt == "tif":
+                file_path.write_bytes(b"not-a-tiff")
+            else:
+                Image.new("RGB", (2, 2), "white").save(file_path, format="PNG")
+            return OperationResult(True, "ok")
+
+    result = _export_replay_graph(FakeOriginOps(), source_opju, "Graph5", product_dir, "project_asset")
+
+    assert result["ok"] is False
+    assert "TIFF" in result["message"]
+    assert not (product_dir / "project_asset.tif").exists()

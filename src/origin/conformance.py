@@ -18,6 +18,15 @@ PAGE_LAYER_FIELDS = (
     "layer.y.thickness",
 )
 
+GRAPH4_GEOMETRY_FIELDS = (
+    "page.width",
+    "page.height",
+    "layer.left",
+    "layer.top",
+    "layer.width",
+    "layer.height",
+)
+
 AXIS_FIELDS = (
     "layer.x.ticks",
     "layer.y.ticks",
@@ -63,6 +72,20 @@ REQUIRED_FIELD_GROUPS = {
     "axis": AXIS_FIELDS,
     "legend_title": LEGEND_TITLE_FIELDS,
 }
+
+CRITICAL_FIELDS = frozenset(
+    (
+        *GRAPH4_GEOMETRY_FIELDS,
+        "layer.x.thickness",
+        "layer.y.thickness",
+        "layer.x.label.pt",
+        "layer.y.label.pt",
+        "xb.fsize",
+        "yl.fsize",
+        "xb.bold",
+        "yl.bold",
+    )
+)
 
 
 @dataclass(frozen=True)
@@ -130,28 +153,71 @@ def compare_style_snapshots(
         for field_name in fields:
             if field_name not in exemplar_values:
                 missing.append(f"exemplar:{field_name}")
+                if field_name in CRITICAL_FIELDS:
+                    issues.append(
+                        ConformanceIssue(
+                            field=field_name,
+                            exemplar=None,
+                            product=product_values.get(field_name),
+                            category=category,
+                            severity="fail",
+                            message="critical exemplar style field is unavailable",
+                        )
+                    )
                 continue
             if field_name not in product_values:
                 missing.append(f"product:{field_name}")
+                if field_name in CRITICAL_FIELDS:
+                    issues.append(
+                        ConformanceIssue(
+                            field=field_name,
+                            exemplar=exemplar_values[field_name],
+                            product=None,
+                            category=category,
+                            severity="fail",
+                            message="critical product style field is unavailable",
+                        )
+                    )
                 continue
             compared += 1
             expected = exemplar_values[field_name]
             actual = product_values[field_name]
-            if _within_tolerance(expected, actual, tolerance):
+            if field_name in GRAPH4_GEOMETRY_FIELDS:
+                matches = _within_absolute_tolerance(expected, actual, 0.01)
+            else:
+                matches = _within_tolerance(expected, actual, tolerance)
+            if matches:
                 matched += 1
             else:
+                geometry_failure = field_name in GRAPH4_GEOMETRY_FIELDS
                 issues.append(
                     ConformanceIssue(
                         field=field_name,
                         exemplar=expected,
                         product=actual,
                         category=category,
-                        severity="review",
-                        message="numeric style value differs from exemplar beyond tolerance",
+                        severity="fail" if geometry_failure else "review",
+                        message=(
+                            "Graph4 page/layer geometry differs by more than the absolute 0.01 tolerance"
+                            if geometry_failure
+                            else "numeric style value differs from exemplar beyond tolerance"
+                        ),
                     )
                 )
 
     line_widths = _plot_widths(product)
+    if not line_widths:
+        missing.append("product:plot_line_widths")
+        issues.append(
+            ConformanceIssue(
+                field="plot_line_widths",
+                exemplar=None,
+                product=None,
+                category="plot",
+                severity="fail",
+                message="critical product plot line-width readback is unavailable",
+            )
+        )
     expected_origin_width = required_line_width_pt * 500.0
     for index, value in enumerate(line_widths, start=1):
         if not _within_tolerance(expected_origin_width, value, 0.02):
@@ -270,6 +336,12 @@ def _within_tolerance(expected: float, actual: float, tolerance: float) -> bool:
         return False
     scale = max(abs(expected), 1.0)
     return abs(expected - actual) <= max(tolerance * scale, 1e-6)
+
+
+def _within_absolute_tolerance(expected: float, actual: float, tolerance: float) -> bool:
+    if not math.isfinite(expected) or not math.isfinite(actual):
+        return False
+    return abs(expected - actual) <= tolerance
 
 
 def _to_float(value: object) -> float | None:

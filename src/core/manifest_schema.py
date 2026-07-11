@@ -1,6 +1,8 @@
 ﻿from __future__ import annotations
 
 import csv
+import subprocess
+import sys
 from pathlib import Path
 
 
@@ -111,15 +113,23 @@ def validate_origin_batch_manifest(path: Path) -> dict:
 def explain_schema_mismatch(path: Path) -> dict:
     validation = validate_origin_batch_manifest(path)
     detected = validation["detected_manifest_type"]
+    suggested_command = subprocess.list2cmdline(
+        [
+            sys.executable,
+            "run.py",
+            "manifest-normalize",
+            "--manifest",
+            str(path),
+            "--output-csv",
+            "reports/material_collection_normalized_manifest.csv",
+        ]
+    )
     return {
         **validation,
-        "suggested_command": (
-            "D:\\Python\\python.exe run.py manifest-normalize --manifest "
-            f"{path} --output-csv output/reports/material_collection_normalized_manifest.csv"
-        )
+        "suggested_command": suggested_command
         if detected == "material_collection_manifest"
         else "Use a standard result package index.csv or generate a compatible manifest first.",
-        "normalized_manifest_path": "output/reports/material_collection_normalized_manifest.csv"
+        "normalized_manifest_path": "reports/material_collection_normalized_manifest.csv"
         if detected == "material_collection_manifest"
         else "",
         "safe_items_known": "unknown",

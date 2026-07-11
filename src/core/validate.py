@@ -20,6 +20,7 @@ from src.core.runtime_paths import resolve_workspace_root
 from src.core.runtime_paths import resolve_output_root
 from src.origin.adapter import ORIGIN_DISABLE_ENV_VARS, check_origin_available
 from src.origin.plot_policy import all_plot_policies, validate_graph4_style_config
+from src.origin.style_registry import validate_origin_style_asset_integrity
 
 
 def validate(project_root: Path) -> int:
@@ -198,6 +199,21 @@ def validate(project_root: Path) -> int:
         failed_origin_contracts.append("Graph4 fixed style values")
     if failed_origin_contracts:
         failures.append("Origin plotting contract invalid: " + ", ".join(failed_origin_contracts))
+
+    style_integrity = validate_origin_style_asset_integrity(project_root)
+    lines.append(
+        f"- Origin style asset integrity: {'pass' if style_integrity['ok'] else 'fail'} "
+        f"(schema v{style_integrity['schema_version']}, assets={style_integrity['asset_count']})"
+    )
+    for warning in style_integrity.get("warnings", [])[:5]:
+        lines.append(f"  - warning: {warning}")
+    style_failures = [str(value) for value in style_integrity.get("failures", [])]
+    if style_failures:
+        for failure in style_failures[:10]:
+            lines.append(f"  - {failure}")
+        if len(style_failures) > 10:
+            lines.append(f"  - ... {len(style_failures) - 10} more")
+        failures.append("Origin style asset integrity invalid")
 
     origin_governance_files = {
         "snapshot_md": output_root / "reports" / "origin_plotting_skill_snapshot.md",

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.core.file_utils import file_sha256 as _file_sha256
+from src.core.image_artifacts import ensure_tif_600_dpi_metadata
 from src.core.manifest_schema import schema_mismatch_message
 from src.core.output_sanitizer import sanitize_report_payload as _sanitize_report_payload
 from src.core.project import default_output_root, ensure_write_path_allowed, report_path
@@ -205,6 +206,7 @@ def execute_origin_batch_exports(project_root: Path, options: OriginBatchOptions
             processed_csv = artifacts["processed_csv"]
             x_title, y_title = _csv_axis_titles(processed_csv)
             source_file = Path(str(source_check.get("source_path_checked"))) if source_check.get("source_path_checked") else None
+            _clear_origin_output_targets(artifacts)
             origin_result = export_plot(
                 project_root,
                 result_id,
@@ -223,6 +225,7 @@ def execute_origin_batch_exports(project_root: Path, options: OriginBatchOptions
             missing = _missing_or_empty(artifacts, ORIGIN_OUTPUT_FIELDS)
             if missing:
                 raise RuntimeError("Origin export did not produce manifest outputs: " + ", ".join(missing))
+            ensure_tif_600_dpi_metadata(artifacts["figure_tif"])
             exported.append(
                 {
                     "row_number": row_number,
@@ -278,6 +281,20 @@ def _copy_exported_artifact(source: Path | str | None, target: Path | None) -> N
     if source_path.resolve() == target.resolve():
         return
     shutil.copy2(source_path, target)
+
+
+def _clear_origin_output_targets(artifacts: dict[str, Path]) -> None:
+    input_paths = {artifacts[field].resolve() for field in INPUT_ARTIFACT_FIELDS if field in artifacts}
+    for field in ORIGIN_OUTPUT_FIELDS:
+        target = artifacts.get(field)
+        if target is None:
+            continue
+        if target.resolve() in input_paths:
+            raise ValueError(f"Origin output target aliases a required input artifact: {field}")
+        if target.exists():
+            if not target.is_file():
+                raise RuntimeError(f"Origin output target is not a file: {target}")
+            target.unlink()
 
 
 def _manifest_plan_markdown(plan: dict) -> str:

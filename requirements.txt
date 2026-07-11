@@ -8,3 +8,4 @@ PyYAML
 pybaselines
 originpro
 pywin32
+Pillow

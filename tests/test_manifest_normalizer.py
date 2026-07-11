@@ -3,6 +3,7 @@
 import csv
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -43,7 +44,12 @@ def test_material_collection_manifest_is_detected_and_explained(tmp_path: Path):
     assert mismatch["detected_manifest_type"] == "material_collection_manifest"
     assert "processed_csv" in mismatch["missing_required_columns"]
     assert "metadata" in mismatch["missing_required_columns"]
-    assert mismatch["suggested_command"]
+    assert sys.executable in mismatch["suggested_command"]
+    schema_source = (Path(__file__).resolve().parents[1] / "src" / "core" / "manifest_schema.py").read_text(encoding="utf-8")
+    legacy_source_literal = str(Path("D:/Python/python.exe")).replace("\\", "\\\\")
+    assert legacy_source_literal not in schema_source
+    assert "--output-csv reports/material_collection_normalized_manifest.csv" in mismatch["suggested_command"]
+    assert mismatch["normalized_manifest_path"] == "reports/material_collection_normalized_manifest.csv"
 
 
 def test_material_collection_normalizer_marks_source_only_items_unsafe(tmp_path: Path):
@@ -130,7 +136,7 @@ def test_origin_batch_cli_explains_material_collection_schema_mismatch(tmp_path:
     _write_material_collection_index(collection, [])
 
     result = subprocess.run(
-        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(collection / "index.csv"), "--dry-run"],
+        [sys.executable, "run.py", "origin-batch", "--manifest", str(collection / "index.csv"), "--dry-run"],
         cwd=project_root,
         text=True,
         capture_output=True,
@@ -157,7 +163,7 @@ def test_manifest_normalize_cli_writes_origin_batch_compatible_outputs(tmp_path:
 
     result = subprocess.run(
         [
-            "D:\\Python\\python.exe",
+            sys.executable,
             str(project_root / "run.py"),
             "manifest-normalize",
             "--manifest",
@@ -181,6 +187,45 @@ def test_manifest_normalize_cli_writes_origin_batch_compatible_outputs(tmp_path:
     assert rows == []
     assert payload["summary"]["safe_count"] == 0
     assert "0 safe items" in out_md.read_text(encoding="utf-8")
+
+
+def test_manifest_normalize_cli_resolves_all_relative_outputs_from_configured_output_root(
+    tmp_path: Path,
+    project_root: Path,
+):
+    test_project = tmp_path / "project"
+    test_project.mkdir()
+    configured_output_root = tmp_path / "configured-output"
+    collection = tmp_path / "collection"
+    _write_material_collection_index(collection, [])
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(project_root / "run.py"),
+            "manifest-normalize",
+            "--manifest",
+            str(collection / "index.csv"),
+            "--output-root",
+            str(configured_output_root),
+            "--output-csv",
+            "custom/normalized.csv",
+            "--output-json",
+            "custom/normalized.json",
+            "--output-md",
+            "custom/normalized.md",
+        ],
+        cwd=test_project,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (configured_output_root / "custom" / "normalized.csv").is_file()
+    assert (configured_output_root / "custom" / "normalized.json").is_file()
+    assert (configured_output_root / "custom" / "normalized.md").is_file()
+    assert not (test_project / "custom").exists()
 
 
 def _write_material_collection_index(collection: Path, rows: list[dict[str, str]]) -> None:

@@ -7,8 +7,8 @@
   [bool]$CloseOrigin = $true,
   [bool]$ExportTemplateComparison = $true,
   [bool]$EnforceTemplateComparison = $true,
-  [double]$ComparisonMeanTolerance = 3.0,
-  [double]$ComparisonMaxTolerance = 80.0,
+  [double]$ComparisonMeanTolerance = 0.0,
+  [double]$ComparisonMaxTolerance = 0.0,
   [switch]$KeepIntermediate
 )
 
@@ -165,7 +165,8 @@ function Close-OriginProcessesStartedByScript([int[]]$BeforePids) {
 }
 
 function Normalize-TifDpi([string]$Path, [int]$Dpi) {
-  if (-not (Test-Path -LiteralPath $Path)) { return }
+  if (-not (Test-Path -LiteralPath $Path)) { throw "TIF output does not exist: $Path" }
+  $tmpPath = $Path + '.tmp.tif'
   try {
     Add-Type -AssemblyName System.Drawing -ErrorAction Stop
     $source = [System.Drawing.Image]::FromFile($Path)
@@ -176,7 +177,6 @@ function Normalize-TifDpi([string]$Path, [int]$Dpi) {
       $bitmap.SetResolution($Dpi, $Dpi)
       $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
       $graphics.DrawImage($source, 0, 0, $source.Width, $source.Height)
-      $tmpPath = $Path + '.tmp.tif'
       if (Test-Path -LiteralPath $tmpPath) { Remove-Item -LiteralPath $tmpPath -Force }
       $bitmap.Save($tmpPath, [System.Drawing.Imaging.ImageFormat]::Tiff)
     }
@@ -186,9 +186,19 @@ function Normalize-TifDpi([string]$Path, [int]$Dpi) {
       if ($source) { $source.Dispose() }
     }
     Move-Item -LiteralPath $tmpPath -Destination $Path -Force
+    $verified = [System.Drawing.Image]::FromFile($Path)
+    try {
+      if (($verified.HorizontalResolution -lt ($Dpi - 0.5)) -or ($verified.VerticalResolution -lt ($Dpi - 0.5))) {
+        throw "TIF DPI verification failed for $Path; expected $Dpi, got $($verified.HorizontalResolution)x$($verified.VerticalResolution)"
+      }
+    }
+    finally {
+      $verified.Dispose()
+    }
   }
   catch {
-    Write-Log ("TIF DPI normalization skipped for " + $Path + ": " + $_.Exception.Message)
+    if (Test-Path -LiteralPath $tmpPath) { Remove-Item -LiteralPath $tmpPath -Force -ErrorAction SilentlyContinue }
+    throw ("TIF DPI normalization failed for " + $Path + ": " + $_.Exception.Message)
   }
 }
 
@@ -209,6 +219,12 @@ function Export-GraphTif($App, [string]$PageName, [string]$Directory, [string]$B
   Wait-ForOutputFile $path
   Normalize-TifDpi $path $ExportDpi
   return $path
+}
+
+function Assert-HplcGraphExists($App, [string]$PageName) {
+  $layer = $App.FindGraphLayer($PageName)
+  if (-not $layer) { $layer = $App.FindGraphLayer($PageName + '!1') }
+  if (-not $layer) { throw "Required HPLC template graph page was not found: $PageName" }
 }
 
 function Sanitize-Graph($App, [string]$PageName) {
@@ -434,62 +450,124 @@ function Import-And-PlotCalibration(
   }
 }
 
+if (-not ('HplcImageComparer' -as [type])) {
+  Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @"
+using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+
+public sealed class HplcImageDiffResult {
+    public bool SameSize;
+    public int TemplateWidth;
+    public int TemplateHeight;
+    public int GeneratedWidth;
+    public int GeneratedHeight;
+    public long PixelCount;
+    public long ChangedPixels;
+    public double MeanAbsDelta;
+    public int MaxAbsDelta;
+}
+
+public static class HplcImageComparer {
+    public static HplcImageDiffResult Compare(string templatePath, string generatedPath) {
+        using (var sourceTemplate = new Bitmap(templatePath))
+        using (var sourceGenerated = new Bitmap(generatedPath)) {
+            var result = new HplcImageDiffResult {
+                TemplateWidth = sourceTemplate.Width,
+                TemplateHeight = sourceTemplate.Height,
+                GeneratedWidth = sourceGenerated.Width,
+                GeneratedHeight = sourceGenerated.Height,
+                SameSize = sourceTemplate.Width == sourceGenerated.Width && sourceTemplate.Height == sourceGenerated.Height
+            };
+            if (!result.SameSize) return result;
+            using (var template = ToArgb(sourceTemplate))
+            using (var generated = ToArgb(sourceGenerated)) {
+                var rectangle = new Rectangle(0, 0, template.Width, template.Height);
+                var templateData = template.LockBits(rectangle, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                var generatedData = generated.LockBits(rectangle, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                try {
+                    int templateStride = Math.Abs(templateData.Stride);
+                    int generatedStride = Math.Abs(generatedData.Stride);
+                    var templateBytes = new byte[templateStride * template.Height];
+                    var generatedBytes = new byte[generatedStride * generated.Height];
+                    Marshal.Copy(templateData.Scan0, templateBytes, 0, templateBytes.Length);
+                    Marshal.Copy(generatedData.Scan0, generatedBytes, 0, generatedBytes.Length);
+                    long sum = 0;
+                    int max = 0;
+                    long changed = 0;
+                    for (int y = 0; y < template.Height; y++) {
+                        int templateRow = y * templateStride;
+                        int generatedRow = y * generatedStride;
+                        for (int x = 0; x < template.Width; x++) {
+                            bool pixelChanged = false;
+                            int templateOffset = templateRow + x * 4;
+                            int generatedOffset = generatedRow + x * 4;
+                            for (int channel = 0; channel < 3; channel++) {
+                                int delta = Math.Abs(templateBytes[templateOffset + channel] - generatedBytes[generatedOffset + channel]);
+                                sum += delta;
+                                if (delta > max) max = delta;
+                                if (delta != 0) pixelChanged = true;
+                            }
+                            if (pixelChanged) changed++;
+                        }
+                    }
+                    result.PixelCount = (long)template.Width * template.Height;
+                    result.ChangedPixels = changed;
+                    result.MeanAbsDelta = result.PixelCount == 0 ? 0 : (double)sum / (result.PixelCount * 3L);
+                    result.MaxAbsDelta = max;
+                    return result;
+                }
+                finally {
+                    template.UnlockBits(templateData);
+                    generated.UnlockBits(generatedData);
+                }
+            }
+        }
+    }
+
+    private static Bitmap ToArgb(Bitmap source) {
+        var output = new Bitmap(source.Width, source.Height, PixelFormat.Format32bppArgb);
+        using (var graphics = Graphics.FromImage(output)) graphics.DrawImageUnscaled(source, 0, 0);
+        return output;
+    }
+}
+"@
+}
+
 function Compare-ImageFiles([string]$TemplatePath, [string]$GeneratedPath, [double]$MeanTolerance, [double]$MaxTolerance) {
   if (-not (Test-Path -LiteralPath $TemplatePath)) { throw "Template image missing: $TemplatePath" }
   if (-not (Test-Path -LiteralPath $GeneratedPath)) { throw "Generated image missing: $GeneratedPath" }
-  Add-Type -AssemblyName System.Drawing -ErrorAction Stop
-  $templateImage = [System.Drawing.Bitmap]::FromFile($TemplatePath)
-  $generatedImage = [System.Drawing.Bitmap]::FromFile($GeneratedPath)
-  try {
-    $sameSize = ($templateImage.Width -eq $generatedImage.Width) -and ($templateImage.Height -eq $generatedImage.Height)
-    if (-not $sameSize) {
-      return [pscustomobject]@{
-        Pass = $false
-        TemplateWidth = $templateImage.Width
-        TemplateHeight = $templateImage.Height
-        GeneratedWidth = $generatedImage.Width
-        GeneratedHeight = $generatedImage.Height
-        Samples = 0
-        MeanAbsDelta = ''
-        MaxAbsDelta = ''
-        Status = 'dimension_mismatch'
-      }
-    }
-    $sampleColumns = [Math]::Min(101, $templateImage.Width)
-    $sampleRows = [Math]::Min(101, $templateImage.Height)
-    $sampleCount = 0
-    $sumDelta = 0.0
-    $maxDelta = 0
-    for ($iy = 0; $iy -lt $sampleRows; $iy++) {
-      if ($sampleRows -eq 1) { $y = 0 } else { $y = [int][Math]::Round($iy * ($templateImage.Height - 1) / ($sampleRows - 1)) }
-      for ($ix = 0; $ix -lt $sampleColumns; $ix++) {
-        if ($sampleColumns -eq 1) { $x = 0 } else { $x = [int][Math]::Round($ix * ($templateImage.Width - 1) / ($sampleColumns - 1)) }
-        $a = $templateImage.GetPixel($x, $y)
-        $b = $generatedImage.GetPixel($x, $y)
-        foreach ($delta in @([Math]::Abs($a.R - $b.R), [Math]::Abs($a.G - $b.G), [Math]::Abs($a.B - $b.B))) {
-          $sumDelta += $delta
-          if ($delta -gt $maxDelta) { $maxDelta = $delta }
-        }
-        $sampleCount += 1
-      }
-    }
-    $meanDelta = $sumDelta / ($sampleCount * 3)
-    $passed = ($meanDelta -le $MeanTolerance) -and ($maxDelta -le $MaxTolerance)
+  $difference = [HplcImageComparer]::Compare($TemplatePath, $GeneratedPath)
+  if (-not $difference.SameSize) {
     return [pscustomobject]@{
-      Pass = $passed
-      TemplateWidth = $templateImage.Width
-      TemplateHeight = $templateImage.Height
-      GeneratedWidth = $generatedImage.Width
-      GeneratedHeight = $generatedImage.Height
-      Samples = $sampleCount
-      MeanAbsDelta = $meanDelta.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture)
-      MaxAbsDelta = $maxDelta
-      Status = if ($passed) { 'pass' } else { 'pixel_delta_exceeds_tolerance' }
+      Pass = $false
+      ExactPixelMatch = $false
+      TemplateWidth = $difference.TemplateWidth
+      TemplateHeight = $difference.TemplateHeight
+      GeneratedWidth = $difference.GeneratedWidth
+      GeneratedHeight = $difference.GeneratedHeight
+      Samples = 0
+      ChangedPixels = 0
+      MeanAbsDelta = ''
+      MaxAbsDelta = ''
+      Status = 'dimension_mismatch'
     }
   }
-  finally {
-    $templateImage.Dispose()
-    $generatedImage.Dispose()
+  $passed = ($difference.MeanAbsDelta -le $MeanTolerance) -and ($difference.MaxAbsDelta -le $MaxTolerance)
+  $exact = $difference.ChangedPixels -eq 0
+  return [pscustomobject]@{
+    Pass = $passed
+    ExactPixelMatch = $exact
+    TemplateWidth = $difference.TemplateWidth
+    TemplateHeight = $difference.TemplateHeight
+    GeneratedWidth = $difference.GeneratedWidth
+    GeneratedHeight = $difference.GeneratedHeight
+    Samples = $difference.PixelCount
+    ChangedPixels = $difference.ChangedPixels
+    MeanAbsDelta = $difference.MeanAbsDelta.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture)
+    MaxAbsDelta = $difference.MaxAbsDelta
+    Status = if ($exact) { 'exact_pixel_match' } elseif ($passed) { 'within_explicit_tolerance' } else { 'pixel_delta_exceeds_tolerance' }
   }
 }
 
@@ -500,6 +578,9 @@ if ([string]::IsNullOrWhiteSpace($OutputDir)) {
 $OutputDir = Resolve-RunPath $OutputDir $projectRoot
 $projectOutputRoot = Get-ProjectOutputRoot $projectRoot
 Assert-UnderOrEqual $OutputDir $projectOutputRoot ("OutputDir must stay under the configured output root: " + $OutputDir)
+if ($EnforceTemplateComparison -and (($ComparisonMeanTolerance -ne 0.0) -or ($ComparisonMaxTolerance -ne 0.0))) {
+  throw 'Strict template comparison requires zero mean and max pixel tolerances.'
+}
 if ([string]::IsNullOrWhiteSpace($Stamp)) {
   $Stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 }
@@ -519,12 +600,14 @@ $previewDir = Join-Path $OutputDir 'figures_preview'
 $tifDir = Join-Path $OutputDir 'figures_tif'
 $metadataDir = Join-Path $OutputDir 'metadata\HPLC_calibration_curves'
 $comparisonDir = Join-Path $OutputDir 'template_comparison'
+$templateOriginalPreviewDir = Join-Path $comparisonDir 'template_original_preview'
+$templateOriginalTifDir = Join-Path $comparisonDir 'template_original_tif'
 $templatePreviewDir = Join-Path $comparisonDir 'template_preview'
 $templateTifDir = Join-Path $comparisonDir 'template_tif'
 $logDir = Join-Path $OutputDir 'logs'
 $stageRoot = New-NeutralOriginStage $Stamp $projectRoot
 $stageTemplateDir = Join-Path $stageRoot 'origin_templates'
-New-Item -ItemType Directory -Path $dataDir, $originDir, $previewDir, $tifDir, $metadataDir, $comparisonDir, $logDir, $stageTemplateDir -Force | Out-Null
+New-Item -ItemType Directory -Path $dataDir, $originDir, $previewDir, $tifDir, $metadataDir, $comparisonDir, $templateOriginalPreviewDir, $templateOriginalTifDir, $templatePreviewDir, $templateTifDir, $logDir, $stageTemplateDir -Force | Out-Null
 
 $script:LogPath = Join-Path $logDir 'origin_run_log.txt'
 if (Test-Path -LiteralPath $script:LogPath) { Remove-Item -LiteralPath $script:LogPath -Force }
@@ -549,9 +632,9 @@ $yTitlePower3 = '\b(Peak area \(40)10\+(3) mAU*s\(41))'
 $yTitlePower2 = '\b(Peak area \(40)10\+(2) mAU*s\(41))'
 
 $series = @(
-  @{ Key='Sulfoxide'; Page='Cal_Sulfoxide'; TemplateGraph='Cal_Sulfoxide'; Name='Anisole sulfoxide'; YTo=3200; YInc=500; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=1585; LegendTop=880; LegendWidth=2429; LegendHeight=826; XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338; YTitleLeft=362; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204 },
-  @{ Key='Sulfone'; Page='Cal_Sulfone'; TemplateGraph='Cal_Sulfone'; Name='Anisole sulfone'; YTo=1100; YInc=200; YDivideBy=100; YTitle=$yTitlePower2; LegendLeft=1740; LegendTop=808; LegendWidth=2308; LegendHeight=826; XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338; YTitleLeft=413; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204 },
-  @{ Key='Sulfide'; Page='Cal_Sulfide'; TemplateGraph='Cal_Sulfide'; Name='Anisole sulfide'; YTo=23000; YInc=5000; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=1578; LegendTop=850; LegendWidth=2457; LegendHeight=760; XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338; YTitleLeft=413; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204 }
+  @{ Key='Sulfoxide'; Page='Cal_Sulfoxide'; TemplateGraph='Cal_Sulfoxide'; Name='Anisole sulfoxide'; YTo=3200; YInc=500; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=2300; LegendTop=760; LegendWidth=2429; LegendHeight=826; XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338; YTitleLeft=226; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204 },
+  @{ Key='Sulfone'; Page='Cal_Sulfone'; TemplateGraph='Cal_Sulfone'; Name='Anisole sulfone'; YTo=1100; YInc=200; YDivideBy=100; YTitle=$yTitlePower2; LegendLeft=2300; LegendTop=760; LegendWidth=2308; LegendHeight=826; XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338; YTitleLeft=226; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204 },
+  @{ Key='Sulfide'; Page='Cal_Sulfide'; TemplateGraph='Cal_Sulfide'; Name='Anisole sulfide'; YTo=23000; YInc=5000; YDivideBy=1000; YTitle=$yTitlePower3; LegendLeft=2300; LegendTop=760; LegendWidth=2457; LegendHeight=760; XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338; YTitleLeft=413; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204 }
 )
 
 $masterHeader = 'Point' + "`t" + 'Concentration_mM' + "`t" + 'Sulfoxide_area_mAU_s' + "`t" + 'Sulfone_area_mAU_s' + "`t" + 'Sulfide_area_mAU_s'
@@ -573,6 +656,7 @@ foreach ($s in $series) {
 
 Copy-Item -LiteralPath $templateOpjuPath -Destination $workingTemplate -Force
 
+$templateOriginalPreviewMap = @{}
 $templatePreviewMap = @{}
 $generatedPreviewMap = @{}
 $generatedTifMap = @{}
@@ -591,7 +675,16 @@ try {
     $templateBase = 'hplc_' + $s.TemplateGraph + '_' + $Stamp
     $templatePath = Join-Path $stageTemplateDir ($templateBase + '.otpu')
     $app.Execute('win -a ' + $s.TemplateGraph + ';') | Out-Null
+    Assert-HplcGraphExists $app $s.TemplateGraph
+    if ($ExportTemplateComparison) {
+      $templateOriginalPreviewMap[$s.Page] = Export-GraphPng $app $s.TemplateGraph $templateOriginalPreviewDir ($s.Page + '_template_original')
+      Export-GraphTif $app $s.TemplateGraph $templateOriginalTifDir ($s.Page + '_template_original') $ExportDpi | Out-Null
+    }
     Apply-HplcYAxisStyle $app $s.TemplateGraph $s.YDivideBy $s.YTitle
+    if ($ExportTemplateComparison) {
+      $templatePreviewMap[$s.Page] = Export-GraphPng $app $s.TemplateGraph $templatePreviewDir ($s.Page + '_template')
+      Export-GraphTif $app $s.TemplateGraph $templateTifDir ($s.Page + '_template') $ExportDpi | Out-Null
+    }
     foreach ($expr in @('page.width', 'page.height', 'page.nlayers', 'layer.left', 'layer.top', 'layer.width', 'layer.height', 'layer.x.thickness', 'layer.y.thickness')) {
       ($s.TemplateGraph + ':' + $expr + '=' + $app.Evaluate($expr)) | Add-Content -LiteralPath $script:LogPath -Encoding UTF8
     }
@@ -599,10 +692,6 @@ try {
     $app.Execute('template_saveas pg:=' + $s.TemplateGraph + ' category:="HPLC_Calibration" template:="' + $templateBase + '" filepath:="' + (To-OriginPath $stageTemplateDir) + '" emf:=0 bmp:=1 loadsys:=0;') | Out-Null
     Wait-ForOutputFile $templatePath
     $s.TemplatePath = $templatePath
-    if ($ExportTemplateComparison) {
-      $templatePreviewMap[$s.Page] = Export-GraphPng $app $s.TemplateGraph $templatePreviewDir ($s.Page + '_template')
-      Export-GraphTif $app $s.TemplateGraph $templateTifDir ($s.Page + '_template') $ExportDpi | Out-Null
-    }
   }
 
   $app.NewProject() | Out-Null
@@ -635,13 +724,15 @@ finally {
 
 if ($ExportTemplateComparison) {
   $comparisonLines = @(
-    'Page' + "`t" + 'TemplatePng' + "`t" + 'GeneratedPng' + "`t" + 'TemplateWidth' + "`t" + 'TemplateHeight' + "`t" + 'GeneratedWidth' + "`t" + 'GeneratedHeight' + "`t" + 'SampleCount' + "`t" + 'MeanAbsDelta' + "`t" + 'MaxAbsDelta' + "`t" + 'Status'
+    'Page' + "`t" + 'OriginalTemplatePng' + "`t" + 'ExpectedTemplatePng' + "`t" + 'GeneratedPng' + "`t" + 'TemplateWidth' + "`t" + 'TemplateHeight' + "`t" + 'GeneratedWidth' + "`t" + 'GeneratedHeight' + "`t" + 'PixelCount' + "`t" + 'ChangedPixels' + "`t" + 'MeanAbsDelta' + "`t" + 'MaxAbsDelta' + "`t" + 'ExactPixelMatch' + "`t" + 'Status'
   )
   $failedComparisons = @()
+  $comparisonExact = $true
   foreach ($s in $series) {
     $result = Compare-ImageFiles $templatePreviewMap[$s.Page] $generatedPreviewMap[$s.Page] $ComparisonMeanTolerance $ComparisonMaxTolerance
     $comparisonLines += (
       $s.Page + "`t" +
+      (To-RunRelativePath $templateOriginalPreviewMap[$s.Page] $OutputDir) + "`t" +
       (To-RunRelativePath $templatePreviewMap[$s.Page] $OutputDir) + "`t" +
       (To-RunRelativePath $generatedPreviewMap[$s.Page] $OutputDir) + "`t" +
       $result.TemplateWidth + "`t" +
@@ -649,10 +740,13 @@ if ($ExportTemplateComparison) {
       $result.GeneratedWidth + "`t" +
       $result.GeneratedHeight + "`t" +
       $result.Samples + "`t" +
+      $result.ChangedPixels + "`t" +
       $result.MeanAbsDelta + "`t" +
       $result.MaxAbsDelta + "`t" +
+      $result.ExactPixelMatch + "`t" +
       $result.Status
     )
+    if (-not $result.ExactPixelMatch) { $comparisonExact = $false }
     if (-not $result.Pass) { $failedComparisons += $s.Page + ':' + $result.Status }
   }
   Write-Utf8Lines $comparisonReport $comparisonLines
@@ -675,7 +769,10 @@ $metadataPayload = [ordered]@{
   processed_data = (To-RunRelativePath (Join-Path $dataDir 'final_calibration_data.tsv') $OutputDir)
   figure_tif = @($series | ForEach-Object { To-RunRelativePath $generatedTifMap[$_.Page] $OutputDir })
   preview_png = @($series | ForEach-Object { To-RunRelativePath $generatedPreviewMap[$_.Page] $OutputDir })
+  template_original_preview_png = if ($ExportTemplateComparison) { @($series | ForEach-Object { To-RunRelativePath $templateOriginalPreviewMap[$_.Page] $OutputDir }) } else { @() }
+  template_expected_preview_png = if ($ExportTemplateComparison) { @($series | ForEach-Object { To-RunRelativePath $templatePreviewMap[$_.Page] $OutputDir }) } else { @() }
   template_comparison_report = if ($ExportTemplateComparison) { To-RunRelativePath $comparisonReport $OutputDir } else { $null }
+  template_comparison_exact_pixel_match = if ($ExportTemplateComparison) { $comparisonExact } else { $null }
   manual_check_items = @(
     'confirm HPLC calibration point identity, integration boundaries, and calibration applicability before quantitative use',
     'confirm Origin graph formatting against the accepted HPLC calibration template comparison report'

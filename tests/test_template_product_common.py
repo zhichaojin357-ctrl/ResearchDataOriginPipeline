@@ -12,9 +12,29 @@ from src.core.template_product_common import (
     _build_processed_plot_table,
     extract_xrd_raw_data_rows,
     export_product_with_origin,
+    build_default_root_map,
     load_target_pairings,
     _write_no_label_audit,
 )
+
+
+def test_default_root_map_allows_local_pairing_root_overrides(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    config = project / "config"
+    config.mkdir(parents=True)
+    (config / "default.yaml").write_text("project:\n  name: test\n", encoding="utf-8")
+    (config / "local.yaml").write_text(
+        "template_pairing_roots:\n"
+        "  f_drive_detection: external/raw\n"
+        "  workspace_xps_data: external/xps\n",
+        encoding="utf-8",
+    )
+
+    roots = build_default_root_map(project)
+
+    assert roots["f_drive_detection"] == project / "external" / "raw"
+    assert roots["workspace_xps_data"] == project / "external" / "xps"
+    assert roots["origin_manual_save"] == project / "templates" / "origin_styles" / "reference_opju"
 
 
 def test_load_target_pairings_selects_only_authorized_product_types(tmp_path: Path) -> None:

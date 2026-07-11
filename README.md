@@ -7,7 +7,7 @@ Formal entrypoints are `run.py` and `src/cli.py`. Helper scripts under `scripts/
 ## Current Rules
 
 - Raw data is read-only.
-- Default output root is the workspace sibling folder `D:\Codex Project\科研数据处理\输出`.
+- Default output root is the configured sibling folder `../输出`; override it with `config/local.yaml`, `RDOP_OUTPUT_ROOT`, or `--output-root`.
 - Every successful Origin job must save `.opju`, `.tif`, and a preview image.
 - Output labels and Origin-facing workbook metadata must not contain Codex names, full local paths, or comments copied from source files.
 - SEM, TEM, NMR, MS, and kinetics/reference folders are scan-only unless an explicit processor is added and tested.
@@ -17,15 +17,19 @@ Formal entrypoints are `run.py` and `src/cli.py`. Helper scripts under `scripts/
 ## Main Commands
 
 ```powershell
-D:\Python\python.exe run.py scan --input <data-root>
-D:\Python\python.exe run.py triage --input <data-root> --explain --force-refresh
-D:\Python\python.exe run.py process --input <data-root> --no-origin
-D:\Python\python.exe run.py origin-batch --manifest <manifest.csv> --dry-run
-D:\Python\python.exe run.py template-format-products --pairing <pairing-plan.json> --with-origin
-D:\Python\python.exe run.py xrd-overlay --with-origin <required inputs>
-D:\Python\python.exe run.py validate
-D:\Python\python.exe run.py readiness --no-desktop-review-xlsx
+python run.py scan --input <data-root>
+python run.py triage --input <data-root> --explain --force-refresh
+python run.py process --input <data-root> --no-origin
+python run.py origin-batch --manifest <manifest.csv> --dry-run
+python run.py template-format-products --pairing <pairing-plan.json> --with-origin
+python run.py template-format-products --pairing <pairing-plan.json> --asset-only --with-origin
+python run.py origin-style-asset-replay --template-plan <template-plan.json> --output-dir <run-dir> --with-origin
+python run.py xrd-overlay --with-origin <required inputs>
+python run.py validate
+python run.py readiness --no-desktop-review-xlsx
 ```
+
+`--asset-only` is the formal proof path for external-template independence. It uses only `templates/origin_styles`, does not scan external OPJU roots, does not export an external reference preview, and records `asset_only=true` plus `external_template_dependency=false` in each product metadata file. Harvest and replay commands may use reviewed source OPJU files; product generation does not.
 
 ## Documentation
 

@@ -17,6 +17,7 @@ from src.core.epr_jeol import (
     decode_jeol_cacqu_series,
     export_jeol_cwesr_to_xlsx,
     looks_like_jeol_cwesr_file,
+    read_verified_jeol_export_series,
     read_xy_xlsx,
     write_data_xlsx,
 )
@@ -83,6 +84,12 @@ def write_synthetic_jeol_cacqu(path: Path, *, process_type: str = "cAcqu", data_
     path.write_bytes(bytes(header) + struct.pack(f"<{data_length}f", *ch1) + struct.pack(f"<{data_length}f", *ch2))
 
 
+def expected_first_aggregation_center(*, raw_points: int = 65536, export_points: int = DEFAULT_EXPORT_POINTS) -> float:
+    repeats = raw_points // export_points
+    raw_step = 1600.0 / (raw_points - 1)
+    return round(3300.0 + raw_step * ((repeats - 1) / 2), 4)
+
+
 class JeolEprDecodeTest(unittest.TestCase):
     def _processed_rows(self, root: Path, metadata: dict) -> list[dict[str, str]]:
         with _artifact_path(root, metadata["processed_data"]).open(encoding="utf-8") as handle:
@@ -98,7 +105,7 @@ class JeolEprDecodeTest(unittest.TestCase):
 
             self.assertEqual(len(rows), DEFAULT_EXPORT_POINTS)
             self.assertEqual(set(rows[0]), {"magnetic field", "intensity"})
-            self.assertEqual(rows[0]["magnetic field"], "3300.0")
+            self.assertEqual(rows[0]["magnetic field"], str(expected_first_aggregation_center()))
             self.assertEqual(rows[0]["intensity"], "7.5")
 
     def test_jeol_cacqu_points_override_uses_requested_export_grid_when_compatible(self):
@@ -110,8 +117,47 @@ class JeolEprDecodeTest(unittest.TestCase):
 
             self.assertEqual(len(x_values), 2048)
             self.assertEqual(len(y_values), 2048)
-            self.assertEqual(x_values[0], 3300.0)
+            self.assertEqual(x_values[0], expected_first_aggregation_center(export_points=2048))
             self.assertEqual(y_values[0], 7.5)
+
+    def test_jeol_cacqu_downsampled_x_values_use_the_aggregation_bin_centers(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "CWO-OH-light1"
+            raw_points = 65536
+            write_synthetic_jeol_cacqu(source, data_length=raw_points)
+
+            x_values, _ = decode_jeol_cacqu_series(source)
+
+            repeats = raw_points // DEFAULT_EXPORT_POINTS
+            raw_step = 1600.0 / (raw_points - 1)
+            expected_first = round(3300.0 + raw_step * ((repeats - 1) / 2), 4)
+            expected_last = round(3300.0 + raw_step * (raw_points - 1 - (repeats - 1) / 2), 4)
+            self.assertEqual(x_values[0], expected_first)
+            self.assertEqual(x_values[-1], expected_last)
+            self.assertGreater(x_values[-1] - x_values[0], 1599.0)
+
+    def test_verified_excel_export_reuses_matching_raw_field_axis(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "EPR"
+            raw_dir = root / "20260410-3"
+            export_dir = root / "EPR_Excel_verified" / "20260410-3"
+            raw_dir.mkdir(parents=True)
+            export_dir.mkdir(parents=True)
+            raw = raw_dir / "BC-O3-light5"
+            export = export_dir / "BC-O3-light5.xlsx"
+            write_synthetic_jeol_cacqu(raw)
+            _correct_x, decoded_y = decode_jeol_cacqu_series(raw)
+            legacy_step = 1600.0 / (65536 - 1)
+            legacy_x = [3300.0 + legacy_step * index for index in range(DEFAULT_EXPORT_POINTS)]
+            write_data_xlsx(export, legacy_x, decoded_y)
+
+            result = read_verified_jeol_export_series(export)
+
+            self.assertEqual(result.axis_source, "verified_jeol_raw_header")
+            self.assertEqual(result.x_unit, "G")
+            self.assertEqual(result.raw_source, raw)
+            self.assertEqual(result.y_values, decoded_y)
+            self.assertGreater(result.x_values[-1] - result.x_values[0], 1599.0)
 
     def test_jeol_cacqu_points_override_requires_raw_points_to_divide_export_points(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -188,8 +234,21 @@ class JeolEprDecodeTest(unittest.TestCase):
             finally:
                 workbook.close()
             self.assertEqual(len(rows), DEFAULT_EXPORT_POINTS)
-            self.assertEqual(rows[0], (3300.0, 7.5))
-            self.assertEqual(float(rows[0][0]), 3300.0)
+            self.assertEqual(rows[0], (expected_first_aggregation_center(), 7.5))
+            self.assertEqual(float(rows[0][0]), expected_first_aggregation_center())
+
+    def test_jeol_export_rejects_missing_or_non_directory_roots(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            output = root / "decoded"
+
+            with self.assertRaisesRegex(FileNotFoundError, "does not exist"):
+                export_jeol_cwesr_to_xlsx([root / "missing"], output)
+
+            non_directory = root / "raw-file"
+            non_directory.write_bytes(b"not a directory")
+            with self.assertRaisesRegex(NotADirectoryError, "not a directory"):
+                export_jeol_cwesr_to_xlsx([non_directory], output)
 
     def test_skill_compatible_compare_report_marks_exact_same_name_match(self):
         with tempfile.TemporaryDirectory() as tmpdir:

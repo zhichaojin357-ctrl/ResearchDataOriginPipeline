@@ -11,18 +11,26 @@ from src.core.template_format_executor import (
     TEMPLATE_FORMAT_SCOPE,
     TemplateFormatExecutorOptions,
     _apply_embedded_snapshot_data_axis_range,
+    _apply_cached_style_rich_text_policies,
     _apply_external_reference_plot_sequence,
     _apply_nonoverlap_plain_legend_anchor,
+    _apply_reviewed_template_plot_policy,
+    _apply_saved_template_legend_anchor,
     _apply_template_base_global_policies,
     _apply_xrd_standard_card_legend_and_label,
     _apply_xrd_template_plain_legend_labels,
     _clean_exemplar_legend_entry,
     _format_preserved_line_sample_legend,
+    _load_saved_data_snapshot,
     _load_saved_style_snapshot,
+    _mott_schottky_candidate_guides,
     _plain_text_legend_policy,
     _plain_text_legend_entries,
     _processed_csv_plot_pairs,
+    _refresh_graph_for_export,
+    _replace_eis_dynamic_legend_with_static_rich_text,
     _select_plain_legend_anchor,
+    _set_origin_graph_object_text,
     _strip_raster_metadata,
     _with_default_xps_non_in_situ_template_root,
     _xrd_direct_label_positions,
@@ -96,6 +104,7 @@ class _FakeCachedStyleOps:
         self.loaded_paths: list[Path] = []
         self.closed = False
         self.commands: list[str] = []
+        self.font_calls: list[dict[str, object]] = []
 
     def new_project(self) -> OperationResult:
         return OperationResult(True, "new")
@@ -145,6 +154,10 @@ class _FakeCachedStyleOps:
 
     def set_axis_labels(self, *_args: object, **_kwargs: object) -> OperationResult:
         return OperationResult(True, "axis")
+
+    def set_graph_font(self, _graph_name: str, **kwargs: object) -> OperationResult:
+        self.font_calls.append(kwargs)
+        return OperationResult(True, "font")
 
     def apply_graph4_fixed_style(self, *_args: object, **_kwargs: object) -> OperationResult:
         return OperationResult(True, "style")
@@ -502,7 +515,11 @@ def test_export_template_base_uses_neutral_runtime_for_opju_template(tmp_path: P
     monkeypatch.setattr("src.core.template_format_executor.read_graph_style_snapshot", lambda *_args, **_kwargs: snapshot)
     monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
 
-    result = export_template_base_product_with_origin(product, ResolvedPlotStyle())
+    result = export_template_base_product_with_origin(
+        product,
+        ResolvedPlotStyle(),
+        preserve_exemplar_style=True,
+    )
 
     assert result["ok"] is True
     assert result["template_format_plan"]["mode"] == "opju_template_base"
@@ -653,6 +670,8 @@ def test_export_template_base_uses_embedded_snapshot_when_opju_missing(tmp_path:
     assert product.reference_preview_png.exists()
     assert product.reference_preview_png.read_bytes() == product.preview_png.read_bytes()
     assert all(path.name != product.reference_opju_copy.name for path in fake.loaded_paths)
+    assert fake.font_calls[-1]["x_tick_label_size"] == 28
+    assert fake.font_calls[-1]["y_tick_label_size"] == 36
     assert fake.closed is True
 
 
@@ -731,9 +750,75 @@ def test_cli_template_format_products_passes_options(tmp_path: Path, monkeypatch
     assert options.xps_reference_template_root == xps_root
     assert options.xps_non_in_situ_template_root == xps_non_root
     assert options.with_origin is True
+    assert options.asset_only is False
     assert options.exemplar_driven is True
     assert options.compact_output is True
     assert options.only_type == "XRD"
+
+
+def test_cli_template_format_products_passes_asset_only(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    pairing = tmp_path / "pairing.json"
+    pairing.write_text("[]", encoding="utf-8")
+    captured: dict[str, object] = {}
+
+    def fake_run(project: Path, options: TemplateFormatExecutorOptions) -> dict[str, object]:
+        captured["project"] = project
+        captured["options"] = options
+        return {
+            "run_root": str(tmp_path / "out" / "runs" / "asset_only"),
+            "summary": {
+                "product_count": 1,
+                "accepted_count": 0,
+                "required_product_count": 1,
+                "blocked_count": 1,
+                "failed_count": 0,
+            },
+        }
+
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr("src.cli.run_template_format_executor", fake_run)
+
+    code = main(["template-format-products", "--pairing", str(pairing), "--asset-only", "--only-type", "BET"])
+
+    assert code == 1
+    options = captured["options"]
+    assert isinstance(options, TemplateFormatExecutorOptions)
+    assert options.asset_only is True
+    assert options.exemplar_driven is False
+
+
+def test_asset_only_builder_options_disable_external_template_inputs(tmp_path: Path) -> None:
+    options = TemplateFormatExecutorOptions(
+        pairing_path=tmp_path / "pairing.json",
+        asset_only=True,
+        f_drive_template_root=tmp_path / "f_drive",
+        xps_reference_template_root=tmp_path / "xps",
+        xps_non_in_situ_template_root=tmp_path / "xps_non",
+    )
+
+    builder = build_template_product_builder_options(options)
+
+    assert builder.asset_only is True
+    assert builder.prefer_project_style_assets is True
+    assert builder.external_reference_preview_comparison is False
+    assert builder.f_drive_template_root is None
+    assert builder.xps_reference_template_root is None
+    assert builder.xps_non_in_situ_template_root is None
+
+
+def test_asset_only_export_rejects_opju_template_base(tmp_path: Path) -> None:
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a\n0,1\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), asset_only=True)
+
+    assert result["ok"] is False
+    assert result["asset_only"] is True
+    assert result["external_template_dependency"] is False
+    assert "rejected an OPJU/OPJ template base" in result["message"]
 
 
 def test_embedded_snapshot_eis_axis_range_uses_processed_csv_bounds(tmp_path: Path) -> None:
@@ -771,15 +856,17 @@ def test_embedded_snapshot_eis_axis_range_uses_processed_csv_bounds(tmp_path: Pa
     result = _apply_embedded_snapshot_data_axis_range(ops, "Graph1", product)
 
     assert _processed_csv_plot_pairs(product, ["cleaned_x", "cleaned_y", "fit_x", "fit_y"]) == [(1, 2), (3, 4)]
-    assert _plain_text_legend_policy(product)["visible"] is False
-    assert _plain_text_legend_policy(product)["entry_count"] == 0
+    legend_policy = _plain_text_legend_policy(product)
+    assert legend_policy["visible"] is True
+    assert legend_policy["entries"] == ["BOBC"]
+    assert legend_policy["entry_count"] == 1
     assert result["applied"] is True
     assert ops.axis_calls
     axis = ops.axis_calls[0]
     assert axis["x_min"] == 0.0
     assert axis["y_min"] == 0.0
-    assert 34 < float(axis["x_max"]) < 36
-    assert 20 < float(axis["y_max"]) < 23
+    assert 105 < float(axis["x_max"]) < 106
+    assert 34 < float(axis["y_max"]) < 35
     assert any("legend.x = layer.x.from" in command for command in ops.commands)
 
 
@@ -822,6 +909,41 @@ def test_embedded_snapshot_xrd_axis_range_uses_normalized_offset_sample_bounds(t
     assert axis["y_min"] == 0.0
     assert 5.6 < float(axis["y_max"]) < 5.8
     assert result["reference_sticks_present"] is True
+
+
+def test_uvvis_wavelength_data_overrides_tauc_theme_axis_range(tmp_path: Path) -> None:
+    processed = tmp_path / "uvvis.csv"
+    processed.write_text(
+        "wavelength_nm,BOBC,CWO\n200,1,2\n1000,3,4\n",
+        encoding="utf-8",
+    )
+    product = replace(_product(tmp_path, processed), product_key="UV-vis DRS / Tauc")
+    ops = _FakeAxisOps()
+
+    result = _apply_embedded_snapshot_data_axis_range(ops, "Graph2", product)
+
+    assert result == {
+        "applied": True,
+        "method": "uvvis_wavelength_bounds_after_tauc_style_geometry",
+        "x_min": 200.0,
+        "x_max": 1000.0,
+    }
+    assert ops.axis_calls == [{"x_min": 200.0, "x_max": 1000.0, "y_min": None, "y_max": None}]
+
+
+def test_epr_verified_field_data_overrides_legacy_template_axis_range(tmp_path: Path) -> None:
+    processed = tmp_path / "epr.csv"
+    processed.write_text(
+        "magnetic_field,BC,CWO,BOBC\n324.0011,1,2,3\n333.9989,4,5,6\n",
+        encoding="utf-8",
+    )
+    product = replace(_product(tmp_path, processed), product_key="EPR")
+    ops = _FakeAxisOps()
+
+    result = _apply_embedded_snapshot_data_axis_range(ops, "EPR", product)
+
+    assert result["method"] == "epr_verified_field_bounds_after_legacy_style_geometry"
+    assert ops.axis_calls == [{"x_min": 324.0011, "x_max": 333.9989, "y_min": None, "y_max": None}]
 
 
 def test_xrd_standard_card_uses_four_sample_plots_plus_card(tmp_path: Path) -> None:
@@ -889,6 +1011,61 @@ def test_plain_legend_anchor_prefers_upper_blank_space_over_bottom_corners() -> 
     )
 
     assert str(anchor["corner"]).startswith("top")
+
+
+def test_saved_template_legend_anchor_preserves_fraction_after_axis_change() -> None:
+    ops = _FakeAxisOps()
+    snapshot = {
+        "audit_numeric_values": {"legend.show": 1},
+        "layout_values": {
+            "layer.x.from": 2.0,
+            "layer.x.to": 4.0,
+            "layer.y.from": -10.0,
+            "layer.y.to": 30.0,
+            "legend.x": 3.7,
+            "legend.y": 25.0,
+        }
+    }
+
+    policy = _apply_saved_template_legend_anchor(ops, "Graph1", snapshot)
+
+    assert policy["applied"] is True
+    assert policy["method"] == "saved_template_fractional_anchor_before_plain_text_replacement"
+    assert abs(float(policy["x_fraction"]) - 0.85) < 1e-12
+    assert abs(float(policy["y_fraction"]) - 0.875) < 1e-12
+    assert "0.85 * (layer.x.to - layer.x.from)" in ops.commands[0]
+
+
+def test_saved_template_legend_anchor_rejects_hidden_placeholder_coordinates() -> None:
+    ops = _FakeAxisOps()
+    snapshot = {
+        "audit_numeric_values": {"legend.show": 0},
+        "layout_values": {
+            "layer.x.from": 168.0,
+            "layer.x.to": 154.0,
+            "layer.y.from": 0.0,
+            "layer.y.to": 1.0,
+            "legend.x": 0.0,
+            "legend.y": 0.0,
+        },
+    }
+
+    policy = _apply_saved_template_legend_anchor(ops, "Graph1", snapshot)
+
+    assert policy == {"applied": False, "reason": "saved_template_legend_not_visible"}
+    assert ops.commands == []
+
+
+def test_plain_legend_entries_remove_redundant_measurement_suffixes(tmp_path: Path) -> None:
+    processed = tmp_path / "pl.csv"
+    processed.write_text("wavelength_nm,BOBC_counts,CWO_counts,BC_counts\n250,1,2,3\n", encoding="utf-8")
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="PL",
+        legend_entries=["BOBC counts", "CWO counts", "BC counts"],
+    )
+
+    assert _plain_text_legend_entries(product) == ["BOBC", "CWO", "BC"]
 
 
 def test_xps_plain_legend_entries_keep_measured_samples_only(tmp_path: Path) -> None:
@@ -1027,6 +1204,311 @@ def test_preserved_line_sample_legend_is_formatted_without_removing_line_samples
     assert "legend.show=0" not in joined
 
 
+def test_reviewed_eis_plot_policy_restores_template_visibility_legend_and_axis_titles(tmp_path: Path) -> None:
+    class PlotOps(_FakeAxisOps):
+        def _plot_names(self, _graph_name: str) -> list[str]:
+            return [f"Plot{index}" for index in range(1, 9)]
+
+    product = replace(
+        _product(tmp_path, tmp_path / "eis.csv"),
+        product_key="EIS",
+        legend_entries=["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"],
+    )
+    ops = PlotOps()
+    snapshot = {
+        "audit_string_values": {
+            "xb.text$": r"\b(Z' \(40)k\f:g(Ω)\(41))",
+            "yl.text$": r"\b(-Z'' \(40)k\f:g(Ω)\(41))",
+        }
+    }
+    data_snapshot = {
+        "plots": [
+            {
+                "style": {
+                    "color": 26777852 + index,
+                    "line_color": 24,
+                    "line_width_pt": 0.5,
+                    "line_style": 0,
+                    "symbol_shape": 20,
+                    "symbol_size": 12,
+                    "fill_area": 1,
+                    "fill_color": -9,
+                    "border_color": 1,
+                    "border_width": 0.5,
+                }
+            }
+            for index in range(8)
+        ]
+    }
+
+    policy = _apply_reviewed_template_plot_policy(
+        ops,
+        "Graph1",
+        product,
+        snapshot,
+        ResolvedPlotStyle(font_family="Arial", legend_font_size=28),
+        data_snapshot=data_snapshot,
+    )
+
+    joined = "\n".join(ops.commands)
+    assert policy["applied"] is True
+    assert policy["visible_indices"] == [3, 4, 5]
+    assert "layer.plot1.show=0" in joined
+    assert "layer.plot3.show=1" in joined
+    assert "layer.plot8.show=0" in joined
+    assert r"\l(3)\b(BiOBr\-(0.5)Cl\-(0.5))" in joined
+    assert r"\l(4)\b(CuWO\-(4))" in joined
+    assert "label -s -xb" in joined
+    assert "label -s -yl" in joined
+    assert "set Plot1 -wp 0.5" in joined
+    assert "set Plot1 -l 0" in joined
+    assert "set Plot1 -k 20" in joined
+    assert "set Plot1 -pfb 1" in joined
+    assert "set Plot1 -pfc -9" in joined
+    assert "set Plot1 -c 26777852" in joined
+    assert policy["plot_style"]["applied"] is True
+
+
+def test_mott_candidate_guides_recover_reviewed_common_linear_window() -> None:
+    data_snapshot_path = Path(__file__).parents[1] / "templates" / "origin_styles" / "data_snapshots" / "Mott_Schottky.json"
+    data_snapshot = json.loads(data_snapshot_path.read_text(encoding="utf-8"))
+    plots = data_snapshot["plots"][:3]
+    headers = ["potential_v", "1500_one_over_c_squared", "2000_one_over_c_squared", "2500_one_over_c_squared"]
+    rows = [
+        [plots[0]["x_values"][index], *(plot["y_values"][index] for plot in plots)]
+        for index in range(len(plots[0]["x_values"]))
+    ]
+
+    candidate = _mott_schottky_candidate_guides(headers, rows, series_count=3)
+
+    assert candidate["linear_interval_candidate"] == [0.15, 0.25]
+    assert candidate["linear_fit_point_count"] == 3
+    assert abs(float(candidate["shared_x_intercept_candidate"]) - (-1.04)) < 0.01
+    assert len(candidate["constrained_slopes"]) == 3
+    assert min(candidate["constrained_r_squared"]) > 0.98
+
+
+def test_reviewed_mott_policy_draws_data_dependent_candidate_guides(tmp_path: Path) -> None:
+    data_snapshot_path = Path(__file__).parents[1] / "templates" / "origin_styles" / "data_snapshots" / "Mott_Schottky.json"
+    data_snapshot = json.loads(data_snapshot_path.read_text(encoding="utf-8"))
+    plots = data_snapshot["plots"]
+    processed = tmp_path / "mott.csv"
+    headers = ["potential_v", "1500_one_over_c_squared", "2000_one_over_c_squared", "2500_one_over_c_squared"]
+    lines = [",".join(headers)]
+    for index in range(len(plots[0]["x_values"])):
+        lines.append(
+            ",".join(
+                str(value)
+                for value in [plots[0]["x_values"][index], *(plot["y_values"][index] for plot in plots[:3])]
+            )
+        )
+    processed.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    class PlotOps(_FakeAxisOps):
+        def _plot_names(self, _graph_name: str) -> list[str]:
+            return [f"Plot{index}" for index in range(1, 6)]
+
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="Mott-Schottky",
+        legend_entries=["1500Hz BiOBr0.5Cl0.5", "2000Hz BiOBr0.5Cl0.5", "2500Hz BiOBr0.5Cl0.5"],
+    )
+    ops = PlotOps()
+    style_snapshot = {
+        "layout_values": {"layer.x.from": -1.2, "layer.x.to": 0.78, "layer.y.to": 2.7e9},
+        "audit_string_values": {"xb.text$": "Potential", "yl.text$": "C^-2"},
+    }
+
+    policy = _apply_reviewed_template_plot_policy(
+        ops,
+        "Graph2",
+        product,
+        style_snapshot,
+        ResolvedPlotStyle(font_family="Arial", legend_font_size=28),
+        data_snapshot=data_snapshot,
+    )
+
+    joined = "\n".join(ops.commands)
+    guides = policy["mott_schottky_candidate_guides"]
+    assert guides["applied"] is True
+    assert guides["manual_check_required"] is True
+    assert guides["annotation"] == "-1.04 V"
+    assert "draw -n rdop_mott_fit_1 -w 3 -d 1 -l" in joined
+    assert "rdop_mott_fit_1.color=color(128,128,128)" in joined
+    assert "label -a" not in joined
+    assert "label -n rdop_mott_x_intercept" in joined
+    assert "rdop_mott_x_intercept" in joined
+
+
+def test_refresh_graph_for_export_forces_document_update_and_repaint() -> None:
+    ops = _FakeAxisOps()
+
+    result = _refresh_graph_for_export(ops, "Graph1")
+
+    assert result["applied"] is True
+    assert ops.commands == ['win -a "Graph1"; doc -uw;', 'win -a "Graph1"; draw -uwi;']
+
+
+def test_origin_graph_object_text_reassignment_refreshes_cached_legend() -> None:
+    class GraphObject:
+        Text = "Sheet1"
+
+    graph_object = GraphObject()
+
+    class GraphObjects:
+        def __getitem__(self, name: str) -> GraphObject:
+            assert name == "Legend"
+            return graph_object
+
+    graph_objects = GraphObjects()
+
+    class Layer:
+        def __init__(self) -> None:
+            self.GraphObjects = graph_objects
+
+    class App:
+        def FindGraphLayer(self, _name: str) -> Layer:
+            return Layer()
+
+    class Ops:
+        app = App()
+
+    text = r"\l(3)\b(BiOBr\-(0.5)Cl\-(0.5))"
+
+    assert _set_origin_graph_object_text(Ops(), "Graph1", "Legend", text) is True
+    assert graph_object.Text == text
+
+
+def test_reviewed_legend_com_text_is_refreshed_after_legend_formatting(tmp_path: Path) -> None:
+    class GraphObject:
+        Text = "Sheet1"
+
+        def SetNumProp(self, _prop: str, _value: object) -> None:
+            return None
+
+    graph_object = GraphObject()
+
+    class GraphObjects:
+        def __getitem__(self, name: str) -> GraphObject:
+            assert name == "Legend"
+            return graph_object
+
+    graph_objects = GraphObjects()
+
+    class Layer:
+        def __init__(self) -> None:
+            self.GraphObjects = graph_objects
+
+    class App:
+        def FindGraphLayer(self, _name: str) -> Layer:
+            return Layer()
+
+        def Evaluate(self, _expression: str) -> int:
+            return 67
+
+    class Ops:
+        app = App()
+
+        def run_labtalk(self, _command: str) -> OperationResult:
+            graph_object.Text = "Sheet1"
+            return OperationResult(True, "ok")
+
+    product = replace(
+        _product(tmp_path, tmp_path / "eis.csv"),
+        product_key="EIS",
+        legend_entries=["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"],
+    )
+
+    policy = _apply_cached_style_rich_text_policies(
+        Ops(),
+        "Graph1",
+        product,
+        ResolvedPlotStyle(font_family="Arial", legend_font_size=28),
+    )
+
+    assert policy["legend_com_text_refreshed_after_formatting"] is True
+    assert graph_object.Text == (
+        r"\l(3)\b(BiOBr\-(0.5)Cl\-(0.5))" "\r\n"
+        r"\l(4)\b(CuWO\-(4))" "\r\n"
+        r"\l(5)\b(BiCu-10)"
+    )
+
+
+def test_eis_final_legend_uses_static_rich_text_at_template_position(tmp_path: Path) -> None:
+    class GraphObject:
+        def __init__(self, name: str, text: str = "") -> None:
+            self.Name = name
+            self.Text = text
+            self.Left = 2641
+            self.Top = 870
+            self.Width = 1478
+            self.Height = 761
+            self.Show = 1
+            self.props: dict[str, object] = {}
+
+        def SetNumProp(self, prop: str, value: object) -> None:
+            self.props[prop] = value
+            if prop == "show":
+                self.Show = value
+
+    objects = {"Legend": GraphObject("Legend", "Sheet1")}
+
+    class GraphObjects:
+        def __getitem__(self, name: str) -> GraphObject:
+            return objects[name]
+
+        @property
+        def Count(self) -> int:
+            return len(objects)
+
+        def Item(self, index: int) -> GraphObject:
+            return list(objects.values())[index]
+
+    graph_objects = GraphObjects()
+
+    class Layer:
+        GraphObjects = graph_objects
+
+    class App:
+        def FindGraphLayer(self, _name: str) -> Layer:
+            return Layer()
+
+        def Evaluate(self, _expression: str) -> int:
+            return 67
+
+    class Ops:
+        app = App()
+
+        def run_labtalk(self, command: str) -> OperationResult:
+            if "label -n rdop_reviewed_legend" in command:
+                objects["rdop_reviewed_legend"] = GraphObject("rdop_reviewed_legend", "x")
+            return OperationResult(True, "ok")
+
+    product = replace(
+        _product(tmp_path, tmp_path / "eis.csv"),
+        product_key="EIS",
+        legend_entries=["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"],
+    )
+
+    policy = _replace_eis_dynamic_legend_with_static_rich_text(
+        Ops(),
+        "Graph1",
+        product,
+        {"layout_values": {"legend.fsize": 28}},
+        ResolvedPlotStyle(font_family="Arial", legend_font_size=22),
+    )
+
+    static = objects["rdop_reviewed_legend"]
+    assert policy["applied"] is True
+    assert policy["font_size"] == 28
+    assert objects["Legend"].Show == 0
+    assert static.Left == 2641
+    assert static.Top == 870
+    assert static.props["fsize"] == 28
+    assert "BiOBr" in static.Text
+    assert "Sheet1" not in static.Text
+
+
 def test_xrd_standard_card_legend_uses_multiline_line_sample_entries(tmp_path: Path) -> None:
     processed = tmp_path / "xrd_card.csv"
     processed.write_text(
@@ -1141,6 +1623,19 @@ def test_load_saved_style_snapshot_reads_adjacent_snapshot_file(tmp_path: Path) 
     loaded = _load_saved_style_snapshot(theme)
 
     assert loaded["plot_colors"] == [16814848, 33518174]
+
+
+def test_load_saved_data_snapshot_reads_adjacent_data_snapshot_file(tmp_path: Path) -> None:
+    theme = tmp_path / "templates" / "origin_styles" / "format_themes" / "EIS.oth"
+    snapshot = tmp_path / "templates" / "origin_styles" / "data_snapshots" / "EIS.json"
+    theme.parent.mkdir(parents=True)
+    snapshot.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    snapshot.write_text('{"plots":[{"style":{"symbol_shape":20}}]}', encoding="utf-8")
+
+    loaded = _load_saved_data_snapshot(theme)
+
+    assert loaded["plots"][0]["style"]["symbol_shape"] == 20
 
 
 def test_xrd_standard_card_legend_keeps_template_vertical_entries() -> None:

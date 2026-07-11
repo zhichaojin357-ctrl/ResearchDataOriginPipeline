@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import importlib.util
 import json
 from pathlib import Path
@@ -16,6 +17,7 @@ CORE = {
     "pybaselines": "pybaselines",
     "originpro": "originpro",
     "win32com": "win32com",
+    "pillow": "PIL",
 }
 
 OPTIONAL = {
@@ -24,7 +26,6 @@ OPTIONAL = {
     "pygaps": "pygaps",
     "nmrglue": "nmrglue",
     "tifffile": "tifffile",
-    "pillow": "PIL",
     "lmfitxps": "lmfitxps",
     "vgd-reader": "vgd_reader",
     "ramanspy": "ramanspy",
@@ -58,7 +59,7 @@ BLOCKED = {
 
 
 def dependency_audit(project_root: Path) -> tuple[int, dict]:
-    core = {name: _availability(module, severity="fail") for name, module in CORE.items()}
+    core = {name: _availability(module, severity="fail", verify_import=True) for name, module in CORE.items()}
     optional = {name: _availability(module, severity="warning") for name, module in OPTIONAL.items()}
     reference_only = {name: _availability(module, severity="reference_only") for name, module in REFERENCE_ONLY.items()}
     blocked = {
@@ -72,6 +73,7 @@ def dependency_audit(project_root: Path) -> tuple[int, dict]:
         for name, item in BLOCKED.items()
     }
     missing_core = [name for name, item in core.items() if not item["available"]]
+    core_import_errors = [name for name, item in core.items() if item["status"] == "import_error"]
     missing_optional = [name for name, item in optional.items() if not item["available"]]
     missing_reference_only = [name for name, item in reference_only.items() if not item["available"]]
     result = {
@@ -82,6 +84,7 @@ def dependency_audit(project_root: Path) -> tuple[int, dict]:
         "summary": {
             "status": "fail" if missing_core else "pass",
             "missing_core": missing_core,
+            "core_import_errors": core_import_errors,
             "missing_optional": missing_optional,
             "missing_reference_only": missing_reference_only,
             "blocked": sorted(blocked),
@@ -93,8 +96,11 @@ def dependency_audit(project_root: Path) -> tuple[int, dict]:
     )
     lines = ["# Dependency Audit", "", "## Core"]
     for name, item in result["core"].items():
-        consequence = item["severity"] if not item["available"] else "ok"
-        lines.append(f"- `{name}`: {'available' if item['available'] else 'missing'} ({consequence})")
+        if item["status"] == "import_error":
+            lines.append(f"- `{name}`: import_error ({item['import_error']})")
+        else:
+            consequence = item["severity"] if not item["available"] else "ok"
+            lines.append(f"- `{name}`: {'available' if item['available'] else 'missing'} ({consequence})")
     lines.extend(["", "## Optional"])
     for name, item in result["optional"].items():
         consequence = item["severity"] if not item["available"] else "ok"
@@ -112,11 +118,40 @@ def dependency_audit(project_root: Path) -> tuple[int, dict]:
     return (1 if missing_core else 0), result
 
 
-def _availability(module: str, severity: str) -> dict:
-    available = importlib.util.find_spec(module) is not None
+def _availability(module: str, severity: str, *, verify_import: bool = False) -> dict:
+    try:
+        available = importlib.util.find_spec(module) is not None
+    except Exception as exc:
+        return {
+            "module": module,
+            "available": False,
+            "severity": severity,
+            "status": "import_error",
+            "import_error": f"{type(exc).__name__}: {exc}",
+        }
+    if not available:
+        return {
+            "module": module,
+            "available": False,
+            "severity": severity,
+            "status": "missing",
+            "import_error": None,
+        }
+    if verify_import:
+        try:
+            importlib.import_module(module)
+        except Exception as exc:
+            return {
+                "module": module,
+                "available": False,
+                "severity": severity,
+                "status": "import_error",
+                "import_error": f"{type(exc).__name__}: {exc}",
+            }
     return {
         "module": module,
-        "available": available,
+        "available": True,
         "severity": severity,
-        "status": "available" if available else "missing",
+        "status": "available",
+        "import_error": None,
     }

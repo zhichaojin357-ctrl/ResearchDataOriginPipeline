@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import median
 
-from src.core.epr_jeol import read_xy_xlsx
+from src.core.epr_jeol import read_verified_jeol_export_series
 from src.core.output_sanitizer import render_output_path
 from src.core.project import default_output_root, ensure_write_path_allowed
 from src.core.project import output_dir, report_path
@@ -99,7 +99,8 @@ def build_epr_condition_overlay(
         path = reference_dir / file_name
         if not path.is_file():
             raise FileNotFoundError(f"EPR overlay input missing for {group_name}: {path}")
-        x_values, y_values = read_xy_xlsx(path)
+        export = read_verified_jeol_export_series(path)
+        x_values, y_values = export.x_values, export.y_values
         if len(x_values) < 2:
             raise ValueError(f"EPR overlay input needs at least two points, got {len(x_values)} rows in {path}")
         raw_values = list(y_values)
@@ -108,7 +109,12 @@ def build_epr_condition_overlay(
             background_path = reference_dir / background_map[label]
             if not background_path.is_file():
                 raise FileNotFoundError(f"EPR background file missing for {label}: {background_path}")
-            background_x, background_y = read_xy_xlsx(background_path)
+            background_export = read_verified_jeol_export_series(background_path)
+            background_x, background_y = background_export.x_values, background_export.y_values
+            if export.x_unit and background_export.x_unit and export.x_unit != background_export.x_unit:
+                raise ValueError(
+                    f"EPR field-unit mismatch for {label}: {export.x_unit} versus {background_export.x_unit}"
+                )
             _validate_common_x([x_values, background_x])
             y_values = [value - bg for value, bg in zip(y_values, background_y)]
             background_subtracted = list(y_values)
@@ -128,10 +134,17 @@ def build_epr_condition_overlay(
                 "baseline": baseline,
                 "background_subtracted": background_subtracted,
                 "background_file": background_map.get(label),
+                "field_unit": export.x_unit,
+                "field_axis_source": export.axis_source,
+                "raw_source": export.raw_source,
             }
         )
 
     _validate_common_x([trace["x"] for trace in traces])
+    field_units = {str(trace["field_unit"]) for trace in traces if str(trace["field_unit"]).strip()}
+    if len(field_units) > 1:
+        raise ValueError(f"EPR overlay inputs use inconsistent field units: {sorted(field_units)}")
+    field_unit = next(iter(field_units), "G")
     step = _offset_step([trace["centered"] for trace in traces])
     offsets = {trace["label"]: (len(traces) - index - 1) * step for index, trace in enumerate(traces)}
 
@@ -181,7 +194,7 @@ def build_epr_condition_overlay(
             project_root,
             f"EPR_{group_name}_overlay",
             plot_csv,
-            "Magnetic Field (G)",
+            f"Magnetic Field ({field_unit})",
             "Intensity (a.u.)",
             data_type="EPR overlay",
             source_file=reference_dir,
@@ -204,6 +217,13 @@ def build_epr_condition_overlay(
         "figure_tif": render(origin_result.figure_tif) if origin_result and origin_result.figure_tif else None,
         "preview_png": render(origin_result.preview_png) if origin_result and origin_result.preview_png else None,
         "processing_status": status,
+        "field_unit": field_unit,
+        "field_axis_sources": {trace["label"]: trace["field_axis_source"] for trace in traces},
+        "verified_raw_sources": {
+            trace["label"]: Path(str(trace["raw_source"])).name
+            for trace in traces
+            if trace["raw_source"] is not None
+        },
         "manual_check_required": True,
         "manual_check_items": [
             "confirm EPR field calibration, baseline handling, and trace offsets",
@@ -231,6 +251,8 @@ def build_epr_condition_overlay(
         "point_count": len(traces[0]["x"]),
         "x_min": min(traces[0]["x"]),
         "x_max": max(traces[0]["x"]),
+        "field_unit": field_unit,
+        "field_axis_sources": {trace["label"]: trace["field_axis_source"] for trace in traces},
         "offset_step": step,
         "offsets": offsets,
         "baseline_correction": "edge-region median baseline subtraction",

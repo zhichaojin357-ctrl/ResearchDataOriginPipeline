@@ -26,6 +26,7 @@ def normalize_material_collection_manifest(
     project_root: Path,
     *,
     output_dir: Path | None = None,
+    output_root: Path | None = None,
     output_csv: Path | None = None,
     output_json: Path | None = None,
     output_md: Path | None = None,
@@ -33,11 +34,27 @@ def normalize_material_collection_manifest(
     project_root = project_root.absolute()
     manifest_path = manifest_path.absolute()
     collection_root = manifest_path.parent
-    out_dir = output_dir or default_output_root(project_root) / "reports"
-    output_root = out_dir.parent if out_dir.name == "reports" else out_dir
-    csv_path = _resolve_output_path(project_root, output_csv or out_dir / "material_collection_normalized_manifest.csv", output_root)
-    json_path = _resolve_output_path(project_root, output_json or out_dir / "material_collection_normalized_manifest.json", output_root)
-    md_path = _resolve_output_path(project_root, output_md or out_dir / "material_collection_normalized_manifest.md", output_root)
+    effective_output_root = output_root or default_output_root(project_root)
+    if not effective_output_root.is_absolute():
+        effective_output_root = project_root / effective_output_root
+    out_dir = output_dir or effective_output_root / "reports"
+    if not out_dir.is_absolute():
+        out_dir = effective_output_root / out_dir
+    csv_path = _resolve_output_path(
+        project_root,
+        output_csv or out_dir / "material_collection_normalized_manifest.csv",
+        effective_output_root,
+    )
+    json_path = _resolve_output_path(
+        project_root,
+        output_json or out_dir / "material_collection_normalized_manifest.json",
+        effective_output_root,
+    )
+    md_path = _resolve_output_path(
+        project_root,
+        output_md or out_dir / "material_collection_normalized_manifest.md",
+        effective_output_root,
+    )
 
     rows = _read_rows(manifest_path)
     items = [_normalize_row(project_root, row, collection_root, manifest_path) for row in rows]
@@ -195,7 +212,7 @@ def _read_rows(path: Path) -> list[dict[str, str]]:
 
 
 def _resolve_output_path(project_root: Path, path: Path, output_root: Path) -> Path:
-    resolved = path if path.is_absolute() else project_root / path
+    resolved = path if path.is_absolute() else output_root / path
     ensure_write_path_allowed(project_root, resolved, output_root=output_root)
     return resolved
 

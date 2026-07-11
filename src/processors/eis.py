@@ -466,27 +466,3 @@ def _to_float(value: object) -> float | None:
 
 def _distance(a: EisPoint, b: EisPoint) -> float:
     return math.hypot(a.z_real_ohm - b.z_real_ohm, a.minus_z_imag_ohm - b.minus_z_imag_ohm)
-
-
-def _radial_distances(points: list[EisPoint]) -> list[float]:
-    median_x = statistics.median(point.z_real_ohm for point in points)
-    median_y = statistics.median(point.minus_z_imag_ohm for point in points)
-    return [math.hypot(point.z_real_ohm - median_x, point.minus_z_imag_ohm - median_y) for point in points]
-
-
-def _interp(x_value: float, x_values: list[float], y_values: list[float]) -> float | None:
-    if not x_values:
-        return None
-    if x_value <= x_values[0]:
-        return y_values[0]
-    if x_value >= x_values[-1]:
-        return y_values[-1]
-    for index in range(1, len(x_values)):
-        if x_values[index] >= x_value:
-            left_x, right_x = x_values[index - 1], x_values[index]
-            left_y, right_y = y_values[index - 1], y_values[index]
-            if right_x == left_x:
-                return right_y
-            fraction = (x_value - left_x) / (right_x - left_x)
-            return left_y + fraction * (right_y - left_y)
-    return y_values[-1]

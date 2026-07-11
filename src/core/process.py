@@ -661,7 +661,14 @@ def _artifact_missing(project_root: Path, metadata: dict, name: str, *, output_r
     if not path.is_absolute():
         if path.parts and path.parts[0] == "output":
             base = output_root or default_output_root(project_root)
-            path = base / Path(*path.parts[1:])
+            if not base.is_absolute():
+                base = project_root / base
+            if is_under_or_equal(base.resolve(), project_root.resolve()):
+                path = project_root / path
+            else:
+                if base.parent.name == "runs":
+                    base = base.parent.parent
+                path = base / Path(*path.parts[1:])
         else:
             path = project_root / path
     return not path.exists()
@@ -703,6 +710,18 @@ def _write_review_dashboard(project_root: Path, manifest: dict, results: list[di
     lines.extend(["", "## Forbidden Claims Check"])
     for item in summary["forbidden_claims"]:
         lines.append(f"- {item['dataset_id']}: {item['forbidden_claim_count']} forbidden claims recorded")
+    related_reports = (
+        ("Current filtered manual-review workbook", "manual_review_required_filtered.xlsx"),
+        ("AUTO_PROCESS dry-run plan", "auto_process_plan.md"),
+    )
+    available_reports = [
+        (label, name)
+        for label, name in related_reports
+        if report_path(project_root, name, output_root=output_root).is_file()
+    ]
+    if available_reports:
+        lines.extend(["", "## Related Review Artifacts"])
+        lines.extend(f"- [{label}](../reports/{name})" for label, name in available_reports)
     (dashboard / "index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

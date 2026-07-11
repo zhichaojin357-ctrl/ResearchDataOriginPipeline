@@ -10,7 +10,7 @@ from pathlib import Path
 from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.metadata import file_hash
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.project import load_json_compatible_yaml, output_dir, registry_path, report_path
+from src.core.project import load_json_compatible_yaml, output_dir, registry_path
 from src.core.table_reader import coerce_numeric_rows, read_table_with_metadata
 
 
@@ -23,6 +23,8 @@ DECISIONS = (
     "DEFERRED_TYPE",
     "REFERENCE_ONLY",
 )
+
+TRIAGE_POLICY_VERSION = "triage_policy_v1"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".gif", ".webp"}
 DOC_EXTENSIONS = {".pdf", ".doc", ".docx", ".ppt", ".pptx", ".caj", ".ris", ".bib", ".enw", ".enl"}
@@ -799,10 +801,20 @@ def _build_queue(
                 "duplicate_representative": item["duplicate_representative"],
             }
         )
+    policy_payload = {
+        "version": TRIAGE_POLICY_VERSION,
+        "min_confidence": min_confidence,
+        "decisions": DECISIONS,
+        "minimum_rows": MIN_ROWS,
+    }
+    policy_hash = hashlib.sha256(
+        json.dumps(policy_payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("ascii")
+    ).hexdigest()
     return {
         "queue_version": "1.0",
         "created_at": _now(),
-        "config_hash": "data_selection_rules_v1",
+        "policy_version": TRIAGE_POLICY_VERSION,
+        "config_hash": policy_hash,
         "min_confidence": min_confidence,
         "source_root": render_output_path(source_root, project_root=project_root, output_root=output_root),
         "items": queue_items,

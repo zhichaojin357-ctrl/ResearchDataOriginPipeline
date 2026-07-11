@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.core.metadata import file_hash
+from src.core.origin_runtime import copy_runtime_artifact
 from src.core.template_product_common import extract_xrd_raw_data_rows
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.runtime_paths import create_run_output_layout, resolve_origin_reference_pattern, resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
 from src.core.xrd_helpers import interpolated_y as _interpolated_y
@@ -233,9 +233,9 @@ def _export_with_existing_script(
         message = "XRD no-card Origin script missing required artifacts: " + ", ".join(missing)
         write_origin_error(project_root, f"xrd-no-card-overlay: {message}", output_root=artifacts.origin_file.parents[1])
         return {"ok": False, "message": message}
-    _copy_artifact(produced["origin_file"], artifacts.origin_file)
-    _copy_artifact(produced["figure_tif"], artifacts.figure_tif)
-    _copy_artifact(produced["preview_png"], artifacts.preview_png)
+    copy_runtime_artifact(produced["origin_file"], artifacts.origin_file)
+    copy_runtime_artifact(produced["figure_tif"], artifacts.figure_tif)
+    copy_runtime_artifact(produced["preview_png"], artifacts.preview_png)
     _terminate_task_origin_processes(pre_existing_origin_pids)
     shutil.rmtree(artifacts.script_output_dir, ignore_errors=True)
     write_origin_success(project_root, output_root=artifacts.origin_file.parents[1])
@@ -444,13 +444,6 @@ def _terminate_task_origin_processes(pre_existing_pids: set[int] | None = None) 
         capture_output=True,
         timeout=30,
     )
-
-
-def _copy_artifact(source: Path, target: Path) -> None:
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if target.exists():
-        target.unlink()
-    shutil.copy2(source, target)
 
 
 def _display_path(root: Path, path: Path | None) -> str:

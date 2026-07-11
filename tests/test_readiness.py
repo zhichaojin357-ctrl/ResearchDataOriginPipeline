@@ -84,6 +84,30 @@ def test_readiness_portable_mode_warns_for_missing_generated_history(tmp_path: P
     assert statuses["review_dashboard_current"] == "warning"
 
 
+def test_readiness_portable_mode_accepts_dashboard_without_links_to_absent_optional_artifacts(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    reports = default_output_root(project) / "reports"
+    dashboard = default_output_root(project) / "review_dashboard"
+    reports.mkdir(parents=True)
+    dashboard.mkdir(parents=True)
+    _write_active_entry_docs(project)
+    _write_passing_validation_report(reports / "validation_report.md")
+    (dashboard / "index.md").write_text("# Review Dashboard\n", encoding="utf-8")
+
+    code = run_readiness(
+        project,
+        ReadinessOptions(
+            expected_locked_result_count=1,
+            f_drive_backup=tmp_path / "missing_f_backup",
+        ),
+    )
+    report = json.loads((reports / "readiness_report.json").read_text(encoding="utf-8"))
+    statuses = {check["name"]: check["status"] for check in report["checks"]}
+
+    assert code == 0
+    assert statuses["review_dashboard_current"] == "pass"
+
+
 def test_readiness_strict_mode_fails_for_missing_generated_history(tmp_path: Path):
     project = tmp_path / "ResearchDataOriginPipeline"
     reports = default_output_root(project) / "reports"

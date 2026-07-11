@@ -6,6 +6,7 @@ from pathlib import Path
 
 from PIL import Image
 
+from src.core.epr_jeol import JeolEprExportSeries
 from src.processors.eis import EisCleaningResult, EisFitResult, EisPoint
 
 from src.core.template_product_builder import (
@@ -24,6 +25,7 @@ from src.core.template_product_builder import (
     validate_template_candidates,
     template_acceptance_status,
     _build_pairing_template_candidates,
+    _build_template_eis_table,
     _repair_exemplar_driven_pairings,
     _prioritized_template_validation_targets,
     _build_template_xrd_multisource_table,
@@ -186,6 +188,57 @@ def test_template_builder_uses_project_style_assets_without_default_external_sca
     assert result["summary"]["product_count"] == len(TEMPLATE_TARGET_TYPES)
 
 
+def test_asset_only_builder_never_scans_external_template_roots(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    style_root = project_root / "templates" / "origin_styles"
+    style_root.mkdir(parents=True)
+    (style_root / "manifest.json").write_text('{"schema_version":1,"assets":[]}', encoding="utf-8")
+    pairing = tmp_path / "pairing.json"
+    pairing.write_text("[]", encoding="utf-8")
+
+    def fail_external_scan(_root: Path | None) -> list[Path]:
+        raise AssertionError("asset-only mode must not scan external template roots")
+
+    monkeypatch.setattr("src.core.template_product_builder.scan_template_f_drive_template_paths", fail_external_scan)
+    monkeypatch.setattr("src.core.template_product_builder.scan_template_optional_template_paths", fail_external_scan)
+
+    result = run_template_product_builder_all_types(
+        project_root,
+        TemplateProductBuilderOptions(
+            pairing_path=pairing,
+            output_root=tmp_path / "out",
+            timestamp="20260711_120000",
+            asset_only=True,
+            external_reference_preview_comparison=True,
+            f_drive_template_root=tmp_path / "external_f",
+            xps_reference_template_root=tmp_path / "external_xps",
+            xps_non_in_situ_template_root=tmp_path / "external_xps_non",
+        ),
+    )
+
+    assert result["summary"]["asset_only"] is True
+    assert result["summary"]["external_template_dependency"] is False
+    manifest = json.loads((Path(result["run_root"]) / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["mode"] == "asset_only_no_origin"
+    assert len(manifest["input_paths"]) == 2
+    assert all("external_" not in value for value in manifest["input_paths"])
+
+
+def test_asset_only_builder_rejects_exemplar_driven_mode(tmp_path: Path) -> None:
+    pairing = tmp_path / "pairing.json"
+    pairing.write_text("[]", encoding="utf-8")
+
+    try:
+        run_template_product_builder_all_types(
+            tmp_path,
+            TemplateProductBuilderOptions(pairing_path=pairing, asset_only=True, exemplar_driven=True),
+        )
+    except ValueError as exc:
+        assert "mutually exclusive" in str(exc)
+    else:
+        raise AssertionError("asset-only and exemplar-driven modes must not run together")
+
+
 def test_select_template_blocks_missing_or_data_only_candidates() -> None:
     root = Path("F:/template_root")
     candidates = [
@@ -264,7 +317,7 @@ def test_template_acceptance_status_uses_strict_accepted_blocked_terms_only(tmp_
     assert "review" not in {accepted.status, blocked.status}
 
 
-def test_embedded_template_preview_acceptance_uses_readback_not_opju_one_to_one(tmp_path: Path) -> None:
+def test_embedded_template_preview_rejects_nonzero_plot_count_delta(tmp_path: Path) -> None:
     product_root = tmp_path / "products" / "BET"
     product_root.mkdir(parents=True)
     reference = product_root / "reference.png"
@@ -319,14 +372,14 @@ def test_embedded_template_preview_acceptance_uses_readback_not_opju_one_to_one(
 
     item = audit["items"][0]
     assert item["embedded_template_snapshot_mode"] is True
-    assert item["strict_status"] == "embedded_template_snapshot_match"
-    assert item["strict_visual_match"] is True
+    assert item["strict_status"] == "blocked_embedded_template_snapshot"
+    assert item["strict_visual_match"] is False
     assert item["plot_count_delta"] == -8
     assert item["style_match_ratio"] == 0.5
-    assert product["status"] == "accepted"
+    assert product["status"] == "blocked"
 
 
-def test_embedded_template_preview_accepts_xrd_card_line_sample_legend(tmp_path: Path) -> None:
+def test_embedded_xrd_card_legend_does_not_exempt_plot_count_delta(tmp_path: Path) -> None:
     product_root = tmp_path / "products" / "XRD"
     product_root.mkdir(parents=True)
     reference = product_root / "reference.png"
@@ -386,12 +439,13 @@ def test_embedded_template_preview_accepts_xrd_card_line_sample_legend(tmp_path:
     audit = _write_template_preview_comparison(tmp_path, [product])
 
     item = audit["items"][0]
-    assert item["strict_status"] == "embedded_template_snapshot_match"
-    assert item["strict_visual_match"] is True
-    assert product["status"] == "accepted"
+    assert item["strict_status"] == "blocked_embedded_template_snapshot"
+    assert item["strict_visual_match"] is False
+    assert item["plot_count_delta"] == 3
+    assert product["status"] == "blocked"
 
 
-def test_xrd_clean_rebuild_preview_accepts_current_data_plot_count(tmp_path: Path) -> None:
+def test_xrd_clean_rebuild_preview_rejects_nonzero_plot_count_delta(tmp_path: Path) -> None:
     product_root = tmp_path / "products" / "XRD"
     product_root.mkdir(parents=True)
     reference = product_root / "reference.png"
@@ -455,11 +509,11 @@ def test_xrd_clean_rebuild_preview_accepts_current_data_plot_count(tmp_path: Pat
 
     item = audit["items"][0]
     assert item["xrd_clean_graph_rebuild_mode"] is True
-    assert item["strict_status"] == "xrd_clean_graph_rebuild_match"
-    assert item["strict_visual_match"] is True
+    assert item["strict_status"] == "blocked_xrd_clean_graph_rebuild"
+    assert item["strict_visual_match"] is False
     assert item["plot_count_delta"] == 2
     assert item["style_match_ratio"] == 0.5
-    assert product["status"] == "accepted"
+    assert product["status"] == "blocked"
 
 
 def test_template_xrd_rows_use_reviewed_no_card_offset_spacing() -> None:
@@ -503,6 +557,30 @@ def test_template_xrd_standard_card_plot_count_is_not_sample_count(tmp_path: Pat
     assert _template_xrd_target_sample_series_count(pairing, template) == 4
 
 
+def test_template_xrd_finds_card_beside_pairing_opju_when_style_asset_is_elsewhere(tmp_path: Path) -> None:
+    reference_dir = tmp_path / "XRD" / "CWO+BOBC"
+    data_dir = tmp_path / "XRD" / "current"
+    style_dir = tmp_path / "templates" / "origin_styles" / "format_themes"
+    reference_dir.mkdir(parents=True)
+    data_dir.mkdir(parents=True)
+    style_dir.mkdir(parents=True)
+    reference = reference_dir / "CWO+BOBC+card.opju"
+    reference.write_bytes(b"opju")
+    (reference_dir / "CWO PDF#04-009-8466.txt").write_text("10 0 100\n", encoding="utf-8")
+    source = data_dir / "sample.txt"
+    source.write_text("5 1\n6 2\n", encoding="utf-8")
+    template = TemplateCandidate(
+        product_key="XRD",
+        path=style_dir / "XRD.oth",
+        source="project_origin_style_asset",
+        graph_page="Graph4",
+        plot_count=5,
+    )
+    pairing = TargetPairing("XRD", "XRD", "", "root", [source], "root", reference)
+
+    assert _template_xrd_target_sample_series_count(pairing, template) == 4
+
+
 def test_template_xrd_uses_pairing_data_before_template_adjacent_files(tmp_path: Path) -> None:
     template_dir = tmp_path / "template"
     data_dir = tmp_path / "data"
@@ -541,9 +619,10 @@ def test_template_xrd_uses_pairing_data_before_template_adjacent_files(tmp_path:
     assert [Path(path) for path in built["alignment"]["used_files"]] == [current_a, current_b]
 
 
-def test_exemplar_driven_target_types_include_mott_without_changing_default_targets() -> None:
-    assert "Mott-Schottky" not in TEMPLATE_TARGET_TYPES
+def test_all_template_target_modes_include_mott() -> None:
+    assert "Mott-Schottky" in TEMPLATE_TARGET_TYPES
     assert "Mott-Schottky" in TEMPLATE_EXEMPLAR_DRIVEN_TARGET_TYPES
+    assert TEMPLATE_EXEMPLAR_DRIVEN_TARGET_TYPES == TEMPLATE_TARGET_TYPES
 
 
 def test_template_validation_prioritizes_product_keys_present_in_candidates() -> None:
@@ -839,6 +918,70 @@ def test_prepare_template_product_compact_eis_keeps_sidecars_in_debug(tmp_path: 
     assert not (product.type_root / "reports").exists()
 
 
+def test_template_eis_overlay_selects_exact_real_source_family_for_template_count(tmp_path: Path, monkeypatch) -> None:
+    eis_root = tmp_path / "EIS"
+    source_dir = eis_root / "20260202"
+    reference_dir = eis_root / "20260203"
+    old_dir = eis_root / "20251106" / "BOBC"
+    source_dir.mkdir(parents=True)
+    reference_dir.mkdir(parents=True)
+    old_dir.mkdir(parents=True)
+    names = ["b11-2-z", "b11-z", "b3", "b7", "b9-2z", "b9-z", "bobc-z", "cwo-z"]
+    for name in names:
+        (source_dir / f"{name}.txt").write_text("measured", encoding="utf-8")
+    old_data = old_dir / "EIS-1.txt"
+    old_data.write_text("old", encoding="utf-8")
+    reference = reference_dir / "2eis20260202.opju"
+    reference.write_bytes(b"opju")
+
+    def fake_clean(path: Path) -> EisCleaningResult:
+        base = float(sum(ord(char) for char in path.stem) % 10 + 1)
+        points = [
+            EisPoint(1, 1000.0, base * 1000.0, base * 500.0),
+            EisPoint(2, 100.0, base * 2000.0, base * 700.0),
+        ]
+        # Discovery requires at least ten raw points; retain deterministic values.
+        points = [EisPoint(index + 1, 1000.0 / (index + 1), point.z_real_ohm + index, point.minus_z_imag_ohm + index) for index in range(10) for point in points[:1]]
+        return EisCleaningResult(points, points, [], {"z_real_ohm": "Zreal", "minus_z_imag_ohm": "Zimag"})
+
+    monkeypatch.setattr("src.core.template_product_builder.clean_eis_file", fake_clean)
+    pairing = TargetPairing(
+        product_key="EIS",
+        data_type="EIS",
+        xps_subtype="",
+        data_root_label="f_drive_detection",
+        data_paths=[old_data],
+        opju_root_label="f_drive_detection",
+        reference_opju=reference,
+        raw={},
+    )
+    template = TemplateCandidate(
+        product_key="EIS",
+        path=tmp_path / "templates" / "EIS.oth",
+        source="project_origin_style_asset",
+        status="valid",
+        graph_page="Graph1",
+        layer_count=1,
+        plot_count=8,
+    )
+
+    headers, rows, labels, extra = _build_template_eis_table(
+        pairing,
+        tmp_path / "run" / "EIS",
+        template,
+        strict_semicircle_branch=True,
+        compact_output=True,
+    )
+
+    assert len(headers) == 16
+    assert len(rows) == 10
+    assert labels["legend_entries"] == ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"]
+    assert [Path(path).name for path in extra["eis_overlay"]["source_files"]] == [f"{name}.txt" for name in names]
+    assert extra["eis_cleaning"]["mode"] == "reviewed_template_multi_source_overlay"
+    assert extra["eis_cleaning"]["plotted_source_count"] == 8
+    assert (tmp_path / "run" / "EIS" / "debug" / "eis_cleaning_and_fit_metadata.json").is_file()
+
+
 def test_prepare_template_product_compact_epr_uses_debug_plan_without_input_copies(tmp_path: Path, monkeypatch) -> None:
     data_dir = tmp_path / "EPR"
     data_dir.mkdir()
@@ -852,11 +995,20 @@ def test_prepare_template_product_compact_epr_uses_debug_plan_without_input_copi
         {"OH": [("BC", "bc.xlsx"), ("CWO", "cwo.xlsx"), ("BOBC", "bobc.xlsx")]},
     )
 
-    def fake_read_xy_xlsx(path: Path) -> tuple[list[float], list[float]]:
+    def fake_read_verified_jeol_export_series(path: Path) -> JeolEprExportSeries:
         offset = {"bc.xlsx": 0.0, "cwo.xlsx": 1.0, "bobc.xlsx": 2.0}[path.name]
-        return [1.0, 2.0, 3.0], [offset + 1.0, offset + 2.0, offset + 3.0]
+        return JeolEprExportSeries(
+            [1.0, 2.0, 3.0],
+            [offset + 1.0, offset + 2.0, offset + 3.0],
+            "G",
+            "test_fixture",
+            None,
+        )
 
-    monkeypatch.setattr("src.core.template_product_builder.read_xy_xlsx", fake_read_xy_xlsx)
+    monkeypatch.setattr(
+        "src.core.template_product_builder.read_verified_jeol_export_series",
+        fake_read_verified_jeol_export_series,
+    )
     pairing = TargetPairing(
         product_key="EPR",
         data_type="EPR",
@@ -890,3 +1042,115 @@ def test_prepare_template_product_compact_epr_uses_debug_plan_without_input_copi
     assert not (product.type_root / "input_copies").exists()
     assert not (product.type_root / "processed_data").exists()
     assert not (product.type_root / "metadata").exists()
+
+
+def test_ordinary_template_origin_export_imports_every_y_column(tmp_path: Path, monkeypatch) -> None:
+    from src.core import template_product_builder as builder
+    from src.core.template_product_common import ProductContext
+    from src.origin.operations import OperationResult
+    from src.origin.style_mimic import OpjuStyleSnapshot
+    from src.origin.user_style import ResolvedPlotStyle
+
+    headers = ["x", *[f"y{index}" for index in range(1, 12)]]
+    processed = tmp_path / "product" / "processed.csv"
+    processed.parent.mkdir(parents=True)
+    processed.write_text(",".join(headers) + "\n" + ",".join(str(index) for index in range(len(headers))) + "\n", encoding="utf-8")
+    reference = tmp_path / "reference.opju"
+    reference.write_bytes(b"reference")
+    pairing = TargetPairing("PL", "PL", "", "fixture", [processed], "fixture", reference)
+    product = ProductContext(
+        product_key="PL",
+        slug="pl_many_series",
+        pairing=pairing,
+        type_root=processed.parent,
+        processed_data=processed,
+        input_copies=[],
+        reference_opju_copy=reference,
+        reference_preview_png=processed.parent / "reference.png",
+        origin_file=processed.parent / "product.opju",
+        figure_tif=processed.parent / "product.tif",
+        preview_png=processed.parent / "product.png",
+        x_label="X",
+        y_label="Y",
+        graph_title="PL",
+    )
+    snapshot = OpjuStyleSnapshot("reference.opju", "extracted", graph_page=None, plot_count=11)
+
+    class FakeConformance:
+        def to_dict(self) -> dict[str, object]:
+            return {"status": "pass", "compared_fields": 1, "matched_fields": 1}
+
+    class FakeOriginOps:
+        def __init__(self) -> None:
+            self.y_columns: list[int] = []
+
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def import_csv_to_worksheet(self, *_args, **_kwargs) -> OperationResult:
+            return OperationResult(True, "ok", {"book_name": "Book1"})
+
+        def create_graph(self, _graph: str, _book: str, _sheet: str, _x: int, y: int, **_kwargs) -> OperationResult:
+            self.y_columns.append(y)
+            return OperationResult(True, "ok", {"graph_name": "Graph1"})
+
+        def add_plot_to_graph(self, _graph: str, _book: str, _sheet: str, _x: int, y: int, **_kwargs) -> OperationResult:
+            self.y_columns.append(y)
+            return OperationResult(True, "ok")
+
+        def _plot_names(self, _graph: str) -> list[str]:
+            return []
+
+        def run_labtalk(self, _script: str) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def set_axis_labels(self, *_args, **_kwargs) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def set_graph_font(self, *_args, **_kwargs) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def set_tick_style(self, *_args, **_kwargs) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def set_axis_and_tick_visibility(self, *_args, **_kwargs) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def set_legend(self, *_args, **_kwargs) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def set_plot_style(self, *_args, **_kwargs) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def save_project(self, path: Path) -> OperationResult:
+            path.write_bytes(b"opju")
+            return OperationResult(True, "ok")
+
+        def load_project(self, _path: Path) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def list_worksheets(self) -> OperationResult:
+            return OperationResult(True, "ok", {"pages": [{"name": "Graph1", "type": "graph"}]})
+
+        def export_graph(self, _graph: str, path: Path, _fmt: str, **_kwargs) -> OperationResult:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if _fmt == "tif":
+                Image.new("RGB", (4, 3), "white").save(path, format="TIFF", dpi=(300, 300))
+            else:
+                path.write_bytes(b"image")
+            return OperationResult(True, "ok")
+
+        def close(self) -> None:
+            return None
+
+    operations = FakeOriginOps()
+    monkeypatch.setattr(builder, "connect_origin", lambda **_kwargs: operations)
+    monkeypatch.setattr(builder, "_extract_template_product_reference_snapshot", lambda *_args: snapshot)
+    monkeypatch.setattr(builder, "apply_style_snapshot", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(builder, "read_graph_style_snapshot", lambda *_args, **_kwargs: snapshot)
+    monkeypatch.setattr(builder, "compare_style_snapshots", lambda *_args, **_kwargs: FakeConformance())
+
+    result = builder.export_template_product_with_origin(product, ResolvedPlotStyle())
+
+    assert result["ok"] is True
+    assert operations.y_columns == list(range(2, len(headers) + 1))

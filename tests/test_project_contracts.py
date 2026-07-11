@@ -14,6 +14,20 @@ from src.scanner.scanner import scan_raw_data
 
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON = sys.executable
+STYLE_PRODUCT_KEYS = (
+    "BET",
+    "XPS_in_situ",
+    "XPS_non_in_situ",
+    "XRD",
+    "EPR",
+    "EIS",
+    "Raman",
+    "UV-vis DRS / Tauc",
+    "PL",
+    "photocurrent",
+    "FTIR",
+    "Mott-Schottky",
+)
 
 
 def run_cli(*args, cwd=ROOT):
@@ -25,6 +39,30 @@ def run_cli(*args, cwd=ROOT):
         env=env,
         text=True,
         capture_output=True,
+    )
+
+
+def install_minimal_v1_style_assets(project: Path) -> None:
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "shared.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"test-format-theme")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": product_key,
+                        "data_type": product_key,
+                        "graph_page": "Graph1",
+                        "format_theme": "format_themes/shared.oth",
+                    }
+                    for product_key in STYLE_PRODUCT_KEYS
+                ],
+            }
+        ),
+        encoding="utf-8",
     )
 
 
@@ -256,9 +294,13 @@ class Phase1ContractsTest(unittest.TestCase):
             figure_tif = default_output_root(project) / "figures_tif" / "sample.tif"
             preview_png = default_output_root(project) / "figures_preview" / "sample.png"
             processed = default_output_root(project) / "processed_data" / "sample.csv"
-            for artifact in (origin_file, figure_tif, preview_png, processed):
+            for artifact in (origin_file, preview_png, processed):
                 artifact.parent.mkdir(parents=True, exist_ok=True)
                 artifact.write_text("artifact\n", encoding="utf-8")
+            figure_tif.parent.mkdir(parents=True, exist_ok=True)
+            from PIL import Image
+
+            Image.new("RGB", (4, 4), "white").save(figure_tif, format="TIFF", dpi=(600, 600))
 
             with self.assertRaises(ValueError):
                 write_metadata(
@@ -314,6 +356,71 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertEqual(metadata["key_results"]["source_path"], "source.csv")
             self.assertEqual(metadata["parameters"]["path"], "params/local.txt")
 
+    def test_success_metadata_rejects_wrong_extensions_empty_artifacts_and_low_dpi(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            output_root = default_output_root(project)
+            source = project / "source.csv"
+            source.write_text("x,y\n1,2\n", encoding="utf-8")
+            artifacts = {
+                "path": output_root / "metadata" / "XRD" / "sample" / "metadata.json",
+                "origin_file": output_root / "origin_files" / "sample.opju",
+                "figure_tif": output_root / "figures_tif" / "sample.tif",
+                "preview_png": output_root / "figures_preview" / "sample.png",
+                "processed_data": output_root / "processed_data" / "sample.csv",
+            }
+            for field in ("origin_file", "preview_png", "processed_data"):
+                artifacts[field].parent.mkdir(parents=True, exist_ok=True)
+                artifacts[field].write_bytes(b"artifact\n")
+            artifacts["figure_tif"].parent.mkdir(parents=True, exist_ok=True)
+            Image.new("RGB", (4, 4), "white").save(artifacts["figure_tif"], format="TIFF", dpi=(600, 600))
+
+            base = {
+                "project_root": project,
+                **artifacts,
+                "dataset_id": "XRD_sample",
+                "data_type": "XRD",
+                "source_file": source,
+                "processor_name": "xrd_processor",
+                "processing_status": "success",
+                "plot_type": "2theta-intensity line plot",
+                "manual_check_items": [],
+                "forbidden_claims": [],
+                "warnings": [],
+                "key_results": {},
+            }
+
+            extension_cases = {
+                "path": artifacts["path"].with_name("result.json"),
+                "origin_file": artifacts["origin_file"].with_suffix(".opj"),
+                "figure_tif": artifacts["figure_tif"].with_suffix(".tiff"),
+                "preview_png": artifacts["preview_png"].with_suffix(".jpg"),
+                "processed_data": artifacts["processed_data"].with_suffix(".txt"),
+            }
+            for field, wrong_path in extension_cases.items():
+                if field != "path":
+                    wrong_path.parent.mkdir(parents=True, exist_ok=True)
+                    wrong_path.write_bytes(artifacts[field].read_bytes())
+                with self.subTest(contract_field=field):
+                    payload = {**base, field: wrong_path}
+                    expected_name = "metadata" if field == "path" else field
+                    with self.assertRaisesRegex(ValueError, expected_name):
+                        write_metadata(**payload)
+
+            for field in ("origin_file", "figure_tif", "preview_png", "processed_data"):
+                original = artifacts[field].read_bytes()
+                artifacts[field].write_bytes(b"")
+                with self.subTest(empty_field=field):
+                    with self.assertRaisesRegex(ValueError, "non-empty"):
+                        write_metadata(**base)
+                artifacts[field].write_bytes(original)
+
+            Image.new("RGB", (4, 4), "white").save(artifacts["figure_tif"], format="TIFF", dpi=(300, 300))
+            with self.assertRaisesRegex(ValueError, "600 dpi"):
+                write_metadata(**base)
+
     def test_success_metadata_rejects_artifacts_outside_output_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
@@ -368,6 +475,7 @@ class Phase1ContractsTest(unittest.TestCase):
             missing_core = [name for name, item in data["core"].items() if not item["available"]]
             for item in data["core"].values():
                 self.assertEqual(item["severity"], "fail")
+                self.assertIn("import_error", item)
             for item in data["optional"].values():
                 self.assertEqual(item["severity"], "warning")
             for item in data["reference_only"].values():
@@ -383,6 +491,46 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertIn("scikit-image", data["reference_only"])
             self.assertEqual(data["summary"]["missing_core"], missing_core)
             self.assertEqual(result.returncode, 1 if missing_core else 0)
+
+    def test_dependency_audit_reports_a_core_module_import_error(self):
+        from unittest.mock import patch
+
+        from src.core.deps import dependency_audit
+
+        def fake_import(module: str):
+            if module == "numpy":
+                raise ImportError("simulated binary load failure")
+            return object()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            with patch("src.core.deps.importlib.util.find_spec", return_value=object()), patch(
+                "src.core.deps.importlib.import_module",
+                side_effect=fake_import,
+            ):
+                code, audit = dependency_audit(project)
+
+        self.assertEqual(code, 1)
+        self.assertFalse(audit["core"]["numpy"]["available"])
+        self.assertEqual(audit["core"]["numpy"]["status"], "import_error")
+        self.assertIn("simulated binary load failure", audit["core"]["numpy"]["import_error"])
+        self.assertIn("numpy", audit["summary"]["missing_core"])
+
+    def test_pyproject_declares_the_requirements_core_dependencies(self):
+        import ast
+        import re
+
+        requirements = [
+            line.strip()
+            for line in (ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        pyproject_text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        match = re.search(r"(?ms)^dependencies\s*=\s*(\[[^]]*\])", pyproject_text)
+        self.assertIsNotNone(match)
+        dependencies = ast.literal_eval(match.group(1))
+
+        self.assertEqual(dependencies, requirements)
 
     def test_run_py_bootstraps_project_imports_without_pythonpath(self):
         env = dict(**__import__("os").environ)
@@ -475,6 +623,7 @@ class Phase1ContractsTest(unittest.TestCase):
             copied_raw_ppt = project / "workspace_data" / "raw_copy" / "instrument_export.pptx"
             copied_raw_ppt.parent.mkdir(parents=True)
             copied_raw_ppt.write_text("copied raw source file", encoding="utf-8")
+            install_minimal_v1_style_assets(project)
 
             result = run_cli("validate", cwd=project)
 

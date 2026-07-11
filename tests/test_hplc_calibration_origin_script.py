@@ -61,8 +61,11 @@ def test_hplc_calibration_script_exports_expected_artifact_set() -> None:
     assert "expGraph type:=png" in text
     assert "expGraph type:=tif" in text
     assert "600" in text
+    assert "To-RunRelativePath $templateOriginalPreviewMap" in text
     assert "To-RunRelativePath $templatePreviewMap" in text
     assert "To-RunRelativePath $generatedPreviewMap" in text
+    assert "TIF DPI normalization failed" in text
+    assert "TIF DPI normalization skipped" not in text
 
 
 def test_hplc_calibration_script_preserves_three_template_pages_and_locked_style() -> None:
@@ -87,10 +90,31 @@ def test_hplc_calibration_script_preserves_three_template_pages_and_locked_style
     assert r"Peak area \(40)10\+(2) mAU*s\(41)" in text
     assert "YDivideBy=1000" in text
     assert "YDivideBy=100" in text
-    assert "LegendLeft=1585; LegendTop=880; LegendWidth=2429; LegendHeight=826" in text
-    assert "LegendLeft=1740; LegendTop=808; LegendWidth=2308; LegendHeight=826" in text
-    assert "LegendLeft=1578; LegendTop=850; LegendWidth=2457; LegendHeight=760" in text
+    assert "LegendLeft=2300; LegendTop=760; LegendWidth=2429; LegendHeight=826" in text
+    assert "LegendLeft=2300; LegendTop=760; LegendWidth=2308; LegendHeight=826" in text
+    assert "LegendLeft=2300; LegendTop=760; LegendWidth=2457; LegendHeight=760" in text
     assert "XTitleLeft=1927; XTitleTop=4487; XTitleWidth=2835; XTitleHeight=338" in text
-    assert "YTitleLeft=362; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204" in text
+    assert "YTitleLeft=226; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204" in text
     assert "YTitleLeft=413; YTitleTop=736; YTitleWidth=384; YTitleHeight=3204" in text
     assert "layer.y.showLabels=1" in text
+
+
+def test_hplc_template_comparison_is_full_pixel_exact_and_archives_original_reference() -> None:
+    text = _script_text()
+
+    assert "[double]$ComparisonMeanTolerance = 0.0" in text
+    assert "[double]$ComparisonMaxTolerance = 0.0" in text
+    assert "Strict template comparison requires zero mean and max pixel tolerances." in text
+    assert "HplcImageComparer" in text
+    assert "ChangedPixels" in text
+    assert "ExactPixelMatch" in text
+    assert "exact_pixel_match" in text
+    assert "[Math]::Min(101" not in text
+    assert "Assert-HplcGraphExists $app $s.TemplateGraph" in text
+    original_export_index = text.index("$templateOriginalPreviewMap[$s.Page] = Export-GraphPng")
+    axis_normalization_index = text.index(
+        "Apply-HplcYAxisStyle $app $s.TemplateGraph $s.YDivideBy $s.YTitle"
+    )
+    expected_export_index = text.index("$templatePreviewMap[$s.Page] = Export-GraphPng")
+    template_save_index = text.index("template_saveas pg:=")
+    assert original_export_index < axis_normalization_index < expected_export_index < template_save_index

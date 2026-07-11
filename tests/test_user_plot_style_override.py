@@ -84,6 +84,43 @@ def test_apply_resolved_style_overrides_emits_line_width_and_bold_axis_policy() 
     assert "legend.lineWidth=0" in joined
 
 
+def test_default_style_preserves_independent_graph4_x_and_y_tick_font_sizes() -> None:
+    style = resolve_user_plot_style("XRD", user_config={})
+
+    assert style.x_tick_label_font_size == 28
+    assert style.y_tick_label_font_size == 36
+
+    fake = _FakeOps()
+    apply_resolved_style_overrides(fake, "Graph4", style)
+    joined = "\n".join(fake.scripts)
+    assert "layer.x.label.pt=28" in joined
+    assert "layer.y.label.pt=36" in joined
+
+
+def test_legacy_shared_tick_font_size_config_applies_to_both_axes() -> None:
+    style = resolve_user_plot_style("XPS", user_config={"global": {"tick_label_font_size": 20}})
+
+    assert style.tick_label_font_size == 20
+    assert style.x_tick_label_font_size == 20
+    assert style.y_tick_label_font_size == 20
+
+
+def test_explicit_axis_tick_font_sizes_override_legacy_shared_value() -> None:
+    style = resolve_user_plot_style(
+        "XRD",
+        user_config={
+            "global": {
+                "tick_label_font_size": 20,
+                "x_tick_label_font_size": 29,
+                "y_tick_label_font_size": 37,
+            }
+        },
+    )
+
+    assert style.x_tick_label_font_size == 29
+    assert style.y_tick_label_font_size == 37
+
+
 def test_apply_resolved_style_overrides_targets_the_named_graph_for_every_script() -> None:
     fake = _FakeOps()
     style = resolve_user_plot_style("EIS", user_config={"global": {"line_width_pt": 3.0, "font_bold": True}})

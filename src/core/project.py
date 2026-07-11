@@ -50,6 +50,37 @@ def ensure_write_path_allowed(project_root: Path, path: Path, *, output_root: Pa
     return path
 
 
+def ensure_output_path_within_root(project_root: Path, path: Path, output_root: Path) -> Path:
+    resolved_project = project_root.resolve()
+    resolved_root = output_root if output_root.is_absolute() else resolved_project / output_root
+    resolved_path = path if path.is_absolute() else resolved_root / path
+    resolved_root = resolved_root.resolve()
+    resolved_path = resolved_path.resolve()
+    if not _is_under_or_equal(resolved_path, resolved_root):
+        raise ValueError(f"Output path must stay under the configured output root: {path}")
+    ensure_write_path_allowed(project_root, resolved_path, output_root=resolved_root)
+    return resolved_path
+
+
+def ensure_output_path_separate_from_inputs(
+    project_root: Path,
+    output_path: Path,
+    input_paths: list[Path] | tuple[Path, ...],
+) -> Path:
+    resolved_project = project_root.resolve()
+    resolved_output = output_path if output_path.is_absolute() else resolved_project / output_path
+    resolved_output = resolved_output.resolve()
+    protected_inputs = [resolved_project / "input" / "raw_data", *input_paths]
+    for input_path in protected_inputs:
+        resolved_input = input_path if input_path.is_absolute() else resolved_project / input_path
+        resolved_input = resolved_input.resolve()
+        if _is_under_or_equal(resolved_output, resolved_input) or _is_under_or_equal(resolved_input, resolved_output):
+            raise ValueError(
+                f"Output path overlaps protected input path: output={resolved_output}; input={resolved_input}"
+            )
+    return resolved_output
+
+
 def output_dir(project_root: Path, *parts: str, output_root: Path | None = None) -> Path:
     base = output_root if output_root is not None else default_output_root(project_root)
     if not base.is_absolute():

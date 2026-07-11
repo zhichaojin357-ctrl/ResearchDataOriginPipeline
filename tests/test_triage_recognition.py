@@ -186,6 +186,9 @@ def test_manual_review_is_not_processed_by_default_even_after_recognition_improv
 
         queue = json.loads((default_output_root(project) / "reports" / "processing_queue.json").read_text(encoding="utf-8"))
         assert queue["items"] == []
+        assert queue["policy_version"] == "triage_policy_v1"
+        assert len(queue["config_hash"]) == 64
+        int(queue["config_hash"], 16)
         assert code == 0
 
 

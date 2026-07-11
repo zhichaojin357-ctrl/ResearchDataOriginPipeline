@@ -1,6 +1,12 @@
 paths:
   output_root: ../输出
   f_drive_backup: F:/课题/LL/检测
+template_pairing_roots:
+  f_drive_detection: F:/课题/LL/检测
+  project_data: ../数据
+  workspace_xps_data: ../26.6.3组会数据/XPS
+  workspace_xps_reference: ../xps参考图像
+  workspace_group_data: ../26.6.3组会数据
 xps_heterojunction:
   bobc_input_dir: F:/课题/LL/检测/XPS/BOBC拟合后
   cwo_input_dir: F:/课题/LL/检测/XPS/CWO拟合后

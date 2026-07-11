@@ -224,6 +224,7 @@ def build_processed_table(
 
 def uvvis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
     signal = uvvis_signal_type(rows)
+    reflectance_is_percent = uvvis_reflectance_is_percent(rows)
     converted = []
     photon_energies = []
     for wavelength_nm, reflectance in numeric:
@@ -237,20 +238,23 @@ def uvvis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]
                 converted.append((wavelength_nm, value))
                 photon_energies.append(photon_energy)
             continue
-        reflectance_fraction = value / 100.0 if value > 1 else value
+        reflectance_fraction = uvvis_reflectance_fraction(value, input_is_percent=reflectance_is_percent)
         if reflectance_fraction <= 0:
             continue
         kubelka_munk = ((1 - reflectance_fraction) ** 2) / (2 * reflectance_fraction)
         if isfinite(kubelka_munk):
             converted.append((wavelength_nm, kubelka_munk))
             photon_energies.append(photon_energy)
-    return {
+    result = {
         "uvvis_input_signal": signal,
         "kubelka_munk_points": len(converted),
         "photon_energy_range_eV": [min(photon_energies), max(photon_energies)] if photon_energies else [],
         "tauc_interval_candidate_eV": [min(photon_energies), max(photon_energies)] if len(photon_energies) >= 2 else [],
         "Eg_candidate": None,
     }
+    if signal == "reflectance":
+        result["uvvis_reflectance_input_scale"] = "percent" if reflectance_is_percent else "inferred_from_values"
+    return result
 
 
 def eis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
@@ -319,6 +323,7 @@ def uvvis_processed_table(
     rows: list[dict[str, str]],
 ) -> tuple[list[str], list[list[float | str | None]]]:
     signal = uvvis_signal_type(rows)
+    reflectance_is_percent = uvvis_reflectance_is_percent(rows)
     output = []
     if signal == "absorbance":
         for wavelength_nm, absorbance in numeric:
@@ -328,7 +333,10 @@ def uvvis_processed_table(
         return ["wavelength_nm", "absorbance", "photon_energy_eV", "tauc_y_absorbance_direct_candidate"], output
 
     for wavelength_nm, reflectance in numeric:
-        reflectance_fraction = reflectance / 100.0 if reflectance > 1 else reflectance
+        reflectance_fraction = uvvis_reflectance_fraction(
+            reflectance,
+            input_is_percent=reflectance_is_percent,
+        )
         photon_energy = 1239.7 / wavelength_nm if wavelength_nm > 0 else None
         kubelka_munk = None
         tauc_y = None
@@ -346,9 +354,33 @@ def uvvis_signal_type(rows: list[dict[str, str]]) -> str:
     return "reflectance"
 
 
+def uvvis_reflectance_is_percent(rows: list[dict[str, str]]) -> bool:
+    if not rows:
+        return False
+    key = matching_key(rows[0], ["reflectance", "反射率"])
+    if key is None:
+        return False
+    normalized = key.casefold()
+    return "%" in normalized or "percent" in normalized
+
+
+def uvvis_reflectance_fraction(value: float, *, input_is_percent: bool) -> float:
+    if input_is_percent:
+        return value / 100.0
+    return value / 100.0 if value > 1 else value
+
+
 def photocurrent_results(rows: list[dict[str, str]], values: list[float]) -> dict:
     states = light_states(rows)
-    result = {"on_off_ratio_candidate": on_off_ratio_candidate(values)}
+    input_unit, multiplier, assumed = photocurrent_current_unit(rows)
+    result = {
+        "on_off_ratio_candidate": on_off_ratio_candidate(values),
+        "photocurrent_input_current_unit": input_unit,
+        "photocurrent_output_current_unit": "uA",
+        "photocurrent_to_uA_multiplier": multiplier,
+    }
+    if assumed:
+        result["photocurrent_assumed_current_unit"] = "A"
     if states:
         on_values = [first_numeric(row, ["current"]) for row, state in zip(rows, states) if state == "on"]
         off_values = [first_numeric(row, ["current"]) for row, state in zip(rows, states) if state == "off"]
@@ -367,10 +399,11 @@ def photocurrent_processed_table(
     rows: list[dict[str, str]],
 ) -> tuple[list[str], list[list[float | str | None]]]:
     states = light_states(rows)
+    _, multiplier, _ = photocurrent_current_unit(rows)
     if not states:
         output = []
         for index, (time_value, current) in enumerate(numeric):
-            output.append([time_value, current * 1_000_000, index // 2 + 1])
+            output.append([time_value, current * multiplier, index // 2 + 1])
         return ["time_s", "photocurrent_uA", "cycle_candidate_id"], output
 
     output = []
@@ -383,9 +416,24 @@ def photocurrent_processed_table(
             previous = state
         area = first_numeric(rows[index], ["area_cm2", "area"]) if index < len(rows) else None
         density = current / area if area and area != 0 else None
-        density_uA = density * 1_000_000 if density is not None else None
-        output.append([time_value, current * 1_000_000, state, cycle, density_uA])
+        density_uA = density * multiplier if density is not None else None
+        output.append([time_value, current * multiplier, state, cycle, density_uA])
     return ["time_s", "photocurrent_uA", "light_state", "cycle_candidate_id", "current_density_uA_cm2_optional"], output
+
+
+def photocurrent_current_unit(rows: list[dict[str, str]]) -> tuple[str, float, bool]:
+    current_key = matching_key(rows[0], ["current"]) if rows else None
+    if current_key is not None:
+        normalized = current_key.replace("µ", "u").replace("μ", "u")
+        unit_patterns = (
+            ("uA", 1.0, r"(?<![a-z0-9])ua(?![a-z0-9])"),
+            ("mA", 1_000.0, r"(?<![a-z0-9])ma(?![a-z0-9])"),
+            ("A", 1_000_000.0, r"(?<![a-z0-9])a(?![a-z0-9])"),
+        )
+        for unit, multiplier, pattern in unit_patterns:
+            if re.search(pattern, normalized, flags=re.IGNORECASE):
+                return unit, multiplier, False
+    return "unknown", 1_000_000.0, True
 
 
 def xps_export_results(rows: list[dict[str, str]]) -> dict:
@@ -1251,8 +1299,13 @@ def mott_schottky_numeric(rows: list[dict[str, str]], fallback: list[tuple[float
         potential, one_over_c2 = mott_schottky_row_values(row)
         if potential is not None and one_over_c2 is not None:
             output.append((potential, one_over_c2))
-    if rows:
+    if output:
         return output
+    inferred = _validated_unlabeled_mott_schottky_rows(rows)
+    if inferred:
+        return [(potential, one_over_c2) for potential, one_over_c2, _frequency in inferred]
+    if rows:
+        return []
     return output or fallback
 
 
@@ -1262,7 +1315,9 @@ def mott_schottky_processed_rows(rows: list[dict[str, str]]) -> list[list[float 
         potential, one_over_c2 = mott_schottky_row_values(row)
         if potential is not None and one_over_c2 is not None:
             output.append([potential, one_over_c2, first_numeric(row, ["frequency", "freq", "hz"])])
-    return output
+    if output:
+        return output
+    return [list(values) for values in _validated_unlabeled_mott_schottky_rows(rows)]
 
 
 def mott_schottky_row_values(row: dict[str, str]) -> tuple[float | None, float | None]:
@@ -1274,6 +1329,57 @@ def mott_schottky_row_values(row: dict[str, str]) -> tuple[float | None, float |
         if capacitance and capacitance != 0:
             one_over_c2 = 1.0 / (capacitance * capacitance)
     return potential, one_over_c2
+
+
+def _validated_unlabeled_mott_schottky_rows(
+    rows: list[dict[str, str]],
+) -> list[tuple[float, float, None]]:
+    if not rows:
+        return []
+    potential_key = matching_key(rows[0], ["potential", "voltage", "ewe"])
+    if potential_key is None:
+        return []
+    unlabeled_keys = [
+        key
+        for key in rows[0]
+        if key != potential_key and (not key.strip() or "unnamed" in key.casefold())
+    ]
+    if len(unlabeled_keys) < 2:
+        return []
+
+    valid_potential_rows = sum(to_float(row.get(potential_key, "")) is not None for row in rows)
+    required_matches = max(3, int(valid_potential_rows * 0.8 + 0.999999))
+    best: tuple[int, float, str, str] | None = None
+    for capacitance_key in unlabeled_keys:
+        for derived_key in unlabeled_keys:
+            if capacitance_key == derived_key:
+                continue
+            errors: list[float] = []
+            for row in rows:
+                capacitance = to_float(row.get(capacitance_key, ""))
+                derived = to_float(row.get(derived_key, ""))
+                if capacitance is None or derived is None or capacitance == 0 or derived <= 0:
+                    continue
+                expected = 1.0 / (capacitance * capacitance)
+                relative_error = abs(derived - expected) / max(abs(derived), abs(expected), 1e-300)
+                if relative_error <= 1e-6:
+                    errors.append(relative_error)
+            if len(errors) < required_matches:
+                continue
+            score = (len(errors), -(sum(errors) / len(errors)), capacitance_key, derived_key)
+            if best is None or score[:2] > best[:2]:
+                best = score
+    if best is None:
+        return []
+
+    _match_count, _negative_mean_error, _capacitance_key, derived_key = best
+    output: list[tuple[float, float, None]] = []
+    for row in rows:
+        potential = to_float(row.get(potential_key, ""))
+        derived = to_float(row.get(derived_key, ""))
+        if potential is not None and derived is not None and derived > 0:
+            output.append((potential, derived, None))
+    return output
 
 
 def column_values(rows: list[dict[str, str]], needles: list[str]) -> list[float]:
@@ -1395,7 +1501,12 @@ def matching_key(row: dict[str, str], needles: list[str]) -> str | None:
     for key in row:
         normalized = key.lower().replace(" ", "")
         for needle in needles:
-            if needle.lower().replace(" ", "") in normalized:
+            normalized_needle = needle.lower().replace(" ", "")
+            if re.fullmatch(r"[a-z0-9]", normalized_needle):
+                tokens = re.findall(r"[a-z0-9]+", key.casefold())
+                if normalized_needle in tokens:
+                    return key
+            elif normalized_needle in normalized:
                 return key
     return None
 

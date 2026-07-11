@@ -51,12 +51,12 @@ def _matching_folders(raw_root: Path, entry: dict) -> list[Path]:
     exact = raw_root / entry["folder_name"]
     if exact.exists() and exact.is_dir():
         matches.append(exact)
-    lowered_keywords = [str(k).lower() for k in entry.get("folder_keywords", [])]
+    normalized_keywords = [_normalize_path_segment(str(keyword)) for keyword in entry.get("folder_keywords", [])]
     for child in raw_root.rglob("*"):
         if not child.is_dir() or child == exact:
             continue
-        name = child.name.lower()
-        if any(keyword and keyword.lower() in name for keyword in lowered_keywords):
+        name = _normalize_path_segment(child.name)
+        if any(keyword and _keyword_matches(keyword, name) for keyword in normalized_keywords):
             matches.append(child)
     deduped: list[Path] = []
     seen: set[str] = set()
@@ -102,6 +102,8 @@ def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | N
                     if not path.is_file():
                         continue
                     score = _entry_path_score(input_path, path, entry, entry_index)
+                    if score[0] <= 0:
+                        continue
                     if not allowed or path.suffix.lower() in allowed:
                         file_candidates.setdefault(str(path.resolve()), []).append((score, entry_index, path))
                     else:

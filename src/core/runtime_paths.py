@@ -238,15 +238,6 @@ def resolve_origin_reference_pattern(project_root: Path, override: str | None = 
     return str(value or LEGACY_ORIGIN_REFERENCE_PATTERN)
 
 
-def _latest_existing_dir(parent: Path, pattern: str) -> Path | None:
-    if not parent.exists():
-        return None
-    candidates = [item for item in parent.glob(pattern) if item.is_dir()]
-    if not candidates:
-        return None
-    return sorted(candidates, key=lambda item: (item.stat().st_mtime, item.name), reverse=True)[0]
-
-
 def _latest_existing_dir_with_index(parent: Path, pattern: str) -> Path | None:
     if not parent.exists():
         return None

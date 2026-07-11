@@ -51,7 +51,7 @@ class AutoQueueOptions:
 def run_auto_queue(project_root: Path, options: AutoQueueOptions) -> int:
     plan = plan_auto_queue(project_root, options)
     write_auto_queue_outputs(project_root, plan, options)
-    return 0
+    return 1 if plan["summary"]["blocked_count"] else 0
 
 
 def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
@@ -124,6 +124,8 @@ def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
         "accepted_count": len(accepted),
         "skipped_count": len(skipped),
         "blocked_count": len(blocked),
+        "plan_complete": not blocked,
+        "blocked_semantics": "blocked items are requested AUTO_PROCESS candidates that could not form safe executable queue entries",
         "locked_result_hashes": len(processed_hashes),
         "will_run_process": False,
         "will_launch_origin": False,
@@ -267,6 +269,7 @@ def _markdown(plan: dict, queue_path: Path, *, project_root: Path, output_root: 
         f"- Accepted new candidates: {summary['accepted_count']}",
         f"- Skipped: {summary['skipped_count']}",
         f"- Blocked: {summary['blocked_count']}",
+        f"- Plan complete: {str(summary['plan_complete']).lower()}",
         f"- locked result package processed hashes: {summary['locked_result_hashes']}",
         "- Will run process: false",
         "- Will launch Origin: false",

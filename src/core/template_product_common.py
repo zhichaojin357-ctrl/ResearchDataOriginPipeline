@@ -12,6 +12,8 @@ from typing import Callable, Iterable, Any
 from src.core.epr_jeol import read_xy_xlsx
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
+from src.core.project import load_project_config
+from src.core.runtime_paths import resolve_optional_f_drive_backup
 from src.core.table_reader import read_table
 from src.core.xps_heterojunction import (
     XpsFitRecord,
@@ -89,14 +91,28 @@ OriginExporter = Callable[[ProductContext], dict[str, object]]
 
 
 def build_default_root_map(project_root: Path) -> dict[str, Path]:
-    parent = project_root.resolve().parent
+    project_root = project_root.resolve()
+    parent = project_root.parent
+    config = load_project_config(project_root, Path("config/default.yaml"))
+    configured = config.get("template_pairing_roots", {})
+    if not isinstance(configured, dict):
+        configured = {}
+    f_drive_default = resolve_optional_f_drive_backup(project_root) or Path("F:/\u8bfe\u9898/LL/\u68c0\u6d4b")
+
+    def root(name: str, fallback: Path) -> Path:
+        raw = configured.get(name)
+        if raw is None or not str(raw).strip():
+            return fallback
+        path = Path(str(raw))
+        return path if path.is_absolute() else project_root / path
+
     return {
-        "f_drive_detection": Path("F:/\u8bfe\u9898/LL/\u68c0\u6d4b"),
-        "project_data": parent / "\u6570\u636e",
-        "origin_manual_save": project_root.resolve() / "templates" / "origin_styles" / "reference_opju",
-        "workspace_xps_data": parent / "26.6.3\u7ec4\u4f1a\u6570\u636e" / "XPS",
-        "workspace_xps_reference": parent / "xps\u53c2\u8003\u56fe\u50cf",
-        "workspace_group_data": parent / "26.6.3\u7ec4\u4f1a\u6570\u636e",
+        "f_drive_detection": root("f_drive_detection", f_drive_default),
+        "project_data": root("project_data", parent / "\u6570\u636e"),
+        "origin_manual_save": project_root / "templates" / "origin_styles" / "reference_opju",
+        "workspace_xps_data": root("workspace_xps_data", parent / "26.6.3\u7ec4\u4f1a\u6570\u636e" / "XPS"),
+        "workspace_xps_reference": root("workspace_xps_reference", parent / "xps\u53c2\u8003\u56fe\u50cf"),
+        "workspace_group_data": root("workspace_group_data", parent / "26.6.3\u7ec4\u4f1a\u6570\u636e"),
     }
 
 
@@ -223,21 +239,6 @@ def export_product_with_origin(product: ProductContext) -> dict[str, object]:
         operations.close()
 
 
-def _ensure_type_product_dirs(type_root: Path) -> None:
-    for name in (
-        "input_copies",
-        "reference_opju",
-        "reference_exports",
-        "processed_data",
-        "metadata",
-        "origin_files",
-        "figures_tif",
-        "figures_preview",
-        "reports",
-    ):
-        (type_root / name).mkdir(parents=True, exist_ok=True)
-
-
 def _build_processed_plot_table(
     pairing: TargetPairing,
     *,
@@ -298,6 +299,7 @@ def _build_xps_in_situ_table(
         include_envelope=True,
         include_components=True,
         component_fill_mode=component_fill_mode,
+        series_layout="in_situ_template" if component_fill_mode == "template_line_fill" else "compact",
     )
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
@@ -327,6 +329,7 @@ def _build_xps_non_in_situ_table(
         include_envelope=True,
         include_components=True,
         component_fill_mode=component_fill_mode,
+        series_layout="non_in_situ_template" if component_fill_mode == "template_line_fill" else "compact",
     )
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
@@ -346,33 +349,84 @@ def _xps_records_to_offset_table(
     include_envelope: bool,
     include_components: bool = False,
     component_fill_mode: str = "plain",
+    series_layout: str = "compact",
 ) -> tuple[list[str], list[list[float | str | None]]]:
     if not records:
         raise ValueError("No XPS records to plot")
+    if series_layout not in {"compact", "in_situ_template", "non_in_situ_template"}:
+        raise ValueError(f"Unsupported XPS series layout: {series_layout}")
     point_count = min(len(record.data) for record in records)
     headers = ["binding_energy_eV"]
     series_by_record: list[list[list[float | None]]] = []
     for record_index, record in enumerate(records):
         offset = record_index * 1.35
         common_scale = _xps_record_common_scale(record, point_count) if component_fill_mode == "template_line_fill" else None
+        sample = _series_sample_name(record.sample)
         measured = _normalized_record_series_for_xps_mode(record, "raw_intensity", offset, point_count, common_scale)
-        record_series = [measured]
-        headers.append(f"{_series_sample_name(record.sample)}_measured")
-        if include_envelope:
-            envelope = _normalized_record_series_for_xps_mode(record, "envelope", offset, point_count, common_scale)
-            if any(value is not None for value in envelope):
-                record_series.append(envelope)
-                headers.append(f"{_series_sample_name(record.sample)}_envelope")
+        envelope = (
+            _normalized_record_series_for_xps_mode(record, "envelope", offset, point_count, common_scale)
+            if include_envelope
+            else [None] * point_count
+        )
+        background_keys = tuple(key for key in ("background", record.background_label, "Backgnd.", "Background") if key)
+        background = _normalized_record_series_any_for_xps_mode(record, background_keys, offset, point_count, common_scale)
+        baseline = background if any(value is not None for value in background) else [offset] * point_count
+        components: list[tuple[int, list[float | None]]] = []
         if include_components:
-            baseline = _xps_template_fill_baseline(record, offset, point_count, common_scale)
             for component_index, label in enumerate(record.component_labels, start=1):
                 component = _normalized_record_series_any_for_xps_mode(record, (_component_key(label), label), offset, point_count, common_scale)
                 if any(value is not None for value in component):
-                    record_series.append(component)
-                    headers.append(f"{_series_sample_name(record.sample)}_component_{component_index}")
-                    if component_fill_mode == "template_line_fill":
-                        record_series.append(_mask_series_to_reference(baseline, component))
-                        headers.append(f"{_series_sample_name(record.sample)}_component_{component_index}_fill_baseline")
+                    components.append((component_index, component))
+
+        record_series: list[list[float | None]] = []
+
+        def append_series(header: str, values: list[float | None]) -> None:
+            headers.append(header)
+            record_series.append(values)
+
+        if series_layout == "compact":
+            append_series(f"{sample}_measured", measured)
+            if any(value is not None for value in envelope):
+                append_series(f"{sample}_envelope", envelope)
+            for component_index, component in components:
+                append_series(f"{sample}_component_{component_index}", component)
+                if component_fill_mode == "template_line_fill":
+                    append_series(
+                        f"{sample}_component_{component_index}_fill_baseline",
+                        _mask_series_to_reference(baseline, component),
+                    )
+        else:
+            if component_fill_mode != "template_line_fill":
+                raise ValueError(f"XPS template series layout requires template_line_fill mode: {series_layout}")
+            if len(components) != 2:
+                raise ValueError(
+                    f"XPS template series layout requires exactly two fitted components for {record.sample}; found {len(components)}"
+                )
+            if not any(value is not None for value in background):
+                raise ValueError(f"XPS template series layout requires a real background curve for {record.sample}")
+            if not any(value is not None for value in envelope):
+                raise ValueError(f"XPS template series layout requires a real envelope curve for {record.sample}")
+            if series_layout == "in_situ_template":
+                append_series(f"{sample}_measured", measured)
+                for component_index, component in components:
+                    append_series(f"{sample}_component_{component_index}", component)
+                    append_series(
+                        f"{sample}_component_{component_index}_fill_baseline",
+                        _mask_series_to_reference(background, component),
+                    )
+                append_series(f"{sample}_background", background)
+                append_series(f"{sample}_envelope", envelope)
+            else:
+                for component_index, component in components:
+                    append_series(f"{sample}_component_{component_index}_fill_upper", component)
+                    append_series(
+                        f"{sample}_component_{component_index}_fill_baseline",
+                        _mask_series_to_reference(background, component),
+                    )
+                    append_series(f"{sample}_component_{component_index}_line", list(component))
+                append_series(f"{sample}_measured", measured)
+                append_series(f"{sample}_background", background)
+                append_series(f"{sample}_envelope", envelope)
         series_by_record.append(record_series)
     rows: list[list[float | str | None]] = []
     for index in range(point_count):
@@ -445,19 +499,6 @@ def _xps_record_common_scale(record: XpsFitRecord, point_count: int) -> tuple[fl
     return (minimum, span if span > 0 else 1.0)
 
 
-def _xps_template_fill_baseline(
-    record: XpsFitRecord,
-    offset: float,
-    point_count: int,
-    common_scale: tuple[float, float] | None,
-) -> list[float | None]:
-    background_keys = tuple(key for key in ("background", record.background_label, "Backgnd.", "Background") if key)
-    baseline = _normalized_record_series_any_for_xps_mode(record, background_keys, offset, point_count, common_scale)
-    if any(value is not None for value in baseline):
-        return baseline
-    return [offset] * point_count
-
-
 def _mask_series_to_reference(series: list[float | None], reference: list[float | None]) -> list[float | None]:
     return [value if ref_value is not None else None for value, ref_value in zip(series, reference)]
 
@@ -520,75 +561,8 @@ def _write_csv(path: Path, headers: list[str], rows: list[list[float | str | Non
             writer.writerow(["" if value is None else value for value in row])
 
 
-def _write_product_metadata(run_root: Path, product: ProductContext, export_status: dict[str, object]) -> Path:
-    path = product.type_root / "metadata" / product.slug / "metadata.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "dataset_id": product.slug,
-        "metadata_path": _product_output_path(run_root, path),
-        "product_key": product.product_key,
-        "data_type": product.pairing.data_type,
-        "xps_subtype": product.pairing.xps_subtype,
-        "data_root_label": product.pairing.data_root_label,
-        "selected_data_relative_paths": _selected_relative_paths(product.pairing, "selected_data_relative_paths"),
-        "opju_root_label": product.pairing.opju_root_label,
-        "selected_opju_relative_path": _selected_relative_paths(product.pairing, "selected_opju_relative_path"),
-        "source_files": [_product_output_path(run_root, path) for path in product.pairing.data_paths],
-        "input_copies": [_product_output_path(run_root, path) for path in product.input_copies],
-        "reference_opju": _product_output_path(run_root, product.pairing.reference_opju),
-        "reference_opju_copy": _product_output_path(run_root, product.reference_opju_copy),
-        "reference_preview_png": _product_output_path(run_root, product.reference_preview_png),
-        "processed_data": _product_output_path(run_root, product.processed_data),
-        "origin_file": _product_output_path(run_root, product.origin_file),
-        "figure_tif": _product_output_path(run_root, product.figure_tif),
-        "preview_png": _product_output_path(run_root, product.preview_png),
-        "origin_status": export_status,
-        "manual_check_required": True,
-        "manual_check_items": _manual_items(product.product_key),
-        "forbidden_claims": _forbidden_claims(product.product_key),
-        "reference_policy_notes": _reference_policy_notes(product.product_key),
-        "notes": product.notes,
-    }
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    return path
-
-
 def _product_output_path(run_root: Path, path: Path | str) -> str:
     return str(render_output_path(path, project_root=run_root))
-
-
-def _write_per_type_report(run_root: Path, product: ProductContext, export_status: dict[str, object]) -> Path:
-    path = product.type_root / "reports" / f"{product.slug}_report.md"
-    lines = [
-        f"# {product.product_key} exemplar report",
-        "",
-        f"- Status: {'success' if bool(export_status.get('ok')) else 'origin_failed'}",
-        f"- Data root label: {product.pairing.data_root_label}",
-        f"- Selected data relative paths: {', '.join(_selected_relative_paths(product.pairing, 'selected_data_relative_paths'))}",
-        f"- OPJU root label: {product.pairing.opju_root_label}",
-        f"- Selected OPJU relative path: {', '.join(_selected_relative_paths(product.pairing, 'selected_opju_relative_path'))}",
-        f"- Copied reference OPJU: {_relative_to_run(run_root, product.reference_opju_copy)}",
-        f"- Reference preview PNG: {_relative_to_run(run_root, product.reference_preview_png)}",
-        f"- Processed data: {_relative_to_run(run_root, product.processed_data)}",
-        f"- Generated OPJU: {_relative_to_run(run_root, product.origin_file)}",
-        f"- Generated TIF: {_relative_to_run(run_root, product.figure_tif)}",
-        f"- Generated PNG preview: {_relative_to_run(run_root, product.preview_png)}",
-        "",
-        "## Manual review needs",
-        *[f"- {item}" for item in _manual_items(product.product_key)],
-        "",
-        "## Forbidden scientific claims avoided",
-        *[f"- {item}" for item in _forbidden_claims(product.product_key)],
-        "",
-        "## Reference policy notes",
-        *[f"- {item}" for item in _reference_policy_notes(product.product_key)],
-        "",
-        "## Visible-label audit",
-        "- Result is recorded in the run-level visible-label audit report.",
-    ]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    return path
 
 
 def _write_no_label_audit(run_root: Path) -> dict[str, object]:

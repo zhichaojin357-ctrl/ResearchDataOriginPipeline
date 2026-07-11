@@ -95,7 +95,7 @@ def read_table_with_metadata(path: Path, *, allow_legacy_xls_com: bool = True) -
         ]
         return TableReadResult(rows, sheet_name=sheet_name, header_row_index=header_row_index, sheet_scores=sheet_scores)
 
-    text = _read_text(path)
+    text = read_text_with_fallback(path)
     sample = text[:2048]
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=",\t; ")
@@ -151,9 +151,18 @@ def _pick_column(columns: list[str], needles: list[str]) -> str | None:
     for needle in needles:
         normalized_needle = _normalize_header(needle)
         for original, lower in lowered:
-            if normalized_needle and normalized_needle in lower:
+            if _header_contains_needle(lower, normalized_needle):
                 return original
     return None
+
+
+def _header_contains_needle(normalized_header: str, normalized_needle: str) -> bool:
+    if not normalized_needle:
+        return False
+    if re.fullmatch(r"[a-z0-9]", normalized_needle):
+        pattern = rf"(?<![a-z0-9]){re.escape(normalized_needle)}(?![a-z0-9])"
+        return re.search(pattern, normalized_header) is not None
+    return normalized_needle in normalized_header
 
 
 def _best_excel_frame(frames: dict[str, object]):
@@ -348,7 +357,7 @@ def _to_float(value: object) -> float | None:
     return parsed if isfinite(parsed) else None
 
 
-def _read_text(path: Path) -> str:
+def read_text_with_fallback(path: Path) -> str:
     for encoding in ("utf-8-sig", "utf-8", "gb18030", "gbk", "cp936"):
         try:
             return path.read_text(encoding=encoding)

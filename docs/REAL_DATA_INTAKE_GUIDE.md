@@ -12,11 +12,11 @@
 ## Recommended Flow
 
 ```powershell
-D:\Python\python.exe run.py scan --input <data-root>
-D:\Python\python.exe run.py triage --input <data-root> --explain --force-refresh
-D:\Python\python.exe run.py auto-queue
-D:\Python\python.exe run.py reviewed-queue --proposals <proposals.json> --write-template
-D:\Python\python.exe run.py reviewed-queue --proposals <proposals.json> --decisions <decisions.csv> --dry-run
+python run.py scan --input <data-root>
+python run.py triage --input <data-root> --explain --force-refresh
+python run.py auto-queue
+python run.py reviewed-queue --proposals <proposals.json> --write-template
+python run.py reviewed-queue --proposals <proposals.json> --decisions <decisions.csv> --dry-run
 ```
 
 Only explicitly approved rows should enter processing. Use `--no-origin` first when validating a new queue.

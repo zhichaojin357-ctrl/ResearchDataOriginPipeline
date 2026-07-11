@@ -3,6 +3,7 @@
 import csv
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -72,6 +73,24 @@ def test_auto_queue_blocks_hash_mismatch_and_path_traversal(tmp_path: Path):
     statuses = {item["status"] for item in plan["blocked_items"]}
     assert "BLOCKED_HASH_MISMATCH" in statuses
     assert "BLOCKED_PATH_TRAVERSAL" in statuses
+    assert run_auto_queue(project, AutoQueueOptions(queue=queue_path, workspace_root=workspace)) == 1
+
+
+def test_auto_queue_returns_zero_when_candidates_are_only_normally_skipped(tmp_path: Path):
+    project = _project_root(tmp_path)
+    reports = default_output_root(project) / "reports"
+    reports.mkdir(parents=True)
+    item = _queue_item("EIS/not_selected.csv", "a" * 64)
+    item["decision"] = "MANUAL_REVIEW"
+    queue_path = reports / "processing_queue.json"
+    queue_path.write_text(json.dumps({"items": [item]}), encoding="utf-8")
+
+    code = run_auto_queue(project, AutoQueueOptions(queue=queue_path, workspace_root=project / "workspace"))
+    plan = json.loads((reports / "auto_process_plan.json").read_text(encoding="utf-8"))
+
+    assert code == 0
+    assert plan["summary"]["skipped_count"] == 1
+    assert plan["summary"]["blocked_count"] == 0
 
 
 def test_auto_queue_blocks_forbidden_type_variants(tmp_path: Path):
@@ -148,7 +167,7 @@ def test_auto_queue_cli_reports_invalid_queue_shape_without_traceback(tmp_path: 
 
     result = subprocess.run(
         [
-            "D:\\Python\\python.exe",
+            sys.executable,
             "run.py",
             "auto-queue",
             "--queue",
@@ -173,7 +192,7 @@ def test_auto_queue_cli_reports_non_object_queue_item_without_traceback(tmp_path
 
     result = subprocess.run(
         [
-            "D:\\Python\\python.exe",
+            sys.executable,
             "run.py",
             "auto-queue",
             "--queue",

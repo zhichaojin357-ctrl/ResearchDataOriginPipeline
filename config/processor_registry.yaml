@@ -205,7 +205,9 @@
         ".txt",
         ".xlsx",
         ".xls",
-        ".dat"
+        ".dat",
+        ".vgd",
+        ".vgp"
       ],
       "header_keywords": [],
       "column_keywords": [],

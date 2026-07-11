@@ -52,9 +52,9 @@ SEM, TEM, NMR, MS, and kinetics/reference folders remain scan-only.
 ## Validation Commands
 
 ```powershell
-D:\Python\python.exe -m pytest
-D:\Python\python.exe run.py validate
-D:\Python\python.exe run.py readiness --no-desktop-review-xlsx
+python -m pytest
+python run.py validate
+python run.py readiness --no-desktop-review-xlsx
 ```
 
 For plot-format changes, additionally run the relevant formal Origin commands and inspect their reports under the generated run root in `输出\runs`.

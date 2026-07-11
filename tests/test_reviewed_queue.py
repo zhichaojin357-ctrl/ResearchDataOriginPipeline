@@ -3,6 +3,7 @@
 import csv
 import json
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -102,6 +103,27 @@ def test_high_risk_approval_requires_ack(tmp_path: Path, project_root: Path):
 
     assert plan["summary"]["approved_count"] == 0
     assert plan["blocked_items"][0]["status"] == "BLOCKED_HIGH_RISK_ACK_REQUIRED"
+
+
+def test_reviewed_queue_returns_nonzero_when_an_approved_row_is_blocked(tmp_path: Path):
+    fixture = _make_fixture(tmp_path)
+    test_project = tmp_path / "project"
+    test_project.mkdir()
+    proposals = load_proposals(test_project, fixture.proposals)
+    decisions = _make_decisions(tmp_path, proposals, {"P18-001": _approval(high_risk_ack="")})
+
+    code = run_reviewed_queue(
+        test_project,
+        ReviewedQueueOptions(
+            proposals=fixture.proposals,
+            decisions=decisions,
+            workspace_root=fixture.workspace_root,
+            triage_manifest=fixture.triage_manifest,
+            processed_index=fixture.processed_index,
+        ),
+    )
+
+    assert code == 1
 
 
 def test_folder_header_conflict_requires_ack(tmp_path: Path, project_root: Path):
@@ -311,7 +333,7 @@ def test_reviewed_queue_blocks_malformed_csv_as_parse_error(tmp_path: Path, proj
 
 def test_reviewed_queue_cli_help_and_blank_dry_run(tmp_path: Path, project_root: Path):
     help_result = subprocess.run(
-        ["D:\\Python\\python.exe", "run.py", "reviewed-queue", "--help"],
+        [sys.executable, "run.py", "reviewed-queue", "--help"],
         cwd=project_root,
         text=True,
         capture_output=True,
@@ -345,6 +367,7 @@ def test_reviewed_queue_cli_help_and_blank_dry_run(tmp_path: Path, project_root:
     payload = json.loads(report_json.read_text(encoding="utf-8"))
     assert code == 0
     assert payload["summary"]["approved_count"] == 0
+    assert payload["summary"]["blocked_count"] == 0
     assert payload["summary"]["will_launch_origin"] is False
     assert payload["summary"]["will_run_process"] is False
 
@@ -352,7 +375,7 @@ def test_reviewed_queue_cli_help_and_blank_dry_run(tmp_path: Path, project_root:
 def test_reviewed_queue_cli_reports_missing_proposals_without_traceback(project_root: Path):
     result = subprocess.run(
         [
-            "D:\\Python\\python.exe",
+            sys.executable,
             "run.py",
             "reviewed-queue",
             "--proposals",
@@ -376,7 +399,7 @@ def test_reviewed_queue_cli_reports_invalid_proposals_shape_without_traceback(tm
 
     result = subprocess.run(
         [
-            "D:\\Python\\python.exe",
+            sys.executable,
             "run.py",
             "reviewed-queue",
             "--proposals",
@@ -400,7 +423,7 @@ def test_reviewed_queue_cli_reports_invalid_proposals_items_without_traceback(tm
 
     result = subprocess.run(
         [
-            "D:\\Python\\python.exe",
+            sys.executable,
             "run.py",
             "reviewed-queue",
             "--proposals",
@@ -424,7 +447,7 @@ def test_reviewed_queue_cli_reports_non_object_proposal_item_without_traceback(t
 
     result = subprocess.run(
         [
-            "D:\\Python\\python.exe",
+            sys.executable,
             "run.py",
             "reviewed-queue",
             "--proposals",

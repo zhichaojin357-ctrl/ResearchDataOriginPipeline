@@ -47,6 +47,10 @@ XRD_STANDARD_CARD_SAMPLE_COLOR_SEQUENCE = (16814848, 33518174, 18128807, 1681484
 XRD_STANDARD_CARD_STICK_COLOR_EXPR = "color(181,91,0)"
 XRD_STANDARD_CARD_STICK_WIDTH = 1500
 XRD_STANDARD_CARD_STICK_WIDTH_PT = 3
+REVIEWED_TEMPLATE_VISIBLE_PLOTS = {
+    "EIS": (3, 4, 5),
+    "Mott-Schottky": (1, 2, 3),
+}
 
 
 @dataclass(frozen=True)
@@ -59,6 +63,7 @@ class TemplateFormatExecutorOptions:
     xps_reference_template_root: Path | None = None
     xps_non_in_situ_template_root: Path | None = None
     user_style_path: Path | None = None
+    asset_only: bool = False
     exemplar_driven: bool = False
     compact_output: bool = False
     only_type: str | None = None
@@ -70,9 +75,9 @@ def build_template_product_builder_options(options: TemplateFormatExecutorOption
         output_root=options.output_root,
         with_origin=options.with_origin,
         timestamp=options.timestamp,
-        f_drive_template_root=options.f_drive_template_root,
-        xps_reference_template_root=options.xps_reference_template_root,
-        xps_non_in_situ_template_root=options.xps_non_in_situ_template_root,
+        f_drive_template_root=None if options.asset_only else options.f_drive_template_root,
+        xps_reference_template_root=None if options.asset_only else options.xps_reference_template_root,
+        xps_non_in_situ_template_root=None if options.asset_only else options.xps_non_in_situ_template_root,
         user_style_path=options.user_style_path,
         run_scope=TEMPLATE_FORMAT_SCOPE,
         command_name=TEMPLATE_FORMAT_COMMAND,
@@ -85,7 +90,8 @@ def build_template_product_builder_options(options: TemplateFormatExecutorOption
         cleanup_empty_run_layout_dirs=True,
         project_style_asset_fallback=True,
         prefer_project_style_assets=True,
-        external_reference_preview_comparison=not options.exemplar_driven,
+        external_reference_preview_comparison=not options.exemplar_driven and not options.asset_only,
+        asset_only=options.asset_only,
         exemplar_driven=options.exemplar_driven,
         compact_output=options.compact_output,
         only_type=options.only_type,
@@ -93,6 +99,8 @@ def build_template_product_builder_options(options: TemplateFormatExecutorOption
 
 
 def run_template_format_executor(project_root: Path, options: TemplateFormatExecutorOptions) -> dict[str, object]:
+    if options.asset_only and options.exemplar_driven:
+        raise ValueError("--asset-only and --exemplar-driven are mutually exclusive")
     options = _with_default_xps_non_in_situ_template_root(project_root, options)
     result = run_template_product_builder_all_types(
         project_root,
@@ -103,6 +111,7 @@ def run_template_format_executor(project_root: Path, options: TemplateFormatExec
             project_root=project_root,
             prefer_project_style_asset=True,
             preserve_exemplar_style=options.exemplar_driven,
+            asset_only=options.asset_only,
         ),
     )
     _write_template_format_docs(project_root, Path(str(result["run_root"])), result)
@@ -116,6 +125,8 @@ def _with_default_xps_non_in_situ_template_root(
     project_root: Path,
     options: TemplateFormatExecutorOptions,
 ) -> TemplateFormatExecutorOptions:
+    if options.asset_only:
+        return options
     if options.xps_non_in_situ_template_root is not None:
         return options
     if options.f_drive_template_root is None and options.xps_reference_template_root is None:
@@ -229,15 +240,32 @@ def export_template_base_product_with_origin(
     project_root: Path | None = None,
     prefer_project_style_asset: bool = True,
     preserve_exemplar_style: bool = False,
+    asset_only: bool = False,
 ) -> dict[str, object]:
     operations = None
     try:
+        if asset_only and preserve_exemplar_style:
+            return {"ok": False, "message": "asset-only export cannot preserve an external exemplar"}
+        if asset_only and product.external_reference_opju is not None:
+            product = replace(
+                product,
+                external_reference_opju=None,
+                external_reference_graph="",
+                external_reference_source="",
+            )
         style_asset = resolve_origin_style_asset(project_root, product.product_key) if project_root is not None and prefer_project_style_asset else None
         neutral_root = _neutral_origin_runtime_root()
         with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root, ignore_cleanup_errors=True) as runtime_text:
             runtime = Path(runtime_text)
             project_template_opju = _project_local_template_opju_for_product(product, style_asset)
             reference_source = project_template_opju or product.reference_opju_copy
+            if asset_only and reference_source.suffix.casefold() in {".opju", ".opj"}:
+                return {
+                    "ok": False,
+                    "message": "asset-only export rejected an OPJU/OPJ template base",
+                    "asset_only": True,
+                    "external_template_dependency": False,
+                }
             runtime_reference = runtime / reference_source.name
             plan_opju: Path | None = None
             if reference_source.suffix.casefold() in {".opju", ".opj"} and reference_source.is_file():
@@ -627,8 +655,8 @@ def _export_template_snapshot_fallback_product_with_origin(
             graph_name,
             font_name=style.font_family,
             axis_title_size=style.axis_title_font_size,
-            x_tick_label_size=style.tick_label_font_size,
-            y_tick_label_size=style.tick_label_font_size,
+            x_tick_label_size=style.x_tick_label_font_size,
+            y_tick_label_size=style.y_tick_label_font_size,
             legend_font_size=style.legend_font_size,
             annotation_font_size=style.legend_font_size,
         )
@@ -869,7 +897,24 @@ def _export_cached_style_package_product_with_origin(
         _apply_template_base_global_policies(operations, graph_name, product, style)
         apply_resolved_style_overrides(operations, graph_name, style)
         data_axis_policy = _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
-        legend_policy = _apply_cached_style_rich_text_policies(operations, graph_name, product, style)
+        saved_style_snapshot = _load_saved_style_snapshot(style_package_path)
+        saved_data_snapshot = _load_saved_data_snapshot(style_package_path)
+        reviewed_plot_policy = _apply_reviewed_template_plot_policy(
+            operations,
+            graph_name,
+            product,
+            saved_style_snapshot,
+            style,
+            data_snapshot=saved_data_snapshot,
+        )
+        legend_policy = _apply_cached_style_rich_text_policies(
+            operations,
+            graph_name,
+            product,
+            style,
+            snapshot=saved_style_snapshot,
+        )
+        legend_policy["reviewed_template_plot_policy"] = reviewed_plot_policy
         product_style: dict[str, object] = {}
         strict_readback: dict[str, bool] = {}
         conformance: dict[str, object] = {}
@@ -889,6 +934,14 @@ def _export_cached_style_package_product_with_origin(
             }
         except Exception as exc:
             conformance = {"status": "cached_style_package_readback_failed", "message": str(exc)}
+        legend_policy["final_reviewed_legend"] = _finalize_reviewed_template_legend(
+            operations,
+            graph_name,
+            product,
+            saved_style_snapshot,
+            style,
+        )
+        render_refresh = _refresh_graph_for_export(operations, graph_name)
         saved = operations.save_project(runtime_origin)
         if not getattr(saved, "ok", False):
             return {"ok": False, "message": getattr(saved, "message", "project save failed"), "template_format_plan": plan.to_dict()}
@@ -942,6 +995,7 @@ def _export_cached_style_package_product_with_origin(
             "metadata_warnings": metadata_warnings,
             "axis_range_policy": data_axis_policy,
             "legend_policy": legend_policy,
+            "render_refresh": render_refresh,
         },
         "product_style": product_style,
         "strict_style_readback": strict_readback,
@@ -1030,6 +1084,7 @@ def _export_saved_format_theme_product_with_origin(
         _apply_template_base_global_policies(operations, graph_name, product, style)
         data_axis_policy = _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
         saved_style_snapshot = _load_saved_style_snapshot(theme_path)
+        saved_data_snapshot = _load_saved_data_snapshot(theme_path)
         plot_sequence = _apply_external_reference_plot_sequence(
             operations,
             graph_name,
@@ -1037,7 +1092,22 @@ def _export_saved_format_theme_product_with_origin(
             or (external_reference_preview.get("style_snapshot") if isinstance(external_reference_preview, dict) else {}),
             product=product,
         )
-        legend_policy = _apply_cached_style_rich_text_policies(operations, graph_name, product, style)
+        reviewed_plot_policy = _apply_reviewed_template_plot_policy(
+            operations,
+            graph_name,
+            product,
+            saved_style_snapshot,
+            style,
+            data_snapshot=saved_data_snapshot,
+        )
+        legend_policy = _apply_cached_style_rich_text_policies(
+            operations,
+            graph_name,
+            product,
+            style,
+            snapshot=saved_style_snapshot,
+        )
+        legend_policy["reviewed_template_plot_policy"] = reviewed_plot_policy
         product_style: dict[str, object] = {}
         strict_readback: dict[str, bool] = {}
         conformance: dict[str, object] = {}
@@ -1057,6 +1127,14 @@ def _export_saved_format_theme_product_with_origin(
             }
         except Exception as exc:
             conformance = {"status": "saved_format_theme_readback_failed", "message": str(exc)}
+        legend_policy["final_reviewed_legend"] = _finalize_reviewed_template_legend(
+            operations,
+            graph_name,
+            product,
+            saved_style_snapshot,
+            style,
+        )
+        render_refresh = _refresh_graph_for_export(operations, graph_name)
         saved = operations.save_project(runtime_origin)
         if not getattr(saved, "ok", False):
             return {"ok": False, "message": getattr(saved, "message", "project save failed"), "template_format_plan": plan.to_dict()}
@@ -1112,6 +1190,7 @@ def _export_saved_format_theme_product_with_origin(
             "metadata_warnings": metadata_warnings,
             "axis_range_policy": data_axis_policy,
             "legend_policy": legend_policy,
+            "render_refresh": render_refresh,
         },
         "external_reference_preview": external_reference_preview,
         "external_reference_plot_sequence": plot_sequence,
@@ -1255,6 +1334,29 @@ def _load_saved_style_snapshot(style_package_path: Path) -> dict[str, object]:
     return loaded if isinstance(loaded, dict) else {}
 
 
+def _load_saved_data_snapshot(style_package_path: Path) -> dict[str, object]:
+    snapshot_path = style_package_path.parent.parent / "data_snapshots" / f"{style_package_path.stem}.json"
+    if not snapshot_path.is_file():
+        return {}
+    try:
+        loaded = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def _refresh_graph_for_export(operations: object, graph_name: str) -> dict[str, object]:
+    graph = quote_labtalk(graph_name)
+    update = operations.run_labtalk(f'win -a "{graph}"; doc -uw;')
+    repaint = operations.run_labtalk(f'win -a "{graph}"; draw -uwi;')
+    return {
+        "applied": bool(getattr(update, "ok", False)),
+        "document_update": bool(getattr(update, "ok", False)),
+        "immediate_repaint": bool(getattr(repaint, "ok", False)),
+        "immediate_repaint_best_effort": True,
+    }
+
+
 def _to_int(value: object) -> int | None:
     try:
         number = int(float(str(value)))
@@ -1281,12 +1383,606 @@ def _saved_format_theme_xps_fill_intent(product: ProductContext) -> dict[str, ob
     }
 
 
+def _apply_reviewed_template_plot_policy(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    snapshot: dict[str, object],
+    style: ResolvedPlotStyle,
+    *,
+    data_snapshot: dict[str, object] | None = None,
+) -> dict[str, object]:
+    visible_indices = REVIEWED_TEMPLATE_VISIBLE_PLOTS.get(product.product_key)
+    if visible_indices is None:
+        return {"applied": False, "reason": "not_required_for_product"}
+    plot_names = operations._plot_names(graph_name) if hasattr(operations, "_plot_names") else []
+    if len(plot_names) < max(visible_indices):
+        return {
+            "applied": False,
+            "reason": "insufficient_plot_count",
+            "plot_count": len(plot_names),
+            "required_visible_indices": list(visible_indices),
+        }
+
+    graph = quote_labtalk(graph_name)
+    plot_style_policy = _apply_reviewed_template_plot_styles(
+        operations,
+        graph_name,
+        data_snapshot or {},
+    )
+    visibility_commands: list[str] = []
+    for index in range(1, len(plot_names) + 1):
+        show = 1 if index in visible_indices else 0
+        command = f'win -a "{graph}"; layer.plot{index}.show={show};'
+        operations.run_labtalk(command)
+        visibility_commands.append(command)
+
+    entries = list(product.legend_entries)[: len(visible_indices)]
+    if len(entries) != len(visible_indices):
+        return {
+            "applied": False,
+            "reason": "legend_entry_count_mismatch",
+            "visible_indices": list(visible_indices),
+            "legend_entries": entries,
+        }
+    legend_rows = [
+        f"\\l({plot_index})\\b({_reviewed_template_legend_rich_text(label)})"
+        for plot_index, label in zip(visible_indices, entries)
+    ]
+    legend_text = "%(CRLF)".join(legend_rows)
+    operations.run_labtalk(
+        f'win -a "{graph}"; legend.show=1; legend.text$="{_quote_origin_rich_text(legend_text)}"; '
+        f'legend.font$="{quote_labtalk(style.font_family or "Arial")}"; '
+        f"legend.fsize={int(style.legend_font_size or 26)}; legend.bold=1; "
+        "legend.background=0; legend.border=0; legend.fill=0;"
+    )
+    legend_com_text_refreshed = _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "Legend",
+        "\r\n".join(legend_rows),
+    )
+    _style_graph_object(
+        operations,
+        graph_name,
+        "Legend",
+        font_name=style.font_family or "Arial",
+        font_size=int(style.legend_font_size or 26),
+        color=1,
+    )
+    if snapshot:
+        _apply_exemplar_axis_title_text(operations, graph_name, snapshot)
+    mott_guide_policy = (
+        _apply_mott_schottky_candidate_guides(operations, graph_name, product, snapshot)
+        if product.product_key == "Mott-Schottky"
+        else {"applied": False, "reason": "not_required_for_product"}
+    )
+    return {
+        "applied": True,
+        "visible_indices": list(visible_indices),
+        "hidden_indices": [index for index in range(1, len(plot_names) + 1) if index not in visible_indices],
+        "legend_entries": entries,
+        "legend_line_samples_preserved": True,
+        "legend_com_text_refreshed": legend_com_text_refreshed,
+        "axis_titles_restored_from_style_snapshot": bool(snapshot),
+        "plot_style": plot_style_policy,
+        "mott_schottky_candidate_guides": mott_guide_policy,
+    }
+
+
+def _reviewed_template_legend_rich_text(label: object) -> str:
+    text = str(label or "").strip()
+    return (
+        text.replace("BiOBr0.5Cl0.5", r"BiOBr\-(0.5)Cl\-(0.5)")
+        .replace("CuWO4", r"CuWO\-(4)")
+    )
+
+
+def _refresh_reviewed_template_legend_com_text(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+) -> bool:
+    visible_indices = REVIEWED_TEMPLATE_VISIBLE_PLOTS.get(product.product_key)
+    if visible_indices is None:
+        return False
+    entries = _plain_text_legend_entries(product)
+    if len(entries) != len(visible_indices):
+        return False
+    rows = [
+        f"\\l({plot_index})\\b({_reviewed_template_legend_rich_text(label)})"
+        for plot_index, label in zip(visible_indices, entries)
+    ]
+    return _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "Legend",
+        "\r\n".join(rows),
+    )
+
+
+def _replace_eis_dynamic_legend_with_static_rich_text(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    snapshot: dict[str, object],
+    style: ResolvedPlotStyle,
+) -> dict[str, object]:
+    if product.product_key != "EIS":
+        return {"applied": False, "reason": "not_required_for_product"}
+    visible_indices = REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]
+    entries = _plain_text_legend_entries(product)
+    if len(entries) != len(visible_indices):
+        return {"applied": False, "reason": "legend_entry_count_mismatch"}
+    app = getattr(operations, "app", None)
+    if app is None:
+        return {"applied": False, "reason": "no_origin_app"}
+    try:
+        layer = app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(f"[{graph_name}]1") or app.FindGraphLayer(graph_name)
+    except Exception:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+    if not layer:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+    dynamic_legend = _find_origin_graph_object(layer, "Legend")
+    if dynamic_legend is None:
+        return {"applied": False, "reason": "dynamic_legend_unavailable"}
+    try:
+        left = int(dynamic_legend.Left)
+        top = int(dynamic_legend.Top)
+        dynamic_legend.Show = 0
+        dynamic_legend.SetNumProp("show", 0)
+    except Exception:
+        return {"applied": False, "reason": "dynamic_legend_hide_failed"}
+
+    object_name = "rdop_reviewed_legend"
+    graph = quote_labtalk(graph_name)
+    operations.run_labtalk(f'win -a "{graph}"; label -r {object_name};')
+    created = operations.run_labtalk(f'win -a "{graph}"; label -n {object_name} "x";')
+    static_legend = _find_origin_graph_object(layer, object_name)
+    if static_legend is None:
+        return {
+            "applied": False,
+            "reason": "static_legend_creation_failed",
+            "labtalk_created": bool(getattr(created, "ok", False)),
+        }
+    rows = [
+        f"\\l({plot_index})\\b({_reviewed_template_legend_rich_text(label)})"
+        for plot_index, label in zip(visible_indices, entries)
+    ]
+    font_size = _reviewed_template_legend_font_size(snapshot, style)
+    try:
+        static_legend.Text = "\r\n".join(rows)
+        static_legend.Left = left
+        static_legend.Top = top
+    except Exception:
+        return {"applied": False, "reason": "static_legend_text_or_position_failed"}
+    font_code = _origin_font_code(app, style.font_family or "Arial")
+    for prop, value in (
+        ("font", font_code),
+        ("fsize", font_size),
+        ("bold", 1),
+        ("color", 1),
+        ("background", 0),
+        ("border", 0),
+        ("frame", 0),
+        ("fill", 0),
+        ("show", 1),
+    ):
+        try:
+            static_legend.SetNumProp(prop, value)
+        except Exception:
+            pass
+    return {
+        "applied": str(getattr(static_legend, "Text", "") or "") == "\r\n".join(rows),
+        "method": "static_rich_text_legend_with_template_line_samples",
+        "dynamic_legend_hidden": True,
+        "object_name": object_name,
+        "entries": entries,
+        "visible_plot_indices": list(visible_indices),
+        "font_size": font_size,
+        "left": left,
+        "top": top,
+    }
+
+
+def _reviewed_template_legend_font_size(
+    snapshot: dict[str, object],
+    style: ResolvedPlotStyle,
+) -> int:
+    layout = snapshot.get("layout_values") if isinstance(snapshot, dict) else None
+    saved_size = _snapshot_axis_value(layout, "legend.fsize")
+    if saved_size is not None and saved_size > 0:
+        return int(round(saved_size))
+    return int(style.legend_font_size or 26)
+
+
+def _finalize_reviewed_template_legend(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    snapshot: dict[str, object],
+    style: ResolvedPlotStyle,
+) -> dict[str, object]:
+    if product.product_key == "EIS":
+        return _replace_eis_dynamic_legend_with_static_rich_text(
+            operations,
+            graph_name,
+            product,
+            snapshot,
+            style,
+        )
+    if product.product_key in REVIEWED_TEMPLATE_VISIBLE_PLOTS:
+        return {
+            "applied": _refresh_reviewed_template_legend_com_text(operations, graph_name, product),
+            "method": "dynamic_legend_com_text_refresh",
+        }
+    return {"applied": False, "reason": "not_required_for_product"}
+
+
+def _apply_reviewed_template_plot_styles(
+    operations: object,
+    graph_name: str,
+    data_snapshot: dict[str, object],
+) -> dict[str, object]:
+    plot_names = operations._plot_names(graph_name) if hasattr(operations, "_plot_names") else []
+    records = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
+    if not plot_names:
+        return {"applied": False, "reason": "target_graph_has_no_readable_plots"}
+    if not isinstance(records, list) or len(records) < len(plot_names):
+        return {
+            "applied": False,
+            "reason": "saved_data_snapshot_plot_styles_unavailable",
+            "target_plot_count": len(plot_names),
+            "snapshot_plot_count": len(records) if isinstance(records, list) else 0,
+        }
+
+    option_fields = (
+        ("line_color", "-cl", True),
+        ("line_width_pt", "-wp", False),
+        ("line_style", "-l", True),
+        ("symbol_shape", "-k", True),
+        ("symbol_size", "-z", False),
+        ("fill_area", "-pfb", True),
+        ("fill_color", "-pfc", True),
+        ("border_color", "-pbc", True),
+        ("border_width", "-pbw", False),
+        # Apply the composite Origin color last; earlier component-color
+        # commands can otherwise replace it with a plain palette index.
+        ("color", "-c", True),
+    )
+    applied: list[dict[str, object]] = []
+    graph = quote_labtalk(graph_name)
+    for plot_name, record in zip(plot_names, records):
+        plot_style = record.get("style") if isinstance(record, dict) else None
+        if not isinstance(plot_style, dict):
+            return {
+                "applied": False,
+                "reason": "saved_data_snapshot_plot_style_missing",
+                "plot_name": plot_name,
+            }
+        commands: list[str] = []
+        restored: dict[str, float | int] = {}
+        for field, option, integer_value in option_fields:
+            value = _finite_float(plot_style.get(field))
+            if value is None:
+                continue
+            rendered: int | float = int(round(value)) if integer_value else value
+            commands.append(f"set {plot_name} {option} {_origin_number(rendered)};")
+            restored[field] = rendered
+        if not commands:
+            return {
+                "applied": False,
+                "reason": "saved_data_snapshot_plot_style_empty",
+                "plot_name": plot_name,
+            }
+        result = operations.run_labtalk(f'win -a "{graph}"; ' + " ".join(commands))
+        if not getattr(result, "ok", False):
+            return {
+                "applied": False,
+                "reason": "origin_plot_style_restore_failed",
+                "plot_name": plot_name,
+            }
+        applied.append({"plot_name": plot_name, "style": restored})
+    return {
+        "applied": True,
+        "method": "project_local_data_snapshot_plot_style_restore",
+        "plot_count": len(applied),
+        "plots": applied,
+    }
+
+
+def _apply_mott_schottky_candidate_guides(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    snapshot: dict[str, object],
+) -> dict[str, object]:
+    try:
+        headers, rows = _read_processed_csv(product.processed_data)
+    except (OSError, ValueError) as exc:
+        return {"applied": False, "reason": f"processed_data_unavailable: {exc}"}
+    candidate = _mott_schottky_candidate_guides(headers, rows, series_count=3)
+    if not candidate:
+        return {"applied": False, "reason": "no_defensible_common_linear_window"}
+
+    graph = quote_labtalk(graph_name)
+    x_intercept = float(candidate["shared_x_intercept_candidate"])
+    x_end = float(candidate["guide_x_end"])
+    line_results: list[dict[str, object]] = []
+    for index, slope in enumerate(candidate["constrained_slopes"], start=1):
+        name = f"rdop_mott_fit_{index}"
+        y_end = float(slope) * (x_end - x_intercept)
+        command = (
+            f'win -a "{graph}"; label -r {name}; '
+            f"draw -n {name} -w 3 -d 1 -l "
+            f"{{{_origin_number(x_intercept)},0,{_origin_number(x_end)},{_origin_number(y_end)}}}; "
+            f"{name}.color=color(128,128,128);"
+        )
+        result = operations.run_labtalk(command)
+        if not getattr(result, "ok", False):
+            return {
+                "applied": False,
+                "reason": "origin_candidate_guide_creation_failed",
+                "failed_guide": index,
+                **candidate,
+            }
+        line_results.append({"object_name": name, "slope": slope, "x_end": x_end, "y_end": y_end})
+
+    layout = snapshot.get("layout_values") if isinstance(snapshot, dict) else None
+    x_span = _snapshot_axis_span(layout, "layer.x", fallback=float(candidate["data_x_span"]))
+    y_max = _snapshot_axis_value(layout, "layer.y.to")
+    if y_max is None or y_max <= 0:
+        y_max = float(candidate["visible_y_max"])
+    label_x = x_intercept + 0.03 * x_span
+    label_y = 0.2 * y_max
+    label_text = f"{x_intercept:.2f} V"
+    label_name = "rdop_mott_x_intercept"
+    operations.run_labtalk(f'win -a "{graph}"; label -r {label_name};')
+    label_result = operations.run_labtalk(
+        f'win -a "{graph}"; label -n {label_name} '
+        f'"{_quote_origin_rich_text(origin_bold_text(label_text))}"; '
+        f"{label_name}.attach=2; {label_name}.x={_origin_number(label_x)}; "
+        f"{label_name}.y={_origin_number(label_y)}; {label_name}.show=1;"
+    )
+    label_text_refreshed = _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        label_name,
+        origin_bold_text(label_text),
+    )
+    label_styled = _style_graph_object(
+        operations,
+        graph_name,
+        label_name,
+        font_name="Arial",
+        font_size=28,
+        color=1,
+    )
+    com_required = getattr(operations, "app", None) is not None
+    if not getattr(label_result, "ok", False) or (com_required and (not label_text_refreshed or not label_styled)):
+        return {
+            "applied": False,
+            "reason": "origin_candidate_intercept_label_creation_failed",
+            "labtalk_created": bool(getattr(label_result, "ok", False)),
+            "com_text_refreshed": label_text_refreshed,
+            "com_style_applied": label_styled,
+            "guides_created": line_results,
+            **candidate,
+        }
+    return {
+        "applied": True,
+        "method": "shared_intercept_three_point_linear_window_candidate",
+        "manual_check_required": True,
+        "visible_claim": "numeric x-intercept candidate only",
+        "forbidden_automatic_claims": ["carrier type", "carrier density", "band-edge position"],
+        "annotation": label_text,
+        "annotation_object": label_name,
+        "guides": line_results,
+        **candidate,
+    }
+
+
+def _mott_schottky_candidate_guides(
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    series_count: int,
+) -> dict[str, object]:
+    if series_count < 1 or len(headers) < series_count + 1:
+        return {}
+    numeric: list[tuple[float, list[float]]] = []
+    for row in rows:
+        if len(row) < series_count + 1:
+            continue
+        x_value = _finite_float(row[0])
+        y_values = [_finite_float(value) for value in row[1 : series_count + 1]]
+        if x_value is None or any(value is None for value in y_values):
+            continue
+        numeric.append((x_value, [float(value) for value in y_values if value is not None]))
+    numeric.sort(key=lambda item: item[0])
+    if len(numeric) < 5 or any(numeric[index][0] >= numeric[index + 1][0] for index in range(len(numeric) - 1)):
+        return {}
+
+    x_values = [item[0] for item in numeric]
+    series = [[item[1][series_index] for item in numeric] for series_index in range(series_count)]
+    rising_end = min(max(range(len(values)), key=values.__getitem__) for values in series)
+    window_size = 3
+    if rising_end + 1 < window_size:
+        return {}
+
+    candidates: list[tuple[tuple[float, float], int, list[dict[str, float]]]] = []
+    for start in range(0, rising_end - window_size + 2):
+        stop = start + window_size
+        x_window = x_values[start:stop]
+        fits = [_linear_fit(x_window, values[start:stop]) for values in series]
+        if any(not fit or float(fit["slope"]) <= 0 for fit in fits):
+            continue
+        minimum_r_squared = min(float(fit["r_squared"]) for fit in fits)
+        mean_r_squared = sum(float(fit["r_squared"]) for fit in fits) / len(fits)
+        candidates.append(((minimum_r_squared, mean_r_squared), start, fits))
+    if not candidates:
+        return {}
+    _score, start, independent_fits = max(candidates, key=lambda item: item[0])
+    stop = start + window_size
+    x_window = x_values[start:stop]
+    y_windows = [values[start:stop] for values in series]
+    shared = _shared_x_intercept_fit(x_window, y_windows, full_x_span=x_values[-1] - x_values[0])
+    if not shared or min(float(value) for value in shared.get("r_squared", [])) < 0.98:
+        return {}
+
+    next_index = stop if stop <= rising_end else stop - 1
+    guide_x_end = x_values[next_index]
+    return {
+        "series_headers": headers[1 : series_count + 1],
+        "linear_interval_candidate": [x_window[0], x_window[-1]],
+        "linear_fit_point_count": window_size,
+        "independent_linear_fits": independent_fits,
+        "shared_x_intercept_candidate": shared["x_intercept"],
+        "constrained_slopes": shared["slopes"],
+        "constrained_r_squared": shared["r_squared"],
+        "guide_x_end": guide_x_end,
+        "data_x_span": x_values[-1] - x_values[0],
+        "visible_y_max": max(max(values) for values in series),
+    }
+
+
+def _linear_fit(x_values: list[float], y_values: list[float]) -> dict[str, float]:
+    if len(x_values) != len(y_values) or len(x_values) < 2:
+        return {}
+    mean_x = sum(x_values) / len(x_values)
+    mean_y = sum(y_values) / len(y_values)
+    denominator = sum((value - mean_x) ** 2 for value in x_values)
+    if denominator <= 0:
+        return {}
+    slope = sum((x_value - mean_x) * (y_value - mean_y) for x_value, y_value in zip(x_values, y_values)) / denominator
+    intercept = mean_y - slope * mean_x
+    total = sum((value - mean_y) ** 2 for value in y_values)
+    residual = sum((y_value - (slope * x_value + intercept)) ** 2 for x_value, y_value in zip(x_values, y_values))
+    r_squared = 1.0 if total <= 0 else 1.0 - residual / total
+    return {"slope": slope, "intercept": intercept, "r_squared": r_squared}
+
+
+def _shared_x_intercept_fit(
+    x_values: list[float],
+    y_series: list[list[float]],
+    *,
+    full_x_span: float,
+) -> dict[str, object]:
+    if len(x_values) < 3 or full_x_span <= 0 or any(len(values) != len(x_values) for values in y_series):
+        return {}
+    upper = x_values[0] - max(full_x_span * 1e-6, abs(x_values[-1] - x_values[0]) * 0.01)
+    lower = x_values[0] - 5.0 * full_x_span
+    grid_count = 4000
+    step = (upper - lower) / grid_count
+
+    def evaluate(x_intercept: float) -> tuple[float, list[float], list[float]]:
+        offsets = [x_value - x_intercept for x_value in x_values]
+        denominator = sum(value * value for value in offsets)
+        if denominator <= 0:
+            return math.inf, [], []
+        slopes: list[float] = []
+        r_squared_values: list[float] = []
+        objective = 0.0
+        for values in y_series:
+            slope = sum(offset * y_value for offset, y_value in zip(offsets, values)) / denominator
+            if slope <= 0:
+                return math.inf, [], []
+            residual = sum((y_value - slope * offset) ** 2 for offset, y_value in zip(offsets, values))
+            mean_y = sum(values) / len(values)
+            total = sum((y_value - mean_y) ** 2 for y_value in values)
+            if total <= 0:
+                return math.inf, [], []
+            objective += residual / total
+            slopes.append(slope)
+            r_squared_values.append(1.0 - residual / total)
+        return objective, slopes, r_squared_values
+
+    best_index = -1
+    best: tuple[float, list[float], list[float]] = (math.inf, [], [])
+    for index in range(grid_count + 1):
+        candidate = evaluate(lower + index * step)
+        if candidate[0] < best[0]:
+            best = candidate
+            best_index = index
+    if best_index <= 0 or best_index >= grid_count:
+        return {}
+
+    left = lower + (best_index - 1) * step
+    right = lower + (best_index + 1) * step
+    for _ in range(50):
+        first = left + (right - left) / 3.0
+        second = right - (right - left) / 3.0
+        if evaluate(first)[0] <= evaluate(second)[0]:
+            right = second
+        else:
+            left = first
+    x_intercept = (left + right) / 2.0
+    objective, slopes, r_squared_values = evaluate(x_intercept)
+    if not math.isfinite(objective) or not slopes:
+        return {}
+    return {
+        "x_intercept": x_intercept,
+        "slopes": slopes,
+        "r_squared": r_squared_values,
+        "normalized_residual_objective": objective,
+    }
+
+
+def _snapshot_axis_value(layout: object, key: str) -> float | None:
+    if not isinstance(layout, dict):
+        return None
+    return _finite_float(layout.get(key))
+
+
+def _snapshot_axis_span(layout: object, prefix: str, *, fallback: float) -> float:
+    start = _snapshot_axis_value(layout, f"{prefix}.from")
+    stop = _snapshot_axis_value(layout, f"{prefix}.to")
+    if start is not None and stop is not None and stop > start:
+        return stop - start
+    return max(fallback, 1.0)
+
+
+def _finite_float(value: object) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def _origin_number(value: object) -> str:
+    number = _finite_float(value)
+    if number is None:
+        raise ValueError(f"Origin numeric value must be finite: {value!r}")
+    if float(number).is_integer():
+        return str(int(number))
+    return f"{number:.15g}"
+
+
 def _apply_cached_style_rich_text_policies(
     operations: object,
     graph_name: str,
     product: ProductContext,
     style: ResolvedPlotStyle,
+    *,
+    snapshot: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    if product.product_key in REVIEWED_TEMPLATE_VISIBLE_PLOTS:
+        entries = _plain_text_legend_entries(product)
+        preserved_legend_policy = _format_preserved_line_sample_legend(operations, graph_name, style)
+        policy = _plain_text_legend_policy(
+            product,
+            entries=entries,
+            anchor_policy={"applied": False, "visible": True, "reason": "reviewed_template_legend_position_preserved"},
+            line_samples_removed=False,
+            preserved_line_sample_policy=preserved_legend_policy,
+        )
+        policy["legend_com_text_refreshed_after_formatting"] = _refresh_reviewed_template_legend_com_text(
+            operations,
+            graph_name,
+            product,
+        )
+        return policy
     commands = _bold_template_axis_title_commands({"xb.text$": product.x_label, "yl.text$": product.y_label})
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
     if commands:
@@ -1312,7 +2008,13 @@ def _apply_cached_style_rich_text_policies(
             xrd_card_label_policy=xrd_card_label_policy,
             xrd_standard_card_reference_sticks_present=True,
         )
-    anchor_policy = _apply_nonoverlap_plain_legend_anchor(operations, graph_name, product, entries)
+    anchor_policy = _apply_saved_template_legend_anchor(
+        operations,
+        graph_name,
+        snapshot or {},
+    )
+    if not anchor_policy.get("applied"):
+        anchor_policy = _apply_nonoverlap_plain_legend_anchor(operations, graph_name, product, entries)
     if product.product_key == "XRD":
         xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(
             operations,
@@ -1428,10 +2130,33 @@ def _apply_embedded_snapshot_data_axis_range(operations: object, graph_name: str
             "sample_column_count": len(y_columns),
             "reference_sticks_present": has_reference_sticks,
         }
+    if product.product_key in {"UV-vis DRS / Tauc", "EPR"}:
+        x_min, x_max = _csv_bounds_for_columns(product.processed_data, (0,))
+        if x_min is None or x_max is None or x_max <= x_min:
+            return {"applied": False, "reason": "csv_x_bounds_unavailable"}
+        result = set_axis_range(graph_name, x_min=x_min, x_max=x_max)
+        if not getattr(result, "ok", False):
+            return {"applied": False, "reason": getattr(result, "message", "set_axis_range_failed")}
+        return {
+            "applied": True,
+            "method": (
+                "uvvis_wavelength_bounds_after_tauc_style_geometry"
+                if product.product_key == "UV-vis DRS / Tauc"
+                else "epr_verified_field_bounds_after_legacy_style_geometry"
+            ),
+            "x_min": x_min,
+            "x_max": x_max,
+        }
     if product.product_key != "EIS":
         return {"applied": False, "reason": "not_required_for_product"}
-    x_min, x_max = _csv_bounds_for_columns(product.processed_data, (0,))
-    y_min, y_max = _csv_bounds_for_columns(product.processed_data, (1,))
+    try:
+        headers, _rows = _read_processed_csv(product.processed_data)
+    except Exception:
+        headers = []
+    x_columns = tuple(range(0, len(headers), 2))
+    y_columns = tuple(range(1, len(headers), 2))
+    x_min, x_max = _csv_bounds_for_columns(product.processed_data, x_columns)
+    y_min, y_max = _csv_bounds_for_columns(product.processed_data, y_columns)
     if x_min is None or x_max is None or y_min is None or y_max is None:
         return {"applied": False, "reason": "csv_bounds_unavailable"}
     x_from, x_to = _padded_axis_bounds(x_min, x_max, zero_floor=True)
@@ -1449,7 +2174,7 @@ def _apply_embedded_snapshot_data_axis_range(operations: object, graph_name: str
         )
     return {
         "applied": True,
-        "method": "eis_cleaned_main_branch_bounds_after_embedded_template_style",
+        "method": "eis_all_measured_overlay_bounds_after_embedded_template_style",
         "x_min": x_from,
         "x_max": x_to,
         "y_min": y_from,
@@ -1468,6 +2193,53 @@ def _padded_axis_bounds(min_value: float, max_value: float, *, zero_floor: bool 
     if zero_floor and min_value >= 0:
         lower = 0.0
     return lower, upper
+
+
+def _apply_saved_template_legend_anchor(
+    operations: object,
+    graph_name: str,
+    snapshot: dict[str, object],
+) -> dict[str, object]:
+    if not hasattr(operations, "run_labtalk"):
+        return {"applied": False, "reason": "run_labtalk_unavailable"}
+    layout = snapshot.get("layout_values") if isinstance(snapshot, dict) else None
+    audit = snapshot.get("audit_numeric_values") if isinstance(snapshot, dict) else None
+    legend_show = _snapshot_axis_value(audit, "legend.show")
+    if legend_show is None or abs(legend_show - 1.0) > 1e-9:
+        return {"applied": False, "reason": "saved_template_legend_not_visible"}
+    x_from = _snapshot_axis_value(layout, "layer.x.from")
+    x_to = _snapshot_axis_value(layout, "layer.x.to")
+    y_from = _snapshot_axis_value(layout, "layer.y.from")
+    y_to = _snapshot_axis_value(layout, "layer.y.to")
+    legend_x = _snapshot_axis_value(layout, "legend.x")
+    legend_y = _snapshot_axis_value(layout, "legend.y")
+    if None in {x_from, x_to, y_from, y_to, legend_x, legend_y}:
+        return {"applied": False, "reason": "saved_template_legend_coordinates_unavailable"}
+    x_span = float(x_to) - float(x_from)
+    y_span = float(y_to) - float(y_from)
+    if abs(x_span) <= 1e-12 or abs(y_span) <= 1e-12:
+        return {"applied": False, "reason": "saved_template_axis_span_invalid"}
+    x_fraction = (float(legend_x) - float(x_from)) / x_span
+    y_fraction = (float(legend_y) - float(y_from)) / y_span
+    if not (math.isfinite(x_fraction) and math.isfinite(y_fraction)):
+        return {"applied": False, "reason": "saved_template_legend_fraction_invalid"}
+    x_fraction = min(0.95, max(0.05, x_fraction))
+    y_fraction = min(0.95, max(0.05, y_fraction))
+    operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; '
+        "legend -r; legend.show=1; "
+        f"legend.x = layer.x.from + {x_fraction:.8g} * (layer.x.to - layer.x.from); "
+        f"legend.y = layer.y.from + {y_fraction:.8g} * (layer.y.to - layer.y.from);"
+    )
+    return {
+        "applied": True,
+        "visible": True,
+        "method": "saved_template_fractional_anchor_before_plain_text_replacement",
+        "x_fraction": x_fraction,
+        "y_fraction": y_fraction,
+        "saved_x": legend_x,
+        "saved_y": legend_y,
+    }
 
 
 def _apply_nonoverlap_plain_legend_anchor(
@@ -2169,6 +2941,33 @@ def _find_origin_graph_object(layer: object, name: str) -> object | None:
     return None
 
 
+def _set_origin_graph_object_text(
+    operations: object,
+    graph_name: str,
+    object_name: str,
+    text: str,
+) -> bool:
+    app = getattr(operations, "app", None)
+    if app is None:
+        return False
+    try:
+        layer = app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(f"[{graph_name}]1") or app.FindGraphLayer(graph_name)
+    except Exception:
+        return False
+    if not layer:
+        return False
+    graph_object = _find_origin_graph_object(layer, object_name)
+    if graph_object is None:
+        return False
+    try:
+        # Reassigning the same text is intentional: Origin can retain a stale
+        # rendered legend even after the LabTalk text value has changed.
+        graph_object.Text = text
+    except Exception:
+        return False
+    return str(getattr(graph_object, "Text", "") or "") == text
+
+
 def _origin_font_code(app: object, font_name: str) -> int:
     try:
         code = int(float(app.Evaluate(f"font({font_name})")))
@@ -2206,9 +3005,15 @@ def _plain_text_legend_policy(
         "entries": resolved_entries,
         "visible": bool(resolved_entries),
         "anchor_policy": anchor_policy or {},
-        "reason": "User requested legend text without the colored sample line."
-        if line_samples_removed
-        else "XRD standard-card figures keep the template legend colored line samples; no-card XRD removes them.",
+        "reason": (
+            "User requested legend text without the colored sample line."
+            if line_samples_removed
+            else (
+                f"{product.product_key} preserves the reviewed template's colored line-sample legend."
+                if product.product_key in REVIEWED_TEMPLATE_VISIBLE_PLOTS
+                else "XRD standard-card figures keep the template legend colored line samples; no-card XRD removes them."
+            )
+        ),
     }
     if xrd_plain_label_policy:
         policy["xrd_plain_text_labels"] = xrd_plain_label_policy
@@ -2227,7 +3032,8 @@ def _plain_text_legend_policy(
 
 def _plain_text_legend_entries(product: ProductContext, exemplar_snapshot: object | None = None) -> list[str]:
     if product.product_key == "EIS":
-        return []
+        entries = list(product.legend_entries)
+        return entries[2:5] if len(entries) >= 5 else entries
     if product.product_key == "XRD":
         try:
             headers, _rows = _read_processed_csv(product.processed_data)
@@ -2248,7 +3054,27 @@ def _plain_text_legend_entries(product: ProductContext, exemplar_snapshot: objec
         entries = _xps_measured_legend_entries(product.processed_data)
         if entries:
             return entries
-    return _legend_entries_for_product(product, exemplar_snapshot)
+    entries = _legend_entries_for_product(product, exemplar_snapshot)
+    return _strip_redundant_measurement_suffixes(product.product_key, entries)
+
+
+def _strip_redundant_measurement_suffixes(product_key: str, entries: list[str]) -> list[str]:
+    suffixes = {
+        "FTIR": ("transmittance",),
+        "PL": ("counts",),
+        "Raman": ("intensity",),
+        "UV-vis DRS / Tauc": ("signal",),
+        "photocurrent": ("current a",),
+    }.get(product_key, ())
+    if not suffixes:
+        return entries
+    cleaned: list[str] = []
+    for entry in entries:
+        text = str(entry).strip()
+        for suffix in suffixes:
+            text = re.sub(rf"\s+{re.escape(suffix)}\s*$", "", text, flags=re.IGNORECASE)
+        cleaned.append(text)
+    return cleaned
 
 
 def _xps_measured_legend_entries(processed_csv: Path) -> list[str]:

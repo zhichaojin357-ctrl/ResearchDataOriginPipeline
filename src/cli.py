@@ -12,7 +12,12 @@ from src.core.origin_batch import OriginBatchOptions, run_origin_batch
 from src.core.origin_style_assets import export_origin_style_assets, run_origin_style_asset_replay
 from src.core.origin_governance import DEFAULT_ORIGIN_SKILL_DIR, run_origin_governance
 from src.core.process import ProcessOptions, run_process
-from src.core.project import configured_path, load_project_config
+from src.core.project import (
+    configured_path,
+    ensure_output_path_separate_from_inputs,
+    ensure_output_path_within_root,
+    load_project_config,
+)
 from src.core.readiness import ReadinessOptions, run_readiness
 from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
 from src.core.runtime_paths import resolve_output_root
@@ -31,12 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     scan = subparsers.add_parser("scan")
     scan.add_argument("--input")
-    scan.add_argument("--config", default="config/default.yaml")
+    scan.add_argument("--config", type=Path, help="explicit project config; defaults to optional config/default.yaml")
     scan.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
 
     process = subparsers.add_parser("process")
     process.add_argument("--input")
-    process.add_argument("--config", default="config/default.yaml")
+    process.add_argument("--config", type=Path, help="explicit project config; defaults to optional config/default.yaml")
     process.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
     origin_mode = process.add_mutually_exclusive_group()
     origin_mode.add_argument("--no-origin", action="store_true", help="process tables and metadata without launching Origin")
@@ -59,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     triage = subparsers.add_parser("triage")
     triage.add_argument("--input")
-    triage.add_argument("--config", default="config/default.yaml")
+    triage.add_argument("--config", type=Path, help="explicit project config; defaults to optional config/default.yaml")
     triage.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
     triage.add_argument("--only-type")
     triage.add_argument("--only-folder")
@@ -82,7 +87,13 @@ def build_parser() -> argparse.ArgumentParser:
     template_format.add_argument("--xps-reference-template-root", type=Path, help="XPS OPJU/OPJ reference root")
     template_format.add_argument("--xps-non-in-situ-template-root", type=Path, help="optional non-in-situ stacked XPS OPJU template root")
     template_format.add_argument("--user-style", type=Path, help="optional local user plot-style override YAML")
-    template_format.add_argument("--exemplar-driven", action="store_true", help="use the OPJU selected in the pairing plan for each data type instead of project-local .oth style assets")
+    template_source = template_format.add_mutually_exclusive_group()
+    template_source.add_argument(
+        "--asset-only",
+        action="store_true",
+        help="use only project-local Origin style assets and skip all external template discovery and preview export",
+    )
+    template_source.add_argument("--exemplar-driven", action="store_true", help="use the OPJU selected in the pairing plan for each data type instead of project-local .oth style assets")
     template_format.add_argument("--compact-output", action="store_true", help="write deliverables under products/<type> with minimal top-level output folders")
     template_format.add_argument("--only-type", help="run template-format generation for one product type first, for example XRD")
 
@@ -129,6 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     manifest_normalize.add_argument("--output-csv", type=Path)
     manifest_normalize.add_argument("--output-json", type=Path)
     manifest_normalize.add_argument("--output-md", type=Path)
+    manifest_normalize.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
 
     reviewed_queue = subparsers.add_parser(
         "reviewed-queue",
@@ -273,13 +285,13 @@ def main(argv: list[str] | None = None) -> int:
     project_root = Path.cwd()
 
     if args.command == "scan":
-        config = load_project_config(project_root, Path(args.config))
+        config = _load_cli_project_config(project_root, args.config)
         input_path = Path(args.input) if args.input else configured_path(project_root, config, "paths", "raw_data", "input/raw_data")
         _validate_input_directory(input_path)
         scan_raw_data(project_root, input_path, output_root=_resolve_cli_output_root(project_root, args))
         return 0
     if args.command == "process":
-        config = load_project_config(project_root, Path(args.config))
+        config = _load_cli_project_config(project_root, args.config)
         input_path = Path(args.input) if args.input else configured_path(project_root, config, "paths", "raw_data", "input/raw_data")
         _validate_input_directory(input_path)
         return run_process(
@@ -299,7 +311,7 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
     if args.command == "triage":
-        config = load_project_config(project_root, Path(args.config))
+        config = _load_cli_project_config(project_root, args.config)
         input_path = Path(args.input) if args.input else configured_path(project_root, config, "paths", "raw_data", "input/raw_data")
         _validate_input_directory(input_path)
         run_triage(
@@ -331,6 +343,7 @@ def main(argv: list[str] | None = None) -> int:
                 xps_reference_template_root=args.xps_reference_template_root,
                 xps_non_in_situ_template_root=args.xps_non_in_situ_template_root,
                 user_style_path=args.user_style,
+                asset_only=bool(args.asset_only),
                 exemplar_driven=bool(args.exemplar_driven),
                 compact_output=bool(args.compact_output),
                 only_type=args.only_type,
@@ -364,7 +377,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"failure_count={result['failure_count']}")
         return 0 if result["planned_count"] > 0 and result["planned_count"] == result["exported_count"] and result["failure_count"] == 0 else 1
     if args.command == "origin-style-asset-replay":
-        output_dir = args.output_dir if args.output_dir.is_absolute() else project_root / args.output_dir
+        configured_output_root = _resolve_cli_output_root(project_root, args)
+        output_dir = ensure_output_path_within_root(project_root, args.output_dir, configured_output_root)
+        ensure_output_path_separate_from_inputs(project_root, output_dir, ())
         result = run_origin_style_asset_replay(
             project_root,
             args.template_plan if args.template_plan.is_absolute() else project_root / args.template_plan,
@@ -398,6 +413,7 @@ def main(argv: list[str] | None = None) -> int:
             args.manifest if args.manifest.is_absolute() else project_root / args.manifest,
             project_root,
             output_dir=reports,
+            output_root=output_root,
             output_csv=args.output_csv,
             output_json=args.output_json,
             output_md=args.output_md,
@@ -446,13 +462,18 @@ def main(argv: list[str] | None = None) -> int:
             output_dir = _resolve_cli_output_root(project_root, args) / "xps_heterojunction_stacked"
         else:
             output_dir = _resolve_cli_output_directory_arg(project_root, args.output_dir)
+        xps_inputs = [path for paths in sample_files.values() for path in paths]
+        ensure_output_path_separate_from_inputs(project_root, output_dir, xps_inputs)
         result = run_xps_heterojunction_stacked(
             project_root,
             sample_files,
             XpsHeterojunctionOptions(output_dir=output_dir, with_origin=bool(args.with_origin)),
             pre_manual_review=notes,
         )
-        if args.with_origin and any(figure.get("status") != "success" for figure in result.get("figures", [])):
+        figures = result.get("figures", [])
+        if not figures:
+            return 1
+        if args.with_origin and any(figure.get("status") != "success" for figure in figures):
             return 1
         return 0
     if args.command == "xrd-overlay":
@@ -505,6 +526,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "jeol-epr-decode":
         output_root = _resolve_cli_output_directory_arg(project_root, args.out)
         reference_dir = args.reference_dir if args.reference_dir is None or args.reference_dir.is_absolute() else project_root / args.reference_dir
+        protected_inputs = [*args.roots]
+        if reference_dir is not None:
+            protected_inputs.append(reference_dir)
+        ensure_output_path_separate_from_inputs(project_root, output_root, protected_inputs)
         report_xlsx = _resolve_cli_output_file(project_root, args.report_xlsx, output_root) if args.report_xlsx is not None else None
         result = export_jeol_cwesr_to_xlsx(
             args.roots,
@@ -513,7 +538,7 @@ def main(argv: list[str] | None = None) -> int:
             report_xlsx=report_xlsx,
         )
         print(f"exported_xlsx={result['exported_xlsx']}")
-        return 0
+        return 0 if int(result.get("exported_xlsx", 0) or 0) > 0 else 1
     if args.command == "epr-overlay":
         reference_dir = args.reference_dir if args.reference_dir is None or args.reference_dir.is_absolute() else project_root / args.reference_dir
         return run_epr_overlay(
@@ -572,8 +597,19 @@ def _validate_input_directory(input_path: Path) -> None:
         raise ValueError(f"input path is not a directory: {input_path}")
 
 
+def _load_cli_project_config(project_root: Path, explicit_config: Path | None) -> dict:
+    if explicit_config is not None:
+        config_path = explicit_config if explicit_config.is_absolute() else project_root / explicit_config
+        if not config_path.exists():
+            raise FileNotFoundError(f"explicit config file does not exist: {explicit_config}")
+        if not config_path.is_file():
+            raise ValueError(f"explicit config path is not a file: {explicit_config}")
+        return load_project_config(project_root, explicit_config)
+    return load_project_config(project_root, Path("config/default.yaml"))
+
+
 def _resolve_cli_output_root(project_root: Path, args: argparse.Namespace) -> Path:
-    config_path = Path(getattr(args, "config", "config/default.yaml"))
+    config_path = getattr(args, "config", None) or Path("config/default.yaml")
     return resolve_output_root(project_root, explicit=getattr(args, "output_root", None), config_path=config_path)
 
 

@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "generated_at": "2026-07-06T09:14:15",
   "asset_root": "templates/origin_styles",
   "origin_dependency_boundary": "Project-local .oth Graph Themes store copied Origin graph formats, .otpu Graph Templates preserve complex graph-layer structure when needed, JSON snapshots store readback plot colours and key numeric style values, and reference_opju/*.opju stores reviewed complex templates that require exact multi-layer/data-replacement reuse. Product runs use these project-local assets without requiring external template OPJU files.",
@@ -18,7 +18,45 @@
       "graph_template": "graph_templates/BET.otpu",
       "style_snapshot": "snapshots/BET.json",
       "data_snapshot": "data_snapshots/BET.json",
-      "template_opju": "reference_opju/BET.opju"
+      "template_opju": "reference_opju/BET.opju",
+      "asset_kind": "oth",
+      "sha256": "9215905034376f090021267ec7e525f1c4bd387bba77780689b37ad7eeab32cd",
+      "file_size_bytes": 22036,
+      "expected_layer_count": 1,
+      "expected_plot_count": 6,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "90dccbf42a7addb8b4e13f425a28df988177bd29fd95864ed0f402de630c9d24",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "9215905034376f090021267ec7e525f1c4bd387bba77780689b37ad7eeab32cd",
+          "size_bytes": 22036
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "cb1f940eff85cd695617378103e99785f5f95b46f0a5d27694ae332ad98b1e91",
+          "size_bytes": 52224
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "84642a2eb0209e397fadf0f3c4c208ccd45f81b53b4804104a885753e59d35f8",
+          "size_bytes": 3710
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "a3aa4d6b537b68b53d4ae01e4e483ec0026ad9966ab058eb1a468061ed97df04",
+          "size_bytes": 16494
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "90dccbf42a7addb8b4e13f425a28df988177bd29fd95864ed0f402de630c9d24",
+          "size_bytes": 210857
+        }
+      }
     },
     {
       "product_key": "XPS_in_situ",
@@ -34,7 +72,45 @@
       "graph_template": "graph_templates/XPS_in_situ.otpu",
       "style_snapshot": "snapshots/XPS_in_situ.json",
       "data_snapshot": "data_snapshots/XPS_in_situ.json",
-      "template_opju": "reference_opju/XPS_in_situ.opju"
+      "template_opju": "reference_opju/XPS_in_situ.opju",
+      "asset_kind": "oth",
+      "sha256": "30e4ec6c428672b92eb1cd3b155853129955458af1bc81a9e1d83660e1d75032",
+      "file_size_bytes": 32639,
+      "expected_layer_count": 1,
+      "expected_plot_count": 21,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "4d9f598ee9cfa654ac6f66020ebf9d4743d72968c50ca7158a73105a6a3701e8",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "30e4ec6c428672b92eb1cd3b155853129955458af1bc81a9e1d83660e1d75032",
+          "size_bytes": 32639
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "0c58fc338449b0e29bfdb83fe835ce39b0263aa7f200dbd1cbc97ff7b482b988",
+          "size_bytes": 55281
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "5ec13e5f955e0666dda918997a5d521700877c4cdeb758dee4bf9794a1497fe9",
+          "size_bytes": 4346
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "3630991765ddfc308f2dd45f1633b55182ab89af5719ade672d01663279f72c0",
+          "size_bytes": 197936
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "4d9f598ee9cfa654ac6f66020ebf9d4743d72968c50ca7158a73105a6a3701e8",
+          "size_bytes": 298392
+        }
+      }
     },
     {
       "product_key": "XPS_non_in_situ",
@@ -52,7 +128,50 @@
       "data_snapshot": "data_snapshots/XPS_non_in_situ.json",
       "template_opju": "reference_opju/XPS_non_in_situ.opju",
       "style_source_product_key": "XPS_in_situ",
-      "style_source_theme": "format_themes/XPS_in_situ.oth"
+      "style_source_theme": "format_themes/XPS_in_situ.oth",
+      "asset_kind": "oth",
+      "sha256": "7a2ea81c819542279f9bddecfb5593eff736892d6453619ca51ee7a131ae8f5f",
+      "file_size_bytes": 29995,
+      "expected_layer_count": 1,
+      "expected_plot_count": 18,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "d8ef85f44dd8854d101df4e86d3703ae3611840989f7a08292ebbbfbdebd8fda",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "7a2ea81c819542279f9bddecfb5593eff736892d6453619ca51ee7a131ae8f5f",
+          "size_bytes": 29995
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "fca221cb0329affd8957248c61cbc5c20bca1ce4c55e00f29728671ce7a9212a",
+          "size_bytes": 62402
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "c5780bd2d14931e8b1104e379a8adfe412638e9e58f66a4dbdc3209bd1d49ceb",
+          "size_bytes": 4218
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "9a4250aa5923edee75ef01c2c95003839a9c8096830bb457e9b5cbefeb84114a",
+          "size_bytes": 153798
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "d8ef85f44dd8854d101df4e86d3703ae3611840989f7a08292ebbbfbdebd8fda",
+          "size_bytes": 75430
+        },
+        "style_source_theme": {
+          "kind": "oth",
+          "sha256": "30e4ec6c428672b92eb1cd3b155853129955458af1bc81a9e1d83660e1d75032",
+          "size_bytes": 32639
+        }
+      }
     },
     {
       "product_key": "XRD",
@@ -68,7 +187,45 @@
       "preview_rms": null,
       "template_opju": "reference_opju/XRD.opju",
       "data_snapshot": "data_snapshots/XRD.json",
-      "source_mode": "direct_template_opju"
+      "source_mode": "direct_template_opju",
+      "asset_kind": "oth",
+      "sha256": "82aadad178305c6e1e35a1589487a9e4ff65a845c19209d567b5d1c6166ebaa0",
+      "file_size_bytes": 44529,
+      "expected_layer_count": 3,
+      "expected_plot_count": 5,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "54d6485d6f28e20c6b0ec41b1872c48c49b5653f05363c391c317c7404e04ed9",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "82aadad178305c6e1e35a1589487a9e4ff65a845c19209d567b5d1c6166ebaa0",
+          "size_bytes": 44529
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "14cffc7a3b62bd76f9f6a9dcf2ac22ea82dffe7e7fa59cedcc1311860756cde9",
+          "size_bytes": 37338
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "df71044fd89a342d470e415a05e517de7be942c467e172ddf0a4f09e27740aa6",
+          "size_bytes": 3659
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "eb91cfe964133b856d9b159d7e41c708727325654ccec22151c536ebadc9c7e5",
+          "size_bytes": 799854
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "54d6485d6f28e20c6b0ec41b1872c48c49b5653f05363c391c317c7404e04ed9",
+          "size_bytes": 804154
+        }
+      }
     },
     {
       "product_key": "EPR",
@@ -84,7 +241,45 @@
       "graph_template": "graph_templates/EPR.otpu",
       "style_snapshot": "snapshots/EPR.json",
       "data_snapshot": "data_snapshots/EPR.json",
-      "template_opju": "reference_opju/EPR.opju"
+      "template_opju": "reference_opju/EPR.opju",
+      "asset_kind": "oth",
+      "sha256": "87289738bca4e20cbbd8f5898b8a8613dda7619c0786549aa59a5f57405aa4a5",
+      "file_size_bytes": 22424,
+      "expected_layer_count": 1,
+      "expected_plot_count": 3,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "9ce74e1ad00105deaff83a5d55303df37256f80b9caf29015b013210b338a3dc",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "87289738bca4e20cbbd8f5898b8a8613dda7619c0786549aa59a5f57405aa4a5",
+          "size_bytes": 22424
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "50d2d3db9f926e124faf1fa0048d746bc688cfbd051ad8f7fe4c2698deb83c04",
+          "size_bytes": 24787
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "5600f473c98317b10c195d9f403308bd7d2a22ffece4bf5530e3404aac30fa51",
+          "size_bytes": 3451
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "a471b273cdce58deab52767789a724ed07e150ed11520bbba0e1c5bd7b243475",
+          "size_bytes": 459642
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "9ce74e1ad00105deaff83a5d55303df37256f80b9caf29015b013210b338a3dc",
+          "size_bytes": 435742
+        }
+      }
     },
     {
       "product_key": "EIS",
@@ -100,7 +295,45 @@
       "graph_template": "graph_templates/EIS.otpu",
       "style_snapshot": "snapshots/EIS.json",
       "data_snapshot": "data_snapshots/EIS.json",
-      "template_opju": "reference_opju/EIS.opju"
+      "template_opju": "reference_opju/EIS.opju",
+      "asset_kind": "oth",
+      "sha256": "c9d69b4d3150b3a2d2bfac27624aacea1468843827c8eb1c6f14a9dcefc06507",
+      "file_size_bytes": 22117,
+      "expected_layer_count": 1,
+      "expected_plot_count": 8,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "08e9669983001f8de292179aebbb52e19aae2d0d56dd70dbad55a44f0ce68499",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "c9d69b4d3150b3a2d2bfac27624aacea1468843827c8eb1c6f14a9dcefc06507",
+          "size_bytes": 22117
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "8c250e4fac919229e624f5ed9d6e494fff2bb0467990506255da2d40958ed5f7",
+          "size_bytes": 33392
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "524aeab747b9fb564391a3caa9014fe16abc4b8bf716b799c8e0453c40fcb911",
+          "size_bytes": 3886
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "694f8c0588eccf2002ee3fb646e24af4b37ede39cbb36a47771dc4e1941e45ff",
+          "size_bytes": 36168
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "08e9669983001f8de292179aebbb52e19aae2d0d56dd70dbad55a44f0ce68499",
+          "size_bytes": 136386
+        }
+      }
     },
     {
       "product_key": "Raman",
@@ -116,7 +349,45 @@
       "graph_template": "graph_templates/Raman.otpu",
       "style_snapshot": "snapshots/Raman.json",
       "data_snapshot": "data_snapshots/Raman.json",
-      "template_opju": "reference_opju/Raman.opju"
+      "template_opju": "reference_opju/Raman.opju",
+      "asset_kind": "oth",
+      "sha256": "81679f42f025cff98d269925b821690e68fbb6cf4f77bbacc288d6d8084422ee",
+      "file_size_bytes": 25569,
+      "expected_layer_count": 2,
+      "expected_plot_count": 3,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "59030c7768db16b5fdf77d42b327f4d8fc31319da03e9833f5d3ede7e8f86839",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "81679f42f025cff98d269925b821690e68fbb6cf4f77bbacc288d6d8084422ee",
+          "size_bytes": 25569
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "60d58d622be8dc69c86fec7c8c4784b4b77cb26e1e2405069a2b99c8e3148ffd",
+          "size_bytes": 29325
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "d978e91505a0de19e40dc232fbe01cb34fddcac639d25441790a477c625f46b8",
+          "size_bytes": 3660
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "c832dc619c7d26c65bf0646d10623783f447106d7d998ad7c6932cc81950b606",
+          "size_bytes": 156052
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "59030c7768db16b5fdf77d42b327f4d8fc31319da03e9833f5d3ede7e8f86839",
+          "size_bytes": 236099
+        }
+      }
     },
     {
       "product_key": "UV-vis DRS / Tauc",
@@ -132,7 +403,45 @@
       "graph_template": "graph_templates/UV_vis_DRS_Tauc.otpu",
       "style_snapshot": "snapshots/UV_vis_DRS_Tauc.json",
       "data_snapshot": "data_snapshots/UV_vis_DRS_Tauc.json",
-      "template_opju": "reference_opju/UV_vis_DRS_Tauc.opju"
+      "template_opju": "reference_opju/UV_vis_DRS_Tauc.opju",
+      "asset_kind": "oth",
+      "sha256": "e9a3b91a5487bbc7459dc9bae749ee348fa220d2106d02edcfbee7dcc096b426",
+      "file_size_bytes": 26015,
+      "expected_layer_count": 1,
+      "expected_plot_count": 3,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "35061cd16b51840d3643035f649388809e9f333120219008db05f02b3aac48a6",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "e9a3b91a5487bbc7459dc9bae749ee348fa220d2106d02edcfbee7dcc096b426",
+          "size_bytes": 26015
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "9990af67d9d1ee7f411b5d277a46e13aa7bde1129693b650bf2147f2cdfd4789",
+          "size_bytes": 24907
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "014f5c8e7600b88c655bfcc6812f3fdb51d62538deabb47c17fd5e6a104f5ee3",
+          "size_bytes": 3629
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "f9aba5d47018d3ec92a422c73fc5595cd3f68f0c348a469bb59fd2ccb1a9439f",
+          "size_bytes": 275206
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "35061cd16b51840d3643035f649388809e9f333120219008db05f02b3aac48a6",
+          "size_bytes": 374712
+        }
+      }
     },
     {
       "product_key": "PL",
@@ -148,7 +457,45 @@
       "graph_template": "graph_templates/PL.otpu",
       "style_snapshot": "snapshots/PL.json",
       "data_snapshot": "data_snapshots/PL.json",
-      "template_opju": "reference_opju/PL.opju"
+      "template_opju": "reference_opju/PL.opju",
+      "asset_kind": "oth",
+      "sha256": "aa1f7dd176d618c147bbb66ae3c94030698800f33d2cc3fea137118d410be748",
+      "file_size_bytes": 21665,
+      "expected_layer_count": 1,
+      "expected_plot_count": 3,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "6fdd6b512f1f812595bc6fe8fdaae7a420fbd7fa14ef8011237674a8a2b6f2bd",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "aa1f7dd176d618c147bbb66ae3c94030698800f33d2cc3fea137118d410be748",
+          "size_bytes": 21665
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "d251fabfac87fe07f68479d21019de79f021d375e65d28b2a3fcee34a8eed7fc",
+          "size_bytes": 22102
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "28f27a5cc1edb99e34c823c9088d3fdb509d49590f2daa8d8dbcffacba8ae416",
+          "size_bytes": 3570
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "545bd591987a47c792d3964d5c5a0fc356ccda301210e3d64dab478e6c28efb4",
+          "size_bytes": 40567
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "6fdd6b512f1f812595bc6fe8fdaae7a420fbd7fa14ef8011237674a8a2b6f2bd",
+          "size_bytes": 142480
+        }
+      }
     },
     {
       "product_key": "photocurrent",
@@ -164,7 +511,45 @@
       "graph_template": "graph_templates/photocurrent.otpu",
       "style_snapshot": "snapshots/photocurrent.json",
       "data_snapshot": "data_snapshots/photocurrent.json",
-      "template_opju": "reference_opju/photocurrent.opju"
+      "template_opju": "reference_opju/photocurrent.opju",
+      "asset_kind": "oth",
+      "sha256": "a8fd32c62741e3b2b5a201d81d9b3e8fa8e38655ce551c8533a7cf8c6bca9c58",
+      "file_size_bytes": 21369,
+      "expected_layer_count": 1,
+      "expected_plot_count": 3,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "4b8f310ad10dc4cb4ed39e1c2051100a65cac8affdc35b1171943f184a05e44d",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "a8fd32c62741e3b2b5a201d81d9b3e8fa8e38655ce551c8533a7cf8c6bca9c58",
+          "size_bytes": 21369
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "75ab4be9a09ada03a8ce437a208f08df7bf80c8cae0f079b6bdf27a211b08e21",
+          "size_bytes": 21445
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "cb8b32879ac427ab398e7000f0e36120fedb8dcfcf47532142ae71d8deebc5a3",
+          "size_bytes": 3538
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "cf6dedd12143172aa311bad16494a1be6e897e0b43fb2034e5c9b2f77d509eac",
+          "size_bytes": 283601
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "4b8f310ad10dc4cb4ed39e1c2051100a65cac8affdc35b1171943f184a05e44d",
+          "size_bytes": 847788
+        }
+      }
     },
     {
       "product_key": "FTIR",
@@ -180,7 +565,45 @@
       "graph_template": "graph_templates/FTIR.otpu",
       "style_snapshot": "snapshots/FTIR.json",
       "data_snapshot": "data_snapshots/FTIR.json",
-      "template_opju": "reference_opju/FTIR.opju"
+      "template_opju": "reference_opju/FTIR.opju",
+      "asset_kind": "oth",
+      "sha256": "41cb5eedc0ea629a8f0293a569bbb64eedf58fb4c9bb79ed0d1a03b9af4b66bb",
+      "file_size_bytes": 20246,
+      "expected_layer_count": 1,
+      "expected_plot_count": 3,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "52b3296125248533360768fbc8a7ab7412b1703eb0f25fe5da491f2726540aff",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "41cb5eedc0ea629a8f0293a569bbb64eedf58fb4c9bb79ed0d1a03b9af4b66bb",
+          "size_bytes": 20246
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "f2dc5c6fc66b6616cc42cfc728c02ea0da4fc2d835c8694c2e39dbe8c8f309cf",
+          "size_bytes": 28329
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "53bf985493d109efa9cafc982d640fd434139febb7a7d6ef7a04e174e4791c22",
+          "size_bytes": 3671
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "a574d71b6c859b43fafca801234e3d5b5ec9af0e71186ec36a5c0ac566635fbf",
+          "size_bytes": 280205
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "52b3296125248533360768fbc8a7ab7412b1703eb0f25fe5da491f2726540aff",
+          "size_bytes": 327626
+        }
+      }
     },
     {
       "product_key": "Mott-Schottky",
@@ -196,7 +619,47 @@
       "preview_png": "",
       "reference_preview_png": "",
       "template_preview_comparison_png": "",
-      "preview_rms": null
+      "preview_rms": null,
+      "asset_kind": "oth",
+      "sha256": "060ed7d8545be393b1dea58ea4382616aaa72109a273bdf3670ecea9ae7e490c",
+      "file_size_bytes": 25675,
+      "expected_layer_count": 1,
+      "expected_plot_count": 5,
+      "origin_version": "",
+      "origin_build": "",
+      "pipeline_git_commit": "",
+      "harvested_at": "2026-07-06T09:14:15",
+      "source_opju_hash": "c200e6c8fc9f14da46b1ec3f739acae16f9ddd7883ec7202f1f521e14b929af7",
+      "exact_pixel_match": null,
+      "file_integrity": {
+        "format_theme": {
+          "kind": "oth",
+          "sha256": "060ed7d8545be393b1dea58ea4382616aaa72109a273bdf3670ecea9ae7e490c",
+          "size_bytes": 25675
+        },
+        "graph_template": {
+          "kind": "otpu",
+          "sha256": "c6fcdc4383c5e6b7285b028ad0e672982d8d8a5d3401ddb7fbe69ed5f63bc2df",
+          "size_bytes": 30761
+        },
+        "style_snapshot": {
+          "kind": "json",
+          "sha256": "ac06860143a78ac0f6995f9052fea36475c81453ff8af244704c4dfd12e54b0d",
+          "size_bytes": 3853
+        },
+        "data_snapshot": {
+          "kind": "json",
+          "sha256": "6166c923ed385b8f5fe0a6c658a2f8d9a921aff5ada90c0b2610564bd946ce17",
+          "size_bytes": 8642
+        },
+        "template_opju": {
+          "kind": "opju",
+          "sha256": "c200e6c8fc9f14da46b1ec3f739acae16f9ddd7883ec7202f1f521e14b929af7",
+          "size_bytes": 141285
+        }
+      }
     }
-  ]
+  ],
+  "integrity_updated_at": "2026-07-11T12:30:00",
+  "integrity_policy": "SHA-256 and byte-size records cover every project-local file referenced by each asset entry; visual assets are not rewritten during integrity refresh."
 }

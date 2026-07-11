@@ -3,6 +3,7 @@
 import csv
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -128,9 +129,13 @@ def test_manifest_runner_execute_with_origin_exports_planned_items(tmp_path: Pat
         scratch.parent.mkdir(parents=True, exist_ok=True)
         tif = package / "figures_tif" / f"{dataset_id}.tif"
         png = package / "figures_preview" / f"{dataset_id}.png"
-        for path, content in ((scratch, b"opju"), (tif, b"tif"), (png, b"png")):
+        for path, content in ((scratch, b"opju"), (png, b"png")):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
+        from PIL import Image
+
+        tif.parent.mkdir(parents=True, exist_ok=True)
+        Image.new("RGB", (4, 3), "white").save(tif, format="TIFF", dpi=(300, 300))
         return FakeOriginResult(scratch, tif, png)
 
     monkeypatch.setattr("src.core.origin_batch.export_plot", fake_export_plot)
@@ -140,7 +145,10 @@ def test_manifest_runner_execute_with_origin_exports_planned_items(tmp_path: Pat
     assert code == 0
     assert calls and calls[0]["dataset_id"] == "XPS_item"
     assert (package / "origin_files" / "XPS" / "item.opju").read_bytes() == b"opju"
-    assert (package / "figures_tif" / "XPS" / "item.tif").read_bytes() == b"tif"
+    from PIL import Image
+
+    with Image.open(package / "figures_tif" / "XPS" / "item.tif") as image:
+        assert tuple(round(float(value)) for value in image.info.get("dpi", (0, 0))) == (600, 600)
     assert (package / "previews" / "origin" / "XPS" / "item.png").read_bytes() == b"png"
     report = json.loads((default_output_root(test_project) / "reports" / "origin_batch_plan.json").read_text(encoding="utf-8"))
     assert report["summary"]["exported_count"] == 1
@@ -148,9 +156,41 @@ def test_manifest_runner_execute_with_origin_exports_planned_items(tmp_path: Pat
     assert report["execution"]["reason"] == "executed_with_origin"
 
 
+def test_manifest_runner_clears_old_targets_and_missing_export_sources_cannot_succeed(tmp_path: Path, monkeypatch) -> None:
+    test_project = tmp_path / "project"
+    package = _make_manifest_package(tmp_path, test_project, complete=False)
+    targets = [
+        package / "origin_files" / "XPS" / "item.opju",
+        package / "figures_tif" / "XPS" / "item.tif",
+        package / "previews" / "origin" / "XPS" / "item.png",
+    ]
+    assert all(path.is_file() for path in targets)
+
+    class MissingSourceResult:
+        ok = True
+        message = "reported success without files"
+        origin_file = tmp_path / "missing" / "result.opju"
+        figure_tif = tmp_path / "missing" / "result.tif"
+        preview_png = tmp_path / "missing" / "result.png"
+
+    monkeypatch.setattr("src.core.origin_batch.export_plot", lambda *_args, **_kwargs: MissingSourceResult())
+
+    code = run_origin_batch(
+        test_project,
+        OriginBatchOptions(manifest=package / "index.csv", execute=True, with_origin=True),
+    )
+
+    assert code == 1
+    assert all(not path.exists() for path in targets)
+    report = json.loads((default_output_root(test_project) / "reports" / "origin_batch_plan.json").read_text(encoding="utf-8"))
+    assert report["summary"]["exported_count"] == 0
+    assert report["summary"]["failure_count"] == 1
+    assert "did not produce manifest outputs" in report["execution"]["failures"][0]["message"]
+
+
 def test_origin_batch_help_documents_dry_run_default(project_root: Path):
     result = subprocess.run(
-        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--help"],
+        [sys.executable, "run.py", "origin-batch", "--help"],
         cwd=project_root,
         text=True,
         capture_output=True,
@@ -171,7 +211,7 @@ def test_origin_batch_cli_reports_missing_manifest_headers_without_traceback(tmp
     )
 
     result = subprocess.run(
-        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        [sys.executable, "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
         cwd=project_root,
         text=True,
         capture_output=True,
@@ -193,7 +233,7 @@ def test_origin_batch_cli_reports_duplicate_manifest_headers_without_traceback(t
     )
 
     result = subprocess.run(
-        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        [sys.executable, "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
         cwd=project_root,
         text=True,
         capture_output=True,
@@ -215,7 +255,7 @@ def test_origin_batch_cli_reports_missing_source_locator_header_without_tracebac
     )
 
     result = subprocess.run(
-        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        [sys.executable, "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
         cwd=project_root,
         text=True,
         capture_output=True,
@@ -236,7 +276,7 @@ def test_origin_batch_cli_reports_extra_manifest_columns_without_traceback(tmp_p
     )
 
     result = subprocess.run(
-        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        [sys.executable, "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
         cwd=project_root,
         text=True,
         capture_output=True,
@@ -257,7 +297,7 @@ def test_origin_batch_cli_reports_short_manifest_rows_without_traceback(tmp_path
     )
 
     result = subprocess.run(
-        ["D:\\Python\\python.exe", "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
+        [sys.executable, "run.py", "origin-batch", "--manifest", str(manifest), "--dry-run"],
         cwd=project_root,
         text=True,
         capture_output=True,

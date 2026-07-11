@@ -1,7 +1,6 @@
 ﻿from __future__ import annotations
 
 import csv
-import hashlib
 import importlib
 import importlib.metadata as metadata
 import io
@@ -14,8 +13,9 @@ from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from src.core.file_utils import file_sha256 as _sha256_file
 from src.core.output_sanitizer import render_output_path
-from src.core.project import default_output_root
+from src.core.project import default_output_root, ensure_dir as _ensure_dir
 from src.core.runtime_paths import resolve_locked_result_package
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE, get_plot_policy
 
@@ -713,19 +713,6 @@ def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
-
-
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _ensure_dir(path: Path) -> Path:
-    path.mkdir(parents=True, exist_ok=True)
-    return path
 
 
 def _resolve_project_path(project_root: Path, path: Path) -> Path:

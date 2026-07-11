@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from src.core.file_utils import file_sha256
 from src.core.image_artifacts import ensure_tif_600_dpi_metadata
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.origin.operations import connect_origin, quote_labtalk, safe_origin_name
@@ -62,7 +63,25 @@ class OriginStyleAssetExportItem:
     style_source_theme_path: Path | None = None
 
     def manifest_entry(self, asset_root: Path) -> dict[str, object]:
-        return {
+        file_paths = {
+            "format_theme": self.format_theme_path,
+            "graph_template": self.graph_template_path,
+            "style_snapshot": self.style_snapshot_path,
+            "data_snapshot": self.data_snapshot_path,
+            "template_opju": self.template_opju_path,
+            "preview_png": self.preview_png,
+            "reference_preview_png": self.reference_preview_png,
+            "template_preview_comparison_png": self.comparison_png,
+            "style_source_theme": self.style_source_theme_path,
+        }
+        readable_files = {
+            field: path
+            for field, path in file_paths.items()
+            if path is not None and path.is_file()
+        }
+        primary = readable_files.get("format_theme") or readable_files.get("graph_template")
+        layer_count, plot_count = _manifest_snapshot_counts(self.style_snapshot_path)
+        entry = {
             "product_key": self.product_key,
             "data_type": self.data_type,
             "status": self.status,
@@ -90,6 +109,32 @@ class OriginStyleAssetExportItem:
             if self.style_source_theme_path
             else "",
         }
+        entry.update(
+            {
+                "asset_kind": primary.suffix.casefold().lstrip(".") if primary is not None else "",
+                "sha256": file_sha256(primary) if primary is not None else "",
+                "file_size_bytes": primary.stat().st_size if primary is not None else 0,
+                "expected_layer_count": layer_count,
+                "expected_plot_count": plot_count,
+                "origin_version": "",
+                "origin_build": "",
+                "pipeline_git_commit": "",
+                "harvested_at": datetime.now().isoformat(timespec="seconds"),
+                "source_opju_hash": file_sha256(self.template_opju_path)
+                if self.template_opju_path is not None and self.template_opju_path.is_file()
+                else "",
+                "exact_pixel_match": self.preview_rms == 0.0 if self.preview_rms is not None else None,
+                "file_integrity": {
+                    field: {
+                        "kind": path.suffix.casefold().lstrip("."),
+                        "sha256": file_sha256(path),
+                        "size_bytes": path.stat().st_size,
+                    }
+                    for field, path in readable_files.items()
+                },
+            }
+        )
+        return entry
 
 
 @dataclass(frozen=True)
@@ -115,6 +160,18 @@ class OriginStyleAssetReplayPlan:
     project_root: Path
     output_dir: Path
     items: list[OriginStyleAssetReplayItem]
+
+
+def _manifest_snapshot_counts(path: Path | None) -> tuple[int, int]:
+    if path is None or not path.is_file():
+        return 1, 1
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        layer_count = int(payload.get("layer_count") or 1) if isinstance(payload, dict) else 1
+        plot_count = int(payload.get("plot_count") or 1) if isinstance(payload, dict) else 1
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return 1, 1
+    return max(layer_count, 1), max(plot_count, 1)
 
 
 def build_origin_style_asset_export_plan(
@@ -615,7 +672,16 @@ def _export_replay_graph(
     theme_path: Path | None = None,
 ) -> dict[str, object]:
     runtime_dir = Path(tempfile.mkdtemp(prefix=f"rdop_replay_{safe_origin_name(label, 'Replay')}_"))
+    final_png = product_dir / f"{label}.png"
+    final_tif = product_dir / f"{label}.tif"
+    final_opju_name = f"{product_dir.name}.opju" if label == "project_asset" else f"{label}.opju"
+    final_opju = product_dir / final_opju_name
     try:
+        for target in (final_png, final_tif, final_opju):
+            if target.exists():
+                if not target.is_file():
+                    return {"ok": False, "message": f"Replay output target is not a file: {target}"}
+                target.unlink()
         runtime_opju = runtime_dir / f"{safe_origin_name(label, 'Replay')}{source_opju.suffix}"
         shutil.copy2(source_opju, runtime_opju)
         operations.new_project()
@@ -628,7 +694,16 @@ def _export_replay_graph(
             for page in getattr(pages_result, "payload", {}).get("pages", [])
             if isinstance(page, dict) and page.get("type") == "graph"
         ]
-        graph_name = graph_page if graph_page in graph_pages else (graph_pages[0] if graph_pages else graph_page)
+        if graph_page not in graph_pages:
+            return {
+                "ok": False,
+                "message": f"Requested graph page does not exist: {graph_page}",
+                "requested_graph_page": graph_page,
+                "exported_graph_page": "",
+                "graph_pages": graph_pages,
+                "theme_path": str(theme_path) if theme_path else "",
+            }
+        graph_name = graph_page
         if theme_path is not None:
             applied = operations.apply_graph_theme(graph_name, theme_path)
             if not getattr(applied, "ok", False):
@@ -644,25 +719,47 @@ def _export_replay_graph(
         runtime_tif = runtime_dir / f"{label}.tif"
         png = operations.export_graph(graph_name, runtime_png, "png", dpi=600)
         tif = operations.export_graph(graph_name, runtime_tif, "tif", dpi=600)
-        final_png = product_dir / f"{label}.png"
-        final_tif = product_dir / f"{label}.tif"
-        final_opju_name = f"{product_dir.name}.opju" if label == "project_asset" else f"{label}.opju"
-        final_opju = product_dir / final_opju_name
-        if runtime_png.exists():
-            shutil.copy2(runtime_png, final_png)
-        if runtime_tif.exists():
-            shutil.copy2(runtime_tif, final_tif)
-        if final_tif.exists():
+        export_message = f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}".strip("; ")
+        if not getattr(png, "ok", False) or not getattr(tif, "ok", False):
+            return {
+                "ok": False,
+                "message": export_message or "Origin replay graph export failed",
+                "requested_graph_page": graph_page,
+                "exported_graph_page": graph_name,
+                "graph_pages": graph_pages,
+                "theme_path": str(theme_path) if theme_path else "",
+            }
+        missing_runtime = [path for path in (runtime_png, runtime_tif, runtime_opju) if not path.is_file() or path.stat().st_size == 0]
+        if missing_runtime:
+            return {
+                "ok": False,
+                "message": "Replay export did not produce nonempty runtime artifacts: " + ", ".join(path.name for path in missing_runtime),
+                "requested_graph_page": graph_page,
+                "exported_graph_page": graph_name,
+                "graph_pages": graph_pages,
+                "theme_path": str(theme_path) if theme_path else "",
+            }
+        shutil.copy2(runtime_png, final_png)
+        shutil.copy2(runtime_tif, final_tif)
+        try:
             ensure_tif_600_dpi_metadata(final_tif)
-        if runtime_opju.exists():
-            shutil.copy2(runtime_opju, final_opju)
+        except Exception as exc:
+            final_tif.unlink(missing_ok=True)
+            return {
+                "ok": False,
+                "message": str(exc),
+                "requested_graph_page": graph_page,
+                "exported_graph_page": graph_name,
+                "graph_pages": graph_pages,
+                "theme_path": str(theme_path) if theme_path else "",
+                "png": str(final_png),
+                "tif": str(final_tif),
+            }
+        shutil.copy2(runtime_opju, final_opju)
+        artifacts_ok = all(path.is_file() and path.stat().st_size > 0 for path in (final_png, final_tif, final_opju))
         return {
-            "ok": bool(getattr(png, "ok", False))
-            and bool(getattr(tif, "ok", False))
-            and final_png.is_file()
-            and final_tif.is_file()
-            and final_opju.is_file(),
-            "message": f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}".strip("; "),
+            "ok": artifacts_ok,
+            "message": export_message,
             "requested_graph_page": graph_page,
             "exported_graph_page": graph_name,
             "graph_pages": graph_pages,
@@ -754,11 +851,19 @@ def read_graph_data_snapshot(
             if plots:
                 break
             continue
-        names = [str(name) for name in getattr(result, "payload", {}).get("plot_dataset_names", []) if str(name).strip()]
+        result_payload = dict(getattr(result, "payload", {}) or {})
+        names = [str(name) for name in result_payload.get("plot_dataset_names", []) if str(name).strip()]
         if not names and plots:
             break
         if not names:
             continue
+        explicit_x_datasets = _read_explicit_plot_x_datasets(
+            operations,
+            graph_page,
+            layer_index,
+            names,
+            result_payload,
+        )
         layer_plots: list[dict[str, object]] = []
         for plot_index, dataset in enumerate(names, start=1):
             plot_record = _graph_plot_data_record(
@@ -769,6 +874,7 @@ def read_graph_data_snapshot(
                 dataset,
                 worksheet_cache,
                 sheet_name=sheet_name,
+                explicit_x_dataset=explicit_x_datasets.get((plot_index, dataset)),
             )
             plots.append(plot_record)
             layer_plots.append(plot_record)
@@ -779,8 +885,10 @@ def read_graph_data_snapshot(
                 "plot_datasets": [str(plot["y_dataset"]) for plot in layer_plots],
             }
         )
+    failed_plots = [plot for plot in plots if plot.get("status") != "ready"]
     return {
-        "schema_version": 1,
+        "schema_version": 2,
+        "status": "ready" if plots and not failed_plots else "failed",
         "source_opju": source_label,
         "graph_page": graph_page,
         "sheet_name": sheet_name,
@@ -788,7 +896,8 @@ def read_graph_data_snapshot(
         "plot_count": len(plots),
         "layers": layers,
         "plots": plots,
-        "mapping_policy": "Each Origin Y dataset name Book_Col is paired with the preceding worksheet column as X, matching the reviewed XRD Graph4 paired-XY workbook layout.",
+        "mapping_failure_count": len(failed_plots),
+        "mapping_policy": "Use explicit graph plot X/Y mappings first, then worksheet column designations or Origin wks.col.findX() readback; never infer X from the Y column position.",
     }
 
 
@@ -801,6 +910,7 @@ def _graph_plot_data_record(
     worksheet_cache: dict[str, dict[str, object]],
     *,
     sheet_name: str,
+    explicit_x_dataset: str | None = None,
 ) -> dict[str, object]:
     parsed = parse_origin_dataset_name(dataset)
     base = {
@@ -812,38 +922,81 @@ def _graph_plot_data_record(
     if parsed is None:
         return {**base, "status": "unparsed_dataset_name"}
     book_name, y_col_index = parsed
-    x_col_index = max(int(y_col_index) - 1, 0)
-    actual_sheet_name = sheet_name
-    cached = worksheet_cache.get(book_name)
-    if cached is not None:
-        columns = list(cached.get("columns", []))
-        actual_sheet_name = str(cached["sheet_name"]) if "sheet_name" in cached else sheet_name
-    else:
-        read = _read_worksheet_data_with_fallback(operations, book_name, sheet_name)
-        if not getattr(read, "ok", False):
+    y_worksheet = _cached_worksheet_data(operations, worksheet_cache, book_name, sheet_name)
+    if not y_worksheet.get("ok"):
+        return {
+            **base,
+            "status": "worksheet_read_failed",
+            "book_name": book_name,
+            "sheet_name": sheet_name,
+            "message": str(y_worksheet.get("message") or ""),
+        }
+    y_columns = list(y_worksheet.get("columns", []))
+    actual_sheet_name = str(y_worksheet.get("sheet_name") or "")
+
+    mapping_source = ""
+    if explicit_x_dataset:
+        parsed_x = parse_origin_dataset_name(explicit_x_dataset)
+        if parsed_x is None:
             return {
                 **base,
-                "status": "worksheet_read_failed",
+                "status": "x_mapping_invalid",
                 "book_name": book_name,
-                "sheet_name": sheet_name,
-                "message": str(getattr(read, "message", "")),
+                "sheet_name": actual_sheet_name,
+                "x_dataset_readback": explicit_x_dataset,
+                "message": "explicit graph plot X dataset name could not be parsed",
             }
-        columns = list(getattr(read, "payload", {}).get("columns", []))
-        read_payload = getattr(read, "payload", {}) or {}
-        actual_sheet_name = str(read_payload["sheet_name"]) if "sheet_name" in read_payload else sheet_name
-        worksheet_cache[book_name] = {"columns": columns, "sheet_name": actual_sheet_name}
-    if y_col_index >= len(columns) or x_col_index >= len(columns):
+        x_book_name, x_col_index = parsed_x
+        mapping_source = "graph_plot_mapping"
+    else:
+        resolved_x = _resolve_corresponding_x_column(
+            operations,
+            book_name,
+            actual_sheet_name,
+            y_col_index,
+        )
+        if resolved_x is None:
+            return {
+                **base,
+                "status": "x_mapping_unavailable",
+                "book_name": book_name,
+                "sheet_name": actual_sheet_name,
+                "y_col_index": y_col_index,
+                "message": "Origin plot mapping, worksheet designation, and wks.col.findX() readback were unavailable",
+            }
+        x_col_index, mapping_source = resolved_x
+        x_book_name = book_name
+
+    x_worksheet = (
+        y_worksheet
+        if x_book_name == book_name
+        else _cached_worksheet_data(operations, worksheet_cache, x_book_name, sheet_name)
+    )
+    if not x_worksheet.get("ok"):
+        return {
+            **base,
+            "status": "x_worksheet_read_failed",
+            "book_name": book_name,
+            "sheet_name": actual_sheet_name,
+            "x_book_name": x_book_name,
+            "message": str(x_worksheet.get("message") or ""),
+        }
+    x_columns = list(x_worksheet.get("columns", []))
+    x_sheet_name = str(x_worksheet.get("sheet_name") or "")
+    if y_col_index >= len(y_columns) or x_col_index >= len(x_columns):
         return {
             **base,
             "status": "column_missing",
             "book_name": book_name,
-            "sheet_name": sheet_name,
+            "sheet_name": actual_sheet_name,
+            "x_book_name": x_book_name,
             "x_col_index": x_col_index,
             "y_col_index": y_col_index,
-            "available_columns": len(columns),
+            "available_y_columns": len(y_columns),
+            "available_x_columns": len(x_columns),
         }
-    x_values = [_json_safe_value(value) for value in columns[x_col_index]]
-    y_values = [_json_safe_value(value) for value in columns[y_col_index]]
+    x_values = [_json_safe_value(value) for value in x_columns[x_col_index]]
+    y_values = [_json_safe_value(value) for value in y_columns[y_col_index]]
     row_count = min(len(x_values), len(y_values))
     _activate_graph_layer_for_style_readback(operations, graph_page, layer_index)
     return {
@@ -851,7 +1004,10 @@ def _graph_plot_data_record(
         "status": "ready",
         "book_name": book_name,
         "sheet_name": actual_sheet_name,
-        "x_dataset": f"{book_name}_{_origin_column_letters(x_col_index)}",
+        "x_dataset": f"{x_book_name}_{_origin_column_letters(x_col_index)}",
+        "x_book_name": x_book_name,
+        "x_sheet_name": x_sheet_name,
+        "x_mapping_source": mapping_source,
         "x_col_index": x_col_index,
         "y_col_index": y_col_index,
         "x_col_letter": _origin_column_letters(x_col_index),
@@ -861,6 +1017,173 @@ def _graph_plot_data_record(
         "x_values": x_values,
         "y_values": y_values,
     }
+
+
+def _read_explicit_plot_x_datasets(
+    operations: object,
+    graph_page: str,
+    layer_index: int,
+    plot_dataset_names: list[str],
+    initial_payload: dict[str, object],
+) -> dict[tuple[int, str], str]:
+    payloads = [initial_payload]
+    for method_name in ("get_graph_plot_dataset_mappings", "get_graph_plot_xy_mappings"):
+        method = getattr(operations, method_name, None)
+        if method is None:
+            continue
+        try:
+            result = method(graph_page, layer_index=layer_index)
+        except Exception:
+            continue
+        if getattr(result, "ok", False):
+            payloads.append(dict(getattr(result, "payload", {}) or {}))
+
+    resolved: dict[tuple[int, str], str] = {}
+    for payload in payloads:
+        for key in ("plot_x_dataset_names", "x_dataset_names"):
+            x_names = payload.get(key)
+            if not isinstance(x_names, (list, tuple)):
+                continue
+            for index, value in enumerate(x_names, start=1):
+                if index <= len(plot_dataset_names) and str(value).strip():
+                    dataset = plot_dataset_names[index - 1]
+                    resolved.setdefault((index, dataset), str(value).strip())
+
+        for key in ("plot_mappings", "plot_dataset_mappings", "plot_xy_mappings", "plots"):
+            mappings = payload.get(key)
+            if isinstance(mappings, dict):
+                mappings = [
+                    {"y_dataset": y_dataset, "x_dataset": x_dataset}
+                    for y_dataset, x_dataset in mappings.items()
+                ]
+            if not isinstance(mappings, (list, tuple)):
+                continue
+            for row in mappings:
+                if not isinstance(row, dict):
+                    continue
+                x_dataset = str(row.get("x_dataset") or row.get("x") or "").strip()
+                y_dataset = str(row.get("y_dataset") or row.get("y") or "").strip()
+                if not x_dataset:
+                    continue
+                raw_index = row.get("plot_index")
+                try:
+                    plot_index = int(raw_index) if raw_index is not None else 0
+                except (TypeError, ValueError):
+                    plot_index = 0
+                if plot_index < 1 and y_dataset in plot_dataset_names:
+                    plot_index = plot_dataset_names.index(y_dataset) + 1
+                if 1 <= plot_index <= len(plot_dataset_names):
+                    dataset = plot_dataset_names[plot_index - 1]
+                    if not y_dataset or y_dataset == dataset:
+                        resolved.setdefault((plot_index, dataset), x_dataset)
+    return resolved
+
+
+def _cached_worksheet_data(
+    operations: object,
+    worksheet_cache: dict[str, dict[str, object]],
+    book_name: str,
+    sheet_name: str,
+) -> dict[str, object]:
+    cached = worksheet_cache.get(book_name)
+    if cached is not None:
+        return {"ok": True, **cached}
+    read = _read_worksheet_data_with_fallback(operations, book_name, sheet_name)
+    if not getattr(read, "ok", False):
+        return {"ok": False, "message": str(getattr(read, "message", ""))}
+    payload = dict(getattr(read, "payload", {}) or {})
+    cached = {
+        "columns": list(payload.get("columns", [])),
+        "sheet_name": str(payload.get("sheet_name") or ""),
+    }
+    worksheet_cache[book_name] = cached
+    return {"ok": True, **cached}
+
+
+def _resolve_corresponding_x_column(
+    operations: object,
+    book_name: str,
+    sheet_name: str,
+    y_col_index: int,
+) -> tuple[int, str] | None:
+    designation_index = _x_column_from_designations(operations, book_name, sheet_name, y_col_index)
+    if designation_index is not None:
+        return designation_index, "worksheet_column_designations"
+    findx_index = _x_column_from_origin_findx(operations, book_name, sheet_name, y_col_index)
+    if findx_index is not None:
+        return findx_index, "origin_wks_col_findx"
+    return None
+
+
+def _x_column_from_designations(
+    operations: object,
+    book_name: str,
+    sheet_name: str,
+    y_col_index: int,
+) -> int | None:
+    method = getattr(operations, "get_worksheet_column_designations", None)
+    if method is None:
+        return None
+    try:
+        result = method(book_name, sheet_name)
+    except Exception:
+        return None
+    if not getattr(result, "ok", False):
+        return None
+    payload = dict(getattr(result, "payload", {}) or {})
+    designations = payload.get("column_designations", payload.get("designations", payload.get("column_types")))
+    if not isinstance(designations, (list, tuple)) or y_col_index >= len(designations):
+        return None
+    if _normalized_column_designation(designations[y_col_index]) != "Y":
+        return None
+    for index in range(y_col_index - 1, -1, -1):
+        if _normalized_column_designation(designations[index]) == "X":
+            return index
+    return None
+
+
+def _normalized_column_designation(value: object) -> str:
+    numeric = _to_float(value) if not isinstance(value, bool) else None
+    if numeric is not None:
+        number = int(numeric)
+        if numeric == number:
+            return {1: "Y", 4: "X"}.get(number, "")
+    text = str(value or "").strip().upper()
+    return text if text in {"X", "Y"} else ""
+
+
+def _x_column_from_origin_findx(
+    operations: object,
+    book_name: str,
+    sheet_name: str,
+    y_col_index: int,
+) -> int | None:
+    runner = getattr(operations, "run_labtalk", None)
+    getter = getattr(operations, "get_labtalk_variable", None)
+    if runner is None or getter is None:
+        return None
+    sheet_reference = sheet_name or "1"
+    if any(token in book_name for token in "[]!;") or any(token in sheet_reference for token in "[]!;"):
+        return None
+    variable = "__rdop_snapshot_x_col"
+    script = (
+        f"{variable}=nan; range __rdop_snapshot_wks=[{book_name}]{sheet_reference}!; "
+        f"{variable}=__rdop_snapshot_wks.col{int(y_col_index) + 1}.findX();"
+    )
+    try:
+        executed = runner(script)
+        if not getattr(executed, "ok", False):
+            return None
+        read = getter(variable)
+        value = _to_float(getattr(read, "payload", {}).get("value"))
+    except Exception:
+        return None
+    if value is None:
+        return None
+    one_based = int(round(value))
+    if one_based < 1 or abs(value - one_based) > 1e-6:
+        return None
+    return one_based - 1
 
 
 def _read_worksheet_data_with_fallback(operations: object, book_name: str, sheet_name: str) -> object:
