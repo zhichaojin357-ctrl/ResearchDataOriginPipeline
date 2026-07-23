@@ -17,6 +17,7 @@ This matrix records the current supported behavior of the maintained pipeline. F
 | FTIR | supported for wavenumber/intensity tables | supported through template-backed products | no automatic functional-group assignment |
 | Raman | supported for shift/intensity tables | supported through template-backed products | no automatic phase/defect assignment |
 | HPLC/LC exported data | supported for exported chromatograms, peak tables, and calibration products | supported for calibration products through the Origin script/module path | confirm standards, units, and regression choice |
+| HPLC/LC OpenLab raw data | supported through `run.py hplc-openlab-export` for `.rslt/.dx/.rx` detector signals and vendor peak results | none in the raw-to-Excel workflow | confirm acquisition cutoff, detector/wavelength, integration boundaries, standards, and analyte mapping |
 | reaction_condition_screening | supported when a clear categorical-condition/numeric-response table exists | supported through the generic Origin processor path | confirm condition semantics manually |
 | SEM/TEM/NMR/MS | scan-only unless a maintained processor is added | no automatic Origin product | keep as metadata/manual-review records |
 | reference_literature | scan-only | no automatic Origin product | never process as experimental kinetic data |

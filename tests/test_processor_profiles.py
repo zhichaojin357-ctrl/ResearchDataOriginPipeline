@@ -11,8 +11,8 @@ from src.processors.profiles import SUPPORTED_PROCESSOR_PROFILES
 
 
 class ProcessorProfilesTest(unittest.TestCase):
-    def test_supported_profiles_cover_exactly_fourteen_pipeline_data_types(self):
-        self.assertEqual(len(SUPPORTED_PROCESSOR_PROFILES), 14)
+    def test_supported_profiles_cover_exactly_fifteen_pipeline_data_types(self):
+        self.assertEqual(len(SUPPORTED_PROCESSOR_PROFILES), 15)
 
     def test_profiles_match_supported_registry_entries_exactly(self):
         registry = json.loads((ROOT / "config" / "processor_registry.yaml").read_text(encoding="utf-8"))

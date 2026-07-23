@@ -66,8 +66,8 @@ def validate(project_root: Path) -> int:
     lines.append(f"- Processor registry entries: {len(registry['entries'])}")
     supported_entries = [entry for entry in registry["entries"] if entry["supported_in_pipeline"]]
     lines.append(f"- Pipeline-supported entries: {len(supported_entries)}")
-    if len(supported_entries) != 14:
-        failures.append("supported registry count is not 14")
+    if len(supported_entries) != 15:
+        failures.append("supported registry count is not 15")
     required_registry_fields = set(registry.get("required_fields", [])) | {
         "folder_name",
         "inferred_data_type",

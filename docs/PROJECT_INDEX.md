@@ -19,6 +19,7 @@
 - `src/core/remaining_template_products.py`: remaining non-XPS/XRD template-product helpers with manual-review boundaries.
 - `src/core/xrd_overlay.py`: XRD overlay workflow.
 - `src/core/xrd_no_card_overlay.py`: no-card XRD overlay workflow.
+- `src/core/hplc_openlab.py`: Agilent OpenLab `.rslt/.dx/.rx` raw-data decode and verified Excel export workflow.
 - `src/core/origin_governance.py`: Origin plotting governance and journal-ready report generation.
 - `src/core/readiness.py`: project readiness checks.
 - `src/core/validate.py`: configuration, dependency, output, safety, and Origin contract validation.
@@ -58,6 +59,7 @@
 - `scripts/reports/regenerate_manual_review_filtered.py`
 - `scripts/origin/origin_plot_from_template.ps1`
 - `scripts/data_types/hplc_lc/plot_hplc_calibration_origin.ps1`
+- `scripts/data_types/hplc_lc/build_openlab_workbook.mjs`
 - `scripts/data_types/xrd/plot_xrd_no_card_overlay_origin.py`
 - `scripts/validation/verify_jeol_epr_decode_against_exports.py`
 

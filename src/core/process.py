@@ -157,6 +157,8 @@ def _work_items_from_manifest(
 def _manifest_auxiliary_skip_reason(classification: dict, source: Path) -> str | None:
     if not classification.get("supported_in_pipeline", False):
         return None
+    if str(classification.get("special_handling") or "").startswith("dedicated_"):
+        return "dedicated_command_required"
     suffix = source.suffix.casefold()
     data_type = str(classification.get("inferred_data_type") or "")
     name = source.name.casefold()

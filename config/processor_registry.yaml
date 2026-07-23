@@ -479,6 +479,47 @@
       "method_card": "docs/method_cards/mott_schottky.md"
     },
     {
+      "id": "lc_openlab_raw",
+      "folder_name": "\u65e7\u6db2\u76f8\u5168",
+      "folder_keywords": [
+        "\u65e7\u6db2\u76f8",
+        "OpenLab",
+        "HPLC",
+        "LC",
+        "chromatography"
+      ],
+      "filename_keywords": [
+        ".rslt",
+        ".dx",
+        ".rx",
+        "OpenLab"
+      ],
+      "extensions": [
+        ".dx",
+        ".rx",
+        ".acaml",
+        ".sqx",
+        ".amx",
+        ".pmx",
+        ".mfx",
+        ".scml"
+      ],
+      "header_keywords": [],
+      "column_keywords": [],
+      "numeric_range_hints": {},
+      "inferred_data_type": "HPLC/LC OpenLab raw data",
+      "supported_in_pipeline": true,
+      "selected_processor": "hplc_openlab_raw_exporter",
+      "confidence_rules": {
+        "high": "OpenLab result-set folder plus .dx/.rx/.acaml files",
+        "medium": "OpenLab raw extension in an LC folder",
+        "low": "ambiguous chromatography path"
+      },
+      "special_handling": "dedicated_hplc_openlab_export_command",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/hplc_openlab_raw.md"
+    },
+    {
       "id": "lc_exported_data",
       "folder_name": "\u6db2\u76f8",
       "folder_keywords": [

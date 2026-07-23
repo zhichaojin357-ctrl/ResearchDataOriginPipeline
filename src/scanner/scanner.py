@@ -48,6 +48,13 @@ def _matching_folders(raw_root: Path, entry: dict) -> list[Path]:
     if not raw_root.exists():
         return []
     matches: list[Path] = []
+    root_name = _normalize_path_segment(raw_root.name)
+    root_keywords = [
+        _normalize_path_segment(str(entry["folder_name"])),
+        *[_normalize_path_segment(str(keyword)) for keyword in entry.get("folder_keywords", [])],
+    ]
+    if any(keyword and _keyword_matches(keyword, root_name) for keyword in root_keywords):
+        matches.append(raw_root)
     exact = raw_root / entry["folder_name"]
     if exact.exists() and exact.is_dir():
         matches.append(exact)
@@ -188,7 +195,7 @@ def _entry_path_score(raw_root: Path, path: Path, entry: dict, entry_index: int)
         relative = path.relative_to(raw_root)
     except ValueError:
         relative = path
-    segments = [_normalize_path_segment(part) for part in relative.parts[:-1]]
+    segments = [_normalize_path_segment(raw_root.name), *[_normalize_path_segment(part) for part in relative.parts[:-1]]]
     keywords = [entry["folder_name"], *entry.get("folder_keywords", [])]
     best = (0, -1, 0, 0, -entry_index)
     for segment_index, segment in enumerate(segments):

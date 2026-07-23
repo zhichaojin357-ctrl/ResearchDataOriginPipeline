@@ -1,8 +1,8 @@
 # HPLC/LC Acceptance Criteria
 
-Date: 2026-06-04
+Updated: 2026-07-24
 
-This contract applies only to exported HPLC/LC tabular data. It does not allow raw vendor decoding, Origin execution, real-data processing, or automatic chemical conclusions.
+This contract covers exported HPLC/LC tables and the dedicated Agilent OpenLab raw-data export command. Raw decoding does not authorize Origin execution, plotting, automatic chemical identity, or unsupported quantitative conclusions.
 
 ## A. Chromatogram Exported Data
 
@@ -95,9 +95,40 @@ If exported columns do not clearly identify chromatogram, peak table, or calibra
 - Record missing fields.
 - Do not guess a mode from generic numeric columns.
 
+## F. Agilent OpenLab Raw Result Sets
+
+The formal command `python run.py hplc-openlab-export` may process `.rslt` result sets containing `.dx`, `.rx`, and `.acaml` components.
+
+Allowed behavior:
+
+- Determine the inclusive date boundary from each result-set injection timestamp, converted to the local offset recorded by its `.dx` manifest, not only from folder names.
+- Decode detector chromatograms from `.dx` with `rainbow-api>=1.3.1`.
+- Preserve each signal's exact time grid and measured values in the processed audit dataset without interpolation, resampling, smoothing, or baseline correction.
+- Read OpenLab's existing integration results from paired `.rx` files.
+- Preserve sample, vial, method, detector, wavelength, point-count, source hash, and result-set provenance.
+- Write one summary workbook plus one workbook per top-level acquisition batch folder.
+- Put sample metadata in a dedicated sheet and create one peak-area sheet per `.rslt` result set.
+- Keep raw signal points out of the user-facing Excel files unless a later request explicitly asks for them.
+- Use plain white data rows with explicit thin gray cell borders and no alternating-row color style.
+- Write metadata, verification records, and a preview of every generated sheet under the configured external output root.
+
+Required failure behavior:
+
+- Fail the run when any in-scope `.dx` acquisition cannot be decoded completely.
+- Fail when the workbook builder or workbook verification step fails.
+- Never silently replace a missing `.rx` file with newly guessed peaks; record the missing vendor result instead.
+
+Scientific boundary:
+
+- OpenLab peak rows remain vendor integration results, not chemical identities.
+- Retention time and source peak names must not be promoted to product identity.
+- Calibration, analyte-role mapping, response factors, and dilution rules are required before concentration, conversion, selectivity, or yield can be reported.
+- Instrument telemetry channels are excluded from this Excel workflow unless a separate request defines their scope.
+
 ## Output Contract
 
-- Synthetic tests may write processed CSV and metadata only under a temporary run root.
-- No repository `output/` or `outputs/` paths may be modified by this goal.
-- Origin artifacts are out of scope: no OPJU, TIF, PNG, PDF, XLSX, ZIP, or large JSON artifacts.
-- All scientific outputs remain candidate/provenance records until manually reviewed.
+- Raw input is read-only.
+- Formal outputs stay under an explicit external output root and never inside the raw-data tree.
+- The OpenLab raw workflow produces no Origin, OPJU, chart, or scientific figure.
+- Workbook previews are verification artifacts only and are not scientific plots.
+- All peak identities and derived chemistry remain manual-review records until supported by user-supplied evidence.

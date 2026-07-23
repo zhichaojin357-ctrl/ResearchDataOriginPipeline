@@ -115,6 +115,19 @@ SUPPORTED_PROCESSOR_PROFILES = MappingProxyType(
             ("do not identify products or compute conversion without complete calibration input",),
             ("chromatogram", "peak table summary"),
         ),
+        "HPLC/LC OpenLab raw data": _profile(
+            "HPLC/LC OpenLab raw data",
+            "hplc_openlab_raw_exporter",
+            (
+                "confirm acquisition cutoff, detector wavelength, OpenLab integration boundaries, "
+                "and any calibration or analyte-role mapping",
+            ),
+            (
+                "do not promote vendor peak rows or retention times to chemical identity",
+                "do not compute conversion, selectivity, or yield without complete calibration and role mapping",
+            ),
+            ("no plot; compact summary and batch-specific data-only Excel workbooks",),
+        ),
         "EIS": _profile(
             "EIS",
             "eis_processor",

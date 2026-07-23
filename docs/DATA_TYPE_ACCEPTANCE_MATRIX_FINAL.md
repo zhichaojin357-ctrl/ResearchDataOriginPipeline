@@ -7,6 +7,7 @@ Scope: final planning matrix for MEGA convergence. This matrix does not assert t
 | Data type / workflow | Needs Origin? | Needs real data? | Needs visual acceptance? | Automatic scientific conclusions forbidden? | Recommended first small batch |
 |---|---|---|---|---|---|
 | HPLC/LC exported data | No for preflight; yes for final Origin figures if requested | Yes for actual processing; no for schema review | Yes for final chromatogram/plot acceptance | Yes, product identity and quantification claims require manual support | Read-only registry/method/schema review |
+| HPLC/LC OpenLab raw data | No; the maintained workflow is raw data to Excel only | Yes | Yes for workbook sheet/layout verification; no scientific plot is produced | Yes, vendor peaks are not chemical identities and no conversion/selectivity/yield is inferred | One result set, then the requested acquisition-date range |
 | BET | Yes for OPJU/TIF regeneration; no for checklist | Existing data only with explicit approval | Yes | Yes, surface-area interpretation and pore model claims require manual review | BET visual acceptance checklist from OPJU exemplar notes |
 | Raman | Yes for OPJU warning fix | Existing data only with explicit approval | Yes | Yes, phase/defect/chemical-state claims require manual review | Warning delta review |
 | EIS | Yes for final OPJU/TIF | Existing data only with explicit approval | Yes | Yes, equivalent-circuit and charge-transfer claims require manual review | Plot contract review |

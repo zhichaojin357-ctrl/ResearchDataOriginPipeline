@@ -1,12 +1,14 @@
 ﻿from __future__ import annotations
 
 import argparse
+from datetime import date
 from pathlib import Path
 
 from src.core.deps import dependency_audit
 from src.core.auto_queue import AutoQueueOptions, run_auto_queue
 from src.core.epr_jeol import export_jeol_cwesr_to_xlsx
 from src.core.epr_overlay import EprOverlayOptions, run_epr_overlay
+from src.core.hplc_openlab import HplcOpenLabExportOptions, run_hplc_openlab_export
 from src.core.manifest_normalizer import normalize_material_collection_manifest
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
 from src.core.origin_style_assets import export_origin_style_assets, run_origin_style_asset_replay
@@ -225,6 +227,28 @@ def build_parser() -> argparse.ArgumentParser:
     jeol_epr.add_argument("--reference-dir", type=Path, help="optional directory of known decoded .xlsx files")
     jeol_epr.add_argument("--report-xlsx", type=Path, help="optional comparison report path")
     jeol_epr.add_argument("roots", nargs="+", type=Path, help="raw JEOL EPR folders to scan recursively")
+
+    hplc_openlab = subparsers.add_parser(
+        "hplc-openlab-export",
+        help="decode Agilent OpenLab .rslt/.dx/.rx raw LC data into one data-only Excel workbook",
+    )
+    hplc_openlab.add_argument("--input", type=Path, required=True, help="root containing OpenLab .rslt result sets")
+    hplc_openlab.add_argument(
+        "--since",
+        type=date.fromisoformat,
+        required=True,
+        help="inclusive acquisition-date cutoff in YYYY-MM-DD format",
+    )
+    hplc_openlab.add_argument("--output-root", type=Path, required=True, help="external output root")
+    hplc_openlab.add_argument("--output-name", help="one .xlsx filename; defaults from --since")
+    hplc_openlab.add_argument("--node-exe", type=Path, required=True, help="Node.js executable used by the workbook builder")
+    hplc_openlab.add_argument(
+        "--builder-workdir",
+        type=Path,
+        required=True,
+        help="work directory under --output-root containing the artifact-tool node_modules link",
+    )
+    hplc_openlab.add_argument("--force", action="store_true", help="overwrite a same-name workbook")
 
     epr_overlay = subparsers.add_parser(
         "epr-overlay",
@@ -523,6 +547,29 @@ def main(argv: list[str] | None = None) -> int:
         print(f"figure_tif={result['figure_tif']}")
         print(f"preview_png={result['preview_png']}")
         return 0 if (not args.with_origin or bool(result["origin_status"].get("ok"))) else 1
+    if args.command == "hplc-openlab-export":
+        _validate_input_directory(args.input)
+        output_root = _resolve_cli_output_root(project_root, args)
+        builder_workdir = ensure_output_path_within_root(project_root, args.builder_workdir, output_root)
+        ensure_output_path_separate_from_inputs(project_root, output_root, [args.input])
+        result = run_hplc_openlab_export(
+            project_root,
+            HplcOpenLabExportOptions(
+                input_root=args.input,
+                since=args.since,
+                output_root=output_root,
+                node_exe=args.node_exe,
+                builder_workdir=builder_workdir,
+                output_name=args.output_name,
+                force=bool(args.force),
+            ),
+        )
+        print(f"workbook={result['workbook']}")
+        print(f"workbook_count={len(result['workbooks'])}")
+        print(f"injections={result['summary']['selected_injection_count']}")
+        print(f"result_sets={result['summary']['result_set_count']}")
+        print(f"raw_signal_points={result['summary']['signal_point_count']}")
+        return 0
     if args.command == "jeol-epr-decode":
         output_root = _resolve_cli_output_directory_arg(project_root, args.out)
         reference_dir = args.reference_dir if args.reference_dir is None or args.reference_dir.is_absolute() else project_root / args.reference_dir

@@ -11,6 +11,7 @@ Current Origin plotting skill SHA256: `75b75fba5f796ed81e64e3f39fd3e64017d884f1c
 | epr | [epr.md](epr.md) |
 | ftir | [ftir.md](ftir.md) |
 | hplc_lc_exported_data | [hplc_lc_exported_data.md](hplc_lc_exported_data.md) |
+| hplc_openlab_raw | [hplc_openlab_raw.md](hplc_openlab_raw.md) |
 | mott_schottky | [mott_schottky.md](mott_schottky.md) |
 | photocurrent | [photocurrent.md](photocurrent.md) |
 | photocurrent_response | [photocurrent_response.md](photocurrent_response.md) |

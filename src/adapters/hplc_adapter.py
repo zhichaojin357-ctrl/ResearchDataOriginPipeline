@@ -17,8 +17,12 @@ def version_info() -> dict[str, object]:
 
 def capabilities() -> dict[str, object]:
     return {
-        "data_types": ["HPLC/LC exported data"],
-        "methods": ["chromatography import probe", "candidate peak helper only"],
+        "data_types": ["HPLC/LC exported data", "HPLC/LC OpenLab raw data"],
+        "methods": [
+            "exported chromatography table processing",
+            "Agilent OpenLab .dx raw detector signal decoding through rainbow-api>=1.3.1",
+            "OpenLab .rx vendor integration result extraction",
+        ],
         "forbidden_claims": ["no product identification", "no conversion without calibration"],
     }
 

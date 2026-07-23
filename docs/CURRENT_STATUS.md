@@ -22,7 +22,7 @@ Project-local `output/` is not the default runtime destination.
 
 ## Supported Runtime Types
 
-The processor registry currently supports 14 automatic pipeline entries:
+The processor registry currently supports 15 maintained pipeline entries:
 
 - photocurrent
 - BET
@@ -37,6 +37,7 @@ The processor registry currently supports 14 automatic pipeline entries:
 - Raman
 - Mott-Schottky
 - HPLC/LC exported data
+- HPLC/LC OpenLab raw data (dedicated raw-to-Excel command)
 - EIS
 
 SEM, TEM, NMR, MS, and kinetics/reference folders remain scan-only.
