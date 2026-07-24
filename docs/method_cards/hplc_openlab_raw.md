@@ -44,7 +44,9 @@ The project integration code connects these components and enforces project-spec
 - One batch workbook is created for each top-level acquisition batch folder.
 - Every batch workbook contains `批次说明` and `样品信息`.
 - Every `.rslt` result set receives its own `Rxx_峰面积` worksheet inside the corresponding batch workbook.
-- User-facing columns prioritize batch/result-set names, sample name, acquisition time, acquisition and processing methods, detector/wavelength, peak count, peak area, area percent, and height.
+- Acquisition and processing method metadata are represented by one user-facing `方法` column because these OpenLab records identify the same method; the processed audit dataset retains both source fields.
+- Each peak-area worksheet contains one row per injection/sample. Peak ordinal, retention time (shown as `出峰时间(min)`), peak area, and area percent are stored as line-aligned lists in that row.
+- User-facing columns prioritize batch/result-set names, sample name, acquisition time, method, peak count, peak ordinal, elution time, peak area, and area percent.
 - Workbook body cells use a white background with explicit thin gray borders. No alternating-row color style is applied.
 - The raw time/signal points are decoded and verified but not listed in Excel by default.
 

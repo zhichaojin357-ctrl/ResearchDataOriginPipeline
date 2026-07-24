@@ -64,6 +64,41 @@ function uniqueText(values) {
     .join("; ");
 }
 
+function cleanMethodName(value) {
+  return String(value || "").replace(/\.amx$/i, "").trim();
+}
+
+function methodText(item) {
+  return cleanMethodName(item.processing_method || item.acquisition_method);
+}
+
+function methodListText(item) {
+  const methods = (item.processing_methods || []).length
+    ? item.processing_methods
+    : (item.acquisition_methods || []);
+  return uniqueText(methods.map((value) => cleanMethodName(value)));
+}
+
+function alignedIntegerText(values) {
+  return values
+    .map((value) => (value === null || value === undefined ? "" : String(value)))
+    .join("\n");
+}
+
+function alignedNumberText(values, digits = 4) {
+  return values
+    .map((value) => {
+      if (value === null || value === undefined || value === "") return "";
+      const number = Number(value);
+      if (!Number.isFinite(number)) return String(value);
+      return number.toLocaleString("en-US", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      });
+    })
+    .join("\n");
+}
+
 function safePreviewName(value) {
   return String(value)
     .replace(/[<>:"/\\|?*\u0000-\u001f]+/g, "_")
@@ -180,9 +215,6 @@ function detectorText(item) {
 const batchPlanByName = new Map(
   dataset.workbook_plan.batch_workbooks.map((item) => [item.batch_folder, item]),
 );
-const injectionById = new Map(
-  dataset.injections.map((item) => [item.injection_id, item]),
-);
 
 function summaryWorkbook() {
   const workbook = Workbook.create();
@@ -192,10 +224,14 @@ function summaryWorkbook() {
   const batchCount = dataset.workbook_plan.batch_workbooks.length;
 
   const usageSpec = writeKeyValueSheet(usage, [
-    ["输出用途", "快速查看各采集批次、样品进样信息、采集/处理方法及 OpenLab 原积分峰面积。"],
+    ["输出用途", "快速查看各进样批次、样品信息、方法及 OpenLab 原积分峰面积。"],
     ["筛选起始日期（含）", dataset.cutoff_date],
     ["文件拆分规则", `1 个总索引工作簿 + ${batchCount} 个顶层采集批次工作簿。`],
-    ["工作表拆分规则", "每个批次工作簿含“样品信息”，并按每个 .rslt 结果集建立独立峰面积表。"],
+    [
+      "工作表拆分规则",
+      "每个批次工作簿含“样品信息”，并按每个 .rslt 结果集建立独立峰面积表；"
+      + "峰面积表每个进样/样品只占一行，峰序号、出峰时间、峰面积和面积百分比按换行一一对齐。",
+    ],
     ["顶层采集批次数", dataset.summary.batch_count],
     ["OpenLab 结果集数", dataset.summary.result_set_count],
     ["进样数", dataset.summary.selected_injection_count],
@@ -221,8 +257,7 @@ function summaryWorkbook() {
     "末次采集",
     "进样数",
     "OpenLab峰数",
-    "采集方法",
-    "处理方法",
+    "方法",
     "批次工作簿",
   ];
   const batchRows = dataset.result_sets.map((item) => {
@@ -236,8 +271,7 @@ function summaryWorkbook() {
       localDate(item.last_acquisition_local),
       item.injection_count,
       item.peak_count,
-      uniqueText(item.acquisition_methods || []),
-      uniqueText(item.processing_methods || []),
+      methodListText(item),
       plan.relative_path,
     ];
   });
@@ -246,8 +280,8 @@ function summaryWorkbook() {
     batchHeaders,
     batchRows,
     {
-      widths: [9, 30, 10, 34, 19, 19, 10, 12, 42, 38, 52],
-      wrapColumns: ["B", "D", "I", "J", "K"],
+      widths: [9, 30, 10, 34, 19, 19, 10, 12, 42, 52],
+      wrapColumns: ["B", "D", "I", "J"],
       rowHeight: 42,
     },
   );
@@ -260,8 +294,7 @@ function summaryWorkbook() {
     "进样ID",
     "样品名",
     "采集时间",
-    "采集方法",
-    "处理方法",
+    "方法",
     "OpenLab峰数",
     "峰面积合计",
     "面积百分比合计(%)",
@@ -276,8 +309,7 @@ function summaryWorkbook() {
     item.injection_id,
     item.sample_name,
     localDate(item.acquisition_local),
-    item.acquisition_method,
-    item.processing_method,
+    methodText(item),
     item.vendor_peak_count,
     item.vendor_peak_area_total,
     item.vendor_area_percent_sum,
@@ -291,15 +323,15 @@ function summaryWorkbook() {
     sampleHeaders,
     sampleRows,
     {
-      widths: [30, 10, 10, 28, 19, 42, 38, 12, 17, 19, 10, 14, 18, 34],
-      wrapColumns: ["A", "D", "F", "G", "M", "N"],
+      widths: [30, 10, 10, 28, 19, 42, 12, 17, 19, 10, 14, 18, 34],
+      wrapColumns: ["A", "D", "F", "L", "M"],
       rowHeight: 42,
     },
   );
   formatRange(sampleIndex, `E2:E${sampleSpec.lastRow}`, "yyyy-mm-dd hh:mm:ss");
-  formatRange(sampleIndex, `H2:H${sampleSpec.lastRow}`, "#,##0");
-  formatRange(sampleIndex, `I2:J${sampleSpec.lastRow}`, "0.0000");
-  formatRange(sampleIndex, `L2:L${sampleSpec.lastRow}`, "0.0");
+  formatRange(sampleIndex, `G2:G${sampleSpec.lastRow}`, "#,##0");
+  formatRange(sampleIndex, `H2:I${sampleSpec.lastRow}`, "0.0000");
+  formatRange(sampleIndex, `K2:K${sampleSpec.lastRow}`, "0.0");
 
   return {
     workbook,
@@ -334,8 +366,7 @@ function batchWorkbook(batchPlan) {
     ["末次采集", lastAcquisition.replace("T", " ")],
     ["进样数", batchInjections.length],
     ["OpenLab 原积分峰数", batchPeaks.length],
-    ["采集方法", uniqueText(batchInjections.map((item) => item.acquisition_method))],
-    ["处理方法", uniqueText(batchInjections.map((item) => item.processing_method))],
+    ["方法", uniqueText(batchInjections.map((item) => methodText(item)))],
     ["原始信号", "已完整解码和校验，但按简洁输出要求不在 Excel 中逐点列出。"],
     ["人工复核", "所有峰身份、积分边界及后续定量结论均需人工复核。"],
   ]);
@@ -346,8 +377,7 @@ function batchWorkbook(batchPlan) {
     "进样ID",
     "样品名",
     "采集时间",
-    "采集方法",
-    "处理方法",
+    "方法",
     "OpenLab峰数",
     "峰面积合计",
     "面积百分比合计(%)",
@@ -362,8 +392,7 @@ function batchWorkbook(batchPlan) {
     item.injection_id,
     item.sample_name,
     localDate(item.acquisition_local),
-    item.acquisition_method,
-    item.processing_method,
+    methodText(item),
     item.vendor_peak_count,
     item.vendor_peak_area_total,
     item.vendor_area_percent_sum,
@@ -378,75 +407,87 @@ function batchWorkbook(batchPlan) {
     sampleHeaders,
     sampleRows,
     {
-      widths: [10, 10, 28, 19, 42, 38, 12, 17, 19, 10, 14, 18, 34, 32],
-      wrapColumns: ["C", "E", "F", "L", "M", "N"],
+      widths: [10, 10, 28, 19, 42, 12, 17, 19, 10, 14, 18, 34, 32],
+      wrapColumns: ["C", "E", "K", "L", "M"],
       rowHeight: 42,
     },
   );
   formatRange(samples, `D2:D${sampleSpec.lastRow}`, "yyyy-mm-dd hh:mm:ss");
-  formatRange(samples, `G2:G${sampleSpec.lastRow}`, "#,##0");
-  formatRange(samples, `H2:I${sampleSpec.lastRow}`, "0.0000");
-  formatRange(samples, `K2:K${sampleSpec.lastRow}`, "0.0");
+  formatRange(samples, `F2:F${sampleSpec.lastRow}`, "#,##0");
+  formatRange(samples, `G2:H${sampleSpec.lastRow}`, "0.0000");
+  formatRange(samples, `J2:J${sampleSpec.lastRow}`, "0.0");
 
   const sheetSpecs = [
     { name: "批次说明", range: descriptionSpec.previewRange },
     { name: "样品信息", range: sampleSpec.previewRange },
   ];
   const peakHeaders = [
+    "进样批次名",
+    "结果集文件夹",
     "样品名",
     "进样ID",
     "采集时间",
-    "采集方法",
-    "处理方法",
+    "方法",
+    "峰数",
     "峰序号",
-    "保留时间(min)",
+    "出峰时间(min)",
     "峰面积",
     "面积单位",
     "面积百分比(%)",
-    "峰高",
-    "峰高单位",
-    "信号名",
-    "瓶位",
     "需要人工复核",
   ];
   for (const resultSet of resultSets) {
     const sheetName = `${resultSet.result_set_id}_峰面积`;
     const sheet = workbook.worksheets.add(sheetName);
-    const peakRows = dataset.peaks
-      .filter((item) => item.result_set_id === resultSet.result_set_id)
-      .map((item) => {
-        const injection = injectionById.get(item.injection_id);
-        return [
-          item.sample_name,
-          item.injection_id,
-          localDate(item.acquisition_local),
-          item.acquisition_method || injection?.acquisition_method || "",
-          item.processing_method || injection?.processing_method || "",
-          item.peak_ordinal,
-          item.retention_time_min,
-          item.area,
-          item.area_unit,
-          item.area_percent,
-          item.height,
-          item.height_unit,
-          item.signal_name,
-          item.vial_position,
-          item.manual_check_required ? "是" : "否",
-        ];
-      });
+    const resultSetInjections = batchInjections.filter(
+      (item) => item.result_set_id === resultSet.result_set_id,
+    );
+    const peaksByInjection = new Map();
+    for (const peak of dataset.peaks.filter(
+      (item) => item.result_set_id === resultSet.result_set_id,
+    )) {
+      const peaks = peaksByInjection.get(peak.injection_id) || [];
+      peaks.push(peak);
+      peaksByInjection.set(peak.injection_id, peaks);
+    }
+    const peakRows = resultSetInjections.map((injection) => {
+      const peaks = (peaksByInjection.get(injection.injection_id) || [])
+        .sort((left, right) => Number(left.peak_ordinal) - Number(right.peak_ordinal));
+      return [
+        injection.batch_folder,
+        injection.result_set_folder,
+        injection.sample_name,
+        injection.injection_id,
+        localDate(injection.acquisition_local),
+        methodText(injection),
+        peaks.length,
+        alignedIntegerText(peaks.map((item) => item.peak_ordinal)),
+        alignedNumberText(peaks.map((item) => item.retention_time_min)),
+        alignedNumberText(peaks.map((item) => item.area)),
+        uniqueText(peaks.map((item) => item.area_unit)),
+        alignedNumberText(peaks.map((item) => item.area_percent)),
+        peaks.some((item) => item.manual_check_required) ? "是" : "否",
+      ];
+    });
     const peakSpec = writeDataSheet(
       sheet,
       peakHeaders,
       peakRows,
       {
-        widths: [28, 10, 19, 42, 38, 10, 15, 16, 12, 18, 14, 12, 16, 10, 15],
-        wrapColumns: ["A", "D", "E", "M"],
-        rowHeight: 38,
+        widths: [28, 32, 26, 10, 19, 42, 8, 10, 16, 18, 12, 18, 15],
+        wrapColumns: ["A", "B", "C", "F", "H", "I", "J", "L"],
+        rowHeight: 42,
       },
     );
-    formatRange(sheet, `C2:C${peakSpec.lastRow}`, "yyyy-mm-dd hh:mm:ss");
-    formatRange(sheet, `F2:F${peakSpec.lastRow}`, "#,##0");
-    formatRange(sheet, `G2:L${peakSpec.lastRow}`, "0.0000");
+    formatRange(sheet, `E2:E${peakSpec.lastRow}`, "yyyy-mm-dd hh:mm:ss");
+    formatRange(sheet, `G2:G${peakSpec.lastRow}`, "#,##0");
+    resultSetInjections.forEach((injection, index) => {
+      const peakCount = (peaksByInjection.get(injection.injection_id) || []).length;
+      const rowNumber = index + 2;
+      const rowRange = sheet.getRange(`A${rowNumber}:M${rowNumber}`);
+      rowRange.format.rowHeight = Math.min(140, Math.max(34, 18 + peakCount * 16));
+      rowRange.format.verticalAlignment = "top";
+    });
     sheetSpecs.push({ name: sheetName, range: peakSpec.previewRange });
   }
 

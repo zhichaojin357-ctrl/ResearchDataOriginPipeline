@@ -108,6 +108,8 @@ Allowed behavior:
 - Preserve sample, vial, method, detector, wavelength, point-count, source hash, and result-set provenance.
 - Write one summary workbook plus one workbook per top-level acquisition batch folder.
 - Put sample metadata in a dedicated sheet and create one peak-area sheet per `.rslt` result set.
+- Represent acquisition/processing method as one user-facing method column while retaining the separate source metadata in the processed audit dataset.
+- Keep one row per injection/sample in each peak-area sheet, with peak ordinal followed immediately by line-aligned elution time, peak area, and area-percent fields.
 - Keep raw signal points out of the user-facing Excel files unless a later request explicitly asks for them.
 - Use plain white data rows with explicit thin gray cell borders and no alternating-row color style.
 - Write metadata, verification records, and a preview of every generated sheet under the configured external output root.

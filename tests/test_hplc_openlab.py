@@ -221,3 +221,10 @@ def test_workbook_builder_contract_is_plain_bordered_and_omits_raw_signal_sheets
     assert "dataset.raw_sheets" not in builder
     assert 'workbook.worksheets.add("样品信息")' in builder
     assert "`${resultSet.result_set_id}_峰面积`" in builder
+    assert '"采集方法",' not in builder
+    assert '"处理方法",' not in builder
+    assert '"方法",' in builder
+    assert '"峰序号",' in builder
+    assert '"出峰时间(min)",' in builder
+    assert "const peakRows = resultSetInjections.map" in builder
+    assert '.join("\\n")' in builder
