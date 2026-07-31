@@ -55,6 +55,8 @@ def test_readiness_passes_with_current_required_artifacts(tmp_path: Path):
     assert code == 0
     assert report["summary"]["failures"] == 0
     assert report["summary"]["warnings"] == 0
+    assert report["summary"]["ready"] is True
+    assert report["summary"]["release_ready"] is True
     assert {check["status"] for check in report["checks"]} == {"pass"}
 
 
@@ -77,6 +79,8 @@ def test_readiness_portable_mode_warns_for_missing_generated_history(tmp_path: P
     assert code == 0
     assert report["summary"]["failures"] == 0
     assert report["summary"]["warnings"] > 0
+    assert report["summary"]["ready"] is True
+    assert report["summary"]["release_ready"] is False
     statuses = {check["name"]: check["status"] for check in report["checks"]}
     assert statuses["validation_report_current"] == "pass"
     assert statuses["locked_result_index_count"] == "warning"

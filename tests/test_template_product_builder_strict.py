@@ -11,6 +11,7 @@ from src.core.template_product_builder import (
     _apply_template_xps_component_fill,
     _apply_template_xps_peak_annotations,
     _apply_template_xps_y_axis_title_overlay,
+    _build_template_acceptance,
     _build_template_epr_table,
     _build_template_xrd_multisource_table,
     _build_template_xy_multisource_table,
@@ -23,17 +24,20 @@ from src.core.template_product_builder import (
     _template_pl_candidate_files,
     _template_same_x_overlay_table,
     _template_xy_series_label,
-    _seed_project_style_reference_preview,
     _force_template_axis_titles_visible,
+    _infer_template_epr_reference_dir,
     _position_template_axis_titles_outside_plot,
     _preferred_template_xps_graph_name,
     _relevant_strict_readback_values,
     _select_template_xps_template_for_product,
     _strict_style_readback,
+    _template_conformance_acceptance_reasons,
     _template_origin_processing_script,
     _template_plot_count,
     _template_strict_visual_reasons,
+    _validate_independent_style_replay_item,
     _template_epr_origin_processing_script,
+    _write_template_per_type_report,
     _write_template_identity_origin_processing_plan,
     _xps_peak_annotations_from_processed_data,
     build_template_candidate_pool,
@@ -60,6 +64,32 @@ class _FakeOriginOps:
 
     def run_labtalk(self, command: str) -> None:
         self.commands.append(command)
+
+
+def test_reference_opju_self_replay_cannot_validate_saved_style_asset(
+    tmp_path: Path,
+) -> None:
+    result = _validate_independent_style_replay_item(
+        tmp_path,
+        "BET",
+        {
+            "product_key": "BET",
+            "status": "reference_opju_self_replay",
+            "style_asset_validated": False,
+            "comparison_scope": "reference_opju_self_replay",
+            "asset_generation_mode": "reference_opju_reexport",
+            "source_opju_sha256": "a" * 64,
+            "generated_opju_sha256": "a" * 64,
+            "comparison": {"exact_pixel_match": True, "rms": 0.0},
+        },
+    )
+
+    assert result["ok"] is False
+    reason = str(result["reason"])
+    assert "status is not matched" in reason
+    assert "style_asset_validated is false" in reason
+    assert "comparison_scope is not independent_theme_application" in reason
+    assert "source and generated OPJU hashes are identical" in reason
 
 
 def test_template_candidate_pool_excludes_f_drive_xps_templates(tmp_path: Path) -> None:
@@ -117,7 +147,7 @@ def test_template_display_path_hides_workspace_prefixes() -> None:
     assert _template_display_path(external) == "external/BOBC.opju"
 
 
-def test_project_style_asset_candidate_uses_manifest_plot_count_and_reference_preview(tmp_path: Path) -> None:
+def test_project_style_asset_candidate_does_not_preseed_manifest_preview_as_runtime_reference(tmp_path: Path) -> None:
     project = tmp_path / "project"
     style_root = project / "templates" / "origin_styles"
     template = style_root / "format_themes" / "Raman.oth"
@@ -149,11 +179,11 @@ def test_project_style_asset_candidate_uses_manifest_plot_count_and_reference_pr
 
     [candidate] = classify_template_project_style_asset_candidates(project)
     copied = tmp_path / "run" / "Raman" / "reference_exports" / "Raman_reference.png"
-    _seed_project_style_reference_preview(candidate, copied)
 
     assert candidate.plot_count == 3
     assert candidate.layer_count == 1
-    assert copied.exists()
+    assert candidate.metadata["style_asset"]["reference_preview_png"]
+    assert not copied.exists()
 
 
 def test_project_style_asset_candidate_uses_snapshot_plot_count_when_manifest_omits_it(tmp_path: Path) -> None:
@@ -542,6 +572,289 @@ def test_saved_format_theme_does_not_exempt_nonzero_plot_count_delta(tmp_path: P
     assert audit["items"][0]["plot_count_delta"] == -2
 
 
+def test_saved_format_theme_requires_ready_preview_comparison_even_when_plot_count_matches(tmp_path: Path) -> None:
+    generated = tmp_path / "BET" / "figures_preview" / "BET_preview.png"
+    metadata = tmp_path / "BET" / "metadata" / "BET.json"
+    report = tmp_path / "BET" / "reports" / "BET_report.md"
+    generated.parent.mkdir(parents=True)
+    metadata.parent.mkdir(parents=True)
+    report.parent.mkdir(parents=True)
+    Image.new("RGB", (16, 12), "white").save(generated)
+    metadata.write_text(
+        json.dumps(
+            {
+                "status": "accepted",
+                "visual_acceptance": True,
+                "acceptance_notes": [],
+                "template_plot_count": 1,
+                "origin_status": {
+                    "template_format_plan": {"mode": "saved_format_theme"},
+                    "origin_processing": {"method": "saved_format_theme_apply"},
+                    "product_style": {"plot_count": 1},
+                    "conformance": {"compared_fields": 4, "matched_fields": 4},
+                },
+                "origin_processing": {"method": "saved_format_theme_apply"},
+                "source_files": ["raw1.csv"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    report.write_text(
+        "# BET template-format report\n\n- Status: accepted\n- Visual acceptance: True\n",
+        encoding="utf-8",
+    )
+    product = {
+        "type": "BET",
+        "status": "accepted",
+        "visual_acceptance": True,
+        "reference_preview_png": str(tmp_path / "missing_reference.png"),
+        "preview_png": str(generated),
+        "metadata": str(metadata),
+        "report": str(report),
+        "template_format_mode": "saved_format_theme",
+        "origin_processing_method": "saved_format_theme_apply",
+        "notes": "Origin saved format-theme export succeeded.",
+    }
+
+    audit = _write_template_preview_comparison(tmp_path, [product])
+
+    assert product["status"] == "blocked"
+    assert audit["ready_count"] == 0
+    assert audit["items"][0]["strict_status"] == "blocked_not_one_to_one"
+    assert audit["items"][0]["saved_style_asset_mode"] is True
+    assert audit["items"][0]["plot_count_delta"] == 0
+    assert "comparison is not ready" in audit["items"][0]["message"]
+    persisted = json.loads(metadata.read_text(encoding="utf-8"))
+    assert persisted["status"] == "blocked"
+    assert persisted["visual_acceptance"] is False
+    assert persisted["reference_preview_available"] is False
+    assert persisted["template_preview_comparison_ready"] is False
+    assert persisted["visual_acceptance_audit"]["strict_status"] == "blocked_not_one_to_one"
+    persisted_report = report.read_text(encoding="utf-8")
+    assert "- Status: blocked" in persisted_report
+    assert "- Visual acceptance: False" in persisted_report
+    assert "## Final visual acceptance audit" in persisted_report
+    assert "- Independent reference preview: missing" in persisted_report
+
+
+def test_template_acceptance_requires_independent_reference_preview(tmp_path: Path) -> None:
+    type_root = tmp_path / "BET"
+    type_root.mkdir()
+    product = ProductContext(
+        product_key="BET",
+        slug="BET_template",
+        pairing=TargetPairing("BET", "BET", "", "", [], "", tmp_path / "template.opju"),
+        type_root=type_root,
+        processed_data=type_root / "processed.csv",
+        input_copies=[],
+        reference_opju_copy=type_root / "template.opju",
+        reference_preview_png=type_root / "reference.png",
+        origin_file=type_root / "product.opju",
+        figure_tif=type_root / "product.tif",
+        preview_png=type_root / "product.png",
+        x_label="Relative Pressure",
+        y_label="Quantity Adsorbed",
+        graph_title="BET",
+        plot_type="line",
+        x_descending=False,
+    )
+    for path in (product.processed_data, product.reference_opju_copy, product.origin_file, product.figure_tif):
+        path.write_bytes(b"artifact")
+    Image.new("RGB", (16, 12), "white").save(product.preview_png)
+    template = TemplateCandidate(
+        product_key="BET",
+        path=product.reference_opju_copy,
+        source="unit",
+        status="valid",
+        graph_page="Graph1",
+        layer_count=1,
+        plot_count=1,
+    )
+    export_status = {
+        "ok": True,
+        "product_style": {"plot_line_widths": [30.0]},
+        "conformance": {"axis_title_bold": True},
+        "axis_title_bold_policy": True,
+        "origin_processing": {
+            "applied": True,
+            "processing_location": "Origin workbook",
+            "method": "opju_template_base_workbook_replacement",
+        },
+    }
+
+    missing_reference = _build_template_acceptance(product, export_status, template, {})
+
+    assert missing_reference.status == "blocked"
+    assert missing_reference.visual_acceptance is False
+    assert any("independent reference preview" in note for note in missing_reference.notes)
+
+    Image.new("RGB", (16, 12), "black").save(product.reference_preview_png)
+    with_reference = _build_template_acceptance(product, export_status, template, {})
+
+    assert with_reference.status == "accepted"
+    assert with_reference.visual_acceptance is True
+
+
+def test_eis_formal_acceptance_requires_all_measured_points_and_no_fit_outputs(tmp_path: Path) -> None:
+    type_root = tmp_path / "EIS"
+    type_root.mkdir()
+    product = ProductContext(
+        product_key="EIS",
+        slug="EIS_template",
+        pairing=TargetPairing("EIS", "EIS", "", "", [], "", tmp_path / "template.opju"),
+        type_root=type_root,
+        processed_data=type_root / "processed.csv",
+        input_copies=[],
+        reference_opju_copy=type_root / "template.opju",
+        reference_preview_png=type_root / "reference.png",
+        origin_file=type_root / "product.opju",
+        figure_tif=type_root / "product.tif",
+        preview_png=type_root / "product.png",
+        x_label="Z' (kOhm)",
+        y_label="-Z'' (kOhm)",
+        graph_title="EIS measured data",
+        plot_type="line+symbol",
+        x_descending=False,
+    )
+    product.processed_data.write_text(
+        "measured_z_real_kohm,measured_minus_z_imag_kohm\n1,2\n2,3\n3,4\n",
+        encoding="utf-8",
+    )
+    for path in (product.reference_opju_copy, product.origin_file, product.figure_tif):
+        path.write_bytes(b"artifact")
+    Image.new("RGB", (16, 12), "black").save(product.reference_preview_png)
+    Image.new("RGB", (16, 12), "white").save(product.preview_png)
+    template = TemplateCandidate(
+        product_key="EIS",
+        path=product.reference_opju_copy,
+        source="unit",
+        status="valid",
+        graph_page="Graph1",
+        layer_count=1,
+        plot_count=1,
+    )
+    export_status = {
+        "ok": True,
+        "product_style": {"plot_line_widths": [30.0]},
+        "conformance": {"axis_title_bold": True},
+        "axis_title_bold_policy": True,
+        "origin_processing": {
+            "applied": True,
+            "processing_location": "Origin workbook",
+            "method": "opju_template_base_workbook_replacement",
+        },
+    }
+    extra = {
+        "eis_cleaning": {
+            "mode": "formal_measured_points_only",
+            "raw_point_count": 3,
+            "plotted_point_count": 3,
+            "fit": {"status": "not_run"},
+        }
+    }
+
+    accepted = _build_template_acceptance(product, export_status, template, extra)
+
+    assert accepted.status == "accepted"
+    assert accepted.visual_acceptance is True
+    assert not any("fit" in note.casefold() for note in accepted.notes)
+    report_path = _write_template_per_type_report(
+        tmp_path,
+        product,
+        export_status,
+        ResolvedPlotStyle(),
+        extra,
+        template,
+        accepted,
+    )
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "## EIS measured-data product" in report_text
+    assert "Fit status: not_run" in report_text
+    assert "EIS cleaning and draft fit" not in report_text
+    assert "Model A: Rs + (Rct || CPE)" not in report_text
+
+    product.processed_data.write_text(
+        "measured_z_real_kohm,measured_minus_z_imag_kohm,draft_fit_minus_z_imag_kohm\n1,2,2\n",
+        encoding="utf-8",
+    )
+    fit_column_blocked = _build_template_acceptance(product, export_status, template, extra)
+
+    assert fit_column_blocked.status == "blocked"
+    assert fit_column_blocked.visual_acceptance is False
+    assert any("fit columns" in note for note in fit_column_blocked.notes)
+
+    product.processed_data.write_text(
+        "measured_z_real_kohm,measured_minus_z_imag_kohm\n1,2\n2,3\n3,4\n",
+        encoding="utf-8",
+    )
+    fit_sidecar = type_root / "debug" / "eis_randles_cpe_fit_curve.csv"
+    fit_sidecar.parent.mkdir(exist_ok=True)
+    fit_sidecar.write_text("x,y\n1,2\n", encoding="utf-8")
+    fit_sidecar_blocked = _build_template_acceptance(product, export_status, template, extra)
+
+    assert fit_sidecar_blocked.status == "blocked"
+    assert fit_sidecar_blocked.visual_acceptance is False
+    assert any("fit sidecars" in note for note in fit_sidecar_blocked.notes)
+
+
+def test_label_audit_failure_is_persisted_after_successful_preview_comparison(tmp_path: Path) -> None:
+    product_root = tmp_path / "BET"
+    reference = product_root / "reference.png"
+    generated = product_root / "generated.png"
+    metadata = product_root / "metadata.json"
+    report = product_root / "report.md"
+    product_root.mkdir()
+    Image.new("RGB", (16, 12), "white").save(reference)
+    Image.new("RGB", (16, 12), "white").save(generated)
+    metadata.write_text(
+        json.dumps(
+            {
+                "status": "accepted",
+                "visual_acceptance": True,
+                "acceptance_notes": [],
+                "template_plot_count": 1,
+                "origin_status": {
+                    "product_style": {"plot_count": 1},
+                    "conformance": {"compared_fields": 4, "matched_fields": 4},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    report.write_text(
+        "# BET template-format report\n\n- Status: accepted\n- Visual acceptance: True\n",
+        encoding="utf-8",
+    )
+    product = {
+        "type": "BET",
+        "status": "accepted",
+        "visual_acceptance": True,
+        "reference_preview_png": str(reference),
+        "preview_png": str(generated),
+        "metadata": str(metadata),
+        "report": str(report),
+    }
+
+    audit = _write_template_preview_comparison(
+        tmp_path,
+        [product],
+        label_audit={"hit_count": 1, "path_only_hits": []},
+    )
+
+    assert audit["items"][0]["strict_visual_match"] is True
+    assert audit["items"][0]["status"] == "blocked"
+    assert product["status"] == "blocked"
+    assert product["visual_acceptance"] is False
+    persisted = json.loads(metadata.read_text(encoding="utf-8"))
+    assert persisted["status"] == "blocked"
+    assert persisted["visual_acceptance"] is False
+    assert persisted["visual_acceptance_audit"]["label_audit_pass"] is False
+    assert "no-label audit failed" in persisted["acceptance_notes"]
+    persisted_report = report.read_text(encoding="utf-8")
+    assert "- Final status: blocked" in persisted_report
+    assert "- No-label audit pass: False" in persisted_report
+
+
 def test_template_preview_comparison_resolves_run_relative_artifacts(tmp_path: Path) -> None:
     reference = tmp_path / "BET" / "reference_exports" / "BET_reference.png"
     generated = tmp_path / "BET" / "figures_preview" / "BET_preview.png"
@@ -775,6 +1088,27 @@ def test_template_epr_uses_template_group_overlay_not_single_seed_file(tmp_path:
     assert final_csv.parent == tmp_path / "EPR" / "processed_data"
 
 
+def test_template_epr_finds_the_current_chinese_export_directory(
+    tmp_path: Path,
+) -> None:
+    epr_root = tmp_path / "EPR"
+    reference_dir = epr_root / "导出后的数据"
+    reference_dir.mkdir(parents=True)
+    for name in (
+        "BC-OH-light2.xlsx",
+        "CWO-OH-light2.xlsx",
+        "BOBC-OH-light1.xlsx",
+    ):
+        (reference_dir / name).write_bytes(b"placeholder")
+
+    selected = _infer_template_epr_reference_dir(
+        [epr_root / "seed.xlsx"],
+        "OH",
+    )
+
+    assert selected == reference_dir
+
+
 def test_template_bet_selects_one_material_each_from_coherent_cohort(tmp_path: Path) -> None:
     bet_root = tmp_path / "BET"
     seed = bet_root / "new_single" / "20260701-BOBC.XLS"
@@ -924,7 +1258,7 @@ def test_template_base_readback_ignores_optional_font_size_and_legend_frame_requ
     }
 
 
-def test_cached_style_readback_only_requires_axis_title_visibility() -> None:
+def test_cached_style_readback_compares_reported_title_and_legend_style_to_exemplar() -> None:
     readback = {
         "font_family_arial": True,
         "axis_title_font_size_36": False,
@@ -939,9 +1273,95 @@ def test_cached_style_readback_only_requires_axis_title_visibility() -> None:
         readback,
         template_base_mode=False,
         saved_style_asset_mode=True,
+        exemplar_style={
+            "audit_numeric_values": {
+                "xb.fsize": 28,
+                "yl.fsize": 28,
+                "xb.bold": 0,
+                "yl.bold": 0,
+                "legend.background": 1,
+                "legend.bold": 0,
+            },
+            "audit_string_values": {
+                "xb.font$": "Calibri",
+                "yl.font$": "Calibri",
+                "legend.font$": "Calibri",
+            },
+        },
+        product_style={
+            "audit_numeric_values": {
+                "xb.fsize": 28,
+                "yl.fsize": 28,
+                "xb.bold": 0,
+                "yl.bold": 0,
+                "legend.background": 1,
+                "legend.bold": 0,
+            },
+            "audit_string_values": {
+                "xb.font$": "Calibri",
+                "yl.font$": "Calibri",
+                "legend.font$": "Calibri",
+            },
+        },
     )
 
-    assert relevant == {"axis_title_visible": True}
+    assert relevant == {
+        "axis_title_visible": True,
+        "axis_title_font_size_matches_exemplar": True,
+        "axis_title_bold_matches_exemplar": True,
+        "axis_title_font_matches_exemplar": True,
+        "legend_frame_matches_exemplar": True,
+        "legend_bold_matches_exemplar": True,
+        "legend_font_matches_exemplar": True,
+    }
+
+
+def test_saved_style_conformance_blocks_non_range_review_but_allows_data_range_review() -> None:
+    assert _template_conformance_acceptance_reasons(
+        {
+            "status": "review",
+            "issues": [
+                {
+                    "field": "layer.x.from",
+                    "severity": "review",
+                }
+            ],
+        }
+    ) == []
+
+    reasons = _template_conformance_acceptance_reasons(
+        {
+            "status": "review",
+            "issues": [
+                {
+                    "field": "legend.x",
+                    "severity": "review",
+                }
+            ],
+        }
+    )
+
+    assert reasons == ["style conformance requires review for non-data-range fields: legend.x"]
+
+
+def test_saved_style_conformance_blocks_fail_severity_and_axis_title_overlap_risk() -> None:
+    reasons = _template_conformance_acceptance_reasons(
+        {
+            "status": "fail",
+            "axis_title_no_overlap_check": "risk",
+            "issues": [
+                {
+                    "field": "xb.bold",
+                    "severity": "fail",
+                }
+            ],
+        }
+    )
+
+    assert reasons == [
+        "style conformance has fail-severity differences: xb.bold",
+        "axis-title readback indicates overlap risk",
+    ]
 
 
 def test_strict_preview_rejects_plot_count_delta_even_with_low_rms_and_strong_style_match() -> None:
@@ -955,7 +1375,7 @@ def test_strict_preview_rejects_plot_count_delta_even_with_low_rms_and_strong_st
     assert reasons == ["plot count differs from template by -2"]
 
 
-def test_strict_preview_records_high_rms_as_nonblocking_when_style_and_plot_count_match() -> None:
+def test_strict_preview_blocks_high_rms_even_when_style_and_plot_count_match() -> None:
     reasons = _template_strict_visual_reasons(
         ready=True,
         plot_count_delta=0,
@@ -963,10 +1383,10 @@ def test_strict_preview_records_high_rms_as_nonblocking_when_style_and_plot_coun
         preview_rms=61.0,
     )
 
-    assert reasons == []
+    assert reasons == ["preview RMS 61.00 is above 35.00"]
 
 
-def test_strict_preview_accepts_text_only_legend_delta_when_plot_count_matches() -> None:
+def test_strict_preview_blocks_high_rms_for_text_only_legend_policy() -> None:
     reasons = _template_strict_visual_reasons(
         ready=True,
         plot_count_delta=0,
@@ -975,7 +1395,7 @@ def test_strict_preview_accepts_text_only_legend_delta_when_plot_count_matches()
         text_only_legend=True,
     )
 
-    assert reasons == []
+    assert reasons == ["preview RMS 57.70 is above 35.00"]
 
 
 def test_template_plot_count_uses_visible_template_count_not_available_source_series() -> None:

@@ -4,33 +4,17 @@ import argparse
 from datetime import date
 from pathlib import Path
 
-from src.core.deps import dependency_audit
-from src.core.auto_queue import AutoQueueOptions, run_auto_queue
-from src.core.epr_jeol import export_jeol_cwesr_to_xlsx
-from src.core.epr_overlay import EprOverlayOptions, run_epr_overlay
-from src.core.hplc_openlab import HplcOpenLabExportOptions, run_hplc_openlab_export
-from src.core.manifest_normalizer import normalize_material_collection_manifest
-from src.core.origin_batch import OriginBatchOptions, run_origin_batch
-from src.core.origin_style_assets import export_origin_style_assets, run_origin_style_asset_replay
-from src.core.origin_governance import DEFAULT_ORIGIN_SKILL_DIR, run_origin_governance
-from src.core.process import ProcessOptions, run_process
 from src.core.project import (
     configured_path,
     ensure_output_path_separate_from_inputs,
     ensure_output_path_within_root,
     load_project_config,
 )
-from src.core.readiness import ReadinessOptions, run_readiness
-from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
 from src.core.runtime_paths import resolve_output_root
-from src.core.template_format_executor import TemplateFormatExecutorOptions, run_template_format_executor
-from src.core.triage import TriageOptions, run_triage
-from src.core.validate import validate
-from src.core.xrd_overlay import DEFAULT_XRD_REFERENCE_OPJU, XrdOverlayOptions, run_xrd_overlay
-from src.core.xrd_no_card_overlay import XrdNoCardOverlayOptions, discover_xrd_text_sources, run_xrd_no_card_overlay
-from src.core.xps_heterojunction import XpsHeterojunctionOptions, discover_default_xps_sample_files, run_xps_heterojunction_stacked
-from src.origin.adapter import origin_smoke_test
-from src.scanner.scanner import scan_raw_data
+
+
+DEFAULT_ORIGIN_SKILL_DIR = Path(".agents") / "skills" / "originpro-graph-export"
+DEFAULT_XRD_REFERENCE_OPJU = Path("templates") / "origin_styles" / "reference_opju" / "XRD.opju"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -75,7 +59,12 @@ def build_parser() -> argparse.ArgumentParser:
     triage.add_argument("--force-refresh", action="store_true")
     triage.add_argument("--dry-run", action="store_true")
 
-    subparsers.add_parser("origin-test")
+    origin_test = subparsers.add_parser("origin-test")
+    origin_test.add_argument(
+        "--force",
+        action="store_true",
+        help="replace fixed-name smoke-test artifacts after all safety preflights",
+    )
 
     template_format = subparsers.add_parser(
         "template-format-products",
@@ -98,10 +87,18 @@ def build_parser() -> argparse.ArgumentParser:
     template_source.add_argument("--exemplar-driven", action="store_true", help="use the OPJU selected in the pairing plan for each data type instead of project-local .oth style assets")
     template_format.add_argument("--compact-output", action="store_true", help="write deliverables under products/<type> with minimal top-level output folders")
     template_format.add_argument("--only-type", help="run template-format generation for one product type first, for example XRD")
+    template_format.add_argument(
+        "--style-replay-report",
+        type=Path,
+        help=(
+            "independent theme-application replay summary used by the strict "
+            "saved-style acceptance gate"
+        ),
+    )
 
     origin_style_assets = subparsers.add_parser(
         "export-origin-style-assets",
-        help="export project-local Origin .oth format themes and .otpu graph templates",
+        help="export project-local Origin .oth runtime themes and .otpu harvest records",
     )
     origin_style_assets.add_argument("--run-root", type=Path, help="accepted template-format run root to harvest")
     origin_style_assets.add_argument("--template-plan", type=Path, help="JSON plan with multiple template OPJU items to harvest")
@@ -182,6 +179,11 @@ def build_parser() -> argparse.ArgumentParser:
     xps_origin.add_argument("--dry-run", action="store_true", help="parse data, write tables/reports, but do not launch Origin")
     xps_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF")
     xps_stacked.add_argument("--no-bc-candidate", action="store_true", help="do not use the detected BC candidate Excel outside the official BC folder")
+    xps_stacked.add_argument(
+        "--force",
+        action="store_true",
+        help="explicitly overwrite every preflighted output owned by this XPS run",
+    )
 
     xrd_overlay = subparsers.add_parser(
         "xrd-overlay",
@@ -202,6 +204,11 @@ def build_parser() -> argparse.ArgumentParser:
     xrd_origin.add_argument("--dry-run", action="store_true", help="write processed table, metadata, and report without launching Origin")
     xrd_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF/PNG")
     xrd_overlay.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    xrd_overlay.add_argument(
+        "--force",
+        action="store_true",
+        help="explicitly overwrite every preflighted output owned by this timestamped XRD run",
+    )
 
     xrd_no_card = subparsers.add_parser(
         "xrd-no-card-overlay",
@@ -218,6 +225,7 @@ def build_parser() -> argparse.ArgumentParser:
     xrd_no_card_origin.add_argument("--dry-run", action="store_true", help="write processed table, metadata, and report without launching Origin")
     xrd_no_card_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF/PNG")
     xrd_no_card.add_argument("--timestamp", help="optional run timestamp for reproducible output paths")
+    xrd_no_card.add_argument("--force", action="store_true", help="overwrite an existing run with the same timestamp/output stem")
 
     jeol_epr = subparsers.add_parser(
         "jeol-epr-decode",
@@ -226,6 +234,11 @@ def build_parser() -> argparse.ArgumentParser:
     jeol_epr.add_argument("--out", required=True, type=Path, help="output root for data-only .xlsx files")
     jeol_epr.add_argument("--reference-dir", type=Path, help="optional directory of known decoded .xlsx files")
     jeol_epr.add_argument("--report-xlsx", type=Path, help="optional comparison report path")
+    jeol_epr.add_argument(
+        "--force",
+        action="store_true",
+        help="explicitly overwrite preflighted JEOL XLSX, metadata, and comparison-report targets",
+    )
     jeol_epr.add_argument("roots", nargs="+", type=Path, help="raw JEOL EPR folders to scan recursively")
 
     hplc_openlab = subparsers.add_parser(
@@ -255,6 +268,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="build JEOL EPR condition-group overlay tables and optional Origin figures from verified Excel exports",
     )
     epr_overlay.add_argument("--reference-dir", type=Path, help="directory of verified JEOL EPR Excel exports")
+    epr_overlay.add_argument("--config", type=Path, help="explicit project config; defaults to optional config/default.yaml")
+    epr_overlay.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
     epr_overlay.add_argument("--group", choices=["all", "OH", "O3"], default="all")
     epr_overlay.add_argument("--with-origin", action="store_true", help="explicitly export OPJU/TIF/PNG through Origin")
     epr_overlay.add_argument("--normalize", action="store_true", help="max-abs normalize each trace before offsetting; off by default")
@@ -309,15 +324,23 @@ def main(argv: list[str] | None = None) -> int:
     project_root = Path.cwd()
 
     if args.command == "scan":
+        from src.scanner.scanner import scan_raw_data
+
         config = _load_cli_project_config(project_root, args.config)
         input_path = Path(args.input) if args.input else configured_path(project_root, config, "paths", "raw_data", "input/raw_data")
         _validate_input_directory(input_path)
-        scan_raw_data(project_root, input_path, output_root=_resolve_cli_output_root(project_root, args))
+        output_root = _resolve_cli_output_root(project_root, args)
+        ensure_output_path_separate_from_inputs(project_root, output_root, [input_path])
+        scan_raw_data(project_root, input_path, output_root=output_root)
         return 0
     if args.command == "process":
+        from src.core.process import ProcessOptions, run_process
+
         config = _load_cli_project_config(project_root, args.config)
         input_path = Path(args.input) if args.input else configured_path(project_root, config, "paths", "raw_data", "input/raw_data")
         _validate_input_directory(input_path)
+        output_root = _resolve_cli_output_root(project_root, args)
+        ensure_output_path_separate_from_inputs(project_root, output_root, [input_path])
         return run_process(
             project_root,
             input_path,
@@ -331,13 +354,17 @@ def main(argv: list[str] | None = None) -> int:
                 from_queue=args.from_queue,
                 auto_select=args.auto_select,
                 include_ambiguous=args.include_ambiguous,
-                output_root=_resolve_cli_output_root(project_root, args),
+                output_root=output_root,
             ),
         )
     if args.command == "triage":
+        from src.core.triage import TriageOptions, run_triage
+
         config = _load_cli_project_config(project_root, args.config)
         input_path = Path(args.input) if args.input else configured_path(project_root, config, "paths", "raw_data", "input/raw_data")
         _validate_input_directory(input_path)
+        output_root = _resolve_cli_output_root(project_root, args)
+        ensure_output_path_separate_from_inputs(project_root, output_root, [input_path])
         run_triage(
             project_root,
             input_path,
@@ -348,14 +375,21 @@ def main(argv: list[str] | None = None) -> int:
                 explain=args.explain,
                 force_refresh=args.force_refresh,
                 dry_run=args.dry_run,
-                output_root=_resolve_cli_output_root(project_root, args),
+                output_root=output_root,
             ),
         )
         return 0
     if args.command == "origin-test":
-        result = origin_smoke_test(project_root)
+        from src.origin.adapter import origin_smoke_test
+
+        result = origin_smoke_test(project_root, force=bool(args.force))
         return 0 if result.ok else 1
     if args.command == "template-format-products":
+        from src.core.template_format_executor import (
+            TemplateFormatExecutorOptions,
+            run_template_format_executor,
+        )
+
         result = run_template_format_executor(
             project_root,
             TemplateFormatExecutorOptions(
@@ -371,6 +405,7 @@ def main(argv: list[str] | None = None) -> int:
                 exemplar_driven=bool(args.exemplar_driven),
                 compact_output=bool(args.compact_output),
                 only_type=args.only_type,
+                style_replay_report=args.style_replay_report,
             ),
         )
         print(f"run_root={result['run_root']}")
@@ -383,6 +418,8 @@ def main(argv: list[str] | None = None) -> int:
         required_count = int(summary.get("required_product_count", 11) or 11)
         return 0 if summary["product_count"] == required_count and accepted_count == required_count and summary["blocked_count"] == 0 and summary["failed_count"] == 0 else 1
     if args.command == "export-origin-style-assets":
+        from src.core.origin_style_assets import export_origin_style_assets
+
         result = export_origin_style_assets(
             project_root,
             args.run_root,
@@ -401,6 +438,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"failure_count={result['failure_count']}")
         return 0 if result["planned_count"] > 0 and result["planned_count"] == result["exported_count"] and result["failure_count"] == 0 else 1
     if args.command == "origin-style-asset-replay":
+        from src.core.origin_style_assets import run_origin_style_asset_replay
+
         configured_output_root = _resolve_cli_output_root(project_root, args)
         output_dir = ensure_output_path_within_root(project_root, args.output_dir, configured_output_root)
         ensure_output_path_separate_from_inputs(project_root, output_dir, ())
@@ -413,9 +452,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"output_dir={result['output_dir']}")
         print(f"planned_count={result['planned_count']}")
         print(f"compared_count={result['compared_count']}")
+        print(f"self_replay_count={result.get('self_replay_count', 0)}")
         print(f"failure_count={result['failure_count']}")
         return 0 if result["planned_count"] > 0 and result["planned_count"] == result["compared_count"] and result["failure_count"] == 0 else 1
     if args.command == "origin-batch":
+        from src.core.origin_batch import OriginBatchOptions, run_origin_batch
+
         return run_origin_batch(
             project_root,
             OriginBatchOptions(
@@ -431,6 +473,8 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
     if args.command == "manifest-normalize":
+        from src.core.manifest_normalizer import normalize_material_collection_manifest
+
         output_root = _resolve_cli_output_root(project_root, args)
         reports = output_root / "reports"
         normalize_material_collection_manifest(
@@ -444,6 +488,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     if args.command == "reviewed-queue":
+        from src.core.reviewed_queue import ReviewedQueueOptions, run_reviewed_queue
+
         return run_reviewed_queue(
             project_root,
             ReviewedQueueOptions(
@@ -458,6 +504,8 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
     if args.command == "auto-queue":
+        from src.core.auto_queue import AutoQueueOptions, run_auto_queue
+
         return run_auto_queue(
             project_root,
             AutoQueueOptions(
@@ -472,6 +520,12 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
     if args.command == "xps-heterojunction-stacked":
+        from src.core.xps_heterojunction import (
+            XpsHeterojunctionOptions,
+            discover_default_xps_sample_files,
+            run_xps_heterojunction_stacked,
+        )
+
         if args.bobc is None and args.cwo is None and args.bc is None:
             sample_files, notes = discover_default_xps_sample_files(project_root, include_bc_candidate=not args.no_bc_candidate)
         else:
@@ -491,7 +545,11 @@ def main(argv: list[str] | None = None) -> int:
         result = run_xps_heterojunction_stacked(
             project_root,
             sample_files,
-            XpsHeterojunctionOptions(output_dir=output_dir, with_origin=bool(args.with_origin)),
+            XpsHeterojunctionOptions(
+                output_dir=output_dir,
+                with_origin=bool(args.with_origin),
+                force=bool(args.force),
+            ),
             pre_manual_review=notes,
         )
         figures = result.get("figures", [])
@@ -501,6 +559,8 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return 0
     if args.command == "xrd-overlay":
+        from src.core.xrd_overlay import XrdOverlayOptions, run_xrd_overlay
+
         result = run_xrd_overlay(
             project_root,
             XrdOverlayOptions(
@@ -512,6 +572,7 @@ def main(argv: list[str] | None = None) -> int:
                 output_root=_resolve_cli_output_root(project_root, args),
                 with_origin=bool(args.with_origin),
                 timestamp=args.timestamp,
+                force=bool(args.force),
             ),
         )
         print(f"run_root={result['run_root']}")
@@ -522,6 +583,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"preview_png={result['preview_png']}")
         return 0 if (not args.with_origin or bool(result["origin_status"].get("ok"))) else 1
     if args.command == "xrd-no-card-overlay":
+        from src.core.xrd_no_card_overlay import (
+            XrdNoCardOverlayOptions,
+            discover_xrd_text_sources,
+            run_xrd_no_card_overlay,
+        )
+
         sources = list(args.source or [])
         if args.input_dir is not None:
             sources.extend(discover_xrd_text_sources(args.input_dir))
@@ -538,6 +605,7 @@ def main(argv: list[str] | None = None) -> int:
                 output_stem=args.output_stem,
                 reference_opju=args.reference_opju,
                 reference_graph=args.reference_graph,
+                force=bool(args.force),
             ),
         )
         print(f"run_root={result['run_root']}")
@@ -548,6 +616,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"preview_png={result['preview_png']}")
         return 0 if (not args.with_origin or bool(result["origin_status"].get("ok"))) else 1
     if args.command == "hplc-openlab-export":
+        from src.core.hplc_openlab import (
+            HplcOpenLabExportOptions,
+            run_hplc_openlab_export,
+        )
+
         _validate_input_directory(args.input)
         output_root = _resolve_cli_output_root(project_root, args)
         builder_workdir = ensure_output_path_within_root(project_root, args.builder_workdir, output_root)
@@ -571,6 +644,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"raw_signal_points={result['summary']['signal_point_count']}")
         return 0
     if args.command == "jeol-epr-decode":
+        from src.core.epr_jeol import export_jeol_cwesr_to_xlsx
+
         output_root = _resolve_cli_output_directory_arg(project_root, args.out)
         reference_dir = args.reference_dir if args.reference_dir is None or args.reference_dir.is_absolute() else project_root / args.reference_dir
         protected_inputs = [*args.roots]
@@ -583,15 +658,19 @@ def main(argv: list[str] | None = None) -> int:
             output_root,
             reference_dir=reference_dir,
             report_xlsx=report_xlsx,
+            force=bool(args.force),
         )
         print(f"exported_xlsx={result['exported_xlsx']}")
         return 0 if int(result.get("exported_xlsx", 0) or 0) > 0 else 1
     if args.command == "epr-overlay":
+        from src.core.epr_overlay import EprOverlayOptions, run_epr_overlay
+
         reference_dir = args.reference_dir if args.reference_dir is None or args.reference_dir.is_absolute() else project_root / args.reference_dir
         return run_epr_overlay(
             project_root,
             EprOverlayOptions(
                 reference_dir=reference_dir,
+                output_root=_resolve_cli_output_root(project_root, args),
                 group=args.group,
                 with_origin=bool(args.with_origin),
                 force=bool(args.force),
@@ -603,11 +682,17 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
     if args.command == "deps-audit":
+        from src.core.deps import dependency_audit
+
         code, _ = dependency_audit(project_root)
         return code
     if args.command == "validate":
+        from src.core.validate import validate
+
         return validate(project_root)
     if args.command == "readiness":
+        from src.core.readiness import ReadinessOptions, run_readiness
+
         return run_readiness(
             project_root,
             ReadinessOptions(
@@ -623,6 +708,8 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
     if args.command == "origin-governance":
+        from src.core.origin_governance import run_origin_governance
+
         run_origin_governance(project_root, skill_dir=args.skill_dir, package_dir=args.package_dir)
         return 0
     raise AssertionError(f"Unhandled command: {args.command}")

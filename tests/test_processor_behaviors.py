@@ -1,5 +1,6 @@
 ﻿import csv
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -556,7 +557,7 @@ class ProcessorBehaviorTest(unittest.TestCase):
             source = root / "eis.csv"
             with source.open("w", encoding="utf-8", newline="") as handle:
                 writer = csv.writer(handle)
-                writer.writerow(["frequency", "Re(Z)", "-Im(Z)", "|Z|", "phase"])
+                writer.writerow(["frequency (Hz)", "Re(Z) (ohm)", "-Im(Z) (ohm)", "|Z| (ohm)", "phase (deg)"])
                 writer.writerow([1000, 10, 3, 10.44, -20])
                 writer.writerow([100, 20, 8, 21.54, -30])
 
@@ -568,10 +569,13 @@ class ProcessorBehaviorTest(unittest.TestCase):
             rows = self._processed_rows(root, metadata)
             self.assertEqual(
                 set(rows[0]),
-                {"cleaned_z_real_ohm", "cleaned_minus_z_imag_ohm", "fit_z_real_ohm", "draft_fit_minus_z_imag_ohm"},
+                {"real_impedance_ohm", "neg_imag_impedance_ohm", "frequency_hz", "impedance_magnitude_ohm", "phase_deg"},
             )
-            self.assertEqual(rows[0]["cleaned_z_real_ohm"], "10.0")
-            self.assertEqual(rows[0]["cleaned_minus_z_imag_ohm"], "3.0")
+            self.assertEqual(rows[0]["real_impedance_ohm"], "10.0")
+            self.assertEqual(rows[0]["neg_imag_impedance_ohm"], "3.0")
+            self.assertEqual(rows[0]["frequency_hz"], "1000.0")
+            self.assertEqual(rows[0]["impedance_magnitude_ohm"], "10.44")
+            self.assertEqual(rows[0]["phase_deg"], "-20.0")
 
     def test_eis_converts_imaginary_sign_and_derives_missing_impedance_magnitude(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -579,7 +583,7 @@ class ProcessorBehaviorTest(unittest.TestCase):
             source = root / "eis_imag.csv"
             with source.open("w", encoding="utf-8", newline="") as handle:
                 writer = csv.writer(handle)
-                writer.writerow(["freq/Hz", "Zreal", "Im(Z)", "phase"])
+                writer.writerow(["freq/Hz", "Zreal (ohm)", "Im(Z) (ohm)", "phase (deg)"])
                 writer.writerow([1000, 3, -4, -53.1])
                 writer.writerow([100, 5, -12, -67.4])
 
@@ -587,8 +591,10 @@ class ProcessorBehaviorTest(unittest.TestCase):
 
             self.assertEqual(metadata["key_results"]["max_negative_imaginary_impedance"], 12.0)
             rows = self._processed_rows(root, metadata)
-            self.assertEqual(rows[0]["cleaned_minus_z_imag_ohm"], "4.0")
-            self.assertEqual(rows[1]["cleaned_minus_z_imag_ohm"], "12.0")
+            self.assertEqual(rows[0]["neg_imag_impedance_ohm"], "4.0")
+            self.assertEqual(rows[1]["neg_imag_impedance_ohm"], "12.0")
+            self.assertEqual(rows[0]["impedance_magnitude_ohm"], "5.0")
+            self.assertAlmostEqual(float(rows[0]["phase_deg"]), -53.1)
 
     def test_eis_accepts_common_chi_z_prime_and_z_double_prime_headers(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -606,12 +612,128 @@ class ProcessorBehaviorTest(unittest.TestCase):
             rows = self._processed_rows(root, metadata)
             self.assertEqual(
                 set(rows[0]),
-                {"cleaned_z_real_ohm", "cleaned_minus_z_imag_ohm", "fit_z_real_ohm", "draft_fit_minus_z_imag_ohm"},
+                {"real_impedance_ohm", "neg_imag_impedance_ohm", "frequency_hz", "impedance_magnitude_ohm", "phase_deg"},
             )
-            self.assertEqual(rows[0]["cleaned_z_real_ohm"], "3.0")
-            self.assertEqual(rows[0]["cleaned_minus_z_imag_ohm"], "4.0")
+            self.assertEqual(rows[0]["real_impedance_ohm"], "3.0")
+            self.assertEqual(rows[0]["neg_imag_impedance_ohm"], "4.0")
+            transform = metadata["key_results"]["eis_measurement"]["column_transforms"]["minus_z_imag_ohm"]
+            self.assertEqual(
+                transform["imaginary_sign_convention"],
+                "ambiguous_z_double_prime_resolved_from_phase_consistency",
+            )
+            self.assertEqual(transform["sign_evidence"]["selected_sign_multiplier"], 1.0)
 
-    def test_eis_formal_processor_writes_cleaned_points_and_fit_curve_sidecars(self):
+    def test_eis_preserves_inductive_sign_in_raw_and_minus_imaginary_columns(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            raw_source = root / "eis_raw_imag.csv"
+            with raw_source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Frequency (Hz)", "Z' (ohm)", "Im(Z) (ohm)"])
+                writer.writerow([1000, 3, 4])
+                writer.writerow([100, 5, -12])
+
+            raw_metadata = process_table_dataset(root, classification("EIS", "eis_processor"), raw_source)
+            raw_rows = self._processed_rows(root, raw_metadata)
+
+            self.assertEqual(raw_rows[0]["neg_imag_impedance_ohm"], "-4.0")
+            self.assertEqual(raw_rows[1]["neg_imag_impedance_ohm"], "12.0")
+            self.assertEqual(
+                raw_metadata["key_results"]["eis_measurement"]["column_transforms"]["minus_z_imag_ohm"][
+                    "imaginary_sign_convention"
+                ],
+                "source_is_raw_imaginary_negated_without_absolute_value",
+            )
+
+            minus_source = root / "eis_minus_imag.csv"
+            with minus_source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Frequency (Hz)", "Z' (ohm)", "-Z'' (ohm)"])
+                writer.writerow([1000, 3, -4])
+                writer.writerow([100, 5, 12])
+
+            minus_metadata = process_table_dataset(root, classification("EIS", "eis_processor"), minus_source)
+            minus_rows = self._processed_rows(root, minus_metadata)
+            self.assertEqual(minus_rows[0]["neg_imag_impedance_ohm"], "-4.0")
+            self.assertEqual(minus_rows[1]["neg_imag_impedance_ohm"], "12.0")
+
+    def test_eis_rejects_bare_z_double_prime_without_phase_sign_evidence(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "eis_ambiguous_z_double_prime.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Frequency (Hz)", "Z' (ohm)", "Z'' (ohm)"])
+                writer.writerow([1000, 3, 4])
+                writer.writerow([100, 5, 12])
+
+            with self.assertRaisesRegex(ValueError, "sign-ambiguous"):
+                process_table_dataset(root, classification("EIS", "eis_processor"), source)
+
+    def test_eis_converts_explicit_khz_kohm_and_radian_units(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "eis_units.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Frequency (kHz)", "Z' (kOhm)", "Im(Z) (kOhm)", "|Z| (kOhm)", "Phase (rad)"])
+                writer.writerow([2, 0.003, -0.004, 0.005, -math.atan2(4, 3)])
+                writer.writerow([1, 0.006, -0.008, 0.010, -math.atan2(8, 6)])
+
+            metadata = process_table_dataset(root, classification("EIS", "eis_processor"), source)
+            rows = self._processed_rows(root, metadata)
+
+            self.assertEqual(rows[0]["frequency_hz"], "2000.0")
+            self.assertEqual(rows[0]["real_impedance_ohm"], "3.0")
+            self.assertEqual(rows[0]["neg_imag_impedance_ohm"], "4.0")
+            self.assertEqual(rows[0]["impedance_magnitude_ohm"], "5.0")
+            self.assertAlmostEqual(float(rows[0]["phase_deg"]), -53.1301023542)
+
+    def test_eis_converts_explicit_angular_frequency_to_hz(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "eis_angular_frequency.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Angular Frequency (rad/s)", "Z' (ohm)", "-Z'' (ohm)"])
+                writer.writerow([2 * math.pi * 1000, 3, 4])
+                writer.writerow([2 * math.pi * 100, 5, 12])
+
+            metadata = process_table_dataset(root, classification("EIS", "eis_processor"), source)
+            rows = self._processed_rows(root, metadata)
+
+            self.assertAlmostEqual(float(rows[0]["frequency_hz"]), 1000.0)
+            transform = metadata["key_results"]["eis_measurement"]["column_transforms"]["frequency_hz"]
+            self.assertEqual(transform["source_unit"], "rad/s")
+            self.assertAlmostEqual(transform["multiplier_to_hz"], 1 / (2 * math.pi))
+
+    def test_eis_does_not_claim_unknown_units_as_hz_ohm_or_degrees(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            unknown_impedance = root / "eis_unknown_impedance.csv"
+            with unknown_impedance.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["frequency", "Zreal", "Im(Z)"])
+                writer.writerow([1000, 3, -4])
+                writer.writerow([100, 5, -12])
+
+            with self.assertRaisesRegex(ValueError, "impedance unit must be explicit"):
+                process_table_dataset(root, classification("EIS", "eis_processor"), unknown_impedance)
+
+            optional_unknown = root / "eis_unknown_optional_units.csv"
+            with optional_unknown.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["frequency", "Zreal (ohm)", "Im(Z) (ohm)", "phase"])
+                writer.writerow([1000, 3, -4, -0.93])
+                writer.writerow([100, 5, -12, -1.17])
+
+            metadata = process_table_dataset(root, classification("EIS", "eis_processor"), optional_unknown)
+            rows = self._processed_rows(root, metadata)
+            self.assertEqual(rows[0]["frequency_hz"], "")
+            self.assertAlmostEqual(float(rows[0]["phase_deg"]), math.degrees(math.atan2(-4, 3)))
+            self.assertTrue(any("unit was not explicit" in warning for warning in metadata["warnings"]))
+
+    def test_eis_formal_processor_keeps_measured_branch_and_blocks_default_fit(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             source = root / "eis_semicircle.csv"
@@ -620,31 +742,46 @@ class ProcessorBehaviorTest(unittest.TestCase):
                 writer.writerow(["Frequency (Hz)", "Z' (ohm)", "-Z'' (ohm)"])
                 for index in range(1, 16):
                     writer.writerow([10 ** (5 - index / 3), 8 + index * 2.5, max(0.2, index * (16 - index) * 0.45)])
-                writer.writerow([0.01, -100, -50])
+                # This is still a measured low-frequency point.  The former
+                # main-branch selector would drop it because -Z''/Z' > 1.2.
+                writer.writerow([0.01, 100, 300])
 
             metadata = process_table_dataset(root, classification("EIS", "eis_processor"), source)
 
             self.assertEqual(metadata["processing_status"], "processed_no_origin")
-            self.assertEqual(metadata["key_results"]["eis_fit"]["model"], "Model A: Rs + (Rct || CPE)")
-            self.assertTrue(metadata["key_results"]["eis_cleaning"]["ignored_point_count"] >= 1)
+            self.assertTrue(metadata["manual_check_required"])
+            self.assertTrue(
+                any("equivalent circuit" in item.casefold() for item in metadata["manual_check_items"])
+            )
+            self.assertEqual(
+                metadata["key_results"]["eis_fit"],
+                {
+                    "status": "not_run",
+                    "reason": "blocked_by_policy",
+                    "manual_check_required": True,
+                },
+            )
+            self.assertNotIn("eis_cleaning", metadata["key_results"])
+            self.assertNotIn("eis_sidecar_dir", metadata["key_results"])
             rows = self._processed_rows(root, metadata)
             self.assertEqual(
                 set(rows[0]),
                 {
-                    "cleaned_z_real_ohm",
-                    "cleaned_minus_z_imag_ohm",
-                    "fit_z_real_ohm",
-                    "draft_fit_minus_z_imag_ohm",
+                    "real_impedance_ohm",
+                    "neg_imag_impedance_ohm",
+                    "frequency_hz",
+                    "impedance_magnitude_ohm",
+                    "phase_deg",
                 },
             )
-            self.assertTrue(any(row["fit_z_real_ohm"] for row in rows))
+            self.assertEqual(len(rows), 16)
+            self.assertEqual(rows[-1]["real_impedance_ohm"], "100.0")
+            self.assertEqual(rows[-1]["neg_imag_impedance_ohm"], "300.0")
+            self.assertFalse(any("fit" in column.casefold() for column in rows[0]))
+            self.assertNotIn("parameters", metadata["key_results"]["eis_fit"])
             processed_path = _artifact_path(root, metadata["processed_data"])
             sidecar_dir = processed_path.parent / f"{processed_path.stem}_eis_sidecars"
-            self.assertTrue((sidecar_dir / "raw_eis_data.csv").exists())
-            self.assertTrue((sidecar_dir / "cleaned_eis_data.csv").exists())
-            self.assertTrue((sidecar_dir / "ignored_eis_points.csv").exists())
-            self.assertTrue((sidecar_dir / "eis_randles_cpe_fit_curve.csv").exists())
-            self.assertTrue((sidecar_dir / "eis_cleaning_and_fit_metadata.json").exists())
+            self.assertFalse(sidecar_dir.exists())
 
     def test_pl_ftir_raman_output_peak_candidates(self):
         for data_type, processor in [
@@ -1147,6 +1284,32 @@ class ProcessorBehaviorTest(unittest.TestCase):
             rows = self._processed_rows(root, metadata)
             self.assertIn("g_candidate_optional", rows[0])
 
+    def test_epr_blocks_g_candidate_when_field_unit_is_not_explicit(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            epr = root / "epr_unit_unknown.csv"
+            with epr.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["magnetic field", "intensity", "microwave frequency GHz"])
+                writer.writerow([3450, -2, 9.8])
+                writer.writerow([3500, 6, 9.8])
+                writer.writerow([3550, 1, 9.8])
+
+            metadata = process_table_dataset(
+                root,
+                classification("EPR", "epr_processor"),
+                epr,
+                output_root=root / "output",
+            )
+
+            self.assertNotIn("g_candidate_at_max_intensity", metadata["key_results"])
+            self.assertIn("magnetic-field unit", metadata["key_results"]["g_candidate_blocked_reason"])
+            self.assertIn("magnetic-field unit", " ".join(metadata["manual_check_items"]))
+            processed_path = root / metadata["processed_data"]
+            with processed_path.open(encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+            self.assertNotIn("g_candidate_optional", rows[0])
+
     def test_epr_frequency_lookup_supports_constant_time_reuse(self):
         from src.processors.calculations import epr_frequency_for_field, epr_frequency_lookup
 
@@ -1223,6 +1386,22 @@ class ProcessorBehaviorTest(unittest.TestCase):
                 ["Retention time (min)", "Signal"],
             ),
             ("Retention time (min)", "Detector response"),
+        )
+
+    def test_epr_axis_title_uses_only_explicit_field_unit(self):
+        headers = ["magnetic_field", "intensity", "normalized_intensity"]
+
+        self.assertEqual(
+            _origin_axis_titles(headers, "EPR", ["Magnetic Field (G)", "Intensity"], epr_field_unit="G"),
+            ("Magnetic Field (G)", "Intensity (a.u.)"),
+        )
+        self.assertEqual(
+            _origin_axis_titles(headers, "EPR", ["Magnetic Field (mT)", "Intensity"], epr_field_unit="mT"),
+            ("Magnetic Field (mT)", "Intensity (a.u.)"),
+        )
+        self.assertEqual(
+            _origin_axis_titles(headers, "EPR", ["Magnetic Field", "Intensity"]),
+            ("Magnetic Field", "Intensity (a.u.)"),
         )
 
     def test_reaction_screening_axis_title_keeps_source_response_semantics(self):

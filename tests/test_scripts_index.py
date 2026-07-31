@@ -6,7 +6,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_INDEX = PROJECT_ROOT / "docs" / "indexes" / "scripts_index.md"
-SCRIPT_SUFFIXES = {".py", ".ps1"}
+SCRIPT_SUFFIXES = {".py", ".ps1", ".mjs"}
 
 
 def _normal(path_text: str) -> str:

@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image
 
 from src.core.epr_jeol import JeolEprExportSeries
-from src.processors.eis import EisCleaningResult, EisFitResult, EisPoint
+from src.processors.eis import EisCleaningResult, EisPoint
 
 from src.core.template_product_builder import (
     TEMPLATE_ACCEPTED_TYPES,
@@ -19,7 +19,6 @@ from src.core.template_product_builder import (
     classify_template_project_style_asset_candidates,
     classify_template_xps_reference_candidates,
     classify_template_candidates,
-    clip_eis_fit_to_measured_range,
     prepare_template_product,
     run_template_product_builder_all_types,
     select_template,
@@ -323,29 +322,6 @@ def test_select_template_blocks_missing_or_data_only_candidates() -> None:
     assert "No OPJU/OPJ template or project-local style asset candidate" in missing.reason
 
 
-def test_clip_eis_fit_to_measured_range_keeps_main_plot_from_large_full_arc() -> None:
-    cleaned = [
-        EisPoint(1, 1000.0, 10.0, 1.0),
-        EisPoint(2, 100.0, 100.0, 20.0),
-        EisPoint(3, 10.0, 500.0, 240.0),
-    ]
-    full = EisFitResult(
-        method="least_squares_randles_cpe",
-        points=[(10, 1), (100, 25), (500, 230), (5000, 9000), (50000, 10)],
-        parameters={"Rs": 8.0, "Rct": 50000.0, "Q": 1e-4, "n": 0.8},
-        semicircle_classification="depressed semicircle candidate",
-    )
-
-    clipped = clip_eis_fit_to_measured_range(cleaned, full, x_pad_fraction=0.05, y_pad_fraction=0.15)
-
-    assert clipped.parameters == full.parameters
-    assert clipped.method == "least_squares_randles_cpe_measured_range_visual_segment"
-    assert clipped.points == [(10, 1), (100, 25), (500, 230)]
-    assert max(x for x, _ in clipped.points) <= 500.0 * 1.05
-    assert max(y for _, y in clipped.points) <= 240.0 * 1.15
-    assert "full fit retained in debug" in clipped.warning
-
-
 def test_template_acceptance_status_uses_strict_accepted_blocked_terms_only(tmp_path: Path) -> None:
     artifact = tmp_path / "ok.bin"
     artifact.write_text("x", encoding="utf-8")
@@ -502,6 +478,72 @@ def test_embedded_xrd_card_legend_does_not_exempt_plot_count_delta(tmp_path: Pat
     assert item["strict_visual_match"] is False
     assert item["plot_count_delta"] == 3
     assert product["status"] == "blocked"
+
+
+def test_embedded_template_preview_high_rms_cannot_pass_structural_readback(
+    tmp_path: Path,
+) -> None:
+    product_root = tmp_path / "products" / "BET"
+    product_root.mkdir(parents=True)
+    reference = product_root / "reference.png"
+    generated = product_root / "generated.png"
+    Image.new("RGB", (64, 48), "white").save(reference)
+    Image.new("RGB", (64, 48), "black").save(generated)
+    metadata = product_root / "metadata.json"
+    metadata.write_text(
+        json.dumps(
+            {
+                "template_plot_count": 1,
+                "strict_style_readback": {
+                    "font_family_arial": True,
+                    "axis_title_bold": True,
+                    "axis_title_visible": True,
+                    "axis_title_no_overlap": True,
+                },
+                "origin_processing": {
+                    "applied": True,
+                    "method": "embedded_template_snapshot_graph",
+                    "legend_policy": {"line_samples_removed": True},
+                },
+                "origin_status": {
+                    "template_format_plan": {"mode": "embedded_template_snapshot"},
+                    "product_style": {"plot_count": 1},
+                    "conformance": {"compared_fields": 10, "matched_fields": 10},
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    product = {
+        "type": "BET",
+        "status": "accepted",
+        "visual_acceptance": True,
+        "template_format_mode": "embedded_template_snapshot",
+        "origin_processing_method": "embedded_template_snapshot_graph",
+        "reference_preview_png": "products/BET/reference.png",
+        "preview_png": "products/BET/generated.png",
+        "metadata": "products/BET/metadata.json",
+        "has_opju": True,
+        "has_tif": True,
+        "has_png": True,
+        "has_reference_preview": True,
+        "has_processed_data": True,
+        "has_metadata": True,
+        "has_report": True,
+        "conformance": {"compared_fields": 10, "matched_fields": 10},
+    }
+
+    audit = _write_template_preview_comparison(tmp_path, [product])
+
+    item = audit["items"][0]
+    assert item["embedded_template_snapshot_mode"] is True
+    assert item["preview_rms"] > 35.0
+    assert item["strict_visual_match"] is False
+    assert item["strict_status"] == "blocked_embedded_template_snapshot"
+    assert product["visual_acceptance"] is False
+    assert product["status"] == "blocked"
+    assert "preview RMS" in product["notes"]
 
 
 def test_xrd_clean_rebuild_preview_rejects_nonzero_plot_count_delta(tmp_path: Path) -> None:
@@ -922,7 +964,10 @@ def test_prepare_template_product_compact_keeps_original_reference_source(tmp_pa
     assert product.reference_opju_copy == reference
 
 
-def test_prepare_template_product_compact_eis_keeps_sidecars_in_debug(tmp_path: Path, monkeypatch) -> None:
+def test_prepare_template_product_compact_eis_keeps_all_measured_points_without_fit_sidecars(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     data = tmp_path / "EIS" / "eis.txt"
     data.parent.mkdir()
     data.write_text("placeholder", encoding="utf-8")
@@ -933,19 +978,15 @@ def test_prepare_template_product_compact_eis_keeps_sidecars_in_debug(tmp_path: 
         EisPoint(2, 100.0, 20.0, 5.0),
         EisPoint(3, 10.0, 30.0, 2.0),
     ]
-    fit = EisFitResult(
-        method="stub_fit",
-        points=[(10.0, 1.0), (20.0, 5.0), (30.0, 2.0)],
-        parameters={"Rs": 1.0, "Rct": 2.0, "Q": 3.0, "n": 0.9},
-        residual_sse=0.0,
-        robust_cost=0.0,
-    )
     monkeypatch.setattr(
         "src.core.template_product_builder.clean_eis_file",
-        lambda _path: EisCleaningResult(points, points, [], {"z_real_ohm": "Zreal", "minus_z_imag_ohm": "Zimag"}),
+        lambda _path: EisCleaningResult(
+            points,
+            points[:2],
+            [],
+            {"z_real_ohm": "Zreal", "minus_z_imag_ohm": "Zimag"},
+        ),
     )
-    monkeypatch.setattr("src.core.template_product_builder.draft_fit_eis_randles_cpe", lambda _points: fit)
-    monkeypatch.setattr("src.core.template_product_builder.clip_eis_fit_to_measured_range", lambda _points, full_fit: full_fit)
     pairing = TargetPairing(
         product_key="EIS",
         data_type="EIS",
@@ -966,12 +1007,28 @@ def test_prepare_template_product_compact_eis_keeps_sidecars_in_debug(tmp_path: 
         plot_count=2,
     )
 
-    product, _extra = prepare_template_product(tmp_path / "run", pairing, template, compact_output=True)
+    product, extra = prepare_template_product(
+        tmp_path / "run",
+        pairing,
+        template,
+        compact_output=True,
+        eis_strict_semicircle_branch=True,
+    )
 
     assert product.type_root == tmp_path / "run" / "products" / "EIS"
     assert product.processed_data.parent == product.type_root
-    assert (product.type_root / "debug" / "raw_eis_data.csv").is_file()
-    assert (product.type_root / "debug" / "eis_cleaning_and_fit_metadata.json").is_file()
+    lines = product.processed_data.read_text(encoding="utf-8").splitlines()
+    assert lines[0] == "measured_z_real_kohm,measured_minus_z_imag_kohm"
+    assert lines[1:] == ["0.01,0.001", "0.02,0.005", "0.03,0.002"]
+    eis = extra["eis_cleaning"]
+    assert eis["mode"] == "formal_measured_points_only"
+    assert eis["raw_point_count"] == 3
+    assert eis["plotted_point_count"] == 3
+    assert eis["fit"]["status"] == "not_run"
+    assert eis["strict_semicircle_branch"] is False
+    assert eis["strict_semicircle_branch_requested"] is True
+    assert not (product.type_root / "debug" / "eis_randles_cpe_fit_curve.csv").exists()
+    assert not (product.type_root / "debug" / "eis_fit_parameters.json").exists()
     assert not (product.type_root / "processed_data").exists()
     assert not (product.type_root / "metadata").exists()
     assert not (product.type_root / "reports").exists()
@@ -1163,6 +1220,13 @@ def test_ordinary_template_origin_export_imports_every_y_column(tmp_path: Path, 
         def run_labtalk(self, _script: str) -> OperationResult:
             return OperationResult(True, "ok")
 
+        def get_labtalk_variable(self, name: str) -> OperationResult:
+            assert name in {"page.width", "page.height"}
+            return OperationResult(True, "ok", {"value": 100.0})
+
+        def reset_project_identity_for_export(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
         def set_axis_labels(self, *_args, **_kwargs) -> OperationResult:
             return OperationResult(True, "ok")
 
@@ -1194,13 +1258,13 @@ def test_ordinary_template_origin_export_imports_every_y_column(tmp_path: Path, 
         def export_graph(self, _graph: str, path: Path, _fmt: str, **_kwargs) -> OperationResult:
             path.parent.mkdir(parents=True, exist_ok=True)
             if _fmt == "tif":
-                Image.new("RGB", (4, 3), "white").save(path, format="TIFF", dpi=(300, 300))
+                Image.new("RGB", (60, 60), "white").save(path, format="TIFF", dpi=(600, 600))
             else:
                 path.write_bytes(b"image")
             return OperationResult(True, "ok")
 
-        def close(self) -> None:
-            return None
+        def close(self) -> OperationResult:
+            return OperationResult(True, "closed")
 
     operations = FakeOriginOps()
     monkeypatch.setattr(builder, "connect_origin", lambda **_kwargs: operations)
@@ -1213,3 +1277,93 @@ def test_ordinary_template_origin_export_imports_every_y_column(tmp_path: Path, 
 
     assert result["ok"] is True
     assert operations.y_columns == list(range(2, len(headers) + 1))
+    assert result["tif_resolution_evidence"]["width_px"] == 60
+    assert result["tif_resolution_evidence"]["effective_dpi_x"] == 600.0
+
+    operations.close = lambda: OperationResult(False, "Origin still running")
+    close_failure = builder.export_template_product_with_origin(product, ResolvedPlotStyle())
+    assert close_failure["ok"] is False
+    assert close_failure["failure_stage"] == "origin_close"
+    assert "Origin still running" in str(close_failure["message"])
+
+
+def test_native_tif_export_resets_identity_after_readback_and_reactivates_graph(tmp_path: Path) -> None:
+    from src.core.template_product_builder import _export_native_tif_with_physical_validation
+    from src.origin.operations import OperationResult
+
+    calls: list[str] = []
+
+    class FakeOriginOps:
+        def run_labtalk(self, script: str) -> OperationResult:
+            calls.append(f"labtalk:{script}")
+            return OperationResult(True, "ok")
+
+        def get_labtalk_variable(self, name: str) -> OperationResult:
+            calls.append(f"read:{name}")
+            return OperationResult(True, "ok", {"value": 100.0})
+
+        def reset_project_identity_for_export(self) -> OperationResult:
+            calls.append("reset_identity")
+            return OperationResult(True, "ok")
+
+        def export_graph(
+            self,
+            graph_name: str,
+            path: Path,
+            fmt: str,
+            *,
+            dpi: int,
+            pixel_width: int,
+        ) -> OperationResult:
+            calls.append(f"export:{graph_name}:{fmt}:{dpi}:{pixel_width}")
+            Image.new("RGB", (60, 60), "white").save(path, format="TIFF", dpi=(600, 600))
+            return OperationResult(True, "ok")
+
+    target = tmp_path / "product.tif"
+    result = _export_native_tif_with_physical_validation(
+        FakeOriginOps(),
+        "Graph1",
+        target,
+        dpi=600,
+    )
+
+    assert result["ok"] is True
+    assert calls == [
+        'labtalk:win -a "Graph1";',
+        "read:page.width",
+        "read:page.height",
+        "reset_identity",
+        'labtalk:win -a "Graph1";',
+        "export:Graph1:tif:600:60",
+    ]
+
+
+def test_native_tif_export_rejects_unverified_identity_without_leaking_prior_path(tmp_path: Path) -> None:
+    from src.core.template_product_builder import _export_native_tif_with_physical_validation
+    from src.origin.operations import OperationResult
+
+    class FakeOriginOps:
+        def run_labtalk(self, _script: str) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def get_labtalk_variable(self, _name: str) -> OperationResult:
+            return OperationResult(True, "ok", {"value": 100.0})
+
+        def reset_project_identity_for_export(self) -> OperationResult:
+            return OperationResult(False, "D:/private/project/secret.opju")
+
+        def export_graph(self, *_args, **_kwargs) -> OperationResult:
+            raise AssertionError("TIFF export must not run after identity verification failure")
+
+    target = tmp_path / "product.tif"
+    result = _export_native_tif_with_physical_validation(
+        FakeOriginOps(),
+        "Graph1",
+        target,
+        dpi=600,
+    )
+
+    assert result["ok"] is False
+    assert "identity verification failed" in result["message"]
+    assert "private" not in result["message"]
+    assert not target.exists()

@@ -1,20 +1,31 @@
 from __future__ import annotations
 
+import json
+import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
+from src.core.image_artifacts import (
+    TifResolutionValidationError,
+    expected_raster_pixels,
+)
 from src.origin.adapter import (
     BetCombinedSource,
+    _export_tif_with_originpro,
     _ensure_tif_600_dpi,
     _bet_material_display_name,
+    _write_material_color_report,
     build_origin_invocation_script,
     build_origin_plot_job,
     build_bet_combined_origin_job,
     build_bet_combined_origin_invocation_script,
     export_plot,
     origin_smoke_test,
+    validate_origin_dataset_id,
     write_origin_error,
     write_origin_success,
     _run_origin_job,
@@ -70,6 +81,24 @@ def _temp_project(tmpdir: str) -> Path:
 
 
 class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
+    def test_dataset_id_must_be_one_safe_windows_filename_component(self) -> None:
+        self.assertEqual(validate_origin_dataset_id("XRD_sample-01"), "XRD_sample-01")
+        for unsafe in (
+            "",
+            ".",
+            "..",
+            "../escape",
+            r"folder\escape",
+            "C:device",
+            "name.",
+            "name ",
+            "CON",
+            "LPT1.txt",
+        ):
+            with self.subTest(dataset_id=unsafe):
+                with self.assertRaises(ValueError):
+                    validate_origin_dataset_id(unsafe)
+
     def test_pipeline_plot_types_are_explicitly_mapped(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = _temp_project(tmpdir)
@@ -682,13 +711,23 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             project_root = _temp_project(tmpdir)
             fake = _FakeOriginOperations()
 
+            def fake_reexport(_origin_file, _graph_name, figure_tif, *, dpi):
+                self.assertEqual(dpi, 600)
+                figure_tif.parent.mkdir(parents=True, exist_ok=True)
+                figure_tif.write_text("native reopened tif", encoding="utf-8")
+
             with patch("src.origin.adapter.check_origin_available", return_value=(True, "origin available")):
                 with patch("src.origin.adapter.connect_origin", return_value=fake) as connect_origin:
-                    result = origin_smoke_test(project_root)
+                    with patch(
+                        "src.origin.adapter.reexport_tif_from_reopened_opju",
+                        side_effect=fake_reexport,
+                    ) as reexport:
+                        result = origin_smoke_test(project_root)
 
             self.assertTrue(result.ok)
             self.assertEqual(result.message, "Origin isolated operations smoke test succeeded")
             connect_origin.assert_called_once_with(entrypoint="Origin.Application", isolated=True, visible=False)
+            reexport.assert_called_once()
             self.assertTrue(fake.closed)
             self.assertEqual(fake.axis_labels, [("origin_smoke_test", "x", "y", "")])
             self.assertTrue((default_output_root(project_root) / "origin_files" / "origin_smoke_test.opju").exists())
@@ -765,6 +804,146 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             report = default_output_root(project_root) / "reports" / "origin_errors.md"
             self.assertEqual(report.read_text(encoding="utf-8"), "# Origin Errors\n\nNo current Origin errors.\n")
 
+    def test_write_origin_error_replaces_hardlink_without_modifying_shared_inode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            reports = default_output_root(project_root) / "reports"
+            reports.mkdir(parents=True)
+            external = Path(tmpdir) / "external_origin_errors.md"
+            original = "# Origin Errors\n\n- preserved external failure\n"
+            external.write_text(original, encoding="utf-8")
+            report = reports / "origin_errors.md"
+            try:
+                os.link(external, report)
+            except OSError as exc:
+                self.skipTest(f"hard links are unavailable: {exc}")
+
+            write_origin_error(project_root, "new local failure")
+
+            self.assertEqual(external.read_text(encoding="utf-8"), original)
+            self.assertEqual(
+                report.read_text(encoding="utf-8"),
+                "# Origin Errors\n\n- preserved external failure\n\n- new local failure\n",
+            )
+            self.assertNotEqual(os.stat(external).st_ino, os.stat(report).st_ino)
+
+    def test_write_origin_success_rejects_reparse_report_parent_before_write(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            from src.core import file_utils
+
+            project_root = _temp_project(tmpdir)
+            reports = default_output_root(project_root) / "reports"
+            reports.mkdir(parents=True)
+            report = reports / "origin_errors.md"
+            original = "# Origin Errors\n\n- preserve me\n"
+            report.write_text(original, encoding="utf-8")
+            original_check = file_utils._path_is_link_or_reparse
+
+            with patch(
+                "src.core.file_utils._path_is_link_or_reparse",
+                side_effect=lambda path: path == reports or original_check(path),
+            ):
+                with self.assertRaisesRegex(ValueError, "symlink, junction, or reparse"):
+                    write_origin_success(project_root)
+
+            self.assertEqual(report.read_text(encoding="utf-8"), original)
+
+    def test_material_color_report_preflights_both_targets_before_any_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            from src.core import file_utils
+
+            project_root = _temp_project(tmpdir)
+            reports = default_output_root(project_root) / "reports"
+            reports.mkdir(parents=True)
+            json_path = reports / "locked_result_material_color_map.json"
+            markdown_path = reports / "locked_result_material_color_map.md"
+            original_json = '{"assignments": []}'
+            original_markdown = "preserve markdown\n"
+            json_path.write_text(original_json, encoding="utf-8")
+            markdown_path.write_text(original_markdown, encoding="utf-8")
+            original_check = file_utils._path_is_link_or_reparse
+            assignment = (
+                {
+                    "dataset_id": "sample",
+                    "data_type": "XRD",
+                    "curve_index": 1,
+                    "curve_label": "sample",
+                    "material_key": "CWO",
+                    "material_role": "material",
+                    "inference_confidence": 1.0,
+                    "color_name": "blue",
+                    "rgb": [0, 114, 178],
+                    "hex": "#0072B2",
+                    "origin_ocolor": 28471808,
+                    "evidence": "test",
+                    "requires_user_review": False,
+                },
+            )
+
+            with patch(
+                "src.core.file_utils._path_is_link_or_reparse",
+                side_effect=lambda path: path == markdown_path or original_check(path),
+            ):
+                with self.assertRaisesRegex(ValueError, "symlink, junction, or reparse"):
+                    _write_material_color_report(project_root, assignment)
+
+            self.assertEqual(json_path.read_text(encoding="utf-8"), original_json)
+            self.assertEqual(markdown_path.read_text(encoding="utf-8"), original_markdown)
+            self.assertEqual(list(reports.glob(".*.tmp")), [])
+
+    def test_material_color_report_preserves_aggregation_and_hardlink_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            reports = default_output_root(project_root) / "reports"
+            reports.mkdir(parents=True)
+            external = Path(tmpdir) / "external_color_map.json"
+            old_assignment = {
+                "dataset_id": "old_sample",
+                "data_type": "XRD",
+                "curve_index": 1,
+                "curve_label": "old sample",
+                "material_key": "BOBC",
+                "material_role": "material",
+                "inference_confidence": 1.0,
+                "color_name": "orange",
+                "rgb": [230, 159, 0],
+                "hex": "#E69F00",
+                "origin_ocolor": 16818150,
+                "evidence": "old",
+                "requires_user_review": False,
+            }
+            original = json.dumps({"assignments": [old_assignment]}, ensure_ascii=False)
+            external.write_text(original, encoding="utf-8")
+            json_path = reports / "locked_result_material_color_map.json"
+            try:
+                os.link(external, json_path)
+            except OSError as exc:
+                self.skipTest(f"hard links are unavailable: {exc}")
+            new_assignment = {
+                **old_assignment,
+                "dataset_id": "new_sample",
+                "curve_label": "new sample",
+                "material_key": "CWO",
+                "color_name": "blue",
+                "rgb": [0, 114, 178],
+                "hex": "#0072B2",
+                "origin_ocolor": 28471808,
+                "evidence": "new",
+            }
+
+            _write_material_color_report(project_root, (new_assignment,))
+
+            self.assertEqual(external.read_text(encoding="utf-8"), original)
+            written = json.loads(json_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                {item["dataset_id"] for item in written["assignments"]},
+                {"old_sample", "new_sample"},
+            )
+            self.assertNotEqual(os.stat(external).st_ino, os.stat(json_path).st_ino)
+            markdown = reports / "locked_result_material_color_map.md"
+            self.assertIn("`old_sample`", markdown.read_text(encoding="utf-8"))
+            self.assertIn("`new_sample`", markdown.read_text(encoding="utf-8"))
+
     def test_origin_job_rejects_non_graph4_line_width_contract(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = _temp_project(tmpdir)
@@ -839,19 +1018,257 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             self.assertIsNotNone(result.figure_tif)
             self.assertTrue(result.figure_tif.exists())
 
-    def test_tif_postprocess_normalizes_to_graph4_600_dpi_contract(self) -> None:
+    def test_tif_compatibility_validator_rejects_retagged_low_resolution_without_resampling(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "figure.tif"
             from PIL import Image
 
-            Image.new("RGB", (3216, 2461), "white").save(path, format="TIFF", dpi=(300, 300))
+            Image.new("RGB", (3216, 2461), "white").save(path, format="TIFF", dpi=(600, 600))
 
-            _ensure_tif_600_dpi(path, GRAPH4_FIXED_STYLE)
+            with self.assertRaises(TifResolutionValidationError):
+                _ensure_tif_600_dpi(path, GRAPH4_FIXED_STYLE)
 
             with Image.open(path) as image:
-                self.assertEqual(image.width, GRAPH4_FIXED_STYLE.page_width)
-                self.assertGreaterEqual(image.height, GRAPH4_FIXED_STYLE.page_height - 2)
+                self.assertEqual(image.size, (3216, 2461))
                 self.assertEqual(tuple(round(value) for value in image.info.get("dpi", (0, 0))), (600, 600))
+
+    def test_tif_compatibility_validator_accepts_native_dynamic_pixel_dimensions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "figure.tif"
+            from PIL import Image
+
+            expected_size = expected_raster_pixels(
+                GRAPH4_FIXED_STYLE.page_width,
+                GRAPH4_FIXED_STYLE.page_height,
+                dpi=600,
+            )
+            Image.new("RGB", expected_size, "white").save(path, format="TIFF", dpi=(600, 600))
+
+            evidence = _ensure_tif_600_dpi(path, GRAPH4_FIXED_STYLE)
+
+            self.assertEqual((evidence.width_px, evidence.height_px), expected_size)
+            self.assertAlmostEqual(evidence.effective_dpi_x, 600, delta=1)
+            self.assertAlmostEqual(evidence.effective_dpi_y, 600, delta=1)
+
+    def test_originpro_tif_export_uses_reopened_page_size_and_native_600_dpi(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            data = project_root / "processed.csv"
+            data.write_text("x,y\n0,1\n", encoding="utf-8")
+            job = build_origin_plot_job(project_root, "dynamic_page", data, "x", "y", "XRD")
+            job.origin_file.parent.mkdir(parents=True, exist_ok=True)
+            job.origin_file.write_text("opju", encoding="utf-8")
+            commands: list[str] = []
+            expected_size = expected_raster_pixels(7000.0, 5000.0, dpi=600)
+
+            class FakeGraph:
+                def activate(self) -> None:
+                    commands.append("activate")
+
+                def lt_exec(self, command: str) -> None:
+                    commands.append(command)
+                    if not command.startswith("expGraph"):
+                        return
+                    from PIL import Image
+
+                    Image.new("RGB", expected_size, "white").save(
+                        job.figure_tif,
+                        format="TIFF",
+                        dpi=(600, 600),
+                    )
+
+            fake_graph = FakeGraph()
+            fake_originpro = SimpleNamespace(
+                set_show=lambda _visible: None,
+                open=lambda *_args, **_kwargs: True,
+                find_graph=lambda _name: fake_graph,
+                lt_float=lambda formula: 7000.0 if formula == "page.width" else 5000.0,
+                get_lt_str=lambda register: "" if register == "%X" else "UNTITLED",
+                exit=lambda: None,
+            )
+
+            with patch.dict(sys.modules, {"originpro": fake_originpro}):
+                with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
+                    evidence = _export_tif_with_originpro(job)
+
+            self.assertEqual((evidence.width_px, evidence.height_px), expected_size)
+            export_command = next(command for command in commands if command.startswith("expGraph"))
+            self.assertIn("tr1.Width:=4200", export_command)
+            self.assertIn("tr2.TIF.dotsperinch:=600", export_command)
+            self.assertIn("sysopts:=0", export_command)
+            self.assertIn("tr.Margin:=2", export_command)
+            self.assertEqual(commands[0], "activate")
+            self.assertEqual(commands[1], "doc -rn; doc -s;")
+            self.assertEqual(commands[2], "activate")
+
+    def test_originpro_tif_export_fails_when_origin_exit_raises(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            data = project_root / "processed.csv"
+            data.write_text("x,y\n0,1\n", encoding="utf-8")
+            job = build_origin_plot_job(project_root, "exit_failure", data, "x", "y", "XRD")
+            job.origin_file.parent.mkdir(parents=True, exist_ok=True)
+            job.origin_file.write_text("opju", encoding="utf-8")
+            expected_size = expected_raster_pixels(7000.0, 5000.0, dpi=600)
+
+            class FakeGraph:
+                def activate(self) -> None:
+                    pass
+
+                def lt_exec(self, command: str) -> None:
+                    if command.startswith("expGraph"):
+                        from PIL import Image
+
+                        Image.new("RGB", expected_size, "white").save(
+                            job.figure_tif,
+                            format="TIFF",
+                            dpi=(600, 600),
+                        )
+
+            def fail_exit() -> None:
+                raise RuntimeError("simulated exit failure")
+
+            fake_originpro = SimpleNamespace(
+                set_show=lambda _visible: None,
+                open=lambda *_args, **_kwargs: True,
+                find_graph=lambda _name: FakeGraph(),
+                lt_float=lambda formula: 7000.0 if formula == "page.width" else 5000.0,
+                get_lt_str=lambda register: "" if register == "%X" else "UNTITLED",
+                exit=fail_exit,
+            )
+
+            with patch.dict(sys.modules, {"originpro": fake_originpro}):
+                with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "Origin lifecycle finalization failed.*simulated exit failure",
+                    ):
+                        _export_tif_with_originpro(job)
+
+    def test_originpro_tif_export_fails_when_origin_remains_after_exit_wait(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            data = project_root / "processed.csv"
+            data.write_text("x,y\n0,1\n", encoding="utf-8")
+            job = build_origin_plot_job(project_root, "exit_wait_failure", data, "x", "y", "XRD")
+            job.origin_file.parent.mkdir(parents=True, exist_ok=True)
+            job.origin_file.write_text("opju", encoding="utf-8")
+            expected_size = expected_raster_pixels(7000.0, 5000.0, dpi=600)
+
+            class FakeGraph:
+                def activate(self) -> None:
+                    pass
+
+                def lt_exec(self, command: str) -> None:
+                    if command.startswith("expGraph"):
+                        from PIL import Image
+
+                        Image.new("RGB", expected_size, "white").save(
+                            job.figure_tif,
+                            format="TIFF",
+                            dpi=(600, 600),
+                        )
+
+            fake_originpro = SimpleNamespace(
+                set_show=lambda _visible: None,
+                open=lambda *_args, **_kwargs: True,
+                find_graph=lambda _name: FakeGraph(),
+                lt_float=lambda formula: 7000.0 if formula == "page.width" else 5000.0,
+                get_lt_str=lambda register: "" if register == "%X" else "UNTITLED",
+                exit=lambda: None,
+            )
+
+            with patch.dict(sys.modules, {"originpro": fake_originpro}):
+                with patch(
+                    "src.origin.adapter._wait_for_no_origin_process",
+                    side_effect=[True, False],
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "Origin process remained after the bounded exit wait",
+                    ):
+                        _export_tif_with_originpro(job)
+
+    def test_originpro_tif_export_replaces_stale_helper_tif(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            data = project_root / "processed.csv"
+            data.write_text("x,y\n0,1\n", encoding="utf-8")
+            job = build_origin_plot_job(project_root, "replace_stale", data, "x", "y", "XRD")
+            job.origin_file.parent.mkdir(parents=True, exist_ok=True)
+            job.origin_file.write_text("opju", encoding="utf-8")
+            job.figure_tif.parent.mkdir(parents=True, exist_ok=True)
+            job.figure_tif.write_bytes(b"stale helper raster")
+            expected_size = expected_raster_pixels(7000.0, 5000.0, dpi=600)
+            saw_missing_before_export: list[bool] = []
+
+            class FakeGraph:
+                def activate(self) -> None:
+                    pass
+
+                def lt_exec(self, command: str) -> None:
+                    if not command.startswith("expGraph"):
+                        return
+                    saw_missing_before_export.append(not job.figure_tif.exists())
+                    from PIL import Image
+
+                    Image.new("RGB", expected_size, "white").save(
+                        job.figure_tif,
+                        format="TIFF",
+                        dpi=(600, 600),
+                    )
+
+            fake_originpro = SimpleNamespace(
+                set_show=lambda _visible: None,
+                open=lambda *_args, **_kwargs: True,
+                find_graph=lambda _name: FakeGraph(),
+                lt_float=lambda formula: 7000.0 if formula == "page.width" else 5000.0,
+                get_lt_str=lambda register: "" if register == "%X" else "UNTITLED",
+                exit=lambda: None,
+            )
+
+            with patch.dict(sys.modules, {"originpro": fake_originpro}):
+                with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
+                    evidence = _export_tif_with_originpro(job)
+
+            self.assertEqual(saw_missing_before_export, [True])
+            self.assertEqual((evidence.width_px, evidence.height_px), expected_size)
+
+    def test_originpro_tif_export_fails_closed_before_replacing_tif_when_identity_remains(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            data = project_root / "processed.csv"
+            data.write_text("x,y\n0,1\n", encoding="utf-8")
+            job = build_origin_plot_job(project_root, "identity_guard", data, "x", "y", "XRD")
+            job.origin_file.parent.mkdir(parents=True, exist_ok=True)
+            job.origin_file.write_text("opju", encoding="utf-8")
+            job.figure_tif.parent.mkdir(parents=True, exist_ok=True)
+            job.figure_tif.write_bytes(b"preserve-on-guard-failure")
+            commands: list[str] = []
+
+            class FakeGraph:
+                def activate(self) -> None:
+                    commands.append("activate")
+
+                def lt_exec(self, command: str) -> None:
+                    commands.append(command)
+
+            fake_originpro = SimpleNamespace(
+                set_show=lambda _visible: None,
+                open=lambda *_args, **_kwargs: True,
+                find_graph=lambda _name: FakeGraph(),
+                lt_float=lambda formula: 7000.0 if formula == "page.width" else 5000.0,
+                get_lt_str=lambda register: r"C:\private" if register == "%X" else "private_project",
+                exit=lambda: None,
+            )
+
+            with patch.dict(sys.modules, {"originpro": fake_originpro}):
+                with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
+                    with self.assertRaisesRegex(RuntimeError, "did not clear the in-memory project identity"):
+                        _export_tif_with_originpro(job)
+
+            self.assertEqual(job.figure_tif.read_bytes(), b"preserve-on-guard-failure")
+            self.assertNotIn("expGraph", "\n".join(commands))
 
     def test_export_plot_success_does_not_clear_stale_batch_error_report(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -869,13 +1286,14 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             with patch("src.origin.adapter.check_origin_available", return_value=(True, "ok")):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
                     with patch("src.origin.adapter._run_origin_job", side_effect=fake_run):
-                        result = export_plot(project_root, "clear_stale", data, "x", "y", "XRD")
+                        with patch("src.origin.adapter._export_tif_with_originpro"):
+                            result = export_plot(project_root, "clear_stale", data, "x", "y", "XRD")
 
             self.assertTrue(result.ok)
             report = default_output_root(project_root) / "reports" / "origin_errors.md"
             self.assertEqual(report.read_text(encoding="utf-8"), "# Origin Errors\n\n- old failure\n")
 
-    def test_export_plot_rejects_success_without_nonempty_tif_evidence(self) -> None:
+    def test_export_plot_rejects_success_when_reopened_opju_tif_export_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
@@ -890,7 +1308,11 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             with patch("src.origin.adapter.check_origin_available", return_value=(True, "ok")):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
                     with patch("src.origin.adapter._run_origin_job", side_effect=fake_run):
-                        result = export_plot(project_root, "empty_tif", data, "x", "y", "XRD")
+                        with patch(
+                            "src.origin.adapter._export_tif_with_originpro",
+                            side_effect=RuntimeError("TIF native resolution validation failed"),
+                        ):
+                            result = export_plot(project_root, "empty_tif", data, "x", "y", "XRD")
 
             self.assertFalse(result.ok)
             self.assertIn("TIF", result.message)
@@ -901,6 +1323,12 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             data = project_root / "processed.csv"
             data.write_text("x,y\n0,1\n", encoding="utf-8")
             stale_job = build_origin_plot_job(project_root, "stale_outputs", data, "x", "y", "XRD")
+            for target in (
+                stale_job.origin_file,
+                stale_job.figure_tif,
+                stale_job.preview_png,
+            ):
+                target.parent.mkdir(parents=True, exist_ok=True)
             stale_job.origin_file.write_text("old opju", encoding="utf-8")
             stale_job.figure_tif.write_text("old tif", encoding="utf-8")
             stale_job.preview_png.write_bytes(b"old png")
@@ -920,7 +1348,15 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
                     with patch("src.origin.adapter._run_origin_job", side_effect=fake_run):
                         with patch("src.origin.adapter._export_tif_with_originpro", side_effect=fake_tif_export):
-                            result = export_plot(project_root, "stale_outputs", data, "x", "y", "XRD")
+                            result = export_plot(
+                                project_root,
+                                "stale_outputs",
+                                data,
+                                "x",
+                                "y",
+                                "XRD",
+                                force=True,
+                            )
 
             self.assertTrue(result.ok)
             self.assertEqual(stale_job.origin_file.read_text(encoding="utf-8"), "new opju")

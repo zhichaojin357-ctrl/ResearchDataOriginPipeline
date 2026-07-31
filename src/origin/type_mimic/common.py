@@ -3,18 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-FORBIDDEN_PRODUCT_TYPES = (
-    "HPLC/LC exported data",
-    "Raman",
-    "EIS",
-    "Mott-Schottky",
-    "UV-vis DRS",
-    "PL",
-    "photocurrent",
-    "FTIR",
-    "reaction_condition_screening",
-)
-
 FORBIDDEN_PRODUCT_LABELS = (
     "codex",
     "chatgpt",
@@ -41,8 +29,3 @@ class TypeMimicSpec:
         hits = [label for label in FORBIDDEN_PRODUCT_LABELS if label in lowered]
         if hits:
             raise ValueError(f"Forbidden product label in output slug {self.output_slug!r}: {hits}")
-
-
-def ensure_allowed_product_key(product_key: str) -> None:
-    if product_key in FORBIDDEN_PRODUCT_TYPES:
-        raise ValueError(f"{product_key} is not allowed in the current Origin format product workflow.")

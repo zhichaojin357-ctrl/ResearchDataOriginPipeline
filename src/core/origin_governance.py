@@ -3,6 +3,7 @@
 import csv
 import importlib
 import importlib.metadata as metadata
+import importlib.util
 import io
 import json
 import warnings
@@ -49,20 +50,20 @@ REQUIRED_JOURNAL_INDEX_COLUMNS = {
 }
 
 PACKAGE_SPECS = [
-    {"package": "pybaselines", "module": "pybaselines", "tier": "core_optional", "data_types": ["Raman", "PL", "FTIR", "UV-vis DRS", "EPR"], "license_policy": "permissive", "use": "baseline correction candidate"},
+    {"package": "pybaselines", "module": "pybaselines", "tier": "core", "data_types": ["Raman", "PL", "FTIR", "UV-vis DRS", "EPR"], "license_policy": "permissive", "use": "baseline correction candidate"},
     {"package": "scipy", "module": "scipy", "tier": "core", "data_types": ["spectra", "all numeric"], "license_policy": "permissive", "use": "find_peaks and numeric routines"},
     {"package": "vgd-reader", "module": "vgd_reader", "tier": "optional_adapter", "data_types": ["XPS"], "license_policy": "permissive", "use": "VGD reader probe"},
     {"package": "pygaps", "module": "pygaps", "tier": "optional_adapter", "data_types": ["BET"], "license_policy": "permissive", "use": "PointIsotherm candidate provenance only; no BET fit/model conclusion"},
-    {"package": "nmrglue", "module": "nmrglue", "tier": "optional_adapter", "data_types": ["NMR"], "license_policy": "permissive", "use": "Bruker processed data reader"},
-    {"package": "tifffile", "module": "tifffile", "tier": "core_optional", "data_types": ["SEM", "TEM"], "license_policy": "permissive", "use": "image metadata and preview"},
-    {"package": "pillow", "module": "PIL", "tier": "core_optional", "data_types": ["SEM", "TEM", "QC"], "license_policy": "permissive", "use": "image preview and DPI inspection"},
+    {"package": "nmrglue", "module": "nmrglue", "tier": "diagnostic_only", "data_types": ["NMR"], "license_policy": "permissive", "use": "scan-only NMR adapter probe; no maintained NMR processor"},
+    {"package": "tifffile", "module": "tifffile", "tier": "diagnostic_only", "data_types": ["SEM", "TEM"], "license_policy": "permissive", "use": "scan-only image metadata probe"},
+    {"package": "pillow", "module": "PIL", "tier": "core", "data_types": ["SEM", "TEM", "QC"], "license_policy": "permissive", "use": "image preview and DPI inspection"},
     {"package": "scikit-image", "module": "skimage", "tier": "future_reference", "data_types": ["SEM", "TEM"], "license_policy": "future_candidate_unused", "use": "future image-QC candidate only; current adapter uses Pillow/tifffile"},
-    {"package": "ixdat", "module": "ixdat", "tier": "optional_adapter", "data_types": ["photocurrent", "electrochemistry"], "license_policy": "permissive", "use": "electrochemical import abstraction"},
-    {"package": "impedance", "module": "impedance", "tier": "optional_adapter", "data_types": ["EIS"], "license_policy": "MIT", "use": "CustomCircuit draft fit candidate; no circuit conclusion"},
-    {"package": "rainbow-api", "module": "rainbow", "tier": "optional_adapter", "data_types": ["HPLC/LC exported data"], "license_policy": "LGPL_optional_boundary", "use": "chromatography raw reader probe"},
-    {"package": "mocca2", "module": "mocca2", "tier": "optional_adapter", "data_types": ["HPLC/LC exported data"], "license_policy": "permissive", "use": "baseline/peak candidate helper; no product assignment"},
-    {"package": "pymzml", "module": "pymzml", "tier": "optional_adapter", "data_types": ["MS"], "license_policy": "permissive", "use": "mzML reader"},
-    {"package": "pyteomics", "module": "pyteomics", "tier": "optional_adapter", "data_types": ["MS"], "license_policy": "permissive", "use": "mzML/mzXML/MGF/msp reader helpers"},
+    {"package": "ixdat", "module": "ixdat", "tier": "diagnostic_only", "data_types": ["photocurrent", "electrochemistry"], "license_policy": "permissive", "use": "electrochemical import adapter probe; not used by the maintained table processor"},
+    {"package": "impedance", "module": "impedance", "tier": "diagnostic_only", "data_types": ["EIS"], "license_policy": "MIT", "use": "explicit diagnostic fit API only; the formal EIS processor never fits"},
+    {"package": "rainbow-api", "module": "rainbow", "tier": "optional_adapter", "data_types": ["HPLC/LC OpenLab raw data"], "license_policy": "LGPL_command_specific_boundary", "use": "required decoder for the selected OpenLab raw-data command"},
+    {"package": "mocca2", "module": "mocca2", "tier": "diagnostic_only", "data_types": ["HPLC/LC exported data"], "license_policy": "permissive", "use": "adapter probe only; no maintained production call site"},
+    {"package": "pymzml", "module": "pymzml", "tier": "diagnostic_only", "data_types": ["MS"], "license_policy": "permissive", "use": "scan-only MS adapter probe; no maintained MS processor"},
+    {"package": "pyteomics", "module": "pyteomics", "tier": "diagnostic_only", "data_types": ["MS"], "license_policy": "permissive", "use": "scan-only MS adapter probe; no maintained MS processor"},
     {"package": "cwepr", "module": "cwepr", "tier": "optional_adapter", "data_types": ["EPR"], "license_policy": "BSD", "use": "cw-EPR candidate metrics; no radical assignment"},
     {"package": "eprpy", "module": "eprpy", "tier": "optional_adapter", "data_types": ["EPR"], "license_policy": "MIT", "use": "EPR candidate metrics fallback; no radical assignment"},
     {"package": "lmfitxps", "module": "lmfitxps", "tier": "optional_adapter", "data_types": ["XPS"], "license_policy": "MIT_with_internal_license_review", "use": "existing fitted-curve summary only; no automatic fitting or valence assignment"},
@@ -283,8 +284,9 @@ def write_package_integration_report(project_root: Path) -> dict:
     results = []
     for spec in PACKAGE_SPECS:
         result = dict(spec)
-        result.update(_package_import_status(spec["package"], spec["module"]))
-        result["core_flow_allowed"] = result["tier"] in {"core", "core_optional"} and result["import_status"] == "ok"
+        allow_import = spec["tier"] in {"core", "optional_adapter"}
+        result.update(_package_import_status(spec["package"], spec["module"], allow_import=allow_import))
+        result["core_flow_allowed"] = result["tier"] == "core" and result["import_status"] == "ok"
         if result["tier"] == "optional_adapter":
             result["core_flow_allowed"] = False
             result["adapter_policy"] = "available only behind explicit optional adapter and manual-review guard"
@@ -294,6 +296,8 @@ def write_package_integration_report(project_root: Path) -> dict:
             result["adapter_policy"] = "blocked from the automatic dependency set"
         elif result["tier"] == "future_reference":
             result["adapter_policy"] = "future candidate only; not imported by current automatic processing"
+        elif result["tier"] == "diagnostic_only":
+            result["adapter_policy"] = "metadata probe only; do not import in the maintained automatic processing path"
         else:
             result["adapter_policy"] = "allowed for candidate calculations without scientific conclusions"
         results.append(result)
@@ -345,7 +349,7 @@ def write_data_type_coverage_matrix(project_root: Path, package_report: dict) ->
         {"data_type": "XRD", "reader": "CSV/TXT/XLSX tables; raw/dql probe only", "algorithm": "peak candidates only", "external_packages": _available_names(installed, ["scipy"]), "auto_conclusions": "phase/plane assignment blocked"},
         {"data_type": "NMR", "reader": "optional nmrglue for Bruker processed data", "algorithm": "spectrum/peaklist index only", "external_packages": _available_names(installed, ["nmrglue"]), "auto_conclusions": "structure interpretation blocked"},
         {"data_type": "MS", "reader": "mzML/mzXML/MGF/msp standard formats", "algorithm": "spectrum index only", "external_packages": _available_names(installed, ["pymzml", "pyteomics"]), "auto_conclusions": "product assignment blocked"},
-        {"data_type": "EIS/LEVM", "reader": "standard tables; LEVM lst parser planned", "algorithm": "Nyquist/Bode candidates; impedance adapter draft fit for visualization", "external_packages": _available_names(installed, ["scipy", "impedance"]), "auto_conclusions": "equivalent-circuit conclusion blocked"},
+        {"data_type": "EIS/LEVM", "reader": "standard tables; LEVM lst parser planned", "algorithm": "measured Nyquist/Bode-ready coordinates only; no automatic branch selection or fit", "external_packages": _available_names(installed, ["scipy"]), "auto_conclusions": "equivalent-circuit fitting and conclusions blocked"},
     ]
     reports = _ensure_dir(default_output_root(project_root) / "reports")
     json_path = reports / "data_type_coverage_matrix.json"
@@ -592,7 +596,7 @@ def _load_material_color_lookup(project_root: Path) -> dict[str, str]:
     return lookup
 
 
-def _package_import_status(package: str, module: str) -> dict:
+def _package_import_status(package: str, module: str, *, allow_import: bool = True) -> dict:
     result = {"import_status": "missing", "version": None, "license": ""}
     try:
         result["version"] = metadata.version(package)
@@ -604,6 +608,14 @@ def _package_import_status(package: str, module: str) -> dict:
         result["license"] = _short_license_text(license_text)
     except metadata.PackageNotFoundError:
         result["license"] = "not installed"
+    if not allow_import:
+        try:
+            available = importlib.util.find_spec(module) is not None
+        except (ImportError, AttributeError, ValueError):
+            available = False
+        result["import_status"] = "available_not_imported" if available else "missing"
+        result["smoke_status"] = "not_run_by_policy"
+        return result
     try:
         with warnings.catch_warnings(), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             warnings.filterwarnings(

@@ -187,6 +187,39 @@ def test_origin_style_resolver_rejects_assets_outside_manifest_root(tmp_path: Pa
     assert resolve_origin_style_asset(project, "BET") is None
 
 
+def test_origin_style_registry_keeps_otpu_harvest_record_out_of_runtime(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    graph_template = style_root / "graph_templates" / "BET.otpu"
+    graph_template.parent.mkdir(parents=True)
+    graph_template.write_bytes(b"unreviewed-graph-template")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "graph_page": "Graph1",
+                        "graph_template": "graph_templates/BET.otpu",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    integrity = validate_origin_style_asset_integrity(project, required_product_keys=("BET",))
+
+    assert resolve_origin_style_asset(project, "BET") is None
+    assert integrity["ok"] is False
+    assert any(
+        "graph_template is harvest-only" in failure
+        for failure in integrity["failures"]
+    )
+
+
 def test_origin_style_manifest_v2_reports_malformed_snapshot_counts(tmp_path: Path) -> None:
     project = tmp_path / "project"
     style_root = project / "templates" / "origin_styles"
@@ -233,17 +266,17 @@ def test_origin_style_manifest_v2_reports_malformed_snapshot_counts(tmp_path: Pa
 def test_origin_style_manifest_resolves_project_local_format_theme(tmp_path: Path) -> None:
     project = tmp_path / "project"
     asset = project / "templates" / "origin_styles" / "format_themes" / "BET.oth"
-    fallback_template = project / "templates" / "origin_styles" / "graph_templates" / "BET.otpu"
+    harvest_template = project / "templates" / "origin_styles" / "graph_templates" / "BET.otpu"
     snapshot = project / "templates" / "origin_styles" / "snapshots" / "BET.json"
     data_snapshot = project / "templates" / "origin_styles" / "data_snapshots" / "BET.json"
     template_opju = project / "templates" / "origin_styles" / "reference_opju" / "BET.opju"
     asset.parent.mkdir(parents=True)
-    fallback_template.parent.mkdir(parents=True)
+    harvest_template.parent.mkdir(parents=True)
     snapshot.parent.mkdir(parents=True)
     data_snapshot.parent.mkdir(parents=True)
     template_opju.parent.mkdir(parents=True)
     asset.write_bytes(b"oth")
-    fallback_template.write_bytes(b"otpu")
+    harvest_template.write_bytes(b"otpu")
     snapshot.write_text("{}", encoding="utf-8")
     data_snapshot.write_text("{}", encoding="utf-8")
     template_opju.write_bytes(b"opju")
@@ -277,7 +310,7 @@ def test_origin_style_manifest_resolves_project_local_format_theme(tmp_path: Pat
     assert resolved.product_key == "BET"
     assert resolved.format_theme_path == asset
     assert resolved.format_theme_path.is_file()
-    assert resolved.graph_template_path == fallback_template
+    assert resolved.graph_template_path == harvest_template
     assert resolved.style_snapshot_path == snapshot
     assert resolved.data_snapshot_path == data_snapshot
     assert resolved.template_opju_path == template_opju
@@ -704,6 +737,26 @@ def test_successful_style_asset_export_writes_valid_v2_manifest_and_preserves_me
     )
     assert validate_origin_style_asset_integrity(project, required_product_keys=("BET",))["ok"] is True
 
+    class CloseFailureOriginOperations(FakeOriginOperations):
+        def close(self):
+            return SimpleNamespace(ok=False, message="Origin still running")
+
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.connect_origin",
+        lambda **_kwargs: CloseFailureOriginOperations(),
+    )
+    close_failure = export_origin_style_assets(
+        project,
+        template_opju=source,
+        product_key="BET",
+        data_type="BET",
+        graph_page="Graph1",
+        with_origin=True,
+    )
+    assert close_failure["exported_count"] == 1
+    assert close_failure["failure_count"] == 1
+    assert close_failure["failures"][-1]["failure_stage"] == "origin_close"
+
 
 def test_style_asset_manifest_writer_preserves_existing_schema_and_uses_v2_for_new_manifest(tmp_path: Path) -> None:
     from src.core.origin_style_assets import _origin_style_manifest_schema_version_for_write
@@ -1005,8 +1058,8 @@ def test_style_asset_export_loads_working_copy_not_source_opju(tmp_path: Path, m
             Path(file_path).write_bytes(b"otpu")
             return OperationResult(True, "ok")
 
-        def close(self) -> None:
-            return None
+        def close(self) -> OperationResult:
+            return OperationResult(True, "closed")
 
     monkeypatch.setattr(origin_style_assets, "connect_origin", lambda **_kwargs: FakeOriginOps())
     monkeypatch.setattr(origin_style_assets, "read_graph_style_snapshot", lambda *_args, **_kwargs: Snapshot())
@@ -1107,7 +1160,7 @@ def test_cli_export_origin_style_assets_passes_options(tmp_path: Path, monkeypat
         }
 
     monkeypatch.chdir(project_root)
-    monkeypatch.setattr("src.cli.export_origin_style_assets", fake_export)
+    monkeypatch.setattr("src.core.origin_style_assets.export_origin_style_assets", fake_export)
 
     code = main(
         [
@@ -1155,7 +1208,7 @@ def test_cli_origin_style_asset_replay_passes_options(tmp_path: Path, monkeypatc
         }
 
     monkeypatch.chdir(project_root)
-    monkeypatch.setattr("src.cli.run_origin_style_asset_replay", fake_replay)
+    monkeypatch.setattr("src.core.origin_style_assets.run_origin_style_asset_replay", fake_replay)
 
     code = main(
         [
@@ -1195,6 +1248,158 @@ def test_replay_comparison_writes_side_by_side_without_diff_png(tmp_path: Path) 
     assert not (tmp_path / "diff.png").exists()
 
 
+def test_replay_same_opju_content_is_determinism_evidence_not_style_validation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from src.core.origin_style_assets import (
+        OriginStyleAssetReplayItem,
+        _replay_compare_one_item,
+    )
+
+    project = tmp_path / "project"
+    source = project / "source.opju"
+    asset = project / "templates" / "origin_styles" / "reference_opju" / "BET.opju"
+    source.parent.mkdir(parents=True)
+    asset.parent.mkdir(parents=True)
+    source.write_bytes(b"identical-reference-project")
+    asset.write_bytes(source.read_bytes())
+    output = tmp_path / "out"
+
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.resolve_origin_style_asset",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            template_opju_path=asset,
+            graph_page="Graph1",
+        ),
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets._export_replay_graph",
+        lambda *_args, **_kwargs: {"ok": True, "png": str(tmp_path / "unused.png")},
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets._compare_replay_pngs",
+        lambda *_args, **_kwargs: {"exact_pixel_match": True, "rms": 0.0},
+    )
+
+    result = _replay_compare_one_item(
+        object(),
+        project,
+        output,
+        OriginStyleAssetReplayItem(
+            product_key="BET",
+            data_type="BET",
+            source_opju=source,
+            graph_page="Graph1",
+        ),
+    )
+
+    assert result["status"] == "reference_opju_self_replay"
+    assert result["comparison_scope"] == "deterministic_reference_opju_export"
+    assert result["style_asset_validated"] is False
+    assert result["same_reference_content"] is True
+
+
+def test_replay_summary_excludes_self_replay_from_compared_count(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from src.core.origin_style_assets import (
+        OriginStyleAssetReplayItem,
+        OriginStyleAssetReplayPlan,
+        run_origin_style_asset_replay,
+    )
+
+    item = OriginStyleAssetReplayItem(
+        product_key="BET",
+        data_type="BET",
+        source_opju=tmp_path / "BET.opju",
+        graph_page="Graph1",
+    )
+    plan = OriginStyleAssetReplayPlan(
+        project_root=tmp_path,
+        output_dir=tmp_path / "out",
+        items=[item],
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.build_origin_style_asset_replay_plan",
+        lambda *_args, **_kwargs: plan,
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets._replay_compare_one_item",
+        lambda *_args, **_kwargs: {"status": "reference_opju_self_replay"},
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.connect_origin",
+        lambda **_kwargs: SimpleNamespace(close=lambda: SimpleNamespace(ok=True)),
+    )
+
+    result = run_origin_style_asset_replay(
+        tmp_path,
+        tmp_path / "plan.json",
+        plan.output_dir,
+        with_origin=True,
+    )
+
+    assert result["planned_count"] == 1
+    assert result["compared_count"] == 0
+    assert result["self_replay_count"] == 1
+    assert result["inconclusive_count"] == 1
+    assert result["failure_count"] == 0
+    assert result["origin_close_ok"] is True
+
+
+def test_replay_summary_fails_when_origin_close_is_not_confirmed(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from src.core.origin_style_assets import (
+        OriginStyleAssetReplayItem,
+        OriginStyleAssetReplayPlan,
+        run_origin_style_asset_replay,
+    )
+
+    item = OriginStyleAssetReplayItem(
+        product_key="BET",
+        data_type="BET",
+        source_opju=tmp_path / "BET.opju",
+        graph_page="Graph1",
+    )
+    plan = OriginStyleAssetReplayPlan(
+        project_root=tmp_path,
+        output_dir=tmp_path / "out",
+        items=[item],
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.build_origin_style_asset_replay_plan",
+        lambda *_args, **_kwargs: plan,
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets._replay_compare_one_item",
+        lambda *_args, **_kwargs: {"status": "matched"},
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.connect_origin",
+        lambda **_kwargs: SimpleNamespace(
+            close=lambda: SimpleNamespace(ok=False, message="Origin still running")
+        ),
+    )
+
+    result = run_origin_style_asset_replay(
+        tmp_path,
+        tmp_path / "plan.json",
+        plan.output_dir,
+        with_origin=True,
+    )
+
+    assert result["compared_count"] == 1
+    assert result["failure_count"] == 1
+    assert result["item_failure_count"] == 0
+    assert result["lifecycle_failure_count"] == 1
+    assert result["origin_close_ok"] is False
+    assert result["origin_close_message"] == "Origin still running"
+
+
 def test_export_replay_graph_copies_opju_into_product_dir(tmp_path: Path) -> None:
     from PIL import Image
 
@@ -1205,6 +1410,7 @@ def test_export_replay_graph_copies_opju_into_product_dir(tmp_path: Path) -> Non
     source_opju.write_bytes(b"origin-project")
     product_dir = tmp_path / "products" / "BET"
     product_dir.mkdir(parents=True)
+    calls: list[str] = []
 
     class FakeOriginOps:
         def new_project(self) -> OperationResult:
@@ -1217,11 +1423,33 @@ def test_export_replay_graph_copies_opju_into_product_dir(tmp_path: Path) -> Non
         def list_worksheets(self) -> OperationResult:
             return OperationResult(True, "ok", {"pages": [{"name": "Graph5", "type": "graph"}]})
 
-        def export_graph(self, graph_name: str, file_path: Path, fmt: str, dpi: int = 600) -> OperationResult:
+        def run_labtalk(self, script: str) -> OperationResult:
+            calls.append(f"labtalk:{script}")
+            return OperationResult(True, "ok")
+
+        def get_labtalk_variable(self, name: str) -> OperationResult:
+            assert name in {"page.width", "page.height"}
+            calls.append(f"read:{name}")
+            return OperationResult(True, "ok", {"value": 100.0})
+
+        def reset_project_identity_for_export(self) -> OperationResult:
+            calls.append("reset_identity")
+            return OperationResult(True, "ok")
+
+        def export_graph(
+            self,
+            graph_name: str,
+            file_path: Path,
+            fmt: str,
+            dpi: int = 600,
+            pixel_width: int | None = None,
+        ) -> OperationResult:
             assert graph_name == "Graph5"
             assert dpi == 600
+            calls.append(f"export:{fmt}")
             if fmt == "tif":
-                Image.new("RGB", (2, 2), "white").save(file_path, format="TIFF", dpi=(300, 300))
+                assert pixel_width == 60
+                Image.new("RGB", (60, 60), "white").save(file_path, format="TIFF", dpi=(600, 600))
             else:
                 Image.new("RGB", (2, 2), "white").save(file_path, format="PNG")
             return OperationResult(True, "ok")
@@ -1233,6 +1461,17 @@ def test_export_replay_graph_copies_opju_into_product_dir(tmp_path: Path) -> Non
     assert result["opju"] == str(exported_opju)
     assert result["opju_size"] == len(b"origin-project")
     assert exported_opju.read_bytes() == b"origin-project"
+    assert result["tif_resolution_evidence"]["expected_width_px"] == 60
+    assert result["tif_resolution_evidence"]["width_px"] == 60
+    assert calls == [
+        "export:png",
+        'labtalk:win -a "Graph5";',
+        "read:page.width",
+        "read:page.height",
+        "reset_identity",
+        'labtalk:win -a "Graph5";',
+        "export:tif",
+    ]
     with Image.open(result["tif"]) as image:
         assert tuple(round(float(value)) for value in image.info.get("dpi", (0, 0))) == (600, 600)
 
@@ -1296,8 +1535,26 @@ def test_export_replay_graph_rejects_corrupt_tif_even_when_origin_reports_succes
         def list_worksheets(self) -> OperationResult:
             return OperationResult(True, "ok", {"pages": [{"name": "Graph5", "type": "graph"}]})
 
-        def export_graph(self, _graph_name: str, file_path: Path, fmt: str, dpi: int = 600) -> OperationResult:
+        def run_labtalk(self, _script: str) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def get_labtalk_variable(self, name: str) -> OperationResult:
+            assert name in {"page.width", "page.height"}
+            return OperationResult(True, "ok", {"value": 100.0})
+
+        def reset_project_identity_for_export(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def export_graph(
+            self,
+            _graph_name: str,
+            file_path: Path,
+            fmt: str,
+            dpi: int = 600,
+            pixel_width: int | None = None,
+        ) -> OperationResult:
             if fmt == "tif":
+                assert pixel_width == 60
                 file_path.write_bytes(b"not-a-tiff")
             else:
                 Image.new("RGB", (2, 2), "white").save(file_path, format="PNG")
@@ -1307,4 +1564,110 @@ def test_export_replay_graph_rejects_corrupt_tif_even_when_origin_reports_succes
 
     assert result["ok"] is False
     assert "TIFF" in result["message"]
+    assert not (product_dir / "project_asset.tif").exists()
+
+
+def test_export_replay_graph_rejects_merely_retagged_low_resolution_tif(tmp_path: Path) -> None:
+    from PIL import Image
+
+    from src.core.origin_style_assets import _export_replay_graph
+    from src.origin.operations import OperationResult
+
+    source_opju = tmp_path / "asset.opju"
+    source_opju.write_bytes(b"origin-project")
+    product_dir = tmp_path / "products" / "BET"
+    product_dir.mkdir(parents=True)
+
+    class FakeOriginOps:
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def load_project(self, _file_path: Path) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def list_worksheets(self) -> OperationResult:
+            return OperationResult(True, "ok", {"pages": [{"name": "Graph5", "type": "graph"}]})
+
+        def run_labtalk(self, _script: str) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def get_labtalk_variable(self, name: str) -> OperationResult:
+            assert name in {"page.width", "page.height"}
+            return OperationResult(True, "ok", {"value": 100.0})
+
+        def reset_project_identity_for_export(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def export_graph(
+            self,
+            _graph_name: str,
+            file_path: Path,
+            fmt: str,
+            dpi: int = 600,
+            pixel_width: int | None = None,
+        ) -> OperationResult:
+            if fmt == "tif":
+                assert pixel_width == 60
+                Image.new("RGB", (30, 30), "white").save(file_path, format="TIFF", dpi=(600, 600))
+            else:
+                Image.new("RGB", (2, 2), "white").save(file_path, format="PNG")
+            return OperationResult(True, "ok")
+
+    result = _export_replay_graph(FakeOriginOps(), source_opju, "Graph5", product_dir, "project_asset")
+
+    assert result["ok"] is False
+    assert "pixel dimensions" in result["message"]
+    assert not (product_dir / "project_asset.tif").exists()
+
+
+def test_export_replay_graph_rejects_unverified_project_identity_without_leak(tmp_path: Path) -> None:
+    from PIL import Image
+
+    from src.core.origin_style_assets import _export_replay_graph
+    from src.origin.operations import OperationResult
+
+    source_opju = tmp_path / "asset.opju"
+    source_opju.write_bytes(b"origin-project")
+    product_dir = tmp_path / "products" / "BET"
+    product_dir.mkdir(parents=True)
+    exported_formats: list[str] = []
+
+    class FakeOriginOps:
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def load_project(self, _file_path: Path) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def list_worksheets(self) -> OperationResult:
+            return OperationResult(True, "ok", {"pages": [{"name": "Graph5", "type": "graph"}]})
+
+        def run_labtalk(self, _script: str) -> OperationResult:
+            return OperationResult(True, "ok")
+
+        def get_labtalk_variable(self, name: str) -> OperationResult:
+            assert name in {"page.width", "page.height"}
+            return OperationResult(True, "ok", {"value": 100.0})
+
+        def reset_project_identity_for_export(self) -> OperationResult:
+            return OperationResult(False, "D:/private/project/secret.opju")
+
+        def export_graph(
+            self,
+            _graph_name: str,
+            file_path: Path,
+            fmt: str,
+            dpi: int = 600,
+            pixel_width: int | None = None,
+        ) -> OperationResult:
+            exported_formats.append(fmt)
+            Image.new("RGB", (2, 2), "white").save(file_path, format="PNG")
+            return OperationResult(True, "ok")
+
+    result = _export_replay_graph(FakeOriginOps(), source_opju, "Graph5", product_dir, "project_asset")
+
+    assert result["ok"] is False
+    assert "identity verification failed" in result["message"]
+    assert "private" not in result["message"]
+    assert exported_formats == ["png"]
     assert not (product_dir / "project_asset.tif").exists()

@@ -11,7 +11,6 @@ from src.core.output_sanitizer import render_output_path
 
 GRAPH_THEME_SUFFIXES = {".oth"}
 GRAPH_TEMPLATE_SUFFIXES = {".otp", ".otpu", ".ogg"}
-STYLE_PACKAGE_SUFFIXES = GRAPH_THEME_SUFFIXES | GRAPH_TEMPLATE_SUFFIXES
 
 
 @dataclass(frozen=True)
@@ -113,22 +112,6 @@ def build_template_format_plan(
             plot_intent=intent,
             warnings=tuple(warnings),
         )
-    if style_package is not None and _is_graph_template_package(style_package):
-        warnings.append("Saved format theme missing; using graph-template compatibility fallback.")
-        return TemplateFormatPlan(
-            data_type=data_type,
-            status="ready",
-            mode="cached_graph_template",
-            source_opju=source_opju,
-            graph_page=graph_page,
-            style_package_path=style_package,
-            reference_preview_png=_optional_path(reference_preview_png),
-            product_preview_png=_optional_path(product_preview_png),
-            can_execute=True,
-            one_to_one_claim_allowed=False,
-            plot_intent=intent,
-            warnings=tuple(warnings),
-        )
     if source_opju is not None and source_opju.is_file() and source_opju.suffix.casefold() in {".opju", ".opj"}:
         warnings.append("Saved style package missing; using OPJU template base compatibility path.")
         return TemplateFormatPlan(
@@ -145,7 +128,7 @@ def build_template_format_plan(
             warnings=tuple(warnings),
         )
     style_package = style_package or (
-        source_opju if source_opju is not None and source_opju.is_file() and _is_supported_style_package(source_opju) else None
+        source_opju if source_opju is not None and source_opju.is_file() and _is_saved_format_theme(source_opju) else None
     )
     if style_package is not None and _is_saved_format_theme(style_package):
         warnings.append("OPJU exemplar missing; using a saved format theme instead of live template project.")
@@ -163,18 +146,22 @@ def build_template_format_plan(
             plot_intent=intent,
             warnings=tuple(warnings),
         )
-    if style_package is not None and _is_graph_template_package(style_package):
-        warnings.append("Saved format theme missing; using graph-template compatibility fallback.")
+    graph_template = _graph_template_source(source_opju, style_package)
+    if graph_template is not None:
+        warnings.append(
+            f"{graph_template.suffix.casefold()} graph templates are retained only as unreviewed harvest assets "
+            "and cannot be used as a runtime style source; supply an accepted .oth format theme or OPJU/OPJ exemplar."
+        )
         return TemplateFormatPlan(
             data_type=data_type,
-            status="ready",
-            mode="cached_graph_template",
+            status="blocked",
+            mode="untrusted_graph_template",
             source_opju=source_opju,
             graph_page=graph_page,
-            style_package_path=style_package,
+            style_package_path=graph_template,
             reference_preview_png=_optional_path(reference_preview_png),
             product_preview_png=_optional_path(product_preview_png),
-            can_execute=True,
+            can_execute=False,
             one_to_one_claim_allowed=False,
             plot_intent=intent,
             warnings=tuple(warnings),
@@ -305,16 +292,15 @@ def _to_float(value: object) -> float:
     return number if math.isfinite(number) else math.nan
 
 
-def _is_supported_style_package(path: Path) -> bool:
-    return path.is_file() and path.suffix.casefold() in STYLE_PACKAGE_SUFFIXES
-
-
 def _is_saved_format_theme(path: Path) -> bool:
     return path.is_file() and path.suffix.casefold() in GRAPH_THEME_SUFFIXES
 
 
-def _is_graph_template_package(path: Path) -> bool:
-    return path.is_file() and path.suffix.casefold() in GRAPH_TEMPLATE_SUFFIXES
+def _graph_template_source(source_opju: Path | None, style_package: Path | None) -> Path | None:
+    for path in (style_package, source_opju):
+        if path is not None and path.is_file() and path.suffix.casefold() in GRAPH_TEMPLATE_SUFFIXES:
+            return path
+    return None
 
 
 def _optional_path(path: str | Path | None) -> Path | None:

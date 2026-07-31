@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import csv
+import gc
 import math
 import re
+import subprocess
 import time
 from dataclasses import dataclass, field
+from numbers import Integral
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -41,6 +44,10 @@ EXPORT_FORMATS = {
     "svg": "svg",
 }
 
+RASTER_EXPORT_FORMATS = frozenset({"bmp", "jpg", "png", "tif"})
+MIN_EXPORT_DPI = 72
+MAX_EXPORT_DPI = 1200
+
 ORIGIN_XML_STYLE_CLIPBOARD_FORMAT = "Origin XML Style"
 THEME_APPLY_PAGE = 2
 
@@ -76,7 +83,20 @@ class OperationResult:
 
 
 def connect_origin(entrypoint: str = "Origin.Application", *, visible: bool = False, isolated: bool = True) -> "OriginOperations":
-    """Connect to Origin through COM and wrap it in the stable operations adapter."""
+    """Start a task-owned Origin COM session and wrap it in the stable adapter.
+
+    The pipeline must never attach to an Origin instance that may belong to the
+    user.  ``DispatchEx`` is still used for isolation, but the process preflight
+    is the fail-closed ownership boundary for every caller of this shared helper.
+    """
+    pre_existing_pids = origin_process_ids()
+    if pre_existing_pids:
+        rendered = ", ".join(str(pid) for pid in sorted(pre_existing_pids))
+        raise RuntimeError(
+            "Origin is already running; refusing to attach to or close an "
+            f"existing session (PIDs: {rendered})."
+        )
+
     import win32com.client
 
     if isolated and hasattr(win32com.client, "DispatchEx"):
@@ -88,6 +108,48 @@ def connect_origin(entrypoint: str = "Origin.Application", *, visible: bool = Fa
     except Exception:
         pass
     return OriginOperations(app)
+
+
+def origin_process_ids() -> set[int]:
+    """Return running Origin-family PIDs, failing closed if inspection fails."""
+
+    completed = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "Get-Process -Name Origin* -ErrorAction SilentlyContinue | "
+            "Select-Object -ExpandProperty Id",
+        ],
+        text=True,
+        capture_output=True,
+        timeout=10,
+    )
+    if completed.returncode:
+        details = (completed.stderr or completed.stdout or "PowerShell query failed").strip()
+        raise RuntimeError(
+            "Could not inspect existing Origin processes safely: " + details
+        )
+
+    pids: set[int] = set()
+    for line in completed.stdout.splitlines():
+        value = line.strip()
+        if not value:
+            continue
+        try:
+            pid = int(value)
+        except ValueError as exc:
+            raise RuntimeError(
+                "Could not inspect existing Origin processes safely: "
+                f"unexpected process identifier {value!r}"
+            ) from exc
+        if pid <= 0:
+            raise RuntimeError(
+                "Could not inspect existing Origin processes safely: "
+                f"invalid process identifier {pid}"
+            )
+        pids.add(pid)
+    return pids
 
 
 def quote_labtalk(value: str) -> str:
@@ -212,11 +274,24 @@ class OriginOperations:
         self.app = app
 
     def close(self) -> OperationResult:
+        app = self.app
+        self.app = None
+        if app is None:
+            return OperationResult(True, "Origin already closed")
         try:
-            self.app.Exit()
+            app.Exit()
         except Exception as exc:
             return OperationResult(False, f"Origin close failed: {exc}")
-        return OperationResult(True, "Origin closed")
+        finally:
+            del app
+            try:
+                import pythoncom
+
+                pythoncom.CoFreeUnusedLibraries()
+            except Exception:
+                pass
+            gc.collect()
+        return OperationResult(True, "Origin closed and COM proxy released")
 
     def run_labtalk(self, script: str) -> OperationResult:
         ok = bool(self.app.Execute(script))
@@ -249,6 +324,40 @@ class OriginOperations:
         except Exception as exc:
             return OperationResult(False, f"Origin page metadata sanitization failed: {exc}", {"script": script})
         return OperationResult(True, "Origin page metadata sanitized", {"script": script})
+
+    def reset_project_identity_for_export(self) -> OperationResult:
+        """Detach the in-memory project identity before exporting path-bearing image metadata."""
+        script = "doc -rn; doc -s;"
+        try:
+            executed = bool(self.app.Execute(script))
+        except Exception:
+            return OperationResult(False, "Origin project identity reset command failed before export.")
+        if not executed:
+            return OperationResult(False, "Origin project identity reset command failed before export.")
+        try:
+            project_path = self.app.LTStr("%X")
+            project_name = self.app.LTStr("%G")
+        except Exception:
+            return OperationResult(False, "Origin project identity verification failed before export.")
+        path_is_empty = str(project_path).strip() == ""
+        name_is_untitled = str(project_name).strip().casefold() == "untitled"
+        if not path_is_empty or not name_is_untitled:
+            return OperationResult(
+                False,
+                "Origin project identity verification failed before export.",
+                {
+                    "project_path_empty": path_is_empty,
+                    "project_name_untitled": name_is_untitled,
+                },
+            )
+        return OperationResult(
+            True,
+            "Origin project identity reset and verified for export.",
+            {
+                "project_path_empty": True,
+                "project_name_untitled": True,
+            },
+        )
 
     def load_project(self, file_path: str | Path) -> OperationResult:
         path = Path(file_path)
@@ -552,20 +661,61 @@ class OriginOperations:
         export_format: str = "tif",
         dpi: int = 600,
         timeout_seconds: float = 8.0,
+        pixel_width: int | None = None,
     ) -> OperationResult:
         try:
             output_path, resolved_format = normalize_export_path(file_path, export_format)
         except ValueError as exc:
             return OperationResult(False, str(exc))
+        if (
+            isinstance(dpi, bool)
+            or not isinstance(dpi, Integral)
+            or not MIN_EXPORT_DPI <= int(dpi) <= MAX_EXPORT_DPI
+        ):
+            return OperationResult(
+                False,
+                f"Export DPI must be an integer between {MIN_EXPORT_DPI} and {MAX_EXPORT_DPI}, got {dpi!r}",
+            )
+        resolved_dpi = int(dpi)
+        if pixel_width is not None and (
+            isinstance(pixel_width, bool)
+            or not isinstance(pixel_width, Integral)
+            or int(pixel_width) <= 0
+        ):
+            return OperationResult(
+                False,
+                f"Export pixel width must be a positive integer, got {pixel_width!r}",
+            )
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        if output_path.exists():
-            output_path.unlink()
         folder = quote_labtalk(to_origin_path(output_path.parent))
         filename = quote_labtalk(output_path.stem)
         graph = quote_labtalk(graph_name)
-        self.run_labtalk(f'win -a "{graph}";')
+        activated = self.run_labtalk(f'win -a "{graph}";')
+        if not activated.ok:
+            return OperationResult(
+                False,
+                f"Origin graph page does not exist or could not be activated: {graph_name}",
+                {"graph_name": graph_name},
+            )
+        if output_path.exists():
+            output_path.unlink()
+        raster_dpi_setting = (
+            (
+                " sysopts:=0"
+                " tr.Margin:=2"
+                + (
+                    f" tr1.Unit:=2 tr1.Width:={int(pixel_width)}"
+                    if pixel_width is not None
+                    else ""
+                )
+                + f" tr2.{resolved_format.upper()}.dotsperinch:={resolved_dpi}"
+            )
+            if resolved_format in RASTER_EXPORT_FORMATS
+            else ""
+        )
         ok = self.run_labtalk(
-            f'expGraph type:={resolved_format} path:="{folder}" filename:="{filename}" overwrite:=replace;'
+            f'expGraph type:={resolved_format} path:="{folder}" filename:="{filename}" '
+            f"overwrite:=replace{raster_dpi_setting};"
         )
         if not ok.ok:
             return OperationResult(False, f"Origin expGraph failed for {graph_name}")

@@ -3,6 +3,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from src.adapters.common import import_optional, is_module_available, metadata_provenance, version_for
+from src.processors.calculations import (
+    epr_g_candidate,
+    epr_g_candidate_blocked_reason,
+    normalize_epr_magnetic_field_unit,
+)
 
 
 def is_available() -> bool:
@@ -30,6 +35,7 @@ def process_or_analyze(
     intensity: Sequence[float],
     *,
     microwave_frequency_ghz: Sequence[float | None] | None = None,
+    magnetic_field_unit: object = None,
 ) -> dict[str, object]:
     cwepr, cwepr_error = import_optional("cwepr")
     eprpy, eprpy_error = import_optional("eprpy")
@@ -52,9 +58,20 @@ def process_or_analyze(
         result["minimum_intensity_field"] = x_values[min_index]
         result["maximum_intensity_field"] = x_values[max_index]
         frequency = _frequency_at_index(microwave_frequency_ghz, max_index)
-        g_value = _g_candidate(x_values[max_index], frequency)
+        normalized_field_unit = normalize_epr_magnetic_field_unit(magnetic_field_unit)
+        if normalized_field_unit is not None:
+            result["magnetic_field_unit"] = normalized_field_unit
+        g_value = _g_candidate(x_values[max_index], frequency, normalized_field_unit)
         if g_value is not None:
             result["g_candidate_at_max_intensity"] = g_value
+        else:
+            blocked_reason = epr_g_candidate_blocked_reason(
+                frequency,
+                normalized_field_unit,
+                x_values[max_index],
+            )
+            result["g_candidate_blocked_reason"] = blocked_reason
+            result["warnings"] = [blocked_reason]
     package = "cwepr" if cwepr is not None else "EPRpy" if eprpy is not None else "cwepr/EPRpy"
     module = "cwepr" if cwepr is not None else "eprpy" if eprpy is not None else "cwepr/eprpy"
     version = version_for("cwepr", "cwepr") if cwepr is not None else version_for("EPRpy", "eprpy")
@@ -81,13 +98,19 @@ def _frequency_at_index(values: Sequence[float | None] | None, index: int) -> fl
         return None
 
 
-def _g_candidate(field_value: float, frequency_ghz: float | None) -> float | None:
-    if frequency_ghz is None or field_value <= 0:
-        return None
-    field_mt = field_value / 10.0 if field_value > 1000 else field_value
-    return 71.4477 * frequency_ghz / field_mt
+def _g_candidate(
+    field_value: float,
+    frequency_ghz: float | None,
+    magnetic_field_unit: object = None,
+) -> float | None:
+    return epr_g_candidate(field_value, frequency_ghz, magnetic_field_unit)
 
 
 def smoke_test() -> dict[str, object]:
-    result = process_or_analyze([330, 331, 332], [0.0, 1.5, -0.5], microwave_frequency_ghz=[9.8, 9.8, 9.8])
+    result = process_or_analyze(
+        [330, 331, 332],
+        [0.0, 1.5, -0.5],
+        microwave_frequency_ghz=[9.8, 9.8, 9.8],
+        magnetic_field_unit="mT",
+    )
     return {"ok": result["ok"], "result": result}

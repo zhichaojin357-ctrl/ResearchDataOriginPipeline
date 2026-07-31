@@ -175,7 +175,22 @@ def extract_xrd_raw_data_rows(path: Path) -> list[list[float]]:
     return rows
 
 
+class _OriginLifecycleFinalizationError(RuntimeError):
+    """Raised when an isolated Origin compatibility session cannot close."""
+
+
 def export_product_with_origin(product: ProductContext) -> dict[str, object]:
+    try:
+        return _export_product_with_origin_connected(product)
+    except _OriginLifecycleFinalizationError as exc:
+        return {
+            "ok": False,
+            "message": _product_status_message(product, exc),
+            "failure_stage": "origin_close",
+        }
+
+
+def _export_product_with_origin_connected(product: ProductContext) -> dict[str, object]:
     operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
     try:
         snapshot = extract_style_snapshot(operations, product.reference_opju_copy)
@@ -236,7 +251,23 @@ def export_product_with_origin(product: ProductContext) -> dict[str, object]:
     except Exception as exc:
         return {"ok": False, "message": _product_status_message(product, exc)}
     finally:
-        operations.close()
+        try:
+            close_result = operations.close()
+        except Exception as exc:
+            raise _OriginLifecycleFinalizationError(
+                "Origin lifecycle close failed after compatibility export: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+        if not getattr(close_result, "ok", False):
+            raise _OriginLifecycleFinalizationError(
+                str(
+                    getattr(
+                        close_result,
+                        "message",
+                        "Origin lifecycle close did not confirm success after compatibility export.",
+                    )
+                )
+            )
 
 
 def _build_processed_plot_table(

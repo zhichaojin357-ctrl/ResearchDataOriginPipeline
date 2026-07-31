@@ -49,22 +49,29 @@ def test_template_format_plan_can_use_saved_format_theme_when_opju_missing(tmp_p
     assert plan.one_to_one_claim_allowed is False
 
 
-def test_template_format_plan_treats_otpu_source_as_graph_template_compatibility(tmp_path: Path) -> None:
+def test_template_format_plan_blocks_otpu_as_the_only_runtime_style_source(tmp_path: Path) -> None:
     style_package = tmp_path / "BET.otpu"
     style_package.write_text("style", encoding="utf-8")
 
-    plan = build_template_format_plan(
+    source_plan = build_template_format_plan(
         "BET",
         opju_path=style_package,
         graph_page="Graph1",
     )
+    package_plan = build_template_format_plan(
+        "BET",
+        opju_path=tmp_path / "missing.opju",
+        graph_page="Graph1",
+        style_package_path=style_package,
+    )
 
-    assert plan.status == "ready"
-    assert plan.mode == "cached_graph_template"
-    assert plan.source_opju == style_package
-    assert plan.style_package_path == style_package
-    assert plan.graph_page == "Graph1"
-    assert plan.one_to_one_claim_allowed is False
+    for plan in (source_plan, package_plan):
+        assert plan.status == "blocked"
+        assert plan.mode == "untrusted_graph_template"
+        assert plan.can_execute is False
+        assert plan.graph_page == "Graph1"
+        assert plan.one_to_one_claim_allowed is False
+        assert ".otpu" in "; ".join(plan.warnings)
 
 
 def test_template_format_plan_blocks_without_opju_or_style_package(tmp_path: Path) -> None:

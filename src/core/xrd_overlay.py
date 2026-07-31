@@ -3,27 +3,35 @@ from __future__ import annotations
 import csv
 import json
 import math
+import subprocess
 import shutil
 import tempfile
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from datetime import datetime
 from pathlib import Path
 
 from src.core.metadata import file_hash
+from src.core.file_utils import ensure_safe_output_file_target
 from src.core.template_product_common import extract_xrd_raw_data_rows
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.origin_runtime import copy_runtime_artifact as _copy_runtime_artifact
 from src.core.origin_runtime import neutral_origin_runtime_root as _neutral_origin_runtime_root
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
-from src.core.powershell_helpers import ps_array as _ps_array
-from src.core.powershell_helpers import ps_int_array as _ps_int_array
-from src.core.powershell_helpers import ps_quote as _ps_quote
-from src.core.runtime_paths import create_run_output_layout, resolve_origin_helper, resolve_output_root
+from src.core.project import ensure_output_path_separate_from_inputs
+from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.xrd_helpers import interpolated_y as _interpolated_y
 from src.core.xrd_helpers import relative_path as _relative
 from src.core.xrd_helpers import to_finite_float as _to_float
-from src.origin.adapter import check_origin_available, write_origin_error, write_origin_success
+from src.origin.adapter import (
+    check_origin_available,
+    reexport_tif_from_reopened_opju,
+    write_origin_error,
+    write_origin_success,
+)
 from src.origin.operations import quote_labtalk
-from src.origin.plot_policy import GRAPH4_FIXED_STYLE, get_plot_policy
+from src.origin.plot_policy import GRAPH4_FIXED_STYLE
 from src.origin.text_format import origin_bold_text
 
 
@@ -53,7 +61,7 @@ class XrdOverlayOptions:
     output_root: Path | None = None
     with_origin: bool = False
     timestamp: str | None = None
-    force: bool = True
+    force: bool = False
 
 
 @dataclass(frozen=True)
@@ -144,30 +152,85 @@ def run_xrd_overlay(project_root: Path, options: XrdOverlayOptions) -> dict[str,
     options = replace(options, reference_opju=_resolve_reference_opju(project_root, options.reference_opju))
     _validate_inputs(options)
     output_root = resolve_output_root(project_root, explicit=options.output_root)
-    input_paths = [options.bicu_source, options.bobc_source, options.cwo_source, options.cwo_card]
-    if options.with_origin or options.reference_opju.exists():
+    input_paths = [
+        options.bicu_source,
+        options.bobc_source,
+        options.cwo_source,
+        options.cwo_card,
+    ]
+    if options.with_origin or options.reference_opju.is_file():
         input_paths.append(options.reference_opju)
+    ensure_output_path_separate_from_inputs(project_root, output_root, input_paths)
+    table = build_xrd_overlay_table(
+        options.bicu_source,
+        options.bobc_source,
+        options.cwo_source,
+        options.cwo_card,
+    )
+    protected_input_hashes = tuple(
+        (path, file_hash(path))
+        for path in input_paths
+    )
+    run_timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_root = output_root / "runs" / f"{run_timestamp}_xrd_bobc_shuire_cwo_overlay"
+    planned_artifacts = _xrd_overlay_artifacts(run_root)
+    planned_output_files = [
+        run_root / "run_manifest.json",
+        planned_artifacts.processed_data,
+        planned_artifacts.metadata,
+        planned_artifacts.report,
+    ]
+    if options.with_origin:
+        planned_output_files.extend(
+            (
+                planned_artifacts.origin_file,
+                planned_artifacts.figure_tif,
+                planned_artifacts.preview_png,
+                run_root / "reports" / "origin_errors.md",
+            )
+        )
+        origin_ok, origin_message = check_origin_available()
+        if (
+            not origin_ok
+            and options.force
+            and any(path.exists() for path in planned_output_files)
+        ):
+            raise RuntimeError(
+                "Origin is unavailable before XRD output preflight: "
+                + origin_message
+            )
+        pre_existing_pids = _xrd_origin_process_ids() if origin_ok else set()
+        if pre_existing_pids:
+            rendered = ", ".join(
+                str(pid) for pid in sorted(pre_existing_pids)
+            )
+            raise RuntimeError(
+                "Origin is already running before XRD output preflight; "
+                "refusing to replace any existing product or attach to the "
+                f"existing session (PIDs: {rendered})."
+            )
+    _preflight_xrd_outputs(
+        tuple(planned_output_files),
+        output_root=output_root,
+        force=options.force,
+    )
+    for path, digest in protected_input_hashes:
+        if not path.is_file() or file_hash(path) != digest:
+            raise RuntimeError(
+                f"Protected XRD input changed during output preflight: {path}"
+            )
     layout = create_run_output_layout(
         project_root,
         scope="xrd_bobc_shuire_cwo_overlay",
         command="xrd-overlay",
         mode="with_origin" if options.with_origin else "no_origin",
         input_paths=input_paths,
-        timestamp=options.timestamp,
+        timestamp=run_timestamp,
         no_origin=not options.with_origin,
         dry_run=not options.with_origin,
         output_base=output_root / "runs",
     )
-    artifacts = XrdOverlayArtifacts(
-        processed_data=layout.processed_data / "XRD_BiCu_BiOBr_CuWO4_overlay.csv",
-        metadata=layout.metadata / "XRD_BiCu_BiOBr_CuWO4_overlay" / "metadata.json",
-        report=layout.reports / "xrd_overlay_report.md",
-        origin_file=layout.origin_files / "XRD_BiCu_BiOBr_CuWO4_overlay.opju",
-        figure_tif=layout.figures_tif / "XRD_BiCu_BiOBr_CuWO4_overlay.tif",
-        preview_png=layout.figures_preview / "XRD_BiCu_BiOBr_CuWO4_overlay.png",
-        job_script=layout.logs / "origin_jobs" / "XRD_BiCu_BiOBr_CuWO4_overlay.ps1",
-    )
-    table = build_xrd_overlay_table(options.bicu_source, options.bobc_source, options.cwo_source, options.cwo_card)
+    artifacts = _xrd_overlay_artifacts(layout.root)
     _write_csv(artifacts.processed_data, table.headers, table.rows)
     export_status: dict[str, object] = {"ok": False, "message": "Origin export skipped by --dry-run/--no-origin."}
     if options.with_origin:
@@ -197,7 +260,7 @@ def _export_xrd_overlay_with_origin(
     if not ok:
         write_origin_error(project_root, f"xrd-overlay: {message}", output_root=artifacts.origin_file.parents[1])
         return {"ok": False, "message": f"Origin unavailable: {message}"}
-    _remove_stale_outputs(artifacts)
+    _remove_stale_outputs(artifacts, force=options.force)
     try:
         tif_status = _replace_graph4_template_data_with_originpro(options, artifacts)
     except Exception as exc:
@@ -221,11 +284,6 @@ def _export_xrd_overlay_with_origin(
 
 
 def _replace_graph4_template_data_with_originpro(options: XrdOverlayOptions, artifacts: XrdOverlayArtifacts) -> dict[str, object]:
-    try:
-        import originpro as op
-    except Exception as exc:
-        raise RuntimeError(f"originpro unavailable for OPJU template replacement: {exc}") from exc
-
     artifacts.origin_file.parent.mkdir(parents=True, exist_ok=True)
     artifacts.preview_png.parent.mkdir(parents=True, exist_ok=True)
     artifacts.figure_tif.parent.mkdir(parents=True, exist_ok=True)
@@ -234,10 +292,9 @@ def _replace_graph4_template_data_with_originpro(options: XrdOverlayOptions, art
         runtime = Path(runtime_text)
         runtime_origin = runtime / artifacts.origin_file.name
         runtime_png = runtime / artifacts.preview_png.name
-        runtime_tif = runtime / artifacts.figure_tif.name
         shutil.copy2(options.reference_opju, runtime_origin)
 
-        try:
+        with _isolated_xrd_originpro_session() as op:
             op.set_show(False)
             if not op.open(str(runtime_origin), readonly=False, asksave=False):
                 raise RuntimeError("failed to open copied Graph4 reference OPJU")
@@ -271,29 +328,126 @@ def _replace_graph4_template_data_with_originpro(options: XrdOverlayOptions, art
             _enforce_template_plot_colors(graph)
 
             graph.save_fig(str(runtime_png), type="png", replace=True, width=GRAPH4_FIXED_STYLE.page_width)
-            graph.save_fig(str(runtime_tif), type="tif", replace=True, width=GRAPH4_FIXED_STYLE.page_width)
             op.save(str(runtime_origin))
-        finally:
-            try:
-                op.exit()
-            except Exception:
-                pass
 
         if not runtime_png.exists():
             raise RuntimeError("Origin did not export the PNG preview")
-        if not runtime_tif.exists():
-            raise RuntimeError("Origin did not export the TIF figure")
         if not runtime_origin.exists():
             raise RuntimeError("Origin did not save the OPJU project")
-        _ensure_tif_600_dpi(runtime_tif)
+        runtime_tif = runtime / artifacts.figure_tif.name
+        resolution = reexport_tif_from_reopened_opju(
+            runtime_origin,
+            "Graph4",
+            runtime_tif,
+            dpi=600,
+        )
         _copy_runtime_artifact(runtime_origin, artifacts.origin_file)
         _copy_runtime_artifact(runtime_png, artifacts.preview_png)
         _copy_runtime_artifact(runtime_tif, artifacts.figure_tif)
     return {
         "ok": True,
-        "message": "Graph4 template data replaced and TIF exported at 600 dpi.",
+        "message": "Graph4 template data replaced and TIF natively exported at validated 600 dpi.",
         "neutral_runtime": True,
+        "tif_resolution": {
+            key: value
+            for key, value in resolution.as_dict().items()
+            if key != "path"
+        },
     }
+
+
+@contextmanager
+def _isolated_xrd_originpro_session():
+    """Yield originpro only when no user Origin session is already running."""
+
+    pre_existing_pids = _xrd_origin_process_ids()
+    if pre_existing_pids:
+        rendered = ", ".join(str(pid) for pid in sorted(pre_existing_pids))
+        raise RuntimeError(
+            "Origin is already running before XRD overlay export; refusing to "
+            f"attach to or close an existing session (PIDs: {rendered})."
+        )
+    try:
+        import originpro as op
+    except Exception as exc:
+        raise RuntimeError(
+            f"originpro unavailable for OPJU template replacement: {exc}"
+        ) from exc
+
+    try:
+        yield op
+    finally:
+        exit_error = ""
+        try:
+            op.exit()
+        except Exception as exc:
+            exit_error = f"{type(exc).__name__}: {exc}"
+        try:
+            remaining_pids = _wait_for_xrd_origin_exit(
+                pre_existing_pids,
+                timeout_seconds=30.0,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                "Origin lifecycle verification failed after XRD overlay export: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+        if exit_error or remaining_pids:
+            details: list[str] = []
+            if exit_error:
+                details.append(f"originpro exit raised {exit_error}")
+            if remaining_pids:
+                details.append(
+                    "new Origin process remained after the bounded exit wait "
+                    f"(PIDs: {', '.join(str(pid) for pid in sorted(remaining_pids))})"
+                )
+            raise RuntimeError(
+                "Origin lifecycle finalization failed after XRD overlay export; "
+                "the product must not be accepted: "
+                + "; ".join(details)
+            )
+
+
+def _xrd_origin_process_ids() -> set[int]:
+    completed = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "Get-Process -Name Origin* -ErrorAction SilentlyContinue | "
+            "Select-Object -ExpandProperty Id",
+        ],
+        text=True,
+        capture_output=True,
+        timeout=10,
+    )
+    if completed.returncode:
+        raise RuntimeError(
+            "Could not inspect existing Origin processes safely: "
+            + (completed.stderr or completed.stdout or "PowerShell query failed").strip()
+        )
+    pids: set[int] = set()
+    for line in completed.stdout.splitlines():
+        try:
+            pids.add(int(line.strip()))
+        except ValueError:
+            continue
+    return pids
+
+
+def _wait_for_xrd_origin_exit(
+    pre_existing_pids: set[int],
+    *,
+    timeout_seconds: float,
+) -> set[int]:
+    deadline = time.time() + max(0.0, timeout_seconds)
+    while True:
+        remaining = _xrd_origin_process_ids() - pre_existing_pids
+        if not remaining:
+            return set()
+        if time.time() >= deadline:
+            return remaining
+        time.sleep(0.5)
 
 
 def _write_scaled_xy_to_template_columns(
@@ -418,69 +572,6 @@ def _enforce_template_plot_colors(graph: object) -> None:
         top_plots[0].set_int("line.width", 3)
 
 
-def _origin_job_script(
-    project_root: Path,
-    options: XrdOverlayOptions,
-    table: XrdOverlayTable,
-    artifacts: XrdOverlayArtifacts,
-) -> str:
-    helper = resolve_origin_helper(project_root)
-    policy = get_plot_policy("XRD")
-    group = (
-        "@{\n"
-        f"  DataFile = {_ps_quote(artifacts.processed_data)}\n"
-        "  PageName = 'XRD_BiCu_BiOBr_CuWO4_overlay'\n"
-        f"  ColumnCount = {len(table.headers)}\n"
-        f"  Labels = {_ps_array(table.legend_labels)}\n"
-        f"  Palette = {_ps_int_array(table.origin_ocolors)}\n"
-        "  PlotType = '200'\n"
-        "  PlotPrimitive = 'line'\n"
-        "  MarkerMode = 'none'\n"
-        f"  FitOverlayMode = {_ps_quote(policy.fit_overlay_condition)}\n"
-        "  ShowYAxis = $true\n"
-        "  ShowYTicks = $false\n"
-        "  ShowYTickValues = $false\n"
-        "  ShowXTickValues = $true\n"
-        f"  XTitle = {_ps_quote(XRD_X_AXIS_TITLE)}\n"
-        f"  YTitle = {_ps_quote(XRD_Y_AXIS_TITLE)}\n"
-        "}"
-    )
-    lines = [
-        "$ErrorActionPreference = 'Stop'",
-        f"$groups = @({group})",
-        f"& {_ps_quote(helper)} -ReferenceOpju {_ps_quote(options.reference_opju)} -ReferenceGraph 'Graph4' "
-        f"-OutputOpju {_ps_quote(artifacts.origin_file)} -ExportDir {_ps_quote(artifacts.preview_png.parent)} "
-        "-Groups $groups -Headless -CloseOrigin",
-        f"if (-not (Test-Path -LiteralPath {_ps_quote(artifacts.preview_png)})) {{ throw 'PNG preview was not exported.' }}",
-    ]
-    return "\n".join(lines) + "\n"
-
-
-def _export_tif_with_originpro(artifacts: XrdOverlayArtifacts) -> dict[str, object]:
-    try:
-        import originpro as op
-    except Exception as exc:
-        return {"ok": False, "message": f"originpro unavailable for TIF export: {exc}"}
-    try:
-        op.set_show(False)
-        if not op.open(str(artifacts.origin_file), readonly=False, asksave=False):
-            return {"ok": False, "message": "Failed to open generated OPJU for TIF export."}
-        graph = op.find_graph("XRD_BiCu_BiOBr_CuWO4_overlay")
-        if graph is None:
-            return {"ok": False, "message": "Generated OPJU did not contain expected graph page."}
-        artifacts.figure_tif.parent.mkdir(parents=True, exist_ok=True)
-        result = graph.save_fig(str(artifacts.figure_tif), type="tif", replace=True, width=GRAPH4_FIXED_STYLE.page_width)
-        if not result or not artifacts.figure_tif.exists():
-            return {"ok": False, "message": "originpro did not create the TIF output."}
-        _ensure_tif_600_dpi(artifacts.figure_tif)
-        return {"ok": True, "message": "TIF exported at 600 dpi."}
-    finally:
-        try:
-            op.exit()
-        except Exception:
-            pass
-
-
 def _write_metadata(
     project_root: Path,
     run_root: Path,
@@ -489,12 +580,13 @@ def _write_metadata(
     artifacts: XrdOverlayArtifacts,
     export_status: dict[str, object],
 ) -> Path:
+    processing_status = _xrd_processing_status(options, export_status)
     payload = {
         "dataset_id": "XRD_BiCu_BiOBr_CuWO4_overlay",
         "run_root": _relative(run_root, run_root),
         "data_type": "XRD",
         "processor_name": "xrd_overlay_processor",
-        "processing_status": "success" if export_status.get("ok") else ("fail" if options.with_origin else "processed_no_origin"),
+        "processing_status": processing_status,
         "source_files": [
             _output_display_path(project_root, run_root, options.bicu_source),
             _output_display_path(project_root, run_root, options.bobc_source),
@@ -540,10 +632,11 @@ def _write_report(
     artifacts: XrdOverlayArtifacts,
     export_status: dict[str, object],
 ) -> Path:
+    processing_status = _xrd_processing_status(options, export_status)
     lines = [
         "# XRD Overlay Report",
         "",
-        f"- Status: {'success' if export_status.get('ok') else 'processed_no_origin'}",
+        f"- Status: {processing_status}",
         f"- Processed CSV: `{_relative(run_root, artifacts.processed_data)}`",
         f"- Origin OPJU: `{_relative(run_root, artifacts.origin_file) if artifacts.origin_file.exists() else 'not exported'}`",
         f"- TIF: `{_relative(run_root, artifacts.figure_tif) if artifacts.figure_tif.exists() else 'not exported'}`",
@@ -567,6 +660,15 @@ def _write_report(
     )
     artifacts.report.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return artifacts.report
+
+
+def _xrd_processing_status(
+    options: XrdOverlayOptions,
+    export_status: dict[str, object],
+) -> str:
+    if export_status.get("ok"):
+        return "success"
+    return "fail" if options.with_origin else "processed_no_origin"
 
 
 def _validate_inputs(options: XrdOverlayOptions) -> None:
@@ -629,23 +731,51 @@ def _write_csv(path: Path, headers: list[str], rows: list[list[float | None]]) -
             writer.writerow(["" if value is None else value for value in row])
 
 
-def _remove_stale_outputs(artifacts: XrdOverlayArtifacts) -> None:
-    for path in (artifacts.origin_file, artifacts.figure_tif, artifacts.preview_png):
-        if path.exists():
-            path.unlink()
+def _xrd_overlay_artifacts(run_root: Path) -> XrdOverlayArtifacts:
+    return XrdOverlayArtifacts(
+        processed_data=run_root / "processed_data" / "XRD_BiCu_BiOBr_CuWO4_overlay.csv",
+        metadata=run_root / "metadata" / "XRD_BiCu_BiOBr_CuWO4_overlay" / "metadata.json",
+        report=run_root / "reports" / "xrd_overlay_report.md",
+        origin_file=run_root / "origin_files" / "XRD_BiCu_BiOBr_CuWO4_overlay.opju",
+        figure_tif=run_root / "figures_tif" / "XRD_BiCu_BiOBr_CuWO4_overlay.tif",
+        preview_png=run_root / "figures_preview" / "XRD_BiCu_BiOBr_CuWO4_overlay.png",
+        job_script=run_root / "logs" / "origin_jobs" / "XRD_BiCu_BiOBr_CuWO4_overlay.ps1",
+    )
 
 
-def _ensure_tif_600_dpi(path: Path) -> None:
-    try:
-        from PIL import Image
-    except Exception:
-        return
-    with Image.open(path) as image:
-        output = image.copy()
-    if output.width < GRAPH4_FIXED_STYLE.page_width:
-        target_height = max(1, round(output.height * (GRAPH4_FIXED_STYLE.page_width / output.width)))
-        output = output.resize((GRAPH4_FIXED_STYLE.page_width, target_height))
-    output.save(path, format="TIFF", dpi=(600, 600), compression="tiff_lzw")
+def _preflight_xrd_outputs(
+    paths: tuple[Path, ...],
+    *,
+    output_root: Path,
+    force: bool,
+) -> None:
+    safe_paths = tuple(
+        dict.fromkeys(
+            ensure_safe_output_file_target(path, output_root=output_root)
+            for path in paths
+        )
+    )
+    existing = [path for path in safe_paths if path.exists()]
+    if existing and not force:
+        rendered = ", ".join(str(path) for path in existing[:8])
+        raise FileExistsError(
+            "One or more planned XRD overlay outputs already exist; rerun with force=True to overwrite: "
+            f"{rendered}"
+        )
+    directories = [path for path in existing if path.is_dir() and not path.is_symlink()]
+    if directories:
+        rendered = ", ".join(str(path) for path in directories[:8])
+        raise IsADirectoryError(f"Planned XRD file output collides with a directory: {rendered}")
+    for path in existing:
+        path.unlink()
+
+
+def _remove_stale_outputs(artifacts: XrdOverlayArtifacts, *, force: bool) -> None:
+    _preflight_xrd_outputs(
+        (artifacts.origin_file, artifacts.figure_tif, artifacts.preview_png),
+        output_root=artifacts.origin_file.parents[1],
+        force=force,
+    )
 
 
 def _output_display_path(project_root: Path, run_root: Path, path: Path) -> str:

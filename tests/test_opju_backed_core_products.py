@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from src.origin.type_mimic import TYPE_MIMIC_SPECS
-from src.origin.type_mimic.common import FORBIDDEN_PRODUCT_TYPES
+from src.origin.type_mimic import ALL_TYPE_MIMIC_SPECS, TYPE_MIMIC_SPECS
 
 
-def test_type_mimic_specs_cover_only_current_round_products() -> None:
+def test_type_mimic_specs_keep_core_exemplars_and_cover_current_products() -> None:
     assert set(TYPE_MIMIC_SPECS) == {"BET", "XPS_in_situ", "XPS_non_in_situ", "XRD", "EPR"}
-    assert "HPLC/LC exported data" in FORBIDDEN_PRODUCT_TYPES
-    assert "Raman" in FORBIDDEN_PRODUCT_TYPES
+    assert {"Raman", "EIS", "Mott-Schottky", "UV-vis DRS / Tauc", "PL", "photocurrent", "FTIR"}.issubset(
+        ALL_TYPE_MIMIC_SPECS
+    )
 
 
 def test_type_mimic_specs_use_required_neutral_product_names() -> None:

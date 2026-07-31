@@ -3,7 +3,10 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -17,8 +20,20 @@ import pandas as pd
 import win32com.client
 from PIL import Image
 
-from src.core.file_utils import is_under_or_equal  # noqa: E402
+from src.core.file_utils import (  # noqa: E402
+    ensure_safe_output_file_target,
+    file_sha256,
+    is_under_or_equal,
+    lexical_absolute_path,
+    prepare_safe_output_file_targets,
+)
 from src.core.runtime_paths import resolve_output_root  # noqa: E402
+from src.core.origin_runtime import (  # noqa: E402
+    cleanup_origin_runtime_directory,
+    copy_runtime_artifact,
+    neutral_origin_runtime_root,
+)
+from src.origin.adapter import reexport_tif_from_reopened_opju  # noqa: E402
 
 PAGE_NAME = "XRD_no_card_overlay"
 PALETTE = [
@@ -61,22 +76,127 @@ def wait_for_file(path: Path, timeout_seconds: float = 10.0) -> None:
 
 def ensure_output_dir_allowed(output_dir: Path, output_root: Path | None) -> Path:
     resolved_output_root = resolve_output_root(PROJECT_ROOT, explicit=output_root).resolve()
-    resolved_output_dir = output_dir.resolve()
-    if not is_under_or_equal(resolved_output_dir, resolved_output_root):
+    lexical_output_dir = lexical_absolute_path(output_dir)
+    if not is_under_or_equal(lexical_output_dir, resolved_output_root):
         raise ValueError(f"--output-dir must stay under the configured output root: {output_dir}")
-    return resolved_output_dir
+    ensure_safe_output_file_target(
+        lexical_output_dir / ".rdop_output_preflight",
+        output_root=resolved_output_root,
+    )
+    return lexical_output_dir
 
 
-def ensure_tif_600_dpi(path: Path, min_width: int = 6432) -> None:
-    with Image.open(path) as image:
-        output = image.copy()
-    if output.width < min_width:
-        target_height = max(1, round(output.height * (min_width / output.width)))
-        output = output.resize((min_width, target_height))
-    output.save(path, format="TIFF", dpi=(600, 600), compression="tiff_lzw")
+def validate_output_stem(output_stem: str) -> str:
+    value = str(output_stem)
+    if (
+        not value
+        or value != value.strip()
+        or value in {".", ".."}
+        or re.search(r'[<>:"/\\|?*\x00-\x1f]', value)
+        or value.endswith((".", " "))
+    ):
+        raise ValueError(
+            "--output-stem must be one non-empty safe Windows filename component."
+        )
+    reserved = {
+        "con",
+        "prn",
+        "aux",
+        "nul",
+        *(f"com{index}" for index in range(1, 10)),
+        *(f"lpt{index}" for index in range(1, 10)),
+    }
+    if value.split(".", 1)[0].casefold() in reserved:
+        raise ValueError("--output-stem may not use a reserved Windows device name.")
+    return value
 
 
-def inspect_reference_style(app: object, reference_opju: Path, graph_name: str) -> dict[str, float]:
+def paths_alias(left: Path, right: Path) -> bool:
+    lexical_left = lexical_absolute_path(left)
+    lexical_right = lexical_absolute_path(right)
+    if os.path.normcase(os.fspath(lexical_left)) == os.path.normcase(
+        os.fspath(lexical_right)
+    ):
+        return True
+    if (
+        os.path.lexists(os.fspath(lexical_left))
+        and os.path.lexists(os.fspath(lexical_right))
+    ):
+        try:
+            return os.path.samefile(lexical_left, lexical_right)
+        except OSError:
+            return False
+    return False
+
+
+def existing_origin_process_ids() -> tuple[int, ...]:
+    completed = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "Get-Process -Name Origin* -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id",
+        ],
+        text=True,
+        capture_output=True,
+        timeout=10,
+    )
+    if completed.returncode:
+        raise RuntimeError("Could not verify whether Origin is already running.")
+    pids: list[int] = []
+    for line in completed.stdout.splitlines():
+        try:
+            pids.append(int(line.strip()))
+        except ValueError:
+            continue
+    return tuple(sorted(set(pids)))
+
+
+def preflight_output_targets(
+    *,
+    output_dir: Path,
+    targets: tuple[Path, ...],
+    sources: tuple[Path, ...],
+    force: bool,
+) -> None:
+    safe_targets = tuple(
+        ensure_safe_output_file_target(path, output_root=output_dir)
+        for path in targets
+    )
+    for index, left in enumerate(safe_targets):
+        for right in safe_targets[index + 1 :]:
+            if paths_alias(left, right):
+                raise ValueError(
+                    f"Output targets must be mutually distinct: {left.name}, {right.name}"
+                )
+    for source in sources:
+        resolved = source.resolve()
+        if is_under_or_equal(resolved, output_dir):
+            raise ValueError(
+                "Input CSV and reference OPJU must be outside --output-dir so output cleanup cannot modify them."
+            )
+        for target in safe_targets:
+            if paths_alias(target, source):
+                raise ValueError(
+                    f"Output target aliases a protected input: {target.name}"
+                )
+    collisions = [
+        path
+        for path in safe_targets
+        if os.path.lexists(os.fspath(path))
+    ]
+    directories = [path for path in collisions if path.is_dir()]
+    if directories:
+        names = ", ".join(path.name for path in directories)
+        raise IsADirectoryError(f"Output target(s) collide with directories: {names}")
+    if collisions and not force:
+        names = ", ".join(path.name for path in collisions)
+        raise FileExistsError(
+            f"Output target(s) already exist: {names}; rerun with --force or choose a new output stem."
+        )
+
+
+def inspect_reference_style(app: object, reference_opju: Path | None, graph_name: str) -> dict[str, float]:
     style = {
         "page_width": 6432.0,
         "page_height": 4923.0,
@@ -88,25 +208,46 @@ def inspect_reference_style(app: object, reference_opju: Path, graph_name: str) 
     }
     if not reference_opju or not reference_opju.exists():
         return style
-    runtime = Path(tempfile.gettempdir()) / "ResearchDataOriginPipeline" / "origin_runtime"
-    runtime.mkdir(parents=True, exist_ok=True)
-    ref_copy = runtime / f"reference_{reference_opju.name}"
-    shutil.copy2(reference_opju, ref_copy)
-    if not bool(app.Load(str(ref_copy))):
-        raise RuntimeError(f"failed to load copied reference OPJU: {reference_opju}")
-    labtalk(app, f'win -a "{quote(graph_name)}"; layer -s 1;')
-    style.update(
-        {
-            "page_width": float(app.Evaluate("page.width")),
-            "page_height": float(app.Evaluate("page.height")),
-            "layer_left": float(app.Evaluate("layer.left")),
-            "layer_top": float(app.Evaluate("layer.top")),
-            "layer_width": float(app.Evaluate("layer.width")),
-            "layer_height": float(app.Evaluate("layer.height")),
-            "axis_thickness": float(app.Evaluate("layer.x.thickness")),
-        }
+    runtime_dir = Path(
+        tempfile.mkdtemp(
+            prefix="rdop_origin_xrd_reference_",
+            dir=neutral_origin_runtime_root(),
+        )
     )
-    app.NewProject()
+    ref_copy = runtime_dir / f"reference{reference_opju.suffix}"
+    try:
+        copy_runtime_artifact(reference_opju, ref_copy)
+        if not bool(app.Load(str(ref_copy))):
+            raise RuntimeError(f"failed to load copied reference OPJU: {reference_opju}")
+        labtalk(app, f'win -a "{quote(graph_name)}"; layer -s 1;')
+        style.update(
+            {
+                "page_width": float(app.Evaluate("page.width")),
+                "page_height": float(app.Evaluate("page.height")),
+                "layer_left": float(app.Evaluate("layer.left")),
+                "layer_top": float(app.Evaluate("layer.top")),
+                "layer_width": float(app.Evaluate("layer.width")),
+                "layer_height": float(app.Evaluate("layer.height")),
+                "axis_thickness": float(app.Evaluate("layer.x.thickness")),
+            }
+        )
+    finally:
+        reset_error = ""
+        try:
+            app.NewProject()
+        except Exception as exc:
+            reset_error = f"{type(exc).__name__}: {exc}"
+        cleanup = cleanup_origin_runtime_directory(runtime_dir)
+        if not bool(cleanup.get("ok")):
+            raise RuntimeError(
+                "failed to clean isolated XRD reference runtime: "
+                + str(cleanup.get("status") or "unknown")
+            )
+        if reset_error:
+            raise RuntimeError(
+                "failed to release isolated XRD reference project: "
+                + reset_error
+            )
     return style
 
 
@@ -243,18 +384,13 @@ def create_graph(app: object, book_name: str, data: pd.DataFrame, page_name: str
     return graph_name
 
 
-def export_graph(app: object, graph_name: str, output_dir: Path, output_stem: str) -> tuple[Path, Path]:
+def export_preview(app: object, graph_name: str, output_dir: Path, output_stem: str) -> Path:
     png = output_dir / f"{output_stem}.png"
-    tif = output_dir / f"{output_stem}.tif"
-    for path in (png, tif):
-        if path.exists():
-            path.unlink()
+    if png.exists():
+        png.unlink()
     labtalk(app, f'win -a "{quote(graph_name)}"; expGraph type:=png path:="{origin_path(output_dir)}" filename:="{output_stem}" overwrite:=replace;')
-    labtalk(app, f'win -a "{quote(graph_name)}"; expGraph type:=tif path:="{origin_path(output_dir)}" filename:="{output_stem}" overwrite:=replace;')
     wait_for_file(png)
-    wait_for_file(tif)
-    ensure_tif_600_dpi(tif)
-    return png, tif
+    return png
 
 
 def verify_output(app: object, graph_name: str, expected_plots: int, font_code: int) -> dict[str, object]:
@@ -314,27 +450,66 @@ def main() -> None:
     parser.add_argument("--input-csv", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--output-root", type=Path, default=None)
-    parser.add_argument("--reference-opju", type=Path, default=Path(""))
+    parser.add_argument("--reference-opju", type=Path, default=None)
     parser.add_argument("--reference-graph", default="Graph4")
     parser.add_argument("--output-stem", default="XRD_26.7.2_no_card_final")
     parser.add_argument("--page-name", default=PAGE_NAME)
     parser.add_argument("--labels", nargs="*", help="direct labels for each Y column; defaults to CSV Y-column headers")
+    parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
+    args.input_csv = args.input_csv.resolve()
+    if not args.input_csv.is_file():
+        raise FileNotFoundError(f"input CSV does not exist: {args.input_csv}")
+    if args.reference_opju is not None:
+        args.reference_opju = args.reference_opju.resolve()
+        if not args.reference_opju.is_file():
+            raise FileNotFoundError(f"reference OPJU does not exist: {args.reference_opju}")
     data = pd.read_csv(args.input_csv)
     if len(data.columns) < 2:
         raise ValueError(f"expected one X column and at least one Y column, got {len(data.columns)} columns")
+    for column in data.columns:
+        try:
+            numeric = pd.to_numeric(data[column], errors="raise").astype(float)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"XRD input column is not fully numeric: {column}"
+            ) from exc
+        if not all(math.isfinite(float(value)) for value in numeric):
+            raise ValueError(f"XRD input column contains non-finite values: {column}")
+        data[column] = numeric
     labels = list(args.labels or [str(column) for column in data.columns[1:]])
     if len(labels) != len(data.columns) - 1:
         raise ValueError(f"expected {len(data.columns) - 1} labels for Y columns, got {len(labels)} labels")
     args.output_dir = ensure_output_dir_allowed(args.output_dir, args.output_root)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    args.output_stem = validate_output_stem(args.output_stem)
     opju = args.output_dir / f"{args.output_stem}.opju"
     metadata = args.output_dir / f"{args.output_stem}_metadata.json"
     report = args.output_dir / f"{args.output_stem}_report.md"
-    for path in (opju, metadata, report, args.output_dir / f"{args.output_stem}.png", args.output_dir / f"{args.output_stem}.tif"):
-        if path.exists():
-            path.unlink()
+    png_target = args.output_dir / f"{args.output_stem}.png"
+    tif_target = args.output_dir / f"{args.output_stem}.tif"
+    targets = (opju, metadata, report, png_target, tif_target)
+    sources = (args.input_csv,) + ((args.reference_opju,) if args.reference_opju is not None else ())
+    preflight_output_targets(
+        output_dir=args.output_dir,
+        targets=targets,
+        sources=sources,
+        force=bool(args.force),
+    )
+    running_origin = existing_origin_process_ids()
+    if running_origin:
+        raise RuntimeError(
+            "Origin is already running; close every Origin session before running the XRD no-card helper."
+        )
+    prepare_safe_output_file_targets(
+        targets,
+        output_root=args.output_dir,
+        force=bool(args.force),
+        context="XRD no-card",
+    )
+    input_hash_before = file_sha256(args.input_csv)
+    reference_hash_before = file_sha256(args.reference_opju) if args.reference_opju is not None else None
+    args.output_dir.mkdir(parents=True, exist_ok=True)
 
     app = None
     try:
@@ -351,22 +526,55 @@ def main() -> None:
         checks = verify_output(app, graph_name, len(data.columns) - 1, font_code)
         app.Save(str(opju))
         wait_for_file(opju)
-        png, tif = export_graph(app, graph_name, args.output_dir, args.output_stem)
+        png = export_preview(app, graph_name, args.output_dir, args.output_stem)
+        app.Exit()
+        app = None
+        tif = tif_target
+        resolution = reexport_tif_from_reopened_opju(
+            opju,
+            graph_name,
+            tif,
+            dpi=600,
+        )
         with Image.open(tif) as image:
             tif_dpi = image.info.get("dpi", (0, 0))
             tif_info = {
                 "pixels": [int(value) for value in image.size],
                 "dpi": [float(value) for value in tif_dpi],
+                "resolution_evidence": {
+                    key: value
+                    for key, value in resolution.as_dict().items()
+                    if key != "path"
+                },
             }
+        input_hash_after = file_sha256(args.input_csv)
+        reference_hash_after = file_sha256(args.reference_opju) if args.reference_opju is not None else None
+        if input_hash_after != input_hash_before or reference_hash_after != reference_hash_before:
+            raise RuntimeError("An input CSV or reference OPJU changed during the Origin run; outputs are rejected.")
         payload = {
             "dataset_id": args.output_stem,
             "data_type": "XRD",
             "processor_name": "xrd_no_card_origin_com_script",
-            "input_csv": str(args.input_csv),
-            "reference_opju": str(args.reference_opju),
-            "origin_file": str(opju),
-            "preview_png": str(png),
-            "figure_tif": str(tif),
+            "processing_status": "success",
+            "input_csv": {
+                "filename": args.input_csv.name,
+                "sha256_before": input_hash_before,
+                "sha256_after": input_hash_after,
+            },
+            "reference_opju": (
+                {
+                    "filename": args.reference_opju.name,
+                    "sha256_before": reference_hash_before,
+                    "sha256_after": reference_hash_after,
+                    "used_read_only_via_working_copy": True,
+                }
+                if args.reference_opju is not None
+                else None
+            ),
+            "origin_file": opju.name,
+            "preview_png": png.name,
+            "figure_tif": tif.name,
+            "overwrite_authorized": bool(args.force),
             "plot_type": "single-page normalized offset XRD overlay without standard-card lines",
             "font": "Arial",
             "origin_font_code": font_code,
@@ -387,9 +595,9 @@ def main() -> None:
                 [
                     "# XRD No-Card Overlay Final",
                     "",
-                    f"- Origin OPJU: `{opju}`",
-                    f"- PNG preview: `{png}`",
-                    f"- TIF: `{tif}`",
+                    f"- Origin OPJU: `{opju.name}`",
+                    f"- PNG preview: `{png.name}`",
+                    f"- TIF: `{tif.name}`",
                     "- Font: Arial for axis titles, tick labels, and direct labels",
                     "- Standard card: not added",
                     "- Legend colored line samples: not used",

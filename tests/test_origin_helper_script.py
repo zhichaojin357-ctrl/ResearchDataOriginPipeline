@@ -45,6 +45,13 @@ def test_origin_helper_defaults_to_project_local_reference_opju() -> None:
     assert "templates\\origin_styles\\reference_opju\\XRD.opju" in text
 
 
+def test_origin_helper_reads_bomless_utf8_csv_explicitly() -> None:
+    text = _helper_text()
+
+    assert "Get-Content -LiteralPath $DataFile -Encoding UTF8 -TotalCount 1" in text
+    assert "Get-Content -LiteralPath $DataFile -Encoding UTF8)" in text
+
+
 def test_origin_helper_enforces_unframed_or_hidden_legends() -> None:
     text = _helper_text()
 

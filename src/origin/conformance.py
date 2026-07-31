@@ -205,6 +205,66 @@ def compare_style_snapshots(
                     )
                 )
 
+    for field_name, tolerance_kind in (
+        ("plot_colors", "exact"),
+        ("marker_shapes", "exact"),
+        ("marker_sizes", "relative"),
+    ):
+        expected_values = _series_style_values(exemplar, field_name)
+        if not expected_values:
+            continue
+        actual_values = _series_style_values(product, field_name)
+        if not actual_values:
+            missing.append(f"product:{field_name}")
+            issues.append(
+                ConformanceIssue(
+                    field=field_name,
+                    exemplar=str(expected_values),
+                    product=None,
+                    category="plot",
+                    severity="fail",
+                    message=f"critical product {field_name} readback is unavailable",
+                )
+            )
+            continue
+        if len(expected_values) != len(actual_values):
+            issues.append(
+                ConformanceIssue(
+                    field=field_name,
+                    exemplar=str(expected_values),
+                    product=str(actual_values),
+                    category="plot",
+                    severity="fail",
+                    message=(
+                        f"{field_name} count differs from the exemplar "
+                        f"({len(actual_values)} vs {len(expected_values)})"
+                    ),
+                )
+            )
+        for index, (expected, actual) in enumerate(
+            zip(expected_values, actual_values),
+            start=1,
+        ):
+            compared += 1
+            matches = (
+                _within_absolute_tolerance(expected, actual, 0.01)
+                if tolerance_kind == "exact"
+                else _within_tolerance(expected, actual, 0.02)
+            )
+            if matches:
+                matched += 1
+            else:
+                issues.append(
+                    ConformanceIssue(
+                        field=f"{field_name}[{index}]",
+                        exemplar=expected,
+                        product=actual,
+                        category="plot",
+                        severity="fail",
+                        message=f"product {field_name} differs from exemplar",
+                    )
+                )
+
     line_widths = _plot_widths(product)
     if not line_widths:
         missing.append("product:plot_line_widths")
@@ -304,6 +364,24 @@ def _combined_numeric_values(snapshot: OpjuStyleSnapshot | dict[str, Any]) -> di
 def _plot_widths(snapshot: OpjuStyleSnapshot | dict[str, Any]) -> list[float]:
     values = snapshot.plot_line_widths if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("plot_line_widths", [])
     return [number for item in values if (number := _to_float(item)) is not None]
+
+
+def _series_style_values(
+    snapshot: OpjuStyleSnapshot | dict[str, Any],
+    field_name: str,
+) -> list[float]:
+    values = (
+        getattr(snapshot, field_name, [])
+        if isinstance(snapshot, OpjuStyleSnapshot)
+        else snapshot.get(field_name, [])
+    )
+    if not isinstance(values, (list, tuple)):
+        return []
+    return [
+        number
+        for item in values
+        if (number := _to_float(item)) is not None
+    ]
 
 
 def _axis_titles_bold(snapshot: OpjuStyleSnapshot | dict[str, Any]) -> bool:

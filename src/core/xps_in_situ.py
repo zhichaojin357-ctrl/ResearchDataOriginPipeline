@@ -1,3 +1,10 @@
+"""Legacy compatibility/test implementation for the former XPS in-situ path.
+
+The maintained CLI path is the template-format product workflow. This module
+is intentionally not registered as a second production entrypoint; keep it
+only until its remaining compatibility tests or external imports are retired.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,7 +17,6 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.image_artifacts import ensure_tif_600_dpi_metadata
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.xps_heterojunction import (
     XpsFitRecord,
@@ -25,7 +31,11 @@ from src.core.xps_heterojunction import (
     load_xps_fit_workbooks,
 )
 from src.core.runtime_paths import resolve_workspace_root
-from src.origin.adapter import check_origin_available, write_origin_error
+from src.origin.adapter import (
+    check_origin_available,
+    reexport_tif_from_reopened_opju,
+    write_origin_error,
+)
 
 
 TARGET_ELEMENTS = ("Bi", "Br", "Cl", "Cu", "W", "O")
@@ -209,8 +219,15 @@ def build_xps_in_situ_outputs(
         or (_output_path(output_dir, output_dir / "xps_in_situ_combined.tif") if (output_dir / "xps_in_situ_combined.tif").exists() else None),
         "preview_png": origin_status.get("preview_png")
         or (_output_path(output_dir, output_dir / "xps_in_situ_combined.png") if (output_dir / "xps_in_situ_combined.png").exists() else None),
-        "processing_status": "success" if origin_status.get("ok") else "processed_no_origin",
+        "processing_status": (
+            "success"
+            if origin_status.get("ok")
+            else ("origin_failed" if with_origin else "processed_no_origin")
+        ),
         "origin_status": _sanitize_output_payload(origin_status, output_dir),
+        "tif_resolution_evidence": origin_status.get(
+            "tif_resolution_evidence"
+        ),
         "quality_checks": quality_checks,
         "manual_check_required": True,
         "manual_check_items": [
@@ -695,7 +712,7 @@ def _try_write_origin_project(
         write_origin_error(project_root, f"xps_in_situ_combined: {message}")
         return {"requested": True, "ok": False, "origin_file": None, "message": message}
     try:
-        _write_origin_project(
+        tif_resolution_evidence = _write_origin_project(
             panel_records,
             origin_file,
             output_dir / "xps_in_situ_combined_origin_preview.png",
@@ -726,7 +743,7 @@ def _try_write_origin_project(
             "origin_file": _output_path(output_dir, origin_file) if origin_file.exists() else None,
             "message": message,
         }
-    return {
+    payload: dict[str, Any] = {
         "requested": True,
         "ok": True,
         "origin_file": _output_path(output_dir, origin_file),
@@ -734,6 +751,11 @@ def _try_write_origin_project(
         "preview_png": _output_path(output_dir, preview_png),
         "message": "Origin project saved with final figure image page plus editable worksheets and graph pages.",
     }
+    if tif_resolution_evidence is not None:
+        evidence_payload = dict(tif_resolution_evidence.as_dict())
+        evidence_payload["path"] = _output_path(output_dir, figure_tif)
+        payload["tif_resolution_evidence"] = evidence_payload
+    return payload
 
 
 def _write_origin_project(
@@ -742,7 +764,7 @@ def _write_origin_project(
     preview_png: Path,
     final_png: Path,
     figure_tif: Path,
-) -> None:
+) -> Any:
     import originpro as op
 
     def safe_name(value: str) -> str:
@@ -813,10 +835,14 @@ def _write_origin_project(
         op.lt_exec('doc -e W { page.comments$=""; page.comment$=""; wks.comments$=""; wks.comment$=""; }; doc -e P { page.comments$=""; page.comment$=""; };')
         op.save(str(origin_file))
         graph.save_fig(str(preview_png), type="png", replace=True, width=2800)
-        graph.save_fig(str(figure_tif), type="tif", replace=True, width=3600)
-        ensure_tif_600_dpi_metadata(figure_tif)
     finally:
         op.exit()
+    return reexport_tif_from_reopened_opju(
+        origin_file,
+        "xps_in_situ_combined",
+        figure_tif,
+        dpi=600,
+    )
 
 
 def _origin_layer_positions(rows: int, cols: int) -> list[tuple[float, float, float, float]]:

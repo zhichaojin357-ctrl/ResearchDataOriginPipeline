@@ -10,7 +10,13 @@ from pathlib import Path
 from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.metadata import file_hash
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.project import load_json_compatible_yaml, output_dir, registry_path
+from src.core.project import (
+    default_output_root,
+    ensure_output_path_separate_from_inputs,
+    load_json_compatible_yaml,
+    output_dir,
+    registry_path,
+)
 from src.core.table_reader import coerce_numeric_rows, read_table_with_metadata
 
 
@@ -110,6 +116,11 @@ class TriageOptions:
 
 def run_triage(project_root: Path, input_path: Path, options: TriageOptions | None = None) -> dict:
     options = options or TriageOptions()
+    ensure_output_path_separate_from_inputs(
+        project_root,
+        options.output_root or default_output_root(project_root),
+        [input_path],
+    )
     input_path = input_path.absolute()
     registry = load_json_compatible_yaml(registry_path(project_root))
     entries = list(registry["entries"])

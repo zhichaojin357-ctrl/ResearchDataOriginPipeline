@@ -42,14 +42,15 @@ The conservative the current automated pipeline core dependency draft is:
 
 Optional dependencies must remain optional:
 
-- Missing optional dependencies produce warnings, not failures.
+- Missing optional dependencies do not break unrelated commands. A selected
+  file-format command may fail explicitly when its required extra is absent.
 - Optional imports should live behind adapters or lazy import checks.
 - Optional libraries must not expand the current automated pipeline scope. For example, an EIS fitting library does not permit automatic equivalent-circuit fitting in the current automated pipeline.
 - Optional packages that parse proprietary vendor formats should only be enabled after format-specific tests and license review.
 
 ## Current EIS/EPR/XPS Adapter Decisions
 
-- `impedance` 1.7.1 reports MIT metadata and is allowed only through `src.adapters.eis_impedance_adapter`; its CustomCircuit Rs+(Rct||CPE) output is a draft visualization candidate, not an equivalent-circuit conclusion.
+- `impedance` 1.7.1 reports MIT metadata, but the formal EIS processor does not call it. `src.adapters.eis_impedance_adapter` and `draft_fit_eis_randles_cpe` are retained only for separately approved diagnostic/manual-review work.
 - `pyimpspec` 5.1.3 reports GPLv3 metadata and remains reference-only/import-smoke. It must not be placed in the default automated EIS processing path without explicit owner approval.
 - `cwepr` 0.5.1 reports BSD metadata and `eprpy` 0.9.0b2 reports MIT metadata. They may support EPR candidate metrics through `src.adapters.epr_adapter`, with radical assignment still blocked.
 - `vgd-reader` 0.1.0 reports MIT metadata and may parse Thermo VGD XPS spectra through `src.adapters.xps_vgd_reader_adapter`; parsed spectra remain unassigned XPS tables.
@@ -65,7 +66,8 @@ Optional dependencies must remain optional:
 ## Current Local Import Audit
 
 - Available with permissive or acceptable metadata in `D:\Python\python.exe`: `impedance`, `ixdat`, `pyGAPS`, `nmrglue`, `tifffile`, `Pillow`, `vgd-reader`, `MOCCA2`, `pymzML`, `pyteomics`, `cwepr`, `eprpy`, and narrow `lmfitxps` import/provenance use.
-- Reference-only or non-default because of GPL/LGPL/unclear license boundaries: `pyimpspec`, `galvani`, `eclabfiles`, `hplc-py`, and `rainbow-api`.
+- Reference-only or non-default because of GPL/unclear license boundaries: `pyimpspec`, `galvani`, `eclabfiles`, and `hplc-py`.
+- `rainbow-api` is an LGPL command-specific dependency for the maintained OpenLab raw-data export. It is not imported by unrelated commands, and the OpenLab command must fail explicitly if it is absent or too old.
 - Not importable in the current `D:\Python\python.exe` environment and not used by the main flow: `ramanspy`, `rampy`, `spectrochempy`, and `matchms`. `matchms` is blocked for the current automated pipeline because its dry-run would change core numpy/scipy versions.
 
 ## Origin Tools And Manual References

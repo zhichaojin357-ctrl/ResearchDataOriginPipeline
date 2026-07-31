@@ -6,7 +6,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from src.core.origin_governance import REQUIRED_JOURNAL_INDEX_COLUMNS, run_origin_governance
+from src.core.origin_governance import (
+    REQUIRED_JOURNAL_INDEX_COLUMNS,
+    _package_import_status,
+    run_origin_governance,
+)
 from src.core.validate import validate
 from src.core.project import default_output_root
 
@@ -127,6 +131,29 @@ def test_origin_governance_cli_help_documents_governance_command(project_root: P
     assert result.returncode == 0
     assert "--skill-dir" in result.stdout
     assert "--package-dir" in result.stdout
+
+
+def test_reference_and_diagnostic_package_probe_does_not_import_module(monkeypatch):
+    imported: list[str] = []
+
+    monkeypatch.setattr(
+        "src.core.origin_governance.importlib.import_module",
+        lambda module: imported.append(module),
+    )
+    monkeypatch.setattr(
+        "src.core.origin_governance.importlib.util.find_spec",
+        lambda module: object(),
+    )
+
+    result = _package_import_status(
+        "pyimpspec",
+        "pyimpspec",
+        allow_import=False,
+    )
+
+    assert result["import_status"] == "available_not_imported"
+    assert result["smoke_status"] == "not_run_by_policy"
+    assert imported == []
 
 
 def _write_package_index(path: Path) -> None:

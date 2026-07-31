@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import math
+import re
 import statistics
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,6 +20,8 @@ class EisPoint:
     frequency_hz: float | None
     z_real_ohm: float
     minus_z_imag_ohm: float
+    impedance_magnitude_ohm: float | None = None
+    phase_deg: float | None = None
 
     def to_row(self) -> dict[str, float | int | None]:
         return {
@@ -26,6 +29,41 @@ class EisPoint:
             "frequency_hz": self.frequency_hz,
             "z_real_ohm": self.z_real_ohm,
             "minus_z_imag_ohm": self.minus_z_imag_ohm,
+        }
+
+
+@dataclass(frozen=True)
+class EisMeasurementResult:
+    points: list[EisPoint]
+    selected_columns: dict[str, str]
+    warnings: list[str] = field(default_factory=list)
+    column_transforms: dict[str, dict[str, object]] = field(default_factory=dict)
+
+    def to_metadata(self) -> dict[str, object]:
+        magnitude_transform = self.column_transforms.get("impedance_magnitude_ohm", {})
+        phase_transform = self.column_transforms.get("phase_deg", {})
+        return {
+            "measured_point_count": len(self.points),
+            "selected_columns": dict(self.selected_columns),
+            "column_transforms": {
+                key: dict(value)
+                for key, value in self.column_transforms.items()
+            },
+            "point_selection_policy": (
+                "all parsed measured points retained; no automatic outlier removal "
+                "or semicircle-main-branch selection"
+            ),
+            "magnitude_source": (
+                "source_column"
+                if magnitude_transform.get("status") == "converted"
+                else "derived_from_measured_impedance_components"
+            ),
+            "phase_source": (
+                "source_column"
+                if phase_transform.get("status") == "converted"
+                else "derived_from_measured_impedance_components"
+            ),
+            "warnings": list(self.warnings),
         }
 
 
@@ -90,30 +128,152 @@ class EisFitResult:
         return payload
 
 
-def clean_eis_file(path: Path) -> EisCleaningResult:
+def read_eis_measurements(path: Path) -> EisMeasurementResult:
     table = read_table_with_metadata(path)
     if not table.rows:
         raise ValueError(f"EIS table has no rows: {path}")
     columns = list(table.rows[0].keys())
     selected = _pick_eis_columns(columns)
+    real_scale, real_unit = _required_impedance_conversion(selected["z_real_ohm"])
+    imag_scale, imag_unit = _required_impedance_conversion(selected["minus_z_imag_ohm"])
+    frequency_conversion = _frequency_conversion_to_hz(selected.get("frequency_hz", ""))
+    magnitude_conversion = _impedance_conversion_to_ohm(selected.get("impedance_magnitude_ohm", ""))
+    phase_conversion = _phase_conversion_to_deg(selected.get("phase_deg", ""))
+    imag_sign, imag_sign_policy, imag_sign_evidence = _imaginary_to_minus_sign(
+        selected["minus_z_imag_ohm"],
+        rows=table.rows,
+        z_real_column=selected["z_real_ohm"],
+        phase_column=selected.get("phase_deg", ""),
+        real_scale=real_scale,
+        imag_scale=imag_scale,
+        phase_conversion=phase_conversion,
+    )
     points: list[EisPoint] = []
     warnings: list[str] = []
+    transforms: dict[str, dict[str, object]] = {
+        "z_real_ohm": {
+            "source_column": selected["z_real_ohm"],
+            "source_unit": real_unit,
+            "multiplier_to_ohm": real_scale,
+            "status": "converted",
+        },
+        "minus_z_imag_ohm": {
+            "source_column": selected["minus_z_imag_ohm"],
+            "source_unit": imag_unit,
+            "unit_multiplier_to_ohm": imag_scale,
+            "sign_multiplier_to_minus_imaginary": imag_sign,
+            "imaginary_sign_convention": imag_sign_policy,
+            "sign_evidence": imag_sign_evidence,
+            "status": "converted",
+        },
+    }
+    _record_optional_transform(
+        transforms,
+        warnings,
+        canonical_name="frequency_hz",
+        source_column=selected.get("frequency_hz", ""),
+        conversion=frequency_conversion,
+        multiplier_key="multiplier_to_hz",
+        unknown_message="EIS frequency column unit was not explicit; frequency values were omitted rather than labeled as Hz.",
+    )
+    _record_optional_transform(
+        transforms,
+        warnings,
+        canonical_name="impedance_magnitude_ohm",
+        source_column=selected.get("impedance_magnitude_ohm", ""),
+        conversion=magnitude_conversion,
+        multiplier_key="multiplier_to_ohm",
+        unknown_message=(
+            "EIS impedance-magnitude column unit was not explicit; magnitude was derived "
+            "from the converted real and imaginary components."
+        ),
+    )
+    _record_optional_transform(
+        transforms,
+        warnings,
+        canonical_name="phase_deg",
+        source_column=selected.get("phase_deg", ""),
+        conversion=phase_conversion,
+        multiplier_key="multiplier_to_deg",
+        unknown_message=(
+            "EIS phase column unit was not explicit; phase was derived from the converted "
+            "real and imaginary components."
+        ),
+    )
     for row_index, row in enumerate(table.rows, start=1):
         z_real = _to_float(row.get(selected["z_real_ohm"], ""))
         minus_z_imag = _to_float(row.get(selected["minus_z_imag_ohm"], ""))
-        frequency = _to_float(row.get(selected["frequency_hz"], "")) if selected.get("frequency_hz") else None
         if z_real is None or minus_z_imag is None:
             continue
-        if _looks_like_raw_imaginary_column(selected["minus_z_imag_ohm"]):
-            minus_z_imag = abs(minus_z_imag)
-        points.append(EisPoint(row_index, frequency, z_real, minus_z_imag))
+        z_real *= real_scale
+        minus_z_imag *= imag_scale * imag_sign
+        frequency = _converted_optional_value(
+            row,
+            selected.get("frequency_hz", ""),
+            frequency_conversion,
+        )
+        if frequency is not None and frequency <= 0:
+            frequency = None
+            _append_once(
+                warnings,
+                "Non-positive EIS frequency values were omitted from Bode-ready output.",
+            )
+        magnitude = (
+            _converted_optional_value(
+                row,
+                selected.get("impedance_magnitude_ohm", ""),
+                magnitude_conversion,
+            )
+        )
+        if magnitude is None or magnitude < 0:
+            if magnitude is not None and magnitude < 0:
+                _append_once(
+                    warnings,
+                    "Negative EIS impedance-magnitude values were ignored and derived from the impedance components.",
+                )
+            magnitude = math.hypot(z_real, minus_z_imag)
+        phase = _converted_optional_value(
+            row,
+            selected.get("phase_deg", ""),
+            phase_conversion,
+        )
+        if phase is None:
+            phase = math.degrees(math.atan2(-minus_z_imag, z_real))
+        points.append(
+            EisPoint(
+                row_index,
+                frequency,
+                z_real,
+                minus_z_imag,
+                impedance_magnitude_ohm=magnitude,
+                phase_deg=phase,
+            )
+        )
     if len(points) < 2:
         raise ValueError(f"EIS table has fewer than 2 numeric Z rows: {path}")
+    return EisMeasurementResult(
+        points=points,
+        selected_columns=selected,
+        warnings=warnings,
+        column_transforms=transforms,
+    )
+
+
+def clean_eis_file(path: Path) -> EisCleaningResult:
+    measurement = read_eis_measurements(path)
+    points = measurement.points
     cleaned, ignored = _remove_obvious_outliers(points)
     if len(cleaned) < 2:
+        warnings = list(measurement.warnings)
         warnings.append("Outlier filtering would leave fewer than two points; raw numeric points were retained.")
-        return EisCleaningResult(points, points, [], selected, warnings)
-    return EisCleaningResult(points, cleaned, ignored, selected, warnings)
+        return EisCleaningResult(points, points, [], measurement.selected_columns, warnings)
+    return EisCleaningResult(
+        points,
+        cleaned,
+        ignored,
+        measurement.selected_columns,
+        list(measurement.warnings),
+    )
 
 
 def select_eis_semicircle_main_branch(
@@ -219,10 +379,6 @@ def draft_fit_eis_randles_cpe(points: list[EisPoint], *, fit_points: int = 240) 
     )
 
 
-def draft_fit_eis_arc(points: list[EisPoint], *, fit_points: int = 240) -> EisFitResult:
-    return draft_fit_eis_randles_cpe(points, fit_points=fit_points)
-
-
 def _draft_fit_with_impedance_adapter(points: list[EisPoint], *, fit_points: int) -> EisFitResult | None:
     if len(points) < 4:
         return None
@@ -296,6 +452,28 @@ def eis_plot_rows(cleaned: list[EisPoint], fit: EisFitResult, *, scale: float = 
                 measured_point.minus_z_imag_ohm * scale if measured_point else None,
                 fit_point[0] * scale if fit_point else None,
                 fit_point[1] * scale if fit_point else None,
+            ]
+        )
+    return output
+
+
+def eis_measured_plot_rows(points: Iterable[EisPoint], *, scale: float = 1.0) -> list[list[float | None]]:
+    """Return source-order measured Nyquist coordinates plus Bode-ready columns."""
+    output: list[list[float | None]] = []
+    for point in points:
+        magnitude = point.impedance_magnitude_ohm
+        if magnitude is None:
+            magnitude = math.hypot(point.z_real_ohm, point.minus_z_imag_ohm)
+        phase = point.phase_deg
+        if phase is None:
+            phase = math.degrees(math.atan2(-point.minus_z_imag_ohm, point.z_real_ohm))
+        output.append(
+            [
+                point.z_real_ohm * scale,
+                point.minus_z_imag_ohm * scale,
+                point.frequency_hz,
+                magnitude * scale,
+                phase,
             ]
         )
     return output
@@ -399,10 +577,24 @@ def _first_low_frequency_invalid_index(points: list[EisPoint], hard_invalid_inde
 
 
 def _pick_eis_columns(columns: list[str]) -> dict[str, str]:
-    frequency = _first_matching(columns, lambda text: "freq" in text)
+    frequency = _first_matching(
+        columns,
+        lambda text: (
+            "freq" in text
+            or "angular frequency" in text
+            or "omega" in text
+            or "ω" in text
+        ),
+    )
     z_real = _first_matching(
         columns,
-        lambda text: ("z'" in text or "z real" in text or "zreal" in text)
+        lambda text: (
+            "z'" in text
+            or "z real" in text
+            or "zreal" in text
+            or "re(z)" in text
+            or "real(z)" in text
+        )
         and "''" not in text
         and "imag" not in text
         and "phase" not in text
@@ -410,18 +602,30 @@ def _pick_eis_columns(columns: list[str]) -> dict[str, str]:
     )
     minus_z_imag = _first_matching(
         columns,
-        lambda text: ("-z''" in text or "z''" in text or "imag" in text or "-z" in text)
+        lambda text: (
+            "-z''" in text
+            or "z''" in text
+            or "imag" in text
+            or "im(z)" in text
+            or "zimag" in text
+            or "-z" in text
+        )
         and "phase" not in text,
     )
-    if z_real is None or minus_z_imag is None:
-        numeric = [column for column in columns if column and "phase" not in _normalize(column)]
-        if len(numeric) >= 3:
-            frequency = frequency or numeric[0]
-            z_real = z_real or numeric[1]
-            minus_z_imag = minus_z_imag or numeric[2]
+    impedance_magnitude = _first_matching(
+        columns,
+        lambda text: "|z|" in text or "modulus" in text or "magnitude" in text or "zmod" in text,
+    )
+    phase = _first_matching(columns, lambda text: "phase" in text)
     if z_real is None or minus_z_imag is None:
         raise ValueError(f"Could not identify EIS Z columns from headers: {columns}")
-    return {"frequency_hz": frequency or "", "z_real_ohm": z_real, "minus_z_imag_ohm": minus_z_imag}
+    return {
+        "frequency_hz": frequency or "",
+        "z_real_ohm": z_real,
+        "minus_z_imag_ohm": minus_z_imag,
+        "impedance_magnitude_ohm": impedance_magnitude or "",
+        "phase_deg": phase or "",
+    }
 
 
 def _first_matching(columns: list[str], predicate) -> str | None:
@@ -431,13 +635,222 @@ def _first_matching(columns: list[str], predicate) -> str | None:
     return None
 
 
-def _looks_like_raw_imaginary_column(column: str) -> bool:
+def _imaginary_to_minus_sign(
+    column: str,
+    *,
+    rows: list[dict[str, object]],
+    z_real_column: str,
+    phase_column: str,
+    real_scale: float,
+    imag_scale: float,
+    phase_conversion: tuple[float, str] | None,
+) -> tuple[float, str, dict[str, object]]:
     normalized = _normalize(column).strip()
-    return (
-        not normalized.startswith("-")
-        and "-z" not in normalized
-        and ("imag" in normalized or normalized.startswith("im") or "z''" in normalized)
+    explicitly_negative = (
+        normalized.startswith("-")
+        or "-im" in normalized
+        or "-z''" in normalized
+        or "minus" in normalized
+        or "negative imag" in normalized
+        or "neg imag" in normalized
     )
+    if explicitly_negative:
+        return (
+            1.0,
+            "source_is_minus_imaginary_preserve_signed_values",
+            {"method": "explicit_header_prefix"},
+        )
+    if (
+        "imag" in normalized
+        or normalized.startswith("im")
+        or "im(z)" in normalized
+    ):
+        return (
+            -1.0,
+            "source_is_raw_imaginary_negated_without_absolute_value",
+            {"method": "explicit_raw_imaginary_header"},
+        )
+    if "z''" in normalized:
+        sign, evidence = _resolve_ambiguous_z_double_prime_sign(
+            rows,
+            z_real_column=z_real_column,
+            z_double_prime_column=column,
+            phase_column=phase_column,
+            real_scale=real_scale,
+            imag_scale=imag_scale,
+            phase_conversion=phase_conversion,
+        )
+        return (
+            sign,
+            "ambiguous_z_double_prime_resolved_from_phase_consistency",
+            evidence,
+        )
+    raise ValueError(f"Could not determine EIS imaginary sign convention from header: {column!r}")
+
+
+def _resolve_ambiguous_z_double_prime_sign(
+    rows: list[dict[str, object]],
+    *,
+    z_real_column: str,
+    z_double_prime_column: str,
+    phase_column: str,
+    real_scale: float,
+    imag_scale: float,
+    phase_conversion: tuple[float, str] | None,
+) -> tuple[float, dict[str, object]]:
+    if not phase_column or phase_conversion is None:
+        raise ValueError(
+            "Bare EIS Z''/Z\" headers are sign-ambiguous. Supply an explicit Im(Z) or -Z'' "
+            "header, or an explicit-unit phase column for consistency resolution."
+        )
+    deltas: dict[float, list[float]] = {1.0: [], -1.0: []}
+    for row in rows:
+        z_real = _to_float(row.get(z_real_column, ""))
+        z_double_prime = _to_float(row.get(z_double_prime_column, ""))
+        phase = _converted_optional_value(row, phase_column, phase_conversion)
+        if z_real is None or z_double_prime is None or phase is None:
+            continue
+        z_real *= real_scale
+        z_double_prime *= imag_scale
+        for sign in (1.0, -1.0):
+            minus_imag = z_double_prime * sign
+            predicted_phase = math.degrees(math.atan2(-minus_imag, z_real))
+            deltas[sign].append(_angular_difference_deg(predicted_phase, phase))
+    if min(len(values) for values in deltas.values()) < 2:
+        raise ValueError(
+            "Bare EIS Z''/Z\" sign could not be resolved: fewer than two rows have "
+            "numeric real, imaginary, and explicit-unit phase values."
+        )
+    median_deltas = {
+        sign: statistics.median(values)
+        for sign, values in deltas.items()
+    }
+    ranked = sorted(median_deltas.items(), key=lambda item: item[1])
+    best_sign, best_delta = ranked[0]
+    second_delta = ranked[1][1]
+    if best_delta > 20.0 or second_delta - best_delta < 10.0:
+        raise ValueError(
+            "Bare EIS Z''/Z\" sign remains ambiguous after phase-consistency checking: "
+            f"median phase deltas are preserve={median_deltas[1.0]:.3f} deg and "
+            f"negate={median_deltas[-1.0]:.3f} deg."
+        )
+    return best_sign, {
+        "method": "phase_consistency",
+        "rows_compared": len(deltas[best_sign]),
+        "median_phase_delta_deg_if_preserved": median_deltas[1.0],
+        "median_phase_delta_deg_if_negated": median_deltas[-1.0],
+        "selected_sign_multiplier": best_sign,
+    }
+
+
+def _angular_difference_deg(left: float, right: float) -> float:
+    return abs((left - right + 180.0) % 360.0 - 180.0)
+
+
+def _required_impedance_conversion(column: str) -> tuple[float, str]:
+    conversion = _impedance_conversion_to_ohm(column)
+    if conversion is None:
+        raise ValueError(
+            "EIS impedance unit must be explicit in the real and imaginary column headers "
+            f"(supported: ohm/Ω, kOhm/kΩ, MOhm/MΩ, mOhm/mΩ): {column!r}"
+        )
+    return conversion
+
+
+def _impedance_conversion_to_ohm(column: str) -> tuple[float, str] | None:
+    text = str(column).strip()
+    if not text:
+        return None
+    compact = re.sub(r"[\s_\[\](){}]+", "", text)
+    if re.search(r"(?:MΩ|M[Oo]hm)", compact):
+        return 1_000_000.0, "MOhm"
+    if re.search(r"(?:kΩ|[kK][Oo]hm)", compact):
+        return 1_000.0, "kOhm"
+    if re.search(r"(?:mΩ|m[Oo]hm)", compact):
+        return 0.001, "mOhm"
+    normalized = _normalize(text)
+    if "ohm" in normalized or "Ω" in text:
+        return 1.0, "ohm"
+    return None
+
+
+def _frequency_conversion_to_hz(column: str) -> tuple[float, str] | None:
+    text = str(column).strip()
+    if not text:
+        return None
+    compact = re.sub(r"[\s_\[\](){}]+", "", text)
+    normalized = _normalize(text).replace(" ", "")
+    if "rad/s" in normalized or "rads-1" in normalized or "rads^-1" in normalized:
+        return 1.0 / (2.0 * math.pi), "rad/s"
+    if re.search(r"(?:MHz)", compact):
+        return 1_000_000.0, "MHz"
+    if re.search(r"(?:kHz|KHz|KHZ)", compact):
+        return 1_000.0, "kHz"
+    if re.search(r"(?:mHz)", compact):
+        return 0.001, "mHz"
+    if re.search(r"(?:Hz|HZ|hz)", compact):
+        return 1.0, "Hz"
+    return None
+
+
+def _phase_conversion_to_deg(column: str) -> tuple[float, str] | None:
+    text = str(column).strip()
+    if not text:
+        return None
+    normalized = _normalize(text)
+    if "degree" in normalized or "deg" in normalized or "°" in text:
+        return 1.0, "deg"
+    if "rad" in normalized:
+        return 180.0 / math.pi, "rad"
+    return None
+
+
+def _record_optional_transform(
+    transforms: dict[str, dict[str, object]],
+    warnings: list[str],
+    *,
+    canonical_name: str,
+    source_column: str,
+    conversion: tuple[float, str] | None,
+    multiplier_key: str,
+    unknown_message: str,
+) -> None:
+    if not source_column:
+        transforms[canonical_name] = {
+            "source_column": "",
+            "status": "derived_or_unavailable",
+        }
+        return
+    if conversion is None:
+        transforms[canonical_name] = {
+            "source_column": source_column,
+            "status": "ignored_unknown_unit",
+        }
+        _append_once(warnings, unknown_message)
+        return
+    multiplier, source_unit = conversion
+    transforms[canonical_name] = {
+        "source_column": source_column,
+        "source_unit": source_unit,
+        multiplier_key: multiplier,
+        "status": "converted",
+    }
+
+
+def _converted_optional_value(
+    row: dict[str, object],
+    source_column: str,
+    conversion: tuple[float, str] | None,
+) -> float | None:
+    if not source_column or conversion is None:
+        return None
+    value = _to_float(row.get(source_column, ""))
+    return value * conversion[0] if value is not None else None
+
+
+def _append_once(values: list[str], message: str) -> None:
+    if message not in values:
+        values.append(message)
 
 
 def _normalize(value: object) -> str:
@@ -450,6 +863,10 @@ def _normalize(value: object) -> str:
         .replace("\u2032", "'")
         .replace("\u2019", "'")
         .replace("\u2033", "''")
+        .replace("\u2212", "-")
+        .replace("\u207b", "-")
+        .replace("\u00b7", "")
+        .replace('"', "''")
     )
 
 

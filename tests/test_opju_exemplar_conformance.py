@@ -80,3 +80,40 @@ def test_conformance_accepts_origin_rich_text_bold_axis_titles() -> None:
 
     assert report.axis_title_bold is True
     assert not any(issue.field == "axis_title.bold" for issue in report.issues)
+
+
+def test_conformance_rejects_curve_color_marker_shape_and_marker_size_drift() -> None:
+    common = {
+        "status": "extracted",
+        "layout_values": {"page.width": 720, "page.height": 540},
+        "audit_numeric_values": {
+            "xb.bold": 1,
+            "yl.bold": 1,
+            "xb.fsize": 28,
+            "yl.fsize": 28,
+        },
+        "plot_line_widths": [1500.0, 1500.0],
+    }
+    exemplar = OpjuStyleSnapshot(
+        source_opju="reference.opju",
+        plot_colors=[2.0, 4.0],
+        marker_shapes=[20.0, 21.0],
+        marker_sizes=[9.0, 10.0],
+        **common,
+    )
+    product = OpjuStyleSnapshot(
+        source_opju="product.opju",
+        plot_colors=[2.0, 7.0],
+        marker_shapes=[20.0, 22.0],
+        marker_sizes=[9.0, 10.5],
+        **common,
+    )
+
+    report = compare_style_snapshots(exemplar, product)
+
+    assert report.status == "fail"
+    assert {issue.field for issue in report.issues} >= {
+        "plot_colors[2]",
+        "marker_shapes[2]",
+        "marker_sizes[2]",
+    }

@@ -7,16 +7,23 @@ import re
 import shutil
 import tempfile
 import traceback
+from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from src.core.file_utils import file_sha256
 from src.core.template_product_common import ProductContext, _product_output_path
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.core.origin_runtime import (
+    cleanup_origin_runtime_directory as _cleanup_origin_runtime_directory,
+)
 from src.core.origin_runtime import copy_runtime_artifact as _copy_runtime_artifact
 from src.core.origin_runtime import neutral_origin_runtime_root as _neutral_origin_runtime_root
 from src.core.template_product_builder import (
     TemplateProductBuilderOptions,
     _csv_bounds_for_columns,
+    _export_native_tif_with_physical_validation,
+    _style_snapshot_axis_title_bold_required,
     _strict_style_readback,
     is_template_xrd_reference_stick_header,
     run_template_product_builder_all_types,
@@ -67,6 +74,7 @@ class TemplateFormatExecutorOptions:
     exemplar_driven: bool = False
     compact_output: bool = False
     only_type: str | None = None
+    style_replay_report: Path | None = None
 
 
 def build_template_product_builder_options(options: TemplateFormatExecutorOptions) -> TemplateProductBuilderOptions:
@@ -95,6 +103,7 @@ def build_template_product_builder_options(options: TemplateFormatExecutorOption
         exemplar_driven=options.exemplar_driven,
         compact_output=options.compact_output,
         only_type=options.only_type,
+        style_replay_report=options.style_replay_report,
     )
 
 
@@ -233,6 +242,26 @@ def _read_template_plot_dataset_names(operations: object, graph_name: str, *, ma
     return {"ok": True, "plot_dataset_names": names, "layers_read": layers_read}
 
 
+class _OriginLifecycleFailure(RuntimeError):
+    def __init__(self, payload: dict[str, object]) -> None:
+        self.payload = payload
+        details: list[str] = []
+        if not bool(payload.get("origin_close_ok")):
+            close_message = str(payload.get("origin_close_message") or "").strip()
+            details.append(f"Origin close failed{': ' + close_message if close_message else ''}")
+        cleanup = payload.get("runtime_cleanup")
+        if isinstance(cleanup, dict) and not bool(cleanup.get("ok")):
+            cleanup_status = str(cleanup.get("status") or "failed")
+            cleanup_error = str(cleanup.get("error") or "").strip()
+            details.append(
+                f"runtime cleanup {cleanup_status}{': ' + cleanup_error if cleanup_error else ''}"
+            )
+        super().__init__(
+            "Origin lifecycle finalization failed; product acceptance is blocked"
+            + (": " + "; ".join(details) if details else "")
+        )
+
+
 def export_template_base_product_with_origin(
     product: ProductContext,
     style: ResolvedPlotStyle,
@@ -242,7 +271,34 @@ def export_template_base_product_with_origin(
     preserve_exemplar_style: bool = False,
     asset_only: bool = False,
 ) -> dict[str, object]:
+    try:
+        return _export_template_base_product_with_origin_impl(
+            product,
+            style,
+            project_root=project_root,
+            prefer_project_style_asset=prefer_project_style_asset,
+            preserve_exemplar_style=preserve_exemplar_style,
+            asset_only=asset_only,
+        )
+    except _OriginLifecycleFailure as exc:
+        return {
+            "ok": False,
+            "message": str(exc),
+            "origin_runtime_cleanup": exc.payload,
+        }
+
+
+def _export_template_base_product_with_origin_impl(
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    *,
+    project_root: Path | None = None,
+    prefer_project_style_asset: bool = True,
+    preserve_exemplar_style: bool = False,
+    asset_only: bool = False,
+) -> dict[str, object]:
     operations = None
+    runtime_cleanup_path: Path | None = None
     try:
         if asset_only and preserve_exemplar_style:
             return {"ok": False, "message": "asset-only export cannot preserve an external exemplar"}
@@ -257,18 +313,16 @@ def export_template_base_product_with_origin(
         neutral_root = _neutral_origin_runtime_root()
         with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root, ignore_cleanup_errors=True) as runtime_text:
             runtime = Path(runtime_text)
+            runtime_cleanup_path = runtime
             project_template_opju = _project_local_template_opju_for_product(product, style_asset)
             reference_source = project_template_opju or product.reference_opju_copy
-            if asset_only and reference_source.suffix.casefold() in {".opju", ".opj"}:
-                return {
-                    "ok": False,
-                    "message": "asset-only export rejected an OPJU/OPJ template base",
-                    "asset_only": True,
-                    "external_template_dependency": False,
-                }
             runtime_reference = runtime / reference_source.name
             plan_opju: Path | None = None
-            if reference_source.suffix.casefold() in {".opju", ".opj"} and reference_source.is_file():
+            if (
+                not asset_only
+                and reference_source.suffix.casefold() in {".opju", ".opj"}
+                and reference_source.is_file()
+            ):
                 shutil.copy2(reference_source, runtime_reference)
                 plan_opju = runtime_reference
             runtime_origin = runtime / product.origin_file.name
@@ -296,9 +350,16 @@ def export_template_base_product_with_origin(
             if not plan.can_execute:
                 return {"ok": False, "message": "; ".join(plan.warnings), "template_format_plan": plan.to_dict()}
             if plan.mode == "saved_format_theme":
-                return _export_saved_format_theme_product_with_origin(operations, product, style, plan)
-            if plan.mode == "cached_graph_template":
-                return _export_cached_style_package_product_with_origin(operations, product, style, plan)
+                return _export_saved_format_theme_product_with_origin(
+                    operations,
+                    product,
+                    style,
+                    plan,
+                    project_reference_opju=getattr(style_asset, "template_opju_path", None),
+                    project_reference_graph=str(getattr(style_asset, "graph_page", "") or ""),
+                    require_project_reference=asset_only,
+                    runtime_dir=runtime,
+                )
             if plan.mode == "embedded_template_snapshot" and embedded_snapshot is not None:
                 return _export_template_snapshot_fallback_product_with_origin(
                     operations,
@@ -459,14 +520,18 @@ def export_template_base_product_with_origin(
             conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
             strict_readback = _strict_style_readback(product_snapshot.to_dict())
             png = operations.export_graph(reopened_graph, runtime_preview_png, "png", dpi=style.export_dpi)
-            tif = operations.export_graph(reopened_graph, runtime_tif, "tif", dpi=style.export_dpi)
+            tif = _export_native_tif_with_physical_validation(
+                operations,
+                reopened_graph,
+                runtime_tif,
+                dpi=style.export_dpi,
+            )
             operations.export_graph(reopened_graph, runtime_generated_debug, "png", dpi=style.export_dpi)
             metadata_warnings = [
                 warning
                 for warning in (
                     _strip_raster_metadata(runtime_reference_png, dpi=style.export_dpi),
                     _strip_raster_metadata(runtime_preview_png, dpi=style.export_dpi),
-                    _strip_raster_metadata(runtime_tif, dpi=style.export_dpi),
                 )
                 if warning
             ]
@@ -485,10 +550,13 @@ def export_template_base_product_with_origin(
                     "product_style": product_snapshot.to_dict(),
                     "conformance": conformance.to_dict(),
                 }
-            if not getattr(png, "ok", False) or not getattr(tif, "ok", False):
+            if not getattr(png, "ok", False) or not bool(tif.get("ok")):
                 return {
                     "ok": False,
-                    "message": scrub_output_text(f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}", output_root=product.type_root.parent),
+                    "message": scrub_output_text(
+                        f"{getattr(png, 'message', '')}; {tif.get('message', '')}",
+                        output_root=product.type_root.parent,
+                    ),
                     "template_format_plan": plan.to_dict(),
                     "template_base_replacement": replacement,
                     "exemplar_style": exemplar_style,
@@ -520,6 +588,7 @@ def export_template_base_product_with_origin(
                 "graph_page": reopened_graph,
                 "raster_metadata_stripped": not metadata_warnings,
                 "metadata_warnings": metadata_warnings,
+                "tif_resolution_evidence": tif.get("evidence", {}),
                 "legend_policy": _plain_text_legend_policy(
                     product,
                     entries=legend_entries,
@@ -533,6 +602,7 @@ def export_template_base_product_with_origin(
             },
             "xps_component_fill": _template_base_xps_fill_intent(product, replacement),
             "reopened_graph": reopened_graph,
+            "tif_resolution_evidence": tif.get("evidence", {}),
             "line_width_policy_pt": style.line_width_pt,
             "axis_title_bold_policy": style.font_bold,
         }
@@ -543,8 +613,98 @@ def export_template_base_product_with_origin(
             "traceback": scrub_output_text(traceback.format_exc(), output_root=product.type_root.parent),
         }
     finally:
+        close_result = None
+        close_exception = ""
         if operations is not None:
-            operations.close()
+            try:
+                close_result = operations.close()
+            except Exception as exc:
+                close_exception = f"{type(exc).__name__}: {exc}"
+        try:
+            cleanup_result = _cleanup_origin_runtime_directory(runtime_cleanup_path)
+        except Exception as exc:
+            cleanup_result = {
+                "ok": False,
+                "status": "cleanup_raised",
+                "attempts": 0,
+                "runtime_directory": runtime_cleanup_path.name if runtime_cleanup_path is not None else "",
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+        if (
+            bool(close_exception)
+            or (close_result is not None and not getattr(close_result, "ok", False))
+            or not bool(cleanup_result.get("ok"))
+        ):
+            try:
+                failure_payload = _record_origin_runtime_cleanup_failure(
+                    product,
+                    close_result=close_result,
+                    close_exception=close_exception,
+                    cleanup_result=cleanup_result,
+                )
+            except Exception as exc:
+                failure_payload = {
+                    "status": "failed",
+                    "origin_close_ok": not bool(close_exception)
+                    and (close_result is None or bool(getattr(close_result, "ok", False))),
+                    "origin_close_message": scrub_output_text(
+                        close_exception
+                        or (getattr(close_result, "message", "") if close_result is not None else ""),
+                        output_root=product.type_root.parent,
+                    ),
+                    "runtime_cleanup": dict(cleanup_result),
+                    "diagnostic_write_error": scrub_output_text(
+                        f"{type(exc).__name__}: {exc}",
+                        output_root=product.type_root.parent,
+                    ),
+                }
+            raise _OriginLifecycleFailure(failure_payload)
+
+
+def _record_origin_runtime_cleanup_failure(
+    product: ProductContext,
+    *,
+    close_result: object | None,
+    close_exception: str = "",
+    cleanup_result: dict[str, object],
+) -> dict[str, object]:
+    failure_path = product.type_root / "debug" / "origin_runtime_cleanup_failure.json"
+    failure_path.parent.mkdir(parents=True, exist_ok=True)
+    close_ok = not close_exception and (
+        close_result is None or bool(getattr(close_result, "ok", False))
+    )
+    payload = {
+        "status": "failed",
+        "origin_close_ok": close_ok,
+        "origin_close_message": scrub_output_text(
+            close_exception
+            or (getattr(close_result, "message", "") if close_result is not None else ""),
+            output_root=product.type_root.parent,
+        ),
+        "runtime_cleanup": {
+            "ok": bool(cleanup_result.get("ok")),
+            "status": str(cleanup_result.get("status") or ""),
+            "attempts": int(cleanup_result.get("attempts") or 0),
+            "runtime_directory": str(cleanup_result.get("runtime_directory") or ""),
+            "error": scrub_output_text(
+                str(cleanup_result.get("error") or ""),
+                output_root=product.type_root.parent,
+            ),
+        },
+        "manual_check_required": (
+            "Confirm the isolated Origin process has exited."
+            + (
+                " Remove the retained runtime directory only after its lock is released."
+                if not bool(cleanup_result.get("ok"))
+                else ""
+            )
+        ),
+    }
+    failure_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return payload
 
 
 def _can_use_template_snapshot_fallback(product: ProductContext) -> bool:
@@ -575,6 +735,19 @@ def _export_template_snapshot_fallback_product_with_origin(
     runtime_generated_debug: Path,
     preserve_exemplar_style: bool = False,
 ) -> dict[str, object]:
+    if not runtime_reference_png.is_file() or runtime_reference_png.stat().st_size == 0:
+        return {
+            "ok": False,
+            "message": "Snapshot fallback requires an independent reference preview; the generated product preview cannot be reused as its own reference.",
+            "template_format_plan": plan.to_dict(),
+            "template_base_replacement": replacement_failure,
+            "exemplar_style": exemplar_snapshot.to_dict(),
+            "reference_preview": {
+                "required": True,
+                "available": False,
+                "generated_preview_reuse_blocked": True,
+            },
+        }
     headers, _rows = _read_processed_csv(product.processed_data)
     if len(headers) < 2:
         return {
@@ -754,11 +927,13 @@ def _export_template_snapshot_fallback_product_with_origin(
     conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
     strict_readback = _strict_style_readback(product_snapshot.to_dict())
     png = operations.export_graph(reopened_graph, runtime_preview_png, "png", dpi=style.export_dpi)
-    tif = operations.export_graph(reopened_graph, runtime_tif, "tif", dpi=style.export_dpi)
+    tif = _export_native_tif_with_physical_validation(
+        operations,
+        reopened_graph,
+        runtime_tif,
+        dpi=style.export_dpi,
+    )
     operations.export_graph(reopened_graph, runtime_generated_debug, "png", dpi=style.export_dpi)
-    if not runtime_reference_png.exists() and runtime_preview_png.exists():
-        runtime_reference_png.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(runtime_preview_png, runtime_reference_png)
     if not runtime_template_debug.exists() and runtime_reference_png.exists():
         runtime_template_debug.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(runtime_reference_png, runtime_template_debug)
@@ -767,7 +942,6 @@ def _export_template_snapshot_fallback_product_with_origin(
         for warning in (
             _strip_raster_metadata(runtime_reference_png, dpi=style.export_dpi),
             _strip_raster_metadata(runtime_preview_png, dpi=style.export_dpi),
-            _strip_raster_metadata(runtime_tif, dpi=style.export_dpi),
         )
         if warning
     ]
@@ -786,10 +960,13 @@ def _export_template_snapshot_fallback_product_with_origin(
             "product_style": product_snapshot.to_dict(),
             "conformance": conformance.to_dict(),
         }
-    if not getattr(png, "ok", False) or not getattr(tif, "ok", False):
+    if not getattr(png, "ok", False) or not bool(tif.get("ok")):
         return {
             "ok": False,
-            "message": scrub_output_text(f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}", output_root=product.type_root.parent),
+            "message": scrub_output_text(
+                f"{getattr(png, 'message', '')}; {tif.get('message', '')}",
+                output_root=product.type_root.parent,
+            ),
             "template_format_plan": plan.to_dict(),
             "template_base_replacement": replacement_failure,
             "exemplar_style": exemplar_snapshot.to_dict(),
@@ -833,6 +1010,7 @@ def _export_template_snapshot_fallback_product_with_origin(
             "axis_range_policy": data_axis_policy,
             "raster_metadata_stripped": not metadata_warnings,
             "metadata_warnings": metadata_warnings,
+            "tif_resolution_evidence": tif.get("evidence", {}),
             "legend_policy": _plain_text_legend_policy(
                 product,
                 entries=legend_entries,
@@ -846,162 +1024,7 @@ def _export_template_snapshot_fallback_product_with_origin(
         },
         "xps_component_fill": _template_base_xps_fill_intent(product, {"ok": True, "template_dataset_updates": {}}),
         "reopened_graph": reopened_graph,
-        "line_width_policy_pt": style.line_width_pt,
-        "axis_title_bold_policy": style.font_bold,
-    }
-
-
-def _export_cached_style_package_product_with_origin(
-    operations: object,
-    product: ProductContext,
-    style: ResolvedPlotStyle,
-    plan: object,
-) -> dict[str, object]:
-    style_package_path = Path(str(getattr(plan, "style_package_path", "") or ""))
-    if not style_package_path.is_file():
-        return {"ok": False, "message": f"Saved Origin style package not found: {style_package_path}", "template_format_plan": plan.to_dict()}
-    headers, _rows = _read_processed_csv(product.processed_data)
-    neutral_root = _neutral_origin_runtime_root()
-    with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root) as runtime_text:
-        runtime = Path(runtime_text)
-        runtime_style = runtime / style_package_path.name
-        shutil.copy2(style_package_path, runtime_style)
-        runtime_origin = runtime / product.origin_file.name
-        runtime_png = runtime / product.preview_png.name
-        runtime_tif = runtime / product.figure_tif.name
-
-        operations.new_project()
-        imported = operations.import_csv_to_worksheet(product.processed_data, book_name=f"{product.slug}_data")
-        if not getattr(imported, "ok", False):
-            return {"ok": False, "message": getattr(imported, "message", "CSV import failed"), "template_format_plan": plan.to_dict()}
-        book_name = str(imported.payload["book_name"])
-        graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
-        created = operations.create_graph_from_template(graph_name, runtime_style)
-        if not getattr(created, "ok", False):
-            return {"ok": False, "message": getattr(created, "message", "template graph creation failed"), "template_format_plan": plan.to_dict()}
-        graph_name = str(created.payload.get("graph_name") or graph_name)
-        plot_pairs = _processed_csv_plot_pairs(product, headers)
-        for pair_index, (x_col, y_col) in enumerate(plot_pairs, start=1):
-            header = headers[y_col - 1] if y_col - 1 < len(headers) else ""
-            added = operations.add_plot_to_graph(
-                graph_name,
-                book_name,
-                "Sheet1",
-                x_col,
-                y_col,
-                plot_type=template_plot_type_for_header(product.product_key, str(header), product.plot_type),
-            )
-            if not getattr(added, "ok", False) and pair_index == 1:
-                return {"ok": False, "message": getattr(added, "message", "first plot add failed"), "template_format_plan": plan.to_dict()}
-        operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
-        _apply_template_base_global_policies(operations, graph_name, product, style)
-        apply_resolved_style_overrides(operations, graph_name, style)
-        data_axis_policy = _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
-        saved_style_snapshot = _load_saved_style_snapshot(style_package_path)
-        saved_data_snapshot = _load_saved_data_snapshot(style_package_path)
-        reviewed_plot_policy = _apply_reviewed_template_plot_policy(
-            operations,
-            graph_name,
-            product,
-            saved_style_snapshot,
-            style,
-            data_snapshot=saved_data_snapshot,
-        )
-        legend_policy = _apply_cached_style_rich_text_policies(
-            operations,
-            graph_name,
-            product,
-            style,
-            snapshot=saved_style_snapshot,
-        )
-        legend_policy["reviewed_template_plot_policy"] = reviewed_plot_policy
-        product_style: dict[str, object] = {}
-        strict_readback: dict[str, bool] = {}
-        conformance: dict[str, object] = {}
-        try:
-            pages_result = operations.list_worksheets()
-            pages = getattr(pages_result, "payload", {}).get("pages", []) if getattr(pages_result, "ok", False) else []
-            graph_pages = [str(item["name"]) for item in pages if isinstance(item, dict) and item.get("type") == "graph"]
-            snapshot = read_graph_style_snapshot(operations, graph_name, source_label=product.origin_file.name, graph_pages=graph_pages)
-            product_style = snapshot.to_dict()
-            strict_readback = _strict_style_readback(product_style)
-            conformance = {
-                "status": "cached_style_package_readback",
-                "axis_title_bold": bool(strict_readback.get("axis_title_bold", True)),
-                "plot_line_width_origin_units": product_style.get("plot_line_widths", []),
-                "compared_fields": 1,
-                "matched_fields": 1,
-            }
-        except Exception as exc:
-            conformance = {"status": "cached_style_package_readback_failed", "message": str(exc)}
-        legend_policy["final_reviewed_legend"] = _finalize_reviewed_template_legend(
-            operations,
-            graph_name,
-            product,
-            saved_style_snapshot,
-            style,
-        )
-        render_refresh = _refresh_graph_for_export(operations, graph_name)
-        saved = operations.save_project(runtime_origin)
-        if not getattr(saved, "ok", False):
-            return {"ok": False, "message": getattr(saved, "message", "project save failed"), "template_format_plan": plan.to_dict()}
-        png = operations.export_graph(graph_name, runtime_png, "png", dpi=style.export_dpi)
-        tif = operations.export_graph(graph_name, runtime_tif, "tif", dpi=style.export_dpi)
-        metadata_warnings = [
-            warning
-            for warning in (
-                _strip_raster_metadata(runtime_png, dpi=style.export_dpi),
-                _strip_raster_metadata(runtime_tif, dpi=style.export_dpi),
-            )
-            if warning
-        ]
-        missing = [path for path in (runtime_origin, runtime_png, runtime_tif) if not path.exists() or path.stat().st_size == 0]
-        if missing:
-            return {
-                "ok": False,
-                "message": "missing artifacts: " + "; ".join(path.name for path in missing),
-                "template_format_plan": plan.to_dict(),
-            }
-        if not getattr(png, "ok", False) or not getattr(tif, "ok", False):
-            return {
-                "ok": False,
-                "message": scrub_output_text(f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}", output_root=product.type_root.parent),
-                "template_format_plan": plan.to_dict(),
-            }
-        operations.new_project()
-        _copy_runtime_artifact(runtime_origin, product.origin_file)
-        _copy_runtime_artifact(runtime_png, product.preview_png)
-        _copy_runtime_artifact(runtime_tif, product.figure_tif)
-    missing = [path for path in (product.origin_file, product.preview_png, product.figure_tif) if not path.exists() or path.stat().st_size == 0]
-    if missing:
-        return {
-            "ok": False,
-            "message": "missing copied artifacts: " + "; ".join(_product_output_path(product.type_root.parent, path) for path in missing),
-            "template_format_plan": plan.to_dict(),
-        }
-    return {
-        "ok": True,
-        "message": "Origin cached style-package export succeeded.",
-        "template_format_plan": plan.to_dict(),
-        "origin_processing": {
-            "required": True,
-            "applied": True,
-            "method": "cached_style_package_graph_template",
-            "processing_location": "Origin project-local .otpu graph template",
-            "style_package_path": _product_output_path(product.type_root.parent, style_package_path),
-            "graph_page": graph_name,
-            "neutral_runtime": True,
-            "raster_metadata_stripped": not metadata_warnings,
-            "metadata_warnings": metadata_warnings,
-            "axis_range_policy": data_axis_policy,
-            "legend_policy": legend_policy,
-            "render_refresh": render_refresh,
-        },
-        "product_style": product_style,
-        "strict_style_readback": strict_readback,
-        "conformance": conformance,
-        "xps_component_fill": _cached_style_package_xps_fill_intent(product),
-        "reopened_graph": graph_name,
+        "tif_resolution_evidence": tif.get("evidence", {}),
         "line_width_policy_pt": style.line_width_pt,
         "axis_title_bold_policy": style.font_bold,
     }
@@ -1012,6 +1035,11 @@ def _export_saved_format_theme_product_with_origin(
     product: ProductContext,
     style: ResolvedPlotStyle,
     plan: object,
+    *,
+    project_reference_opju: Path | None = None,
+    project_reference_graph: str = "",
+    require_project_reference: bool = False,
+    runtime_dir: Path | None = None,
 ) -> dict[str, object]:
     theme_path = Path(str(getattr(plan, "style_package_path", "") or ""))
     if not theme_path.is_file():
@@ -1019,8 +1047,16 @@ def _export_saved_format_theme_product_with_origin(
     headers, _rows = _read_processed_csv(product.processed_data)
     if len(headers) < 2:
         return {"ok": False, "message": "processed CSV must contain at least one X column and one Y column", "template_format_plan": plan.to_dict()}
-    neutral_root = _neutral_origin_runtime_root()
-    with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root) as runtime_text:
+    runtime_context = (
+        nullcontext(str(runtime_dir))
+        if runtime_dir is not None
+        else tempfile.TemporaryDirectory(
+            prefix="rdop_origin_",
+            dir=_neutral_origin_runtime_root(),
+            ignore_cleanup_errors=True,
+        )
+    )
+    with runtime_context as runtime_text:
         runtime = Path(runtime_text)
         runtime_theme = runtime / theme_path.name
         shutil.copy2(theme_path, runtime_theme)
@@ -1035,6 +1071,8 @@ def _export_saved_format_theme_product_with_origin(
             runtime,
             runtime_reference_png,
             style,
+            project_reference_opju=project_reference_opju,
+            project_reference_graph=project_reference_graph,
         )
         if not external_reference_preview.get("ok", True):
             return {
@@ -1042,6 +1080,14 @@ def _export_saved_format_theme_product_with_origin(
                 "message": str(external_reference_preview.get("message") or "external reference preview export failed"),
                 "template_format_plan": plan.to_dict(),
                 "external_reference_preview": external_reference_preview,
+            }
+        if require_project_reference and external_reference_preview.get("reference_kind") != "project_local_reference_opju":
+            return {
+                "ok": False,
+                "message": "Asset-only export requires an independently loaded project-local reference OPJU preview.",
+                "template_format_plan": plan.to_dict(),
+                "external_reference_preview": external_reference_preview,
+                "asset_only": True,
             }
 
         operations.new_project()
@@ -1108,25 +1154,6 @@ def _export_saved_format_theme_product_with_origin(
             snapshot=saved_style_snapshot,
         )
         legend_policy["reviewed_template_plot_policy"] = reviewed_plot_policy
-        product_style: dict[str, object] = {}
-        strict_readback: dict[str, bool] = {}
-        conformance: dict[str, object] = {}
-        try:
-            pages_result = operations.list_worksheets()
-            pages = getattr(pages_result, "payload", {}).get("pages", []) if getattr(pages_result, "ok", False) else []
-            graph_pages = [str(item["name"]) for item in pages if isinstance(item, dict) and item.get("type") == "graph"]
-            snapshot = read_graph_style_snapshot(operations, graph_name, source_label=product.origin_file.name, graph_pages=graph_pages)
-            product_style = snapshot.to_dict()
-            strict_readback = _strict_style_readback(product_style)
-            conformance = {
-                "status": "saved_format_theme_readback",
-                "axis_title_bold": bool(strict_readback.get("axis_title_bold", True)),
-                "plot_line_width_origin_units": product_style.get("plot_line_widths", []),
-                "compared_fields": 1,
-                "matched_fields": 1,
-            }
-        except Exception as exc:
-            conformance = {"status": "saved_format_theme_readback_failed", "message": str(exc)}
         legend_policy["final_reviewed_legend"] = _finalize_reviewed_template_legend(
             operations,
             graph_name,
@@ -1138,13 +1165,114 @@ def _export_saved_format_theme_product_with_origin(
         saved = operations.save_project(runtime_origin)
         if not getattr(saved, "ok", False):
             return {"ok": False, "message": getattr(saved, "message", "project save failed"), "template_format_plan": plan.to_dict()}
-        png = operations.export_graph(graph_name, runtime_png, "png", dpi=style.export_dpi)
-        tif = operations.export_graph(graph_name, runtime_tif, "tif", dpi=style.export_dpi)
+        reset = operations.new_project()
+        if not getattr(reset, "ok", False):
+            return {
+                "ok": False,
+                "message": getattr(reset, "message", "new project before saved product reload failed"),
+                "template_format_plan": plan.to_dict(),
+            }
+        loaded = operations.load_project(runtime_origin)
+        if not getattr(loaded, "ok", False):
+            return {
+                "ok": False,
+                "message": scrub_output_text(
+                    getattr(loaded, "message", "saved product reload failed"),
+                    output_root=product.type_root.parent,
+                ),
+                "template_format_plan": plan.to_dict(),
+            }
+        pages_result = operations.list_worksheets()
+        if not getattr(pages_result, "ok", False):
+            return {
+                "ok": False,
+                "message": getattr(pages_result, "message", "saved product page listing failed"),
+                "template_format_plan": plan.to_dict(),
+            }
+        pages = getattr(pages_result, "payload", {}).get("pages", [])
+        if not isinstance(pages, list):
+            return {
+                "ok": False,
+                "message": "Saved product page listing returned an invalid payload.",
+                "template_format_plan": plan.to_dict(),
+            }
+        graph_pages = [
+            str(item["name"])
+            for item in pages
+            if isinstance(item, dict) and item.get("type") == "graph" and str(item.get("name") or "").strip()
+        ]
+        matching_graph_pages = [page_name for page_name in graph_pages if page_name == graph_name]
+        if len(matching_graph_pages) != 1:
+            reason = "missing" if not matching_graph_pages else "ambiguous"
+            return {
+                "ok": False,
+                "message": f"Expected saved graph page {graph_name!r} was {reason} after project reload.",
+                "template_format_plan": plan.to_dict(),
+                "expected_graph_page": graph_name,
+                "available_graph_pages": graph_pages,
+            }
+        reopened_graph = matching_graph_pages[0]
+        try:
+            snapshot = read_graph_style_snapshot(
+                operations,
+                reopened_graph,
+                source_label=product.origin_file.name,
+                graph_pages=graph_pages,
+            )
+            product_style = snapshot.to_dict()
+        except Exception as exc:
+            return {
+                "ok": False,
+                "message": "Saved product style readback failed after project reload: "
+                + scrub_output_text(exc, output_root=product.type_root.parent),
+                "template_format_plan": plan.to_dict(),
+                "expected_graph_page": graph_name,
+                "available_graph_pages": graph_pages,
+            }
+        if str(product_style.get("status") or "") != "extracted" or str(product_style.get("graph_page") or "") != reopened_graph:
+            return {
+                "ok": False,
+                "message": "Saved product style readback did not confirm the reopened graph page.",
+                "template_format_plan": plan.to_dict(),
+                "expected_graph_page": graph_name,
+                "available_graph_pages": graph_pages,
+                "product_style": product_style,
+            }
+        strict_readback = _strict_style_readback(product_style)
+        independent_style_snapshot = (
+            external_reference_preview.get("style_snapshot")
+            if isinstance(external_reference_preview.get("style_snapshot"), dict)
+            else {}
+        )
+        reference_style_snapshot = (
+            independent_style_snapshot
+            if str(independent_style_snapshot.get("status") or "") == "extracted"
+            else saved_style_snapshot
+        )
+        conformance = compare_style_snapshots(
+            reference_style_snapshot,
+            snapshot,
+            required_line_width_pt=style.line_width_pt,
+            require_axis_title_bold=_style_snapshot_axis_title_bold_required(
+                reference_style_snapshot
+            ),
+        ).to_dict()
+        conformance["reference_source"] = (
+            external_reference_preview.get("reference_kind")
+            if reference_style_snapshot is independent_style_snapshot
+            else "saved_style_snapshot"
+        )
+        png = operations.export_graph(reopened_graph, runtime_png, "png", dpi=style.export_dpi)
+        tif = _export_native_tif_with_physical_validation(
+            operations,
+            reopened_graph,
+            runtime_tif,
+            dpi=style.export_dpi,
+        )
         metadata_warnings = [
             warning
             for warning in (
                 _strip_raster_metadata(runtime_png, dpi=style.export_dpi),
-                _strip_raster_metadata(runtime_tif, dpi=style.export_dpi),
             )
             if warning
         ]
@@ -1155,10 +1283,13 @@ def _export_saved_format_theme_product_with_origin(
                 "message": "missing artifacts: " + "; ".join(path.name for path in missing),
                 "template_format_plan": plan.to_dict(),
             }
-        if not getattr(png, "ok", False) or not getattr(tif, "ok", False):
+        if not getattr(png, "ok", False) or not bool(tif.get("ok")):
             return {
                 "ok": False,
-                "message": scrub_output_text(f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}", output_root=product.type_root.parent),
+                "message": scrub_output_text(
+                    f"{getattr(png, 'message', '')}; {tif.get('message', '')}",
+                    output_root=product.type_root.parent,
+                ),
                 "template_format_plan": plan.to_dict(),
             }
         operations.new_project()
@@ -1176,7 +1307,7 @@ def _export_saved_format_theme_product_with_origin(
         }
     return {
         "ok": True,
-        "message": "Origin saved format-theme export succeeded.",
+        "message": "Origin saved format-theme export succeeded after save/reopen/readback.",
         "template_format_plan": plan.to_dict(),
         "origin_processing": {
             "required": True,
@@ -1184,10 +1315,11 @@ def _export_saved_format_theme_product_with_origin(
             "method": "saved_format_theme_apply",
             "processing_location": "Origin clean target graph with project-local .oth format theme applied",
             "style_package_path": _product_output_path(product.type_root.parent, theme_path),
-            "graph_page": graph_name,
+            "graph_page": reopened_graph,
             "neutral_runtime": True,
             "raster_metadata_stripped": not metadata_warnings,
             "metadata_warnings": metadata_warnings,
+            "tif_resolution_evidence": tif.get("evidence", {}),
             "axis_range_policy": data_axis_policy,
             "legend_policy": legend_policy,
             "render_refresh": render_refresh,
@@ -1195,11 +1327,13 @@ def _export_saved_format_theme_product_with_origin(
         "external_reference_preview": external_reference_preview,
         "external_reference_plot_sequence": plot_sequence,
         "saved_style_snapshot": {"loaded": bool(saved_style_snapshot)},
+        "exemplar_style": reference_style_snapshot,
         "product_style": product_style,
         "strict_style_readback": strict_readback,
         "conformance": conformance,
         "xps_component_fill": _saved_format_theme_xps_fill_intent(product),
-        "reopened_graph": graph_name,
+        "reopened_graph": reopened_graph,
+        "tif_resolution_evidence": tif.get("evidence", {}),
         "line_width_policy_pt": style.line_width_pt,
         "axis_title_bold_policy": style.font_bold,
     }
@@ -1211,30 +1345,94 @@ def _export_external_reference_preview_if_requested(
     runtime: Path,
     runtime_reference_png: Path,
     style: ResolvedPlotStyle,
+    *,
+    project_reference_opju: Path | None = None,
+    project_reference_graph: str = "",
 ) -> dict[str, object]:
     source = product.external_reference_opju
     graph_name = str(product.external_reference_graph or "").strip()
+    external_selected = source is not None or bool(graph_name)
+    if external_selected and (source is None or not graph_name):
+        return {
+            "requested": True,
+            "ok": False,
+            "message": "External reference selection is incomplete; both OPJU and graph page are required.",
+            "reference_kind": "external_reference_opju",
+        }
+    if external_selected:
+        reference_kind = "external_reference_opju"
+        reference_source = product.external_reference_source
+    else:
+        source = project_reference_opju
+        graph_name = str(project_reference_graph or "").strip()
+        reference_kind = "project_local_reference_opju"
+        reference_source = "project_origin_style_asset"
     if source is None or not graph_name:
-        return {"requested": False, "ok": True, "message": "No external reference OPJU was selected."}
+        return {"requested": False, "ok": True, "message": "No independent reference OPJU was selected."}
     if not source.is_file():
         return {
             "requested": True,
             "ok": False,
-            "message": f"External reference OPJU missing: {source}",
+            "message": f"Independent reference OPJU missing: {source}",
             "source_opju": _product_output_path(product.type_root.parent, source),
             "graph_page": graph_name,
+            "reference_kind": reference_kind,
         }
-    runtime_reference_opju = runtime / source.name
+    source_hash_before = file_sha256(source)
+    runtime_reference_opju = runtime / f"independent_reference{source.suffix.casefold()}"
     shutil.copy2(source, runtime_reference_opju)
+    try:
+        runtime_reference_opju.chmod(0o444)
+    except OSError as exc:
+        return {
+            "requested": True,
+            "ok": False,
+            "message": f"Could not make the isolated reference OPJU copy read-only: {exc}",
+            "source_opju": _product_output_path(product.type_root.parent, source),
+            "graph_page": graph_name,
+            "reference_kind": reference_kind,
+        }
     operations.new_project()
     loaded = operations.load_project(runtime_reference_opju)
     if not getattr(loaded, "ok", False):
         return {
             "requested": True,
             "ok": False,
-            "message": scrub_output_text(getattr(loaded, "message", "external reference OPJU load failed"), output_root=product.type_root.parent),
+            "message": scrub_output_text(
+                getattr(loaded, "message", "independent reference OPJU load failed"),
+                output_root=product.type_root.parent,
+            ),
             "source_opju": _product_output_path(product.type_root.parent, source),
             "graph_page": graph_name,
+            "reference_kind": reference_kind,
+        }
+    pages_result = operations.list_worksheets()
+    if not getattr(pages_result, "ok", False):
+        return {
+            "requested": True,
+            "ok": False,
+            "message": "Could not enumerate graph pages in the independent reference OPJU.",
+            "source_opju": _product_output_path(product.type_root.parent, source),
+            "graph_page": graph_name,
+            "reference_kind": reference_kind,
+        }
+    available_graph_pages = [
+        str(page.get("name"))
+        for page in getattr(pages_result, "payload", {}).get("pages", [])
+        if isinstance(page, dict) and page.get("type") == "graph"
+    ]
+    if graph_name not in available_graph_pages:
+        return {
+            "requested": True,
+            "ok": False,
+            "message": (
+                "Requested independent reference graph page does not exist: "
+                f"{graph_name}"
+            ),
+            "source_opju": _product_output_path(product.type_root.parent, source),
+            "graph_page": graph_name,
+            "available_graph_pages": available_graph_pages,
+            "reference_kind": reference_kind,
         }
     exported = operations.export_graph(graph_name, runtime_reference_png, "png", dpi=style.export_dpi)
     snapshot_payload: dict[str, object] = {}
@@ -1247,16 +1445,34 @@ def _export_external_reference_preview_if_requested(
         return {
             "requested": True,
             "ok": False,
-            "message": scrub_output_text(getattr(exported, "message", "external reference graph export failed"), output_root=product.type_root.parent),
+            "message": scrub_output_text(
+                getattr(exported, "message", "independent reference graph export failed"),
+                output_root=product.type_root.parent,
+            ),
             "source_opju": _product_output_path(product.type_root.parent, source),
             "graph_page": graph_name,
+            "reference_kind": reference_kind,
+        }
+    if file_sha256(source) != source_hash_before:
+        return {
+            "requested": True,
+            "ok": False,
+            "message": "Independent reference source changed during isolated preview export.",
+            "source_opju": _product_output_path(product.type_root.parent, source),
+            "graph_page": graph_name,
+            "reference_kind": reference_kind,
         }
     return {
         "requested": True,
         "ok": True,
         "source_opju": _product_output_path(product.type_root.parent, source),
         "graph_page": graph_name,
-        "source": product.external_reference_source,
+        "source": reference_source,
+        "reference_kind": reference_kind,
+        "read_only_runtime_copy": True,
+        "runtime_copy_write_protected": True,
+        "used_as_product_base": False,
+        "source_sha256": source_hash_before,
         "preview_png": _product_output_path(product.type_root.parent, product.reference_preview_png),
         "style_snapshot": snapshot_payload,
         "raster_metadata_stripped": not metadata_warning,
@@ -1363,15 +1579,6 @@ def _to_int(value: object) -> int | None:
     except (TypeError, ValueError):
         return None
     return number
-
-
-def _cached_style_package_xps_fill_intent(product: ProductContext) -> dict[str, object]:
-    required = product.product_key.startswith("XPS")
-    return {
-        "required": required,
-        "applied": required,
-        "policy": "XPS component fill/gradient objects are preserved from the project-local Origin graph template when using cached style-package mode.",
-    }
 
 
 def _saved_format_theme_xps_fill_intent(product: ProductContext) -> dict[str, object]:
@@ -3138,6 +3345,11 @@ def _origin_rich_text_for_labtalk(value: object) -> str:
 
 
 def _strip_raster_metadata(path: Path, *, dpi: int) -> str:
+    if path.suffix.casefold() in {".tif", ".tiff"}:
+        return (
+            f"TIFF metadata stripping is disabled for {path.name}; "
+            "production TIFFs must remain the native Origin export and pass physical-resolution validation."
+        )
     try:
         from PIL import Image
 

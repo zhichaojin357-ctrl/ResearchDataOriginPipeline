@@ -1,14 +1,18 @@
 ﻿import csv
 import json
+import stat
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from src.cli import build_parser
 from src.core.metadata import write_metadata
 from src.core.project import default_output_root, REQUIRED_OUTPUT_DIRS
+from src.core.validate import _is_link_or_junction, _iter_files_without_link_descent
 from src.scanner.scanner import scan_raw_data
 
 
@@ -472,10 +476,15 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertIn("reference_only", data)
             self.assertIn("blocked", data)
             self.assertIn("summary", data)
+            self.assertEqual(data["runtime"]["executable"], str(Path(sys.executable).resolve()))
+            self.assertEqual(data["runtime"]["python_version"], sys.version.split()[0])
             missing_core = [name for name, item in data["core"].items() if not item["available"]]
             for item in data["core"].values():
                 self.assertEqual(item["severity"], "fail")
                 self.assertIn("import_error", item)
+                self.assertIn("distribution", item)
+                self.assertIn("version", item)
+                self.assertIn("license", item)
             for item in data["optional"].values():
                 self.assertEqual(item["severity"], "warning")
             for item in data["reference_only"].values():
@@ -515,6 +524,27 @@ class Phase1ContractsTest(unittest.TestCase):
         self.assertEqual(audit["core"]["numpy"]["status"], "import_error")
         self.assertIn("simulated binary load failure", audit["core"]["numpy"]["import_error"])
         self.assertIn("numpy", audit["summary"]["missing_core"])
+
+    def test_dependency_audit_survives_broken_distribution_metadata(self):
+        from src.core.deps import dependency_audit
+
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            with patch(
+                "src.core.deps.package_metadata.metadata",
+                side_effect=UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid"),
+            ):
+                code, audit = dependency_audit(project)
+
+            self.assertIn(code, {0, 1})
+            self.assertTrue(
+                (default_output_root(project) / "reports" / "dependency_audit.json").is_file()
+            )
+            self.assertTrue(audit["summary"]["metadata_errors"])
+            first_core_error = next(
+                iter(audit["summary"]["metadata_errors"]["core"].values())
+            )
+            self.assertIn("UnicodeDecodeError", first_core_error)
 
     def test_pyproject_declares_the_requirements_core_dependencies(self):
         import ast
@@ -630,6 +660,41 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0)
             report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
             self.assertIn("Forbidden presentation artifacts: pass", report)
+
+    def test_validation_file_scan_does_not_descend_into_link_or_junction(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            visible = root / "visible.txt"
+            linked_dir = root / "node_modules"
+            hidden = linked_dir / "draft_presentation.pptx"
+            visible.write_text("visible", encoding="utf-8")
+            linked_dir.mkdir()
+            hidden.write_text("must not be traversed", encoding="utf-8")
+
+            with patch(
+                "src.core.validate._is_link_or_junction",
+                side_effect=lambda path: path == linked_dir,
+            ):
+                scanned = set(_iter_files_without_link_descent(root))
+
+            self.assertEqual(scanned, {visible})
+
+    def test_link_or_junction_detection_uses_reparse_attribute_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            candidate = Path(tmp) / "legacy_python_junction"
+            candidate.mkdir()
+
+            with patch.object(Path, "is_symlink", return_value=False), patch.object(
+                Path,
+                "is_junction",
+                return_value=False,
+            ), patch(
+                "src.core.validate.os.lstat",
+                return_value=SimpleNamespace(
+                    st_file_attributes=stat.FILE_ATTRIBUTE_REPARSE_POINT
+                ),
+            ):
+                self.assertTrue(_is_link_or_junction(candidate))
 
     def test_validate_rejects_kinetics_processor_package_directory(self):
         with tempfile.TemporaryDirectory() as tmp:

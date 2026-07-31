@@ -73,6 +73,46 @@ def test_manifest_runner_rejects_path_traversal(tmp_path: Path, project_root: Pa
     assert plan["blocked_items"][0]["reason"] == "path_traversal_or_absolute_artifact_path"
 
 
+def test_manifest_runner_rejects_unsafe_result_id_before_output_planning(
+    tmp_path: Path,
+    project_root: Path,
+) -> None:
+    package = _make_manifest_package(tmp_path, project_root, complete=False)
+    rows = list(csv.DictReader((package / "index.csv").open(encoding="utf-8")))
+    rows[0]["result_id"] = "../escape"
+    _rewrite_manifest(package / "index.csv", rows)
+
+    plan = plan_origin_batch(
+        project_root,
+        OriginBatchOptions(manifest=package / "index.csv"),
+    )
+
+    assert plan["summary"]["blocked_count"] == 1
+    assert plan["blocked_items"][0]["reason"] == "unsafe_result_id"
+
+
+def test_manifest_runner_report_path_cannot_alias_input_manifest(
+    tmp_path: Path,
+    project_root: Path,
+) -> None:
+    package = _make_manifest_package(tmp_path, project_root, complete=False)
+    manifest = package / "index.csv"
+    before = manifest.read_bytes()
+
+    with pytest.raises(ValueError, match="report path aliases the input manifest"):
+        run_origin_batch(
+            project_root,
+            OriginBatchOptions(
+                manifest=manifest,
+                report_json=manifest,
+                report_md=package / "plan.md",
+                output_root=package,
+            ),
+        )
+
+    assert manifest.read_bytes() == before
+
+
 def test_manifest_runner_handles_missing_required_file(tmp_path: Path, project_root: Path):
     package = _make_manifest_package(tmp_path, project_root, complete=False)
     (package / "metadata" / "XPS" / "item_metadata.json").unlink()
@@ -110,33 +150,67 @@ def test_manifest_runner_execute_with_origin_exports_planned_items(tmp_path: Pat
     for relative in ("origin_files/XPS/item.opju", "figures_tif/XPS/item.tif", "previews/origin/XPS/item.png"):
         (package / relative).unlink()
     calls: list[dict[str, object]] = []
+    stale_plot_input = package / "logs" / "origin_jobs" / "XPS_item_plot_input.csv"
+    stale_job_script = package / "logs" / "origin_jobs" / "XPS_item.ps1"
+    stale_plot_input.parent.mkdir(parents=True)
+    stale_plot_input.write_text("stale", encoding="utf-8")
+    stale_job_script.write_text("stale", encoding="utf-8")
 
     class FakeOriginResult:
         ok = True
         message = "fake origin export"
 
-        def __init__(self, origin_file: Path, figure_tif: Path, preview_png: Path) -> None:
+        def __init__(
+            self,
+            origin_file: Path,
+            figure_tif: Path,
+            preview_png: Path,
+            tif_resolution_evidence: object,
+        ) -> None:
             self.origin_file = origin_file
             self.figure_tif = figure_tif
             self.preview_png = preview_png
+            self.tif_resolution_evidence = tif_resolution_evidence
+
+    class FakeTifEvidence:
+        requested_dpi = 600
+        page_width_origin_units = 100.0
+        page_height_origin_units = 100.0
 
     def fake_export_plot(project: Path, dataset_id: str, processed_csv: Path, x_title: str, y_title: str, **kwargs: object):
         assert project == test_project
         assert processed_csv == package / "processed_tables" / "XPS" / "item.csv"
         assert kwargs["data_type"] == "XPS"
-        calls.append({"dataset_id": dataset_id, "x_title": x_title, "y_title": y_title, "output_root": kwargs.get("output_root")})
-        scratch = package / "origin_files" / f"{dataset_id}.opju"
+        assert stale_plot_input.read_text(encoding="utf-8") == "stale"
+        assert stale_job_script.read_text(encoding="utf-8") == "stale"
+        calls.append(
+            {
+                "dataset_id": dataset_id,
+                "x_title": x_title,
+                "y_title": y_title,
+                "output_root": kwargs.get("output_root"),
+                "force": kwargs.get("force"),
+            }
+        )
+        stage_root = Path(kwargs["output_root"])
+        assert stage_root.parent == package
+        assert stage_root.name.startswith(".origin_batch_")
+        scratch = stage_root / "origin_files" / f"{dataset_id}.opju"
         scratch.parent.mkdir(parents=True, exist_ok=True)
-        tif = package / "figures_tif" / f"{dataset_id}.tif"
-        png = package / "figures_preview" / f"{dataset_id}.png"
+        tif = stage_root / "figures_tif" / f"{dataset_id}.tif"
+        png = stage_root / "figures_preview" / f"{dataset_id}.png"
         for path, content in ((scratch, b"opju"), (png, b"png")):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
         from PIL import Image
 
         tif.parent.mkdir(parents=True, exist_ok=True)
-        Image.new("RGB", (4, 3), "white").save(tif, format="TIFF", dpi=(300, 300))
-        return FakeOriginResult(scratch, tif, png)
+        Image.new("RGB", (60, 60), "white").save(
+            tif,
+            format="TIFF",
+            dpi=(600, 600),
+        )
+        return FakeOriginResult(scratch, tif, png, FakeTifEvidence())
 
     monkeypatch.setattr("src.core.origin_batch.export_plot", fake_export_plot)
 
@@ -144,7 +218,11 @@ def test_manifest_runner_execute_with_origin_exports_planned_items(tmp_path: Pat
 
     assert code == 0
     assert calls and calls[0]["dataset_id"] == "XPS_item"
+    assert calls[0]["force"] is True
     assert (package / "origin_files" / "XPS" / "item.opju").read_bytes() == b"opju"
+    assert stale_plot_input.read_text(encoding="utf-8") == "stale"
+    assert stale_job_script.read_text(encoding="utf-8") == "stale"
+    assert not list(package.glob(".origin_batch_*"))
     from PIL import Image
 
     with Image.open(package / "figures_tif" / "XPS" / "item.tif") as image:
@@ -154,9 +232,75 @@ def test_manifest_runner_execute_with_origin_exports_planned_items(tmp_path: Pat
     assert report["summary"]["exported_count"] == 1
     assert report["summary"]["failure_count"] == 0
     assert report["execution"]["reason"] == "executed_with_origin"
+    assert report["execution"]["exported"][0]["tif_resolution_evidence"]["effective_dpi_x"] == 600.0
 
 
-def test_manifest_runner_clears_old_targets_and_missing_export_sources_cannot_succeed(tmp_path: Path, monkeypatch) -> None:
+def test_origin_batch_retry_refuses_hardlink_output_alias_to_required_input(
+    tmp_path: Path,
+) -> None:
+    import os
+
+    from src.core.origin_batch import _preflight_origin_output_targets
+
+    package = tmp_path / "package"
+    processed = package / "processed.csv"
+    metadata = package / "metadata.json"
+    origin_file = package / "result.opju"
+    figure_tif = package / "result.tif"
+    preview_png = package / "result.png"
+    package.mkdir()
+    processed.write_bytes(b"scientific input")
+    metadata.write_text("{}", encoding="utf-8")
+    os.link(processed, origin_file)
+
+    with pytest.raises(ValueError, match="aliases a required input"):
+        _preflight_origin_output_targets(
+            {
+                "processed_csv": processed,
+                "metadata": metadata,
+                "origin_file": origin_file,
+                "figure_tif": figure_tif,
+                "preview_png": preview_png,
+            },
+            output_root=package,
+        )
+
+    assert processed.read_bytes() == b"scientific input"
+    assert origin_file.read_bytes() == b"scientific input"
+
+
+def test_origin_batch_retry_refuses_generic_target_alias_to_required_input(
+    tmp_path: Path,
+) -> None:
+    from src.core.origin_batch import _preflight_origin_output_targets
+
+    package = tmp_path / "package"
+    processed = package / "processed.csv"
+    metadata = package / "metadata.json"
+    package.mkdir()
+    processed.write_bytes(b"scientific input")
+    metadata.write_text("{}", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="generic_retry_target_1"):
+        _preflight_origin_output_targets(
+            {
+                "processed_csv": processed,
+                "metadata": metadata,
+                "origin_file": package / "result.opju",
+                "figure_tif": package / "result.tif",
+                "preview_png": package / "result.png",
+            },
+            output_root=package,
+            extra_targets=(processed,),
+        )
+
+    assert processed.read_bytes() == b"scientific input"
+
+
+def test_manifest_runner_preserves_old_targets_when_staged_export_is_missing(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     test_project = tmp_path / "project"
     package = _make_manifest_package(tmp_path, test_project, complete=False)
     targets = [
@@ -181,11 +325,66 @@ def test_manifest_runner_clears_old_targets_and_missing_export_sources_cannot_su
     )
 
     assert code == 1
-    assert all(not path.exists() for path in targets)
+    assert all(path.is_file() for path in targets)
+    assert [path.read_bytes() for path in targets] == [b"opju", b"tif", b"png"]
+    assert not list(package.glob(".origin_batch_*"))
     report = json.loads((default_output_root(test_project) / "reports" / "origin_batch_plan.json").read_text(encoding="utf-8"))
     assert report["summary"]["exported_count"] == 0
     assert report["summary"]["failure_count"] == 1
-    assert "did not produce manifest outputs" in report["execution"]["failures"][0]["message"]
+    assert "native TIFF resolution evidence" in report["execution"]["failures"][0]["message"]
+
+
+def test_origin_batch_package_commit_failure_restores_every_previous_artifact(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    import os
+
+    from src.core.origin_batch import _publish_origin_artifact_package
+
+    output_root = tmp_path / "package"
+    source_root = tmp_path / "stage"
+    output_root.mkdir()
+    source_root.mkdir()
+    sources = []
+    targets = []
+    for index, suffix in enumerate(("opju", "tif", "png"), start=1):
+        source = source_root / f"new_{index}.{suffix}"
+        target = output_root / f"result_{index}.{suffix}"
+        source.write_bytes(f"new-{index}".encode())
+        target.write_bytes(f"old-{index}".encode())
+        sources.append(source)
+        targets.append(target)
+
+    real_replace = os.replace
+    publish_install_count = 0
+    failed_once = False
+
+    def fail_second_publish(source: object, target: object) -> None:
+        nonlocal publish_install_count, failed_once
+        source_path = Path(source)
+        if source_path.name.endswith(".publish"):
+            publish_install_count += 1
+            if publish_install_count == 2 and not failed_once:
+                failed_once = True
+                raise OSError("injected second-artifact commit failure")
+        real_replace(source, target)
+
+    monkeypatch.setattr("src.core.origin_batch.os.replace", fail_second_publish)
+
+    with pytest.raises(OSError, match="injected"):
+        _publish_origin_artifact_package(
+            tuple(zip(sources, targets, strict=True)),
+            output_root=output_root,
+        )
+
+    assert [path.read_bytes() for path in targets] == [
+        b"old-1",
+        b"old-2",
+        b"old-3",
+    ]
+    assert not list(output_root.glob(".*.publish"))
+    assert not list(output_root.glob(".*.rollback"))
 
 
 def test_origin_batch_help_documents_dry_run_default(project_root: Path):

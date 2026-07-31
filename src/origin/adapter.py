@@ -7,16 +7,32 @@ import json
 import os
 import re
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 
-from src.core.project import _parse_simple_yaml, output_dir
+from src.core.file_utils import (
+    ensure_safe_output_file_target,
+    lexical_absolute_path,
+    prepare_safe_output_file_targets,
+)
+from src.core.image_artifacts import (
+    TifResolutionEvidence,
+    expected_raster_pixels,
+    validate_tif_physical_resolution,
+)
+from src.core.project import (
+    _parse_simple_yaml,
+    default_output_root,
+    ensure_write_path_allowed,
+    output_dir,
+)
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.powershell_helpers import ps_array as _ps_array
 from src.core.powershell_helpers import ps_int_array as _ps_int_array
 from src.core.powershell_helpers import ps_quote as _ps_quote
 from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern
-from src.origin.operations import connect_origin
+from src.origin.operations import connect_origin, quote_labtalk, to_origin_path
 from src.origin.plot_policy import Graph4FixedStyle, PlotPolicy, all_plot_policies, get_plot_policy, validate_graph4_style_config
 
 
@@ -33,6 +49,7 @@ class OriginResult:
     figure_tif: Path | None
     preview_png: Path | None
     message: str
+    tif_resolution_evidence: TifResolutionEvidence | None = None
 
 
 @dataclass(frozen=True)
@@ -67,6 +84,15 @@ class OriginPlotJob:
     show_legend: bool
     x_title: str
     y_title: str
+
+
+@dataclass(frozen=True)
+class OriginPlotOutputPaths:
+    plot_csv: Path
+    origin_file: Path
+    figure_tif: Path
+    preview_png: Path
+    job_script: Path
 
 
 @dataclass(frozen=True)
@@ -226,10 +252,120 @@ def check_origin_available() -> tuple[bool, str]:
     return True, "originpro and win32com are importable"
 
 
+def _prepare_origin_report_targets(
+    project_root: Path,
+    names: tuple[str, ...],
+    *,
+    output_root: Path | None,
+) -> tuple[Path, tuple[Path, ...]]:
+    """Preflight every report target before creating or changing report files."""
+
+    base = _origin_output_base(project_root, output_root)
+    ensure_write_path_allowed(project_root, base, output_root=base)
+    reports = lexical_absolute_path(base / "reports")
+    targets = tuple(
+        ensure_safe_output_file_target(reports / name, output_root=base)
+        for name in names
+    )
+    directory_collisions = [
+        target for target in targets if os.path.lexists(os.fspath(target)) and target.is_dir()
+    ]
+    if directory_collisions:
+        rendered = ", ".join(str(path) for path in directory_collisions)
+        raise IsADirectoryError(f"Origin report target collides with a directory: {rendered}")
+
+    reports.mkdir(parents=True, exist_ok=True)
+    # Re-check after directory creation so the write phase never follows a
+    # pre-existing or concurrently substituted reparse point.
+    targets = tuple(
+        ensure_safe_output_file_target(target, output_root=base)
+        for target in targets
+    )
+    directory_collisions = [
+        target for target in targets if os.path.lexists(os.fspath(target)) and target.is_dir()
+    ]
+    if directory_collisions:
+        rendered = ", ".join(str(path) for path in directory_collisions)
+        raise IsADirectoryError(f"Origin report target collides with a directory: {rendered}")
+    return base, targets
+
+
+def _atomic_write_origin_reports(
+    payloads: tuple[tuple[Path, str], ...],
+    *,
+    output_root: Path,
+) -> None:
+    """Replace report pathnames atomically without truncating hard-linked files."""
+
+    safe_payloads = tuple(
+        (
+            ensure_safe_output_file_target(path, output_root=output_root),
+            text,
+        )
+        for path, text in payloads
+    )
+    directory_collisions = [
+        path
+        for path, _text in safe_payloads
+        if os.path.lexists(os.fspath(path)) and path.is_dir()
+    ]
+    if directory_collisions:
+        rendered = ", ".join(str(path) for path in directory_collisions)
+        raise IsADirectoryError(f"Origin report target collides with a directory: {rendered}")
+    temporary_paths: list[tuple[Path, Path]] = []
+    try:
+        for target, text in safe_payloads:
+            descriptor, temporary_name = tempfile.mkstemp(
+                prefix=f".{target.name}.",
+                suffix=".tmp",
+                dir=target.parent,
+            )
+            temporary = Path(temporary_name)
+            try:
+                handle = os.fdopen(descriptor, "w", encoding="utf-8", newline="")
+            except Exception:
+                os.close(descriptor)
+                raise
+            try:
+                with handle:
+                    handle.write(text)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+            except Exception:
+                if os.path.lexists(os.fspath(temporary)):
+                    temporary.unlink()
+                raise
+            temporary_paths.append((temporary, target))
+
+        for _temporary, target in temporary_paths:
+            ensure_safe_output_file_target(target, output_root=output_root)
+            if os.path.lexists(os.fspath(target)) and target.is_dir():
+                raise IsADirectoryError(
+                    f"Origin report target collides with a directory: {target}"
+                )
+
+        # All final targets were checked before any replacement. os.replace
+        # changes the directory entry, so an existing hard-link sibling keeps
+        # its original inode and contents.
+        for temporary, target in temporary_paths:
+            os.replace(temporary, target)
+    finally:
+        for temporary, _target in temporary_paths:
+            if os.path.lexists(os.fspath(temporary)):
+                temporary.unlink()
+
+
 def write_origin_error(project_root: Path, message: str, *, output_root: Path | None = None) -> None:
-    reports = output_dir(project_root, "reports", output_root=output_root)
-    path = reports / "origin_errors.md"
-    existing = path.read_text(encoding="utf-8") if path.exists() else "# Origin Errors\n\n"
+    base, (path,) = _prepare_origin_report_targets(
+        project_root,
+        ("origin_errors.md",),
+        output_root=output_root,
+    )
+    existing = (
+        path.read_text(encoding="utf-8")
+        if os.path.lexists(os.fspath(path))
+        else "# Origin Errors\n\n"
+    )
     line = f"- {scrub_output_text(message, project_root=project_root, output_root=output_root)}"
     error_lines = []
     seen = set()
@@ -243,12 +379,22 @@ def write_origin_error(project_root: Path, message: str, *, output_root: Path | 
     if line not in seen:
         error_lines.append(line)
     body = "\n\n".join(error_lines)
-    path.write_text("# Origin Errors\n\n" + body + ("\n" if body else ""), encoding="utf-8")
+    _atomic_write_origin_reports(
+        ((path, "# Origin Errors\n\n" + body + ("\n" if body else "")),),
+        output_root=base,
+    )
 
 
 def write_origin_success(project_root: Path, *, output_root: Path | None = None) -> None:
-    reports = output_dir(project_root, "reports", output_root=output_root)
-    (reports / "origin_errors.md").write_text("# Origin Errors\n\nNo current Origin errors.\n", encoding="utf-8")
+    base, (path,) = _prepare_origin_report_targets(
+        project_root,
+        ("origin_errors.md",),
+        output_root=output_root,
+    )
+    _atomic_write_origin_reports(
+        ((path, "# Origin Errors\n\nNo current Origin errors.\n"),),
+        output_root=base,
+    )
 
 
 def _read_plot_style_value(project_root: Path, key: str, default: str) -> str:
@@ -278,12 +424,6 @@ def _resolve_reference_opju(project_root: Path, pattern: str) -> Path | None:
         return None
     candidates = sorted(parent.glob(path.name), key=lambda item: item.stat().st_mtime, reverse=True)
     return candidates[0] if candidates else None
-
-
-def _csv_header(path: Path) -> list[str]:
-    with path.open(encoding="utf-8", newline="") as handle:
-        reader = csv.reader(handle)
-        return next(reader, [])
 
 
 def _ps_xy_pairs(pairs: tuple[tuple[int, int], ...]) -> str:
@@ -529,8 +669,13 @@ def _select_plot_columns(header: list[str], data_type: str) -> tuple[int, list[i
         return _select_xrd_plot_columns(header)
     if data_type == "BET":
         return _select_bet_plot_columns(header)
-    if data_type == "EIS" and "real_impedance" in normalized and "neg_imag_impedance" in normalized:
-        return normalized.index("real_impedance"), [normalized.index("neg_imag_impedance")]
+    if data_type == "EIS":
+        for real_name, imaginary_name in (
+            ("real_impedance_ohm", "neg_imag_impedance_ohm"),
+            ("real_impedance", "neg_imag_impedance"),
+        ):
+            if real_name in normalized and imaginary_name in normalized:
+                return normalized.index(real_name), [normalized.index(imaginary_name)]
     exact_preferred_by_type = {
         "photocurrent": ("current_density_uA_cm2_optional", "photocurrent_uA", "current_density", "current"),
         "photocurrent_response": ("current_density_uA_cm2_optional", "photocurrent_uA", "current_density", "current"),
@@ -830,10 +975,16 @@ def _write_material_color_report(
     *,
     output_root: Path | None = None,
 ) -> None:
-    reports = output_dir(project_root, "reports", output_root=output_root)
-    json_path = reports / "locked_result_material_color_map.json"
+    base, (json_path, markdown_path) = _prepare_origin_report_targets(
+        project_root,
+        (
+            "locked_result_material_color_map.json",
+            "locked_result_material_color_map.md",
+        ),
+        output_root=output_root,
+    )
     existing: dict[str, object] = {}
-    if json_path.exists():
+    if os.path.lexists(os.fspath(json_path)):
         try:
             existing = json.loads(json_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
@@ -864,7 +1015,6 @@ def _write_material_color_report(
             key=lambda item: (str(item["material_key"]), str(item["dataset_id"]), int(item["curve_index"])),
         ),
     }
-    json_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     lines = [
         "# locked result package Material Color Map",
         "",
@@ -893,7 +1043,13 @@ def _write_material_color_report(
             f"| `{item['dataset_id']}` | {item['curve_index']} | `{item['curve_label']}` | `{item['material_key']}` | {item['color_name']} `{item['hex']}` | {item['inference_confidence']} | {item['requires_user_review']} |"
         )
     text = "\n".join(lines) + "\n"
-    (reports / "locked_result_material_color_map.md").write_text(text, encoding="utf-8")
+    _atomic_write_origin_reports(
+        (
+            (json_path, json.dumps(data, ensure_ascii=False, indent=2)),
+            (markdown_path, text),
+        ),
+        output_root=base,
+    )
 
 
 def _sanitize_report_payload(value: object) -> object:
@@ -910,6 +1066,60 @@ def _sanitize_report_payload(value: object) -> object:
     return value
 
 
+def _origin_output_base(project_root: Path, output_root: Path | None) -> Path:
+    base = output_root or default_output_root(project_root)
+    if not base.is_absolute():
+        base = project_root / base
+    return lexical_absolute_path(base)
+
+
+def validate_origin_dataset_id(dataset_id: str) -> str:
+    """Validate a dataset identifier before using it in filesystem names."""
+
+    value = str(dataset_id)
+    if not value or value != value.strip() or value in {".", ".."}:
+        raise ValueError("Origin dataset_id must be a non-empty safe filename component.")
+    if re.search(r'[<>:"/\\|?*\x00-\x1f]', value):
+        raise ValueError(
+            "Origin dataset_id must be one filename component and may not "
+            "contain path separators or Windows-reserved characters."
+        )
+    if value.endswith((".", " ")):
+        raise ValueError("Origin dataset_id may not end with a dot or space.")
+    reserved = {
+        "con",
+        "prn",
+        "aux",
+        "nul",
+        *(f"com{index}" for index in range(1, 10)),
+        *(f"lpt{index}" for index in range(1, 10)),
+    }
+    if value.split(".", 1)[0].casefold() in reserved:
+        raise ValueError(f"Origin dataset_id uses a reserved Windows device name: {value}")
+    return value
+
+
+def plan_origin_plot_output_paths(
+    project_root: Path,
+    dataset_id: str,
+    *,
+    output_root: Path | None = None,
+) -> OriginPlotOutputPaths:
+    """Return generic Origin output paths without creating files/directories."""
+
+    dataset_id = validate_origin_dataset_id(dataset_id)
+    base = _origin_output_base(project_root, output_root)
+    job_dir = base / "logs" / "origin_jobs"
+    page_name = _safe_origin_name(dataset_id)
+    return OriginPlotOutputPaths(
+        plot_csv=job_dir / f"{dataset_id}_plot_input.csv",
+        origin_file=base / "origin_files" / f"{dataset_id}.opju",
+        figure_tif=base / "figures_tif" / f"{page_name}.tif",
+        preview_png=base / "figures_preview" / f"{page_name}.png",
+        job_script=job_dir / f"{dataset_id}.ps1",
+    )
+
+
 def build_origin_plot_job(
     project_root: Path,
     dataset_id: str,
@@ -921,12 +1131,12 @@ def build_origin_plot_job(
     *,
     output_root: Path | None = None,
 ) -> OriginPlotJob:
-    if output_root is not None:
-        job_dir = output_dir(project_root, "logs", "origin_jobs", output_root=output_root)
-    else:
-        job_dir = output_dir(project_root, "origin_jobs")
-    plot_csv = job_dir / f"{dataset_id}_plot_input.csv"
-    header = _write_plot_csv(processed_csv, plot_csv, data_type)
+    paths = plan_origin_plot_output_paths(
+        project_root,
+        dataset_id,
+        output_root=output_root,
+    )
+    header = _write_plot_csv(processed_csv, paths.plot_csv, data_type)
     column_count = max(2, len(header))
     xy_column_pairs = _xy_column_pairs(header, data_type)
     if xy_column_pairs and data_type == "EIS":
@@ -939,10 +1149,6 @@ def build_origin_plot_job(
         labels = tuple(f"Series {index}" for index in range(1, expected_label_count + 1))
     color_assignments = _color_assignments(dataset_id, data_type, labels, source_file, processed_csv)
     curve_colors = tuple(int(item["origin_ocolor"]) for item in color_assignments)
-
-    origin_dir = output_dir(project_root, "origin_files", output_root=output_root)
-    tif_dir = output_dir(project_root, "figures_tif", output_root=output_root)
-    preview_dir = output_dir(project_root, "figures_preview", output_root=output_root)
 
     reference_search_pattern = resolve_origin_reference_pattern(project_root)
     refresh_reference_style = _read_plot_style_value(project_root, "refresh_reference_style", "false").casefold() == "true"
@@ -958,12 +1164,12 @@ def build_origin_plot_job(
         dataset_id=dataset_id,
         data_type=data_type,
         processed_csv=processed_csv,
-        plot_csv=plot_csv,
+        plot_csv=paths.plot_csv,
         source_file=source_file,
-        origin_file=origin_dir / f"{dataset_id}.opju",
-        figure_tif=tif_dir / f"{page_name}.tif",
-        preview_png=preview_dir / f"{page_name}.png",
-        job_script=job_dir / f"{dataset_id}.ps1",
+        origin_file=paths.origin_file,
+        figure_tif=paths.figure_tif,
+        preview_png=paths.preview_png,
+        job_script=paths.job_script,
         helper_script=resolve_origin_helper(project_root),
         reference_opju=_resolve_reference_opju(project_root, reference_search_pattern) if refresh_reference_style else None,
         reference_search_pattern=reference_search_pattern,
@@ -1020,6 +1226,7 @@ def build_origin_invocation_script(job: OriginPlotJob) -> str:
         [
         f"& {_ps_quote(job.helper_script)} {reference_args}-ReferenceGraph {_ps_quote(job.reference_graph)} "
         f"-OutputOpju {_ps_quote(job.origin_file)} -ExportDir {_ps_quote(preview_dir)} "
+        f"-AllowedOutputRoot {_ps_quote(job.origin_file.parents[1])} "
         "-Groups $groups -Headless -CloseOrigin",
         "$originCloseDeadline = (Get-Date).AddSeconds(30)",
         "do {",
@@ -1050,12 +1257,6 @@ def _run_origin_job(job: OriginPlotJob) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _remove_stale_artifacts(job: OriginPlotJob) -> None:
-    for artifact in (job.origin_file, job.figure_tif, job.preview_png):
-        if artifact.exists():
-            artifact.unlink()
-
-
 def _wait_for_no_origin_process(timeout_seconds: float = 5.0) -> bool:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
@@ -1065,57 +1266,132 @@ def _wait_for_no_origin_process(timeout_seconds: float = 5.0) -> bool:
             capture_output=True,
             timeout=10,
         )
+        if running.returncode:
+            return False
         if not running.stdout.strip():
             return True
         time.sleep(0.5)
     return False
 
 
-def _export_tif_with_originpro(job: OriginPlotJob) -> None:
-    if job.figure_tif.exists() and job.figure_tif.stat().st_size > 0:
-        return
+def reexport_tif_from_reopened_opju(
+    origin_file: Path,
+    graph_page: str,
+    figure_tif: Path,
+    *,
+    dpi: int = 600,
+) -> TifResolutionEvidence:
+    """Reopen the final OPJU read-only, export its graph natively, and validate DPI.
+
+    Any helper-produced TIFF is deliberately replaced.  Keeping an existing file
+    would allow a stale or merely retagged raster to pass as evidence for the
+    newly saved project.
+    """
+
+    origin_file = Path(origin_file).resolve()
+    requested_figure_tif = Path(figure_tif)
+    figure_tif = ensure_safe_output_file_target(
+        requested_figure_tif,
+        output_root=requested_figure_tif.parent,
+    )
+    if not origin_file.is_file() or origin_file.stat().st_size == 0:
+        raise RuntimeError(f"Final OPJU is missing or empty before TIFF export: {origin_file}")
+    if not graph_page.strip():
+        raise ValueError("graph_page must name the graph stored in the final OPJU")
     if not _wait_for_no_origin_process():
-        raise RuntimeError("Origin is still running before originpro TIF fallback; aborting to avoid attaching to an unsafe session.")
+        raise RuntimeError(
+            "Origin is still running before reopened-OPJU TIFF export; "
+            "aborting to avoid attaching to an unsafe session."
+        )
 
     import originpro as op
 
     try:
         op.set_show(False)
-        if not op.open(str(job.origin_file), readonly=False, asksave=False):
-            raise RuntimeError(f"Failed to load generated OPJU for TIF export: {job.origin_file}")
-        graph = op.find_graph(job.page_name)
+        if not op.open(str(origin_file), readonly=True, asksave=False):
+            raise RuntimeError(f"Failed to load final OPJU for TIFF export: {origin_file}")
+        graph = op.find_graph(graph_page)
         if graph is None:
-            raise RuntimeError(f"Generated OPJU did not contain graph page {job.page_name}")
-        job.figure_tif.parent.mkdir(parents=True, exist_ok=True)
-        tif_path = str(job.figure_tif)
-        result = graph.save_fig(tif_path, type="tif", replace=True, width=int(job.fixed_style.page_width))
-        if not result or not job.figure_tif.exists() or job.figure_tif.stat().st_size == 0:
-            raise RuntimeError("originpro GPage.save_fig did not create the TIF output.")
-        _ensure_tif_600_dpi(job.figure_tif, job.fixed_style)
+            raise RuntimeError(f"Final OPJU did not contain graph page {graph_page}")
+        graph.activate()
+        page_width = float(op.lt_float("page.width"))
+        page_height = float(op.lt_float("page.height"))
+        expected_width, _expected_height = expected_raster_pixels(
+            page_width,
+            page_height,
+            dpi=dpi,
+        )
+        graph.lt_exec("doc -rn; doc -s;")
+        project_path = str(op.get_lt_str("%X") or "").strip()
+        project_name = str(op.get_lt_str("%G") or "").strip()
+        if project_path or project_name.casefold() != "untitled":
+            raise RuntimeError(
+                "Origin did not clear the in-memory project identity before TIFF export; "
+                "the final OPJU was left unchanged and no product TIFF was written."
+            )
+        graph.activate()
+        figure_tif.parent.mkdir(parents=True, exist_ok=True)
+        if figure_tif.exists():
+            figure_tif.unlink()
+        folder = quote_labtalk(to_origin_path(figure_tif.parent))
+        filename = quote_labtalk(figure_tif.stem)
+        graph.lt_exec(
+            f'expGraph type:=tif path:="{folder}" filename:="{filename}" '
+            f"overwrite:=replace sysopts:=0 tr.Margin:=2 "
+            f"tr1.Unit:=2 tr1.Width:={expected_width} "
+            f"tr2.TIF.dotsperinch:={dpi};"
+        )
+        if not figure_tif.exists() or figure_tif.stat().st_size == 0:
+            raise RuntimeError("Origin expGraph did not create the TIF output.")
+        return validate_tif_physical_resolution(
+            figure_tif,
+            page_width_origin_units=page_width,
+            page_height_origin_units=page_height,
+            dpi=dpi,
+        )
     finally:
+        exit_error = ""
         try:
             op.exit()
-        except Exception:
-            pass
-        _wait_for_no_origin_process()
+        except Exception as exc:
+            exit_error = f"{type(exc).__name__}: {exc}"
+        origin_stopped = _wait_for_no_origin_process()
+        if exit_error or not origin_stopped:
+            details = []
+            if exit_error:
+                details.append(f"originpro exit raised {exit_error}")
+            if not origin_stopped:
+                details.append("Origin process remained after the bounded exit wait")
+            raise RuntimeError(
+                "Origin lifecycle finalization failed after reopened-OPJU TIFF export; "
+                "the export must not be accepted: "
+                + "; ".join(details)
+            )
 
 
-def _ensure_tif_600_dpi(path: Path, fixed_style: Graph4FixedStyle = Graph4FixedStyle()) -> None:
-    """Normalize Origin TIF evidence to the Graph4 600 dpi bitmap contract when Pillow can read it."""
-    try:
-        from PIL import Image
-    except Exception:
-        return
-    try:
-        with Image.open(path) as image:
-            output = image.copy()
-    except Exception:
-        return
-    target_width = int(fixed_style.page_width)
-    if output.width < target_width:
-        target_height = max(1, round(output.height * (target_width / output.width)))
-        output = output.resize((target_width, target_height))
-    output.save(path, format="TIFF", dpi=(600, 600), compression="tiff_lzw")
+def _export_tif_with_originpro(job: OriginPlotJob) -> TifResolutionEvidence:
+    """Compatibility wrapper for the generic Origin plot job."""
+
+    return reexport_tif_from_reopened_opju(
+        job.origin_file,
+        job.page_name,
+        job.figure_tif,
+        dpi=600,
+    )
+
+
+def _ensure_tif_600_dpi(
+    path: Path,
+    fixed_style: Graph4FixedStyle = Graph4FixedStyle(),
+) -> TifResolutionEvidence:
+    """Compatibility validator; it never resamples pixels or rewrites TIFF tags."""
+
+    return validate_tif_physical_resolution(
+        path,
+        page_width_origin_units=float(fixed_style.page_width),
+        page_height_origin_units=float(fixed_style.page_height),
+        dpi=600,
+    )
 
 
 def export_plot(
@@ -1128,78 +1404,121 @@ def export_plot(
     source_file: Path | None = None,
     *,
     output_root: Path | None = None,
+    force: bool = False,
 ) -> OriginResult:
-    job = build_origin_plot_job(
+    paths = plan_origin_plot_output_paths(
         project_root,
         dataset_id,
-        processed_csv,
-        x_title,
-        y_title,
-        data_type,
-        source_file=source_file,
         output_root=output_root,
     )
     ok, message = check_origin_available()
     if not ok:
         write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
         return OriginResult(False, None, None, None, f"Origin unavailable: {message}")
+    if not _wait_for_no_origin_process():
+        message = "Origin is still running before starting export; aborting to avoid attaching to an unsafe session."
+        write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
+        return OriginResult(False, None, None, None, message)
+    job: OriginPlotJob | None = None
     try:
-        _remove_stale_artifacts(job)
-        if not _wait_for_no_origin_process():
-            message = "Origin is still running before starting export; aborting to avoid attaching to an unsafe session."
-            write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
-            return OriginResult(False, None, None, None, message)
+        prepare_safe_output_file_targets(
+            (
+                paths.plot_csv,
+                paths.job_script,
+                paths.origin_file,
+                paths.figure_tif,
+                paths.preview_png,
+            ),
+            output_root=_origin_output_base(project_root, output_root),
+            force=force,
+            context="Origin plot",
+        )
+        for target in (
+            paths.plot_csv,
+            paths.job_script,
+            paths.origin_file,
+            paths.figure_tif,
+            paths.preview_png,
+        ):
+            target.parent.mkdir(parents=True, exist_ok=True)
+        job = build_origin_plot_job(
+            project_root,
+            dataset_id,
+            processed_csv,
+            x_title,
+            y_title,
+            data_type,
+            source_file=source_file,
+            output_root=output_root,
+        )
         completed = _run_origin_job(job)
         if completed.returncode:
             details = (completed.stderr or completed.stdout or "Origin helper failed").strip()
             write_origin_error(project_root, f"{dataset_id}: {details}", output_root=output_root)
             return OriginResult(False, None, None, None, f"Origin export failed: {details}")
-        if not job.figure_tif.exists():
-            _export_tif_with_originpro(job)
-        _ensure_tif_600_dpi(job.figure_tif, job.fixed_style)
-        if not job.origin_file.exists() or not job.figure_tif.exists() or not job.preview_png.exists():
-            message = "Origin helper did not produce required .opju, .tif, and PNG preview outputs."
+        if not job.origin_file.exists() or not job.preview_png.exists():
+            message = "Origin helper did not produce required .opju and PNG preview outputs."
             write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
         if job.origin_file.stat().st_size == 0:
             message = "OPJU output was empty; Origin export evidence is missing."
             write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
-        if job.figure_tif.stat().st_size == 0:
-            message = "TIF export was empty; print-quality figure evidence is missing."
-            write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
-            return OriginResult(False, None, None, None, message)
         if job.preview_png.stat().st_size == 0:
             message = "PNG preview was empty; visual verification evidence is missing."
             write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
+        tif_resolution_evidence = _export_tif_with_originpro(job)
         _write_material_color_report(project_root, job.color_assignments, output_root=output_root)
-        return OriginResult(True, job.origin_file, job.figure_tif, job.preview_png, "Origin export succeeded with Graph4 template workflow")
+        return OriginResult(
+            True,
+            job.origin_file,
+            job.figure_tif,
+            job.preview_png,
+            "Origin export succeeded with reopened-OPJU native 600 dpi validation",
+            tif_resolution_evidence,
+        )
     except Exception as exc:
         write_origin_error(project_root, f"{dataset_id}: {exc}", output_root=output_root)
         return OriginResult(False, None, None, None, f"Origin export failed: {exc}")
     finally:
         try:
-            if job.job_script.exists():
+            if job is not None and job.job_script.exists():
                 job.job_script.unlink()
         except OSError:
             pass
 
 
-def origin_smoke_test(project_root: Path) -> OriginResult:
+def origin_smoke_test(project_root: Path, *, force: bool = False) -> OriginResult:
     ok, message = check_origin_available()
     if not ok:
         write_origin_error(project_root, message)
         return OriginResult(False, None, None, None, message)
-    data_dir = output_dir(project_root, "processed_data", "_origin_test")
-    data_dir.mkdir(parents=True, exist_ok=True)
+    if not _wait_for_no_origin_process():
+        message = (
+            "Origin is still running before the smoke test; refusing to modify "
+            "any existing smoke-test artifact."
+        )
+        write_origin_error(project_root, message)
+        return OriginResult(False, None, None, None, message)
+
+    base = _origin_output_base(project_root, None)
+    data_dir = base / "processed_data" / "_origin_test"
     csv_path = data_dir / "origin_smoke_test.csv"
-    csv_path.write_text("x,y\n0,0\n1,1\n", encoding="utf-8")
-    origin_file = output_dir(project_root, "origin_files") / "origin_smoke_test.opju"
-    figure_tif = output_dir(project_root, "figures_tif") / "origin_smoke_test.tif"
-    preview_png = output_dir(project_root, "figures_preview") / "origin_smoke_test.png"
+    origin_file = base / "origin_files" / "origin_smoke_test.opju"
+    figure_tif = base / "figures_tif" / "origin_smoke_test.tif"
+    preview_png = base / "figures_preview" / "origin_smoke_test.png"
     operations = None
     try:
+        safe_targets = prepare_safe_output_file_targets(
+            (csv_path, origin_file, figure_tif, preview_png),
+            output_root=base,
+            force=force,
+            context="Origin smoke-test",
+        )
+        for target in safe_targets:
+            target.parent.mkdir(parents=True, exist_ok=True)
+        csv_path.write_text("x,y\n0,0\n1,1\n", encoding="utf-8")
         operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
         created = operations.new_project()
         if not created.ok:
@@ -1218,14 +1537,30 @@ def origin_smoke_test(project_root: Path) -> OriginResult:
         if not saved.ok:
             raise RuntimeError(saved.message)
         png = operations.export_graph(graph_name, preview_png, "png")
-        tif = operations.export_graph(graph_name, figure_tif, "tif")
-        if not png.ok or not tif.ok:
-            raise RuntimeError(f"{png.message}; {tif.message}")
+        if not png.ok:
+            raise RuntimeError(png.message)
+        closed = operations.close()
+        operations = None
+        if not closed.ok:
+            raise RuntimeError(closed.message)
+        tif_resolution_evidence = reexport_tif_from_reopened_opju(
+            origin_file,
+            graph_name,
+            figure_tif,
+            dpi=600,
+        )
         missing = [path for path in (origin_file, figure_tif, preview_png) if not path.exists() or path.stat().st_size == 0]
         if missing:
             raise RuntimeError("missing smoke test artifacts: " + "; ".join(str(path) for path in missing))
         write_origin_success(project_root)
-        return OriginResult(True, origin_file, figure_tif, preview_png, "Origin isolated operations smoke test succeeded")
+        return OriginResult(
+            True,
+            origin_file,
+            figure_tif,
+            preview_png,
+            "Origin isolated operations smoke test succeeded",
+            tif_resolution_evidence,
+        )
     except Exception as exc:
         message = f"Origin isolated operations smoke test failed: {exc}"
         write_origin_error(project_root, message)

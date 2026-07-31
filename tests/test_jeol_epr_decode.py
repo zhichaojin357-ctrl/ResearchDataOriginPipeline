@@ -7,9 +7,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from openpyxl import load_workbook
 
+import src.core.file_utils as file_utils
+import src.core.epr_jeol as epr_jeol
 from src.cli import main as cli_main
 from src.core.epr_jeol import (
     DEFAULT_EXPORT_POINTS,
@@ -21,6 +24,7 @@ from src.core.epr_jeol import (
     read_xy_xlsx,
     write_data_xlsx,
 )
+from src.core.file_utils import file_sha256
 from src.core.project import default_output_root
 from src.core.triage import TriageOptions, run_triage
 from src.processors.base import process_table_dataset
@@ -41,7 +45,13 @@ def _artifact_path(root: Path, rendered_path: str) -> Path:
     return rendered if rendered.is_absolute() else root / rendered
 
 
-def write_synthetic_jeol_cacqu(path: Path, *, process_type: str = "cAcqu", data_length: int = 65536) -> None:
+def write_synthetic_jeol_cacqu(
+    path: Path,
+    *,
+    process_type: str = "cAcqu",
+    data_length: int = 65536,
+    signal_offset: float = 0.0,
+) -> None:
     header = bytearray(9500)
     offset = 0
 
@@ -79,7 +89,7 @@ def write_synthetic_jeol_cacqu(path: Path, *, process_type: str = "cAcqu", data_
     put_f32(3300.0)
     put_f32(4900.0)
 
-    ch1 = [float(index % 16) for index in range(data_length)]
+    ch1 = [signal_offset + float(index % 16) for index in range(data_length)]
     ch2 = [0.0 for _ in range(data_length)]
     path.write_bytes(bytes(header) + struct.pack(f"<{data_length}f", *ch1) + struct.pack(f"<{data_length}f", *ch2))
 
@@ -104,8 +114,8 @@ class JeolEprDecodeTest(unittest.TestCase):
             rows = decode_jeol_cacqu_rows(source)
 
             self.assertEqual(len(rows), DEFAULT_EXPORT_POINTS)
-            self.assertEqual(set(rows[0]), {"magnetic field", "intensity"})
-            self.assertEqual(rows[0]["magnetic field"], str(expected_first_aggregation_center()))
+            self.assertEqual(set(rows[0]), {"magnetic field G", "intensity"})
+            self.assertEqual(rows[0]["magnetic field G"], str(expected_first_aggregation_center()))
             self.assertEqual(rows[0]["intensity"], "7.5")
 
     def test_jeol_cacqu_points_override_uses_requested_export_grid_when_compatible(self):
@@ -222,6 +232,7 @@ class JeolEprDecodeTest(unittest.TestCase):
             source = source_root / "BC-OH-light"
             write_synthetic_jeol_cacqu(source)
             out = root / "decoded"
+            source_hash_before = file_sha256(source)
 
             result = export_jeol_cwesr_to_xlsx([source_root], out)
 
@@ -236,6 +247,230 @@ class JeolEprDecodeTest(unittest.TestCase):
             self.assertEqual(len(rows), DEFAULT_EXPORT_POINTS)
             self.assertEqual(rows[0], (expected_first_aggregation_center(), 7.5))
             self.assertEqual(float(rows[0][0]), expected_first_aggregation_center())
+            self.assertEqual(file_sha256(source), source_hash_before)
+
+            metadata_path = out / "metadata" / source_root.name / "BC-OH-light" / "metadata.json"
+            self.assertEqual(result["metadata_files"], ["output/metadata/raw/BC-OH-light/metadata.json"])
+            self.assertTrue(metadata_path.is_file())
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            self.assertEqual(metadata["processing_status"], "processed_no_origin")
+            self.assertEqual(metadata["source"]["sha256"], source_hash_before)
+            self.assertEqual(metadata["jeol_header"]["x_unit"], "G")
+            self.assertEqual(metadata["decode"]["raw_point_count"], 65536)
+            self.assertEqual(metadata["decode"]["exported_point_count"], DEFAULT_EXPORT_POINTS)
+            self.assertEqual(metadata["decode"]["aggregation_factor"], 16)
+            self.assertEqual(metadata["outputs"]["xlsx_sha256"], file_sha256(exported))
+            self.assertTrue(metadata["manual_check_required"])
+            self.assertFalse(metadata["scientific_claims"]["radical_assignment_generated"])
+            self.assertIn("radical species", " ".join(metadata["forbidden_claims"]))
+            verified = read_verified_jeol_export_series(exported)
+            self.assertEqual(
+                verified.axis_source,
+                "verified_jeol_decoder_metadata",
+            )
+            self.assertEqual(verified.x_unit, "G")
+            self.assertIsNone(verified.raw_source)
+
+            metadata["outputs"]["xlsx_sha256"] = "0" * 64
+            metadata_path.write_text(
+                json.dumps(metadata, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            tampered = read_verified_jeol_export_series(exported)
+            self.assertEqual(tampered.axis_source, "excel_export")
+            self.assertEqual(tampered.x_unit, "")
+
+    def test_jeol_export_keeps_same_name_sources_from_distinct_directories(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_root = root / "raw"
+            first = source_root / "group_a" / "same-name"
+            second = source_root / "group_b" / "same-name"
+            first.parent.mkdir(parents=True)
+            second.parent.mkdir(parents=True)
+            write_synthetic_jeol_cacqu(first)
+            write_synthetic_jeol_cacqu(second, signal_offset=100.0)
+            source_hashes = {
+                "raw/group_a/same-name": file_sha256(first),
+                "raw/group_b/same-name": file_sha256(second),
+            }
+            out = root / "decoded"
+
+            result = export_jeol_cwesr_to_xlsx([source_root], out)
+
+            self.assertEqual(result["exported_xlsx"], 2)
+            self.assertEqual(result["source_keys"], sorted(source_hashes))
+            first_xlsx = out / "raw" / "group_a" / "same-name.xlsx"
+            second_xlsx = out / "raw" / "group_b" / "same-name.xlsx"
+            self.assertEqual(read_xy_xlsx(first_xlsx)[1][0], 7.5)
+            self.assertEqual(read_xy_xlsx(second_xlsx)[1][0], 107.5)
+            self.assertEqual(file_sha256(first), source_hashes["raw/group_a/same-name"])
+            self.assertEqual(file_sha256(second), source_hashes["raw/group_b/same-name"])
+
+            metadata_payloads = []
+            for group, source_key in (
+                ("group_a", "raw/group_a/same-name"),
+                ("group_b", "raw/group_b/same-name"),
+            ):
+                metadata_path = (
+                    out
+                    / "metadata"
+                    / "raw"
+                    / group
+                    / "same-name"
+                    / "metadata.json"
+                )
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+                metadata_payloads.append(metadata)
+                self.assertEqual(metadata["source_key"], source_key)
+                self.assertEqual(
+                    metadata["source"]["sha256_before"],
+                    source_hashes[source_key],
+                )
+                self.assertEqual(
+                    metadata["source"]["sha256_after"],
+                    source_hashes[source_key],
+                )
+            self.assertNotEqual(
+                metadata_payloads[0]["dataset_id"],
+                metadata_payloads[1]["dataset_id"],
+            )
+
+    def test_jeol_export_preflights_existing_targets_before_writing_batch(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_root = root / "raw"
+            first = source_root / "group_a" / "first"
+            second = source_root / "group_b" / "second"
+            first.parent.mkdir(parents=True)
+            second.parent.mkdir(parents=True)
+            write_synthetic_jeol_cacqu(first)
+            write_synthetic_jeol_cacqu(second)
+            out = root / "decoded"
+            existing_target = out / "raw" / "group_b" / "second.xlsx"
+            existing_target.parent.mkdir(parents=True)
+            existing_target.write_bytes(b"keep-existing")
+
+            with self.assertRaisesRegex(
+                FileExistsError,
+                "rerun with force=True",
+            ):
+                export_jeol_cwesr_to_xlsx([source_root], out)
+
+            self.assertEqual(existing_target.read_bytes(), b"keep-existing")
+            self.assertFalse((out / "raw" / "group_a" / "first.xlsx").exists())
+            self.assertFalse(
+                (
+                    out
+                    / "metadata"
+                    / "raw"
+                    / "group_a"
+                    / "first"
+                    / "metadata.json"
+                ).exists()
+            )
+
+    def test_jeol_export_requires_explicit_force_to_replace_outputs(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_root = root / "raw"
+            source_root.mkdir()
+            source = source_root / "same-run"
+            write_synthetic_jeol_cacqu(source)
+            out = root / "decoded"
+            export_jeol_cwesr_to_xlsx([source_root], out)
+
+            with self.assertRaises(FileExistsError):
+                export_jeol_cwesr_to_xlsx([source_root], out)
+
+            result = export_jeol_cwesr_to_xlsx(
+                [source_root],
+                out,
+                force=True,
+            )
+            self.assertEqual(result["exported_xlsx"], 1)
+            self.assertEqual(result["source_keys"], ["raw/same-run"])
+
+    def test_jeol_force_rejects_reparse_leaf_without_overwriting_source(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_root = root / "raw"
+            source_root.mkdir()
+            source = source_root / "same-run"
+            write_synthetic_jeol_cacqu(source)
+            source_hash = file_sha256(source)
+            out = root / "decoded"
+            unsafe_leaf = out / "raw" / "same-run.xlsx"
+            unsafe_leaf.parent.mkdir(parents=True)
+            unsafe_leaf.write_bytes(b"must-not-overwrite")
+            unsafe_key = file_utils.lexical_absolute_path(unsafe_leaf)
+            original_check = file_utils._path_is_link_or_reparse
+
+            with patch(
+                "src.core.file_utils._path_is_link_or_reparse",
+                side_effect=lambda path: (
+                    file_utils.lexical_absolute_path(path) == unsafe_key
+                    or original_check(path)
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "symlink, junction, or reparse",
+                ):
+                    export_jeol_cwesr_to_xlsx(
+                        [source_root],
+                        out,
+                        force=True,
+                    )
+
+            self.assertEqual(file_sha256(source), source_hash)
+            self.assertEqual(unsafe_leaf.read_bytes(), b"must-not-overwrite")
+            self.assertFalse((out / "metadata").exists())
+
+    def test_jeol_force_unlinks_hardlink_before_writing_replacement(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_root = root / "raw"
+            source_root.mkdir()
+            source = source_root / "same-run"
+            write_synthetic_jeol_cacqu(source)
+            external = root / "external-preserve.bin"
+            external.write_bytes(b"external-hardlink-content")
+            out = root / "decoded"
+            target = out / "raw" / "same-run.xlsx"
+            target.parent.mkdir(parents=True)
+            try:
+                os.link(external, target)
+            except OSError as exc:
+                self.skipTest(f"hard links unavailable in this environment: {exc}")
+
+            export_jeol_cwesr_to_xlsx([source_root], out, force=True)
+
+            self.assertEqual(external.read_bytes(), b"external-hardlink-content")
+            self.assertNotEqual(target.read_bytes(), external.read_bytes())
+            self.assertEqual(os.stat(external).st_nlink, 1)
+
+    def test_jeol_export_rejects_colliding_root_labels_before_writing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            first_root = root / "first" / "raw"
+            second_root = root / "second" / "raw"
+            first_root.mkdir(parents=True)
+            second_root.mkdir(parents=True)
+            write_synthetic_jeol_cacqu(first_root / "same-name")
+            write_synthetic_jeol_cacqu(second_root / "same-name")
+            out = root / "decoded"
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "source key collision",
+            ):
+                export_jeol_cwesr_to_xlsx(
+                    [first_root, second_root],
+                    out,
+                )
+
+            self.assertFalse(out.exists())
 
     def test_jeol_export_rejects_missing_or_non_directory_roots(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -249,6 +484,63 @@ class JeolEprDecodeTest(unittest.TestCase):
             non_directory.write_bytes(b"not a directory")
             with self.assertRaisesRegex(NotADirectoryError, "not a directory"):
                 export_jeol_cwesr_to_xlsx([non_directory], output)
+
+    def test_jeol_export_rejects_output_root_overlapping_input_tree_without_mutation(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_root = root / "raw"
+            source_root.mkdir()
+            source = source_root / "same-run"
+            write_synthetic_jeol_cacqu(source)
+            source_hash_before = file_sha256(source)
+
+            with self.assertRaisesRegex(ValueError, "overlaps protected input"):
+                export_jeol_cwesr_to_xlsx([source_root], source_root)
+
+            self.assertEqual(file_sha256(source), source_hash_before)
+            self.assertEqual(list(source_root.iterdir()), [source])
+
+    def test_jeol_commit_rolls_back_all_old_files_when_second_install_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            output_root = root / "decoded"
+            stage_root = output_root / ".stage"
+            final_first = output_root / "raw" / "first.xlsx"
+            final_second = output_root / "metadata" / "first" / "metadata.json"
+            staged_first = stage_root / "raw" / "first.xlsx"
+            staged_second = stage_root / "metadata" / "first" / "metadata.json"
+            for path, content in (
+                (final_first, b"old first\n"),
+                (final_second, b"old second\n"),
+                (staged_first, b"new first\n"),
+                (staged_second, b"new second\n"),
+            ):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(content)
+
+            real_replace = os.replace
+            installs = 0
+
+            def fail_second_install(source: Path, target: Path) -> None:
+                nonlocal installs
+                if target in (final_first, final_second) and source in (staged_first, staged_second):
+                    installs += 1
+                    if installs == 2:
+                        raise OSError("injected second JEOL install failure")
+                real_replace(source, target)
+
+            with patch("src.core.epr_jeol._atomic_replace_jeol", side_effect=fail_second_install):
+                with self.assertRaisesRegex(RuntimeError, "previous outputs were restored"):
+                    epr_jeol._commit_staged_jeol_files(
+                        (staged_first, staged_second),
+                        (final_first, final_second),
+                        output_root=output_root,
+                        stage_root=stage_root,
+                        force=True,
+                    )
+
+            self.assertEqual(final_first.read_bytes(), b"old first\n")
+            self.assertEqual(final_second.read_bytes(), b"old second\n")
 
     def test_skill_compatible_compare_report_marks_exact_same_name_match(self):
         with tempfile.TemporaryDirectory() as tmpdir:

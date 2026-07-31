@@ -72,6 +72,8 @@ def test_build_xps_in_situ_routes_metadata_outputs_to_structured_subdirs(tmp_pat
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     assert metadata["dataset_id"] == "xps_in_situ"
     assert metadata["metadata_path"] == "metadata/xps_in_situ/metadata.json"
+    assert metadata["processing_status"] == "processed_no_origin"
+    assert metadata["tif_resolution_evidence"] is None
     assert metadata["manual_check_required"] is True
     assert manifest["metadata"] == "metadata/xps_in_situ/metadata.json"
     assert manifest["output_dirs"]["reports"] == "reports"
@@ -82,3 +84,20 @@ def test_build_xps_in_situ_routes_metadata_outputs_to_structured_subdirs(tmp_pat
     assert not (resolved_output / "xps_in_situ_manifest.json").exists()
     assert not (resolved_output / "peak_positions_summary.xlsx").exists()
     assert _artifact_paths(project_root) == []
+
+    monkeypatch.setattr(
+        xps,
+        "_try_write_origin_project",
+        lambda _project_root, _panel_records, _output_dir: {
+            "requested": True,
+            "ok": False,
+            "message": "injected Origin failure",
+        },
+    )
+    xps.build_xps_in_situ_outputs(
+        project_root,
+        output_dir,
+        with_origin=True,
+    )
+    failed_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert failed_metadata["processing_status"] == "origin_failed"

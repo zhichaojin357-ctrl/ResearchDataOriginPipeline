@@ -7,7 +7,15 @@ from pathlib import Path
 
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.output_sanitizer import render_output_path
-from src.core.project import ensure_output_structure, load_json_compatible_yaml, output_dir, registry_path, report_path
+from src.core.project import (
+    default_output_root,
+    ensure_output_path_separate_from_inputs,
+    ensure_output_structure,
+    load_json_compatible_yaml,
+    output_dir,
+    registry_path,
+    report_path,
+)
 
 
 @dataclass(frozen=True)
@@ -76,6 +84,12 @@ def _matching_folders(raw_root: Path, entry: dict) -> list[Path]:
 
 
 def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | None = None) -> dict:
+    effective_output_root = output_root or default_output_root(project_root)
+    ensure_output_path_separate_from_inputs(
+        project_root,
+        effective_output_root,
+        [input_path],
+    )
     ensure_output_structure(project_root, output_root=output_root)
     registry = load_json_compatible_yaml(registry_path(project_root))
     entries = list(registry["entries"])

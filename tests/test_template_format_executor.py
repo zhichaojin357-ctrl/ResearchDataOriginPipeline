@@ -13,6 +13,7 @@ from src.core.template_format_executor import (
     _apply_embedded_snapshot_data_axis_range,
     _apply_cached_style_rich_text_policies,
     _apply_external_reference_plot_sequence,
+    _export_external_reference_preview_if_requested,
     _apply_nonoverlap_plain_legend_anchor,
     _apply_reviewed_template_plot_policy,
     _apply_saved_template_legend_anchor,
@@ -105,16 +106,25 @@ class _FakeCachedStyleOps:
         self.closed = False
         self.commands: list[str] = []
         self.font_calls: list[dict[str, object]] = []
+        self.events: list[str] = []
 
     def new_project(self) -> OperationResult:
+        self.events.append("new_project")
         return OperationResult(True, "new")
 
     def load_project(self, path: Path) -> OperationResult:
         self.loaded_paths.append(Path(path))
+        self.events.append(f"load:{Path(path).name}")
         return OperationResult(True, "loaded")
 
     def list_worksheets(self) -> OperationResult:
-        return OperationResult(True, "listed", {"pages": [{"name": "Graph1", "type": "graph"}]})
+        self.events.append("list_pages")
+        graph_pages = self.created_graphs or ["Graph1"]
+        return OperationResult(
+            True,
+            "listed",
+            {"pages": [{"name": graph_name, "type": "graph"} for graph_name in graph_pages]},
+        )
 
     def get_graph_plot_dataset_names(self, _graph_name: str, layer_index: int = 1) -> OperationResult:
         if layer_index != 1:
@@ -193,16 +203,44 @@ class _FakeCachedStyleOps:
         self.commands.append(command)
         return OperationResult(True, "labtalk")
 
+    def get_labtalk_variable(self, name: str) -> OperationResult:
+        if name.endswith("$"):
+            value: object = "Arial"
+        elif name in {"page.width", "page.height"}:
+            value = 100
+        elif name in {"xb.fsize", "yl.fsize"}:
+            value = 36
+        elif name == "page.nlayers":
+            value = 1
+        else:
+            value = 1
+        return OperationResult(True, "read", {"name": name, "value": value})
+
+    def reset_project_identity_for_export(self) -> OperationResult:
+        self.events.append("identity_reset")
+        return OperationResult(
+            True,
+            "identity reset",
+            {"project_path_empty": True, "project_name_untitled": True},
+        )
+
     def save_project(self, path: Path) -> OperationResult:
         self.saved_paths.append(Path(path))
+        self.events.append(f"save:{Path(path).name}")
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"opju")
         return OperationResult(True, "saved")
 
-    def export_graph(self, _graph_name: str, path: Path, _format: str, **_kwargs: object) -> OperationResult:
+    def export_graph(self, graph_name: str, path: Path, _format: str, **_kwargs: object) -> OperationResult:
         self.exported_paths.append(Path(path))
+        self.events.append(f"export:{graph_name}:{Path(path).name}")
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(b"figure")
+        if _format.casefold() in {"tif", "tiff"}:
+            from PIL import Image
+
+            Image.new("RGB", (60, 60), "white").save(path, format="TIFF", dpi=(600, 600))
+        else:
+            path.write_bytes(b"figure")
         return OperationResult(True, "exported")
 
     def close(self) -> OperationResult:
@@ -348,6 +386,19 @@ def test_template_base_global_policy_preserves_template_legend_text(tmp_path: Pa
     assert "legend -r" not in commands
 
 
+def _saved_bet_theme_project(tmp_path: Path) -> Path:
+    project_root = tmp_path / "project"
+    style_root = project_root / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    (style_root / "manifest.json").write_text(
+        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","format_theme":"format_themes/BET.oth","status":"accepted"}]}',
+        encoding="utf-8",
+    )
+    return project_root
+
+
 def test_export_template_base_uses_project_format_theme_when_reference_opju_missing(tmp_path: Path, monkeypatch) -> None:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
@@ -384,6 +435,98 @@ def test_export_template_base_uses_project_format_theme_when_reference_opju_miss
     assert fake.closed is True
 
 
+def test_export_template_base_blocks_acceptance_when_origin_close_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    class CloseFailureOps(_FakeCachedStyleOps):
+        def close(self) -> OperationResult:
+            self.closed = True
+            return OperationResult(False, "simulated close failure")
+
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = CloseFailureOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+
+    result = export_template_base_product_with_origin(
+        product,
+        ResolvedPlotStyle(),
+        project_root=project_root,
+    )
+
+    assert result["ok"] is False
+    assert "product acceptance is blocked" in result["message"]
+    assert result["origin_runtime_cleanup"]["status"] == "failed"
+    assert result["origin_runtime_cleanup"]["origin_close_ok"] is False
+    assert "simulated close failure" in result["origin_runtime_cleanup"]["origin_close_message"]
+    diagnostic = product.type_root / "debug" / "origin_runtime_cleanup_failure.json"
+    assert json.loads(diagnostic.read_text(encoding="utf-8"))["status"] == "failed"
+
+
+def test_export_template_base_blocks_acceptance_when_origin_close_raises(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    class CloseRaisesOps(_FakeCachedStyleOps):
+        def close(self) -> OperationResult:
+            self.closed = True
+            raise RuntimeError("simulated close exception")
+
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = CloseRaisesOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+
+    result = export_template_base_product_with_origin(
+        product,
+        ResolvedPlotStyle(),
+        project_root=project_root,
+    )
+
+    assert result["ok"] is False
+    assert result["origin_runtime_cleanup"]["origin_close_ok"] is False
+    assert "simulated close exception" in result["origin_runtime_cleanup"]["origin_close_message"]
+
+
+def test_export_template_base_blocks_acceptance_when_runtime_cleanup_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = _FakeCachedStyleOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+    monkeypatch.setattr(
+        "src.core.template_format_executor._cleanup_origin_runtime_directory",
+        lambda _path: {
+            "ok": False,
+            "status": "retained_after_bounded_retries",
+            "attempts": 20,
+            "runtime_directory": "rdop_origin_test",
+            "error": "simulated lock",
+        },
+    )
+
+    result = export_template_base_product_with_origin(
+        product,
+        ResolvedPlotStyle(),
+        project_root=project_root,
+    )
+
+    assert result["ok"] is False
+    assert "product acceptance is blocked" in result["message"]
+    assert result["origin_runtime_cleanup"]["origin_close_ok"] is True
+    assert result["origin_runtime_cleanup"]["runtime_cleanup"]["ok"] is False
+    assert result["origin_runtime_cleanup"]["runtime_cleanup"]["status"] == "retained_after_bounded_retries"
+
+
 def test_export_template_base_prefers_project_format_theme_over_reference_opju(tmp_path: Path, monkeypatch) -> None:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
@@ -406,7 +549,9 @@ def test_export_template_base_prefers_project_format_theme_over_reference_opju(t
     assert result["ok"] is True
     assert result["template_format_plan"]["mode"] == "saved_format_theme"
     assert result["origin_processing"]["method"] == "saved_format_theme_apply"
-    assert fake.loaded_paths == []
+    assert len(fake.loaded_paths) == 1
+    assert fake.loaded_paths[0] == fake.saved_paths[0]
+    assert result["reopened_graph"] == fake.created_graphs[0]
     assert fake.created_from_template is None
     assert fake.applied_themes and fake.applied_themes[0].name == theme.name
     commands = "\n".join(fake.commands)
@@ -417,6 +562,290 @@ def test_export_template_base_prefers_project_format_theme_over_reference_opju(t
     assert "label -n rdop_plain_legend_1 -s \\b(Adsorption);" not in commands
     assert "legend.text$" not in commands
     assert "\\l(1)" not in commands
+
+
+def test_saved_format_theme_exports_only_after_save_reload_and_readback(tmp_path: Path, monkeypatch) -> None:
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = _FakeCachedStyleOps()
+
+    def readback(_operations: object, graph_name: str, **_kwargs: object) -> OpjuStyleSnapshot:
+        fake.events.append(f"readback:{graph_name}")
+        return OpjuStyleSnapshot(
+            source_opju=product.origin_file.name,
+            status="extracted",
+            graph_page=graph_name,
+            graph_pages=[graph_name],
+            layer_count=1,
+            plot_count=2,
+            plot_line_widths=[1500.0, 1500.0],
+            audit_numeric_values={"xb.show": 1, "yl.show": 1, "xb.bold": 1, "yl.bold": 1},
+            audit_string_values={"xb.text$": product.x_label, "yl.text$": product.y_label},
+        )
+
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+    monkeypatch.setattr("src.core.template_format_executor.read_graph_style_snapshot", readback)
+    monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
+
+    assert result["ok"] is True
+    assert result["reopened_graph"] == "BET_template"
+    assert fake.events == [
+        "new_project",
+        "save:product.opju",
+        "new_project",
+        "load:product.opju",
+        "list_pages",
+        "readback:BET_template",
+        "export:BET_template:product.png",
+        "identity_reset",
+        "export:BET_template:product.tif",
+        "new_project",
+    ]
+
+
+def test_saved_format_theme_conformance_uses_real_snapshot_comparison(tmp_path: Path, monkeypatch) -> None:
+    project_root = _saved_bet_theme_project(tmp_path)
+    snapshot_path = project_root / "templates" / "origin_styles" / "snapshots" / "BET.json"
+    snapshot_path.parent.mkdir(parents=True)
+    snapshot_path.write_text(
+        json.dumps(
+            {
+                "status": "extracted",
+                "layout_values": {"page.width": 200.0, "page.height": 100.0},
+                "audit_numeric_values": {"xb.bold": 0, "yl.bold": 0},
+                "audit_string_values": {"xb.text$": "X", "yl.text$": "Y"},
+                "plot_line_widths": [1500.0],
+            }
+        ),
+        encoding="utf-8",
+    )
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = _FakeCachedStyleOps()
+    product_snapshot = OpjuStyleSnapshot(
+        source_opju="product.opju",
+        status="extracted",
+        graph_page="BET_template",
+        graph_pages=["BET_template"],
+        layout_values={"page.width": 100.0, "page.height": 100.0},
+        plot_count=1,
+        plot_line_widths=[1500.0],
+        audit_numeric_values={"xb.bold": 0, "yl.bold": 0},
+        audit_string_values={"xb.text$": "X", "yl.text$": "Y"},
+    )
+    from src.origin.conformance import compare_style_snapshots as real_compare_style_snapshots
+
+    compare_kwargs: list[dict[str, object]] = []
+
+    def compare_with_capture(*args: object, **kwargs: object):
+        compare_kwargs.append(dict(kwargs))
+        return real_compare_style_snapshots(*args, **kwargs)
+
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_style_snapshot",
+        lambda *_args, **_kwargs: product_snapshot,
+    )
+    monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
+    monkeypatch.setattr(
+        "src.core.template_format_executor.compare_style_snapshots",
+        compare_with_capture,
+    )
+
+    result = export_template_base_product_with_origin(
+        product,
+        ResolvedPlotStyle(),
+        project_root=project_root,
+    )
+
+    assert result["ok"] is True
+    assert result["conformance"]["compared_fields"] >= 2
+    assert result["conformance"]["matched_fields"] < result["conformance"]["compared_fields"]
+    assert result["conformance"]["status"] == "fail"
+    assert result["conformance"]["reference_source"] == "saved_style_snapshot"
+    assert compare_kwargs == [
+        {
+            "required_line_width_pt": 3.0,
+            "require_axis_title_bold": False,
+        }
+    ]
+    assert result["exemplar_style"]["audit_numeric_values"]["xb.bold"] == 0
+
+
+def test_saved_format_theme_blocks_merely_tagged_nonphysical_tiff(tmp_path: Path, monkeypatch) -> None:
+    class WrongPixelCountOps(_FakeCachedStyleOps):
+        def export_graph(self, graph_name: str, path: Path, export_format: str, **_kwargs: object) -> OperationResult:
+            if export_format.casefold() in {"tif", "tiff"}:
+                from PIL import Image
+
+                self.exported_paths.append(path)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                Image.new("RGB", (30, 30), "white").save(path, format="TIFF", dpi=(600, 600))
+                return OperationResult(True, "tagged but undersized")
+            return super().export_graph(graph_name, path, export_format, **_kwargs)
+
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = WrongPixelCountOps()
+    snapshot = OpjuStyleSnapshot(
+        source_opju="product.opju",
+        status="extracted",
+        graph_page="BET_template",
+        graph_pages=["BET_template"],
+        plot_count=1,
+        plot_line_widths=[1500.0],
+        audit_numeric_values={"xb.bold": 1, "yl.bold": 1},
+        audit_string_values={"xb.text$": "X", "yl.text$": "Y"},
+    )
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+    monkeypatch.setattr("src.core.template_format_executor.read_graph_style_snapshot", lambda *_args, **_kwargs: snapshot)
+    monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
+
+    result = export_template_base_product_with_origin(
+        product,
+        ResolvedPlotStyle(),
+        project_root=project_root,
+    )
+
+    assert result["ok"] is False
+    assert "pixel dimensions" in result["message"]
+    assert not product.figure_tif.exists()
+
+
+def test_saved_format_theme_reload_failure_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    class ReloadFailureOps(_FakeCachedStyleOps):
+        def load_project(self, path: Path) -> OperationResult:
+            self.loaded_paths.append(Path(path))
+            self.events.append(f"load:{Path(path).name}")
+            return OperationResult(False, "simulated reload failure")
+
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = ReloadFailureOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
+
+    assert result["ok"] is False
+    assert "reload failure" in result["message"]
+    assert fake.exported_paths == []
+    assert not product.origin_file.exists()
+    assert not product.preview_png.exists()
+    assert not product.figure_tif.exists()
+
+
+def test_saved_format_theme_page_list_failure_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    class PageListFailureOps(_FakeCachedStyleOps):
+        def list_worksheets(self) -> OperationResult:
+            self.events.append("list_pages")
+            return OperationResult(False, "simulated page list failure")
+
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = PageListFailureOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
+
+    assert result["ok"] is False
+    assert "page list failure" in result["message"]
+    assert fake.exported_paths == []
+    assert not product.origin_file.exists()
+    assert not product.preview_png.exists()
+    assert not product.figure_tif.exists()
+
+
+def test_saved_format_theme_missing_reopened_graph_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    class MissingGraphOps(_FakeCachedStyleOps):
+        def list_worksheets(self) -> OperationResult:
+            self.events.append("list_pages")
+            return OperationResult(True, "listed", {"pages": [{"name": "UnexpectedGraph", "type": "graph"}]})
+
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = MissingGraphOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
+
+    assert result["ok"] is False
+    assert "was missing after project reload" in result["message"]
+    assert result["expected_graph_page"] == "BET_template"
+    assert result["available_graph_pages"] == ["UnexpectedGraph"]
+    assert "reopened_graph" not in result
+    assert fake.exported_paths == []
+    assert not product.origin_file.exists()
+    assert not product.preview_png.exists()
+    assert not product.figure_tif.exists()
+
+
+def test_saved_format_theme_ambiguous_reopened_graph_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    class AmbiguousGraphOps(_FakeCachedStyleOps):
+        def list_worksheets(self) -> OperationResult:
+            self.events.append("list_pages")
+            return OperationResult(
+                True,
+                "listed",
+                {
+                    "pages": [
+                        {"name": "BET_template", "type": "graph"},
+                        {"name": "BET_template", "type": "graph"},
+                    ]
+                },
+            )
+
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = AmbiguousGraphOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
+
+    assert result["ok"] is False
+    assert "was ambiguous after project reload" in result["message"]
+    assert "reopened_graph" not in result
+    assert fake.exported_paths == []
+    assert not product.origin_file.exists()
+    assert not product.preview_png.exists()
+    assert not product.figure_tif.exists()
+
+
+def test_saved_format_theme_reopened_readback_failure_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    project_root = _saved_bet_theme_project(tmp_path)
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    fake = _FakeCachedStyleOps()
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_style_snapshot",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("simulated reopened readback failure")),
+    )
+
+    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
+
+    assert result["ok"] is False
+    assert "reopened readback failure" in result["message"]
+    assert "reopened_graph" not in result
+    assert fake.exported_paths == []
+    assert not product.origin_file.exists()
+    assert not product.preview_png.exists()
+    assert not product.figure_tif.exists()
 
 
 def test_xrd_card_uses_saved_format_theme_even_when_project_template_opju_exists(tmp_path: Path, monkeypatch) -> None:
@@ -461,6 +890,7 @@ def test_xrd_card_uses_saved_format_theme_even_when_project_template_opju_exists
     )
     product.reference_opju_copy.write_bytes(b"external")
     fake = _FakeCachedStyleOps()
+    fake.created_graphs.append("Graph4")
     snapshot = OpjuStyleSnapshot(
         source_opju="XRD.opju",
         status="extracted",
@@ -475,7 +905,14 @@ def test_xrd_card_uses_saved_format_theme_even_when_project_template_opju_exists
     )
     monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
     monkeypatch.setattr("src.core.template_format_executor.extract_style_snapshot", lambda *_args, **_kwargs: snapshot)
-    monkeypatch.setattr("src.core.template_format_executor.read_graph_style_snapshot", lambda *_args, **_kwargs: snapshot)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_style_snapshot",
+        lambda _operations, graph_name, **_kwargs: replace(
+            snapshot,
+            graph_page=graph_name,
+            graph_pages=[graph_name],
+        ),
+    )
     monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
 
     result = export_template_base_product_with_origin(
@@ -512,7 +949,14 @@ def test_export_template_base_uses_neutral_runtime_for_opju_template(tmp_path: P
     )
     monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
     monkeypatch.setattr("src.core.template_format_executor.extract_style_snapshot", lambda *_args, **_kwargs: snapshot)
-    monkeypatch.setattr("src.core.template_format_executor.read_graph_style_snapshot", lambda *_args, **_kwargs: snapshot)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_style_snapshot",
+        lambda _operations, graph_name, **_kwargs: replace(
+            snapshot,
+            graph_page=graph_name,
+            graph_pages=[graph_name],
+        ),
+    )
     monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
 
     result = export_template_base_product_with_origin(
@@ -561,7 +1005,14 @@ def test_export_template_base_uses_project_format_theme_for_exemplar_driven(tmp_
     )
     monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
     monkeypatch.setattr("src.core.template_format_executor.extract_style_snapshot", lambda *_args, **_kwargs: snapshot)
-    monkeypatch.setattr("src.core.template_format_executor.read_graph_style_snapshot", lambda *_args, **_kwargs: snapshot)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_style_snapshot",
+        lambda _operations, graph_name, **_kwargs: replace(
+            snapshot,
+            graph_page=graph_name,
+            graph_pages=[graph_name],
+        ),
+    )
     monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
 
     result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
@@ -630,7 +1081,10 @@ def test_export_template_base_photocurrent_falls_back_when_template_workbook_is_
     assert fake.closed is True
 
 
-def test_export_template_base_uses_embedded_snapshot_when_opju_missing(tmp_path: Path, monkeypatch) -> None:
+def test_export_template_base_blocks_embedded_snapshot_without_independent_reference_preview(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
     product = _product(tmp_path, processed)
@@ -659,23 +1113,26 @@ def test_export_template_base_uses_embedded_snapshot_when_opju_missing(tmp_path:
         preserve_exemplar_style=True,
     )
 
-    assert result["ok"] is True
+    assert result["ok"] is False
     assert result["template_format_plan"]["mode"] == "embedded_template_snapshot"
-    assert result["origin_processing"]["method"] == "embedded_template_snapshot_graph"
+    assert "requires an independent reference preview" in result["message"]
+    assert result["reference_preview"] == {
+        "required": True,
+        "available": False,
+        "generated_preview_reuse_blocked": True,
+    }
     assert result["template_base_replacement"]["embedded_template_snapshot"] is True
-    assert fake.created_graphs == ["BET_template"]
-    assert product.origin_file.exists()
-    assert product.figure_tif.exists()
-    assert product.preview_png.exists()
-    assert product.reference_preview_png.exists()
-    assert product.reference_preview_png.read_bytes() == product.preview_png.read_bytes()
+    assert fake.created_graphs == []
+    assert fake.exported_paths == []
+    assert not product.origin_file.exists()
+    assert not product.figure_tif.exists()
+    assert not product.preview_png.exists()
+    assert not product.reference_preview_png.exists()
     assert all(path.name != product.reference_opju_copy.name for path in fake.loaded_paths)
-    assert fake.font_calls[-1]["x_tick_label_size"] == 28
-    assert fake.font_calls[-1]["y_tick_label_size"] == 36
     assert fake.closed is True
 
 
-def test_strip_raster_metadata_removes_tiff_description_paths(tmp_path: Path) -> None:
+def test_strip_raster_metadata_never_rewrites_native_tiff(tmp_path: Path) -> None:
     from PIL import Image, TiffImagePlugin
 
     figure = tmp_path / "figure.tif"
@@ -683,15 +1140,12 @@ def test_strip_raster_metadata_removes_tiff_description_paths(tmp_path: Path) ->
     tags[270] = r"D:\Codex Project\绉戠爺鏁版嵁澶勭悊\product.opju"
     Image.new("RGB", (8, 6), "white").save(figure, tiffinfo=tags)
     assert b"Codex Project" in figure.read_bytes()
+    original = figure.read_bytes()
 
     warning = _strip_raster_metadata(figure, dpi=600)
 
-    assert warning == ""
-    cleaned = figure.read_bytes()
-    assert b"Codex Project" not in cleaned
-    assert b":\\" not in cleaned
-    with Image.open(figure) as image:
-        assert image.info["dpi"] == (600.0, 600.0)
+    assert "disabled" in warning
+    assert figure.read_bytes() == original
 
 
 def test_cli_template_format_products_passes_options(tmp_path: Path, monkeypatch) -> None:
@@ -715,7 +1169,7 @@ def test_cli_template_format_products_passes_options(tmp_path: Path, monkeypatch
         }
 
     monkeypatch.chdir(project_root)
-    monkeypatch.setattr("src.cli.run_template_format_executor", fake_run)
+    monkeypatch.setattr("src.core.template_format_executor.run_template_format_executor", fake_run)
 
     code = main(
         [
@@ -778,7 +1232,7 @@ def test_cli_template_format_products_passes_asset_only(tmp_path: Path, monkeypa
         }
 
     monkeypatch.chdir(project_root)
-    monkeypatch.setattr("src.cli.run_template_format_executor", fake_run)
+    monkeypatch.setattr("src.core.template_format_executor.run_template_format_executor", fake_run)
 
     code = main(["template-format-products", "--pairing", str(pairing), "--asset-only", "--only-type", "BET"])
 
@@ -808,17 +1262,79 @@ def test_asset_only_builder_options_disable_external_template_inputs(tmp_path: P
     assert builder.xps_non_in_situ_template_root is None
 
 
-def test_asset_only_export_rejects_opju_template_base(tmp_path: Path) -> None:
+def test_asset_only_uses_project_reference_opju_only_as_independent_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    project_reference = style_root / "reference_opju" / "BET.opju"
+    theme.parent.mkdir(parents=True)
+    project_reference.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    project_reference.write_bytes(b"reviewed-project-reference")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "status": "accepted",
+                        "graph_page": "Graph1",
+                        "format_theme": "format_themes/BET.oth",
+                        "template_opju": "reference_opju/BET.opju",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     processed = tmp_path / "processed.csv"
-    processed.write_text("x,a\n0,1\n", encoding="utf-8")
+    processed.write_text("x,a\n0,1\n1,2\n", encoding="utf-8")
     product = _product(tmp_path, processed)
+    product.reference_opju_copy.write_bytes(b"pairing-opju-must-not-be-used")
+    reference_hash = project_reference.read_bytes()
+    fake = _FakeCachedStyleOps()
+    snapshot = OpjuStyleSnapshot(
+        source_opju="reference.opju",
+        status="extracted",
+        graph_page="Graph1",
+        graph_pages=["Graph1"],
+        layout_values={"page.width": 100.0, "page.height": 100.0},
+        plot_count=1,
+        plot_line_widths=[1500.0],
+        audit_numeric_values={"xb.bold": 1, "yl.bold": 1},
+        audit_string_values={"xb.text$": "X", "yl.text$": "Y"},
+    )
+    monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_style_snapshot",
+        lambda _operations, graph_name, **_kwargs: replace(
+            snapshot,
+            graph_page=graph_name,
+            graph_pages=[graph_name],
+        ),
+    )
+    monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
 
-    result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), asset_only=True)
+    result = export_template_base_product_with_origin(
+        product,
+        ResolvedPlotStyle(),
+        project_root=project,
+        asset_only=True,
+    )
 
-    assert result["ok"] is False
-    assert result["asset_only"] is True
-    assert result["external_template_dependency"] is False
-    assert "rejected an OPJU/OPJ template base" in result["message"]
+    assert result["ok"] is True
+    evidence = result["external_reference_preview"]
+    assert evidence["reference_kind"] == "project_local_reference_opju"
+    assert evidence["read_only_runtime_copy"] is True
+    assert evidence["runtime_copy_write_protected"] is True
+    assert evidence["used_as_product_base"] is False
+    assert project_reference.read_bytes() == reference_hash
+    assert all(path.name != product.reference_opju_copy.name for path in fake.loaded_paths)
 
 
 def test_embedded_snapshot_eis_axis_range_uses_processed_csv_bounds(tmp_path: Path) -> None:
@@ -1636,6 +2152,53 @@ def test_load_saved_data_snapshot_reads_adjacent_data_snapshot_file(tmp_path: Pa
     loaded = _load_saved_data_snapshot(theme)
 
     assert loaded["plots"][0]["style"]["symbol_shape"] == 20
+
+
+def test_independent_reference_preview_rejects_missing_requested_graph_page(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "reference.opju"
+    source.write_bytes(b"reference")
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    processed = tmp_path / "processed.csv"
+    processed.write_text("x,y\n0,1\n", encoding="utf-8")
+    product = replace(
+        _product(tmp_path, processed),
+        external_reference_opju=source,
+        external_reference_graph="MissingGraph",
+        external_reference_source="test_reference",
+    )
+
+    class Ops:
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "new")
+
+        def load_project(self, _path: Path) -> OperationResult:
+            return OperationResult(True, "loaded")
+
+        def list_worksheets(self) -> OperationResult:
+            return OperationResult(
+                True,
+                "listed",
+                {"pages": [{"name": "Graph4", "type": "graph"}]},
+            )
+
+        def export_graph(self, *_args, **_kwargs) -> OperationResult:
+            raise AssertionError("missing graph page must fail before export")
+
+    result = _export_external_reference_preview_if_requested(
+        Ops(),
+        product,
+        runtime,
+        runtime / "reference.png",
+        ResolvedPlotStyle(),
+    )
+
+    assert result["ok"] is False
+    assert result["graph_page"] == "MissingGraph"
+    assert result["available_graph_pages"] == ["Graph4"]
+    assert "does not exist" in str(result["message"])
 
 
 def test_xrd_standard_card_legend_keeps_template_vertical_entries() -> None:

@@ -143,6 +143,12 @@ def test_export_product_with_origin_creates_output_parents_before_saving(tmp_pat
     assert fake.app.objects["YL"].Top >= 120
     assert fake.app.objects["XB"].Top <= 3200
 
+    fake.close = lambda: _FakeResult(False, "Origin still running")
+    close_failure = export_product_with_origin(product)
+    assert close_failure["ok"] is False
+    assert close_failure["failure_stage"] == "origin_close"
+    assert "Origin still running" in str(close_failure["message"])
+
 
 def test_no_label_audit_ignores_absolute_path_values_in_metadata(tmp_path: Path) -> None:
     run_root = tmp_path / "run"

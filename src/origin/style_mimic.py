@@ -196,7 +196,15 @@ def read_graph_style_snapshot(
     source_label: str = "",
     graph_pages: list[str] | None = None,
 ) -> OpjuStyleSnapshot:
-    operations.run_labtalk(f'win -a "{quote_labtalk(graph_page)}";')
+    activated = operations.run_labtalk(f'win -a "{quote_labtalk(graph_page)}";')
+    if not getattr(activated, "ok", False):
+        return OpjuStyleSnapshot(
+            source_opju=source_label,
+            status="graph_activation_failed",
+            graph_page=graph_page,
+            graph_pages=list(graph_pages or []),
+            warnings=[f"Requested graph page could not be activated: {graph_page}"],
+        )
     layout_values = _read_numeric_fields(operations, STYLE_LAYOUT_FIELDS)
     audit_numeric_values = _read_numeric_fields(operations, STYLE_AUDIT_NUMERIC_FIELDS)
     audit_string_values = _read_string_fields(operations, STYLE_AUDIT_STRING_FIELDS)

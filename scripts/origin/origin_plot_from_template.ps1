@@ -12,6 +12,9 @@
   [string]$ExportDir,
 
   [Parameter(Mandatory=$true)]
+  [string]$AllowedOutputRoot,
+
+  [Parameter(Mandatory=$true)]
   [array]$Groups,
 
   [string]$DefaultPlotType = '200',
@@ -24,6 +27,8 @@
 
   [switch]$KeepIntermediate,
 
+  [switch]$Force,
+
   [switch]$CloseOrigin
 )
 
@@ -33,6 +38,52 @@ $AxisTitleSize = 36
 
 function To-OriginPath([string]$Path) {
   return ($Path -replace '\\','/')
+}
+
+function Get-FullPath([string]$Path) {
+  return [System.IO.Path]::GetFullPath($Path)
+}
+
+function Test-PathUnderOrEqual([string]$Path, [string]$Root) {
+  $fullPath = (Get-FullPath $Path).TrimEnd('\', '/')
+  $fullRoot = (Get-FullPath $Root).TrimEnd('\', '/')
+  return $fullPath.Equals($fullRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
+    $fullPath.StartsWith($fullRoot + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Assert-NoReparsePointInPath([string]$Path, [string]$Label) {
+  $current = Get-FullPath $Path
+  while ($current) {
+    if (Test-Path -LiteralPath $current) {
+      $item = Get-Item -LiteralPath $current -Force
+      if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "$Label traverses a symlink, junction, or reparse point: $current"
+      }
+    }
+    $parent = Split-Path -Parent $current
+    if (-not $parent -or $parent -eq $current) { break }
+    $current = $parent
+  }
+}
+
+function Assert-SafeOutputPath([string]$Path, [string]$Root, [string]$Label) {
+  if (-not (Test-PathUnderOrEqual $Path $Root)) {
+    throw "$Label must stay under AllowedOutputRoot: $Path"
+  }
+  Assert-NoReparsePointInPath $Path $Label
+  if (Test-Path -LiteralPath $Path -PathType Container) {
+    throw "$Label must be a file, not a directory: $Path"
+  }
+}
+
+function Assert-SafePageName([string]$PageName) {
+  if ([string]::IsNullOrWhiteSpace($PageName) -or
+      $PageName -in @('.', '..') -or
+      $PageName -match '[<>:"/\\|?*\x00-\x1F]' -or
+      $PageName.EndsWith('.') -or
+      $PageName.EndsWith(' ')) {
+    throw "PageName must be one safe filename component: $PageName"
+  }
 }
 
 function Convert-ToSafeOriginName([string]$Name, [string]$Fallback = 'Data') {
@@ -87,7 +138,7 @@ function Convert-ToBoolean($Value, [bool]$Default) {
 }
 
 function Get-HeaderLabels([string]$DataFile, [int]$ColumnCount) {
-  $header = Get-Content -LiteralPath $DataFile -TotalCount 1
+  $header = Get-Content -LiteralPath $DataFile -Encoding UTF8 -TotalCount 1
   if (-not $header) { return @() }
   $parts = $header -split "`t|,"
   if ($parts.Count -lt 2) { return @() }
@@ -114,7 +165,7 @@ function Parse-XYPairs([string]$Spec, [int]$ColumnCount) {
 }
 
 function Read-DelimitedTable([string]$DataFile) {
-  $lines = @(Get-Content -LiteralPath $DataFile)
+  $lines = @(Get-Content -LiteralPath $DataFile -Encoding UTF8)
   if ($lines.Count -eq 0) { return [pscustomobject]@{ Headers = @(); Rows = @() } }
   $delimiter = if ($lines[0] -like "*`t*") { "`t" } else { "," }
   $rows = @($lines | ConvertFrom-Csv -Delimiter $delimiter)
@@ -820,18 +871,63 @@ function Assert-GraphPageValid($app, [string]$PageName, [int]$ExpectedPlots, [ar
 $app = $null
 
 try {
+  $AllowedOutputRoot = Get-FullPath $AllowedOutputRoot
+  $OutputOpju = Get-FullPath $OutputOpju
+  $ExportDir = Get-FullPath $ExportDir
+  Assert-NoReparsePointInPath $AllowedOutputRoot 'AllowedOutputRoot'
+  Assert-NoReparsePointInPath $ExportDir 'ExportDir'
+  if (Test-Path -LiteralPath $ExportDir -PathType Leaf) {
+    throw "ExportDir must be a directory, not a file: $ExportDir"
+  }
+  Assert-SafeOutputPath $OutputOpju $AllowedOutputRoot 'OutputOpju'
+  if ([System.IO.Path]::GetExtension($OutputOpju).ToLowerInvariant() -notin @('.opj', '.opju')) {
+    throw "OutputOpju must use .opj or .opju."
+  }
+
+  $plannedOutputs = New-Object System.Collections.Generic.List[string]
+  $plannedOutputs.Add($OutputOpju) | Out-Null
+  $plannedKeys = @{}
+  $plannedKeys[$OutputOpju.ToLowerInvariant()] = 'OutputOpju'
+  foreach ($group in $Groups) {
+    $pageName = [string](Get-GroupValue $group 'PageName')
+    Assert-SafePageName $pageName
+    $dataFile = [string](Get-GroupValue $group 'DataFile')
+    Require-File $dataFile
+    $pngTarget = Get-FullPath (Join-Path $ExportDir ($pageName + '.png'))
+    Assert-SafeOutputPath $pngTarget $AllowedOutputRoot ("PNG output for " + $pageName)
+    $key = $pngTarget.ToLowerInvariant()
+    if ($plannedKeys.ContainsKey($key)) {
+      throw "Planned output collision: $($plannedKeys[$key]) and PNG output for $pageName"
+    }
+    $plannedKeys[$key] = "PNG output for $pageName"
+    $plannedOutputs.Add($pngTarget) | Out-Null
+    $dataFull = Get-FullPath $dataFile
+    if ($plannedKeys.ContainsKey($dataFull.ToLowerInvariant())) {
+      throw "A planned output aliases its DataFile: $dataFile"
+    }
+  }
+
   $useReferenceStyle = $RefreshReferenceStyle -or -not [string]::IsNullOrWhiteSpace($ReferenceOpju)
   if ($useReferenceStyle -and [string]::IsNullOrWhiteSpace($ReferenceOpju)) {
     $ReferenceOpju = Find-DefaultReferenceOpju
   }
   if ($useReferenceStyle) {
     Require-File $ReferenceOpju
+    $ReferenceOpju = Get-FullPath $ReferenceOpju
+    if ($plannedKeys.ContainsKey($ReferenceOpju.ToLowerInvariant())) {
+      throw "A planned output aliases ReferenceOpju: $ReferenceOpju"
+    }
   }
   if (-not $AllowRunningOrigin) {
     $runningOrigin = Get-Process -Name Origin* -ErrorAction SilentlyContinue
     if ($runningOrigin) {
       throw "Origin is already running. Close it or rerun with -AllowRunningOrigin after confirming no unsaved work will be affected."
     }
+  }
+
+  $existingOutputs = @($plannedOutputs | Where-Object { Test-Path -LiteralPath $_ })
+  if ($existingOutputs.Count -gt 0 -and -not $Force) {
+    throw "Planned Origin output already exists; rerun with -Force after review: $($existingOutputs -join ', ')"
   }
 
   New-Item -ItemType Directory -Path $ExportDir -Force | Out-Null
@@ -943,6 +1039,15 @@ try {
     Apply-ReferenceStyle $app $pageName $currentLabels $referenceStyle $group
     Apply-PlotPolicy $app $pageName $group
     Assert-GraphPageValid $app $pageName $expectedPlotCount $currentLabels $group
+  }
+
+  $currentExistingOutputs = @($plannedOutputs | Where-Object { Test-Path -LiteralPath $_ })
+  if ($currentExistingOutputs.Count -gt 0 -and -not $Force) {
+    throw "A planned Origin output appeared during processing; refusing to overwrite: $($currentExistingOutputs -join ', ')"
+  }
+  foreach ($target in $currentExistingOutputs) {
+    Assert-SafeOutputPath $target $AllowedOutputRoot 'Existing Origin output'
+    Remove-Item -LiteralPath $target -Force
   }
 
   Sanitize-ProjectPages $app

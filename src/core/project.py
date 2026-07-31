@@ -3,8 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import yaml
-
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 
 
@@ -127,6 +125,8 @@ def configured_path(project_root: Path, config: dict, section: str, key: str, de
 
 
 def _parse_simple_yaml(text: str) -> dict:
+    import yaml
+
     try:
         loaded = yaml.safe_load(text)
     except yaml.YAMLError:

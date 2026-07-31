@@ -22,6 +22,7 @@ from src.adapters import (
 )
 from src.adapters.common import contains_forbidden_claims
 from src.processors.calculations import (
+    epr_g_candidate,
     local_peak_positions,
     scipy_peak_positions,
     spectral_package_baseline_records,
@@ -159,10 +160,11 @@ def test_eis_draft_fit_uses_impedance_adapter_when_available(monkeypatch):
 
 
 def test_epr_processor_metrics_are_sourced_from_epr_adapter(monkeypatch):
-    def fake_process(field, intensity, *, microwave_frequency_ghz=None):
+    def fake_process(field, intensity, *, microwave_frequency_ghz=None, magnetic_field_unit=None):
         assert list(field) == [330.0, 331.0, 332.0]
         assert list(intensity) == [0.0, 1.0, -1.0]
         assert microwave_frequency_ghz == [9.8, 9.8, 9.8]
+        assert magnetic_field_unit == "G"
         return {
             "ok": True,
             "peak_to_peak_intensity_candidate": 99.0,
@@ -187,6 +189,46 @@ def test_epr_processor_metrics_are_sourced_from_epr_adapter(monkeypatch):
     assert result["peak_to_peak_intensity_candidate"] == 99.0
     assert result["maximum_intensity_field"] == 331.0
     assert result["adapter_results"]["EPR"]["metadata_provenance"]["adapter"] == "epr_adapter"
+
+
+def test_epr_g_candidate_requires_explicit_gauss_or_millitesla_unit():
+    assert epr_g_candidate(3500.0, 9.8) is None
+    assert epr_g_candidate(350.0, 9.8, "tesla") is None
+    assert epr_g_candidate(3500.0, 9.8, "G") == pytest.approx(2.0005356)
+    assert epr_g_candidate(350.0, 9.8, "mT") == pytest.approx(2.0005356)
+
+    no_unit = epr_adapter.process_or_analyze(
+        [3450.0, 3500.0, 3550.0],
+        [-2.0, 6.0, 1.0],
+        microwave_frequency_ghz=[9.8, 9.8, 9.8],
+    )
+    assert "g_candidate_at_max_intensity" not in no_unit
+    assert "magnetic-field unit" in str(no_unit["g_candidate_blocked_reason"])
+
+    explicit_gauss = epr_adapter.process_or_analyze(
+        [3450.0, 3500.0, 3550.0],
+        [-2.0, 6.0, 1.0],
+        microwave_frequency_ghz=[9.8, 9.8, 9.8],
+        magnetic_field_unit="gauss",
+    )
+    assert explicit_gauss["magnetic_field_unit"] == "G"
+    assert explicit_gauss["g_candidate_at_max_intensity"] == pytest.approx(2.0005356)
+
+    explicit_metadata = type_specific_results(
+        "EPR",
+        [(345.0, -2.0), (350.0, 6.0), (355.0, 1.0)],
+        [
+            {
+                "magnetic field": str(field),
+                "intensity": str(intensity),
+                "microwave frequency GHz": "9.8",
+                "magnetic field unit": "mT",
+            }
+            for field, intensity in [(345.0, -2.0), (350.0, 6.0), (355.0, 1.0)]
+        ],
+    )
+    assert explicit_metadata["magnetic_field_unit"] == "mT"
+    assert explicit_metadata["g_candidate_at_max_intensity"] == pytest.approx(2.0005356)
 
 
 def test_xps_export_results_are_sourced_from_lmfitxps_adapter(monkeypatch):

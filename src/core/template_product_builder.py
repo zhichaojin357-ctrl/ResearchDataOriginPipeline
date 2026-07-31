@@ -13,7 +13,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from src.core.image_artifacts import ensure_tif_600_dpi_metadata
+from src.core.file_utils import file_sha256
+from src.core.image_artifacts import (
+    expected_raster_pixels,
+    validate_tif_physical_resolution,
+)
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.template_product_common import (
@@ -76,15 +80,8 @@ from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overri
 from src.processors.base import safe_name
 from src.processors.calculations import bet_processed_table, mott_schottky_numeric
 from src.processors.eis import (
-    EisFitResult,
     EisPoint,
     clean_eis_file,
-    draft_fit_eis_randles_cpe,
-    eis_plot_rows,
-    select_eis_semicircle_main_branch,
-    write_eis_fit_csv,
-    write_eis_points_csv,
-    write_ignored_eis_points_csv,
 )
 
 
@@ -222,6 +219,7 @@ class TemplateProductBuilderOptions:
     exemplar_driven: bool = False
     compact_output: bool = False
     only_type: str | None = None
+    style_replay_report: Path | None = None
 
 
 def classify_template_candidates(paths: list[Path], *, f_drive_root: Path) -> list[TemplateCandidate]:
@@ -653,45 +651,6 @@ def _normalized_xps_graph_key(value: str) -> str:
     return "".join(char for char in str(value).casefold() if char.isalnum())
 
 
-def clip_eis_fit_to_measured_range(
-    cleaned_points: list[EisPoint],
-    full_fit: EisFitResult,
-    *,
-    x_pad_fraction: float = 0.05,
-    y_pad_fraction: float = 0.15,
-) -> EisFitResult:
-    if not cleaned_points or not full_fit.points:
-        return full_fit
-    x_values = [point.z_real_ohm for point in cleaned_points]
-    y_values = [point.minus_z_imag_ohm for point in cleaned_points]
-    x_min = min(x_values)
-    x_max = max(x_values)
-    y_min = min(y_values)
-    y_max = max(y_values)
-    x_span = max(x_max - x_min, 1e-12)
-    y_span = max(y_max - y_min, 1e-12)
-    x_lower = x_min - x_span * x_pad_fraction
-    x_upper = x_max + x_span * x_pad_fraction
-    y_lower = max(0.0, y_min - y_span * y_pad_fraction)
-    y_upper = y_max + y_span * y_pad_fraction
-    clipped = [
-        (float(x), float(y))
-        for x, y in full_fit.points
-        if math.isfinite(x) and math.isfinite(y) and x_lower <= x <= x_upper and y_lower <= y <= y_upper
-    ]
-    if len(clipped) < 3:
-        clipped = [(point.z_real_ohm, point.minus_z_imag_ohm) for point in sorted(cleaned_points, key=lambda item: item.z_real_ohm)]
-    return EisFitResult(
-        method="least_squares_randles_cpe_measured_range_visual_segment",
-        points=clipped,
-        parameters=dict(full_fit.parameters),
-        residual_sse=full_fit.residual_sse,
-        robust_cost=full_fit.robust_cost,
-        semicircle_classification=full_fit.semicircle_classification,
-        warning=(full_fit.warning + " " if full_fit.warning else "") + "Main-figure curve is clipped to the measured range; full fit retained in debug/report.",
-    )
-
-
 def template_acceptance_status(
     *,
     has_required_artifacts: bool,
@@ -779,6 +738,10 @@ def run_template_product_builder_all_types(
     if options.asset_only and options.exemplar_driven:
         raise ValueError("asset_only and exemplar_driven are mutually exclusive")
     project_root = project_root.resolve()
+    style_replay_evidence = _load_independent_style_replay_evidence(
+        project_root,
+        options.style_replay_report,
+    )
     roots = root_map or build_default_root_map(project_root)
     output_root = resolve_output_root(project_root, explicit=options.output_root)
     timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -844,9 +807,12 @@ def run_template_product_builder_all_types(
         mode=("asset_only_with_origin" if options.with_origin else "asset_only_no_origin")
         if options.asset_only
         else ("with_origin" if options.with_origin else "no_origin"),
-        input_paths=[options.pairing_path, template_source_root]
-        if options.asset_only
-        else [options.pairing_path, template_source_root, xps_reference_root],
+        input_paths=(
+            [options.pairing_path, template_source_root]
+            if options.asset_only
+            else [options.pairing_path, template_source_root, xps_reference_root]
+        )
+        + ([options.style_replay_report] if options.style_replay_report else []),
         timestamp=timestamp,
         no_origin=not options.with_origin,
         dry_run=False,
@@ -1017,7 +983,12 @@ def run_template_product_builder_all_types(
 
     label_audit = _write_template_no_label_audit(layout.root)
     products = [_with_label_audit_status(product, label_audit) for product in products]
-    template_preview_audit = _write_template_preview_comparison(layout.root, products)
+    template_preview_audit = _write_template_preview_comparison(
+        layout.root,
+        products,
+        label_audit=label_audit,
+        style_replay_evidence=style_replay_evidence,
+    )
     skipped = _skipped_template_types(options, roots)
     _write_template_run_reports(layout.root, products, failures, selections, label_audit, template_preview_audit, skipped, target_types=target_types)
     if options.compact_output:
@@ -1445,41 +1416,7 @@ def prepare_template_product(
         legend_entries=list(labels.get("legend_entries", [])) or [header.replace("_", " ") for header in headers[1:]],
         notes=labels.get("notes", "").splitlines() if labels.get("notes") else [],
     )
-    _seed_project_style_reference_preview(template, product.reference_preview_png)
     return product, extra
-
-
-def _seed_project_style_reference_preview(template: TemplateCandidate, target: Path) -> None:
-    if template.source != "project_origin_style_asset" and not template.metadata.get("style_package"):
-        return
-    style_asset = template.metadata.get("style_asset") if isinstance(template.metadata.get("style_asset"), dict) else {}
-    reference = _resolve_project_style_asset_path(template.path, style_asset.get("reference_preview_png"))
-    if reference is None or not reference.is_file():
-        return
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(reference, target)
-
-
-def _resolve_project_style_asset_path(template_path: Path, value: object) -> Path | None:
-    text = str(value or "").strip().replace("\\", "/")
-    if not text:
-        return None
-    candidate = Path(text)
-    if candidate.is_absolute():
-        return candidate
-    origin_styles_root: Path | None = None
-    for parent in template_path.resolve().parents:
-        if parent.name == "origin_styles":
-            origin_styles_root = parent
-            break
-    if origin_styles_root is None:
-        return template_path.parent / candidate
-    prefix = "templates/origin_styles/"
-    if text.startswith(prefix):
-        return origin_styles_root / text[len(prefix) :]
-    if text.startswith("origin_styles/"):
-        return origin_styles_root / text[len("origin_styles/") :]
-    return origin_styles_root / candidate
 
 
 def _build_template_aligned_first_batch_table(
@@ -2513,7 +2450,111 @@ def _xps_raw_series_any(record: XpsFitRecord, keys: tuple[str, ...], point_count
     return [None] * point_count
 
 
-def export_template_product_with_origin(product: ProductContext, style: ResolvedPlotStyle) -> dict[str, object]:
+def _export_native_tif_with_physical_validation(
+    operations: object,
+    graph_name: str,
+    target: Path,
+    *,
+    dpi: int,
+) -> dict[str, object]:
+    activated = operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    if not getattr(activated, "ok", False):
+        return {"ok": False, "message": f"Could not activate reopened graph {graph_name!r} before TIFF export."}
+    dimensions: dict[str, float] = {}
+    for name in ("page.width", "page.height"):
+        result = operations.get_labtalk_variable(name)
+        if not getattr(result, "ok", False):
+            return {"ok": False, "message": f"Could not read {name} from reopened graph {graph_name!r}."}
+        try:
+            value = float(getattr(result, "payload", {}).get("value"))
+        except (TypeError, ValueError, OverflowError):
+            return {"ok": False, "message": f"Reopened graph returned an invalid {name} value."}
+        if not math.isfinite(value) or value <= 0:
+            return {"ok": False, "message": f"Reopened graph returned a non-positive {name} value."}
+        dimensions[name] = value
+    expected_width, _expected_height = expected_raster_pixels(
+        dimensions["page.width"],
+        dimensions["page.height"],
+        dpi=dpi,
+    )
+    reset_identity = getattr(operations, "reset_project_identity_for_export", None)
+    if not callable(reset_identity):
+        return {
+            "ok": False,
+            "message": "Origin project identity reset is unavailable before native TIFF export.",
+        }
+    try:
+        identity = reset_identity()
+    except Exception:
+        return {
+            "ok": False,
+            "message": "Origin project identity reset failed before native TIFF export.",
+        }
+    if not getattr(identity, "ok", False):
+        return {
+            "ok": False,
+            "message": "Origin project identity verification failed before native TIFF export.",
+        }
+    reactivated = operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    if not getattr(reactivated, "ok", False):
+        return {
+            "ok": False,
+            "message": f"Could not reactivate reopened graph {graph_name!r} after project identity reset.",
+        }
+    exported = operations.export_graph(
+        graph_name,
+        target,
+        "tif",
+        dpi=dpi,
+        pixel_width=expected_width,
+    )
+    if not getattr(exported, "ok", False):
+        return {
+            "ok": False,
+            "message": getattr(exported, "message", "Origin native TIFF export failed"),
+        }
+    try:
+        evidence = validate_tif_physical_resolution(
+            target,
+            page_width_origin_units=dimensions["page.width"],
+            page_height_origin_units=dimensions["page.height"],
+            dpi=dpi,
+        ).as_dict()
+    except Exception as exc:
+        return {
+            "ok": False,
+            "message": scrub_output_text(str(exc)),
+        }
+    evidence["path"] = target.name
+    return {
+        "ok": True,
+        "message": "Origin native TIFF export passed physical-resolution validation.",
+        "evidence": evidence,
+    }
+
+
+class _OriginLifecycleFinalizationError(RuntimeError):
+    """Raised when an isolated Origin session cannot be confirmed closed."""
+
+
+def export_template_product_with_origin(
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+) -> dict[str, object]:
+    try:
+        return _export_template_product_with_origin_connected(product, style)
+    except _OriginLifecycleFinalizationError as exc:
+        return {
+            "ok": False,
+            "message": str(exc),
+            "failure_stage": "origin_close",
+        }
+
+
+def _export_template_product_with_origin_connected(
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+) -> dict[str, object]:
     operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
     try:
         exemplar_snapshot = _extract_template_product_reference_snapshot(operations, product)
@@ -2633,7 +2674,12 @@ def export_template_product_with_origin(product: ProductContext, style: Resolved
         conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
         strict_readback = _strict_style_readback(product_snapshot.to_dict())
         png = operations.export_graph(reopened_graph, product.preview_png, "png", dpi=style.export_dpi)
-        tif = operations.export_graph(reopened_graph, product.figure_tif, "tif", dpi=style.export_dpi)
+        tif = _export_native_tif_with_physical_validation(
+            operations,
+            reopened_graph,
+            product.figure_tif,
+            dpi=style.export_dpi,
+        )
         operations.export_graph(reopened_graph, product.type_root / "debug" / "generated_preview.png", "png", dpi=style.export_dpi)
         missing = [path for path in (product.origin_file, product.preview_png, product.figure_tif) if not path.exists() or path.stat().st_size == 0]
         if missing:
@@ -2644,14 +2690,10 @@ def export_template_product_with_origin(product: ProductContext, style: Resolved
                 "product_style": product_snapshot.to_dict(),
                 "conformance": conformance.to_dict(),
             }
-        if not png.ok or not tif.ok:
-            return {"ok": False, "message": f"{png.message}; {tif.message}", "exemplar_style": exemplar_style}
-        try:
-            ensure_tif_600_dpi_metadata(product.figure_tif)
-        except Exception as exc:
+        if not png.ok or not bool(tif.get("ok")):
             return {
                 "ok": False,
-                "message": str(exc),
+                "message": f"{png.message}; {tif.get('message', '')}",
                 "exemplar_style": exemplar_style,
                 "product_style": product_snapshot.to_dict(),
                 "conformance": conformance.to_dict(),
@@ -2669,13 +2711,30 @@ def export_template_product_with_origin(product: ProductContext, style: Resolved
             "origin_processing": origin_processing,
             "epr_origin_processing": epr_origin_processing,
             "reopened_graph": reopened_graph,
+            "tif_resolution_evidence": tif.get("evidence", {}),
             "line_width_policy_pt": style.line_width_pt,
             "axis_title_bold_policy": style.font_bold,
         }
     except Exception as exc:
         return {"ok": False, "message": str(exc)}
     finally:
-        operations.close()
+        try:
+            close_result = operations.close()
+        except Exception as exc:
+            raise _OriginLifecycleFinalizationError(
+                "Origin lifecycle close failed after template product export: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+        if not getattr(close_result, "ok", False):
+            raise _OriginLifecycleFinalizationError(
+                str(
+                    getattr(
+                    close_result,
+                    "message",
+                    "Origin lifecycle close did not confirm success after template product export.",
+                    )
+                )
+            )
 
 
 def _create_template_origin_processed_graph(operations: object, product: ProductContext) -> dict[str, object]:
@@ -3010,101 +3069,53 @@ def _build_template_eis_table(
             compact_output=compact_output,
         )
     cleaning = clean_eis_file(pairing.data_paths[0])
-    if strict_semicircle_branch:
-        cleaning = select_eis_semicircle_main_branch(cleaning)
-    full_fit = draft_fit_eis_randles_cpe(cleaning.cleaned_points)
-    if strict_semicircle_branch:
-        main_fit = EisFitResult(
-            method=f"{full_fit.method}_strict_semicircle_main_branch_full_curve",
-            points=list(full_fit.points),
-            parameters=dict(full_fit.parameters),
-            residual_sse=full_fit.residual_sse,
-            robust_cost=full_fit.robust_cost,
-            semicircle_classification=full_fit.semicircle_classification,
-            warning=(
-                (full_fit.warning + " " if full_fit.warning else "")
-                + "Strict main branch excludes the offset low-frequency tail; the plotted curve is the bounded Randles-CPE fit for manual review."
-            ),
-        )
-        plot_headers = ["cleaned_z_real_ohm", "cleaned_minus_z_imag_ohm", "fit_z_real_ohm", "draft_fit_minus_z_imag_ohm"]
-        plot_labels = {
-            "x_label": "Z' (Ohm)",
-            "y_label": "-Z'' (Ohm)",
-            "title": "EIS draft fit",
-            "plot_type": "line+symbol",
-            "notes": "draft fit for visualization/manual review only\nDefault fit model is Rs + (Rct || CPE); invalid and offset low-frequency tail points are reported but excluded from the main fit.",
-        }
-        plot_scale = 1.0
-        main_curve_policy = "Strict semicircle main branch; offset low-frequency tail excluded and full bounded Randles-CPE curve plotted for manual review."
-    else:
-        main_fit = clip_eis_fit_to_measured_range(cleaning.cleaned_points, full_fit)
-        plot_headers = ["cleaned_z_real_kohm", "cleaned_minus_z_imag_kohm", "fit_z_real_kohm", "draft_fit_minus_z_imag_kohm"]
-        plot_labels = {
-            "x_label": "Z' (kOhm)",
-            "y_label": "-Z'' (kOhm)",
-            "title": "EIS draft fit",
-            "plot_type": "line+symbol",
-            "notes": "draft fit for visualization/manual review only\nDefault fit model is Rs + (Rct || CPE); main plot uses measured-range fit segment to avoid full-fit axis distortion.",
-        }
-        plot_scale = 0.001
-        main_curve_policy = "Measured-range visual segment only; full theoretical extension is retained in debug/report so it cannot distort the main plot."
-    sidecar_root = type_root / "debug" if compact_output else type_root / "processed_data"
-    metadata_root = type_root / "debug" if compact_output else type_root / "metadata"
-    report_root = type_root / "debug" if compact_output else type_root / "reports"
-    raw_path = sidecar_root / "raw_eis_data.csv"
-    cleaned_path = sidecar_root / "cleaned_eis_data.csv"
-    ignored_path = sidecar_root / "ignored_eis_points.csv"
-    fit_path = sidecar_root / "eis_randles_cpe_fit_curve.csv"
-    full_fit_path = type_root / "debug" / "eis_randles_cpe_full_fit_curve.csv"
-    metadata_path = metadata_root / "eis_cleaning_and_fit_metadata.json"
-    fit_parameters_path = metadata_root / "eis_fit_parameters.json"
-    ignored_report_path = report_root / "ignored_points_report.md"
-    write_eis_points_csv(raw_path, cleaning.raw_points)
-    write_eis_points_csv(cleaned_path, cleaning.cleaned_points)
-    write_ignored_eis_points_csv(ignored_path, cleaning.ignored_points)
-    write_eis_fit_csv(fit_path, main_fit)
-    write_eis_fit_csv(full_fit_path, full_fit)
-    eis_metadata = {
-        "cleaning": cleaning.to_metadata(),
-        "fit": main_fit.to_metadata(),
-        "full_fit": full_fit.to_metadata(),
-        "raw_data": _template_run_relative_path(type_root, raw_path),
-        "cleaned_data": _template_run_relative_path(type_root, cleaned_path),
-        "ignored_points": _template_run_relative_path(type_root, ignored_path),
-        "fit_curve": _template_run_relative_path(type_root, fit_path),
-        "fit_parameters": _template_run_relative_path(type_root, fit_parameters_path),
-        "ignored_points_report": _template_run_relative_path(type_root, ignored_report_path),
-        "full_fit_curve_debug": _template_run_relative_path(type_root, full_fit_path),
-        "strict_semicircle_branch": bool(strict_semicircle_branch),
-        "default_fitted_model": "Model A: Rs + (Rct || CPE)",
-        "main_plot_curve_policy": main_curve_policy,
-        "fallback_model_policy": "Model B: Rs + CPE is diagnostic fallback only and is not the default fit.",
-        "warburg_policy": "Warburg diffusion tail is not included unless a future manual request explicitly asks for it.",
+    measured_points = list(cleaning.raw_points)
+    if len(measured_points) < 2:
+        raise ValueError("EIS template product requires at least two measured Nyquist points")
+    plot_scale = 0.001
+    plot_headers = ["measured_z_real_kohm", "measured_minus_z_imag_kohm"]
+    plot_labels = {
+        "x_label": "Z' (kOhm)",
+        "y_label": "-Z'' (kOhm)",
+        "title": "EIS measured data",
+        "plot_type": "line+symbol",
+        "notes": (
+            "Formal template product retains every parsed measured Nyquist point. "
+            "Equivalent-circuit fitting, semicircle-branch selection, and automatic point exclusion are not run."
+        ),
     }
-    metadata_path.parent.mkdir(parents=True, exist_ok=True)
-    metadata_path.write_text(json.dumps(eis_metadata, ensure_ascii=False, indent=2), encoding="utf-8")
-    fit_parameters_path.parent.mkdir(parents=True, exist_ok=True)
-    fit_parameters_path.write_text(json.dumps(main_fit.to_metadata(), ensure_ascii=False, indent=2), encoding="utf-8")
-    ignored_report_path.parent.mkdir(parents=True, exist_ok=True)
-    ignored_lines = [
-        "# EIS ignored points report",
-        "",
-        f"- Raw points: {len(cleaning.raw_points)}",
-        f"- Cleaned points: {len(cleaning.cleaned_points)}",
-        f"- Ignored points: {len(cleaning.ignored_points)}",
-        "",
-        "| source_index | frequency_hz | z_real_ohm | minus_z_imag_ohm | reason |",
-        "|---:|---:|---:|---:|---|",
-    ]
-    for ignored in cleaning.ignored_points:
-        point = ignored.point
-        ignored_lines.append(
-            f"| {point.source_index} | {point.frequency_hz} | {point.z_real_ohm} | {point.minus_z_imag_ohm} | {ignored.reason} |"
-        )
-    ignored_report_path.write_text("\n".join(ignored_lines).rstrip() + "\n", encoding="utf-8")
+    eis_metadata = {
+        "mode": "formal_measured_points_only",
+        "cleaning": {
+            **cleaning.to_metadata(),
+            "used_for_formal_plot": False,
+            "purpose": "parse diagnostics only",
+        },
+        "fit": {
+            "status": "not_run",
+            "reason": "Formal template-format-products requires an explicit diagnostic opt-in before equivalent-circuit fitting.",
+        },
+        "full_fit": {},
+        "raw_data": "",
+        "cleaned_data": "",
+        "ignored_points": "",
+        "fit_curve": "",
+        "fit_parameters": "",
+        "ignored_points_report": "",
+        "full_fit_curve_debug": "",
+        "strict_semicircle_branch": False,
+        "strict_semicircle_branch_requested": bool(strict_semicircle_branch),
+        "raw_point_count": len(measured_points),
+        "plotted_point_count": len(measured_points),
+        "main_plot_curve_policy": "Retain all parsed measured sweep points in source order; do not select a branch or generate a fit curve.",
+        "equivalent_circuit_policy": "No automatic equivalent-circuit fit or mechanistic interpretation is generated.",
+    }
     return (
         plot_headers,
-        eis_plot_rows(cleaning.cleaned_points, main_fit, scale=plot_scale),
+        [
+            [point.z_real_ohm * plot_scale, point.minus_z_imag_ohm * plot_scale]
+            for point in measured_points
+        ],
         plot_labels,
         {"eis_cleaning": eis_metadata},
     )
@@ -3442,7 +3453,7 @@ def _infer_template_epr_reference_dir(data_paths: list[Path], group_name: str) -
         candidate_dirs.append(base)
         for parent in [base, *base.parents]:
             if parent.name.casefold() == "epr":
-                candidate_dirs.append(parent / "瀵煎嚭鍚庣殑鏁版嵁")
+                candidate_dirs.append(parent / "导出后的数据")
                 export_roots = sorted(parent.glob("EPR_Excel*"), key=lambda item: item.name)
                 for export_root in export_roots:
                     if export_root.is_dir():
@@ -3986,7 +3997,9 @@ def _build_template_acceptance(
     extra: dict[str, object],
 ) -> TemplateAcceptance:
     required = (product.origin_file, product.figure_tif, product.preview_png, product.processed_data)
-    has_artifacts = all(path.exists() and path.stat().st_size > 0 for path in required)
+    core_artifacts_available = all(path.exists() and path.stat().st_size > 0 for path in required)
+    independent_reference_available = _has_independent_reference_preview(product)
+    has_artifacts = core_artifacts_available and independent_reference_available
     product_style = export_status.get("product_style") if isinstance(export_status.get("product_style"), dict) else {}
     conformance = export_status.get("conformance") if isinstance(export_status.get("conformance"), dict) else {}
     strict_readback = export_status.get("strict_style_readback") if isinstance(export_status.get("strict_style_readback"), dict) else {}
@@ -3998,7 +4011,9 @@ def _build_template_acceptance(
     widths = product_style.get("plot_line_widths", []) if isinstance(product_style, dict) else []
     line_width_ok = _line_widths_accepted(widths)
     if saved_style_asset_mode:
-        axis_title_ok = bool(export_status.get("axis_title_bold_policy", True))
+        axis_title_ok = bool(conformance) and (
+            not axis_title_bold_required or bool(conformance.get("axis_title_bold"))
+        )
     else:
         axis_title_ok = bool(conformance.get("axis_title_bold")) if conformance else bool(export_status.get("axis_title_bold_policy"))
     if strict_readback:
@@ -4020,12 +4035,22 @@ def _build_template_acceptance(
     readback_ok = bool(product_style) and bool(export_status.get("ok"))
     visual_ok = bool(export_status.get("ok")) and has_artifacts
     notes: list[str] = []
-    if not has_artifacts:
+    if not core_artifacts_available:
         notes.append("required artifact missing or empty")
+    if not independent_reference_available:
+        notes.append(
+            "independent reference preview missing or invalid; the generated product preview cannot serve as its own reference"
+        )
     if not line_width_ok:
         notes.append("line width readback did not meet 3 pt policy")
     if not axis_title_ok:
         notes.append("axis title bold/readback did not pass")
+    conformance_reasons = _template_conformance_acceptance_reasons(conformance)
+    if saved_style_asset_mode and not conformance:
+        conformance_reasons.append("saved style asset conformance is unavailable")
+    if conformance_reasons:
+        visual_ok = False
+        notes.extend(conformance_reasons)
     if product.product_key == "EIS":
         eis = extra.get("eis_cleaning", {}) if isinstance(extra.get("eis_cleaning"), dict) else {}
         if eis.get("mode") == "reviewed_template_multi_source_overlay":
@@ -4034,13 +4059,43 @@ def _build_template_acceptance(
             if expected <= 0 or plotted != expected:
                 visual_ok = False
                 notes.append(f"EIS measured overlay plotted {plotted} real curves but template requires {expected}")
-        else:
-            full = eis.get("full_fit", {}) if isinstance(eis, dict) else {}
+        elif eis.get("mode") == "formal_measured_points_only":
             fit = eis.get("fit", {}) if isinstance(eis, dict) else {}
-            strict_branch = bool(eis.get("strict_semicircle_branch")) if isinstance(eis, dict) else False
-            if not strict_branch and full.get("point_count") == fit.get("point_count"):
+            raw_count = int(eis.get("raw_point_count") or 0)
+            plotted_count = int(eis.get("plotted_point_count") or 0)
+            headers = [str(value).casefold() for value in _csv_header(product.processed_data)]
+            fit_columns = [header for header in headers if "fit" in header]
+            fit_sidecars = [
+                path
+                for path in (
+                    product.type_root / "debug" / "eis_randles_cpe_fit_curve.csv",
+                    product.type_root / "debug" / "eis_randles_cpe_full_fit_curve.csv",
+                    product.type_root / "debug" / "eis_fit_parameters.json",
+                    product.type_root / "processed_data" / "eis_randles_cpe_fit_curve.csv",
+                    product.type_root / "metadata" / "eis_fit_parameters.json",
+                )
+                if path.exists()
+            ]
+            if raw_count <= 0 or plotted_count != raw_count:
                 visual_ok = False
-                notes.append("EIS main plot was not clipped to measured-range visual segment")
+                notes.append(
+                    f"EIS measured-point preservation failed: plotted {plotted_count} of {raw_count} parsed raw points"
+                )
+            if str(fit.get("status") or "") != "not_run":
+                visual_ok = False
+                notes.append("EIS formal product did not record fit.status=not_run")
+            if fit_columns:
+                visual_ok = False
+                notes.append("EIS formal product contains forbidden automatic fit columns: " + ", ".join(fit_columns))
+            if fit_sidecars:
+                visual_ok = False
+                notes.append(
+                    "EIS formal product contains forbidden automatic fit sidecars: "
+                    + ", ".join(path.name for path in fit_sidecars)
+                )
+        else:
+            visual_ok = False
+            notes.append("EIS processing mode was not a recognized measured-data-only workflow")
     if product.product_key.startswith("XPS"):
         fill = export_status.get("xps_component_fill") if isinstance(export_status.get("xps_component_fill"), dict) else {}
         if not fill.get("applied"):
@@ -4056,6 +4111,8 @@ def _build_template_acceptance(
         template_base_mode=template_base_mode,
         saved_style_asset_mode=saved_style_asset_mode,
         axis_title_bold_required=axis_title_bold_required,
+        exemplar_style=export_status.get("exemplar_style"),
+        product_style=product_style,
     )
     if relevant_readback and not all(bool(value) for value in relevant_readback.values()):
         visual_ok = False
@@ -4074,6 +4131,26 @@ def _build_template_acceptance(
     )
 
 
+def _has_independent_reference_preview(product: ProductContext) -> bool:
+    return _independent_preview_path_available(
+        product.reference_preview_png,
+        product.preview_png,
+    )
+
+
+def _independent_preview_path_available(reference: Path, generated: Path) -> bool:
+    try:
+        if not reference.is_file() or reference.stat().st_size <= 0:
+            return False
+        if reference.resolve(strict=False) == generated.resolve(strict=False):
+            return False
+        if generated.exists() and reference.samefile(generated):
+            return False
+    except OSError:
+        return False
+    return True
+
+
 def _is_template_base_origin_status(export_status: dict[str, object]) -> bool:
     origin_processing = export_status.get("origin_processing") if isinstance(export_status.get("origin_processing"), dict) else {}
     return str(origin_processing.get("method", "")) in {
@@ -4087,8 +4164,13 @@ def _export_exemplar_axis_title_bold_required(export_status: dict[str, object]) 
     exemplar_style = export_status.get("exemplar_style") if isinstance(export_status.get("exemplar_style"), dict) else {}
     if not exemplar_style:
         return True
-    numeric = exemplar_style.get("audit_numeric_values") if isinstance(exemplar_style.get("audit_numeric_values"), dict) else {}
-    strings = exemplar_style.get("audit_string_values") if isinstance(exemplar_style.get("audit_string_values"), dict) else {}
+    return _style_snapshot_axis_title_bold_required(exemplar_style)
+
+
+def _style_snapshot_axis_title_bold_required(snapshot: object) -> bool:
+    payload = _style_snapshot_payload(snapshot)
+    numeric = payload.get("audit_numeric_values") if isinstance(payload.get("audit_numeric_values"), dict) else {}
+    strings = payload.get("audit_string_values") if isinstance(payload.get("audit_string_values"), dict) else {}
     return _axis_title_bold_readback(numeric, strings)
 
 
@@ -4108,18 +4190,185 @@ def _relevant_strict_readback_values(
     template_base_mode: bool,
     saved_style_asset_mode: bool = False,
     axis_title_bold_required: bool = True,
+    exemplar_style: object = None,
+    product_style: object = None,
 ) -> dict[str, object]:
     if not strict_readback:
         return {}
     if saved_style_asset_mode:
-        keys = ("axis_title_visible",)
-        return {key: strict_readback.get(key) for key in keys if key in strict_readback}
+        values = {
+            key: strict_readback.get(key)
+            for key in ("axis_title_visible",)
+            if key in strict_readback
+        }
+        values.update(
+            _saved_style_asset_exemplar_readback(
+                exemplar_style,
+                product_style,
+            )
+        )
+        return values
     if not template_base_mode:
         return strict_readback
     keys = ("font_family_arial", "axis_title_visible", "axis_title_no_overlap")
     if axis_title_bold_required:
         keys = ("font_family_arial", "axis_title_bold", "axis_title_visible", "axis_title_no_overlap")
     return {key: strict_readback.get(key) for key in keys if key in strict_readback}
+
+
+def _saved_style_asset_exemplar_readback(
+    exemplar_style: object,
+    product_style: object,
+) -> dict[str, bool]:
+    exemplar = _style_snapshot_payload(exemplar_style)
+    product = _style_snapshot_payload(product_style)
+    if not exemplar or not product:
+        return {}
+    exemplar_numeric = exemplar.get("audit_numeric_values")
+    product_numeric = product.get("audit_numeric_values")
+    exemplar_strings = exemplar.get("audit_string_values")
+    product_strings = product.get("audit_string_values")
+    if not isinstance(exemplar_numeric, dict):
+        exemplar_numeric = {}
+    if not isinstance(product_numeric, dict):
+        product_numeric = {}
+    if not isinstance(exemplar_strings, dict):
+        exemplar_strings = {}
+    if not isinstance(product_strings, dict):
+        product_strings = {}
+
+    checks: dict[str, bool] = {}
+    axis_size_fields = ("xb.fsize", "yl.fsize")
+    if any(field in exemplar_numeric for field in axis_size_fields):
+        checks["axis_title_font_size_matches_exemplar"] = _reported_numeric_fields_match(
+            exemplar_numeric,
+            product_numeric,
+            axis_size_fields,
+        )
+
+    bold_evidence_fields = ("xb.bold", "yl.bold")
+    bold_text_fields = ("xb.text$", "yl.text$")
+    if any(field in exemplar_numeric for field in bold_evidence_fields) or any(
+        str(exemplar_strings.get(field) or "").strip() for field in bold_text_fields
+    ):
+        checks["axis_title_bold_matches_exemplar"] = _axis_title_bold_readback(
+            exemplar_numeric,
+            exemplar_strings,
+        ) == _axis_title_bold_readback(product_numeric, product_strings)
+
+    axis_font_fields = ("xb.font$", "yl.font$")
+    if any(str(exemplar_strings.get(field) or "").strip() for field in axis_font_fields):
+        checks["axis_title_font_matches_exemplar"] = _reported_string_fields_match(
+            exemplar_strings,
+            product_strings,
+            axis_font_fields,
+        )
+
+    legend_numeric_fields = (
+        "legend.background",
+        "legend.border",
+        "legend.frame",
+        "legend.fill",
+        "legend.fillColor",
+        "legend.borderColor",
+        "legend.lineWidth",
+    )
+    if any(field in exemplar_numeric for field in legend_numeric_fields):
+        checks["legend_frame_matches_exemplar"] = _reported_numeric_fields_match(
+            exemplar_numeric,
+            product_numeric,
+            legend_numeric_fields,
+        )
+    if "legend.bold" in exemplar_numeric or str(exemplar_strings.get("legend.text$") or "").strip():
+        checks["legend_bold_matches_exemplar"] = _legend_bold_readback(
+            exemplar_numeric,
+            exemplar_strings,
+        ) == _legend_bold_readback(product_numeric, product_strings)
+    if str(exemplar_strings.get("legend.font$") or "").strip():
+        checks["legend_font_matches_exemplar"] = _reported_string_fields_match(
+            exemplar_strings,
+            product_strings,
+            ("legend.font$",),
+        )
+    return checks
+
+
+def _style_snapshot_payload(snapshot: object) -> dict[str, object]:
+    if isinstance(snapshot, OpjuStyleSnapshot):
+        return snapshot.to_dict()
+    return dict(snapshot) if isinstance(snapshot, dict) else {}
+
+
+def _reported_numeric_fields_match(
+    exemplar: dict[str, object],
+    product: dict[str, object],
+    fields: tuple[str, ...],
+) -> bool:
+    for field in fields:
+        if field not in exemplar:
+            continue
+        expected = _to_float(exemplar.get(field))
+        actual = _to_float(product.get(field))
+        if expected is None or actual is None or abs(expected - actual) > 0.01:
+            return False
+    return True
+
+
+def _reported_string_fields_match(
+    exemplar: dict[str, object],
+    product: dict[str, object],
+    fields: tuple[str, ...],
+) -> bool:
+    for field in fields:
+        expected = str(exemplar.get(field) or "").strip()
+        if not expected:
+            continue
+        actual = str(product.get(field) or "").strip()
+        if actual.casefold() != expected.casefold():
+            return False
+    return True
+
+
+def _template_conformance_acceptance_reasons(conformance: dict[str, object]) -> list[str]:
+    if not conformance:
+        return []
+    reasons: list[str] = []
+    status = str(conformance.get("status") or "").strip().casefold()
+    issues = conformance.get("issues")
+    issue_rows = [item for item in issues if isinstance(item, dict)] if isinstance(issues, list) else []
+    fail_fields = [
+        str(item.get("field") or "unknown")
+        for item in issue_rows
+        if str(item.get("severity") or "").casefold() == "fail"
+    ]
+    if status == "fail" or fail_fields:
+        detail = ", ".join(fail_fields) if fail_fields else "reported fail status"
+        reasons.append(f"style conformance has fail-severity differences: {detail}")
+
+    if str(conformance.get("axis_title_no_overlap_check") or "").casefold() == "risk":
+        reasons.append("axis-title readback indicates overlap risk")
+
+    if status == "review":
+        data_range_fields = {
+            "layer.x.from",
+            "layer.x.to",
+            "layer.y.from",
+            "layer.y.to",
+        }
+        non_range_review_fields = [
+            str(item.get("field") or "unknown")
+            for item in issue_rows
+            if str(item.get("severity") or "").casefold() == "review"
+            and str(item.get("field") or "") not in data_range_fields
+        ]
+        if non_range_review_fields:
+            reasons.append(
+                "style conformance requires review for non-data-range fields: "
+                + ", ".join(non_range_review_fields)
+            )
+        elif not issue_rows:
+            reasons.append("style conformance reported review without auditable issue details")
+    return reasons
 
 
 def _write_template_product_metadata(
@@ -4276,6 +4525,20 @@ def _write_template_per_type_report(
                     f"- Ignored diagnostic points: {cleaning.get('ignored_point_count', 0)}",
                     "- Draft fit: not run; the reviewed template is a measured multi-source overlay",
                     "- Equivalent-circuit interpretation: manual review required",
+                ]
+            )
+        elif eis.get("mode") == "formal_measured_points_only":
+            lines.extend(
+                [
+                    "",
+                    "## EIS measured-data product",
+                    f"- Parsed measured points: {eis.get('raw_point_count', 0)}",
+                    f"- Plotted measured points: {eis.get('plotted_point_count', 0)}",
+                    f"- Fit status: {fit.get('status', 'not_run')}",
+                    "- Automatic cleaning/exclusion: not applied to the formal graph",
+                    "- Semicircle-branch selection: not run",
+                    "- Equivalent-circuit fit and fit sidecars: not generated",
+                    "- Circuit interpretation: manual review required",
                 ]
             )
         else:
@@ -4456,6 +4719,7 @@ def _with_label_audit_status(product: dict[str, object], label_audit: dict[str, 
     if not _label_audit_passes(label_audit) and product.get("status") == "accepted":
         product = dict(product)
         product["status"] = "blocked"
+        product["visual_acceptance"] = False
         product["notes"] = (str(product.get("notes") or "") + "; no-label audit failed").strip("; ")
     return product
 
@@ -4464,7 +4728,21 @@ def _label_audit_passes(label_audit: dict[str, object]) -> bool:
     return int(label_audit.get("hit_count", 0)) == 0 and len(label_audit.get("path_only_hits") or []) == 0
 
 
-def _write_template_preview_comparison(run_root: Path, products: list[dict[str, object]]) -> dict[str, object]:
+def _append_template_acceptance_note(existing: object, note: str) -> str:
+    notes = [item.strip() for item in str(existing or "").split(";") if item.strip()]
+    normalized = note.strip()
+    if normalized and normalized not in notes:
+        notes.append(normalized)
+    return "; ".join(notes)
+
+
+def _write_template_preview_comparison(
+    run_root: Path,
+    products: list[dict[str, object]],
+    *,
+    label_audit: dict[str, object] | None = None,
+    style_replay_evidence: dict[str, dict[str, object]] | None = None,
+) -> dict[str, object]:
     reports = run_root / "reports"
     comparisons = reports / "template_preview_comparisons"
     comparisons.mkdir(parents=True, exist_ok=True)
@@ -4476,7 +4754,7 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         generated = _resolve_run_relative_artifact(run_root, product.get("preview_png"))
         side_by_side = comparisons / f"{safe_name(product_type)}_template_vs_generated.png"
         metadata = _read_template_product_metadata(product, run_root)
-        reference_ok = reference.exists() and reference.stat().st_size > 0
+        reference_ok = _independent_preview_path_available(reference, generated)
         generated_ok = generated.exists() and generated.stat().st_size > 0
         ready = False
         message = ""
@@ -4491,7 +4769,7 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         else:
             missing = []
             if not reference_ok:
-                missing.append("template preview missing")
+                missing.append("independent template preview missing")
             if not generated_ok:
                 missing.append("generated preview missing")
             message = "; ".join(missing)
@@ -4502,6 +4780,17 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         style_match_ratio = _template_style_match_ratio(conformance)
         preview_rms = _to_float(image_metrics.get("preview_rms"))
         saved_style_asset_mode = _is_saved_style_asset_preview_product(product, metadata)
+        replay_validation = (
+            (style_replay_evidence or {}).get(
+                _style_replay_key(product_type),
+                {
+                    "ok": False,
+                    "reason": "independent theme-application replay evidence was not supplied",
+                },
+            )
+            if saved_style_asset_mode
+            else {"ok": True, "reason": "not_required_for_this_template_mode"}
+        )
         embedded_snapshot_mode = _is_embedded_template_snapshot_preview_product(product, metadata)
         xrd_clean_rebuild_mode = _is_xrd_clean_rebuild_preview_product(product, metadata)
         if embedded_snapshot_mode:
@@ -4509,12 +4798,18 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
                 product,
                 metadata,
                 ready=ready,
+                plot_count_delta=plot_count_delta,
+                style_match_ratio=style_match_ratio,
+                preview_rms=preview_rms,
             )
         elif xrd_clean_rebuild_mode:
             strict_reasons = _embedded_template_snapshot_strict_visual_reasons(
                 product,
                 metadata,
                 ready=ready,
+                plot_count_delta=plot_count_delta,
+                style_match_ratio=style_match_ratio,
+                preview_rms=preview_rms,
                 allowed_methods={"opju_template_snapshot_fallback_graph"},
                 mode_label="XRD clean graph rebuild",
             )
@@ -4525,6 +4820,14 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
                 style_match_ratio=style_match_ratio,
                 preview_rms=preview_rms,
                 text_only_legend=_template_text_only_legend_policy(product, metadata),
+            )
+        for reason in _template_conformance_acceptance_reasons(conformance):
+            if reason not in strict_reasons:
+                strict_reasons.append(reason)
+        if saved_style_asset_mode and not bool(replay_validation.get("ok")):
+            strict_reasons.append(
+                "saved style asset lacks valid independent theme-application "
+                f"replay evidence: {replay_validation.get('reason', 'unknown reason')}"
             )
         plot_count_reason = f"plot count differs from template by {plot_count_delta}"
         if plot_count_delta != 0 and plot_count_reason not in strict_reasons:
@@ -4537,14 +4840,6 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         else:
             strict_status = "strict_visual_match" if strict_visual_match else "blocked_not_one_to_one"
         strict_message = "; ".join(strict_reasons)
-        hard_plot_count_failure = plot_count_delta != 0
-        if saved_style_asset_mode and not strict_visual_match and not hard_plot_count_failure:
-            strict_status = "manual_check_not_one_to_one"
-            if strict_message:
-                strict_message = (
-                    "saved style-asset mode records reference-format preview comparison as manual-check-only; "
-                    + strict_message
-                )
         if strict_message and message:
             message = f"{message}; {strict_message}"
         elif strict_message:
@@ -4556,21 +4851,34 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         product["plot_count_delta"] = plot_count_delta
         product["preview_rms"] = preview_rms
         product["style_match_ratio"] = style_match_ratio
+        product["independent_style_replay"] = replay_validation
         product["strict_visual_match"] = strict_visual_match
         product["strict_status"] = strict_status
-        if (
-            not strict_visual_match
-            and product.get("status") == "accepted"
-            and (not saved_style_asset_mode or hard_plot_count_failure)
-        ):
-            product["status"] = "blocked"
-            product["notes"] = (str(product.get("notes") or "") + f"; {strict_status}: {strict_message}").strip("; ")
-        elif saved_style_asset_mode and not strict_visual_match and product.get("status") == "accepted":
-            product["notes"] = (str(product.get("notes") or "") + f"; {strict_status}: {strict_message}").strip("; ")
+        previous_visual_acceptance = product.get("visual_acceptance")
+        if previous_visual_acceptance is None:
+            previous_visual_acceptance = product.get("status") == "accepted"
+        product["visual_acceptance"] = bool(previous_visual_acceptance) and strict_visual_match
+        if label_audit is not None and not _label_audit_passes(label_audit):
+            product["visual_acceptance"] = False
+            if product.get("status") == "accepted":
+                product["status"] = "blocked"
+            product["notes"] = _append_template_acceptance_note(
+                product.get("notes"),
+                "no-label audit failed",
+            )
+        if not strict_visual_match:
+            if product.get("status") == "accepted":
+                product["status"] = "blocked"
+            detail = strict_message or "template/generated preview comparison did not pass"
+            product["notes"] = _append_template_acceptance_note(
+                product.get("notes"),
+                f"{strict_status}: {detail}",
+            )
         items.append(
             {
                 "type": product_type,
                 "status": product.get("status", ""),
+                "visual_acceptance": bool(product.get("visual_acceptance")),
                 "reference_preview_png": _relative_to_run(run_root, reference) if reference_ok else "",
                 "generated_preview_png": _relative_to_run(run_root, generated) if generated_ok else "",
                 "side_by_side_png": _relative_to_run(run_root, side_by_side) if ready else "",
@@ -4585,6 +4893,7 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
                 "strict_visual_match": strict_visual_match,
                 "strict_status": strict_status,
                 "saved_style_asset_mode": saved_style_asset_mode,
+                "independent_style_replay": replay_validation,
                 "embedded_template_snapshot_mode": embedded_snapshot_mode,
                 "xrd_clean_graph_rebuild_mode": xrd_clean_rebuild_mode,
                 "message": message,
@@ -4607,16 +4916,22 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
         "strict_match_count": sum(1 for item in items if item["strict_visual_match"]),
         "product_count": len(items),
         "items": items,
-        "policy": "External OPJU/template products compare saved reference-format previews one-to-one; embedded template snapshot and XRD clean-rebuild products use preview generation as an artifact check and strict Origin readback/style-policy gates for acceptance.",
+        "policy": "Every product requires an independent reference preview and a ready reference-vs-generated comparison. Saved style assets, embedded snapshots, and clean rebuilds do not bypass the final visual gate.",
         "no_fabrication_policy": "Missing reference-format series are reported as data gaps, not silently created from preview images or copied annotations.",
     }
+    _synchronize_template_product_acceptance_artifacts(
+        run_root,
+        products,
+        audit,
+        label_audit=label_audit,
+    )
     (reports / "template_preview_comparison.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     _write_template_data_completeness(reports / "template_data_completeness.md", run_root, completeness_rows)
     lines = [
         "# Template preview comparison audit",
         "",
         "- Policy: external OPJU/template products compare the saved reference-format preview with the regenerated product preview.",
-        "- Embedded template snapshot policy: preview generation is an artifact check; acceptance is gated by Origin readback, Arial/font style checks, artifact presence, and plain-text legend policy.",
+        "- Independent-reference policy: every accepted product must have a separate reference preview and a ready reference-vs-generated comparison; saved themes and embedded snapshots are not exemptions.",
         "- Strict policy: one-to-one status requires matching plot counts and sufficient style readback; preview RMS is retained as a data-shape review signal after real-data replacement.",
         "- No-fabrication policy: missing source series/reference cards/annotations are reported, not invented.",
         f"- Ready: {audit['ready_count']}/{audit['product_count']}",
@@ -4645,6 +4960,122 @@ def _write_template_preview_comparison(run_root: Path, products: list[dict[str, 
     return audit
 
 
+def _synchronize_template_product_acceptance_artifacts(
+    run_root: Path,
+    products: list[dict[str, object]],
+    audit: dict[str, object],
+    *,
+    label_audit: dict[str, object] | None,
+) -> None:
+    items = audit.get("items") if isinstance(audit.get("items"), list) else []
+    label_pass = None if label_audit is None else _label_audit_passes(label_audit)
+    for product, raw_item in zip(products, items):
+        item = raw_item if isinstance(raw_item, dict) else {}
+        evidence = {
+            "final_status": str(product.get("status") or "blocked"),
+            "visual_acceptance": bool(product.get("visual_acceptance")),
+            "ready": bool(item.get("ready")),
+            "strict_visual_match": bool(item.get("strict_visual_match")),
+            "strict_status": str(item.get("strict_status") or ""),
+            "reference_preview_png": str(item.get("reference_preview_png") or ""),
+            "generated_preview_png": str(item.get("generated_preview_png") or ""),
+            "comparison_png": str(item.get("side_by_side_png") or ""),
+            "template_plot_count": int(item.get("template_plot_count") or 0),
+            "product_plot_count": int(item.get("product_plot_count") or 0),
+            "plot_count_delta": int(item.get("plot_count_delta") or 0),
+            "style_match_ratio": item.get("style_match_ratio"),
+            "preview_rms": item.get("preview_rms"),
+            "message": str(item.get("message") or ""),
+            "label_audit_pass": label_pass,
+        }
+        product["template_preview_comparison_png"] = evidence["comparison_png"]
+        product["template_preview_comparison_ready"] = evidence["ready"]
+        product["reference_preview_available"] = bool(evidence["reference_preview_png"])
+        product["visual_acceptance_audit"] = evidence
+
+        metadata_path = _resolve_run_relative_artifact(run_root, product.get("metadata"))
+        if metadata_path.is_file():
+            metadata_payload = _read_template_product_metadata(product, run_root)
+            if metadata_payload:
+                metadata_payload["status"] = str(product.get("status") or "blocked")
+                metadata_payload["visual_acceptance"] = bool(product.get("visual_acceptance"))
+                metadata_payload["reference_preview_available"] = bool(evidence["reference_preview_png"])
+                metadata_payload["template_preview_comparison_png"] = evidence["comparison_png"]
+                metadata_payload["template_preview_comparison_ready"] = evidence["ready"]
+                metadata_payload["strict_visual_match"] = evidence["strict_visual_match"]
+                metadata_payload["strict_status"] = evidence["strict_status"]
+                metadata_payload["visual_acceptance_audit"] = evidence
+                metadata_payload["acceptance_notes"] = _merged_template_acceptance_notes(
+                    metadata_payload.get("acceptance_notes"),
+                    product.get("notes"),
+                )
+                metadata_path.write_text(
+                    json.dumps(_safe_metadata_payload(metadata_payload), ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+
+        report_path = _resolve_run_relative_artifact(run_root, product.get("report"))
+        if report_path.is_file():
+            _synchronize_template_product_report(
+                report_path,
+                product,
+                evidence,
+            )
+
+
+def _merged_template_acceptance_notes(existing: object, final_notes: object) -> list[str]:
+    notes: list[str] = []
+    if isinstance(existing, list):
+        candidates = [str(item) for item in existing]
+    elif existing:
+        candidates = [str(existing)]
+    else:
+        candidates = []
+    candidates.extend(str(final_notes or "").split(";"))
+    for candidate in candidates:
+        normalized = candidate.strip()
+        if normalized and normalized not in notes:
+            notes.append(normalized)
+    return notes
+
+
+def _synchronize_template_product_report(
+    report_path: Path,
+    product: dict[str, object],
+    evidence: dict[str, object],
+) -> None:
+    marker = "## Final visual acceptance audit"
+    original = report_path.read_text(encoding="utf-8")
+    body = original.split(marker, 1)[0].rstrip()
+    lines = body.splitlines()
+    replacements = {
+        "- Status:": f"- Status: {product.get('status') or 'blocked'}",
+        "- Visual acceptance:": f"- Visual acceptance: {bool(product.get('visual_acceptance'))}",
+    }
+    for prefix, replacement in replacements.items():
+        for index, line in enumerate(lines):
+            if line.startswith(prefix):
+                lines[index] = replacement
+                break
+    label_pass = evidence.get("label_audit_pass")
+    final_section = [
+        "",
+        marker,
+        "",
+        f"- Final status: {product.get('status') or 'blocked'}",
+        f"- Final visual acceptance: {bool(product.get('visual_acceptance'))}",
+        f"- No-label audit pass: {'not_run' if label_pass is None else bool(label_pass)}",
+        f"- Independent reference preview: {evidence.get('reference_preview_png') or 'missing'}",
+        f"- Generated preview: {evidence.get('generated_preview_png') or 'missing'}",
+        f"- Side-by-side comparison: {evidence.get('comparison_png') or 'missing'}",
+        f"- Comparison ready: {bool(evidence.get('ready'))}",
+        f"- Strict visual match: {bool(evidence.get('strict_visual_match'))}",
+        f"- Strict status: {evidence.get('strict_status') or 'blocked_not_one_to_one'}",
+        f"- Comparison message: {evidence.get('message') or 'none'}",
+    ]
+    report_path.write_text("\n".join([*lines, *final_section]).rstrip() + "\n", encoding="utf-8")
+
+
 def _is_saved_style_asset_preview_product(product: dict[str, object], metadata: dict[str, object]) -> bool:
     if str(product.get("template_format_mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template"}:
         return True
@@ -4660,6 +5091,106 @@ def _is_saved_style_asset_preview_product(product: dict[str, object], metadata: 
         if isinstance(candidate, dict) and str(candidate.get("method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template"}:
             return True
     return False
+
+
+def _style_replay_key(value: object) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(value).casefold()).strip("_")
+
+
+def _load_independent_style_replay_evidence(
+    project_root: Path,
+    report_path: Path | None,
+) -> dict[str, dict[str, object]]:
+    if report_path is None:
+        return {}
+    path = report_path if report_path.is_absolute() else project_root / report_path
+    if not path.is_file():
+        raise FileNotFoundError(f"Style replay report does not exist: {report_path}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Style replay report is not valid JSON: {report_path}") from exc
+    items = payload.get("items") if isinstance(payload, dict) else None
+    if not isinstance(items, list):
+        raise ValueError("Style replay report must contain an items list.")
+
+    validations: dict[str, dict[str, object]] = {}
+    for raw in items:
+        if not isinstance(raw, dict):
+            continue
+        product_key = str(raw.get("product_key") or raw.get("data_type") or "").strip()
+        if not product_key:
+            raise ValueError("Style replay report item is missing product_key.")
+        key = _style_replay_key(product_key)
+        if key in validations:
+            raise ValueError(f"Duplicate style replay product_key: {product_key}")
+        validations[key] = _validate_independent_style_replay_item(
+            project_root,
+            product_key,
+            raw,
+        )
+    return validations
+
+
+def _validate_independent_style_replay_item(
+    project_root: Path,
+    product_key: str,
+    item: dict[str, object],
+) -> dict[str, object]:
+    comparison = item.get("comparison") if isinstance(item.get("comparison"), dict) else {}
+    reasons: list[str] = []
+    if str(item.get("status") or "") != "matched":
+        reasons.append("status is not matched")
+    if not bool(item.get("style_asset_validated")):
+        reasons.append("style_asset_validated is false")
+    if str(item.get("comparison_scope") or "") != "independent_theme_application":
+        reasons.append("comparison_scope is not independent_theme_application")
+    if str(item.get("asset_generation_mode") or "") != "new_graph_plus_format_theme":
+        reasons.append("asset_generation_mode is not new_graph_plus_format_theme")
+    if not bool(comparison.get("exact_pixel_match")):
+        reasons.append("exact_pixel_match is false")
+    rms = _to_float(comparison.get("rms"))
+    if rms is None or abs(rms) > 1e-12:
+        reasons.append("RMS is not zero")
+
+    source_hash = str(item.get("source_opju_sha256") or "").casefold()
+    generated_hash = str(item.get("generated_opju_sha256") or "").casefold()
+    if not re.fullmatch(r"[0-9a-f]{64}", source_hash):
+        reasons.append("source OPJU hash is missing or malformed")
+    if not re.fullmatch(r"[0-9a-f]{64}", generated_hash):
+        reasons.append("generated OPJU hash is missing or malformed")
+    if source_hash and generated_hash and source_hash == generated_hash:
+        reasons.append("source and generated OPJU hashes are identical")
+
+    asset = resolve_origin_style_asset(project_root, product_key)
+    if asset is None:
+        reasons.append("current project style asset is missing")
+    else:
+        recorded_theme_hash = str(item.get("format_theme_sha256") or "").casefold()
+        if (
+            not asset.format_theme_path.is_file()
+            or recorded_theme_hash != file_sha256(asset.format_theme_path)
+        ):
+            reasons.append("format theme hash does not match the current asset")
+        recorded_data_hash = str(item.get("data_snapshot_sha256") or "").casefold()
+        if (
+            asset.data_snapshot_path is None
+            or not asset.data_snapshot_path.is_file()
+            or recorded_data_hash != file_sha256(asset.data_snapshot_path)
+        ):
+            reasons.append("data snapshot hash does not match the current asset")
+        if str(item.get("graph_page") or "") != str(asset.graph_page or ""):
+            reasons.append("graph page does not match the current asset")
+
+    return {
+        "ok": not reasons,
+        "reason": "; ".join(reasons) if reasons else "validated",
+        "status": str(item.get("status") or ""),
+        "comparison_scope": str(item.get("comparison_scope") or ""),
+        "asset_generation_mode": str(item.get("asset_generation_mode") or ""),
+        "exact_pixel_match": bool(comparison.get("exact_pixel_match")),
+        "rms": rms,
+    }
 
 
 def _is_embedded_template_snapshot_preview_product(product: dict[str, object], metadata: dict[str, object]) -> bool:
@@ -4803,7 +5334,6 @@ def _template_strict_visual_reasons(
     reasons: list[str] = []
     if not ready:
         reasons.append("template/generated preview comparison is not ready")
-    strong_style_match = style_match_ratio is not None and style_match_ratio >= 0.90
     text_only_legend_match = bool(text_only_legend and plot_count_delta == 0 and style_match_ratio is not None and style_match_ratio >= 0.88)
     if plot_count_delta != 0:
         reasons.append(f"plot count differs from template by {plot_count_delta}")
@@ -4813,7 +5343,7 @@ def _template_strict_visual_reasons(
         reasons.append(f"style match ratio {style_match_ratio:.2f} is below 0.90")
     if preview_rms is None:
         reasons.append("preview RMS is unavailable")
-    elif preview_rms > 35.0 and not (plot_count_delta == 0 and (strong_style_match or text_only_legend_match)):
+    elif preview_rms > 35.0:
         reasons.append(f"preview RMS {preview_rms:.2f} is above 35.00")
     return reasons
 
@@ -4823,11 +5353,23 @@ def _embedded_template_snapshot_strict_visual_reasons(
     metadata: dict[str, object],
     *,
     ready: bool,
+    plot_count_delta: int,
+    style_match_ratio: float | None,
+    preview_rms: float | None,
     allowed_methods: set[str] | None = None,
     mode_label: str = "embedded template snapshot",
 ) -> list[str]:
-    reasons: list[str] = []
+    reasons = _template_strict_visual_reasons(
+        ready=ready,
+        plot_count_delta=plot_count_delta,
+        style_match_ratio=style_match_ratio,
+        preview_rms=preview_rms,
+        text_only_legend=_template_text_only_legend_policy(product, metadata),
+    )
     if not ready:
+        generic_not_ready = "template/generated preview comparison is not ready"
+        if generic_not_ready in reasons:
+            reasons.remove(generic_not_ready)
         reasons.append(f"{mode_label} template/generated preview artifact comparison is not ready")
     for field in ("has_opju", "has_tif", "has_png", "has_reference_preview", "has_processed_data", "has_metadata", "has_report"):
         if field in product and not bool(product.get(field)):

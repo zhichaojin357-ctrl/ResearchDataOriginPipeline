@@ -24,7 +24,11 @@ python run.py origin-batch --manifest <manifest.csv> --dry-run
 python run.py template-format-products --pairing <pairing-plan.json> --with-origin
 python run.py template-format-products --pairing <pairing-plan.json> --asset-only --with-origin
 python run.py origin-style-asset-replay --template-plan <template-plan.json> --output-dir <run-dir> --with-origin
+python run.py xps-heterojunction-stacked --with-origin <required inputs>
 python run.py xrd-overlay --with-origin <required inputs>
+python run.py jeol-epr-decode --out <external-output-root> <raw-epr-folder>
+python run.py epr-overlay --reference-dir <verified-epr-xlsx-dir> --output-root <external-output-root> --with-origin
+python run.py hplc-openlab-export --input <openlab-root> --since <YYYY-MM-DD> --output-root <external-output-root> <required builder options>
 python run.py validate
 python run.py readiness --no-desktop-review-xlsx
 ```

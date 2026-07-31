@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import math
+import os
 import re
 import shutil
 import subprocess
+import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -16,6 +17,13 @@ from xml.etree import ElementTree as ET
 
 import numpy as np
 
+from src.core.file_utils import (
+    apply_safe_owned_directory_removal,
+    ensure_safe_output_file_target,
+    file_sha256,
+    lexical_absolute_path,
+    plan_safe_owned_directory_removal,
+)
 from src.core.project import (
     ensure_output_path_separate_from_inputs,
     ensure_output_path_within_root,
@@ -43,24 +51,34 @@ class HplcOpenLabExportOptions:
     force: bool = False
 
 
+@dataclass(frozen=True)
+class _HplcOutputPlan:
+    file_targets: tuple[Path, ...]
+    directory_targets: tuple[Path, ...]
+
+
+class _HplcRollbackError(RuntimeError):
+    """Raised when a failed package commit could not be rolled back completely."""
+
+
 def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOptions) -> dict[str, Any]:
     """Decode Agilent OpenLab result sets and build a data-only Excel workbook."""
     input_root = options.input_root.resolve()
     if not input_root.is_dir():
         raise NotADirectoryError(f"OpenLab input root does not exist or is not a directory: {input_root}")
 
-    output_root = options.output_root.resolve()
+    output_root = lexical_absolute_path(options.output_root)
     ensure_write_path_allowed(project_root, output_root, output_root=output_root)
     ensure_output_path_separate_from_inputs(project_root, output_root, [input_root])
-    output_root.mkdir(parents=True, exist_ok=True)
 
     builder_workdir = ensure_output_path_within_root(
         project_root,
         options.builder_workdir,
         output_root,
     )
-    builder_workdir.mkdir(parents=True, exist_ok=True)
+    ensure_safe_output_file_target(builder_workdir, output_root=output_root)
     _validate_artifact_workdir(builder_workdir)
+    builder_source = _validate_workbook_builder_inputs(project_root, options.node_exe)
 
     output_name = options.output_name or f"agilent_hplc_openlab_{options.since:%Y%m%d}_plus.xlsx"
     if Path(output_name).name != output_name or Path(output_name).suffix.casefold() != ".xlsx":
@@ -72,57 +90,194 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
     reports_dir = output_root / "reports"
     previews_dir = output_root / "workbook_previews"
     logs_dir = output_root / "logs"
-    for directory in (processed_dir, metadata_dir, reports_dir, previews_dir, logs_dir):
-        directory.mkdir(parents=True, exist_ok=True)
 
     dataset = extract_hplc_openlab_dataset(input_root, options.since)
     dataset["workbook_plan"] = _build_workbook_plan(dataset, workbook_path)
     workbook_paths = _planned_workbook_paths(output_root, workbook_path, dataset["workbook_plan"])
-    existing_workbooks = [path for path in workbook_paths if path.exists()]
-    if existing_workbooks and not options.force:
-        rendered = ", ".join(str(path) for path in existing_workbooks[:5])
-        raise FileExistsError(
-            "One or more planned workbooks already exist; rerun with --force to overwrite: "
-            f"{rendered}"
-        )
     dataset_path = processed_dir / f"{slug}_dataset.json"
-    dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-
     verification_path = reports_dir / f"{slug}_workbook_verification.json"
     builder_log_path = logs_dir / f"{slug}_workbook_builder.log"
-    _run_workbook_builder(
-        project_root=project_root,
-        node_exe=options.node_exe,
-        builder_workdir=builder_workdir,
-        dataset_path=dataset_path,
-        workbook_path=workbook_path,
-        previews_dir=previews_dir,
-        verification_path=verification_path,
-        log_path=builder_log_path,
-    )
-    missing_workbooks = [
-        path for path in workbook_paths if not path.is_file() or path.stat().st_size <= 0
-    ]
-    if missing_workbooks:
-        raise RuntimeError(
-            "Workbook builder did not create all planned non-empty .xlsx files: "
-            + ", ".join(str(path) for path in missing_workbooks[:5])
-        )
-
-    metadata_payload = _metadata_payload(
-        dataset,
-        workbook_paths,
-        output_root,
+    metadata_path = metadata_dir / "metadata.json"
+    report_path = reports_dir / f"{slug}_processing_summary.md"
+    file_targets = (
+        *workbook_paths,
         dataset_path,
         verification_path,
+        builder_log_path,
+        metadata_path,
+        report_path,
     )
-    metadata_path = metadata_dir / "metadata.json"
-    metadata_path.write_text(json.dumps(metadata_payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    report_path = reports_dir / f"{slug}_processing_summary.md"
-    report_path.write_text(
-        _summary_markdown(dataset, workbook_paths, output_root),
-        encoding="utf-8",
+    preview_targets = _planned_preview_directories(
+        previews_dir,
+        dataset["workbook_plan"],
     )
+    _preflight_hplc_outputs(
+        output_root,
+        file_targets=file_targets,
+        owned_directory_targets=preview_targets,
+        force=options.force,
+    )
+
+    output_root.mkdir(parents=True, exist_ok=True)
+    ensure_safe_output_file_target(output_root, output_root=output_root)
+
+    stage_root: Path | None = None
+    builder_run_dir: Path | None = None
+    preserve_stage_for_recovery = False
+    try:
+        stage_root = lexical_absolute_path(
+            Path(
+                tempfile.mkdtemp(
+                    prefix=f".{slug}.staging-",
+                    dir=output_root,
+                )
+            )
+        )
+        ensure_safe_output_file_target(stage_root, output_root=output_root)
+        stage_payload_root = stage_root / "payload"
+        stage_payload_root.mkdir()
+
+        builder_run_dir = lexical_absolute_path(
+            Path(
+                tempfile.mkdtemp(
+                    prefix=f".{slug}.builder-",
+                    dir=builder_workdir,
+                )
+            )
+        )
+        ensure_safe_output_file_target(builder_run_dir, output_root=output_root)
+        staged_builder_copy = builder_run_dir / builder_source.name
+
+        staged_workbook_paths = [
+            _staged_hplc_path(path, output_root, stage_payload_root)
+            for path in workbook_paths
+        ]
+        staged_dataset_path = _staged_hplc_path(
+            dataset_path,
+            output_root,
+            stage_payload_root,
+        )
+        staged_verification_path = _staged_hplc_path(
+            verification_path,
+            output_root,
+            stage_payload_root,
+        )
+        staged_builder_log_path = _staged_hplc_path(
+            builder_log_path,
+            output_root,
+            stage_payload_root,
+        )
+        staged_metadata_path = _staged_hplc_path(
+            metadata_path,
+            output_root,
+            stage_payload_root,
+        )
+        staged_report_path = _staged_hplc_path(
+            report_path,
+            output_root,
+            stage_payload_root,
+        )
+        staged_preview_targets = tuple(
+            _staged_hplc_path(path, output_root, stage_payload_root)
+            for path in preview_targets
+        )
+        staged_previews_dir = _staged_hplc_path(
+            previews_dir,
+            output_root,
+            stage_payload_root,
+        )
+
+        staged_dataset_path.parent.mkdir(parents=True, exist_ok=True)
+        staged_dataset_path.write_text(
+            json.dumps(dataset, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        _run_workbook_builder(
+            project_root=project_root,
+            node_exe=options.node_exe,
+            builder_workdir=builder_workdir,
+            builder_copy_path=staged_builder_copy,
+            dataset_path=staged_dataset_path,
+            workbook_path=staged_workbook_paths[0],
+            previews_dir=staged_previews_dir,
+            verification_path=staged_verification_path,
+            log_path=staged_builder_log_path,
+        )
+
+        metadata_payload = _metadata_payload(
+            dataset,
+            workbook_paths,
+            output_root,
+            dataset_path,
+            verification_path,
+        )
+        staged_metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        staged_metadata_path.write_text(
+            json.dumps(metadata_payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        staged_report_path.parent.mkdir(parents=True, exist_ok=True)
+        staged_report_path.write_text(
+            _summary_markdown(dataset, workbook_paths, output_root),
+            encoding="utf-8",
+        )
+
+        staged_preview_files = _validate_staged_hplc_package(
+            stage_payload_root=stage_payload_root,
+            dataset=dataset,
+            workbook_paths=tuple(staged_workbook_paths),
+            dataset_path=staged_dataset_path,
+            verification_path=staged_verification_path,
+            builder_log_path=staged_builder_log_path,
+            metadata_path=staged_metadata_path,
+            report_path=staged_report_path,
+            preview_directories=staged_preview_targets,
+            previews_root=staged_previews_dir,
+        )
+        _rewrite_staged_builder_paths(
+            verification_path=staged_verification_path,
+            builder_log_path=staged_builder_log_path,
+            stage_payload_root=stage_payload_root,
+            output_root=output_root,
+        )
+        _validate_builder_verification_file(
+            staged_verification_path,
+            expected_workbook_paths=tuple(workbook_paths),
+            expected_preview_files=tuple(
+                _published_hplc_path(
+                    path,
+                    stage_payload_root,
+                    output_root,
+                )
+                for path in staged_preview_files
+            ),
+        )
+
+        staged_file_targets = (
+            *staged_workbook_paths,
+            staged_dataset_path,
+            staged_verification_path,
+            staged_builder_log_path,
+            staged_metadata_path,
+            staged_report_path,
+        )
+        _commit_staged_hplc_package(
+            output_root=output_root,
+            stage_root=stage_root,
+            staged_file_targets=tuple(staged_file_targets),
+            final_file_targets=tuple(file_targets),
+            staged_directory_targets=staged_preview_targets,
+            final_directory_targets=preview_targets,
+            force=options.force,
+        )
+    except _HplcRollbackError:
+        preserve_stage_for_recovery = True
+        raise
+    finally:
+        if builder_run_dir is not None:
+            _remove_safe_owned_tree(builder_run_dir, output_root=output_root)
+        if stage_root is not None and not preserve_stage_for_recovery:
+            _remove_safe_owned_tree(stage_root, output_root=output_root)
 
     return {
         "workbook": workbook_path,
@@ -134,6 +289,568 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
         "preview_dir": previews_dir,
         "summary": dataset["summary"],
     }
+
+
+def _validate_workbook_builder_inputs(project_root: Path, node_exe: Path) -> Path:
+    resolved_node = node_exe.resolve()
+    if not resolved_node.is_file():
+        raise FileNotFoundError(f"Node.js executable does not exist: {resolved_node}")
+    builder_source = project_root / "scripts" / "data_types" / "hplc_lc" / "build_openlab_workbook.mjs"
+    if not builder_source.is_file():
+        raise FileNotFoundError(f"OpenLab workbook builder is missing: {builder_source}")
+    return builder_source.resolve()
+
+
+def _safe_preview_component(value: str) -> str:
+    cleaned = _INVALID_FILENAME_CHARS.sub("_", str(value))
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned[:90] or "sheet"
+
+
+def _planned_preview_directories(
+    previews_dir: Path,
+    workbook_plan: dict[str, Any],
+) -> tuple[Path, ...]:
+    planned = [previews_dir / "00_总索引"]
+    for item in workbook_plan.get("batch_workbooks", []):
+        batch_id = str(item.get("batch_id") or "").strip()
+        batch_folder = str(item.get("batch_folder") or "")
+        if not batch_id:
+            raise ValueError("Planned OpenLab batch preview is missing batch_id")
+        planned.append(previews_dir / f"{batch_id}_{_safe_preview_component(batch_folder)}")
+    return tuple(lexical_absolute_path(path) for path in planned)
+
+
+def _preflight_hplc_outputs(
+    output_root: Path,
+    *,
+    file_targets: tuple[Path, ...],
+    owned_directory_targets: tuple[Path, ...],
+    force: bool,
+) -> _HplcOutputPlan:
+    lexical_root = lexical_absolute_path(output_root)
+    files = tuple(
+        dict.fromkeys(
+            ensure_safe_output_file_target(path, output_root=lexical_root)
+            for path in file_targets
+        )
+    )
+    directories = tuple(
+        dict.fromkeys(
+            ensure_safe_output_file_target(path, output_root=lexical_root)
+            for path in owned_directory_targets
+        )
+    )
+    existing_files = [
+        path for path in files if os.path.lexists(os.fspath(path))
+    ]
+    directory_removal_plans = {
+        path: plan_safe_owned_directory_removal(path, output_root=lexical_root)
+        for path in directories
+        if os.path.lexists(os.fspath(path))
+    }
+    existing_directories = list(directory_removal_plans)
+    conflicts = [*existing_files, *existing_directories]
+    if conflicts and not force:
+        rendered = ", ".join(str(path) for path in conflicts[:8])
+        raise FileExistsError(
+            "One or more planned OpenLab outputs already exist; rerun with --force to overwrite: "
+            f"{rendered}"
+        )
+
+    file_directories = [path for path in existing_files if path.is_dir() and not path.is_symlink()]
+    if file_directories:
+        rendered = ", ".join(str(path) for path in file_directories[:8])
+        raise IsADirectoryError(f"Planned OpenLab file output collides with a directory: {rendered}")
+    for path in existing_files:
+        _assert_safe_regular_file(path, output_root=lexical_root)
+    for plan in directory_removal_plans.values():
+        for path in plan[1]:
+            _assert_safe_regular_file(path, output_root=lexical_root)
+    return _HplcOutputPlan(
+        file_targets=files,
+        directory_targets=directories,
+    )
+
+
+def _staged_hplc_path(
+    final_path: Path,
+    output_root: Path,
+    stage_payload_root: Path,
+) -> Path:
+    safe_final = ensure_safe_output_file_target(final_path, output_root=output_root)
+    relative = safe_final.relative_to(lexical_absolute_path(output_root))
+    return ensure_safe_output_file_target(
+        stage_payload_root / relative,
+        output_root=stage_payload_root,
+    )
+
+
+def _published_hplc_path(
+    staged_path: Path,
+    stage_payload_root: Path,
+    output_root: Path,
+) -> Path:
+    safe_staged = ensure_safe_output_file_target(
+        staged_path,
+        output_root=stage_payload_root,
+    )
+    relative = safe_staged.relative_to(lexical_absolute_path(stage_payload_root))
+    return ensure_safe_output_file_target(
+        output_root / relative,
+        output_root=output_root,
+    )
+
+
+def _assert_safe_regular_file(
+    path: Path,
+    *,
+    output_root: Path,
+    require_nonempty: bool = False,
+) -> Path:
+    safe_path = ensure_safe_output_file_target(path, output_root=output_root)
+    if not os.path.lexists(os.fspath(safe_path)):
+        raise FileNotFoundError(f"Required OpenLab package file is missing: {safe_path}")
+    if not safe_path.is_file():
+        raise ValueError(f"OpenLab package target is not a regular file: {safe_path}")
+    file_stat = safe_path.stat(follow_symlinks=False)
+    if file_stat.st_nlink > 1:
+        raise ValueError(
+            "Refusing OpenLab package file with multiple hard links: "
+            f"{safe_path} (link_count={file_stat.st_nlink})"
+        )
+    if require_nonempty and file_stat.st_size <= 0:
+        raise RuntimeError(f"OpenLab package file is empty: {safe_path}")
+    return safe_path
+
+
+def _validate_xlsx_package(path: Path, *, output_root: Path) -> None:
+    safe_path = _assert_safe_regular_file(
+        path,
+        output_root=output_root,
+        require_nonempty=True,
+    )
+    if not zipfile.is_zipfile(safe_path):
+        raise RuntimeError(f"Workbook builder produced an invalid XLSX ZIP package: {safe_path}")
+    with zipfile.ZipFile(safe_path) as archive:
+        members = set(archive.namelist())
+    required_members = {"[Content_Types].xml", "xl/workbook.xml"}
+    missing = sorted(required_members - members)
+    if missing:
+        raise RuntimeError(
+            f"Workbook builder produced an incomplete XLSX package: {safe_path}; "
+            f"missing {', '.join(missing)}"
+        )
+
+
+def _validate_png_preview(path: Path, *, output_root: Path) -> None:
+    safe_path = _assert_safe_regular_file(
+        path,
+        output_root=output_root,
+        require_nonempty=True,
+    )
+    with safe_path.open("rb") as handle:
+        signature = handle.read(8)
+    if signature != b"\x89PNG\r\n\x1a\n":
+        raise RuntimeError(f"Workbook preview is not a valid PNG file: {safe_path}")
+
+
+def _validate_builder_verification_file(
+    verification_path: Path,
+    *,
+    expected_workbook_paths: tuple[Path, ...],
+    expected_preview_files: tuple[Path, ...],
+) -> dict[str, Any]:
+    try:
+        payload = json.loads(verification_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"Workbook verification JSON is unreadable: {verification_path}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("Workbook verification payload must be a JSON object")
+    workbooks = payload.get("workbooks")
+    if not isinstance(workbooks, list):
+        raise RuntimeError("Workbook verification is missing its workbooks list")
+    if payload.get("workbook_count") != len(expected_workbook_paths):
+        raise RuntimeError(
+            "Workbook verification count does not match the planned workbook package"
+        )
+    if len(workbooks) != len(expected_workbook_paths):
+        raise RuntimeError(
+            "Workbook verification entries do not match the planned workbook package"
+        )
+
+    actual_workbook_paths: list[Path] = []
+    actual_preview_files: list[Path] = []
+    calculated_sheet_count = 0
+    for item in workbooks:
+        if not isinstance(item, dict):
+            raise RuntimeError("Workbook verification contains a non-object workbook entry")
+        workbook_value = str(item.get("path") or "").strip()
+        if not workbook_value:
+            raise RuntimeError("Workbook verification entry is missing its workbook path")
+        actual_workbook_paths.append(lexical_absolute_path(Path(workbook_value)))
+        sheet_count = item.get("sheet_count")
+        if not isinstance(sheet_count, int) or sheet_count <= 0:
+            raise RuntimeError(
+                "Workbook verification contains an invalid sheet count"
+            )
+        calculated_sheet_count += sheet_count
+        preview_values = item.get("preview_files")
+        if not isinstance(preview_values, list) or not preview_values:
+            raise RuntimeError(
+                "Workbook verification entry is missing preview evidence"
+            )
+        for value in preview_values:
+            rendered = str(value or "").strip()
+            if not rendered:
+                raise RuntimeError(
+                    "Workbook verification contains an empty preview path"
+                )
+            actual_preview_files.append(lexical_absolute_path(Path(rendered)))
+
+    expected_workbooks = [
+        lexical_absolute_path(path) for path in expected_workbook_paths
+    ]
+    if actual_workbook_paths != expected_workbooks:
+        raise RuntimeError(
+            "Workbook verification paths do not match the planned workbook paths"
+        )
+    expected_previews = {
+        lexical_absolute_path(path) for path in expected_preview_files
+    }
+    if set(actual_preview_files) != expected_previews:
+        raise RuntimeError(
+            "Workbook verification preview paths do not match the rendered PNG package"
+        )
+    if len(actual_preview_files) != len(expected_previews):
+        raise RuntimeError("Workbook verification contains duplicate preview paths")
+    if payload.get("preview_count") != len(expected_previews):
+        raise RuntimeError(
+            "Workbook verification preview count does not match rendered PNG files"
+        )
+    if payload.get("sheet_count") != calculated_sheet_count:
+        raise RuntimeError(
+            "Workbook verification sheet count does not match its workbook entries"
+        )
+    return payload
+
+
+def _validate_staged_hplc_package(
+    *,
+    stage_payload_root: Path,
+    dataset: dict[str, Any],
+    workbook_paths: tuple[Path, ...],
+    dataset_path: Path,
+    verification_path: Path,
+    builder_log_path: Path,
+    metadata_path: Path,
+    report_path: Path,
+    preview_directories: tuple[Path, ...],
+    previews_root: Path,
+) -> tuple[Path, ...]:
+    for workbook in workbook_paths:
+        _validate_xlsx_package(workbook, output_root=stage_payload_root)
+    for path in (
+        dataset_path,
+        verification_path,
+        builder_log_path,
+        metadata_path,
+        report_path,
+    ):
+        _assert_safe_regular_file(
+            path,
+            output_root=stage_payload_root,
+            require_nonempty=True,
+        )
+
+    try:
+        staged_dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Staged OpenLab dataset is unreadable: {dataset_path}") from exc
+    if staged_dataset != dataset:
+        raise RuntimeError("Staged OpenLab dataset changed before package commit")
+
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Staged OpenLab metadata is unreadable: {metadata_path}") from exc
+    if metadata.get("processing_status") != "processed_to_split_excel_no_plot":
+        raise RuntimeError("Staged OpenLab metadata has an invalid processing status")
+    if "exit_code=0" not in builder_log_path.read_text(encoding="utf-8"):
+        raise RuntimeError("Workbook builder log does not record a successful exit")
+    if not report_path.read_text(encoding="utf-8").strip():
+        raise RuntimeError("Staged OpenLab processing report is empty")
+
+    safe_previews_root = ensure_safe_output_file_target(
+        previews_root,
+        output_root=stage_payload_root,
+    )
+    if not safe_previews_root.is_dir():
+        raise RuntimeError(
+            f"Workbook builder did not create the preview root: {safe_previews_root}"
+        )
+    planned_preview_directories = {
+        ensure_safe_output_file_target(path, output_root=stage_payload_root)
+        for path in preview_directories
+    }
+    actual_root_children = {
+        ensure_safe_output_file_target(path, output_root=stage_payload_root)
+        for path in safe_previews_root.iterdir()
+    }
+    if actual_root_children != planned_preview_directories:
+        raise RuntimeError(
+            "Workbook builder preview directories do not match the planned package"
+        )
+
+    preview_files: list[Path] = []
+    for directory in sorted(
+        planned_preview_directories,
+        key=lambda item: str(item).casefold(),
+    ):
+        plan = plan_safe_owned_directory_removal(
+            directory,
+            output_root=stage_payload_root,
+        )
+        if not plan[0].is_dir():
+            raise RuntimeError(
+                f"Workbook builder did not create a planned preview directory: {directory}"
+            )
+        if plan[2]:
+            raise RuntimeError(
+                f"Workbook preview directory contains unexpected nested directories: {directory}"
+            )
+        if not plan[1]:
+            raise RuntimeError(
+                f"Workbook preview directory contains no rendered PNG files: {directory}"
+            )
+        for preview in plan[1]:
+            if preview.suffix.casefold() != ".png":
+                raise RuntimeError(
+                    f"Workbook preview directory contains a non-PNG file: {preview}"
+                )
+            _validate_png_preview(preview, output_root=stage_payload_root)
+            preview_files.append(preview)
+
+    ordered_preview_files = tuple(
+        sorted(preview_files, key=lambda item: str(item).casefold())
+    )
+    _validate_builder_verification_file(
+        verification_path,
+        expected_workbook_paths=workbook_paths,
+        expected_preview_files=ordered_preview_files,
+    )
+    return ordered_preview_files
+
+
+def _rewrite_staged_builder_paths(
+    *,
+    verification_path: Path,
+    builder_log_path: Path,
+    stage_payload_root: Path,
+    output_root: Path,
+) -> None:
+    payload = json.loads(verification_path.read_text(encoding="utf-8"))
+
+    def rewrite(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {key: rewrite(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [rewrite(item) for item in value]
+        if isinstance(value, str):
+            return _replace_staged_path_text(
+                value,
+                stage_payload_root=stage_payload_root,
+                output_root=output_root,
+            )
+        return value
+
+    verification_path.write_text(
+        json.dumps(rewrite(payload), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    builder_log_path.write_text(
+        _replace_staged_path_text(
+            builder_log_path.read_text(encoding="utf-8"),
+            stage_payload_root=stage_payload_root,
+            output_root=output_root,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _replace_staged_path_text(
+    value: str,
+    *,
+    stage_payload_root: Path,
+    output_root: Path,
+) -> str:
+    rendered = value
+    replacements = (
+        (str(lexical_absolute_path(stage_payload_root)), str(lexical_absolute_path(output_root))),
+        (
+            lexical_absolute_path(stage_payload_root).as_posix(),
+            lexical_absolute_path(output_root).as_posix(),
+        ),
+    )
+    for old, new in replacements:
+        rendered = rendered.replace(old, new)
+    return rendered
+
+
+def _commit_staged_hplc_package(
+    *,
+    output_root: Path,
+    stage_root: Path,
+    staged_file_targets: tuple[Path, ...],
+    final_file_targets: tuple[Path, ...],
+    staged_directory_targets: tuple[Path, ...],
+    final_directory_targets: tuple[Path, ...],
+    force: bool,
+) -> None:
+    if len(staged_file_targets) != len(final_file_targets):
+        raise ValueError("Staged and final OpenLab file target counts do not match")
+    if len(staged_directory_targets) != len(final_directory_targets):
+        raise ValueError("Staged and final OpenLab directory target counts do not match")
+
+    final_plan = _preflight_hplc_outputs(
+        output_root,
+        file_targets=final_file_targets,
+        owned_directory_targets=final_directory_targets,
+        force=force,
+    )
+    for path in staged_file_targets:
+        _assert_safe_regular_file(
+            path,
+            output_root=stage_root,
+            require_nonempty=True,
+        )
+    for directory in staged_directory_targets:
+        staged_plan = plan_safe_owned_directory_removal(
+            directory,
+            output_root=stage_root,
+        )
+        if not staged_plan[0].is_dir():
+            raise RuntimeError(
+                f"Staged OpenLab package directory is missing: {directory}"
+            )
+        for path in staged_plan[1]:
+            _assert_safe_regular_file(path, output_root=stage_root)
+
+    backup_root = ensure_safe_output_file_target(
+        stage_root / "rollback",
+        output_root=stage_root,
+    )
+    moved_backups: list[tuple[str, Path, Path]] = []
+    installed_targets: list[tuple[str, Path]] = []
+    try:
+        for final_path in final_plan.file_targets:
+            if not os.path.lexists(os.fspath(final_path)):
+                continue
+            backup_path = ensure_safe_output_file_target(
+                backup_root / "files" / final_path.relative_to(output_root),
+                output_root=stage_root,
+            )
+            backup_path.parent.mkdir(parents=True, exist_ok=True)
+            _atomic_replace(final_path, backup_path)
+            moved_backups.append(("file", backup_path, final_path))
+        for final_path in final_plan.directory_targets:
+            if not os.path.lexists(os.fspath(final_path)):
+                continue
+            backup_path = ensure_safe_output_file_target(
+                backup_root / "directories" / final_path.relative_to(output_root),
+                output_root=stage_root,
+            )
+            backup_path.parent.mkdir(parents=True, exist_ok=True)
+            _atomic_replace(final_path, backup_path)
+            moved_backups.append(("directory", backup_path, final_path))
+
+        for staged_path, final_path in zip(
+            staged_file_targets,
+            final_plan.file_targets,
+            strict=True,
+        ):
+            if os.path.lexists(os.fspath(final_path)):
+                raise RuntimeError(
+                    f"OpenLab final file target changed during package commit: {final_path}"
+                )
+            final_path.parent.mkdir(parents=True, exist_ok=True)
+            _atomic_replace(staged_path, final_path)
+            installed_targets.append(("file", final_path))
+        for staged_path, final_path in zip(
+            staged_directory_targets,
+            final_plan.directory_targets,
+            strict=True,
+        ):
+            if os.path.lexists(os.fspath(final_path)):
+                raise RuntimeError(
+                    f"OpenLab final directory target changed during package commit: {final_path}"
+                )
+            final_path.parent.mkdir(parents=True, exist_ok=True)
+            _atomic_replace(staged_path, final_path)
+            installed_targets.append(("directory", final_path))
+    except Exception as exc:
+        rollback_errors: list[str] = []
+        for kind, final_path in reversed(installed_targets):
+            try:
+                _remove_committed_hplc_target(
+                    kind,
+                    final_path,
+                    output_root=output_root,
+                )
+            except Exception as rollback_exc:
+                rollback_errors.append(f"remove {final_path}: {rollback_exc}")
+        for _kind, backup_path, final_path in reversed(moved_backups):
+            try:
+                if os.path.lexists(os.fspath(final_path)):
+                    raise RuntimeError(
+                        "unexpected target appeared before rollback restoration"
+                    )
+                final_path.parent.mkdir(parents=True, exist_ok=True)
+                _atomic_replace(backup_path, final_path)
+            except Exception as rollback_exc:
+                rollback_errors.append(f"restore {final_path}: {rollback_exc}")
+        if rollback_errors:
+            raise _HplcRollbackError(
+                "OpenLab package commit failed and rollback was incomplete; "
+                f"recovery files were preserved under {stage_root}. Details: "
+                + "; ".join(rollback_errors)
+            ) from exc
+        raise RuntimeError(
+            f"OpenLab package commit failed; the previous package was restored: {exc}"
+        ) from exc
+
+
+def _atomic_replace(source: Path, target: Path) -> None:
+    os.replace(source, target)
+
+
+def _remove_committed_hplc_target(
+    kind: str,
+    path: Path,
+    *,
+    output_root: Path,
+) -> None:
+    if kind == "file":
+        safe_path = _assert_safe_regular_file(path, output_root=output_root)
+        safe_path.unlink()
+        return
+    if kind != "directory":
+        raise ValueError(f"Unknown OpenLab package target kind: {kind}")
+    plan = plan_safe_owned_directory_removal(path, output_root=output_root)
+    for child in plan[1]:
+        _assert_safe_regular_file(child, output_root=output_root)
+    apply_safe_owned_directory_removal(plan, output_root=output_root)
+
+
+def _remove_safe_owned_tree(path: Path, *, output_root: Path) -> None:
+    if not os.path.lexists(os.fspath(path)):
+        return
+    plan = plan_safe_owned_directory_removal(path, output_root=output_root)
+    for child in plan[1]:
+        _assert_safe_regular_file(child, output_root=output_root)
+    apply_safe_owned_directory_removal(plan, output_root=output_root)
 
 
 def extract_hplc_openlab_dataset(input_root: Path, since: date) -> dict[str, Any]:
@@ -475,7 +1192,7 @@ def _build_injection_record(
         "raw_file": dx_path.name,
         "source_relative": _relative_text(dx_path, input_root),
         "source_size_bytes": dx_path.stat().st_size,
-        "source_sha256": _sha256(dx_path),
+        "source_sha256": file_sha256(dx_path),
         "acquisition_method": acquisition_method,
         "processing_method": context["processing_method"],
         "injection_volume_ul": setup_info.get("injection_volume_ul"),
@@ -717,12 +1434,12 @@ def _planned_workbook_paths(
     summary_workbook_path: Path,
     workbook_plan: dict[str, Any],
 ) -> list[Path]:
-    planned = [summary_workbook_path.resolve()]
+    planned = [lexical_absolute_path(summary_workbook_path)]
     for item in workbook_plan.get("batch_workbooks", []):
         relative_path = Path(str(item.get("relative_path") or ""))
         if not str(relative_path) or relative_path.is_absolute() or ".." in relative_path.parts:
             raise ValueError(f"Invalid planned batch workbook path: {relative_path}")
-        planned.append((output_root / relative_path).resolve())
+        planned.append(lexical_absolute_path(output_root / relative_path))
     return planned
 
 
@@ -731,19 +1448,22 @@ def _run_workbook_builder(
     project_root: Path,
     node_exe: Path,
     builder_workdir: Path,
+    builder_copy_path: Path,
     dataset_path: Path,
     workbook_path: Path,
     previews_dir: Path,
     verification_path: Path,
     log_path: Path,
 ) -> None:
+    builder_source = _validate_workbook_builder_inputs(project_root, node_exe)
     resolved_node = node_exe.resolve()
-    if not resolved_node.is_file():
-        raise FileNotFoundError(f"Node.js executable does not exist: {resolved_node}")
-    builder_source = project_root / "scripts" / "data_types" / "hplc_lc" / "build_openlab_workbook.mjs"
-    if not builder_source.is_file():
-        raise FileNotFoundError(f"OpenLab workbook builder is missing: {builder_source}")
-    builder_copy = builder_workdir / builder_source.name
+    builder_copy = ensure_safe_output_file_target(
+        builder_copy_path,
+        output_root=builder_workdir.parent,
+    )
+    if builder_copy.resolve() == builder_source.resolve():
+        raise ValueError("OpenLab workbook builder source and output copy must be different files")
+    builder_copy.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(builder_source, builder_copy)
     command = [
         str(resolved_node),
@@ -896,14 +1616,6 @@ def _resolve_acquisition_datetime(
         else:
             injection_time = injection_time.astimezone(manifest_time.tzinfo)
     return injection_time, "result_set_acaml.InjectionMetaData.InjectionAcqDateTime"
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _relative_text(path: Path, root: Path) -> str:

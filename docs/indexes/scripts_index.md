@@ -5,6 +5,7 @@
 | `scripts/README.md` | False | script_layout_index | keep | False |
 | `scripts/data_types/README.md` | False | script_layout_index | keep | False |
 | `scripts/data_types/hplc_lc/README.md` | False | script_layout_index | keep | False |
+| `scripts/data_types/hplc_lc/build_openlab_workbook.mjs` | True | hplc_lc_openlab_workbook_builder | keep | False |
 | `scripts/data_types/hplc_lc/plot_hplc_calibration_origin.ps1` | True | hplc_lc_origin_helper | keep | False |
 | `scripts/data_types/xrd/README.md` | False | script_layout_index | keep | False |
 | `scripts/data_types/xrd/plot_xrd_no_card_overlay_origin.py` | True | xrd_origin_helper | keep | False |

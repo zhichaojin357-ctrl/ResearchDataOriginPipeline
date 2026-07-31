@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from src.core.auto_queue import AutoQueueOptions, run_auto_queue
 from src.core.project import default_output_root, output_dir
 from src.core.process import ProcessOptions, run_process
@@ -13,6 +15,7 @@ from src.core.triage import TriageOptions, run_triage
 from src.core.origin_batch import OriginBatchOptions, run_origin_batch
 from src.core.metadata import file_hash
 from src.origin.adapter import build_origin_plot_job, export_plot
+from src.scanner.scanner import scan_raw_data
 
 
 def test_create_run_output_layout_creates_standard_dirs_and_manifest(tmp_path: Path):
@@ -126,6 +129,45 @@ def test_run_triage_can_route_reports_into_run_root(tmp_path: Path):
     assert (layout.reports / "triage_index.md").exists()
     assert not (tmp_path / "output" / "reports").exists()
     assert not (tmp_path / "output" / "review_dashboard").exists()
+
+
+def test_scan_triage_and_process_reject_output_inside_input_before_writing(tmp_path: Path):
+    project_root = tmp_path / "project"
+    source = project_root / "input" / "raw_data" / "XRD" / "sample.csv"
+    source.parent.mkdir(parents=True)
+    source.write_text("2theta,intensity\n10,1\n20,2\n", encoding="utf-8")
+    unsafe_output = source.parents[1] / "generated_output"
+
+    with pytest.raises(ValueError, match="overlaps protected input"):
+        scan_raw_data(project_root, source.parents[1], output_root=unsafe_output)
+    with pytest.raises(ValueError, match="overlaps protected input"):
+        run_triage(
+            project_root,
+            source.parents[1],
+            TriageOptions(output_root=unsafe_output),
+        )
+    with pytest.raises(ValueError, match="overlaps protected input"):
+        run_process(
+            project_root,
+            source.parents[1],
+            ProcessOptions(no_origin=True, output_root=unsafe_output),
+        )
+
+    assert source.read_text(encoding="utf-8").startswith("2theta,intensity")
+    assert not unsafe_output.exists()
+
+
+def test_scan_rejects_output_root_that_contains_external_input(tmp_path: Path):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    source = tmp_path / "external_raw" / "XRD" / "sample.csv"
+    source.parent.mkdir(parents=True)
+    source.write_text("2theta,intensity\n10,1\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="overlaps protected input"):
+        scan_raw_data(project_root, source.parents[1], output_root=tmp_path)
+
+    assert source.is_file()
 
 
 def test_process_auto_select_uses_same_output_root_for_triage_queue(tmp_path: Path):

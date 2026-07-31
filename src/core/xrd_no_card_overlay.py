@@ -3,17 +3,19 @@ from __future__ import annotations
 import csv
 import json
 import math
-import shutil
+import os
+import stat
 import subprocess
 import sys
-import time
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from src.core.metadata import file_hash
 from src.core.origin_runtime import copy_runtime_artifact
 from src.core.template_product_common import extract_xrd_raw_data_rows
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.core.project import ensure_output_path_separate_from_inputs
 from src.core.runtime_paths import create_run_output_layout, resolve_origin_reference_pattern, resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
 from src.core.xrd_helpers import interpolated_y as _interpolated_y
@@ -33,6 +35,7 @@ class XrdNoCardOverlayOptions:
     output_stem: str = "XRD_BOBXC1_X_no_card_overlay"
     reference_opju: Path | None = None
     reference_graph: str = "Graph4"
+    force: bool = False
 
 
 @dataclass(frozen=True)
@@ -52,6 +55,7 @@ class XrdNoCardOverlayArtifacts:
     figure_tif: Path
     preview_png: Path
     script_output_dir: Path
+    manifest: Path | None = None
 
 
 def discover_xrd_text_sources(input_dir: Path) -> tuple[Path, ...]:
@@ -128,27 +132,69 @@ def run_xrd_no_card_overlay(project_root: Path, options: XrdNoCardOverlayOptions
     input_paths = list(options.sources)
     if reference_opju is not None:
         input_paths.append(reference_opju)
+    ensure_output_path_separate_from_inputs(project_root, output_root, input_paths)
+    run_timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_root = _planned_run_root(output_root, run_timestamp, options.output_stem)
+    planned_artifacts = _xrd_no_card_artifacts(run_root, options.output_stem)
+    if options.with_origin:
+        origin_ok, origin_message = check_origin_available()
+        if not origin_ok:
+            raise RuntimeError(
+                "Origin is unavailable before XRD no-card output preflight: "
+                + origin_message
+            )
+        pre_existing_pids = _origin_process_ids()
+        if pre_existing_pids:
+            raise RuntimeError(
+                "Origin is already running before XRD no-card output "
+                "preflight; refusing to replace any existing product "
+                f"(PIDs: {', '.join(str(pid) for pid in pre_existing_pids)})."
+            )
+    _preflight_run_outputs(
+        planned_artifacts,
+        force=options.force,
+        run_root=run_root,
+        output_root=output_root,
+        apply_force=False,
+    )
+
+    # Read and hash every protected input before a force-enabled preflight is
+    # allowed to remove an old product. Output/input overlap is rejected above;
+    # the hashes additionally make the ordering explicit and fail closed if an
+    # input changes during the overwrite transaction.
+    table = build_xrd_no_card_overlay_table(options.sources, options.labels)
+    protected_input_hashes = tuple(
+        (path, file_hash(path))
+        for path in (*options.sources, *((reference_opju,) if reference_opju is not None else ()))
+    )
+    if options.force:
+        _preflight_run_outputs(
+            planned_artifacts,
+            force=True,
+            run_root=run_root,
+            output_root=output_root,
+            apply_force=True,
+        )
+        for path, digest in protected_input_hashes:
+            if not path.is_file() or file_hash(path) != digest:
+                raise RuntimeError(f"Protected XRD input changed during output overwrite preflight: {path}")
+
     layout = create_run_output_layout(
         project_root,
         scope=safe_name(options.output_stem),
         command="xrd-no-card-overlay",
         mode="with_origin" if options.with_origin else "no_origin",
         input_paths=input_paths,
-        timestamp=options.timestamp,
+        timestamp=run_timestamp,
         no_origin=not options.with_origin,
         dry_run=not options.with_origin,
         output_base=output_root / "runs",
     )
-    artifacts = XrdNoCardOverlayArtifacts(
-        processed_data=layout.processed_data / f"{safe_name(options.output_stem)}.csv",
-        metadata=layout.metadata / safe_name(options.output_stem) / "metadata.json",
-        report=layout.reports / "xrd_no_card_overlay_report.md",
-        origin_file=layout.origin_files / f"{safe_name(options.output_stem)}.opju",
-        figure_tif=layout.figures_tif / f"{safe_name(options.output_stem)}.tif",
-        preview_png=layout.figures_preview / f"{safe_name(options.output_stem)}.png",
-        script_output_dir=layout.logs / "xrd_no_card_script_output",
-    )
-    table = build_xrd_no_card_overlay_table(options.sources, options.labels)
+    if layout.root != run_root:
+        raise RuntimeError(
+            f"Planned XRD no-card run root did not match the created run root: {run_root} != {layout.root}"
+        )
+    artifacts = _xrd_no_card_artifacts(layout.root, options.output_stem)
     _write_csv(artifacts.processed_data, table.headers, table.rows)
 
     export_status: dict[str, object] = {"ok": False, "message": "Origin export skipped by --dry-run/--no-origin."}
@@ -181,6 +227,21 @@ def _export_with_existing_script(
         write_origin_error(project_root, f"xrd-no-card-overlay: {message}", output_root=artifacts.origin_file.parents[1])
         return {"ok": False, "message": f"Origin unavailable: {message}"}
     pre_existing_origin_pids = set(_origin_process_ids())
+    if pre_existing_origin_pids:
+        message = (
+            "Origin is already running; close every Origin session before "
+            "running xrd-no-card-overlay with Origin."
+        )
+        write_origin_error(
+            project_root,
+            f"xrd-no-card-overlay: {message}",
+            output_root=artifacts.origin_file.parents[1],
+        )
+        return {
+            "ok": False,
+            "message": message,
+            "pre_existing_origin_pids": sorted(pre_existing_origin_pids),
+        }
 
     script = project_root / "scripts" / "data_types" / "xrd" / "plot_xrd_no_card_overlay_origin.py"
     if not script.is_file():
@@ -188,9 +249,20 @@ def _export_with_existing_script(
         write_origin_error(project_root, f"xrd-no-card-overlay: {message}", output_root=artifacts.origin_file.parents[1])
         return {"ok": False, "message": scrub_output_text(message, project_root=project_root, output_root=artifacts.origin_file.parents[1])}
 
-    _remove_stale_outputs(artifacts)
-    if artifacts.script_output_dir.exists():
-        shutil.rmtree(artifacts.script_output_dir)
+    run_root = artifacts.origin_file.parents[1]
+    _assert_safe_output_target(run_root, artifacts.script_output_dir)
+    if _path_lexists(artifacts.script_output_dir):
+        if not artifacts.script_output_dir.is_dir():
+            return {
+                "ok": False,
+                "message": "XRD no-card script staging target was not a real directory.",
+            }
+        if any(artifacts.script_output_dir.iterdir()):
+            return {
+                "ok": False,
+                "message": "XRD no-card script staging directory was not empty after output preflight.",
+            }
+        artifacts.script_output_dir.rmdir()
     artifacts.script_output_dir.mkdir(parents=True, exist_ok=True)
     command = [
         sys.executable,
@@ -212,16 +284,29 @@ def _export_with_existing_script(
     ]
     if reference_opju is not None:
         command[command.index("--reference-graph") : command.index("--reference-graph")] = ["--reference-opju", str(reference_opju)]
+    if options.force:
+        command.append("--force")
     completed = subprocess.run(command, cwd=project_root, text=True, capture_output=True, timeout=900)
-    if completed.returncode and _origin_process_ids(pre_existing_origin_pids):
-        _terminate_task_origin_processes(pre_existing_origin_pids)
-        time.sleep(3)
-        completed = subprocess.run(command, cwd=project_root, text=True, capture_output=True, timeout=900)
     if completed.returncode:
         message = (completed.stderr or completed.stdout or "XRD no-card Origin script failed").strip()
-        _terminate_task_origin_processes(pre_existing_origin_pids)
         write_origin_error(project_root, f"xrd-no-card-overlay: {message}", output_root=artifacts.origin_file.parents[1])
         return {"ok": False, "message": scrub_output_text(message, project_root=project_root, output_root=artifacts.origin_file.parents[1])}
+    remaining_origin_pids = _origin_process_ids()
+    if remaining_origin_pids:
+        message = (
+            "The XRD no-card helper returned but Origin is still running; "
+            "the process was not terminated automatically."
+        )
+        write_origin_error(
+            project_root,
+            f"xrd-no-card-overlay: {message}",
+            output_root=artifacts.origin_file.parents[1],
+        )
+        return {
+            "ok": False,
+            "message": message,
+            "remaining_origin_pids": remaining_origin_pids,
+        }
 
     produced = {
         "origin_file": artifacts.script_output_dir / f"{safe_name(options.output_stem)}.opju",
@@ -233,11 +318,14 @@ def _export_with_existing_script(
         message = "XRD no-card Origin script missing required artifacts: " + ", ".join(missing)
         write_origin_error(project_root, f"xrd-no-card-overlay: {message}", output_root=artifacts.origin_file.parents[1])
         return {"ok": False, "message": message}
+    for path in produced.values():
+        _assert_safe_output_target(artifacts.script_output_dir, path)
+    for path in (artifacts.origin_file, artifacts.figure_tif, artifacts.preview_png):
+        _assert_safe_output_target(run_root, path)
     copy_runtime_artifact(produced["origin_file"], artifacts.origin_file)
     copy_runtime_artifact(produced["figure_tif"], artifacts.figure_tif)
     copy_runtime_artifact(produced["preview_png"], artifacts.preview_png)
-    _terminate_task_origin_processes(pre_existing_origin_pids)
-    shutil.rmtree(artifacts.script_output_dir, ignore_errors=True)
+    _clear_owned_directory(artifacts.script_output_dir, owned_root=run_root)
     write_origin_success(project_root, output_root=artifacts.origin_file.parents[1])
     return {
         "ok": True,
@@ -341,16 +429,18 @@ def _resolve_reference_opju(project_root: Path, reference_opju: Path | None) -> 
         path = reference_opju if reference_opju.is_absolute() else project_root / reference_opju
         if not path.exists():
             raise FileNotFoundError(f"Explicit XRD no-card reference OPJU does not exist: {reference_opju}")
-        return path
+        return path.resolve()
     pattern = resolve_origin_reference_pattern(project_root)
     path = Path(pattern)
+    if not path.is_absolute():
+        path = project_root / path
     if "*" not in pattern and "?" not in pattern:
-        return path if path.exists() else None
+        return path.resolve() if path.exists() else None
     parent = path.parent
     if not parent.exists():
         return None
     candidates = sorted(parent.glob(path.name), key=lambda item: item.stat().st_mtime, reverse=True)
-    return candidates[0] if candidates else None
+    return candidates[0].resolve() if candidates else None
 
 
 def _numeric_xy_points(rows: list[list[float]]) -> list[tuple[float, float]]:
@@ -395,10 +485,191 @@ def _write_csv(path: Path, headers: list[str], rows: list[list[float]]) -> None:
         writer.writerows(rows)
 
 
-def _remove_stale_outputs(artifacts: XrdNoCardOverlayArtifacts) -> None:
-    for path in (artifacts.origin_file, artifacts.figure_tif, artifacts.preview_png):
-        if path.exists():
-            path.unlink()
+def _planned_run_root(output_root: Path, timestamp: str, output_stem: str) -> Path:
+    timestamp_text = str(timestamp).strip()
+    if (
+        not timestamp_text
+        or timestamp_text in {".", ".."}
+        or "/" in timestamp_text
+        or "\\" in timestamp_text
+    ):
+        raise ValueError(f"XRD no-card timestamp must be one path-safe component: {timestamp!r}")
+    normalized_scope = safe_name(output_stem).casefold()
+    return output_root / "runs" / f"{timestamp_text}_{normalized_scope}"
+
+
+def _xrd_no_card_artifacts(run_root: Path, output_stem: str) -> XrdNoCardOverlayArtifacts:
+    stem = safe_name(output_stem)
+    return XrdNoCardOverlayArtifacts(
+        processed_data=run_root / "processed_data" / f"{stem}.csv",
+        metadata=run_root / "metadata" / stem / "metadata.json",
+        report=run_root / "reports" / "xrd_no_card_overlay_report.md",
+        origin_file=run_root / "origin_files" / f"{stem}.opju",
+        figure_tif=run_root / "figures_tif" / f"{stem}.tif",
+        preview_png=run_root / "figures_preview" / f"{stem}.png",
+        script_output_dir=run_root / "logs" / "xrd_no_card_script_output",
+        manifest=run_root / "run_manifest.json",
+    )
+
+
+def _preflight_run_outputs(
+    artifacts: XrdNoCardOverlayArtifacts,
+    *,
+    force: bool,
+    run_root: Path | None = None,
+    output_root: Path | None = None,
+    apply_force: bool = True,
+) -> None:
+    explicit_run_root = run_root is not None
+    targets = _unique_paths(
+        (
+            artifacts.processed_data,
+            artifacts.metadata,
+            artifacts.report,
+            artifacts.origin_file,
+            artifacts.figure_tif,
+            artifacts.preview_png,
+            *((artifacts.manifest,) if artifacts.manifest is not None else ()),
+        )
+    )
+    owned_root = run_root or _common_parent(targets)
+    allowed_root = output_root or owned_root
+    _assert_safe_output_target(allowed_root, owned_root)
+    for target in (*targets, artifacts.script_output_dir):
+        _assert_safe_output_target(owned_root, target)
+
+    existing_targets = [path for path in targets if _path_lexists(path)]
+    directories = [path for path in existing_targets if path.is_dir()]
+    if directories:
+        rendered = ", ".join(str(path) for path in directories[:8])
+        raise IsADirectoryError(f"Planned XRD no-card file output collides with a directory: {rendered}")
+
+    stage_exists = _path_lexists(artifacts.script_output_dir)
+    if stage_exists:
+        if not artifacts.script_output_dir.is_dir():
+            raise NotADirectoryError(
+                f"Planned XRD no-card staging directory collides with a file: {artifacts.script_output_dir}"
+            )
+        _scan_owned_directory(artifacts.script_output_dir, owned_root=owned_root)
+
+    run_root_collision = explicit_run_root and _path_lexists(owned_root)
+    conflicts = list(existing_targets)
+    if stage_exists:
+        conflicts.append(artifacts.script_output_dir)
+    if run_root_collision and owned_root not in conflicts:
+        conflicts.append(owned_root)
+    if conflicts and not force:
+        names = ", ".join(path.name for path in conflicts[:8])
+        raise FileExistsError(
+            f"XRD no-card output target(s) already exist: {names}; rerun with --force."
+        )
+
+    if not (force and apply_force):
+        return
+    # Every target and the complete owned staging tree were validated above.
+    # Delete only named product files and that one task-owned staging directory;
+    # never resolve a leaf before unlinking and never recursively remove run_root.
+    for path in existing_targets:
+        _assert_safe_output_target(owned_root, path)
+        if path.is_dir():
+            raise IsADirectoryError(f"Refusing to unlink XRD no-card directory as a file: {path}")
+        path.unlink()
+    if stage_exists:
+        _clear_owned_directory(artifacts.script_output_dir, owned_root=owned_root)
+
+
+def _unique_paths(paths: tuple[Path, ...]) -> tuple[Path, ...]:
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for path in paths:
+        key = os.path.normcase(os.path.abspath(os.fspath(path)))
+        if key not in seen:
+            seen.add(key)
+            unique.append(path)
+    return tuple(unique)
+
+
+def _common_parent(paths: tuple[Path, ...]) -> Path:
+    if not paths:
+        raise ValueError("At least one XRD no-card output target is required.")
+    return Path(os.path.commonpath([os.path.abspath(os.fspath(path.parent)) for path in paths]))
+
+
+def _path_lexists(path: Path) -> bool:
+    return os.path.lexists(os.fspath(path))
+
+
+def _is_reparse_point(path: Path) -> bool:
+    if path.is_symlink():
+        return True
+    is_junction = getattr(path, "is_junction", None)
+    if callable(is_junction) and is_junction():
+        return True
+    if not _path_lexists(path):
+        return False
+    try:
+        attributes = getattr(path.lstat(), "st_file_attributes", 0)
+    except OSError:
+        return True
+    return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0))
+
+
+def _assert_safe_output_target(owned_root: Path, target: Path) -> None:
+    root = Path(os.path.abspath(os.fspath(owned_root)))
+    candidate = Path(os.path.abspath(os.fspath(target)))
+    try:
+        relative = candidate.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"Planned XRD no-card output escapes its owned root: {target}") from exc
+
+    current = root
+    chain = [root]
+    for part in relative.parts:
+        current = current / part
+        chain.append(current)
+    for index, path in enumerate(chain):
+        if not _path_lexists(path):
+            continue
+        if _is_reparse_point(path):
+            raise RuntimeError(f"Refusing XRD no-card output through a symlink/junction/reparse point: {path}")
+        if index < len(chain) - 1 and not path.is_dir():
+            raise NotADirectoryError(f"XRD no-card output parent is not a directory: {path}")
+
+
+def _scan_owned_directory(directory: Path, *, owned_root: Path) -> tuple[list[Path], list[Path]]:
+    _assert_safe_output_target(owned_root, directory)
+    if not directory.is_dir():
+        raise NotADirectoryError(f"Owned XRD no-card staging path is not a directory: {directory}")
+    files: list[Path] = []
+    directories: list[Path] = []
+
+    def visit(parent: Path) -> None:
+        for child in parent.iterdir():
+            _assert_safe_output_target(owned_root, child)
+            if child.is_dir():
+                visit(child)
+                directories.append(child)
+            else:
+                files.append(child)
+
+    visit(directory)
+    return files, directories
+
+
+def _clear_owned_directory(directory: Path, *, owned_root: Path) -> None:
+    files, directories = _scan_owned_directory(directory, owned_root=owned_root)
+    for path in files:
+        _assert_safe_output_target(owned_root, path)
+        if path.is_dir():
+            raise IsADirectoryError(f"Owned XRD no-card staging file changed into a directory: {path}")
+        path.unlink()
+    for path in directories:
+        _assert_safe_output_target(owned_root, path)
+        if not path.is_dir():
+            raise NotADirectoryError(f"Owned XRD no-card staging directory changed type: {path}")
+        path.rmdir()
+    _assert_safe_output_target(owned_root, directory)
+    directory.rmdir()
 
 
 def _origin_process_ids(exclude: set[int] | None = None) -> list[int]:
@@ -414,8 +685,16 @@ def _origin_process_ids(exclude: set[int] | None = None) -> list[int]:
             capture_output=True,
             timeout=10,
         )
-    except Exception:
-        return []
+    except Exception as exc:
+        raise RuntimeError(
+            "Could not inspect existing Origin processes safely: "
+            f"{type(exc).__name__}: {exc}"
+        ) from exc
+    if completed.returncode:
+        details = (completed.stderr or completed.stdout or "PowerShell query failed").strip()
+        raise RuntimeError(
+            "Could not inspect existing Origin processes safely: " + details
+        )
     excluded = exclude or set()
     pids: list[int] = []
     for line in completed.stdout.splitlines():

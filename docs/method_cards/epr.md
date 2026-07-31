@@ -4,6 +4,7 @@
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
 - Exported EPR/ESR spectra with magnetic field and intensity columns.
 - JEOL JES-FA/JES-X3 `cAcqu` raw files with no extension when the binary header is verified.
+- Bruker/native `.dta` and generic `.spc` files are inventory/manual-review inputs only until a format-specific reader is implemented; the table processor must not guess-decode them.
 
 ## Automatic Recognition Signals
 - Folder/name keywords: `EPR`, `ESR`, `spin trap`.
@@ -22,9 +23,14 @@
 - Only enable this path when the file header identifies a JEOL JES-FA/JES-X3 `cAcqu` file.
 - Read CH1 from offset 9500 as little-endian float32 values.
 - For 65536-point acquisitions, export 4096 points by averaging each consecutive block of 16 CH1 values.
-- Use only two columns after decode: `magnetic field` and `intensity`.
+- Use only two columns after decode: unit-qualified `magnetic field <G|mT>` and `intensity`.
 - Standalone project export command writes data-only `.xlsx` workbooks with two numeric columns and no header row:
   `python run.py jeol-epr-decode --out epr_jeol_decoded <raw_epr_folder>`.
+- Each successful standalone XLSX has a sibling run-owned `metadata.json` containing source/output hashes, the JEOL header, point aggregation, unit evidence, and manual-check policy.
+- `epr-overlay` accepts `--config` and `--output-root`; it accepts a unit from decoder metadata only after the
+  metadata status, processor identity, XLSX hash, point count, and raw source hashes all match the current files.
+- A formal overlay run can be started with
+  `python run.py epr-overlay --reference-dir <decoded_excel_dir> --output-root <external_output_root> --with-origin`.
 - Optional reference comparison uses `--reference-dir <known_excel_dir> --report-xlsx <compare.xlsx>`.
 - Do not infer radical identity from decoded spectra.
 
@@ -61,7 +67,8 @@
 
 ## the current automated pipeline Implementation Status
 - Supported in the current automated pipeline.
-- Planned processor: `epr_processor`.
+- Registered processor: `epr_processor`.
+- The dedicated JEOL decoder and verified overlay workflow are formal `run.py` subcommands.
 
 ## Risk Level
 - High. Plotting is low risk, but radical assignment is forbidden automatically.

@@ -103,6 +103,10 @@ class FakeOriginApp:
 
     def Execute(self, script: str):
         self.commands.append(script)
+        if script == "doc -rn; doc -s;":
+            self.ltstrs["%X"] = ""
+            self.ltstrs["%G"] = "UNTITLED"
+            return True
         if "doc -e W" in script:
             return True
         if "expGraph" in script:
@@ -205,6 +209,92 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertEqual(ops.get_labtalk_variable("str$").payload["value"], "hello")
         self.assertTrue(ops.close().ok)
         self.assertTrue(app.closed)
+        self.assertIsNone(ops.app)
+        self.assertTrue(ops.close().ok)
+
+    def test_reset_project_identity_for_export_executes_and_verifies_exact_state(self):
+        app = FakeOriginApp()
+        app.ltstrs["%X"] = "D:/private/project/"
+        app.ltstrs["%G"] = "secret.opju"
+        ops = OriginOperations(app)
+
+        result = ops.reset_project_identity_for_export()
+
+        self.assertTrue(result.ok)
+        self.assertEqual(app.commands[-1], "doc -rn; doc -s;")
+        self.assertEqual(
+            result.payload,
+            {
+                "project_path_empty": True,
+                "project_name_untitled": True,
+            },
+        )
+
+    def test_reset_project_identity_for_export_tolerates_origin_case_and_whitespace(self):
+        class TolerantIdentityApp(FakeOriginApp):
+            def Execute(self, script: str):
+                result = super().Execute(script)
+                if script == "doc -rn; doc -s;":
+                    self.ltstrs["%X"] = " \t "
+                    self.ltstrs["%G"] = "  untitled  "
+                return result
+
+        result = OriginOperations(TolerantIdentityApp()).reset_project_identity_for_export()
+
+        self.assertTrue(result.ok)
+        self.assertEqual(
+            result.payload,
+            {
+                "project_path_empty": True,
+                "project_name_untitled": True,
+            },
+        )
+
+    def test_reset_project_identity_for_export_fails_closed_without_identity_leak(self):
+        secret_path = "D:/private/project/"
+        secret_name = "secret.opju"
+
+        class IdentityNotResetApp(FakeOriginApp):
+            def Execute(self, script: str):
+                self.commands.append(script)
+                if script == "doc -rn; doc -s;":
+                    return True
+                return super().Execute(script)
+
+        app = IdentityNotResetApp()
+        app.ltstrs["%X"] = secret_path
+        app.ltstrs["%G"] = secret_name
+        result = OriginOperations(app).reset_project_identity_for_export()
+
+        self.assertFalse(result.ok)
+        rendered = f"{result.message} {result.payload}"
+        self.assertNotIn(secret_path, rendered)
+        self.assertNotIn(secret_name, rendered)
+        self.assertEqual(
+            result.payload,
+            {
+                "project_path_empty": False,
+                "project_name_untitled": False,
+            },
+        )
+
+    def test_reset_project_identity_for_export_rejects_command_failure_without_readback(self):
+        class ResetFailureApp(FakeOriginApp):
+            def Execute(self, script: str):
+                self.commands.append(script)
+                if script == "doc -rn; doc -s;":
+                    return False
+                return super().Execute(script)
+
+            def LTStr(self, name: str):
+                raise AssertionError(f"identity must not be read after failed reset: {name}")
+
+        app = ResetFailureApp()
+        result = OriginOperations(app).reset_project_identity_for_export()
+
+        self.assertFalse(result.ok)
+        self.assertEqual(app.commands, ["doc -rn; doc -s;"])
+        self.assertEqual(result.payload, {})
 
     def test_worksheet_operations_and_csv_import(self):
         app = FakeOriginApp()
@@ -414,9 +504,130 @@ class OriginOperationsSmokeTest(unittest.TestCase):
             self.assertTrue(exported.ok)
             self.assertTrue(Path(exported.payload["file_path"]).is_file())
             self.assertEqual(Path(exported.payload["file_path"]).suffix, ".tif")
+            self.assertIn("tr2.TIF.dotsperinch:=600", "\n".join(app.commands))
+            self.assertIn("sysopts:=0", "\n".join(app.commands))
+
+            png = ops.export_graph("Fig1", Path(tmpdir) / "preview", "png", dpi=300, timeout_seconds=0.1)
+            self.assertTrue(png.ok)
+            self.assertTrue(Path(png.payload["file_path"]).is_file())
+            self.assertEqual(Path(png.payload["file_path"]).suffix, ".png")
+            self.assertIn("tr2.PNG.dotsperinch:=300", "\n".join(app.commands))
+
             all_exported = ops.export_all_graphs(tmpdir, "tif", dpi=600)
             self.assertTrue(all_exported.ok)
             self.assertEqual(len(all_exported.payload["exported"]), 1)
+
+    def test_export_graph_rejects_invalid_dpi_before_running_origin_export(self):
+        invalid_values = (True, 0, -1, 71, 1201, 600.0, "600")
+        for dpi in invalid_values:
+            with self.subTest(dpi=dpi):
+                app = FakeOriginApp()
+                ops = OriginOperations(app)
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    result = ops.export_graph(
+                        "Fig1",
+                        Path(tmpdir) / "figure.tif",
+                        "tif",
+                        dpi=dpi,  # type: ignore[arg-type]
+                        timeout_seconds=0.1,
+                    )
+
+                self.assertFalse(result.ok)
+                self.assertIn("DPI", result.message)
+                self.assertNotIn("expGraph", "\n".join(app.commands))
+
+    def test_export_graph_activation_failure_preserves_existing_artifact(self):
+        class MissingGraphApp(FakeOriginApp):
+            def Execute(self, script: str):
+                self.commands.append(script)
+                if script.startswith('win -a "MissingGraph"'):
+                    return False
+                return True
+
+        app = MissingGraphApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / "existing.tif"
+            target.write_bytes(b"previous validated figure")
+
+            result = ops.export_graph(
+                "MissingGraph",
+                target,
+                "tif",
+                dpi=600,
+            )
+
+            self.assertFalse(result.ok)
+            self.assertEqual(target.read_bytes(), b"previous validated figure")
+            self.assertNotIn("expGraph", "\n".join(app.commands))
+
+    def test_export_graph_uses_explicit_pixel_width_with_raster_dpi(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = ops.export_graph(
+                "Fig1",
+                Path(tmpdir) / "figure.tif",
+                "tif",
+                dpi=600,
+                timeout_seconds=0.1,
+                pixel_width=3859,
+            )
+
+        self.assertTrue(result.ok)
+        command = next(value for value in app.commands if "expGraph" in value)
+        self.assertIn("sysopts:=0", command)
+        self.assertIn("tr.Margin:=2", command)
+        self.assertIn("tr1.Unit:=2", command)
+        self.assertIn("tr1.Width:=3859", command)
+        self.assertIn("tr2.TIF.dotsperinch:=600", command)
+
+    def test_export_graph_rejects_invalid_pixel_width(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = ops.export_graph(
+                "Fig1",
+                Path(tmpdir) / "figure.tif",
+                "tif",
+                dpi=600,
+                pixel_width=0,
+            )
+
+        self.assertFalse(result.ok)
+        self.assertIn("pixel width", result.message)
+        self.assertNotIn("expGraph", "\n".join(app.commands))
+
+    def test_export_graph_applies_dpi_to_other_raster_formats_only(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for suffix, export_format, dpi in (("bmp", "bmp", 150), ("jpg", "jpeg", 1200)):
+                result = ops.export_graph(
+                    "Fig1",
+                    Path(tmpdir) / f"figure.{suffix}",
+                    export_format,
+                    dpi=dpi,
+                    timeout_seconds=0.1,
+                )
+                self.assertTrue(result.ok)
+
+            vector = ops.export_graph(
+                "Fig1",
+                Path(tmpdir) / "figure.svg",
+                "svg",
+                dpi=600,
+                timeout_seconds=0.1,
+            )
+            self.assertTrue(vector.ok)
+
+        export_commands = [command for command in app.commands if "expGraph" in command]
+        self.assertIn("tr2.BMP.dotsperinch:=150", export_commands[0])
+        self.assertIn("tr2.JPG.dotsperinch:=1200", export_commands[1])
+        self.assertIn("sysopts:=0", export_commands[0])
+        self.assertIn("sysopts:=0", export_commands[1])
+        self.assertNotIn("dotsperinch", export_commands[2])
+        self.assertNotIn("sysopts:=0", export_commands[2])
 
     def test_save_graph_template_uses_labtalk_save_t(self):
         app = FakeOriginApp()
@@ -495,11 +706,75 @@ class OriginOperationsSmokeTest(unittest.TestCase):
 
         fake_client = FakeClient()
 
-        with mock.patch.dict("sys.modules", {"win32com.client": fake_client, "win32com": type("M", (), {"client": fake_client})()}):
+        with (
+            mock.patch("src.origin.operations.origin_process_ids", return_value=set()),
+            mock.patch.dict(
+                "sys.modules",
+                {
+                    "win32com.client": fake_client,
+                    "win32com": type("M", (), {"client": fake_client})(),
+                },
+            ),
+        ):
             ops = connect_origin(isolated=True)
 
         self.assertIsInstance(ops, OriginOperations)
         self.assertEqual(fake_client.created, [("DispatchEx", "Origin.Application")])
+
+    def test_connect_origin_refuses_to_attach_when_origin_is_already_running(self):
+        with mock.patch(
+            "src.origin.operations.origin_process_ids",
+            return_value={8123, 8456},
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                r"refusing to attach.*8123, 8456",
+            ):
+                connect_origin(isolated=True)
+
+    def test_origin_process_ids_fails_closed_when_inspection_fails(self):
+        completed = type(
+            "Completed",
+            (),
+            {
+                "returncode": 1,
+                "stderr": "inspection unavailable",
+                "stdout": "",
+            },
+        )()
+        with mock.patch(
+            "src.origin.operations.subprocess.run",
+            return_value=completed,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Could not inspect existing Origin processes safely",
+            ):
+                from src.origin.operations import origin_process_ids
+
+                origin_process_ids()
+
+    def test_origin_process_ids_fails_closed_on_unparseable_output(self):
+        completed = type(
+            "Completed",
+            (),
+            {
+                "returncode": 0,
+                "stderr": "",
+                "stdout": "8123\nnot-a-pid\n",
+            },
+        )()
+        with mock.patch(
+            "src.origin.operations.subprocess.run",
+            return_value=completed,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "unexpected process identifier",
+            ):
+                from src.origin.operations import origin_process_ids
+
+                origin_process_ids()
 
 
 if __name__ == "__main__":

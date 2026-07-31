@@ -253,6 +253,7 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
             "failures": failures,
             "warnings": warnings,
             "ready": failures == 0,
+            "release_ready": failures == 0 and warnings == 0,
         },
         "checks": checks,
     }
@@ -291,7 +292,8 @@ def _readiness_markdown(report: dict) -> str:
         f"- Checks: {summary['checks']}",
         f"- Failures: {summary['failures']}",
         f"- Warnings: {summary['warnings']}",
-        f"- Ready: {str(summary['ready']).lower()}",
+        f"- Operationally ready (warnings allowed): {str(summary['ready']).lower()}",
+        f"- Release ready (no failures or warnings): {str(summary['release_ready']).lower()}",
         "",
         "| check | status | detail |",
         "|---|---|---|",

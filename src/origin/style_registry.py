@@ -170,8 +170,13 @@ def validate_origin_style_asset_integrity(
                 continue
             resolved_files[field] = resolved
 
-        if "format_theme" not in resolved_files and "graph_template" not in resolved_files:
-            item_failures.append("no readable format_theme or graph_template")
+        if "format_theme" not in resolved_files:
+            if "graph_template" in resolved_files:
+                item_failures.append(
+                    "no readable format_theme; graph_template is harvest-only and cannot satisfy runtime integrity"
+                )
+            else:
+                item_failures.append("no readable format_theme")
         for field in ("style_snapshot", "data_snapshot"):
             path = resolved_files.get(field)
             if path is not None:
@@ -352,15 +357,9 @@ def resolve_origin_style_asset(
         format_theme = _resolve_local_manifest_path(base, raw.get("format_theme"))
         graph_template = _resolve_local_manifest_path(base, raw.get("graph_template"))
         if format_theme is None or not format_theme.is_file():
-            if graph_template is None or not graph_template.is_file():
-                continue
-            format_theme = graph_template
-        elif graph_template is not None and not graph_template.is_file():
-            graph_template = None
+            continue
         if graph_template is not None and not graph_template.is_file():
             graph_template = None
-        if format_theme is None or not format_theme.is_file():
-            continue
         template_opju = _resolve_local_manifest_path(base, raw.get("template_opju") or raw.get("source_opju"))
         if template_opju is not None and not template_opju.is_file():
             template_opju = None

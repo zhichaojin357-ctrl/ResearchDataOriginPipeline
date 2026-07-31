@@ -28,7 +28,7 @@
     "deferred_reason",
     "special_handling"
   ],
-  "pipeline_supported_count": 14,
+  "pipeline_supported_count": 15,
   "pipeline_supported": [
     "photocurrent",
     "BET",
@@ -43,6 +43,7 @@
     "Raman",
     "Mott-Schottky",
     "HPLC/LC exported data",
+    "HPLC/LC OpenLab raw data",
     "EIS"
   ],
   "entries": [

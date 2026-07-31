@@ -2,7 +2,10 @@
 
 import csv
 import json
+import os
+import stat
 from pathlib import Path
+from typing import Iterator
 
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.output_sanitizer import render_output_path
@@ -66,8 +69,15 @@ def validate(project_root: Path) -> int:
     lines.append(f"- Processor registry entries: {len(registry['entries'])}")
     supported_entries = [entry for entry in registry["entries"] if entry["supported_in_pipeline"]]
     lines.append(f"- Pipeline-supported entries: {len(supported_entries)}")
-    if len(supported_entries) != 15:
-        failures.append("supported registry count is not 15")
+    registry_summary_failures = _processor_registry_summary_failures(registry)
+    lines.append(
+        f"- Processor registry supported summary: "
+        f"{'pass' if not registry_summary_failures else 'fail'}"
+    )
+    if registry_summary_failures:
+        for failure in registry_summary_failures:
+            lines.append(f"  - {failure}")
+        failures.append("processor registry supported summary drift")
     required_registry_fields = set(registry.get("required_fields", [])) | {
         "folder_name",
         "inferred_data_type",
@@ -127,6 +137,7 @@ def validate(project_root: Path) -> int:
 
     presentation_artifacts = []
     scan_roots = [project_root]
+    allowed_source_roots = _allowed_source_artifact_roots(project_root)
     if output_root.resolve() != project_root.resolve() and not _is_under_or_equal(output_root.resolve(), project_root.resolve()):
         scan_roots.append(output_root)
     for scan_root in scan_roots:
@@ -134,9 +145,8 @@ def validate(project_root: Path) -> int:
             continue
         presentation_artifacts.extend(
             path
-            for path in scan_root.rglob("*")
-            if path.is_file()
-            and not _is_allowed_source_artifact(project_root, path)
+            for path in _iter_files_without_link_descent(scan_root)
+            if not _is_allowed_source_artifact(path, allowed_source_roots)
             and (
                 path.suffix.lower() in {".ppt", ".pptx"}
                 or path.name == "slide_plan.json"
@@ -274,7 +284,154 @@ def validate(project_root: Path) -> int:
     return 1 if failures else 0
 
 
-def _is_allowed_source_artifact(project_root: Path, path: Path) -> bool:
+def _iter_files_without_link_descent(root: Path) -> Iterator[Path]:
+    """Yield files below ``root`` without traversing links or Windows junctions.
+
+    Validation may inspect an external output tree that contains package-manager
+    junctions (for example ``node_modules``). Following those links makes the
+    project-wide presentation-artifact check unbounded and can scan unrelated
+    caches outside the configured output root.
+    """
+
+    for current, directory_names, file_names in os.walk(
+        root,
+        topdown=True,
+        followlinks=False,
+    ):
+        current_path = Path(current)
+        directory_names[:] = [
+            name
+            for name in directory_names
+            if not _is_link_or_junction(current_path / name)
+        ]
+        for name in file_names:
+            yield current_path / name
+
+
+def _is_link_or_junction(path: Path) -> bool:
+    try:
+        if path.is_symlink():
+            return True
+        is_junction = getattr(path, "is_junction", None)
+        if is_junction and is_junction():
+            return True
+        # Path.is_junction() is only available in Python 3.12+, while the
+        # project supports Python 3.10. Inspect the Windows reparse attribute
+        # directly so older runtimes also prune directory junctions.
+        attributes = int(getattr(os.lstat(path), "st_file_attributes", 0))
+        return bool(attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+    except OSError:
+        # A directory that cannot be inspected safely is not a valid traversal
+        # target for a validation scan.
+        return True
+
+
+def _processor_registry_summary_failures(registry: dict) -> list[str]:
+    """Return explicit diagnostics when the supported summary drifts from entries."""
+
+    failures: list[str] = []
+    supported_entries = [
+        entry
+        for entry in registry.get("entries", [])
+        if isinstance(entry, dict) and entry.get("supported_in_pipeline") is True
+    ]
+    supported_entry_types: list[str] = []
+    for index, entry in enumerate(supported_entries):
+        data_type = entry.get("inferred_data_type")
+        if not isinstance(data_type, str) or not data_type.strip():
+            failures.append(
+                f"supported entry at entries[{index}] has no valid inferred_data_type"
+            )
+            continue
+        supported_entry_types.append(data_type)
+
+    declared_count = registry.get("pipeline_supported_count")
+    actual_entry_count = len(supported_entries)
+    if (
+        not isinstance(declared_count, int)
+        or isinstance(declared_count, bool)
+        or declared_count != actual_entry_count
+    ):
+        failures.append(
+            f"pipeline_supported_count={declared_count!r} but entries declare "
+            f"{actual_entry_count} supported types"
+        )
+
+    declared_types = registry.get("pipeline_supported")
+    if not isinstance(declared_types, list):
+        failures.append(
+            f"pipeline_supported must be a list; got {type(declared_types).__name__}"
+        )
+        return failures
+
+    invalid_declared = [
+        repr(data_type)
+        for data_type in declared_types
+        if not isinstance(data_type, str) or not data_type.strip()
+    ]
+    if invalid_declared:
+        failures.append(
+            "pipeline_supported contains invalid type names: "
+            + ", ".join(invalid_declared)
+        )
+
+    valid_declared_types = [
+        data_type
+        for data_type in declared_types
+        if isinstance(data_type, str) and data_type.strip()
+    ]
+    if (
+        isinstance(declared_count, int)
+        and not isinstance(declared_count, bool)
+        and declared_count != len(valid_declared_types)
+    ):
+        failures.append(
+            f"pipeline_supported_count={declared_count} but pipeline_supported "
+            f"declares {len(valid_declared_types)} types"
+        )
+    duplicate_declared = sorted(
+        {
+            data_type
+            for data_type in valid_declared_types
+            if valid_declared_types.count(data_type) > 1
+        }
+    )
+    if duplicate_declared:
+        failures.append(
+            "pipeline_supported contains duplicate types: "
+            + ", ".join(duplicate_declared)
+        )
+
+    duplicate_entries = sorted(
+        {
+            data_type
+            for data_type in supported_entry_types
+            if supported_entry_types.count(data_type) > 1
+        }
+    )
+    if duplicate_entries:
+        failures.append(
+            "supported entries contain duplicate inferred_data_type values: "
+            + ", ".join(duplicate_entries)
+        )
+
+    declared_type_set = set(valid_declared_types)
+    supported_entry_type_set = set(supported_entry_types)
+    missing = sorted(supported_entry_type_set - declared_type_set)
+    unexpected = sorted(declared_type_set - supported_entry_type_set)
+    if missing:
+        failures.append(
+            "pipeline_supported missing supported entry types: " + ", ".join(missing)
+        )
+    if unexpected:
+        failures.append(
+            "pipeline_supported contains non-supported types: "
+            + ", ".join(unexpected)
+        )
+    return failures
+
+
+def _allowed_source_artifact_roots(project_root: Path) -> tuple[Path, ...]:
     allowed_roots = [
         project_root / "workspace_data",
         project_root / "input" / "raw_data",
@@ -282,10 +439,14 @@ def _is_allowed_source_artifact(project_root: Path, path: Path) -> bool:
     resolved_workspace = resolve_workspace_root(project_root)
     if resolved_workspace not in allowed_roots:
         allowed_roots.append(resolved_workspace)
+    return tuple(root.resolve() for root in allowed_roots)
+
+
+def _is_allowed_source_artifact(path: Path, allowed_roots: tuple[Path, ...]) -> bool:
     resolved = path.resolve()
     for root in allowed_roots:
         try:
-            resolved.relative_to(root.resolve())
+            resolved.relative_to(root)
             return True
         except ValueError:
             continue

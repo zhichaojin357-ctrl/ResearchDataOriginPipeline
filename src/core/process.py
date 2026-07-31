@@ -10,7 +10,12 @@ from src.core.file_utils import is_under_or_equal
 from src.processors.base import process_table_dataset
 from src.scanner.scanner import scan_raw_data
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.project import default_output_root, output_dir, report_path
+from src.core.project import (
+    default_output_root,
+    ensure_output_path_separate_from_inputs,
+    output_dir,
+    report_path,
+)
 from src.core.runtime_paths import resolve_locked_result_index
 
 
@@ -31,6 +36,11 @@ class ProcessOptions:
 def run_process(project_root: Path, input_path: Path, options: ProcessOptions | None = None) -> int:
     options = _normalize_origin_mode(options or ProcessOptions())
     _validate_process_mode(options)
+    ensure_output_path_separate_from_inputs(
+        project_root,
+        options.output_root or default_output_root(project_root),
+        [input_path],
+    )
     if options.auto_select and options.from_queue is None:
         from src.core.triage import TriageOptions, run_triage
 
@@ -162,6 +172,8 @@ def _manifest_auxiliary_skip_reason(classification: dict, source: Path) -> str |
     suffix = source.suffix.casefold()
     data_type = str(classification.get("inferred_data_type") or "")
     name = source.name.casefold()
+    if suffix in {".spc", ".dta"}:
+        return "native_reader_not_implemented"
     if suffix in {".pdf", ".doc", ".docx", ".ppt", ".pptx", ".caj", ".ris", ".bib", ".enw", ".enl"}:
         return "document_or_report_not_primary_numeric_data"
     if data_type == "XRD" and _xrd_reference_card_name(source):

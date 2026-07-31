@@ -11,7 +11,10 @@ from pathlib import Path
 from typing import Any
 
 from src.core.file_utils import file_sha256
-from src.core.image_artifacts import ensure_tif_600_dpi_metadata
+from src.core.image_artifacts import (
+    expected_raster_pixels,
+    validate_tif_physical_resolution,
+)
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.origin.operations import connect_origin, quote_labtalk, safe_origin_name
 from src.origin.style_mimic import read_graph_style_snapshot
@@ -397,7 +400,33 @@ def export_origin_style_assets(
                 )
                 exported_items.append(item)
         finally:
-            operations.close()
+            try:
+                close_result = operations.close()
+            except Exception as exc:
+                failures.append(
+                    {
+                        "message": scrub_output_text(
+                            f"Origin lifecycle close failed: {type(exc).__name__}: {exc}",
+                            project_root=project_root,
+                        ),
+                        "failure_stage": "origin_close",
+                    }
+                )
+            else:
+                if not getattr(close_result, "ok", False):
+                    failures.append(
+                        {
+                            "message": scrub_output_text(
+                                getattr(
+                                    close_result,
+                                    "message",
+                                    "Origin lifecycle close did not confirm success.",
+                                ),
+                                project_root=project_root,
+                            ),
+                            "failure_stage": "origin_close",
+                        }
+                    )
             for runtime_dir in runtime_dirs_to_cleanup:
                 shutil.rmtree(runtime_dir, ignore_errors=True)
     else:
@@ -438,7 +467,7 @@ def export_origin_style_assets(
                 "schema_version": _origin_style_manifest_schema_version_for_write(manifest_path),
                 "generated_at": datetime.now().isoformat(timespec="seconds"),
                 "asset_root": render_output_path(plan.asset_root, project_root=project_root),
-                "origin_dependency_boundary": "Project-local .oth Graph Themes store copied Origin graph formats, .otpu Graph Templates preserve complex graph-layer structure when needed, JSON snapshots store readback plot colours and key numeric style values, and reference_opju/*.opju stores reviewed complex templates that require exact multi-layer/data-replacement reuse. Product runs use these project-local assets without requiring external template OPJU files.",
+                "origin_dependency_boundary": "Project-local .oth Graph Themes are the runtime format assets. Current .otpu files are quarantined harvest records and are never runtime fallbacks. JSON snapshots store readback plot colours and key numeric style values, while reference_opju/*.opju stores reviewed templates for recovery and replay evidence. Product runs use accepted project-local .oth/snapshot assets without requiring external template OPJU files.",
                 "assets": entries,
             }
         )
@@ -530,6 +559,8 @@ def run_origin_style_asset_replay(
         summary = {
             "planned_count": len(plan.items),
             "compared_count": 0,
+            "self_replay_count": 0,
+            "inconclusive_count": 0,
             "failure_count": len(plan.items),
             "items": [
                 {
@@ -549,17 +580,47 @@ def run_origin_style_asset_replay(
 
     operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
     results: list[dict[str, object]] = []
+    close_failure = ""
     try:
         for item in plan.items:
             results.append(_replay_compare_one_item(operations, project_root, plan.output_dir, item))
     finally:
-        operations.close()
+        try:
+            close_result = operations.close()
+        except Exception as exc:
+            close_failure = scrub_output_text(
+                f"Origin lifecycle close failed: {type(exc).__name__}: {exc}",
+                project_root=project_root,
+            )
+        else:
+            if not getattr(close_result, "ok", False):
+                close_failure = scrub_output_text(
+                    getattr(
+                        close_result,
+                        "message",
+                        "Origin lifecycle close did not confirm success.",
+                    ),
+                    project_root=project_root,
+                )
     compared_count = sum(1 for item in results if item.get("status") == "matched")
-    failure_count = sum(1 for item in results if item.get("status") != "matched")
+    self_replay_count = sum(
+        1 for item in results if item.get("status") == "reference_opju_self_replay"
+    )
+    item_failure_count = sum(
+        1 for item in results if item.get("status") in {"failed", "mismatch", "blocked"}
+    )
+    lifecycle_failure_count = 1 if close_failure else 0
+    failure_count = item_failure_count + lifecycle_failure_count
     summary = {
         "planned_count": len(plan.items),
         "compared_count": compared_count,
+        "self_replay_count": self_replay_count,
+        "inconclusive_count": self_replay_count,
         "failure_count": failure_count,
+        "item_failure_count": item_failure_count,
+        "lifecycle_failure_count": lifecycle_failure_count,
+        "origin_close_ok": not bool(close_failure),
+        "origin_close_message": close_failure,
         "items": results,
     }
     _write_replay_summary(plan.output_dir, summary)
@@ -647,6 +708,9 @@ def _replay_compare_one_item(
         theme_path=item.style_source_theme_path,
     )
     asset_export = _export_replay_graph(operations, asset.template_opju_path, item.graph_page or asset.graph_page, product_dir, "project_asset")
+    source_sha256 = file_sha256(item.source_opju)
+    asset_sha256 = file_sha256(asset.template_opju_path)
+    same_reference_content = source_sha256 == asset_sha256
     result = {
         "product_key": item.product_key,
         "data_type": item.data_type,
@@ -659,14 +723,43 @@ def _replay_compare_one_item(
         "style_source_theme": render_output_path(item.style_source_theme_path, project_root=project_root)
         if item.style_source_theme_path
         else "",
+        "source_opju_sha256": source_sha256,
+        "asset_opju_sha256": asset_sha256,
+        "same_reference_content": same_reference_content,
     }
     if not source.get("ok") or not asset_export.get("ok"):
         result.update({"status": "failed", "message": "Source or project asset graph export failed."})
         (product_dir / "comparison.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         return result
     comparison = _compare_replay_pngs(Path(str(source["png"])), Path(str(asset_export["png"])), product_dir)
-    status = "matched" if comparison.get("exact_pixel_match") else "mismatch"
-    result.update({"status": status, "message": "Replay comparison completed.", "comparison": comparison})
+    exact_pixel_match = bool(comparison.get("exact_pixel_match"))
+    if exact_pixel_match and same_reference_content:
+        status = "reference_opju_self_replay"
+        message = (
+            "The same reference OPJU content re-exported pixel-identically. "
+            "This is deterministic-export evidence only and does not validate "
+            "the product format theme on a newly constructed graph."
+        )
+        comparison_scope = "deterministic_reference_opju_export"
+        style_asset_validated = False
+    else:
+        status = "reference_opju_match" if exact_pixel_match else "mismatch"
+        message = (
+            "Two reference OPJU exports were compared. Even an exact result "
+            "does not validate the .oth asset because the project-side graph "
+            "was not newly constructed from data and the saved theme."
+        )
+        comparison_scope = "reference_opju_comparison"
+        style_asset_validated = False
+    result.update(
+        {
+            "status": status,
+            "message": message,
+            "comparison_scope": comparison_scope,
+            "style_asset_validated": style_asset_validated,
+            "comparison": comparison,
+        }
+    )
     (product_dir / "comparison.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
 
@@ -727,9 +820,14 @@ def _export_replay_graph(
         runtime_png = runtime_dir / f"{label}.png"
         runtime_tif = runtime_dir / f"{label}.tif"
         png = operations.export_graph(graph_name, runtime_png, "png", dpi=600)
-        tif = operations.export_graph(graph_name, runtime_tif, "tif", dpi=600)
-        export_message = f"{getattr(png, 'message', '')}; {getattr(tif, 'message', '')}".strip("; ")
-        if not getattr(png, "ok", False) or not getattr(tif, "ok", False):
+        tif = _export_replay_tif_with_physical_validation(
+            operations,
+            graph_name,
+            runtime_tif,
+            dpi=600,
+        )
+        export_message = f"{getattr(png, 'message', '')}; {tif.get('message', '')}".strip("; ")
+        if not getattr(png, "ok", False) or not bool(tif.get("ok")):
             return {
                 "ok": False,
                 "message": export_message or "Origin replay graph export failed",
@@ -750,20 +848,6 @@ def _export_replay_graph(
             }
         shutil.copy2(runtime_png, final_png)
         shutil.copy2(runtime_tif, final_tif)
-        try:
-            ensure_tif_600_dpi_metadata(final_tif)
-        except Exception as exc:
-            final_tif.unlink(missing_ok=True)
-            return {
-                "ok": False,
-                "message": str(exc),
-                "requested_graph_page": graph_page,
-                "exported_graph_page": graph_name,
-                "graph_pages": graph_pages,
-                "theme_path": str(theme_path) if theme_path else "",
-                "png": str(final_png),
-                "tif": str(final_tif),
-            }
         shutil.copy2(runtime_opju, final_opju)
         artifacts_ok = all(path.is_file() and path.stat().st_size > 0 for path in (final_png, final_tif, final_opju))
         return {
@@ -779,9 +863,87 @@ def _export_replay_graph(
             "png_size": final_png.stat().st_size if final_png.exists() else 0,
             "tif": str(final_tif),
             "tif_size": final_tif.stat().st_size if final_tif.exists() else 0,
+            "tif_resolution_evidence": tif.get("evidence", {}),
         }
     finally:
         shutil.rmtree(runtime_dir, ignore_errors=True)
+
+
+def _export_replay_tif_with_physical_validation(
+    operations: object,
+    graph_name: str,
+    target: Path,
+    *,
+    dpi: int,
+) -> dict[str, object]:
+    activated = operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    if not getattr(activated, "ok", False):
+        return {"ok": False, "message": f"Could not activate replay graph {graph_name!r} before TIFF export."}
+    dimensions: dict[str, float] = {}
+    for name in ("page.width", "page.height"):
+        result = operations.get_labtalk_variable(name)
+        if not getattr(result, "ok", False):
+            return {"ok": False, "message": f"Could not read {name} from replay graph {graph_name!r}."}
+        try:
+            value = float(getattr(result, "payload", {}).get("value"))
+        except (TypeError, ValueError, OverflowError):
+            return {"ok": False, "message": f"Replay graph returned an invalid {name} value."}
+        if not math.isfinite(value) or value <= 0:
+            return {"ok": False, "message": f"Replay graph returned a non-positive {name} value."}
+        dimensions[name] = value
+    expected_width, _expected_height = expected_raster_pixels(
+        dimensions["page.width"],
+        dimensions["page.height"],
+        dpi=dpi,
+    )
+    reset_identity = getattr(operations, "reset_project_identity_for_export", None)
+    if not callable(reset_identity):
+        return {
+            "ok": False,
+            "message": "Origin project identity reset is unavailable before replay TIFF export.",
+        }
+    try:
+        identity = reset_identity()
+    except Exception:
+        return {
+            "ok": False,
+            "message": "Origin project identity reset failed before replay TIFF export.",
+        }
+    if not getattr(identity, "ok", False):
+        return {
+            "ok": False,
+            "message": "Origin project identity verification failed before replay TIFF export.",
+        }
+    reactivated = operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    if not getattr(reactivated, "ok", False):
+        return {
+            "ok": False,
+            "message": f"Could not reactivate replay graph {graph_name!r} after project identity reset.",
+        }
+    exported = operations.export_graph(
+        graph_name,
+        target,
+        "tif",
+        dpi=dpi,
+        pixel_width=expected_width,
+    )
+    if not getattr(exported, "ok", False):
+        return {"ok": False, "message": getattr(exported, "message", "Origin replay TIFF export failed")}
+    try:
+        evidence = validate_tif_physical_resolution(
+            target,
+            page_width_origin_units=dimensions["page.width"],
+            page_height_origin_units=dimensions["page.height"],
+            dpi=dpi,
+        ).as_dict()
+    except Exception as exc:
+        return {"ok": False, "message": scrub_output_text(str(exc))}
+    evidence["path"] = target.name
+    return {
+        "ok": True,
+        "message": "Origin replay TIFF passed physical-resolution validation.",
+        "evidence": evidence,
+    }
 
 
 def _compare_replay_pngs(source_png: Path, asset_png: Path, product_dir: Path) -> dict[str, object]:

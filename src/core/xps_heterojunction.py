@@ -15,11 +15,19 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.image_artifacts import ensure_tif_600_dpi_metadata
+from src.core.file_utils import ensure_safe_output_file_target
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.project import ensure_write_path_allowed, load_project_config
+from src.core.project import (
+    ensure_output_path_separate_from_inputs,
+    ensure_write_path_allowed,
+    load_project_config,
+)
 from src.core.runtime_paths import resolve_project_path
-from src.origin.adapter import check_origin_available, write_origin_error
+from src.origin.adapter import (
+    check_origin_available,
+    reexport_tif_from_reopened_opju,
+    write_origin_error,
+)
 
 
 ELEMENT_REGION_RE = re.compile(r"(?P<element>[A-Z][a-z]?)(?P<orbital>\d+[spdf])", re.IGNORECASE)
@@ -56,7 +64,7 @@ class XpsHeterojunctionOptions:
     output_dir: Path
     with_origin: bool = False
     include_optional_three_sample_oxygen: bool = False
-    force: bool = True
+    force: bool = False
 
 
 @dataclass(frozen=True)
@@ -273,13 +281,22 @@ def run_xps_heterojunction_stacked(
     pre_manual_review: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     output_dir = _safe_task_output_dir(project_root, options.output_dir)
-    dirs = {name: output_dir / name for name in TASK_SUBDIRS}
-    for directory in dirs.values():
-        directory.mkdir(parents=True, exist_ok=True)
+    source_paths = [path for paths in sample_files.values() for path in paths]
+    ensure_output_path_separate_from_inputs(project_root, output_dir, source_paths)
 
     records, manual_review = load_xps_fit_workbooks(sample_files)
     manual_review = [*(pre_manual_review or []), *manual_review]
     plan = build_comparison_plan(records, manual_review, options)
+    dirs = {name: output_dir / name for name in TASK_SUBDIRS}
+    if options.with_origin:
+        _assert_origin_ready_before_xps_output_preflight()
+    _preflight_xps_outputs(
+        _planned_xps_output_files(dirs, plan, with_origin=options.with_origin),
+        output_root=output_dir,
+        force=options.force,
+    )
+    for directory in dirs.values():
+        directory.mkdir(parents=True, exist_ok=True)
     figure_rows: list[dict[str, Any]] = []
 
     for comparison in plan.comparisons:
@@ -292,7 +309,14 @@ def run_xps_heterojunction_stacked(
         _write_peak_annotation_table(peak_table, peak_details)
         origin_artifacts = {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": ""}
         if options.with_origin:
-            origin_artifacts = _export_origin_for_comparison(project_root, comparison, plot_csv, dirs, peak_details)
+            origin_artifacts = _export_origin_for_comparison(
+                project_root,
+                comparison,
+                plot_csv,
+                dirs,
+                peak_details,
+                force=options.force,
+            )
             origin_artifacts = _validated_origin_artifacts(origin_artifacts)
         metadata_path = dirs["metadata"] / comparison.name / "metadata.json"
         metadata = {
@@ -323,6 +347,7 @@ def run_xps_heterojunction_stacked(
             "preview_png": _task_output_path(output_dir, origin_artifacts.get("preview_png")) if origin_artifacts.get("preview_png") else None,
             "processing_status": "planned_no_origin" if not options.with_origin else ("success" if origin_artifacts.get("ok") else "origin_failed"),
             "origin_message": origin_artifacts.get("message", ""),
+            "tif_resolution_evidence": origin_artifacts.get("tif_resolution", {}),
         }
         metadata_path.parent.mkdir(parents=True, exist_ok=True)
         metadata_path.write_text(json.dumps(_sanitize_xps_output_payload(metadata, output_dir), ensure_ascii=False, indent=2), encoding="utf-8")
@@ -340,6 +365,7 @@ def run_xps_heterojunction_stacked(
                 "origin_file": _task_output_path(output_dir, origin_artifacts.get("origin_file")) if origin_artifacts.get("origin_file") else "",
                 "figure_tif": _task_output_path(output_dir, origin_artifacts.get("figure_tif")) if origin_artifacts.get("figure_tif") else "",
                 "preview_png": _task_output_path(output_dir, origin_artifacts.get("preview_png")) if origin_artifacts.get("preview_png") else "",
+                "tif_resolution_evidence": origin_artifacts.get("tif_resolution", {}),
                 "peak_annotations_eV": "; ".join(f"{peak:.2f}" for peak in peaks),
                 "peak_annotation_labels": "; ".join(_format_peak_detail(item) for item in peak_details),
                 "status": metadata["processing_status"],
@@ -362,6 +388,69 @@ def run_xps_heterojunction_stacked(
         encoding="utf-8",
     )
     return result
+
+
+def _planned_xps_output_files(
+    output_dirs: dict[str, Path],
+    plan: XpsComparisonPlan,
+    *,
+    with_origin: bool,
+) -> tuple[Path, ...]:
+    planned: list[Path] = [
+        output_dirs["reports"] / "manual_review.csv",
+        output_dirs["reports"] / "xps_heterojunction_stacked_summary.csv",
+        output_dirs["reports"] / "xps_heterojunction_stacked_summary.md",
+        output_dirs["reports"] / "xps_heterojunction_stacked_summary.json",
+    ]
+    if with_origin:
+        planned.append(output_dirs["reports"] / "origin_errors.md")
+    for comparison in plan.comparisons:
+        planned.extend(
+            (
+                output_dirs["processed_tables"] / f"{comparison.name}.csv",
+                output_dirs["processed_tables"] / f"{comparison.name}_origin_plot.csv",
+                output_dirs["processed_tables"] / f"{comparison.name}_peak_annotations.csv",
+                output_dirs["metadata"] / comparison.name / "metadata.json",
+            )
+        )
+        if with_origin:
+            planned.extend(
+                (
+                    output_dirs["origin_projects"] / f"{comparison.name}.opju",
+                    output_dirs["figures_tif"] / f"{comparison.name}.tif",
+                    output_dirs["origin_projects"] / "origin_jobs" / f"{comparison.name}.png",
+                    output_dirs["origin_projects"] / "origin_jobs" / f"{comparison.name}_origin_xps_renderer.py",
+                    output_dirs["origin_projects"] / "origin_jobs" / f"{comparison.name}_origin_lifecycle.json",
+                )
+            )
+    return tuple(dict.fromkeys(planned))
+
+
+def _preflight_xps_outputs(
+    paths: tuple[Path, ...],
+    *,
+    output_root: Path,
+    force: bool,
+) -> None:
+    safe_paths = tuple(
+        dict.fromkeys(
+            ensure_safe_output_file_target(path, output_root=output_root)
+            for path in paths
+        )
+    )
+    existing = [path for path in safe_paths if path.exists()]
+    if existing and not force:
+        rendered = ", ".join(str(path) for path in existing[:8])
+        raise FileExistsError(
+            "One or more planned XPS outputs already exist; rerun with force=True to overwrite: "
+            f"{rendered}"
+        )
+    directories = [path for path in existing if path.is_dir() and not path.is_symlink()]
+    if directories:
+        rendered = ", ".join(str(path) for path in directories[:8])
+        raise IsADirectoryError(f"Planned XPS file output collides with a directory: {rendered}")
+    for path in existing:
+        path.unlink()
 
 
 def _comparison(element: str, source_sample: str, composite_sample: str, selected: dict[tuple[str, str], XpsFitRecord]) -> XpsComparison:
@@ -424,60 +513,456 @@ def _export_origin_for_comparison(
     plot_csv: Path,
     output_dirs: dict[str, Path],
     peak_details: list[dict[str, Any]],
+    *,
+    force: bool = False,
 ) -> dict[str, Any]:
-    ok, message = check_origin_available()
-    if not ok:
-        write_origin_error(project_root, f"{comparison.name}: {message}")
-        return {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": f"Origin unavailable: {message}"}
     origin_file = output_dirs["origin_projects"] / f"{comparison.name}.opju"
     figure_tif = output_dirs["figures_tif"] / f"{comparison.name}.tif"
     job_dir = output_dirs["origin_projects"] / "origin_jobs"
-    job_dir.mkdir(parents=True, exist_ok=True)
     preview_png = job_dir / f"{comparison.name}.png"
-    page_name = _safe_origin_page_name(comparison.name)
     job_script = job_dir / f"{comparison.name}_origin_xps_renderer.py"
-    for artifact in (origin_file, figure_tif, preview_png):
-        if artifact.exists():
-            artifact.unlink()
-    script = _build_direct_origin_xps_script(comparison, plot_csv, origin_file, preview_png, figure_tif, page_name, peak_details)
+    lifecycle_file = job_dir / f"{comparison.name}_origin_lifecycle.json"
+    error_output_root = origin_file.parents[1]
+    try:
+        pre_existing_origin_pids = _origin_process_ids()
+    except RuntimeError as exc:
+        message = f"Could not establish the pre-launch Origin process baseline: {exc}"
+        write_origin_error(
+            project_root,
+            f"{comparison.name}: {message}",
+            output_root=error_output_root,
+        )
+        return {
+            "ok": False,
+            "origin_file": None,
+            "figure_tif": None,
+            "preview_png": None,
+            "message": message,
+        }
+    if pre_existing_origin_pids:
+        message = (
+            "Origin is already running; close every Origin session before starting "
+            "the isolated XPS renderer."
+        )
+        write_origin_error(
+            project_root,
+            f"{comparison.name}: {message}",
+            output_root=error_output_root,
+        )
+        return {
+            "ok": False,
+            "origin_file": None,
+            "figure_tif": None,
+            "preview_png": None,
+            "message": message,
+            "pre_existing_origin_pids": sorted(pre_existing_origin_pids),
+        }
+    ok, message = check_origin_available()
+    if not ok:
+        write_origin_error(
+            project_root,
+            f"{comparison.name}: {message}",
+            output_root=error_output_root,
+        )
+        return {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": f"Origin unavailable: {message}"}
+    _preflight_xps_outputs(
+        (origin_file, figure_tif, preview_png, job_script, lifecycle_file),
+        output_root=error_output_root,
+        force=force,
+    )
+    job_dir.mkdir(parents=True, exist_ok=True)
+    page_name = _safe_origin_page_name(comparison.name)
+    script = _build_direct_origin_xps_script(
+        comparison,
+        plot_csv,
+        origin_file,
+        preview_png,
+        lifecycle_file,
+        page_name,
+        peak_details,
+    )
     job_script.write_text(script, encoding="utf-8")
     completed = None
+    renderer_error = ""
+    renderer_lifecycle: dict[str, Any] | None = None
     try:
         for attempt in range(3):
             try:
-                completed = subprocess.run(
-                    [sys.executable, str(job_script)],
-                    text=True,
-                    capture_output=True,
-                    timeout=600,
-                )
-            except Exception as exc:
-                write_origin_error(project_root, f"{comparison.name}: {exc}")
-                return {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": str(exc)}
-            if completed.returncode == 0:
+                attempt_baseline = _origin_process_ids()
+            except RuntimeError as exc:
+                renderer_error = f"Could not verify the Origin process baseline before renderer attempt {attempt + 1}: {exc}"
                 break
+            if attempt_baseline:
+                renderer_error = (
+                    "Origin appeared before the XPS renderer could start; the renderer "
+                    "was not launched to avoid attaching to an unrelated session."
+                )
+                break
+            if lifecycle_file.exists():
+                lifecycle_file.unlink()
             try:
-                _wait_for_no_origin_process(timeout_seconds=30.0)
-            except RuntimeError:
-                _stop_headless_origin_processes()
-                _wait_for_no_origin_process(timeout_seconds=30.0)
+                completed = _run_xps_origin_renderer(job_script)
+            except Exception as exc:
+                completed = None
+                renderer_error = f"{type(exc).__name__}: {exc}"
+            renderer_lifecycle = _read_origin_lifecycle_file(lifecycle_file)
+            if completed is not None and completed.returncode == 0:
+                lifecycle_error = _renderer_lifecycle_acceptance_error(
+                    renderer_lifecycle,
+                    expected_baseline=attempt_baseline,
+                )
+                if lifecycle_error:
+                    cleanup_error = _cleanup_failed_renderer_origin(
+                        renderer_lifecycle,
+                        expected_baseline=attempt_baseline,
+                    )
+                    renderer_error = lifecycle_error
+                    if cleanup_error:
+                        renderer_error += f"; cleanup blocked: {cleanup_error}"
+                    completed = None
+                    break
+                break
+            details = ""
+            if completed is not None:
+                details = (completed.stderr or completed.stdout or "").strip()
+            if details:
+                renderer_error = details
+            cleanup_error = _cleanup_failed_renderer_origin(
+                renderer_lifecycle,
+                expected_baseline=attempt_baseline,
+            )
+            if cleanup_error:
+                renderer_error = (
+                    (renderer_error + "; ") if renderer_error else ""
+                ) + f"cleanup blocked: {cleanup_error}"
+                completed = None
+                break
             time.sleep(1.0 + attempt)
     finally:
-        try:
-            job_script.unlink()
-        except OSError:
-            pass
+        for transient in (job_script, lifecycle_file):
+            try:
+                transient.unlink()
+            except OSError:
+                pass
     if completed is None or completed.returncode:
-        details = (completed.stderr or completed.stdout or "Origin XPS renderer failed").strip()
-        write_origin_error(project_root, f"{comparison.name}: {details}")
+        details = renderer_error
+        if not details and completed is not None:
+            details = (completed.stderr or completed.stdout or "").strip()
+        if not details:
+            details = "Origin XPS renderer failed"
+        write_origin_error(
+            project_root,
+            f"{comparison.name}: {details}",
+            output_root=error_output_root,
+        )
         return {"ok": False, "origin_file": None, "figure_tif": None, "preview_png": None, "message": details}
-    missing = [path for path in (origin_file, figure_tif, preview_png) if not path.exists() or path.stat().st_size == 0]
+    try:
+        remaining_after_renderer = _origin_process_ids()
+    except RuntimeError as exc:
+        message = f"Could not verify Origin termination after XPS rendering: {exc}"
+        write_origin_error(
+            project_root,
+            f"{comparison.name}: {message}",
+            output_root=error_output_root,
+        )
+        return {
+            "ok": False,
+            "origin_file": origin_file if origin_file.exists() else None,
+            "figure_tif": None,
+            "preview_png": preview_png if preview_png.exists() else None,
+            "message": message,
+        }
+    if remaining_after_renderer:
+        message = (
+            "Origin remained running after the renderer reported success; product "
+            "acceptance is blocked and no unrelated process was terminated."
+        )
+        write_origin_error(
+            project_root,
+            f"{comparison.name}: {message}",
+            output_root=error_output_root,
+        )
+        return {
+            "ok": False,
+            "origin_file": origin_file if origin_file.exists() else None,
+            "figure_tif": None,
+            "preview_png": preview_png if preview_png.exists() else None,
+            "message": message,
+            "remaining_origin_pids": sorted(remaining_after_renderer),
+        }
+    missing = [path for path in (origin_file, preview_png) if not path.exists() or path.stat().st_size == 0]
     if missing:
         message = "Missing or empty Origin artifacts: " + ", ".join(str(path) for path in missing)
-        write_origin_error(project_root, f"{comparison.name}: {message}")
+        write_origin_error(
+            project_root,
+            f"{comparison.name}: {message}",
+            output_root=error_output_root,
+        )
         return {"ok": False, "origin_file": origin_file if origin_file.exists() else None, "figure_tif": figure_tif if figure_tif.exists() else None, "preview_png": preview_png if preview_png.exists() else None, "message": message}
-    ensure_tif_600_dpi_metadata(figure_tif)
-    return {"ok": True, "origin_file": origin_file, "figure_tif": figure_tif, "preview_png": preview_png, "message": "Origin COM export succeeded"}
+    try:
+        before_reexport_pids = _origin_process_ids()
+        if before_reexport_pids:
+            raise RuntimeError(
+                "Origin is already running before reopened-OPJU TIFF export; "
+                "the TIFF stage was not launched."
+            )
+        resolution = reexport_tif_from_reopened_opju(
+            origin_file,
+            page_name,
+            figure_tif,
+            dpi=600,
+        )
+        remaining_after_reexport = _origin_process_ids()
+        if remaining_after_reexport:
+            raise RuntimeError(
+                "Origin remained running after reopened-OPJU TIFF export; "
+                "product acceptance is blocked and no unrelated process was terminated."
+            )
+    except Exception as exc:
+        message = f"Final reopened-OPJU TIFF export failed: {exc}"
+        write_origin_error(
+            project_root,
+            f"{comparison.name}: {message}",
+            output_root=error_output_root,
+        )
+        return {
+            "ok": False,
+            "origin_file": origin_file,
+            "figure_tif": figure_tif if figure_tif.exists() else None,
+            "preview_png": preview_png,
+            "message": message,
+        }
+    return {
+        "ok": True,
+        "origin_file": origin_file,
+        "figure_tif": figure_tif,
+        "preview_png": preview_png,
+        "message": "Origin COM export succeeded with reopened-OPJU native 600 dpi validation",
+        "tif_resolution": {
+            key: value
+            for key, value in resolution.as_dict().items()
+            if key != "path"
+        },
+    }
+
+
+def _run_xps_origin_renderer(job_script: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(job_script)],
+        text=True,
+        capture_output=True,
+        timeout=600,
+    )
+
+
+def _assert_origin_quiescent_before_xps_output_preflight() -> None:
+    try:
+        pre_existing_origin_pids = _origin_process_ids()
+    except RuntimeError as exc:
+        raise RuntimeError(
+            "Could not establish the Origin process baseline before XPS output "
+            f"preflight; no output was changed: {exc}"
+        ) from exc
+    if pre_existing_origin_pids:
+        rendered = ", ".join(str(pid) for pid in sorted(pre_existing_origin_pids))
+        raise RuntimeError(
+            "Origin is already running; XPS output preflight was refused before "
+            f"any existing product could be deleted or overwritten (PID(s): {rendered})."
+        )
+
+
+def _assert_origin_ready_before_xps_output_preflight() -> None:
+    _assert_origin_quiescent_before_xps_output_preflight()
+    ok, message = check_origin_available()
+    if not ok:
+        raise RuntimeError(
+            "Origin readiness check failed before XPS output preflight; no output "
+            f"was changed: {message}"
+        )
+    _assert_origin_quiescent_before_xps_output_preflight()
+
+
+def _origin_process_ids() -> set[int]:
+    try:
+        completed = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "Get-Process -Name Origin* -ErrorAction SilentlyContinue | "
+                "Select-Object -ExpandProperty Id",
+            ],
+            text=True,
+            capture_output=True,
+            timeout=10,
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Origin process query failed: {type(exc).__name__}: {exc}") from exc
+    if completed.returncode:
+        details = (completed.stderr or completed.stdout or "").strip()
+        raise RuntimeError(
+            "Origin process query returned a non-zero exit code"
+            + (f": {details}" if details else "")
+        )
+    pids: set[int] = set()
+    for line in completed.stdout.splitlines():
+        value = line.strip()
+        if not value:
+            continue
+        try:
+            pid = int(value)
+        except ValueError as exc:
+            raise RuntimeError(f"Origin process query returned an invalid PID: {value!r}") from exc
+        if pid <= 0:
+            raise RuntimeError(f"Origin process query returned an invalid PID: {pid}")
+        pids.add(pid)
+    return pids
+
+
+def _read_origin_lifecycle_file(path: Path) -> dict[str, Any] | None:
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _lifecycle_pid_set(payload: dict[str, Any] | None, key: str) -> set[int]:
+    if payload is None:
+        return set()
+    values = payload.get(key, [])
+    if not isinstance(values, list):
+        return set()
+    pids: set[int] = set()
+    for value in values:
+        if isinstance(value, bool):
+            continue
+        try:
+            pid = int(value)
+        except (TypeError, ValueError):
+            continue
+        if pid > 0:
+            pids.add(pid)
+    return pids
+
+
+def _renderer_lifecycle_acceptance_error(
+    payload: dict[str, Any] | None,
+    *,
+    expected_baseline: set[int],
+) -> str:
+    if payload is None:
+        return "Origin renderer did not produce PID ownership and exit evidence"
+    recorded_baseline = _lifecycle_pid_set(payload, "baseline_origin_pids")
+    if recorded_baseline != expected_baseline:
+        return "Origin renderer lifecycle evidence did not match the pre-launch PID baseline"
+    owned_pids = _lifecycle_pid_set(payload, "owned_origin_pids")
+    if not owned_pids or owned_pids & expected_baseline:
+        return "Origin renderer did not prove ownership of a newly launched Origin PID"
+    remaining = _lifecycle_pid_set(payload, "remaining_owned_pids")
+    if remaining:
+        return (
+            "Origin renderer retained task-owned PID(s) after the bounded exit wait: "
+            + ", ".join(str(pid) for pid in sorted(remaining))
+        )
+    if not bool(payload.get("exit_ok")):
+        details = str(payload.get("exit_error") or "").strip()
+        return "Origin renderer exit failed" + (f": {details}" if details else "")
+    return ""
+
+
+def _cleanup_failed_renderer_origin(
+    payload: dict[str, Any] | None,
+    *,
+    expected_baseline: set[int],
+) -> str:
+    try:
+        running = _origin_process_ids()
+    except RuntimeError as exc:
+        return str(exc)
+    if not running:
+        return ""
+    recorded_baseline = _lifecycle_pid_set(payload, "baseline_origin_pids")
+    owned_pids = _lifecycle_pid_set(payload, "owned_origin_pids")
+    if (
+        payload is None
+        or recorded_baseline != expected_baseline
+        or not owned_pids
+        or owned_pids & expected_baseline
+    ):
+        return (
+            "running Origin PID(s) lacked trustworthy task-ownership evidence: "
+            + ", ".join(str(pid) for pid in sorted(running))
+        )
+    unrelated = running - expected_baseline - owned_pids
+    if unrelated:
+        return (
+            "an unowned Origin PID appeared during renderer cleanup; no process was "
+            "terminated: "
+            + ", ".join(str(pid) for pid in sorted(unrelated))
+        )
+    task_pids = running & owned_pids
+    if not task_pids:
+        return ""
+    try:
+        _terminate_owned_origin_processes(task_pids)
+        remaining = _wait_for_origin_pids_exit(task_pids, timeout_seconds=30.0)
+    except RuntimeError as exc:
+        return str(exc)
+    if remaining:
+        return (
+            "task-owned Origin PID(s) remained after bounded cleanup: "
+            + ", ".join(str(pid) for pid in sorted(remaining))
+        )
+    return ""
+
+
+def _terminate_owned_origin_processes(owned_pids: set[int]) -> None:
+    safe_pids = sorted({int(pid) for pid in owned_pids if int(pid) > 0})
+    if not safe_pids:
+        return
+    pid_list = ",".join(str(pid) for pid in safe_pids)
+    try:
+        completed = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                f"$ids = @({pid_list}); "
+                "$owned = Get-Process -Id $ids -ErrorAction SilentlyContinue | "
+                "Where-Object { $_.ProcessName -like 'Origin*' }; "
+                "if ($owned) { $owned | Stop-Process -Force -ErrorAction Stop }",
+            ],
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            f"Task-owned Origin cleanup failed: {type(exc).__name__}: {exc}"
+        ) from exc
+    if completed.returncode:
+        details = (completed.stderr or completed.stdout or "").strip()
+        raise RuntimeError(
+            "Task-owned Origin cleanup returned a non-zero exit code"
+            + (f": {details}" if details else "")
+        )
+
+
+def _wait_for_origin_pids_exit(
+    owned_pids: set[int],
+    *,
+    timeout_seconds: float,
+) -> set[int]:
+    deadline = time.time() + max(0.0, timeout_seconds)
+    remaining = set(owned_pids)
+    while True:
+        remaining = _origin_process_ids() & owned_pids
+        if not remaining or time.time() >= deadline:
+            return remaining
+        time.sleep(0.5)
 
 
 def _validated_origin_artifacts(origin_artifacts: dict[str, Any]) -> dict[str, Any]:
@@ -607,7 +1092,7 @@ def _build_direct_origin_xps_script(
     plot_csv: Path,
     origin_file: Path,
     preview_png: Path,
-    figure_tif: Path,
+    lifecycle_file: Path,
     page_name: str,
     peak_details: list[dict[str, Any]],
 ) -> str:
@@ -621,7 +1106,7 @@ def _build_direct_origin_xps_script(
         "plot_csv": str(plot_csv),
         "origin_file": str(origin_file),
         "preview_png": str(preview_png),
-        "figure_tif": str(figure_tif),
+        "origin_lifecycle_path": str(lifecycle_file),
         "page_name": page_name,
         "worksheet_name": _safe_origin_page_name(f"{comparison.name}_Data"),
         "series_labels": header[1:],
@@ -640,10 +1125,9 @@ def _build_direct_origin_xps_script(
 import csv
 import json
 import re
+import subprocess
 import sys
-
-import originpro as op
-from originpro.utils import ocolor
+import time
 
 payload = json.loads({json.dumps(json.dumps(payload, ensure_ascii=False))})
 
@@ -695,10 +1179,87 @@ def set_label_style(label, size, color=1):
     label.set_int("color", color)
 
 
-op.set_show(False)
+def origin_process_ids():
+    completed = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "Get-Process -Name Origin* -ErrorAction SilentlyContinue | "
+            "Select-Object -ExpandProperty Id",
+        ],
+        text=True,
+        capture_output=True,
+        timeout=10,
+    )
+    if completed.returncode:
+        details = (completed.stderr or completed.stdout or "").strip()
+        raise RuntimeError(
+            "Origin process query failed"
+            + ((": " + details) if details else "")
+        )
+    pids = set()
+    for line in completed.stdout.splitlines():
+        value = line.strip()
+        if not value:
+            continue
+        pid = int(value)
+        if pid <= 0:
+            raise RuntimeError("Origin process query returned an invalid PID")
+        pids.add(pid)
+    return pids
+
+
+def write_origin_lifecycle(lifecycle):
+    with open(payload["origin_lifecycle_path"], "w", encoding="utf-8") as handle:
+        json.dump(lifecycle, handle, ensure_ascii=False, indent=2)
+
+
+def wait_for_owned_origin_exit(owned_pids, timeout_seconds=30.0):
+    deadline = time.time() + timeout_seconds
+    while True:
+        remaining = origin_process_ids() & set(owned_pids)
+        if not remaining or time.time() >= deadline:
+            return remaining
+        time.sleep(0.5)
+
+
+baseline_origin_pids = origin_process_ids()
+origin_lifecycle = {{
+    "baseline_origin_pids": sorted(baseline_origin_pids),
+    "owned_origin_pids": [],
+    "remaining_owned_pids": [],
+    "exit_ok": False,
+    "exit_error": "",
+    "status": "pre_launch",
+}}
+write_origin_lifecycle(origin_lifecycle)
+if baseline_origin_pids:
+    raise RuntimeError(
+        "Origin was already running before the isolated XPS renderer started"
+    )
+
+import originpro as op
+from originpro.utils import ocolor
+
 try:
+    op.set_show(False)
     headers, columns = read_columns(payload["plot_csv"])
     op.new()
+    ownership_deadline = time.time() + 10.0
+    owned_origin_pids = set()
+    while time.time() < ownership_deadline:
+        owned_origin_pids = origin_process_ids() - baseline_origin_pids
+        if owned_origin_pids:
+            break
+        time.sleep(0.1)
+    if not owned_origin_pids:
+        raise RuntimeError(
+            "The XPS renderer could not prove ownership of a newly launched Origin PID"
+        )
+    origin_lifecycle["owned_origin_pids"] = sorted(owned_origin_pids)
+    origin_lifecycle["status"] = "origin_running"
+    write_origin_lifecycle(origin_lifecycle)
     wks = op.new_sheet("w", payload["worksheet_name"])
     wks.cols = len(headers)
     for index, (label, values) in enumerate(zip(headers, columns)):
@@ -822,41 +1383,47 @@ try:
     exported_png = graph.save_fig(payload["preview_png"], type="png", replace=True, width=2400)
     if not exported_png:
         raise RuntimeError("failed to export PNG")
-    exported_tif = graph.save_fig(payload["figure_tif"], type="tif", replace=True, width=3600)
-    if not exported_tif:
-        raise RuntimeError("failed to export TIF")
 finally:
-    op.exit()
-"""
-
-
-def _wait_for_no_origin_process(timeout_seconds: float = 90.0) -> None:
-    deadline = time.time() + timeout_seconds
-    while time.time() < deadline:
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", "Get-Process -Name Origin* -ErrorAction SilentlyContinue"],
-            text=True,
-            capture_output=True,
-            timeout=10,
+    if not origin_lifecycle["owned_origin_pids"]:
+        try:
+            origin_lifecycle["owned_origin_pids"] = sorted(
+                origin_process_ids() - baseline_origin_pids
+            )
+        except Exception:
+            pass
+    exit_error = ""
+    try:
+        op.exit()
+    except Exception as exc:
+        exit_error = type(exc).__name__ + ": " + str(exc)
+    owned_origin_pids = set(origin_lifecycle["owned_origin_pids"])
+    remaining_owned_pids = wait_for_owned_origin_exit(
+        owned_origin_pids,
+        timeout_seconds=30.0,
+    )
+    origin_lifecycle["remaining_owned_pids"] = sorted(remaining_owned_pids)
+    origin_lifecycle["exit_ok"] = not exit_error and not remaining_owned_pids
+    origin_lifecycle["exit_error"] = exit_error
+    origin_lifecycle["status"] = (
+        "closed"
+        if origin_lifecycle["exit_ok"]
+        else "origin_lifecycle_finalization_failed"
+    )
+    write_origin_lifecycle(origin_lifecycle)
+    if exit_error or remaining_owned_pids:
+        details = []
+        if exit_error:
+            details.append("originpro exit raised " + exit_error)
+        if remaining_owned_pids:
+            details.append(
+                "task-owned Origin PID(s) remained after the bounded exit wait: "
+                + ", ".join(str(pid) for pid in sorted(remaining_owned_pids))
+            )
+        raise RuntimeError(
+            "Origin lifecycle finalization failed; product acceptance is blocked: "
+            + "; ".join(details)
         )
-        if not result.stdout.strip():
-            return
-        time.sleep(0.5)
-    raise RuntimeError("Origin remained running after export.")
-
-
-def _stop_headless_origin_processes() -> None:
-    command = (
-        "Get-Process -Name Origin* -ErrorAction SilentlyContinue | "
-        "Where-Object { -not $_.MainWindowTitle } | "
-        "Stop-Process -Force"
-    )
-    subprocess.run(
-        ["powershell", "-NoProfile", "-Command", command],
-        text=True,
-        capture_output=True,
-        timeout=30,
-    )
+"""
 
 
 def _stacked_plot_rows(comparison: XpsComparison) -> tuple[list[str], list[list[float | None]]]:
@@ -1095,11 +1662,15 @@ def _comparison_peak_details(comparison: XpsComparison) -> list[dict[str, Any]]:
                     continue
                 binding, intensity = peak
                 normalized_y = _normalized_offset_value(intensity, scale, offset)
+                peak_assignment = _infer_peak_assignment(record.region, binding)
                 details.append(
                     {
                         "sample": record.sample,
                         "component_label": label,
-                        "peak_assignment": _infer_peak_assignment(record.region, binding),
+                        "peak_assignment": peak_assignment,
+                        "peak_assignment_candidate": peak_assignment,
+                        "peak_assignment_method": "binding_energy_window_candidate",
+                        "peak_assignment_manual_check_required": True,
                         "plot_label": f"{record.sample} component {component_index}",
                         "binding_energy_eV": round(binding, 2),
                         "normalized_y": round((normalized_y or offset) + 0.23, 4),
@@ -1113,11 +1684,15 @@ def _comparison_peak_details(comparison: XpsComparison) -> list[dict[str, Any]]:
             ]
             for binding, intensity in _top_local_peaks(numeric, limit=2):
                 normalized_y = _normalized_offset_value(intensity, scale, offset)
+                peak_assignment = _infer_peak_assignment(record.region, binding)
                 details.append(
                     {
                         "sample": record.sample,
                         "component_label": "",
-                        "peak_assignment": _infer_peak_assignment(record.region, binding),
+                        "peak_assignment": peak_assignment,
+                        "peak_assignment_candidate": peak_assignment,
+                        "peak_assignment_method": "binding_energy_window_candidate",
+                        "peak_assignment_manual_check_required": True,
                         "plot_label": f"{record.sample} peak",
                         "binding_energy_eV": round(binding, 2),
                         "normalized_y": round((normalized_y or offset) + 0.23, 4),
@@ -1193,7 +1768,17 @@ def _format_peak_detail(item: dict[str, Any]) -> str:
 
 
 def _write_peak_annotation_table(path: Path, peak_details: list[dict[str, Any]]) -> None:
-    fieldnames = ["sample", "component_label", "peak_assignment", "plot_label", "binding_energy_eV", "normalized_y"]
+    fieldnames = [
+        "sample",
+        "component_label",
+        "peak_assignment",
+        "peak_assignment_candidate",
+        "peak_assignment_method",
+        "peak_assignment_manual_check_required",
+        "plot_label",
+        "binding_energy_eV",
+        "normalized_y",
+    ]
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()

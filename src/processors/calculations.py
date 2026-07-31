@@ -85,7 +85,9 @@ def type_specific_results(
                         "peak_to_peak_intensity_candidate",
                         "minimum_intensity_field",
                         "maximum_intensity_field",
+                        "magnetic_field_unit",
                         "g_candidate_at_max_intensity",
+                        "g_candidate_blocked_reason",
                     }
                 }
             )
@@ -199,11 +201,19 @@ def build_processed_table(
     if data_type == "EPR":
         max_abs = max((abs(y) for _, y in numeric), default=None)
         frequency_lookup = epr_frequency_lookup(rows)
+        magnetic_field_unit = epr_magnetic_field_unit(rows)
         output = []
         for field, intensity in numeric:
             normalized = intensity / max_abs if max_abs else None
             frequency = epr_frequency_for_field(rows, field, frequency_lookup)
-            output.append([field, intensity, normalized, epr_g_candidate(field, frequency)])
+            output.append(
+                [
+                    field,
+                    intensity,
+                    normalized,
+                    epr_g_candidate(field, frequency, magnetic_field_unit),
+                ]
+            )
         if any(row[3] is not None for row in output):
             return ["magnetic_field", "intensity", "normalized_intensity", "g_candidate_optional"], output
         return ["magnetic_field", "intensity", "normalized_intensity"], [row[:3] for row in output]
@@ -1040,13 +1050,22 @@ def epr_extrema_results(numeric: list[tuple[float, float]], rows: list[dict[str,
     min_field, _ = min(numeric, key=lambda item: item[1])
     max_field, _ = max(numeric, key=lambda item: item[1])
     frequency = epr_frequency_for_field(rows, max_field, epr_frequency_lookup(rows))
+    magnetic_field_unit = epr_magnetic_field_unit(rows)
     result = {
         "minimum_intensity_field": float(min_field),
         "maximum_intensity_field": float(max_field),
     }
-    g_value = epr_g_candidate(max_field, frequency)
+    if magnetic_field_unit is not None:
+        result["magnetic_field_unit"] = magnetic_field_unit
+    g_value = epr_g_candidate(max_field, frequency, magnetic_field_unit)
     if g_value is not None:
         result["g_candidate_at_max_intensity"] = g_value
+    else:
+        result["g_candidate_blocked_reason"] = epr_g_candidate_blocked_reason(
+            frequency,
+            magnetic_field_unit,
+            max_field,
+        )
     return result
 
 
@@ -1059,10 +1078,12 @@ def epr_package_results(numeric: list[tuple[float, float]], rows: list[dict[str,
     intensities = [intensity for _, intensity in numeric]
     frequency_lookup = epr_frequency_lookup(rows)
     frequencies = [epr_frequency_for_field(rows, field, frequency_lookup) for field in fields]
+    magnetic_field_unit = epr_magnetic_field_unit(rows)
     result = epr_adapter.process_or_analyze(
         fields,
         intensities,
         microwave_frequency_ghz=frequencies if any(value is not None for value in frequencies) else None,
+        magnetic_field_unit=magnetic_field_unit,
     )
     return result if result.get("ok") else {}
 
@@ -1102,12 +1123,86 @@ def epr_frequency_for_field(
     return None
 
 
-def epr_g_candidate(field_value: float, frequency_ghz: float | None) -> float | None:
-    if frequency_ghz is None or field_value <= 0:
+def normalize_epr_magnetic_field_unit(value: object) -> str | None:
+    text = str(value or "").strip().casefold()
+    text = re.sub(r"[\s._-]+", "", text)
+    text = text.strip("()[]{}")
+    if text in {"g", "gauss"}:
+        return "G"
+    if text in {"mt", "millitesla", "milliteslas"}:
+        return "mT"
+    return None
+
+
+def epr_magnetic_field_unit(rows: list[dict[str, str]]) -> str | None:
+    candidates: set[str] = set()
+    for row in rows:
+        for header, value in row.items():
+            header_text = str(header)
+            if _is_epr_field_header(header_text):
+                unit = _epr_unit_from_field_header(header_text)
+                if unit is not None:
+                    candidates.add(unit)
+            if _is_epr_field_unit_metadata_key(header_text):
+                unit = normalize_epr_magnetic_field_unit(value)
+                if unit is not None:
+                    candidates.add(unit)
+    return next(iter(candidates)) if len(candidates) == 1 else None
+
+
+def epr_g_candidate(
+    field_value: float,
+    frequency_ghz: float | None,
+    magnetic_field_unit: object = None,
+) -> float | None:
+    unit = normalize_epr_magnetic_field_unit(magnetic_field_unit)
+    if frequency_ghz is None or field_value <= 0 or unit is None:
         return None
-    # g = h * nu / (mu_B * B). For fields exported in gauss, B_mT = G / 10.
-    field_mt = field_value / 10.0 if field_value > 1000 else field_value
+    # g = h * nu / (mu_B * B). Convert only from explicit unit evidence.
+    field_mt = field_value / 10.0 if unit == "G" else field_value
     return 71.4477 * frequency_ghz / field_mt
+
+
+def epr_g_candidate_blocked_reason(
+    frequency_ghz: float | None,
+    magnetic_field_unit: object,
+    field_value: float | None = None,
+) -> str:
+    missing: list[str] = []
+    if frequency_ghz is None:
+        missing.append("microwave frequency in GHz")
+    if normalize_epr_magnetic_field_unit(magnetic_field_unit) is None:
+        missing.append("explicit magnetic-field unit (G/gauss or mT)")
+    if field_value is not None and field_value <= 0:
+        missing.append("positive magnetic-field value")
+    return "g candidate not generated: missing " + " and ".join(missing)
+
+
+def _is_epr_field_header(value: str) -> bool:
+    normalized = re.sub(r"[_-]+", " ", value.casefold())
+    return "magnetic field" in normalized or re.search(r"\bfield\b", normalized) is not None
+
+
+def _is_epr_field_unit_metadata_key(value: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9]+", " ", value.casefold()).strip()
+    return normalized in {
+        "field unit",
+        "magnetic field unit",
+        "x unit",
+        "x axis unit",
+    }
+
+
+def _epr_unit_from_field_header(value: str) -> str | None:
+    normalized = value.casefold()
+    candidates: set[str] = set()
+    if re.search(r"(?<![a-z0-9])gauss(?![a-z0-9])", normalized):
+        candidates.add("G")
+    if re.search(r"(?<![a-z0-9])g(?![a-z0-9])", normalized):
+        candidates.add("G")
+    if re.search(r"(?<![a-z0-9])m\s*t(?![a-z0-9])", normalized):
+        candidates.add("mT")
+    return next(iter(candidates)) if len(candidates) == 1 else None
 
 
 def _epr_field_key(field: float) -> float:

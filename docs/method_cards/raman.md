@@ -3,6 +3,7 @@
 ## Common File Formats
 - `.csv`, `.txt`, `.xlsx`, `.xls`, `.dat`
 - Exported Raman shift-intensity spectra.
+- Native/binary `.spc` files are inventory/manual-review inputs only until a format-specific reader is implemented.
 
 ## Automatic Recognition Signals
 - Folder/name keywords: `拉曼`, `Raman`.

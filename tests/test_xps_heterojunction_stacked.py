@@ -4,11 +4,13 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+import src.core.file_utils as file_utils
 from src.cli import main
 from src.core.xps_heterojunction import (
     XpsHeterojunctionOptions,
@@ -21,6 +23,9 @@ from src.core.xps_heterojunction import (
     XpsComparison,
     XpsFitRecord,
     _build_direct_origin_xps_script,
+    _cleanup_failed_renderer_origin,
+    _export_origin_for_comparison,
+    _terminate_owned_origin_processes,
     _validated_origin_artifacts,
 )
 from src.core.project import default_output_root
@@ -126,6 +131,65 @@ def test_cu2p_peak_annotations_are_omitted(tmp_path: Path) -> None:
 
     peak_details = _comparison_peak_details(plan.comparisons[0])
     assert peak_details == []
+
+
+def test_binding_energy_window_assignments_are_explicit_manual_check_candidates(
+    tmp_path: Path,
+) -> None:
+    def record(sample: str, peak_binding_energy: float) -> XpsFitRecord:
+        return XpsFitRecord(
+            sample=sample,
+            element="Bi",
+            region="Bi4f",
+            source_file=tmp_path / f"{sample}.xlsx",
+            sheet_name="Bi4f Scan",
+            raw_label="Bi4f",
+            background_label=None,
+            envelope_label=None,
+            residual_label=None,
+            component_labels=[],
+            data=[
+                {
+                    "binding_energy_eV": peak_binding_energy + 0.5,
+                    "raw_intensity": 1.0,
+                },
+                {
+                    "binding_energy_eV": peak_binding_energy,
+                    "raw_intensity": 5.0,
+                },
+                {
+                    "binding_energy_eV": peak_binding_energy - 0.5,
+                    "raw_intensity": 1.0,
+                },
+            ],
+        )
+
+    comparison = XpsComparison(
+        name="XPS_Bi_BOBC_vs_BC_stacked",
+        element="Bi",
+        sample_a="BOBC",
+        sample_b="BC",
+        record_a=record("BOBC", 164.0),
+        record_b=record("BC", 159.0),
+    )
+
+    peak_details = _comparison_peak_details(comparison)
+
+    assert {item["peak_assignment"] for item in peak_details} == {
+        "Bi 4f5/2",
+        "Bi 4f7/2",
+    }
+    assert all(
+        item["peak_assignment_candidate"] == item["peak_assignment"]
+        for item in peak_details
+    )
+    assert {
+        item["peak_assignment_method"] for item in peak_details
+    } == {"binding_energy_window_candidate"}
+    assert all(
+        item["peak_assignment_manual_check_required"] is True
+        for item in peak_details
+    )
 
 
 def test_comparison_x_axis_range_uses_overlap_range(tmp_path: Path) -> None:
@@ -250,7 +314,13 @@ def test_run_xps_heterojunction_stacked_dry_run_writes_reports_and_tables(tmp_pa
     assert (output / "processed_tables" / "XPS_Bi_BOBC_vs_BC_stacked.csv").exists()
     plot_csv = output / "processed_tables" / "XPS_Bi_BOBC_vs_BC_stacked_origin_plot.csv"
     assert "BOBC component 1" in plot_csv.read_text(encoding="utf-8").splitlines()[0]
-    assert (output / "processed_tables" / "XPS_Bi_BOBC_vs_BC_stacked_peak_annotations.csv").exists()
+    peak_table = output / "processed_tables" / "XPS_Bi_BOBC_vs_BC_stacked_peak_annotations.csv"
+    assert peak_table.exists()
+    peak_header = peak_table.read_text(encoding="utf-8-sig").splitlines()[0].split(",")
+    assert "peak_assignment" in peak_header
+    assert "peak_assignment_candidate" in peak_header
+    assert "peak_assignment_method" in peak_header
+    assert "peak_assignment_manual_check_required" in peak_header
     assert (output / "reports" / "xps_heterojunction_stacked_summary.md").exists()
     assert (output / "reports" / "xps_heterojunction_stacked_summary.csv").exists()
     assert (output / "reports" / "manual_review.csv").exists()
@@ -265,6 +335,232 @@ def test_run_xps_heterojunction_stacked_dry_run_writes_reports_and_tables(tmp_pa
     assert "no mechanism conclusion is generated" in summary
 
 
+def test_xps_preflight_blocks_all_writes_without_force_and_force_overwrites(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bobc = tmp_path / "BOBCfit.xlsx"
+    bc = tmp_path / "BCfit.xlsx"
+    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    _write_xps_workbook(bc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    output = default_output_root(project_root) / "xps_heterojunction_stacked"
+    existing_summary = output / "reports" / "xps_heterojunction_stacked_summary.json"
+    existing_summary.parent.mkdir(parents=True)
+    existing_summary.write_bytes(b"preserve")
+
+    with pytest.raises(FileExistsError, match="force=True"):
+        run_xps_heterojunction_stacked(
+            project_root,
+            {"BOBC": [bobc], "CWO": [], "BC": [bc]},
+            XpsHeterojunctionOptions(
+                output_dir=output,
+                with_origin=False,
+                force=False,
+            ),
+        )
+
+    assert existing_summary.read_bytes() == b"preserve"
+    assert not (
+        output / "processed_tables" / "XPS_Bi_BOBC_vs_BC_stacked.csv"
+    ).exists()
+    assert not (output / "metadata").exists()
+
+    result = run_xps_heterojunction_stacked(
+        project_root,
+        {"BOBC": [bobc], "CWO": [], "BC": [bc]},
+        XpsHeterojunctionOptions(
+            output_dir=output,
+            with_origin=False,
+            force=True,
+        ),
+    )
+
+    assert result["comparison_count"] == 1
+    assert json.loads(existing_summary.read_text(encoding="utf-8"))["comparison_count"] == 1
+
+
+def test_xps_force_with_existing_origin_preserves_every_existing_product(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bobc = tmp_path / "BOBCfit.xlsx"
+    bc = tmp_path / "BCfit.xlsx"
+    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    _write_xps_workbook(bc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    output = default_output_root(project_root) / "xps_heterojunction_stacked"
+    protected_products = {
+        output / "origin_projects" / "XPS_Bi_BOBC_vs_BC_stacked.opju": b"old opju",
+        output / "figures_tif" / "XPS_Bi_BOBC_vs_BC_stacked.tif": b"old tif",
+        output
+        / "origin_projects"
+        / "origin_jobs"
+        / "XPS_Bi_BOBC_vs_BC_stacked.png": b"old png",
+        output
+        / "processed_tables"
+        / "XPS_Bi_BOBC_vs_BC_stacked.csv": b"old processed table",
+    }
+    for path, content in protected_products.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+
+    with patch(
+        "src.core.xps_heterojunction._origin_process_ids",
+        return_value={9001},
+    ):
+        with pytest.raises(RuntimeError, match="before any existing product"):
+            run_xps_heterojunction_stacked(
+                project_root,
+                {"BOBC": [bobc], "CWO": [], "BC": [bc]},
+                XpsHeterojunctionOptions(
+                    output_dir=output,
+                    with_origin=True,
+                    force=True,
+                ),
+            )
+
+    for path, content in protected_products.items():
+        assert path.read_bytes() == content
+    assert not (output / "metadata").exists()
+    assert not (output / "reports").exists()
+
+
+@pytest.mark.parametrize(
+    "readiness_message",
+    (
+        "Origin disabled by RESEARCHDATAORIGINPIPELINE_DISABLE_ORIGIN=1",
+        "originpro unavailable: import failed",
+        "win32com unavailable: import failed",
+    ),
+)
+def test_xps_force_with_unavailable_origin_preserves_existing_package(
+    tmp_path: Path,
+    readiness_message: str,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bobc = tmp_path / "BOBCfit.xlsx"
+    bc = tmp_path / "BCfit.xlsx"
+    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    _write_xps_workbook(bc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    output = default_output_root(project_root) / "xps_heterojunction_stacked"
+    protected_products = {
+        output / "origin_projects" / "XPS_Bi_BOBC_vs_BC_stacked.opju": b"old opju",
+        output / "figures_tif" / "XPS_Bi_BOBC_vs_BC_stacked.tif": b"old tif",
+        output
+        / "origin_projects"
+        / "origin_jobs"
+        / "XPS_Bi_BOBC_vs_BC_stacked.png": b"old png",
+        output
+        / "processed_tables"
+        / "XPS_Bi_BOBC_vs_BC_stacked.csv": b"old processed table",
+        output
+        / "metadata"
+        / "XPS_Bi_BOBC_vs_BC_stacked"
+        / "metadata.json": b"old metadata",
+        output
+        / "reports"
+        / "xps_heterojunction_stacked_summary.json": b"old report",
+    }
+    for path, content in protected_products.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+
+    with patch(
+        "src.core.xps_heterojunction._origin_process_ids",
+        return_value=set(),
+    ):
+        with patch(
+            "src.core.xps_heterojunction.check_origin_available",
+            return_value=(False, readiness_message),
+        ) as readiness:
+            with pytest.raises(RuntimeError, match="readiness check failed"):
+                run_xps_heterojunction_stacked(
+                    project_root,
+                    {"BOBC": [bobc], "CWO": [], "BC": [bc]},
+                    XpsHeterojunctionOptions(
+                        output_dir=output,
+                        with_origin=True,
+                        force=True,
+                    ),
+                )
+
+    readiness.assert_called_once_with()
+    for path, content in protected_products.items():
+        assert path.read_bytes() == content
+    assert {
+        path.relative_to(output)
+        for path in output.rglob("*")
+        if path.is_file()
+    } == {
+        path.relative_to(output)
+        for path in protected_products
+    }
+
+
+def test_xps_force_rejects_reparse_output_leaf_before_unlink(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bobc = tmp_path / "BOBCfit.xlsx"
+    bc = tmp_path / "BCfit.xlsx"
+    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    _write_xps_workbook(bc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    output = default_output_root(project_root) / "xps_heterojunction_stacked"
+    unsafe_leaf = output / "reports" / "xps_heterojunction_stacked_summary.json"
+    unsafe_leaf.parent.mkdir(parents=True)
+    unsafe_leaf.write_bytes(b"must-not-unlink")
+    unsafe_key = file_utils.lexical_absolute_path(unsafe_leaf)
+    original_check = file_utils._path_is_link_or_reparse
+
+    monkeypatch.setattr(
+        file_utils,
+        "_path_is_link_or_reparse",
+        lambda path: file_utils.lexical_absolute_path(path) == unsafe_key
+        or original_check(path),
+    )
+
+    with pytest.raises(ValueError, match="symlink, junction, or reparse"):
+        run_xps_heterojunction_stacked(
+            project_root,
+            {"BOBC": [bobc], "CWO": [], "BC": [bc]},
+            XpsHeterojunctionOptions(
+                output_dir=output,
+                with_origin=False,
+                force=True,
+            ),
+        )
+
+    assert unsafe_leaf.read_bytes() == b"must-not-unlink"
+    assert not (
+        output / "processed_tables" / "XPS_Bi_BOBC_vs_BC_stacked.csv"
+    ).exists()
+
+
+def test_xps_direct_api_rejects_input_under_output_before_writing(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    output = default_output_root(project_root) / "xps_heterojunction_stacked"
+    output.mkdir(parents=True)
+    bobc = output / "BOBCfit.xlsx"
+    bc = output / "BCfit.xlsx"
+    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    _write_xps_workbook(bc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+
+    with pytest.raises(ValueError, match="overlaps protected input"):
+        run_xps_heterojunction_stacked(
+            project_root,
+            {"BOBC": [bobc], "CWO": [], "BC": [bc]},
+            XpsHeterojunctionOptions(output_dir=output, with_origin=False),
+        )
+
+    assert not (output / "reports").exists()
+    assert not (output / "processed_tables").exists()
+
+
 def test_run_xps_heterojunction_stacked_with_origin_updates_required_artifact_paths(tmp_path: Path) -> None:
     project_root = tmp_path / "project"
     project_root.mkdir()
@@ -273,7 +569,16 @@ def test_run_xps_heterojunction_stacked_with_origin_updates_required_artifact_pa
     _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
     _write_xps_workbook(bc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
 
-    def fake_export(_project_root: Path, comparison, plot_csv: Path, output_dirs: dict[str, Path], peak_details):
+    def fake_export(
+        _project_root: Path,
+        comparison,
+        plot_csv: Path,
+        output_dirs: dict[str, Path],
+        peak_details,
+        *,
+        force: bool,
+    ):
+        assert force is False
         assert "figures_preview" not in output_dirs
         origin = output_dirs["origin_projects"] / f"{comparison.name}.opju"
         tif = output_dirs["figures_tif"] / f"{comparison.name}.tif"
@@ -281,14 +586,27 @@ def test_run_xps_heterojunction_stacked_with_origin_updates_required_artifact_pa
         for path in (origin, tif, preview):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("artifact", encoding="utf-8")
-        return {"ok": True, "origin_file": origin, "figure_tif": tif, "preview_png": preview, "message": "fake"}
+        return {
+            "ok": True,
+            "origin_file": origin,
+            "figure_tif": tif,
+            "preview_png": preview,
+            "message": "fake",
+            "tif_resolution": {
+                "requested_dpi": 600,
+                "effective_dpi_x": 600.0,
+                "effective_dpi_y": 600.0,
+            },
+        }
 
-    with patch("src.core.xps_heterojunction._export_origin_for_comparison", side_effect=fake_export) as export:
-        result = run_xps_heterojunction_stacked(
-            project_root,
-            {"BOBC": [bobc], "CWO": [], "BC": [bc]},
-            XpsHeterojunctionOptions(output_dir=default_output_root(project_root) / "xps_heterojunction_stacked", with_origin=True),
-        )
+    with patch("src.core.xps_heterojunction._origin_process_ids", return_value=set()):
+        with patch("src.core.xps_heterojunction.check_origin_available", return_value=(True, "ok")):
+            with patch("src.core.xps_heterojunction._export_origin_for_comparison", side_effect=fake_export) as export:
+                result = run_xps_heterojunction_stacked(
+                    project_root,
+                    {"BOBC": [bobc], "CWO": [], "BC": [bc]},
+                    XpsHeterojunctionOptions(output_dir=default_output_root(project_root) / "xps_heterojunction_stacked", with_origin=True),
+                )
 
     assert export.call_count == 1
     assert result["will_launch_origin"] is True
@@ -297,6 +615,16 @@ def test_run_xps_heterojunction_stacked_with_origin_updates_required_artifact_pa
     assert figure["origin_file"].endswith(".opju")
     assert figure["figure_tif"].endswith(".tif")
     assert figure["preview_png"].endswith(".png")
+    assert figure["tif_resolution_evidence"]["effective_dpi_x"] == 600.0
+    metadata_path = (
+        default_output_root(project_root)
+        / "xps_heterojunction_stacked"
+        / "metadata"
+        / "XPS_Bi_BOBC_vs_BC_stacked"
+        / "metadata.json"
+    )
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert metadata["tif_resolution_evidence"]["effective_dpi_y"] == 600.0
 
 
 def test_xps_origin_success_requires_preview_png(tmp_path: Path) -> None:
@@ -320,7 +648,7 @@ def test_cli_xps_with_origin_returns_failure_when_export_status_fails(tmp_path: 
     bc.write_text("placeholder", encoding="utf-8")
     monkeypatch.chdir(project_root)
     monkeypatch.setattr(
-        "src.cli.run_xps_heterojunction_stacked",
+        "src.core.xps_heterojunction.run_xps_heterojunction_stacked",
         lambda *_args, **_kwargs: {"figures": [{"status": "origin_failed"}]},
     )
 
@@ -337,7 +665,10 @@ def test_cli_xps_returns_failure_when_no_figures_are_planned(tmp_path: Path, mon
     bobc.write_text("placeholder", encoding="utf-8")
     bc.write_text("placeholder", encoding="utf-8")
     monkeypatch.chdir(project_root)
-    monkeypatch.setattr("src.cli.run_xps_heterojunction_stacked", lambda *_args, **_kwargs: {"figures": []})
+    monkeypatch.setattr(
+        "src.core.xps_heterojunction.run_xps_heterojunction_stacked",
+        lambda *_args, **_kwargs: {"figures": []},
+    )
 
     code = main(["xps-heterojunction-stacked", "--bobc", str(bobc), "--bc", str(bc), "--dry-run"])
 
@@ -355,7 +686,7 @@ def test_cli_xps_rejects_output_directory_that_contains_an_input_file(tmp_path: 
     bc.write_text("placeholder", encoding="utf-8")
     monkeypatch.chdir(project_root)
     monkeypatch.setattr(
-        "src.cli.run_xps_heterojunction_stacked",
+        "src.core.xps_heterojunction.run_xps_heterojunction_stacked",
         lambda *_args, **_kwargs: {"figures": [{"status": "planned"}]},
     )
 
@@ -384,14 +715,15 @@ def test_cli_xps_allows_an_independent_external_output_directory(tmp_path: Path,
     bobc.write_text("placeholder", encoding="utf-8")
     bc.write_text("placeholder", encoding="utf-8")
     external_output = tmp_path / "external-output"
-    captured: dict[str, Path] = {}
+    captured: dict[str, object] = {}
 
     def fake_run(_project_root: Path, _sample_files, options: XpsHeterojunctionOptions, **_kwargs) -> dict:
         captured["output_dir"] = options.output_dir
+        captured["force"] = options.force
         return {"figures": [{"status": "planned"}]}
 
     monkeypatch.chdir(project_root)
-    monkeypatch.setattr("src.cli.run_xps_heterojunction_stacked", fake_run)
+    monkeypatch.setattr("src.core.xps_heterojunction.run_xps_heterojunction_stacked", fake_run)
 
     code = main(
         [
@@ -403,11 +735,13 @@ def test_cli_xps_allows_an_independent_external_output_directory(tmp_path: Path,
             "--dry-run",
             "--output-dir",
             str(external_output),
+            "--force",
         ]
     )
 
     assert code == 0
     assert captured["output_dir"] == external_output
+    assert captured["force"] is True
 
 
 def test_direct_origin_xps_generated_script_compiles(tmp_path: Path) -> None:
@@ -434,12 +768,335 @@ def test_direct_origin_xps_generated_script_compiles(tmp_path: Path) -> None:
         plot_csv,
         tmp_path / "out.opju",
         tmp_path / "out.png",
-        tmp_path / "out.tif",
+        tmp_path / "origin_lifecycle.json",
         "Graph1",
         [],
     )
 
     compile(script, "<generated_xps_origin_script>", "exec")
+    assert 'graph.save_fig(payload["preview_png"]' in script
+    assert 'graph.save_fig(payload["figure_tif"]' not in script
+    assert '"figure_tif"' not in script
+    assert '"origin_lifecycle_path"' in script
+    assert '"owned_origin_pids"' in script
+    assert '"remaining_owned_pids"' in script
+    assert "Origin lifecycle finalization failed; product acceptance is blocked" in script
+
+
+def test_xps_origin_export_reopens_saved_opju_for_native_tif(tmp_path: Path) -> None:
+    plot_csv = tmp_path / "plot.csv"
+    plot_csv.write_text("binding_energy_eV,CWO measured,BC measured\n1,2,3\n", encoding="utf-8")
+
+    def record(sample: str) -> XpsFitRecord:
+        return XpsFitRecord(
+            sample=sample,
+            element="Cu",
+            region="Cu2p",
+            source_file=tmp_path / f"{sample}.xlsx",
+            sheet_name="Cu2p",
+            raw_label="measured",
+            background_label=None,
+            envelope_label=None,
+            residual_label=None,
+            component_labels=[],
+            data=[{"binding_energy_eV": 1.0, "raw_intensity": 2.0}],
+        )
+
+    comparison = XpsComparison(
+        "XPS_Cu_CWO_vs_BC_stacked",
+        "Cu",
+        "CWO",
+        "BC",
+        record("CWO"),
+        record("BC"),
+    )
+    output_dirs = {
+        "origin_projects": tmp_path / "origin_projects",
+        "figures_tif": tmp_path / "figures_tif",
+    }
+    origin_file = output_dirs["origin_projects"] / f"{comparison.name}.opju"
+    preview_png = output_dirs["origin_projects"] / "origin_jobs" / f"{comparison.name}.png"
+    lifecycle_file = output_dirs["origin_projects"] / "origin_jobs" / f"{comparison.name}_origin_lifecycle.json"
+    figure_tif = output_dirs["figures_tif"] / f"{comparison.name}.tif"
+    call_order: list[str] = []
+
+    def fake_run(*_args, **_kwargs):
+        call_order.append("renderer_exited")
+        origin_file.parent.mkdir(parents=True, exist_ok=True)
+        preview_png.parent.mkdir(parents=True, exist_ok=True)
+        origin_file.write_bytes(b"opju")
+        preview_png.write_bytes(b"png")
+        lifecycle_file.write_text(
+            json.dumps(
+                {
+                    "baseline_origin_pids": [],
+                    "owned_origin_pids": [4242],
+                    "remaining_owned_pids": [],
+                    "exit_ok": True,
+                    "exit_error": "",
+                }
+            ),
+            encoding="utf-8",
+        )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    def fake_reexport(opju: Path, graph_page: str, tif: Path, *, dpi: int):
+        call_order.append("reopened_opju")
+        assert opju == origin_file
+        assert graph_page
+        assert tif == figure_tif
+        assert dpi == 600
+        assert not tif.exists()
+        tif.parent.mkdir(parents=True, exist_ok=True)
+        tif.write_bytes(b"native tif")
+        return SimpleNamespace(as_dict=lambda: {"path": str(tif), "requested_dpi": 600})
+
+    with patch("src.core.xps_heterojunction.check_origin_available", return_value=(True, "ok")):
+        with patch("src.core.xps_heterojunction._origin_process_ids", return_value=set()):
+            with patch("src.core.xps_heterojunction._run_xps_origin_renderer", side_effect=fake_run):
+                with patch(
+                    "src.core.xps_heterojunction.reexport_tif_from_reopened_opju",
+                    side_effect=fake_reexport,
+                ):
+                    result = _export_origin_for_comparison(
+                        tmp_path,
+                        comparison,
+                        plot_csv,
+                        output_dirs,
+                        [],
+                    )
+
+    assert result["ok"] is True
+    assert result["figure_tif"] == figure_tif
+    assert result["tif_resolution"] == {"requested_dpi": 600}
+    assert call_order == ["renderer_exited", "reopened_opju"]
+    assert not lifecycle_file.exists()
+
+
+def test_xps_origin_export_refuses_pre_existing_origin_session(tmp_path: Path) -> None:
+    plot_csv, comparison, output_dirs = _minimal_origin_export_case(tmp_path)
+    project_root = tmp_path / "project"
+
+    with patch(
+        "src.core.xps_heterojunction._origin_process_ids",
+        return_value={9001},
+    ):
+        with patch("src.core.xps_heterojunction.check_origin_available") as available:
+            with patch("src.core.xps_heterojunction._run_xps_origin_renderer") as renderer:
+                result = _export_origin_for_comparison(
+                    project_root,
+                    comparison,
+                    plot_csv,
+                    output_dirs,
+                    [],
+                )
+
+    assert result["ok"] is False
+    assert result["pre_existing_origin_pids"] == [9001]
+    assert "already running" in result["message"]
+    available.assert_not_called()
+    renderer.assert_not_called()
+
+
+def test_xps_origin_exit_failure_blocks_success_and_tif_reexport(tmp_path: Path) -> None:
+    plot_csv, comparison, output_dirs = _minimal_origin_export_case(tmp_path)
+    project_root = tmp_path / "project"
+    origin_file = output_dirs["origin_projects"] / f"{comparison.name}.opju"
+    job_dir = output_dirs["origin_projects"] / "origin_jobs"
+    preview_png = job_dir / f"{comparison.name}.png"
+    lifecycle_file = job_dir / f"{comparison.name}_origin_lifecycle.json"
+
+    def fake_renderer(_job_script: Path):
+        origin_file.parent.mkdir(parents=True, exist_ok=True)
+        job_dir.mkdir(parents=True, exist_ok=True)
+        origin_file.write_bytes(b"opju")
+        preview_png.write_bytes(b"png")
+        lifecycle_file.write_text(
+            json.dumps(
+                {
+                    "baseline_origin_pids": [],
+                    "owned_origin_pids": [5151],
+                    "remaining_owned_pids": [],
+                    "exit_ok": False,
+                    "exit_error": "RuntimeError: exit failed",
+                }
+            ),
+            encoding="utf-8",
+        )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    with patch("src.core.xps_heterojunction._origin_process_ids", return_value=set()):
+        with patch("src.core.xps_heterojunction.check_origin_available", return_value=(True, "ok")):
+            with patch(
+                "src.core.xps_heterojunction._run_xps_origin_renderer",
+                side_effect=fake_renderer,
+            ):
+                with patch(
+                    "src.core.xps_heterojunction.reexport_tif_from_reopened_opju"
+                ) as reexport:
+                    result = _export_origin_for_comparison(
+                        project_root,
+                        comparison,
+                        plot_csv,
+                        output_dirs,
+                        [],
+                    )
+
+    assert result["ok"] is False
+    assert "exit failed" in result["message"]
+    reexport.assert_not_called()
+
+
+def test_xps_origin_bounded_exit_failure_only_cleans_proven_owned_pid(
+    tmp_path: Path,
+) -> None:
+    plot_csv, comparison, output_dirs = _minimal_origin_export_case(tmp_path)
+    project_root = tmp_path / "project"
+    origin_file = output_dirs["origin_projects"] / f"{comparison.name}.opju"
+    job_dir = output_dirs["origin_projects"] / "origin_jobs"
+    preview_png = job_dir / f"{comparison.name}.png"
+    lifecycle_file = job_dir / f"{comparison.name}_origin_lifecycle.json"
+
+    def fake_renderer(_job_script: Path):
+        origin_file.parent.mkdir(parents=True, exist_ok=True)
+        job_dir.mkdir(parents=True, exist_ok=True)
+        origin_file.write_bytes(b"opju")
+        preview_png.write_bytes(b"png")
+        lifecycle_file.write_text(
+            json.dumps(
+                {
+                    "baseline_origin_pids": [],
+                    "owned_origin_pids": [5151],
+                    "remaining_owned_pids": [5151],
+                    "exit_ok": False,
+                    "exit_error": "",
+                }
+            ),
+            encoding="utf-8",
+        )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    with patch(
+        "src.core.xps_heterojunction._origin_process_ids",
+        side_effect=[set(), set(), {5151}],
+    ):
+        with patch("src.core.xps_heterojunction.check_origin_available", return_value=(True, "ok")):
+            with patch(
+                "src.core.xps_heterojunction._run_xps_origin_renderer",
+                side_effect=fake_renderer,
+            ):
+                with patch(
+                    "src.core.xps_heterojunction._terminate_owned_origin_processes"
+                ) as terminate:
+                    with patch(
+                        "src.core.xps_heterojunction._wait_for_origin_pids_exit",
+                        return_value=set(),
+                    ):
+                        result = _export_origin_for_comparison(
+                            project_root,
+                            comparison,
+                            plot_csv,
+                            output_dirs,
+                            [],
+                        )
+
+    assert result["ok"] is False
+    assert "bounded exit wait" in result["message"]
+    terminate.assert_called_once_with({5151})
+
+
+def test_xps_failed_renderer_never_terminates_unowned_origin_pid(tmp_path: Path) -> None:
+    lifecycle_file = tmp_path / "origin_lifecycle.json"
+    lifecycle_file.write_text(
+        json.dumps(
+            {
+                "baseline_origin_pids": [],
+                "owned_origin_pids": [5151],
+                "remaining_owned_pids": [5151],
+                "exit_ok": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    payload = json.loads(lifecycle_file.read_text(encoding="utf-8"))
+
+    with patch(
+        "src.core.xps_heterojunction._origin_process_ids",
+        return_value={5151, 6161},
+    ):
+        with patch(
+            "src.core.xps_heterojunction._terminate_owned_origin_processes"
+        ) as terminate:
+            error = _cleanup_failed_renderer_origin(
+                payload,
+                expected_baseline=set(),
+            )
+
+    assert "unowned Origin PID" in error
+    assert "6161" in error
+    terminate.assert_not_called()
+
+
+def test_xps_origin_cleanup_command_targets_only_proven_owned_pids() -> None:
+    completed = SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    with patch(
+        "src.core.xps_heterojunction.subprocess.run",
+        return_value=completed,
+    ) as run:
+        _terminate_owned_origin_processes({5151, 4242})
+
+    command = run.call_args.args[0]
+    assert command[:3] == ["powershell", "-NoProfile", "-Command"]
+    script = command[3]
+    assert "$ids = @(4242,5151)" in script
+    assert "Get-Process -Id $ids" in script
+    assert "ProcessName -like 'Origin*'" in script
+    assert "Get-Process -Name Origin*" not in script
+
+
+def _minimal_origin_export_case(
+    tmp_path: Path,
+) -> tuple[Path, XpsComparison, dict[str, Path]]:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    plot_csv = tmp_path / "plot.csv"
+    plot_csv.write_text(
+        "binding_energy_eV,CWO measured,BC measured\n1,2,3\n",
+        encoding="utf-8",
+    )
+
+    def record(sample: str) -> XpsFitRecord:
+        return XpsFitRecord(
+            sample=sample,
+            element="Cu",
+            region="Cu2p",
+            source_file=tmp_path / f"{sample}.xlsx",
+            sheet_name="Cu2p",
+            raw_label="measured",
+            background_label=None,
+            envelope_label=None,
+            residual_label=None,
+            component_labels=[],
+            data=[{"binding_energy_eV": 1.0, "raw_intensity": 2.0}],
+        )
+
+    comparison = XpsComparison(
+        "XPS_Cu_CWO_vs_BC_stacked",
+        "Cu",
+        "CWO",
+        "BC",
+        record("CWO"),
+        record("BC"),
+    )
+    return (
+        plot_csv,
+        comparison,
+        {
+            "origin_projects": tmp_path / "external_output" / "origin_projects",
+            "figures_tif": tmp_path / "external_output" / "figures_tif",
+        },
+    )
 
 
 def test_cli_xps_heterojunction_stacked_dry_run_uses_explicit_sample_paths(tmp_path: Path, monkeypatch) -> None:

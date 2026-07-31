@@ -38,7 +38,10 @@ SUPPORTED_PROCESSOR_PROFILES = MappingProxyType(
         "EPR": _profile(
             "EPR",
             "epr_processor",
-            ("confirm peak-to-peak intensity and microwave frequency before using g candidates",),
+            (
+                "confirm magnetic-field unit (G/gauss or mT), peak-to-peak intensity, "
+                "and microwave frequency before using g candidates",
+            ),
             ("do not assign radical species automatically",),
             ("magnetic-field intensity spectrum",),
         ),
@@ -131,7 +134,7 @@ SUPPORTED_PROCESSOR_PROFILES = MappingProxyType(
         "EIS": _profile(
             "EIS",
             "eis_processor",
-            ("confirm sign convention for imaginary impedance and frequency units",),
+            ("confirm imaginary-impedance sign convention plus frequency, impedance, and phase units",),
             ("do not select equivalent circuits or infer mechanism automatically",),
             ("Nyquist plot", "Bode magnitude and phase plots"),
         ),

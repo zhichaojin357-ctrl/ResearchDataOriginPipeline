@@ -1,22 +1,31 @@
 from __future__ import annotations
 
+import inspect
 import json
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
+
+import src.core.file_utils as file_utils
 from src.cli import main
 from src.core.xrd_overlay import (
-    XrdOverlayArtifacts,
     XrdOverlayOptions,
-    XrdOverlayTable,
     build_xrd_overlay_table,
     parse_xrd_reference_card_peaks,
     run_xrd_overlay,
-    _origin_job_script,
+    _replace_graph4_template_data_with_originpro,
+    _isolated_xrd_originpro_session,
     _set_template_text_objects,
     _xrd_axis_title_labtalk,
 )
 from src.core.xrd_no_card_overlay import (
+    XrdNoCardOverlayArtifacts,
     XrdNoCardOverlayOptions,
+    XrdNoCardOverlayTable,
+    _export_with_existing_script,
+    _preflight_run_outputs,
     build_xrd_no_card_overlay_table,
     run_xrd_no_card_overlay,
     _origin_process_ids,
@@ -131,6 +140,169 @@ def test_run_xrd_overlay_dry_run_does_not_require_reference_opju(tmp_path: Path)
     assert metadata["origin_reference_opju"].endswith("missing_reference.opju")
 
 
+def test_xrd_overlay_preflight_blocks_before_manifest_and_force_overwrites(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bicu = _write_raw4(tmp_path / "bicu.txt", [(5.0, 10.0), (6.0, 20.0)])
+    bobc = _write_raw4(tmp_path / "bobc.txt", [(5.0, 6.0), (6.0, 12.0)])
+    cwo = _write_raw4(tmp_path / "cwo.txt", [(5.0, 4.0), (6.0, 8.0)])
+    card = tmp_path / "card.txt"
+    card.write_text("5.0 x 100\n6.0 x 50\n", encoding="utf-8")
+    output_root = default_output_root(project_root)
+    timestamp = "20260731_010101"
+    run_root = output_root / "runs" / f"{timestamp}_xrd_bobc_shuire_cwo_overlay"
+    existing_report = run_root / "reports" / "xrd_overlay_report.md"
+    existing_report.parent.mkdir(parents=True)
+    existing_report.write_bytes(b"preserve")
+    options = XrdOverlayOptions(
+        bicu_source=bicu,
+        bobc_source=bobc,
+        cwo_source=cwo,
+        cwo_card=card,
+        reference_opju=tmp_path / "unused.opju",
+        output_root=output_root,
+        with_origin=False,
+        timestamp=timestamp,
+        force=False,
+    )
+
+    with pytest.raises(FileExistsError, match="force=True"):
+        run_xrd_overlay(project_root, options)
+
+    assert existing_report.read_bytes() == b"preserve"
+    assert not (run_root / "run_manifest.json").exists()
+    assert not (run_root / "processed_data").exists()
+
+    result = run_xrd_overlay(
+        project_root,
+        XrdOverlayOptions(**{**options.__dict__, "force": True}),
+    )
+
+    assert result["origin_status"]["ok"] is False
+    assert "- Status: processed_no_origin" in existing_report.read_text(encoding="utf-8")
+
+
+def test_xrd_overlay_force_rejects_reparse_leaf_without_touching_inputs(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bicu = _write_raw4(tmp_path / "bicu.txt", [(5.0, 10.0), (6.0, 20.0)])
+    bobc = _write_raw4(tmp_path / "bobc.txt", [(5.0, 6.0), (6.0, 12.0)])
+    cwo = _write_raw4(tmp_path / "cwo.txt", [(5.0, 4.0), (6.0, 8.0)])
+    card = tmp_path / "card.txt"
+    card.write_text("5.0 x 100\n6.0 x 50\n", encoding="utf-8")
+    source_before = bicu.read_bytes()
+    output_root = default_output_root(project_root)
+    timestamp = "20260731_010104"
+    run_root = output_root / "runs" / f"{timestamp}_xrd_bobc_shuire_cwo_overlay"
+    unsafe_leaf = run_root / "reports" / "xrd_overlay_report.md"
+    unsafe_leaf.parent.mkdir(parents=True)
+    unsafe_leaf.write_bytes(b"must-not-unlink")
+    unsafe_key = file_utils.lexical_absolute_path(unsafe_leaf)
+    original_check = file_utils._path_is_link_or_reparse
+
+    monkeypatch.setattr(
+        file_utils,
+        "_path_is_link_or_reparse",
+        lambda path: file_utils.lexical_absolute_path(path) == unsafe_key
+        or original_check(path),
+    )
+
+    with pytest.raises(ValueError, match="symlink, junction, or reparse"):
+        run_xrd_overlay(
+            project_root,
+            XrdOverlayOptions(
+                bicu_source=bicu,
+                bobc_source=bobc,
+                cwo_source=cwo,
+                cwo_card=card,
+                reference_opju=tmp_path / "unused.opju",
+                output_root=output_root,
+                with_origin=False,
+                timestamp=timestamp,
+                force=True,
+            ),
+        )
+
+    assert bicu.read_bytes() == source_before
+    assert unsafe_leaf.read_bytes() == b"must-not-unlink"
+    assert not (run_root / "run_manifest.json").exists()
+    assert not (run_root / "processed_data").exists()
+
+
+def test_xrd_overlay_rejects_source_inside_output_root_before_writing(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    output_root = default_output_root(project_root)
+    output_root.mkdir(parents=True)
+    bicu = _write_raw4(output_root / "bicu.txt", [(5.0, 10.0), (6.0, 20.0)])
+    bobc = _write_raw4(tmp_path / "bobc.txt", [(5.0, 6.0), (6.0, 12.0)])
+    cwo = _write_raw4(tmp_path / "cwo.txt", [(5.0, 4.0), (6.0, 8.0)])
+    card = tmp_path / "card.txt"
+    card.write_text("5.0 x 100\n6.0 x 50\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="overlaps protected input"):
+        run_xrd_overlay(
+            project_root,
+            XrdOverlayOptions(
+                bicu_source=bicu,
+                bobc_source=bobc,
+                cwo_source=cwo,
+                cwo_card=card,
+                output_root=output_root,
+                with_origin=False,
+                timestamp="20260731_010102",
+            ),
+        )
+
+    assert not (output_root / "runs").exists()
+
+
+def test_xrd_origin_failure_has_matching_fail_status_in_metadata_and_report(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    bicu = _write_raw4(tmp_path / "bicu.txt", [(5.0, 10.0), (6.0, 20.0)])
+    bobc = _write_raw4(tmp_path / "bobc.txt", [(5.0, 6.0), (6.0, 12.0)])
+    cwo = _write_raw4(tmp_path / "cwo.txt", [(5.0, 4.0), (6.0, 8.0)])
+    card = tmp_path / "card.txt"
+    card.write_text("5.0 x 100\n6.0 x 50\n", encoding="utf-8")
+    reference = tmp_path / "reference.opju"
+    reference.write_bytes(b"opju")
+    monkeypatch.setattr(
+        "src.core.xrd_overlay._export_xrd_overlay_with_origin",
+        lambda *_args, **_kwargs: {"ok": False, "message": "synthetic Origin failure"},
+    )
+
+    result = run_xrd_overlay(
+        project_root,
+        XrdOverlayOptions(
+            bicu_source=bicu,
+            bobc_source=bobc,
+            cwo_source=cwo,
+            cwo_card=card,
+            reference_opju=reference,
+            output_root=default_output_root(project_root),
+            with_origin=True,
+            timestamp="20260731_010103",
+        ),
+    )
+
+    metadata = json.loads((project_root / result["metadata"]).read_text(encoding="utf-8"))
+    report = (project_root / result["report"]).read_text(encoding="utf-8")
+    assert metadata["processing_status"] == "fail"
+    assert "- Status: fail" in report
+    assert "processed_no_origin" not in report
+
+
 def test_run_xrd_overlay_defaults_to_project_local_reference_opju(tmp_path: Path) -> None:
     project_root = tmp_path / "project"
     reference = project_root / "templates" / "origin_styles" / "reference_opju" / "XRD.opju"
@@ -192,6 +364,49 @@ def test_xrd_overlay_cli_parses_required_sources(tmp_path: Path) -> None:
     assert rc == 0
 
 
+def test_xrd_overlay_cli_passes_force_to_options(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(_project_root: Path, options: XrdOverlayOptions) -> dict:
+        captured["force"] = options.force
+        return {
+            "run_root": "run",
+            "processed_data": "processed.csv",
+            "metadata": "metadata.json",
+            "origin_file": "plot.opju",
+            "figure_tif": "plot.tif",
+            "preview_png": "plot.png",
+            "origin_status": {"ok": False},
+        }
+
+    monkeypatch.setattr("src.core.xrd_overlay.run_xrd_overlay", fake_run)
+    rc = main(
+        [
+            "xrd-overlay",
+            "--bicu-source",
+            str(tmp_path / "bicu.txt"),
+            "--bobc-source",
+            str(tmp_path / "bobc.txt"),
+            "--cwo-source",
+            str(tmp_path / "cwo.txt"),
+            "--cwo-card",
+            str(tmp_path / "card.txt"),
+            "--output-root",
+            str(tmp_path / "out"),
+            "--timestamp",
+            "20260731_050000",
+            "--dry-run",
+            "--force",
+        ]
+    )
+
+    assert rc == 0
+    assert captured["force"] is True
+
+
 def test_xrd_overlay_template_text_uses_uniform_legend_format() -> None:
     layer1 = _FakeLayer({"Legend": _FakeGraphObject(), "Text": _FakeGraphObject()})
     layer2 = _FakeLayer({"Text": _FakeGraphObject()})
@@ -214,43 +429,71 @@ def test_xrd_overlay_template_text_uses_uniform_legend_format() -> None:
     assert "fsize" not in card_text.props
 
 
-def test_xrd_overlay_origin_script_uses_greek_theta_axis_title(tmp_path: Path) -> None:
-    table = XrdOverlayTable(
-        headers=["two_theta_deg", "BOBC"],
-        rows=[[5.0, 1.0], [6.0, 2.0]],
-        legend_labels=["BOBC"],
-        origin_ocolors=[16814848],
-        metadata={},
-    )
-    options = XrdOverlayOptions(
-        bicu_source=tmp_path / "bicu.txt",
-        bobc_source=tmp_path / "bobc.txt",
-        cwo_source=tmp_path / "cwo.txt",
-        cwo_card=tmp_path / "card.txt",
-        reference_opju=tmp_path / "reference.opju",
-    )
-    artifacts = XrdOverlayArtifacts(
-        processed_data=tmp_path / "processed.csv",
-        metadata=tmp_path / "metadata.json",
-        report=tmp_path / "report.md",
-        origin_file=tmp_path / "plot.opju",
-        figure_tif=tmp_path / "plot.tif",
-        preview_png=tmp_path / "plot.png",
-        job_script=tmp_path / "job.ps1",
-    )
-
-    script = _origin_job_script(tmp_path, options, table, artifacts)
-
-    assert "XTitle = '2θ (degree)'" in script
-    assert "2theta (degree)" not in script
-
-
 def test_xrd_overlay_direct_origin_path_sets_greek_theta_axis_title() -> None:
     labtalk = _xrd_axis_title_labtalk("Graph4")
 
     assert 'xb.text$="\\b(2θ (degree))"' in labtalk
     assert 'yl.text$="\\b(Intensity (a.u.))"' in labtalk
     assert "2theta (degree)" not in labtalk
+
+
+def test_xrd_overlay_reopens_saved_runtime_opju_for_native_tif() -> None:
+    source = inspect.getsource(_replace_graph4_template_data_with_originpro)
+
+    assert source.index("with _isolated_xrd_originpro_session()") < source.index(
+        "reexport_tif_from_reopened_opju("
+    )
+    assert "op.exit()" in inspect.getsource(_isolated_xrd_originpro_session)
+    assert "graph.save_fig(str(runtime_tif)" not in source
+    assert "_ensure_tif_600_dpi" not in source
+
+
+def test_xrd_overlay_refuses_preexisting_origin_before_import(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "src.core.xrd_overlay._xrd_origin_process_ids",
+        lambda: {24740},
+    )
+    monkeypatch.delitem(sys.modules, "originpro", raising=False)
+
+    with pytest.raises(RuntimeError, match="already running.*24740"):
+        with _isolated_xrd_originpro_session():
+            raise AssertionError("session must not be yielded")
+
+
+def test_xrd_overlay_origin_exit_exception_blocks_success(monkeypatch) -> None:
+    fake_originpro = SimpleNamespace(
+        exit=lambda: (_ for _ in ()).throw(RuntimeError("synthetic exit failure"))
+    )
+    monkeypatch.setitem(sys.modules, "originpro", fake_originpro)
+    monkeypatch.setattr(
+        "src.core.xrd_overlay._xrd_origin_process_ids",
+        lambda: set(),
+    )
+    monkeypatch.setattr(
+        "src.core.xrd_overlay._wait_for_xrd_origin_exit",
+        lambda *_args, **_kwargs: set(),
+    )
+
+    with pytest.raises(RuntimeError, match="exit raised RuntimeError: synthetic exit failure"):
+        with _isolated_xrd_originpro_session() as yielded:
+            assert yielded is fake_originpro
+
+
+def test_xrd_overlay_remaining_new_origin_pid_blocks_success(monkeypatch) -> None:
+    fake_originpro = SimpleNamespace(exit=lambda: None)
+    monkeypatch.setitem(sys.modules, "originpro", fake_originpro)
+    monkeypatch.setattr(
+        "src.core.xrd_overlay._xrd_origin_process_ids",
+        lambda: set(),
+    )
+    monkeypatch.setattr(
+        "src.core.xrd_overlay._wait_for_xrd_origin_exit",
+        lambda *_args, **_kwargs: {13579},
+    )
+
+    with pytest.raises(RuntimeError, match="remained.*13579"):
+        with _isolated_xrd_originpro_session():
+            pass
 
 
 def test_xrd_no_card_overlay_accepts_mixed_xrd_text_formats(tmp_path: Path) -> None:
@@ -339,12 +582,124 @@ def test_xrd_no_card_origin_script_restricts_output_dir_to_output_root() -> None
 
     assert "def ensure_output_dir_allowed(output_dir: Path, output_root: Path | None) -> Path:" in script_text
     assert "resolve_output_root(PROJECT_ROOT, explicit=output_root)" in script_text
-    assert "is_under_or_equal(resolved_output_dir, resolved_output_root)" in script_text
+    assert "is_under_or_equal(lexical_output_dir, resolved_output_root)" in script_text
+    assert "ensure_safe_output_file_target(" in script_text
     assert "--output-dir must stay under the configured output root" in script_text
     assert 'parser.add_argument("--output-root", type=Path, default=None)' in script_text
     assert "args.output_dir = ensure_output_dir_allowed(args.output_dir, args.output_root)" in script_text
     assert '"--output-root",' in wrapper_text
     assert "str(artifacts.script_output_dir.parents[1])" in wrapper_text
+
+
+def test_xrd_no_card_origin_script_reopens_final_opju_for_native_600_dpi() -> None:
+    script_text = XRD_NO_CARD_ORIGIN_SCRIPT.read_text(encoding="utf-8")
+
+    preview_index = script_text.index("png = export_preview(")
+    exit_index = script_text.index("app.Exit()", preview_index)
+    reexport_index = script_text.index("resolution = reexport_tif_from_reopened_opju(", exit_index)
+
+    assert exit_index < reexport_index
+    assert "dpi=600" in script_text[reexport_index:]
+    assert "ensure_tif_600_dpi" not in script_text
+    assert "output.resize(" not in script_text
+    assert "expGraph type:=tif" not in script_text
+
+
+def test_xrd_no_card_origin_script_preflights_before_mkdir_or_unlink() -> None:
+    script_text = XRD_NO_CARD_ORIGIN_SCRIPT.read_text(encoding="utf-8")
+    start = script_text.index("args.output_dir = ensure_output_dir_allowed")
+    preflight = script_text.index("preflight_output_targets(", start)
+    origin_guard = script_text.index("running_origin = existing_origin_process_ids()", preflight)
+    cleanup = script_text.index("prepare_safe_output_file_targets(", origin_guard)
+    mkdir = script_text.index("args.output_dir.mkdir(", origin_guard)
+
+    assert preflight < origin_guard < cleanup < mkdir
+    assert 'parser.add_argument("--force", action="store_true")' in script_text
+    assert "Input CSV and reference OPJU must be outside --output-dir" in script_text
+    assert "sha256_before" in script_text
+    assert "sha256_after" in script_text
+
+
+def test_xrd_no_card_output_preflight_requires_force_for_existing_targets(tmp_path: Path) -> None:
+    artifact = tmp_path / "product.opju"
+    artifact.write_bytes(b"keep")
+    artifacts = XrdNoCardOverlayArtifacts(
+        processed_data=tmp_path / "processed.csv",
+        metadata=tmp_path / "metadata.json",
+        report=tmp_path / "report.md",
+        origin_file=artifact,
+        figure_tif=tmp_path / "figure.tif",
+        preview_png=tmp_path / "preview.png",
+        script_output_dir=tmp_path / "stage",
+    )
+
+    try:
+        _preflight_run_outputs(artifacts, force=False)
+    except FileExistsError as exc:
+        assert "rerun with --force" in str(exc)
+    else:
+        raise AssertionError("existing output must fail closed without --force")
+    assert artifact.read_bytes() == b"keep"
+
+    _preflight_run_outputs(artifacts, force=True)
+
+    assert not artifact.exists()
+
+
+def test_xrd_no_card_wrapper_blocks_preexisting_origin_without_launching_script(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    run_root = tmp_path / "run"
+    artifacts = XrdNoCardOverlayArtifacts(
+        processed_data=run_root / "processed.csv",
+        metadata=run_root / "metadata.json",
+        report=run_root / "report.md",
+        origin_file=run_root / "origin" / "product.opju",
+        figure_tif=run_root / "tif" / "product.tif",
+        preview_png=run_root / "png" / "product.png",
+        script_output_dir=run_root / "logs" / "stage",
+    )
+    options = XrdNoCardOverlayOptions(
+        sources=(tmp_path / "source.txt",),
+        with_origin=True,
+    )
+    table = XrdNoCardOverlayTable(
+        headers=["two_theta_deg", "sample"],
+        rows=[[5.0, 1.0], [6.0, 2.0]],
+        labels=["sample"],
+        metadata={},
+    )
+    monkeypatch.setattr(
+        "src.core.xrd_no_card_overlay.check_origin_available",
+        lambda: (True, "ok"),
+    )
+    monkeypatch.setattr(
+        "src.core.xrd_no_card_overlay._origin_process_ids",
+        lambda *_args, **_kwargs: [24740],
+    )
+
+    def fail_launch(*_args, **_kwargs):
+        raise AssertionError("the helper script must not launch while Origin is open")
+
+    monkeypatch.setattr(
+        "src.core.xrd_no_card_overlay.subprocess.run",
+        fail_launch,
+    )
+
+    status = _export_with_existing_script(
+        project_root,
+        options,
+        table,
+        artifacts,
+        None,
+    )
+
+    assert status["ok"] is False
+    assert status["pre_existing_origin_pids"] == [24740]
+    assert "already running" in status["message"]
 
 
 def test_xrd_no_card_origin_cleanup_preserves_preexisting_origin_pid(monkeypatch) -> None:

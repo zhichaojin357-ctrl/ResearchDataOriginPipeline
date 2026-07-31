@@ -1,22 +1,28 @@
-# Optional installable dependency candidates only.
-# Missing optional dependencies must warn, not fail.
-# Do not use these to expand Phase 1 scope or make scientific assignments.
-impedance
-ixdat
+# Install only the extra needed by the selected command or file format.
+# A missing extra must not break unrelated commands. A command whose selected
+# input requires that extra must fail explicitly instead of guessing a decode.
 pyGAPS
-lmfitxps
-ramanspy
-rampy
-spectrochempy
 rainbow-api>=1.3.1,<2
-mocca2
-pymzML
-pyteomics
-nmrglue
-tifffile
-Pillow
-EPRpy
+vgd-reader
+lmfitxps
 cwepr
+EPRpy
+
+# Explicit/manual diagnostic API only. The formal EIS processor does not
+# perform equivalent-circuit fitting:
+# impedance
+
+# Diagnostic/future adapter candidates. They are intentionally not installable
+# from this file until a production call site and format-specific tests exist:
+# ixdat
+# mocca2
+# ramanspy
+# rampy
+# spectrochempy
+# pymzML
+# pyteomics
+# nmrglue
+# tifffile
 
 # Reference-only probes. Do not install from this file or add to the default
 # environment without a separate license/version decision.
@@ -25,11 +31,11 @@ cwepr
 # eclabfiles: reference-only electrochemistry reader with conservative license boundary.
 # hplc-py: reference-only HPLC raw reader; exported-table flow does not require it.
 # scikit-image: future image-QC candidate; current adapter uses Pillow/tifffile only.
-# hyperspy: future SEM/TEM/NMR/MS candidate; Phase 1 remains scan-only for those raw types.
+# hyperspy: future SEM/TEM/NMR/MS candidate; those raw types remain scan-only.
 # exspy: future EPR candidate; current EPR flow uses JEOL decode and candidate metrics only.
 # pyopenms: heavy MS toolkit reference only.
 #
-# Additional optional candidates from the Phase 1 goal need package-name
+# Additional optional candidates from the original planning goal need package-name
 # and license verification before they become installable requirement lines:
 # DearEIS
 # EPyR Tools
@@ -37,6 +43,6 @@ cwepr
 # absorption_tauc_plot
 # xrdfit
 #
-# Blocked in Phase 1:
+# Blocked in the current shared environment:
 # matchms: dry-run would change core numpy/scipy versions; keep out until a
 # separate environment or explicit core-dependency upgrade is approved.
