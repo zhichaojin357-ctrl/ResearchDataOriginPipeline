@@ -8,15 +8,21 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+from io import BytesIO
 from dataclasses import dataclass
 from datetime import date, datetime
-from importlib import metadata as importlib_metadata
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
 
 import numpy as np
 
+from src.core.agilent_dx import (
+    DX_DECODER_NAME,
+    DX_DECODER_VERSION,
+    decode_agilent_dx,
+    read_agilent_dx_metadata,
+)
 from src.core.file_utils import (
     apply_safe_owned_directory_removal,
     ensure_safe_output_file_target,
@@ -24,6 +30,7 @@ from src.core.file_utils import (
     lexical_absolute_path,
     plan_safe_owned_directory_removal,
 )
+from src.core.hplc_analysis import attach_hplc_analysis
 from src.core.project import (
     ensure_output_path_separate_from_inputs,
     ensure_output_path_within_root,
@@ -31,7 +38,6 @@ from src.core.project import (
 )
 
 
-MIN_RAINBOW_VERSION = (1, 3, 1)
 OPENLAB_DATA_TYPE = "HPLC/LC OpenLab raw data"
 PROCESSOR_NAME = "hplc_openlab_raw_exporter"
 IDENTITY_BOUNDARY = "unassigned_manual_mapping_required"
@@ -92,6 +98,8 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
     logs_dir = output_root / "logs"
 
     dataset = extract_hplc_openlab_dataset(input_root, options.since)
+    if "analysis" not in dataset:
+        dataset = attach_hplc_analysis(dataset, project_root)
     dataset["workbook_plan"] = _build_workbook_plan(dataset, workbook_path)
     workbook_paths = _planned_workbook_paths(output_root, workbook_path, dataset["workbook_plan"])
     dataset_path = processed_dir / f"{slug}_dataset.json"
@@ -552,6 +560,19 @@ def _validate_staged_hplc_package(
 ) -> tuple[Path, ...]:
     for workbook in workbook_paths:
         _validate_xlsx_package(workbook, output_root=stage_payload_root)
+        if dataset.get("analysis"):
+            freeze_evidence = _read_xlsx_top_row_freeze(workbook)
+            expected_sheet_count = len(
+                dataset.get("workbook_plan", {}).get("analysis_sheet_names", [])
+            )
+            if (
+                not freeze_evidence["all_frozen"]
+                or freeze_evidence["worksheet_count"] != expected_sheet_count
+            ):
+                raise RuntimeError(
+                    "Analysis workbook top-row freeze or worksheet-count readback failed: "
+                    f"{freeze_evidence}"
+                )
     for path in (
         dataset_path,
         verification_path,
@@ -576,7 +597,12 @@ def _validate_staged_hplc_package(
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"Staged OpenLab metadata is unreadable: {metadata_path}") from exc
-    if metadata.get("processing_status") != "processed_to_split_excel_no_plot":
+    expected_processing_status = (
+        "processed_to_compact_analysis_excel_no_plot"
+        if dataset.get("analysis")
+        else "processed_to_split_excel_no_plot"
+    )
+    if metadata.get("processing_status") != expected_processing_status:
         raise RuntimeError("Staged OpenLab metadata has an invalid processing status")
     if "exit_code=0" not in builder_log_path.read_text(encoding="utf-8"):
         raise RuntimeError("Workbook builder log does not record a successful exit")
@@ -655,7 +681,10 @@ def _rewrite_staged_builder_paths(
 
     def rewrite(value: Any) -> Any:
         if isinstance(value, dict):
-            return {key: rewrite(item) for key, item in value.items()}
+            return {
+                rewrite(key) if isinstance(key, str) else key: rewrite(item)
+                for key, item in value.items()
+            }
         if isinstance(value, list):
             return [rewrite(item) for item in value]
         if isinstance(value, str):
@@ -855,7 +884,6 @@ def _remove_safe_owned_tree(path: Path, *, output_root: Path) -> None:
 
 def extract_hplc_openlab_dataset(input_root: Path, since: date) -> dict[str, Any]:
     """Return workbook-ready raw signals, vendor peak results, and provenance."""
-    rainbow, rainbow_version = _load_rainbow()
     dx_paths = sorted(input_root.rglob("*.dx"), key=lambda path: str(path).casefold())
     if not dx_paths:
         raise FileNotFoundError(f"No Agilent OpenLab .dx files found under: {input_root}")
@@ -871,7 +899,7 @@ def extract_hplc_openlab_dataset(input_root: Path, since: date) -> dict[str, Any
             if result_set_dir not in context_cache:
                 context_cache[result_set_dir] = _parse_result_set_context(result_set_dir)
             context = context_cache[result_set_dir]
-            metadata_probe = rainbow.read_metadata(str(dx_path))
+            metadata_probe = read_agilent_dx_metadata(dx_path)
             raw_metadata = dict(metadata_probe.get("metadata") or {})
             raw_file_info = context["injections_by_raw_file"].get(dx_path.name, {})
             acquisition, acquisition_source = _resolve_acquisition_datetime(
@@ -892,7 +920,7 @@ def extract_hplc_openlab_dataset(input_root: Path, since: date) -> dict[str, Any
             continue
 
         try:
-            decoded = rainbow.read(str(dx_path))
+            decoded = decode_agilent_dx(dx_path)
             injection = _build_injection_record(
                 input_root=input_root,
                 dx_path=dx_path,
@@ -1078,10 +1106,11 @@ def extract_hplc_openlab_dataset(input_root: Path, since: date) -> dict[str, Any
         "source_root_name": input_root.name,
         "cutoff_date": since.isoformat(),
         "library_provenance": {
-            "raw_decoder": "rainbow-api",
-            "raw_decoder_version": rainbow_version,
-            "raw_decoder_repository": "https://github.com/evanyeyeye/rainbow",
-            "raw_decoder_license": "LGPL-3.0",
+            "raw_decoder": DX_DECODER_NAME,
+            "raw_decoder_version": DX_DECODER_VERSION,
+            "raw_decoder_implementation": "in-repository ACMD20/Signal179 decoder",
+            "raw_decoder_external_runtime_required": False,
+            "validation_oracle": "rainbow-api 1.3.1 (regression validation only)",
             "acquisition_time": (
                 "result-set .acaml InjectionAcqDateTime converted to the local offset "
                 "recorded by .dx injection.acmd RunDateTime"
@@ -1195,6 +1224,9 @@ def _build_injection_record(
         "source_sha256": file_sha256(dx_path),
         "acquisition_method": acquisition_method,
         "processing_method": context["processing_method"],
+        "sequence_name": context.get("sequence_name", ""),
+        "sequence_file": context.get("sequence_file", ""),
+        "result_name": context.get("result_name", ""),
         "injection_volume_ul": setup_info.get("injection_volume_ul"),
         "instrument_modules": context["instrument_modules"],
         "signal_names": [signal["name"] for signal in signals],
@@ -1225,12 +1257,38 @@ def _parse_result_set_context(result_set_dir: Path) -> dict[str, Any]:
     if not acaml_files:
         return {
             "processing_method": "",
+            "sequence_name": "",
+            "sequence_file": "",
+            "result_name": "",
             "instrument_modules": "",
             "injections_by_raw_file": {},
             "sample_setups": {},
             "signals": {},
         }
     root = ET.parse(acaml_files[0]).getroot()
+
+    sequence_name = ""
+    sequence_file = ""
+    result_name = ""
+    sample_contexts = _first_descendant(root, "SampleContexts")
+    if sample_contexts is not None:
+        setup_context = next(iter(_direct_local(sample_contexts, "Setup")), None)
+        result_context = next(iter(_direct_local(sample_contexts, "MeasData")), None)
+        if setup_context is not None:
+            ident = next(iter(_direct_local(setup_context, "IdentParam")), None)
+            if ident is not None:
+                sequence_name = _text_of_direct(ident, "Name")
+            binary = next(iter(_direct_local(setup_context, "BinaryData")), None)
+            if binary is not None:
+                for data_item in _direct_local(binary, "DataItem"):
+                    candidate = _text_of_direct(data_item, "Name")
+                    if candidate.casefold().endswith(".sqx"):
+                        sequence_file = candidate
+                        break
+        if result_context is not None:
+            ident = next(iter(_direct_local(result_context, "IdentParam")), None)
+            if ident is not None:
+                result_name = _text_of_direct(ident, "Name")
 
     injections_by_raw_file: dict[str, dict[str, Any]] = {}
     for element in _iter_local(root, "InjectionMetaData"):
@@ -1284,6 +1342,9 @@ def _parse_result_set_context(result_set_dir: Path) -> dict[str, Any]:
 
     return {
         "processing_method": method_names[0] if method_names else "",
+        "sequence_name": sequence_name,
+        "sequence_file": sequence_file,
+        "result_name": result_name,
         "instrument_modules": "; ".join(dict.fromkeys(module_parts)),
         "injections_by_raw_file": injections_by_raw_file,
         "sample_setups": sample_setups,
@@ -1360,25 +1421,30 @@ def _peak_record(peak: ET.Element, signal_info: dict[str, Any], ordinal: int) ->
     }
 
 
-def _load_rainbow() -> tuple[Any, str]:
-    try:
-        import rainbow
-    except ImportError as exc:
-        raise RuntimeError(
-            "Agilent OpenLab .dx decoding requires rainbow-api>=1.3.1; install the optional dependency first"
-        ) from exc
-    version = importlib_metadata.version("rainbow-api")
-    if _version_tuple(version) < MIN_RAINBOW_VERSION:
-        raise RuntimeError(
-            f"rainbow-api>={'.'.join(map(str, MIN_RAINBOW_VERSION))} is required for OpenLab .dx; found {version}"
-        )
-    return rainbow, version
-
-
 def _build_workbook_plan(
     dataset: dict[str, Any],
     summary_workbook_path: Path,
 ) -> dict[str, Any]:
+    if dataset.get("analysis"):
+        return {
+            "summary_workbook": summary_workbook_path.name,
+            "batch_directory": "",
+            "batch_workbooks": [],
+            "analysis_sheet_names": [
+                "样品结果",
+                "峰明细",
+                "数据处理记录",
+                "排除数据",
+                "重打分组明细",
+                "待人工复核",
+                "分析参数",
+            ],
+            "excel_includes_raw_signals": False,
+            "raw_signal_handling": (
+                "decoded and validated in the processed audit dataset; intentionally omitted "
+                "from the compact analysis workbook"
+            ),
+        }
     batch_names = list(
         dict.fromkeys(
             str(item.get("batch_folder") or "未命名批次")
@@ -1456,6 +1522,7 @@ def _run_workbook_builder(
     log_path: Path,
 ) -> None:
     builder_source = _validate_workbook_builder_inputs(project_root, node_exe)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     resolved_node = node_exe.resolve()
     builder_copy = ensure_safe_output_file_target(
         builder_copy_path,
@@ -1486,23 +1553,157 @@ def _run_workbook_builder(
         errors="replace",
         check=False,
     )
-    log_path.write_text(
-        "\n".join(
-            [
-                f"exit_code={completed.returncode}",
-                "[stdout]",
-                completed.stdout,
-                "[stderr]",
-                completed.stderr,
-            ]
-        ),
-        encoding="utf-8",
-    )
+    log_lines = [
+        f"exit_code={completed.returncode}",
+        "[stdout]",
+        completed.stdout,
+        "[stderr]",
+        completed.stderr,
+    ]
     if completed.returncode != 0:
+        log_path.write_text("\n".join(log_lines), encoding="utf-8")
         raise RuntimeError(
             "Excel workbook builder failed; see log: "
             f"{log_path}. Last error: {(completed.stderr or completed.stdout)[-1200:]}"
         )
+    try:
+        payload = json.loads(dataset_path.read_text(encoding="utf-8"))
+        built_workbooks = _planned_workbook_paths(
+            workbook_path.parent,
+            workbook_path,
+            payload["workbook_plan"],
+        )
+        freeze_evidence = {
+            str(path.resolve()): _patch_xlsx_top_row_freeze(path)
+            for path in built_workbooks
+        }
+        verification = json.loads(verification_path.read_text(encoding="utf-8"))
+        verification["top_row_freeze"] = {
+            "implementation": "controlled OOXML compatibility patch after artifact-tool export",
+            "reason": "artifact-tool 2.8.6 freezeRows does not serialize worksheet panes",
+            "workbooks": freeze_evidence,
+        }
+        verification_path.write_text(
+            json.dumps(verification, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        log_lines.extend(
+            [
+                "[top_row_freeze]",
+                json.dumps(freeze_evidence, ensure_ascii=False),
+            ]
+        )
+    except Exception as exc:
+        log_lines.extend(["[top_row_freeze_error]", f"{type(exc).__name__}: {exc}"])
+        log_path.write_text("\n".join(log_lines), encoding="utf-8")
+        raise RuntimeError(
+            "Excel workbook was exported but the required frozen top row could not be verified"
+        ) from exc
+    log_path.write_text("\n".join(log_lines), encoding="utf-8")
+
+
+def _patch_xlsx_top_row_freeze(workbook_path: Path) -> dict[str, Any]:
+    """Apply and read back a one-row freeze pane without changing workbook data."""
+    workbook = workbook_path.resolve()
+    if not workbook.is_file() or not zipfile.is_zipfile(workbook):
+        raise RuntimeError(f"Workbook is missing or invalid before freeze patch: {workbook}")
+    temporary_handle = tempfile.NamedTemporaryFile(
+        prefix=f".{workbook.stem}.freeze-",
+        suffix=".xlsx",
+        dir=workbook.parent,
+        delete=False,
+    )
+    temporary_path = Path(temporary_handle.name)
+    temporary_handle.close()
+    worksheet_names: list[str] = []
+    try:
+        with zipfile.ZipFile(workbook, "r") as source, zipfile.ZipFile(
+            temporary_path,
+            "w",
+            allowZip64=True,
+        ) as target:
+            for info in source.infolist():
+                payload = source.read(info.filename)
+                if re.fullmatch(r"xl/worksheets/sheet\d+\.xml", info.filename):
+                    payload = _freeze_top_row_in_worksheet_xml(payload)
+                    worksheet_names.append(info.filename)
+                target.writestr(info, payload)
+        if not worksheet_names:
+            raise RuntimeError("Workbook contains no worksheet XML parts")
+        os.replace(temporary_path, workbook)
+    except Exception:
+        temporary_path.unlink(missing_ok=True)
+        raise
+    evidence = _read_xlsx_top_row_freeze(workbook)
+    if evidence["worksheet_count"] != len(worksheet_names) or not evidence["all_frozen"]:
+        raise RuntimeError(f"Frozen top-row readback failed: {evidence}")
+    return evidence
+
+
+def _freeze_top_row_in_worksheet_xml(payload: bytes) -> bytes:
+    for _, namespace in ET.iterparse(BytesIO(payload), events=("start-ns",)):
+        prefix, uri = namespace
+        try:
+            ET.register_namespace(prefix or "", uri)
+        except ValueError:
+            pass
+    root = ET.fromstring(payload)
+    namespace_uri = root.tag[1:].split("}", 1)[0] if root.tag.startswith("{") else ""
+
+    def qualified(local_name: str) -> str:
+        return f"{{{namespace_uri}}}{local_name}" if namespace_uri else local_name
+
+    sheet_views = root.find(qualified("sheetViews"))
+    if sheet_views is None:
+        sheet_views = ET.Element(qualified("sheetViews"))
+        children = list(root)
+        dimension = root.find(qualified("dimension"))
+        insert_at = children.index(dimension) + 1 if dimension is not None else 0
+        root.insert(insert_at, sheet_views)
+    sheet_view = sheet_views.find(qualified("sheetView"))
+    if sheet_view is None:
+        sheet_view = ET.SubElement(sheet_views, qualified("sheetView"), {"workbookViewId": "0"})
+    pane = sheet_view.find(qualified("pane"))
+    if pane is None:
+        pane = ET.Element(qualified("pane"))
+        sheet_view.insert(0, pane)
+    pane.attrib.clear()
+    pane.attrib.update(
+        {
+            "ySplit": "1",
+            "topLeftCell": "A2",
+            "activePane": "bottomLeft",
+            "state": "frozen",
+        }
+    )
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
+def _read_xlsx_top_row_freeze(workbook_path: Path) -> dict[str, Any]:
+    frozen: list[str] = []
+    worksheets: list[str] = []
+    with zipfile.ZipFile(workbook_path, "r") as archive:
+        for name in archive.namelist():
+            if not re.fullmatch(r"xl/worksheets/sheet\d+\.xml", name):
+                continue
+            worksheets.append(name)
+            root = ET.fromstring(archive.read(name))
+            namespace_uri = root.tag[1:].split("}", 1)[0] if root.tag.startswith("{") else ""
+            prefix = f"{{{namespace_uri}}}" if namespace_uri else ""
+            pane = root.find(f"{prefix}sheetViews/{prefix}sheetView/{prefix}pane")
+            if (
+                pane is not None
+                and pane.get("state") == "frozen"
+                and pane.get("ySplit") == "1"
+                and pane.get("topLeftCell") == "A2"
+            ):
+                frozen.append(name)
+    return {
+        "worksheet_count": len(worksheets),
+        "frozen_top_row_count": len(frozen),
+        "all_frozen": bool(worksheets) and len(frozen) == len(worksheets),
+        "worksheet_parts": worksheets,
+    }
 
 
 def _validate_artifact_workdir(builder_workdir: Path) -> None:
@@ -1529,7 +1730,11 @@ def _metadata_payload(
         "dataset_id": f"hplc_openlab_{dataset['cutoff_date'].replace('-', '')}_plus",
         "data_type": dataset["data_type"],
         "processor_name": dataset["processor_name"],
-        "processing_status": "processed_to_split_excel_no_plot",
+        "processing_status": (
+            "processed_to_compact_analysis_excel_no_plot"
+            if dataset.get("analysis")
+            else "processed_to_split_excel_no_plot"
+        ),
         "source_root_name": dataset["source_root_name"],
         "cutoff_date": dataset["cutoff_date"],
         "processed_workbook": relative_workbooks[0],
@@ -1539,13 +1744,16 @@ def _metadata_payload(
         "verification_report": verification_path.name,
         "manual_check_required": True,
         "manual_check_items": [
-            "峰表来自 OpenLab 原积分结果，峰身份仍需经标准品或用户提供的映射确认",
-            "未提供标曲、响应因子和底物/产物角色映射，因此不计算转化率、选择性或产率",
-            "请复核 OpenLab 处理警告、峰积分边界、检测波长和进样信息",
+            "目标峰使用用户提供的RT窗口候选映射，化学身份及峰积分边界仍需人工复核",
+            "转化率、选择性、产率和回收率依据用户提供标曲与稀释倍数计算，属于待复核候选结果",
+            "请优先复核待人工复核工作表、重打分组、同批次C₀及原生/厂商面积差异提示",
             "原始色谱信号已完整解码并保存在审计数据集中，但按用户要求不放入简化 Excel",
         ],
         "forbidden_claims": dataset["scientific_boundary"]["forbidden_outputs"],
-        "key_results": dataset["summary"],
+        "key_results": {
+            "decode": dataset["summary"],
+            "analysis": dataset.get("analysis", {}).get("summary", {}),
+        },
         "algorithm_provenance": dataset["library_provenance"],
     }
 
@@ -1556,6 +1764,7 @@ def _summary_markdown(
     output_root: Path,
 ) -> str:
     summary = dataset["summary"]
+    analysis_summary = dataset.get("analysis", {}).get("summary", {})
     relative_workbooks = [
         path.resolve().relative_to(output_root.resolve()).as_posix()
         for path in workbook_paths
@@ -1568,14 +1777,18 @@ def _summary_markdown(
             f"- Selected injections: `{summary['selected_injection_count']}`",
             f"- Result sets: `{summary['result_set_count']}`",
             f"- Batches: `{summary['batch_count']}`",
-            f"- Vendor-integrated peaks: `{summary['peak_count']}`",
+            f"- Vendor peaks retained for validation: `{summary['peak_count']}`",
             f"- Raw signal points: `{summary['signal_point_count']}`",
+            f"- Native-integrated injections: `{analysis_summary.get('native_integrated_injection_count', 0)}`",
+            f"- Final sample rows: `{analysis_summary.get('final_sample_row_count', 0)}`",
+            f"- Manual-review items: `{analysis_summary.get('manual_review_item_count', 0)}`",
             f"- Excel workbooks: `{len(relative_workbooks)}`",
             f"- Summary workbook: `{relative_workbooks[0]}`",
             *[f"- Batch workbook: `{path}`" for path in relative_workbooks[1:]],
             "- Raw signal points in Excel: `no` (retained in the processed audit dataset)",
             "- Plots created: `no`",
-            "- Automatic chemical identity or conversion/selectivity/yield claims: `no`",
+            "- Candidate conversion/selectivity/yield calculations: `yes` (user-supplied RT mapping/calibration; manual review required)",
+            "- Automatic final chemical or mechanistic claims: `no`",
             "",
         ]
     )
@@ -1623,11 +1836,6 @@ def _relative_text(path: Path, root: Path) -> str:
         return path.resolve().relative_to(root.resolve()).as_posix()
     except ValueError:
         return path.name
-
-
-def _version_tuple(value: str) -> tuple[int, ...]:
-    parts = [int(part) for part in re.findall(r"\d+", value)[:3]]
-    return tuple(parts + [0] * (3 - len(parts)))
 
 
 def _local_name(tag: str) -> str:

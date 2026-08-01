@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import struct
 import zipfile
 from datetime import date
 from pathlib import Path
@@ -17,12 +18,17 @@ from src.core.hplc_openlab import (
     _date_from_filename,
     _parse_result_set_context,
     _parse_rx_result,
+    _patch_xlsx_top_row_freeze,
     _planned_preview_directories,
     _planned_workbook_paths,
     _preflight_hplc_outputs,
+    _read_xlsx_top_row_freeze,
+    _rewrite_staged_builder_paths,
     _resolve_acquisition_datetime,
+    extract_hplc_openlab_dataset,
     run_hplc_openlab_export,
 )
+from src.core.agilent_dx import SIGNAL179_HEADER_MAGIC, SIGNAL179_HEADER_SIZE
 from src.core.process import _manifest_auxiliary_skip_reason
 from src.scanner.scanner import scan_raw_data
 
@@ -53,6 +59,15 @@ def test_result_set_and_vendor_peak_xml_are_joined_without_identity_assignment(t
           <Module>
             <Type>VWD</Type><PartNo>G7114A</PartNo><SerialNo>DEMO1</SerialNo>
           </Module>
+          <SampleContexts>
+            <Setup id="sequence-context">
+              <BinaryData><DataItem><Name>sequence-A.sqx</Name></DataItem></BinaryData>
+              <IdentParam><Name>sequence-A</Name></IdentParam>
+            </Setup>
+            <MeasData id="result-context">
+              <IdentParam><Name>result-A</Name></IdentParam>
+            </MeasData>
+          </SampleContexts>
         </Root>
         """,
         encoding="utf-8",
@@ -95,6 +110,9 @@ def test_result_set_and_vendor_peak_xml_are_joined_without_identity_assignment(t
     assert context["injections_by_raw_file"]["2026-07-18 12-00-00.dx"]["SampleOrderNumber"] == "7"
     assert context["sample_setups"]["setup-1"]["injection_volume_ul"] == 5.0
     assert context["processing_method"] == "processing.pmx"
+    assert context["sequence_name"] == "sequence-A"
+    assert context["sequence_file"] == "sequence-A.sqx"
+    assert context["result_name"] == "result-A"
     assert context["instrument_modules"] == "VWD/G7114A/DEMO1"
     assert result["state"] == "Processed"
     assert len(result["peaks"]) == 1
@@ -145,6 +163,51 @@ def test_result_set_injection_time_is_converted_to_dx_local_offset():
 
     assert acquisition.isoformat(timespec="seconds") == "2026-07-18T15:53:13+08:00"
     assert source == "result_set_acaml.InjectionMetaData.InjectionAcqDateTime"
+
+
+def test_openlab_dataset_uses_project_native_dx_decoder(tmp_path: Path):
+    result_set = tmp_path / "batch" / "synthetic.rslt"
+    result_set.mkdir(parents=True)
+    dx_path = result_set / "2026-07-18 12-00-00+08-00-01.dx"
+    trace_id = "trace-1"
+    acmd = f"""
+      <ACMD xmlns="urn:schemas-agilent-com:acmd20">
+        <InjectionInfo>
+          <RunDateTime>2026-07-18T12:00:00+08:00</RunDateTime>
+          <AcquisitionMethod>C:\\Methods\\analysis.m</AcquisitionMethod>
+          <SampleName>sample-A</SampleName><Location>1:A,1</Location>
+        </InjectionInfo>
+        <Signals><Signal>
+          <IsIntegrable>true</IsIntegrable>
+          <Encoding>Agilent.OpenLab.Rawdata/Signal179</Encoding>
+          <TraceId>{trace_id}</TraceId><NumberOfValues>3</NumberOfValues>
+          <Slope>0.5</Slope><TimeStart>60000</TimeStart><TimeEnd>180000</TimeEnd>
+          <ChannelName>VWD1A</ChannelName><DeviceName>VWD</DeviceName>
+          <Description>VWD1A,Wavelength=254 nm</Description><Units>mAU</Units>
+        </Signal></Signals>
+      </ACMD>
+    """.encode()
+    content_types = b"""
+      <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+        <Default Extension="CH" ContentType="Agilent.OpenLab.Rawdata/Signal179" />
+      </Types>
+    """
+    header = bytearray(SIGNAL179_HEADER_SIZE)
+    header[: len(SIGNAL179_HEADER_MAGIC)] = SIGNAL179_HEADER_MAGIC
+    with zipfile.ZipFile(dx_path, "w") as archive:
+        archive.writestr("injection.acmd", acmd)
+        archive.writestr("[Content_Types].xml", content_types)
+        archive.writestr(f"{trace_id}.CH", bytes(header) + struct.pack("<3d", 2, 4, 6))
+
+    dataset = extract_hplc_openlab_dataset(tmp_path, date(2026, 7, 18))
+
+    assert dataset["summary"]["selected_injection_count"] == 1
+    assert dataset["injections"][0]["sample_name"] == "sample-A"
+    assert dataset["injections"][0]["acquisition_method"] == "analysis.m"
+    assert dataset["raw_sheets"][0]["columns"][0]["time"] == [1.0, 2.0, 3.0]
+    assert dataset["raw_sheets"][0]["columns"][0]["signal"] == [1.0, 2.0, 3.0]
+    assert dataset["library_provenance"]["raw_decoder"] == "project-native-agilent-openlab-dx"
+    assert dataset["library_provenance"]["raw_decoder_external_runtime_required"] is False
 
 
 def test_scanner_classifies_openlab_files_when_lc_folder_is_the_scan_root(tmp_path: Path):
@@ -565,7 +628,6 @@ def test_workbook_builder_contract_is_plain_bordered_and_omits_raw_signal_sheets
     assert "dataset.raw_sheets" not in builder
     assert 'workbook.worksheets.add("样品信息")' in builder
     assert "`${resultSet.result_set_id}_峰面积`" in builder
-    assert '"采集方法",' not in builder
     assert '"处理方法",' not in builder
     assert '"方法",' in builder
     assert '"峰序号",' in builder
@@ -574,12 +636,69 @@ def test_workbook_builder_contract_is_plain_bordered_and_omits_raw_signal_sheets
     assert '.join("\\n")' in builder
 
 
+def test_xlsx_freeze_compatibility_patch_sets_and_reads_back_top_row(tmp_path: Path):
+    workbook = tmp_path / "analysis.xlsx"
+    worksheet = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        '<dimension ref="A1:B2"/><sheetViews><sheetView workbookViewId="0"/></sheetViews>'
+        '<sheetData><row r="1"/><row r="2"/></sheetData></worksheet>'
+    )
+    with zipfile.ZipFile(workbook, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", "<Types/>")
+        archive.writestr("xl/workbook.xml", "<workbook/>")
+        archive.writestr("xl/worksheets/sheet1.xml", worksheet)
+
+    evidence = _patch_xlsx_top_row_freeze(workbook)
+
+    assert evidence["worksheet_count"] == 1
+    assert evidence["frozen_top_row_count"] == 1
+    assert evidence["all_frozen"] is True
+    assert _read_xlsx_top_row_freeze(workbook) == evidence
+    with zipfile.ZipFile(workbook, "r") as archive:
+        assert archive.read("xl/workbook.xml") == b"<workbook/>"
+
+
+def test_staged_builder_path_rewrite_includes_dictionary_keys(tmp_path: Path):
+    stage_payload_root = tmp_path / "transaction" / "payload"
+    output_root = tmp_path / "published"
+    staged_workbook = stage_payload_root / "analysis.xlsx"
+    verification_path = tmp_path / "verification.json"
+    builder_log_path = tmp_path / "builder.log"
+    verification_path.write_text(
+        json.dumps(
+            {
+                "top_row_freeze": {
+                    "workbooks": {str(staged_workbook): {"all_frozen": True}}
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    builder_log_path.write_text(str(staged_workbook), encoding="utf-8")
+
+    _rewrite_staged_builder_paths(
+        verification_path=verification_path,
+        builder_log_path=builder_log_path,
+        stage_payload_root=stage_payload_root,
+        output_root=output_root,
+    )
+
+    rewritten = json.loads(verification_path.read_text(encoding="utf-8"))
+    workbook_paths = list(rewritten["top_row_freeze"]["workbooks"])
+    assert workbook_paths == [str(output_root / "analysis.xlsx")]
+    assert builder_log_path.read_text(encoding="utf-8") == str(
+        output_root / "analysis.xlsx"
+    )
+
+
 def _minimal_openlab_run_dataset(since: date) -> dict:
     return {
         "data_type": "HPLC/LC OpenLab raw data",
         "processor_name": "hplc_openlab_raw_exporter",
         "source_root_name": "raw",
         "cutoff_date": since.isoformat(),
+        "analysis": {},
         "injections": [
             {
                 "injection_id": "I001",

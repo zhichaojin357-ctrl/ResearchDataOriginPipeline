@@ -63,11 +63,20 @@ Optional dependencies must remain optional:
 - the current automated pipeline must not call pyGAPS BET fitting, pore-size modeling, material classification, or any automatic adsorption interpretation.
 - If pyGAPS is unavailable or construction fails, the BET processor falls back to the exported-table parser and keeps only table-derived candidate values.
 
+## Current OpenLab HPLC Decision
+
+- Production `.dx` decoding is implemented by the in-repository strict OPC/ACMD20/Signal179 adapter. It uses Python standard-library ZIP/XML handling plus NumPy and does not load OpenLab, MestReNova, a `.pmx` file, or any proprietary Agilent assembly.
+- `scipy` and `pybaselines` are permissively licensed production dependencies for the versioned native peak integrator. They provide Savitzky-Golay/local-extrema operations and morphological baseline estimation through their public APIs.
+- `rainbow-api` 1.3.1 is LGPL-3.0 and is restricted to an optional validation environment. Validation may call its public API as a black-box numerical oracle, but the production command does not import it, no source is copied or translated, and missing rainbow must not change or block production decoding.
+- `MOCCA2` 0.1.18 reports an MIT license and may be used as an optional chromatography benchmark. It is not the production decoder or integrator and must not silently change the versioned native results.
+- `hplc-py` 0.2.7 is GPLv3 and remains reference-only. Do not import it from the formal OpenLab workflow or translate its implementation into project code.
+- Agilent `.pmx` processing methods and OpenLab assemblies remain proprietary external artifacts. The project neither redistributes them nor claims that a `.pmx` can be executed independently; native integration is a separate, auditable algorithm.
+
 ## Current Local Import Audit
 
 - Available with permissive or acceptable metadata in `D:\Python\python.exe`: `impedance`, `ixdat`, `pyGAPS`, `nmrglue`, `tifffile`, `Pillow`, `vgd-reader`, `MOCCA2`, `pymzML`, `pyteomics`, `cwepr`, `eprpy`, and narrow `lmfitxps` import/provenance use.
 - Reference-only or non-default because of GPL/unclear license boundaries: `pyimpspec`, `galvani`, `eclabfiles`, and `hplc-py`.
-- `rainbow-api` is an LGPL command-specific dependency for the maintained OpenLab raw-data export. It is not imported by unrelated commands, and the OpenLab command must fail explicitly if it is absent or too old.
+- `rainbow-api` is available only as the optional OpenLab decoder-validation oracle described above; it is not a production command dependency.
 - Not importable in the current `D:\Python\python.exe` environment and not used by the main flow: `ramanspy`, `rampy`, `spectrochempy`, and `matchms`. `matchms` is blocked for the current automated pipeline because its dry-run would change core numpy/scipy versions.
 
 ## Origin Tools And Manual References
@@ -95,9 +104,7 @@ The following candidates should remain optional until package metadata and proje
 - `RamanSPy`
 - `RamPy`
 - `SpectroChemPy`
-- `hplc-py`
-- `rainbow-api`
-- `MOCCA`
+- `MOCCA` packages other than the locally verified MIT-licensed `MOCCA2` 0.1.18
 - `EPyR Tools`
 - `CustomXepr`
 - `absorption_tauc_plot`

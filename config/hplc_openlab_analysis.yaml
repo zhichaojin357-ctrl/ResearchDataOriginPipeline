@@ -1,0 +1,134 @@
+{
+  "schema_version": "1.0",
+  "analysis_version": "hplc-openlab-analysis-1.0.0",
+  "reaction": {
+    "substrate": "thioanisole",
+    "target_product": "sulfoxide",
+    "overoxidation_product": "sulfone",
+    "total_dilution_factor": 100.0
+  },
+  "date_rules": {
+    "folder_date_pattern": "^(?P<date>\\d{8})",
+    "light_screening_date": "2026-07-17",
+    "ordinary_306_start": "2026-07-18",
+    "ordinary_306_end": "2026-07-25",
+    "ordinary_301_start": "2026-07-26",
+    "before_screening_label": "光源筛选前-暂不处理",
+    "screening_label": "光源筛选",
+    "ordinary_306_label": "306房间灯",
+    "ordinary_301_label": "301房间灯"
+  },
+  "targets": {
+    "sulfoxide": {
+      "display_name": "茴香亚砜",
+      "nominal_rt_min": 5.50,
+      "rt_tolerance_min": 0.30,
+      "calibration_slope": 1478.3842,
+      "calibration_intercept": 5.4292,
+      "calibration_r_squared": 0.999864
+    },
+    "sulfone": {
+      "display_name": "茴香砜",
+      "nominal_rt_min": 7.34,
+      "rt_tolerance_min": 0.30,
+      "calibration_slope": 495.4023,
+      "calibration_intercept": 1.3106,
+      "calibration_r_squared": 0.999872
+    },
+    "thioanisole": {
+      "display_name": "茴香硫醚",
+      "nominal_rt_min": 16.52,
+      "rt_tolerance_min": 0.30,
+      "calibration_slope": 10871.5860,
+      "calibration_intercept": 96.0312,
+      "calibration_r_squared": 0.999602
+    }
+  },
+  "unknown_peak": {
+    "nominal_rt_min": 23.5,
+    "participates_in_calculation": false
+  },
+  "native_integration": {
+    "integrator_version": "1.0.0",
+    "smoothing_window_points": 9,
+    "smoothing_polyorder": 3,
+    "morphology_half_window_min": 0.40,
+    "minimum_corrected_height_mau": 1.70,
+    "minimum_area_mau_s": 1.0,
+    "minimum_peak_width_min": 0.02,
+    "validation_train_end_date": "2026-07-21",
+    "validation_holdout_start_date": "2026-07-23",
+    "validation_area_review_error_percent": 15.0,
+    "acceptance": {
+      "minimum_target_sensitivity": 0.99,
+      "minimum_target_specificity": 0.99,
+      "maximum_rt_p95_min": 0.01,
+      "maximum_area_median_ape_percent": 2.0,
+      "maximum_area_p90_ape_percent": 5.0,
+      "maximum_area_p95_ape_percent": 10.0
+    }
+  },
+  "name_rules": {
+    "wash_terms": [
+      "chong",
+      "chongzhuzi",
+      "chong zhu zi",
+      "冲",
+      "冲柱",
+      "冲柱子",
+      "冲洗柱子",
+      "洗柱",
+      "冲一下"
+    ],
+    "pre_reaction_terms": [
+      "sm反应前",
+      "sm 反应前",
+      "茴香硫醚反应前",
+      "硫醚反应前",
+      "反应前",
+      "sm before reaction",
+      "before reaction",
+      "sm reaction before",
+      "reaction before",
+      "sm fanyingqian",
+      "sm原液",
+      "sm 原液"
+    ],
+    "rerun_words": ["repeat", "rerun", "重打"],
+    "explicit_anomaly_terms": ["第一次异常", "原始异常", "首针异常"]
+  },
+  "repeat_rules": {
+    "maximum_automatic_day_gap": 1,
+    "sequence_sample_similarity_min": 0.80,
+    "sequence_sample_identity_min": 0.98,
+    "adjacent_sequence_order_gap": 1,
+    "same_sequence_repeat_order_gap": 12,
+    "low_total_area_ratio": 0.25,
+    "low_component_area_ratio": 0.40,
+    "minimum_scaled_components": 2,
+    "trend_relative_tolerance": 0.25,
+    "trend_minimum_neighbors": 2,
+    "trend_score_margin": 2
+  },
+  "quality_thresholds": {
+    "minimum_signal_points": 1000,
+    "baseline_start_window_min": [0.2, 2.0],
+    "baseline_end_window_min": [24.0, 25.0],
+    "baseline_tail_window_width_min": 1.0,
+    "baseline_tail_exclusion_min": 0.1,
+    "baseline_noise_review_mau": 0.005,
+    "baseline_noise_abnormal_mau": 0.020,
+    "baseline_drift_review_mau": 2.0,
+    "baseline_drift_abnormal_mau": 5.0,
+    "signal_jump_review_mau": 75.0,
+    "signal_jump_abnormal_mau": 100.0,
+    "ambiguous_rt_distance_margin_min": 0.02,
+    "near_window_extra_rt_min": 0.20,
+    "recovery_review_low_fraction": 0.50,
+    "recovery_review_high_fraction": 1.50
+  },
+  "manual_overrides": {
+    "repeat_group_by_injection": {},
+    "final_use_by_injection": {}
+  }
+}

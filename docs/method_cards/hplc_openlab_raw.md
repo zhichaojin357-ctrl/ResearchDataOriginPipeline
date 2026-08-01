@@ -2,7 +2,7 @@
 
 ## Scope
 
-This workflow processes Agilent OpenLab CDS result sets stored as `.rslt` directories. It targets detector chromatograms in `.dx` files and OpenLab's existing integration results in paired `.rx` files. It does not process LC-MS spectra, instrument telemetry, or create plots.
+This workflow processes Agilent OpenLab CDS result sets stored as `.rslt` directories. It directly decodes detector chromatograms in `.dx`, independently detects and integrates configured HPLC target peaks, and uses paired `.rx` peak rows only as optional validation evidence. It does not process LC-MS spectra, instrument telemetry, or create plots.
 
 Formal entrypoint:
 
@@ -15,13 +15,35 @@ python run.py hplc-openlab-export `
   --builder-workdir <artifact-tool-workdir>
 ```
 
-## Reused Components
+## Decoder And Reused Components
 
-- `rainbow-api>=1.3.1,<2` decodes the OpenLab `.dx` OPC package and detector signal.
-- Python's standard XML and ZIP support parses result-set `.acaml` metadata and paired `.rx` `Base/InjectionACAML` integration results.
-- `@oai/artifact-tool` writes, inspects, renders, and exports the split Excel workbooks.
+- Production decoder: `project-native-agilent-openlab-dx` version `1.0.0`.
+- The decoder uses Python ZIP/XML support and NumPy. It strictly accepts the verified `urn:schemas-agilent-com:acmd20` manifest and `Agilent.OpenLab.Rawdata/Signal179` integrable-signal encoding.
+- For Signal179, the decoder verifies the 6,144-byte header and `\x03` + `179` signature, reads the declared count of little-endian float64 values, applies the ACMD `Slope`, and constructs the time grid from `TimeStart` through `TimeEnd` in minutes.
+- SciPy and pybaselines provide public-API smoothing, local-extrema, and morphological-baseline operations for the native integrator.
+- Python XML/ZIP support also parses result-set `.acaml` metadata and optional paired `.rx` `Base/InjectionACAML` vendor results.
+- `@oai/artifact-tool` writes, inspects, renders, and exports the final Excel workbook.
 
-The project integration code connects these components and enforces project-specific date, provenance, failure, and scientific-boundary rules.
+`rainbow-api` 1.3.1 may be used by the controlled decoder regression as an optional black-box numerical oracle. It is not imported by the production path and is not required to run the formal command. OpenLab, MestReNova, Agilent assemblies, and `.pmx` processing methods are also not production dependencies. The project does not claim that a `.pmx` file can be executed independently.
+
+Unsupported ACMD schemas, signal encodings, malformed payloads, empty integrable signals, non-finite values, or non-increasing time axes fail explicitly instead of falling back to a guessed decode.
+
+## Native Peak Integration
+
+Production integrator: `project-native-hplc-target-integrator` version `1.0.0`.
+
+The versioned algorithm is configured in `config/hplc_openlab_analysis.yaml`:
+
+1. Preserve the decoded raw time/signal arrays unchanged for provenance.
+2. Apply a 9-point, third-order Savitzky-Golay filter only for apex/minimum detection.
+3. Estimate an independent morphological baseline with a `0.40 min` half-window.
+4. Accept true local maxima with baseline-corrected height at least `1.70 mAU`.
+5. Use the nearest smoothed local minima as initial peak bounds; require base width at least `0.02 min`.
+6. Interpolate a straight integration baseline between the morphological-baseline values at the two bounds.
+7. Integrate the unsmoothed signal minus that line with the trapezoidal rule and multiply minutes by 60, producing `mAU·s`; reject areas below `1.0 mAU·s`.
+8. Match targets inside their configured RT windows. Multiple candidates remain auditable, the nearest RT is selected for the one-row result, and close alternatives are flagged as ambiguous.
+
+Every native peak is labelled `peak_source=native_dx` and retains integrator name/version, bounds, baseline, height, area, and manual-review status. Native integration is not presented as an OpenLab vendor result.
 
 ## Selection Rule
 
@@ -34,38 +56,70 @@ The project integration code connects these components and enforces project-spec
 ## Preserved Data
 
 - Exact time and detector-signal arrays in the processed audit dataset, with no resampling, interpolation, smoothing, or baseline correction.
-- OpenLab vendor peak rows including retention time, integration bounds, area, area percent, height, symmetry, and baseline fields when present.
+- Native peak rows and target matches, including source, algorithm version, retention time, integration bounds, area, height, and baseline fields.
+- OpenLab vendor peak rows, when present, including retention time, integration bounds, area, area percent, height, symmetry, and baseline fields; these are retained separately for validation.
 - Batch, result set, sample, vial, method, detector, wavelength, unit, point count, acquisition time, source size, relative path, and SHA-256 provenance.
 - Raw signal arrays and source hashes remain in the audit dataset and are intentionally omitted from the user-facing Excel files.
 
-## Output Workbooks
+An `.rx` processing state of `NoMethodProvided` does not mean that the `.dx` signal is corrupt. When strict decoding and native integration succeed, those acquisitions are processed from `native_dx` and remain subject to the same data-quality and manual-review rules. A missing or method-free `.rx` only means that vendor comparison evidence is unavailable.
 
-- One summary workbook contains `使用说明`, `批次索引`, and `样品索引`.
-- One batch workbook is created for each top-level acquisition batch folder.
-- Every batch workbook contains `批次说明` and `样品信息`.
-- Every `.rslt` result set receives its own `Rxx_峰面积` worksheet inside the corresponding batch workbook.
-- Acquisition and processing method metadata are represented by one user-facing `方法` column because these OpenLab records identify the same method; the processed audit dataset retains both source fields.
-- Each peak-area worksheet contains one row per injection/sample. Peak ordinal, retention time (shown as `出峰时间(min)`), peak area, and area percent are stored as line-aligned lists in that row.
-- User-facing columns prioritize batch/result-set names, sample name, acquisition time, method, peak count, peak ordinal, elution time, peak area, and area percent.
-- Workbook body cells use a white background with explicit thin gray borders. No alternating-row color style is applied.
-- The raw time/signal points are decoded and verified but not listed in Excel by default.
+## Seven-Sheet Excel Contract
 
-The workflow produces no chart sheets and never launches Origin.
+The formal result is one compact analysis workbook with exactly these seven worksheets:
+
+1. `样品结果`: one row per final sample after wash/pre-reaction exclusion and rerun resolution; contains batch/result-set/sample/method provenance, selected target RT/area, candidate concentrations and reaction metrics, quality status, and review reasons.
+2. `峰明细`: auditable native peak details. Peak ordinal is followed by retention time, then bounds, height, area, source, algorithm version, target match, and vendor-comparison fields where available.
+3. `数据处理记录`: normalization, classification, target matching, calibration, rerun selection, and calculation decisions.
+4. `排除数据`: wash, pre-reaction, superseded rerun, abnormal, or otherwise excluded records and explicit reasons.
+5. `重打分组明细`: every member of each rerun group, evidence, quality comparison, final-use flag, and selection method.
+6. `待人工复核`: unresolved quality, ambiguous RT, native/vendor disagreement, unusual calculation, and other review items.
+7. `分析参数`: decoder/integrator versions, target RT windows, calibration equations, dilution factor, thresholds, date/light rules, and scientific-boundary statements.
+
+The user-facing workbook uses one `采集方法` column because acquisition and processing method names represent the same method in this workflow. Workbook body rows are white with explicit thin gray borders and no alternating-row color fill. Raw signal points stay in the processed audit dataset rather than being crowded into Excel.
+
+No chart sheet, Origin project, OPJU, TIF, PNG scientific figure, or other plot is expected. A seven-sheet, data-only workbook is the normal successful product; rendered worksheet previews are QA artifacts, not chromatograms or scientific figures.
+
+## Validation And Vendor Comparison
+
+The controlled validation command groups complete result sets by acquisition date so tuning and holdout injections are not mixed:
+
+- training: acquisition date through `2026-07-21`;
+- locked holdout: acquisition date from `2026-07-23` onward.
+
+Vendor rows are numerical comparison evidence only. Recalculation using vendor `BeginTime`, `EndTime`, and the linear `BaselineStart`/`BaselineEnd` fields must meet all of these gates:
+
+- all-peak median APE no more than `0.1%`;
+- all-peak P95 APE no more than `0.5%`;
+- all-peak maximum APE no more than `3.0%`;
+- each configured target's P95 APE no more than `0.1%`.
+
+The independent target detector/integrator must meet, for every configured target on the locked holdout:
+
+- sensitivity at least `0.99`;
+- specificity at least `0.99`;
+- RT absolute-error P95 no more than `0.01 min`;
+- area APE median no more than `2%`;
+- area APE P90 no more than `5%`;
+- area APE P95 no more than `10%`.
+
+A native/vendor target-area APE above `15%`, a detection disagreement, or ambiguous target matching creates an explicit manual-review item. These thresholds validate reproducibility against available vendor results; they do not make OpenLab the production computation source.
 
 ## Validation and Failure Policy
 
 - All decoded time axes must be finite and strictly increasing.
 - Every decoded signal must be finite and have the same point count as its time axis.
 - Any in-scope decode failure aborts the export instead of producing a partial workbook.
-- Missing `.rx` data is recorded as a missing vendor result; the workflow does not invent replacement peaks.
+- Missing `.rx` data and `NoMethodProvided` are recorded as unavailable vendor evidence and do not block a valid native decode/integration.
+- Native integration failure, an invalid/short signal, or a failed required quality gate is recorded for manual review and cannot be silently replaced by vendor values.
 - Workbook inspection searches for formula errors and every sheet in every generated workbook is rendered to a preview for visual QA.
+- Successful workbook verification requires the exact seven-sheet contract above.
 
 ## Scientific Boundary
 
-- Vendor peak integration is not chemical identification.
-- Peak names and retention times are not promoted to substrate or product identities.
-- No concentration, conversion, selectivity, or yield is calculated without calibration, response factors, dilution rules, and analyte-role mapping supplied by the user.
-- All peak rows remain `manual_check_required`.
+- Native or vendor peak integration is not chemical identification.
+- Target-window labels are user-configured candidate mappings; peak names and retention times alone are not proof of substrate or product identity.
+- Concentration, conversion, selectivity, yield, and recovery are calculated only when the user-supplied calibration, dilution, formula, and analyte-role mapping are complete. They remain candidate results requiring review and are never clamped to an expected range.
+- All peak identities and derived chemistry remain `manual_check_required`.
 
 ## Registry Contract
 
