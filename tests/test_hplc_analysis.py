@@ -285,6 +285,74 @@ def test_native_peak_analysis_allows_nomethodprovided(config: dict, monkeypatch:
     assert result["sample_results"][0]["used_injection_ids"] == ["native"]
 
 
+def test_native_rejected_candidates_remain_auditable(
+    config: dict,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    def integration_with_rejection(*_args: object, **_kwargs: object) -> dict:
+        result = _native_integration_result()
+        result["rejected_candidates"] = [
+            {
+                "retention_time_min": 7.11,
+                "corrected_height_mau": 1.8,
+                "reason": "synthetic rejected candidate",
+                "manual_check_required": True,
+            }
+        ]
+        return result
+
+    monkeypatch.setattr(analysis, "integrate_chromatogram", integration_with_rejection)
+    injection = _injection("native", "Catalyst 1H")
+
+    result = analysis.analyze_hplc_openlab_dataset(_analysis_dataset(injection), config)
+
+    assert result["native_rejected_candidates"] == [
+        {
+            "retention_time_min": 7.11,
+            "corrected_height_mau": 1.8,
+            "reason": "synthetic rejected candidate",
+            "manual_check_required": True,
+            "injection_id": "native",
+            "result_set_id": "result-set-A",
+            "sample_name": "Catalyst 1H",
+            "acquisition_local": "2026-07-18T10:00:00+08:00",
+            "raw_file": "native.dx",
+        }
+    ]
+
+
+def test_vendor_comparison_is_a_side_channel_and_cannot_change_final_use(
+    config: dict,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(analysis, "integrate_chromatogram", _native_integration_result)
+    injection = _injection("native", "Catalyst 1H")
+    without_vendor = _analysis_dataset(injection)
+    with_vendor = deepcopy(without_vendor)
+    with_vendor["peaks"] = [
+        {
+            "injection_id": "native",
+            "peak_ordinal": ordinal,
+            "retention_time_min": retention_time,
+            "area": 1.0,
+        }
+        for ordinal, retention_time in enumerate((5.50, 7.34, 16.52), start=1)
+    ]
+
+    native_only = analysis.analyze_hplc_openlab_dataset(without_vendor, config)
+    compared = analysis.analyze_hplc_openlab_dataset(with_vendor, config)
+
+    assert compared["injection_analysis"][0]["quality"] == "正常"
+    assert compared["injection_analysis"][0]["quality"] == native_only["injection_analysis"][0]["quality"]
+    assert compared["sample_results"][0]["used_injection_ids"] == ["native"]
+    assert compared["sample_results"][0]["used_injection_ids"] == native_only["sample_results"][0]["used_injection_ids"]
+    assert compared["injection_analysis"][0]["vendor_validation_reasons"]
+    assert any(
+        item["issue_type"] == "厂商旁路验证差异"
+        for item in compared["manual_review"]
+    )
+
+
 def test_discarded_rerun_quality_label_follows_processing_method(
     config: dict,
     monkeypatch: pytest.MonkeyPatch,

@@ -30,7 +30,7 @@ Unsupported ACMD schemas, signal encodings, malformed payloads, empty integrable
 
 ## Native Peak Integration
 
-Production integrator: `project-native-hplc-target-integrator` version `1.0.0`.
+Production integrator: `project-native-hplc-target-integrator` version `1.1.0`.
 
 The versioned algorithm is configured in `config/hplc_openlab_analysis.yaml`:
 
@@ -39,11 +39,16 @@ The versioned algorithm is configured in `config/hplc_openlab_analysis.yaml`:
 3. Estimate an independent morphological baseline with a `0.40 min` half-window.
 4. Accept true local maxima with baseline-corrected height at least `1.70 mAU`.
 5. Use the nearest smoothed local minima as initial peak bounds; require base width at least `0.02 min`.
-6. Interpolate a straight integration baseline between the morphological-baseline values at the two bounds.
-7. Integrate the unsmoothed signal minus that line with the trapezoidal rule and multiply minutes by 60, producing `mAU·s`; reject areas below `1.0 mAU·s`.
-8. Match targets inside their configured RT windows. Multiple candidates remain auditable, the nearest RT is selected for the one-row result, and close alternatives are flagged as ambiguous.
+6. For an isolated peak, interpolate a straight integration baseline between the morphological-baseline values at the two bounds.
+7. When adjacent accepted peaks share the same valley bound, propose one common straight baseline between the cluster's outer morphological endpoints. Retain a shared valley as a vertical drop-line only if it lies above that common line; recursively split at the lowest valley that lies on or below the proposed baseline. Cluster membership is structural and uses no fitted tolerance or vendor result.
+8. Integrate the unsmoothed signal minus the allocated line with the trapezoidal rule and multiply minutes by 60, producing `mAU·s`; reject areas below `1.0 mAU·s`.
+9. Match targets inside their configured RT windows. Multiple candidates remain auditable, the nearest RT is selected for the one-row result, and close alternatives are flagged as ambiguous.
 
-Every native peak is labelled `peak_source=native_dx` and retains integrator name/version, bounds, baseline, height, area, and manual-review status. Native integration is not presented as an OpenLab vendor result.
+The allocation model follows Agilent's documented baseline/valley semantics rather than a fitted sample-name rule: the [OpenLab Data Analysis Reference Guide](https://www.agilent.com/cs/library/usermanuals/public/CDS_v2.8_DataAnalysisReferenceGuide_en.pdf) describes a common baseline with vertical valley drop-lines for unresolved peak clusters, and the [OpenLab baseline-code reference](https://openlab.help.agilent.com/en/mergedProjects/DataAnalysis/54043198932979595.htm) defines `V` as a valley drop-line. The surrounding implementation also follows the independently documented pattern of finding boundaries on a smoothed trace while integrating the raw chromatogram, as used by [OpenMS PeakPickerChromatogram](https://github.com/OpenMS/OpenMS/blob/develop/src/openms/source/ANALYSIS/OPENSWATH/PeakPickerChromatogram.cpp), and keeps baseline estimation in the BSD-licensed [pybaselines](https://pybaselines.readthedocs.io/en/stable/algorithms/morphological.html) package. [MOCCA2's peak finder](https://github.com/Bayer-Group/MOCCA/blob/main/src/mocca2/peaks/find_peaks.py) was reviewed as an independent prominence/noise-aware boundary and merge/split reference, but it is not a production dependency and its parameters were not fitted into this decoder.
+
+Anti-overfit controls are explicit. A wider `0.50 min` morphology window was rejected because it improved training-set sulfone error but worsened the date-grouped holdout. Replacing every endpoint with the raw signal was also rejected because it failed on valley-separated clusters. Version `1.1.0` changes only the parameter-free shared-valley allocation rule; target RT windows, detection thresholds, smoothing, morphology window, and raw-signal integration remain unchanged. Because the historical holdout was inspected while confirming this version, it is now a confirmation set rather than a blind set; a future blind-performance claim requires newly acquired, complete result sets.
+
+Every native peak is labelled `peak_source=native_dx` and retains integrator name/version, bounds, baseline, height, area, and manual-review status. Candidates rejected after passing the height gate remain in `analysis.native_rejected_candidates` with injection provenance, retention time, height, and rejection reason. A shared-cluster allocation additionally retains the original individual-baseline area and `baseline_model_uncertain=true`, because raw geometry alone cannot always distinguish a true valley drop-line from two baseline-resolved peaks. Native integration is not presented as an OpenLab vendor result.
 
 ## Selection Rule
 
@@ -61,7 +66,7 @@ Every native peak is labelled `peak_source=native_dx` and retains integrator nam
 - Batch, result set, sample, vial, method, detector, wavelength, unit, point count, acquisition time, source size, relative path, and SHA-256 provenance.
 - Raw signal arrays and source hashes remain in the audit dataset and are intentionally omitted from the user-facing Excel files.
 
-An `.rx` processing state of `NoMethodProvided` does not mean that the `.dx` signal is corrupt. When strict decoding and native integration succeed, those acquisitions are processed from `native_dx` and remain subject to the same data-quality and manual-review rules. A missing or method-free `.rx` only means that vendor comparison evidence is unavailable.
+An `.rx` processing state of `NoMethodProvided` does not mean that the `.dx` signal is corrupt. When strict decoding and native integration succeed, those acquisitions are processed from `native_dx` and remain subject to the same data-quality and manual-review rules. A missing, unreadable, or method-free `.rx` only means that vendor comparison evidence is unavailable. Vendor presence and comparison differences are side-channel diagnostics and cannot change native quality, rerun selection, native values, or the final-use set.
 
 ## Seven-Sheet Excel Contract
 

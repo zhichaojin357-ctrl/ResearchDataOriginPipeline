@@ -6,6 +6,7 @@ import pytest
 from src.core.hplc_peak_integration import (
     NATIVE_INTEGRATOR_NAME,
     NATIVE_INTEGRATOR_VERSION,
+    _allocate_shared_cluster_baselines,
     integrate_chromatogram,
     match_native_target_peaks,
 )
@@ -85,6 +86,84 @@ def test_native_integrator_detects_targets_and_preserves_numeric_peak_trace():
         assert target["begin_time_min"] < target["retention_time_min"]
         assert target["end_time_min"] > target["retention_time_min"]
         assert target["match_status"] == "RT窗口匹配"
+
+
+def test_adjacent_peaks_share_outer_baseline_and_use_valley_drop_line():
+    time = np.arange(0.0, 5.0, 0.005)
+    signal = 0.02 * np.sin(time * 3.0)
+    signal += _gaussian(time, 2.00, 10.0, 0.08)
+    signal += _gaussian(time, 2.40, 9.0, 0.09)
+
+    result = integrate_chromatogram(time, signal, _config())
+    cluster = [
+        peak
+        for peak in result["peaks"]
+        if peak["baseline_allocation"] == "shared_cluster_valley_drop"
+    ]
+
+    assert result["shared_baseline_cluster_count"] == 1
+    assert len(cluster) == 2
+    assert cluster[0]["end_index"] == cluster[1]["begin_index"]
+    assert [peak["baseline_cluster_position"] for peak in cluster] == [1, 2]
+    assert {peak["baseline_cluster_size"] for peak in cluster} == {2}
+    assert len({peak["baseline_cluster_id"] for peak in cluster}) == 1
+    assert all(peak["baseline_model_uncertain"] for peak in cluster)
+    assert all(peak["individual_baseline_area"] is not None for peak in cluster)
+    assert cluster[0]["baseline_end"] == pytest.approx(cluster[1]["baseline_start"])
+
+    outer_time = (cluster[0]["begin_time_min"], cluster[-1]["end_time_min"])
+    outer_baseline = (cluster[0]["baseline_start"], cluster[-1]["baseline_end"])
+    valley_index = int(cluster[0]["end_index"])
+    expected_valley_baseline = float(
+        np.interp(time[valley_index], outer_time, outer_baseline)
+    )
+    assert cluster[0]["baseline_end"] == pytest.approx(expected_valley_baseline)
+    assert signal[valley_index] > expected_valley_baseline
+
+    for peak in cluster:
+        begin = int(peak["begin_index"])
+        end = int(peak["end_index"])
+        segment_time = time[begin : end + 1]
+        common_line = np.interp(segment_time, outer_time, outer_baseline)
+        expected_area = float(
+            np.trapezoid(signal[begin : end + 1] - common_line, segment_time) * 60.0
+        )
+        assert peak["area"] == pytest.approx(expected_area)
+        assert peak["baseline_model"].endswith("valley drop-line")
+
+
+def test_shared_boundary_does_not_create_drop_line_below_the_signal_baseline():
+    time = np.arange(5.0)
+    signal = np.asarray([0.0, 5.0, -1.0, 4.0, 0.0])
+    peaks = [
+        {
+            "begin_index": 0,
+            "end_index": 2,
+            "baseline_start": 0.0,
+            "baseline_end": -1.0,
+            "baseline_allocation": "individual_peak",
+        },
+        {
+            "begin_index": 2,
+            "end_index": 4,
+            "baseline_start": -1.0,
+            "baseline_end": 0.0,
+            "baseline_allocation": "individual_peak",
+        },
+    ]
+
+    count = _allocate_shared_cluster_baselines(
+        time,
+        signal,
+        peaks,
+        minimum_area=1.0,
+    )
+
+    assert count == 0
+    assert [peak["baseline_allocation"] for peak in peaks] == [
+        "individual_peak",
+        "individual_peak",
+    ]
 
 
 def test_target_match_never_uses_a_window_edge_as_a_peak_fallback():

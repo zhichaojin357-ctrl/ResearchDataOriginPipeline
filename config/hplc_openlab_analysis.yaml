@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "analysis_version": "hplc-openlab-analysis-1.0.0",
+  "analysis_version": "hplc-openlab-analysis-1.1.0",
   "reaction": {
     "substrate": "thioanisole",
     "target_product": "sulfoxide",
@@ -49,7 +49,7 @@
     "participates_in_calculation": false
   },
   "native_integration": {
-    "integrator_version": "1.0.0",
+    "integrator_version": "1.1.0",
     "smoothing_window_points": 9,
     "smoothing_polyorder": 3,
     "morphology_half_window_min": 0.40,

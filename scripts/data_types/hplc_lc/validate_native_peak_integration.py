@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -55,6 +56,15 @@ def main() -> int:
 def validate_native_integration(input_root: Path, *, since: date) -> dict[str, Any]:
     config = load_hplc_analysis_config(PROJECT_ROOT)
     dataset = extract_hplc_openlab_dataset(input_root, since)
+    train_end = date.fromisoformat(config["native_integration"]["validation_train_end_date"])
+    holdout_start = date.fromisoformat(
+        config["native_integration"]["validation_holdout_start_date"]
+    )
+    result_set_splits = _result_set_splits(
+        dataset["injections"],
+        train_end=train_end,
+        holdout_start=holdout_start,
+    )
     signal_by_injection = {
         str(column["injection_id"]): column
         for raw_sheet in dataset["raw_sheets"]
@@ -101,10 +111,9 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
 
     validation_rows: list[dict[str, Any]] = []
     integration_failures: list[dict[str, str]] = []
-    train_end = date.fromisoformat(config["native_integration"]["validation_train_end_date"])
-    holdout_start = date.fromisoformat(
-        config["native_integration"]["validation_holdout_start_date"]
-    )
+    all_peak_matches: list[dict[str, Any]] = []
+    unmatched_native_peak_count = 0
+    unmatched_vendor_peak_count = 0
     for injection_id, injection in injection_by_id.items():
         state = str(injection.get("openlab_processing_state") or "").casefold()
         if state in {"nomethodprovided", "missing_rx", "missing_result"}:
@@ -134,14 +143,25 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
             )
             continue
         acquisition_date = date.fromisoformat(str(injection["acquisition_date"]))
-        split = (
-            "train"
-            if acquisition_date <= train_end
-            else "holdout"
-            if acquisition_date >= holdout_start
-            else "gap"
-        )
+        result_set_key = str(injection.get("result_set_id") or f"INJECTION:{injection_id}")
+        split = result_set_splits[result_set_key]
         vendor_peaks = vendor_by_injection.get(injection_id, [])
+        matched_peaks, unmatched_native, unmatched_vendor = _match_all_peaks(
+            integrated["peaks"],
+            vendor_peaks,
+            maximum_rt_error_min=0.03,
+        )
+        unmatched_native_peak_count += unmatched_native
+        unmatched_vendor_peak_count += unmatched_vendor
+        for match in matched_peaks:
+            all_peak_matches.append(
+                {
+                    "split": split,
+                    "injection_id": injection_id,
+                    "result_set_id": str(injection["result_set_id"]),
+                    **match,
+                }
+            )
         for target_key, target in config["targets"].items():
             nominal = float(target["nominal_rt_min"])
             tolerance = float(target["rt_tolerance_min"])
@@ -198,6 +218,16 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
         )
         for split in ("train", "holdout", "all")
     }
+    all_peak_metrics = {
+        split: _all_peak_metrics(
+            [
+                row
+                for row in all_peak_matches
+                if split == "all" or row["split"] == split
+            ]
+        )
+        for split in ("train", "holdout", "all")
+    }
     boundary_metrics = {
         "all_peaks": _error_metrics(all_peak_errors),
         "all_peaks_absolute_error_mau_s": _error_metrics(all_peak_absolute_errors),
@@ -210,25 +240,43 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
     holdout_gates: dict[str, dict[str, bool]] = {}
     for target_key, values in metrics["holdout"]["targets"].items():
         holdout_gates[target_key] = {
-            "sensitivity": values["sensitivity"]
-            >= float(acceptance["minimum_target_sensitivity"]),
-            "specificity": values["specificity"]
-            >= float(acceptance["minimum_target_specificity"]),
-            "rt_p95": values["rt_abs_error_min"]["p95"]
-            <= float(acceptance["maximum_rt_p95_min"]),
-            "area_median": values["area_ape_percent"]["median"]
-            <= float(acceptance["maximum_area_median_ape_percent"]),
-            "area_p90": values["area_ape_percent"]["p90"]
-            <= float(acceptance["maximum_area_p90_ape_percent"]),
-            "area_p95": values["area_ape_percent"]["p95"]
-            <= float(acceptance["maximum_area_p95_ape_percent"]),
+            "positive_cases_present": values["true_positive"] + values["false_negative"] > 0,
+            "negative_cases_present": values["true_negative"] + values["false_positive"] > 0,
+            "sensitivity": _at_least(
+                values["sensitivity"],
+                float(acceptance["minimum_target_sensitivity"]),
+            ),
+            "specificity": _at_least(
+                values["specificity"],
+                float(acceptance["minimum_target_specificity"]),
+            ),
+            "rt_p95": _metric_at_most(
+                values["rt_abs_error_min"],
+                "p95",
+                float(acceptance["maximum_rt_p95_min"]),
+            ),
+            "area_median": _metric_at_most(
+                values["area_ape_percent"],
+                "median",
+                float(acceptance["maximum_area_median_ape_percent"]),
+            ),
+            "area_p90": _metric_at_most(
+                values["area_ape_percent"],
+                "p90",
+                float(acceptance["maximum_area_p90_ape_percent"]),
+            ),
+            "area_p95": _metric_at_most(
+                values["area_ape_percent"],
+                "p95",
+                float(acceptance["maximum_area_p95_ape_percent"]),
+            ),
         }
     vendor_boundary_gate = (
-        boundary_metrics["all_peaks"]["median"] <= 0.1
-        and boundary_metrics["all_peaks"]["p95"] <= 0.5
-        and boundary_metrics["all_peaks"]["max"] <= 3.0
+        _metric_at_most(boundary_metrics["all_peaks"], "median", 0.1)
+        and _metric_at_most(boundary_metrics["all_peaks"], "p95", 0.5)
+        and _metric_at_most(boundary_metrics["all_peaks"], "max", 3.0)
         and all(
-            values["p95"] <= 0.1
+            _metric_at_most(values, "p95", 0.1)
             for values in boundary_metrics["targets"].values()
         )
     )
@@ -266,6 +314,10 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
             "train": f"acquisition_date <= {train_end.isoformat()}",
             "holdout": f"acquisition_date >= {holdout_start.isoformat()}",
             "split_unit": "complete OpenLab result sets by acquisition date",
+            "holdout_blinding": (
+                "historical holdout inspected during v1.1 external-rule confirmation; "
+                "new result sets are required for a future blind validation claim"
+            ),
         },
         "passed": passed,
         "gates": {
@@ -288,6 +340,13 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
         },
         "vendor_boundary_recalculation": boundary_metrics,
         "native_target_validation": metrics,
+        "native_all_peak_validation": {
+            "matching_rule": "one-to-one minimum RT distance, accepted at <= 0.03 min",
+            "matched_peak_count": len(all_peak_matches),
+            "unmatched_native_peak_count": unmatched_native_peak_count,
+            "unmatched_vendor_peak_count": unmatched_vendor_peak_count,
+            "metrics": all_peak_metrics,
+        },
         "integration_failures": integration_failures,
         "detection_disagreements": detection_disagreements,
         "area_review_items": area_review,
@@ -320,6 +379,116 @@ def _target_for_rt(retention_time: float, config: dict[str, Any]) -> str | None:
         if difference <= float(target["rt_tolerance_min"]) + 1e-12:
             candidates.append((difference, key))
     return min(candidates)[1] if candidates else None
+
+
+def _result_set_splits(
+    injections: list[dict[str, Any]],
+    *,
+    train_end: date,
+    holdout_start: date,
+) -> dict[str, str]:
+    grouped: dict[str, set[str]] = defaultdict(set)
+    for injection in injections:
+        injection_id = str(injection["injection_id"])
+        result_set_key = str(
+            injection.get("result_set_id") or f"INJECTION:{injection_id}"
+        )
+        acquisition_date = date.fromisoformat(str(injection["acquisition_date"]))
+        split = (
+            "train"
+            if acquisition_date <= train_end
+            else "holdout"
+            if acquisition_date >= holdout_start
+            else "gap"
+        )
+        grouped[result_set_key].add(split)
+    crossing = {
+        result_set_id: sorted(splits)
+        for result_set_id, splits in grouped.items()
+        if len(splits) != 1
+    }
+    if crossing:
+        raise ValueError(
+            "OpenLab result sets cross validation split boundaries: "
+            + json.dumps(crossing, ensure_ascii=False, sort_keys=True)
+        )
+    return {
+        result_set_id: next(iter(splits))
+        for result_set_id, splits in grouped.items()
+    }
+
+
+def _match_all_peaks(
+    native_peaks: list[dict[str, Any]],
+    vendor_peaks: list[dict[str, Any]],
+    *,
+    maximum_rt_error_min: float,
+) -> tuple[list[dict[str, Any]], int, int]:
+    native = [
+        peak
+        for peak in native_peaks
+        if peak.get("retention_time_min") is not None and peak.get("area") is not None
+    ]
+    vendor = [
+        peak
+        for peak in vendor_peaks
+        if peak.get("retention_time_min") is not None and peak.get("area") is not None
+    ]
+    if not native or not vendor:
+        return [], len(native), len(vendor)
+    costs = np.asarray(
+        [
+            [
+                abs(
+                    float(native_peak["retention_time_min"])
+                    - float(vendor_peak["retention_time_min"])
+                )
+                for vendor_peak in vendor
+            ]
+            for native_peak in native
+        ],
+        dtype=np.float64,
+    )
+    native_indices, vendor_indices = linear_sum_assignment(costs)
+    matches: list[dict[str, Any]] = []
+    for native_index, vendor_index in zip(native_indices, vendor_indices):
+        rt_error = float(costs[native_index, vendor_index])
+        if rt_error > maximum_rt_error_min:
+            continue
+        native_peak = native[int(native_index)]
+        vendor_peak = vendor[int(vendor_index)]
+        vendor_area = float(vendor_peak["area"])
+        native_area = float(native_peak["area"])
+        matches.append(
+            {
+                "native_peak_ordinal": int(native_peak["peak_ordinal"]),
+                "vendor_peak_ordinal": int(vendor_peak["peak_ordinal"]),
+                "native_rt_min": float(native_peak["retention_time_min"]),
+                "vendor_rt_min": float(vendor_peak["retention_time_min"]),
+                "rt_abs_error_min": rt_error,
+                "native_area": native_area,
+                "vendor_area": vendor_area,
+                "area_ape_percent": abs(native_area - vendor_area)
+                / max(abs(vendor_area), 1e-12)
+                * 100.0,
+            }
+        )
+    return matches, len(native) - len(matches), len(vendor) - len(matches)
+
+
+def _all_peak_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "matched_peak_count": len(rows),
+        "rt_abs_error_min": _error_metrics(
+            [float(row["rt_abs_error_min"]) for row in rows]
+        ),
+        "area_ape_percent": _error_metrics(
+            [float(row["area_ape_percent"]) for row in rows]
+        ),
+        "area_ape_over_15_percent_count": sum(
+            float(row["area_ape_percent"]) > 15.0 for row in rows
+        ),
+    }
 
 
 def _target_metrics(rows: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, Any]:
@@ -365,10 +534,17 @@ def _target_metrics(rows: list[dict[str, Any]], config: dict[str, Any]) -> dict[
     return {"row_count": len(rows), "targets": targets}
 
 
-def _error_metrics(values: list[float]) -> dict[str, float | int]:
+def _error_metrics(values: list[float]) -> dict[str, float | int | None]:
     array = np.asarray(values, dtype=np.float64)
     if not len(array):
-        return {"n": 0, "median": 0.0, "p90": 0.0, "p95": 0.0, "p99": 0.0, "max": 0.0}
+        return {
+            "n": 0,
+            "median": None,
+            "p90": None,
+            "p95": None,
+            "p99": None,
+            "max": None,
+        }
     return {
         "n": int(len(array)),
         "median": float(np.median(array)),
@@ -379,8 +555,21 @@ def _error_metrics(values: list[float]) -> dict[str, float | int]:
     }
 
 
-def _safe_ratio(numerator: int, denominator: int) -> float:
-    return float(numerator / denominator) if denominator else 1.0
+def _safe_ratio(numerator: int, denominator: int) -> float | None:
+    return float(numerator / denominator) if denominator else None
+
+
+def _at_least(value: float | None, minimum: float) -> bool:
+    return value is not None and float(value) >= minimum
+
+
+def _metric_at_most(
+    metrics: dict[str, float | int | None],
+    key: str,
+    maximum: float,
+) -> bool:
+    value = metrics.get(key)
+    return int(metrics.get("n") or 0) > 0 and value is not None and float(value) <= maximum
 
 
 def _validate_paths(input_root: Path, output_json: Path, *, force: bool) -> None:

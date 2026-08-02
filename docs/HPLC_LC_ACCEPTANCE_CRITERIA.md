@@ -105,7 +105,7 @@ Allowed behavior:
 - Decode detector chromatograms with the project-native strict OPC/ACMD20/Signal179 decoder, version `1.0.0`.
 - Require the verified ACMD20 namespace, Signal179 encoding, declared payload size, 6,144-byte header/signature, finite signal values, and a strictly increasing time grid; reject unsupported variants explicitly.
 - Preserve each signal's exact time grid and measured values in the processed audit dataset without interpolation, resampling, smoothing, or baseline correction.
-- Detect and integrate peaks with `project-native-hplc-target-integrator` version `1.0.0`; label every such peak `peak_source=native_dx` and retain its algorithm version and integration audit fields.
+- Detect and integrate peaks with `project-native-hplc-target-integrator` version `1.1.0`; label every such peak `peak_source=native_dx` and retain its algorithm version and integration audit fields.
 - Read available OpenLab `.rx` integration rows as validation evidence, while keeping them distinct from native results.
 - Process a strictly decoded `NoMethodProvided` acquisition through native integration. The absence of an OpenLab processing method is not, by itself, raw-data corruption or a reason to discard the signal.
 - Preserve sample, vial, method, detector, wavelength, point-count, source hash, and result-set provenance.
@@ -123,22 +123,27 @@ Required failure behavior:
 - Fail when the workbook builder or workbook verification step fails.
 - Fail workbook verification if the required seven-sheet contract is incomplete or formula-error inspection fails.
 - Never label a native result as a vendor result. If `.rx` is missing or reports `NoMethodProvided`, record that vendor validation is unavailable and use only the separately labelled native result.
+- Treat an unreadable optional `.rx` as unavailable vendor-comparison evidence; record the parse error without blocking a valid `.dx` decode/integration.
+- Keep `.rx` comparison strictly side-channel: its presence, absence, area difference, or detection difference may add a validation-review record but must not alter native signal quality, rerun selection, calculated native values, or the final-use set.
 - Never execute or claim to execute a `.pmx` processing method independently. OpenLab, Agilent assemblies, MestReNova, and `.pmx` files are not required by the production decoder/integrator.
 
 ### Native integration method contract
 
-The version `1.0.0` native integrator must use the checked-in analysis configuration and record effective parameters in `分析参数`:
+The version `1.1.0` native integrator must use the checked-in analysis configuration and record effective parameters in `分析参数`:
 
 - 9-point, third-order Savitzky-Golay smoothing for extrema detection only;
 - morphological baseline half-window `0.40 min`;
 - minimum corrected height `1.70 mAU`;
 - minimum base width `0.02 min`;
 - minimum integrated area `1.0 mAU·s`;
-- nearest local-minimum bounds and a straight line between the estimated baseline endpoint values;
+- nearest local-minimum bounds and a straight line between the estimated baseline endpoint values for an isolated peak;
+- one common straight baseline between the outer endpoint values of adjacent accepted peaks that share a valley, with the valley retained as a vertical peak-allocation boundary only when every internal valley remains above that common baseline; otherwise split the chain recursively at the lowest nonpositive drop;
 - trapezoidal integration of the unsmoothed signal with minutes converted to seconds;
 - configured target RT windows, nearest-RT selection, and ambiguity reporting when multiple candidates occur.
 
 Smoothing must not overwrite the preserved raw signal. Missing local maxima/bounds, rejected candidates, multiple candidates, and data-quality failures must remain auditable and must not be replaced with a window-edge maximum or another silent fallback.
+
+For each shared-cluster allocation, retain the corresponding individual-baseline area and mark the baseline model uncertain. If any proposed shared allocation is non-finite or below the configured minimum area, reject that allocation for the entire cluster and retain the individual-baseline results.
 
 ### Vendor comparison and holdout gates
 
@@ -157,7 +162,7 @@ Algorithm tuning and acceptance data must be separated by complete result sets. 
 - area APE P90 `<= 5%`;
 - area APE P95 `<= 10%`.
 
-Any native/vendor detection disagreement, ambiguous target match, or target-area APE over `15%` must be written to `待人工复核`; it must not be hidden by averaging or by substituting the vendor value.
+Any native/vendor detection disagreement or target-area APE over `15%` must be written as a vendor side-channel item in `待人工复核`; it must not be hidden by averaging, substituted for the native value, or allowed to change final-use selection. Ambiguous native target matching remains a native quality review condition.
 
 Scientific boundary:
 

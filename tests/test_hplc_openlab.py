@@ -16,7 +16,9 @@ from src.core.hplc_openlab import (
     IDENTITY_BOUNDARY,
     _build_workbook_plan,
     _date_from_filename,
+    _metadata_payload,
     _parse_result_set_context,
+    _parse_optional_rx_result,
     _parse_rx_result,
     _patch_xlsx_top_row_freeze,
     _planned_preview_directories,
@@ -355,6 +357,33 @@ def test_openlab_export_preflights_all_outputs_before_writing_and_force_overwrit
     metadata = json.loads(result["metadata"].read_text(encoding="utf-8"))
     assert metadata["processing_status"] == "processed_to_split_excel_no_plot"
     assert all(zipfile.is_zipfile(path) for path in result["workbooks"])
+
+
+def test_analysis_metadata_records_native_integrator_version(tmp_path: Path) -> None:
+    dataset = _minimal_openlab_run_dataset(date(2026, 7, 18))
+    dataset["analysis"] = {
+        "analysis_version": "hplc-openlab-analysis-1.1.0",
+        "summary": {},
+    }
+    output_root = tmp_path / "output"
+    workbook_path = output_root / "analysis.xlsx"
+    dataset["workbook_plan"] = _build_workbook_plan(dataset, workbook_path)
+
+    metadata = _metadata_payload(
+        dataset,
+        [workbook_path],
+        output_root,
+        output_root / "processed_data" / "dataset.json",
+        output_root / "reports" / "verification.json",
+    )
+
+    assert metadata["algorithm_provenance"]["native_peak_integration"] == {
+        "name": "project-native-hplc-target-integrator",
+        "version": "1.1.0",
+        "analysis_version": "hplc-openlab-analysis-1.1.0",
+        "vendor_method_required": False,
+        "vendor_results_role": "validation side-channel only",
+    }
 
 
 def test_openlab_export_rejects_output_inside_raw_input_before_writing(
@@ -722,6 +751,17 @@ def _minimal_openlab_run_dataset(since: date) -> dict:
             "signal_point_count": 2,
         },
     }
+
+
+def test_unreadable_optional_rx_cannot_block_native_dx_processing(tmp_path: Path):
+    rx_path = tmp_path / "corrupt.rx"
+    rx_path.write_bytes(b"not a zip archive")
+
+    result = _parse_optional_rx_result(rx_path, {"signals": {}})
+
+    assert result["peaks"] == []
+    assert result["state"] == "vendor_result_unreadable"
+    assert "厂商对照不可读" in result["warning"]
 
 
 def _write_minimal_xlsx(path: Path) -> None:

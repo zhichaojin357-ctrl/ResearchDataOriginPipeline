@@ -31,6 +31,10 @@ from src.core.file_utils import (
     plan_safe_owned_directory_removal,
 )
 from src.core.hplc_analysis import attach_hplc_analysis
+from src.core.hplc_peak_integration import (
+    NATIVE_INTEGRATOR_NAME,
+    NATIVE_INTEGRATOR_VERSION,
+)
 from src.core.project import (
     ensure_output_path_separate_from_inputs,
     ensure_output_path_within_root,
@@ -1194,7 +1198,7 @@ def _build_injection_record(
     if not signals:
         raise ValueError(f"no detector signal decoded from {dx_path}")
 
-    rx_result = _parse_rx_result(dx_path.with_suffix(".rx"), context)
+    rx_result = _parse_optional_rx_result(dx_path.with_suffix(".rx"), context)
     peak_areas = [peak["area"] for peak in rx_result["peaks"] if peak["area"] is not None]
     peak_area_percents = [
         peak["area_percent"] for peak in rx_result["peaks"] if peak["area_percent"] is not None
@@ -1391,6 +1395,21 @@ def _parse_rx_result(rx_path: Path, context: dict[str, Any]) -> dict[str, Any]:
         "state": state,
         "warning": " | ".join(status_items),
     }
+
+
+def _parse_optional_rx_result(
+    rx_path: Path,
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    """Read optional vendor results without making native .dx processing depend on them."""
+    try:
+        return _parse_rx_result(rx_path, context)
+    except (OSError, ValueError, zipfile.BadZipFile, ET.ParseError) as exc:
+        return {
+            "peaks": [],
+            "state": "vendor_result_unreadable",
+            "warning": f"配套 .rx 厂商对照不可读：{type(exc).__name__}: {exc}",
+        }
 
 
 def _peak_record(peak: ET.Element, signal_info: dict[str, Any], ordinal: int) -> dict[str, Any]:
@@ -1726,6 +1745,16 @@ def _metadata_payload(
         path.resolve().relative_to(output_root.resolve()).as_posix()
         for path in workbook_paths
     ]
+    analysis = dataset.get("analysis") or {}
+    algorithm_provenance = dict(dataset["library_provenance"])
+    if analysis.get("analysis_version"):
+        algorithm_provenance["native_peak_integration"] = {
+            "name": NATIVE_INTEGRATOR_NAME,
+            "version": NATIVE_INTEGRATOR_VERSION,
+            "analysis_version": analysis["analysis_version"],
+            "vendor_method_required": False,
+            "vendor_results_role": "validation side-channel only",
+        }
     return {
         "dataset_id": f"hplc_openlab_{dataset['cutoff_date'].replace('-', '')}_plus",
         "data_type": dataset["data_type"],
@@ -1752,9 +1781,9 @@ def _metadata_payload(
         "forbidden_claims": dataset["scientific_boundary"]["forbidden_outputs"],
         "key_results": {
             "decode": dataset["summary"],
-            "analysis": dataset.get("analysis", {}).get("summary", {}),
+            "analysis": analysis.get("summary", {}),
         },
-        "algorithm_provenance": dataset["library_provenance"],
+        "algorithm_provenance": algorithm_provenance,
     }
 
 

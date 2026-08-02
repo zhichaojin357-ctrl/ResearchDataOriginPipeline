@@ -9,7 +9,7 @@ from scipy.signal import find_peaks, savgol_filter
 
 
 NATIVE_INTEGRATOR_NAME = "project-native-hplc-target-integrator"
-NATIVE_INTEGRATOR_VERSION = "1.0.0"
+NATIVE_INTEGRATOR_VERSION = "1.1.0"
 
 
 def integrate_chromatogram(
@@ -21,8 +21,11 @@ def integrate_chromatogram(
 
     Peak candidates are true local maxima after light Savitzky-Golay smoothing.
     The baseline is estimated independently with a morphological opening/closing
-    baseline.  The closest smoothed minima delimit each peak, while the baseline
-    values at those boundaries define the linear integration baseline.
+    baseline.  The closest smoothed minima delimit each peak. Isolated peaks use
+    a straight line between their morphological baseline endpoints. Adjacent
+    accepted peaks that share a valley use one common outer baseline and a
+    vertical valley drop-line, reflecting documented ChemStation/OpenLab
+    allocation semantics without reading vendor integration results.
     """
     policy = config["native_integration"]
     time = np.asarray(time_min, dtype=np.float64).reshape(-1)
@@ -94,9 +97,10 @@ def integrate_chromatogram(
         area = _integrate_linear_baseline(
             time,
             signal,
-            baseline,
             begin_index,
             end_index,
+            float(baseline[begin_index]),
+            float(baseline[end_index]),
         )
         if not math.isfinite(area) or area < minimum_area:
             rejected.append(
@@ -123,7 +127,13 @@ def integrate_chromatogram(
                 "height_unit": "mAU",
                 "baseline_start": float(baseline[begin_index]),
                 "baseline_end": float(baseline[end_index]),
-                "baseline_model": "native morphological endpoints + linear integration baseline",
+                "baseline_model": "native individual morphological endpoints + linear baseline",
+                "baseline_allocation": "individual_peak",
+                "baseline_cluster_id": None,
+                "baseline_cluster_size": 1,
+                "baseline_cluster_position": 1,
+                "baseline_model_uncertain": False,
+                "individual_baseline_area": None,
                 "baseline_code": "NATIVE",
                 "peak_source": "native_dx",
                 "integrator_name": NATIVE_INTEGRATOR_NAME,
@@ -133,6 +143,27 @@ def integrate_chromatogram(
         )
 
     accepted.sort(key=lambda peak: (peak["retention_time_min"], peak["apex_index"]))
+    shared_baseline_cluster_count = _allocate_shared_cluster_baselines(
+        time,
+        signal,
+        accepted,
+        minimum_area=minimum_area,
+    )
+    reallocated: list[dict[str, Any]] = []
+    for peak in accepted:
+        area = float(peak["area"])
+        if not math.isfinite(area) or area < minimum_area:
+            rejected.append(
+                _rejected_candidate(
+                    time,
+                    int(peak["apex_index"]),
+                    float(peak["height"]),
+                    f"共用基线分配后峰面积 {area:.6g} mAU·s 小于最小面积",
+                )
+            )
+            continue
+        reallocated.append(peak)
+    accepted = reallocated
     for ordinal, peak in enumerate(accepted, start=1):
         peak["peak_ordinal"] = ordinal
     return {
@@ -142,6 +173,7 @@ def integrate_chromatogram(
         "sampling_interval_s": sampling_interval_min * 60.0,
         "smoothing_window_points": smoothing_window,
         "morphology_half_window_points": half_window_points,
+        "shared_baseline_cluster_count": shared_baseline_cluster_count,
         "peak_count": len(accepted),
         "peaks": accepted,
         "rejected_candidates": rejected,
@@ -226,6 +258,10 @@ def match_native_target_peaks(
             "height": float(selected["height"]),
             "baseline_start": float(selected["baseline_start"]),
             "baseline_end": float(selected["baseline_end"]),
+            "baseline_model": selected.get("baseline_model", ""),
+            "baseline_allocation": selected.get("baseline_allocation", "individual_peak"),
+            "baseline_model_uncertain": bool(selected.get("baseline_model_uncertain", False)),
+            "individual_baseline_area": selected.get("individual_baseline_area"),
             "integrator_name": selected["integrator_name"],
             "integrator_version": selected["integrator_version"],
         }
@@ -235,18 +271,169 @@ def match_native_target_peaks(
 def _integrate_linear_baseline(
     time: np.ndarray,
     signal: np.ndarray,
-    baseline: np.ndarray,
     begin_index: int,
     end_index: int,
+    baseline_start: float,
+    baseline_end: float,
 ) -> float:
     segment_time = time[begin_index : end_index + 1]
     segment_signal = signal[begin_index : end_index + 1]
     line = np.interp(
         segment_time,
         (segment_time[0], segment_time[-1]),
-        (baseline[begin_index], baseline[end_index]),
+        (baseline_start, baseline_end),
     )
     return float(np.trapezoid(segment_signal - line, segment_time) * 60.0)
+
+
+def _allocate_shared_cluster_baselines(
+    time: np.ndarray,
+    signal: np.ndarray,
+    peaks: list[dict[str, Any]],
+    *,
+    minimum_area: float,
+) -> int:
+    """Allocate one outer baseline across adjacent valley-separated peaks.
+
+    Consecutive accepted peaks are first chained only when the right bound of
+    one is exactly the left bound of the next. A chain is then split recursively
+    wherever an internal valley lies on or below its proposed outer baseline;
+    such a valley is baseline-resolved and cannot support a positive vertical
+    drop-line. This introduces no fitted tolerance or vendor-derived decision
+    rule. Each retained valley remains the integration boundary, while its
+    baseline value is taken from the common line spanning the cluster. If that
+    allocation would make any member non-finite or smaller than the configured
+    minimum area, the entire proposed cluster keeps its individual baselines.
+    """
+    clusters: list[list[dict[str, Any]]] = []
+    current: list[dict[str, Any]] = []
+    for peak in peaks:
+        if current and int(current[-1]["end_index"]) != int(peak["begin_index"]):
+            clusters.append(current)
+            current = []
+        current.append(peak)
+    if current:
+        clusters.append(current)
+
+    allocated_clusters = [
+        allocated
+        for cluster in clusters
+        for allocated in _split_nonpositive_valley_drops(time, signal, cluster)
+    ]
+
+    shared_count = 0
+    for cluster in allocated_clusters:
+        if len(cluster) < 2:
+            continue
+        cluster_begin_index = int(cluster[0]["begin_index"])
+        cluster_end_index = int(cluster[-1]["end_index"])
+        cluster_begin_time = float(time[cluster_begin_index])
+        cluster_end_time = float(time[cluster_end_index])
+        cluster_baseline_start = float(cluster[0]["baseline_start"])
+        cluster_baseline_end = float(cluster[-1]["baseline_end"])
+
+        allocations: list[tuple[float, float, float]] = []
+        for peak in cluster:
+            begin_index = int(peak["begin_index"])
+            end_index = int(peak["end_index"])
+            baseline_start = float(
+                np.interp(
+                    time[begin_index],
+                    (cluster_begin_time, cluster_end_time),
+                    (cluster_baseline_start, cluster_baseline_end),
+                )
+            )
+            baseline_end = float(
+                np.interp(
+                    time[end_index],
+                    (cluster_begin_time, cluster_end_time),
+                    (cluster_baseline_start, cluster_baseline_end),
+                )
+            )
+            area = _integrate_linear_baseline(
+                time,
+                signal,
+                begin_index,
+                end_index,
+                baseline_start,
+                baseline_end,
+            )
+            allocations.append((area, baseline_start, baseline_end))
+        if any(
+            not math.isfinite(area) or area < minimum_area
+            for area, _, _ in allocations
+        ):
+            continue
+
+        shared_count += 1
+        cluster_id = f"NATIVE-C{shared_count:03d}"
+        for position, (peak, allocation) in enumerate(
+            zip(cluster, allocations),
+            start=1,
+        ):
+            area, baseline_start, baseline_end = allocation
+            individual_baseline_area = float(peak["area"])
+            peak["area"] = area
+            peak["baseline_start"] = baseline_start
+            peak["baseline_end"] = baseline_end
+            peak["baseline_model"] = (
+                "native shared morphological outer baseline + valley drop-line"
+            )
+            peak["baseline_allocation"] = "shared_cluster_valley_drop"
+            peak["baseline_cluster_id"] = cluster_id
+            peak["baseline_cluster_size"] = len(cluster)
+            peak["baseline_cluster_position"] = position
+            peak["baseline_cluster_begin_time_min"] = cluster_begin_time
+            peak["baseline_cluster_end_time_min"] = cluster_end_time
+            peak["baseline_model_uncertain"] = True
+            peak["individual_baseline_area"] = individual_baseline_area
+            peak["baseline_model_uncertainty_reason"] = (
+                "raw geometry alone cannot uniquely distinguish a shared valley "
+                "drop-line from two baseline-resolved peaks"
+            )
+    return shared_count
+
+
+def _split_nonpositive_valley_drops(
+    time: np.ndarray,
+    signal: np.ndarray,
+    cluster: list[dict[str, Any]],
+) -> list[list[dict[str, Any]]]:
+    """Split a proposed cluster until every internal valley is above its baseline."""
+    if len(cluster) < 2:
+        return [cluster]
+    cluster_begin_index = int(cluster[0]["begin_index"])
+    cluster_end_index = int(cluster[-1]["end_index"])
+    outer_time = (
+        float(time[cluster_begin_index]),
+        float(time[cluster_end_index]),
+    )
+    outer_baseline = (
+        float(cluster[0]["baseline_start"]),
+        float(cluster[-1]["baseline_end"]),
+    )
+    valley_drops = []
+    for peak in cluster[:-1]:
+        valley_index = int(peak["end_index"])
+        common_baseline = float(
+            np.interp(time[valley_index], outer_time, outer_baseline)
+        )
+        valley_drops.append(float(signal[valley_index]) - common_baseline)
+    split_index = int(np.argmin(valley_drops))
+    if valley_drops[split_index] > 0.0:
+        return [cluster]
+    return [
+        *_split_nonpositive_valley_drops(
+            time,
+            signal,
+            cluster[: split_index + 1],
+        ),
+        *_split_nonpositive_valley_drops(
+            time,
+            signal,
+            cluster[split_index + 1 :],
+        ),
+    ]
 
 
 def _validate_signal(time: np.ndarray, signal: np.ndarray) -> None:
