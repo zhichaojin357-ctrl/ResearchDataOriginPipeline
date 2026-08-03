@@ -125,7 +125,8 @@ Required failure behavior:
 - Never label a native result as a vendor result. If `.rx` is missing or reports `NoMethodProvided`, record that vendor validation is unavailable and use only the separately labelled native result.
 - Treat an unreadable optional `.rx` as unavailable vendor-comparison evidence; record the parse error without blocking a valid `.dx` decode/integration.
 - Keep `.rx` comparison strictly side-channel: its presence, absence, area difference, or detection difference may add a validation-review record but must not alter native signal quality, rerun selection, calculated native values, or the final-use set.
-- Never execute or claim to execute a `.pmx` processing method independently. OpenLab, Agilent assemblies, MestReNova, and `.pmx` files are not required by the production decoder/integrator.
+- Never execute or claim to execute a `.pmx` processing method independently. A controlled candidate validator may read its declarative XML settings without vendor assemblies, must label the result non-vendor/non-equivalent, and must not change production values unless all non-regression gates pass. OpenLab, Agilent assemblies, MestReNova, and `.pmx` files are not required by the production decoder/integrator.
+- A PMX-driven comparison must verify that every result set contributing vendor-validation rows has its own local PMX, all such PMX files resolve to one effective policy, and both algorithms used an identical input fingerprint. Historical confirmation data cannot satisfy the separate fresh-blind promotion gate.
 
 ### Native integration method contract
 

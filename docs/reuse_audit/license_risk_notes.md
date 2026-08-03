@@ -71,6 +71,7 @@ Optional dependencies must remain optional:
 - `MOCCA2` 0.1.18 reports an MIT license and may be used as an optional chromatography benchmark. It is not the production decoder or integrator and must not silently change the versioned native results.
 - `hplc-py` 0.2.7 is GPLv3 and remains reference-only. Do not import it from the formal OpenLab workflow or translate its implementation into project code.
 - Agilent `.pmx` processing methods and OpenLab assemblies remain proprietary external artifacts. The project neither redistributes them nor claims that a `.pmx` can be executed independently; native integration is a separate, auditable algorithm.
+- The controlled `src/core/agilent_pmx.py` reader uses only Python standard-library ZIP/XML/hash functions to extract declarative settings from user-supplied PMX files. It executes no vendor code, loads no proprietary assembly, redistributes no PMX, and is not a production dependency. `src/core/hplc_chemstation_integration.py` remains a labelled compatibility candidate until paired non-regression gates pass.
 
 ## Current Local Import Audit
 

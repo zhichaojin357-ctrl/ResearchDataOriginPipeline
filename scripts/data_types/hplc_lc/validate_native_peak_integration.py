@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -53,8 +55,15 @@ def main() -> int:
     return 0 if report["passed"] else 1
 
 
-def validate_native_integration(input_root: Path, *, since: date) -> dict[str, Any]:
+def validate_native_integration(
+    input_root: Path,
+    *,
+    since: date,
+    integrator: Callable[[Any, Any, dict[str, Any]], dict[str, Any]] | None = None,
+    integrator_descriptor: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     config = load_hplc_analysis_config(PROJECT_ROOT)
+    integration_function = integrator or integrate_chromatogram
     dataset = extract_hplc_openlab_dataset(input_root, since)
     train_end = date.fromisoformat(config["native_integration"]["validation_train_end_date"])
     holdout_start = date.fromisoformat(
@@ -77,6 +86,10 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
     vendor_by_injection: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for peak in dataset["peaks"]:
         vendor_by_injection[str(peak["injection_id"])].append(peak)
+    validation_snapshot = _validation_snapshot(
+        dataset["injections"],
+        dataset["peaks"],
+    )
 
     all_peak_errors: list[float] = []
     all_peak_absolute_errors: list[float] = []
@@ -120,7 +133,7 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
             continue
         column = signal_by_injection[injection_id]
         try:
-            integrated = integrate_chromatogram(
+            integrated = integration_function(
                 column["time"],
                 column["signal"],
                 config,
@@ -304,7 +317,8 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
         "generated_at": datetime.now().astimezone().isoformat(),
         "input_root_name": input_root.name,
         "since": since.isoformat(),
-        "integrator": {
+        "integrator": integrator_descriptor
+        or {
             "name": NATIVE_INTEGRATOR_NAME,
             "version": NATIVE_INTEGRATOR_VERSION,
             "vendor_method_required": False,
@@ -319,6 +333,7 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
                 "new result sets are required for a future blind validation claim"
             ),
         },
+        "validation_snapshot": validation_snapshot,
         "passed": passed,
         "gates": {
             "vendor_boundary_formula": vendor_boundary_gate,
@@ -346,6 +361,14 @@ def validate_native_integration(input_root: Path, *, since: date) -> dict[str, A
             "unmatched_native_peak_count": unmatched_native_peak_count,
             "unmatched_vendor_peak_count": unmatched_vendor_peak_count,
             "metrics": all_peak_metrics,
+            "largest_area_errors": sorted(
+                all_peak_matches,
+                key=lambda row: (
+                    -float(row["area_ape_percent"]),
+                    str(row["injection_id"]),
+                    int(row["vendor_peak_ordinal"]),
+                ),
+            )[:25],
         },
         "integration_failures": integration_failures,
         "detection_disagreements": detection_disagreements,
@@ -418,6 +441,87 @@ def _result_set_splits(
     }
 
 
+def _validation_snapshot(
+    injections: list[dict[str, Any]],
+    vendor_peaks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    injection_rows = sorted(
+        (
+            {
+                "injection_id": str(injection["injection_id"]),
+                "source_relative": str(injection.get("source_relative") or ""),
+                "source_sha256": str(injection.get("source_sha256") or ""),
+                "source_size_bytes": int(injection.get("source_size_bytes") or 0),
+                "processing_method": str(injection.get("processing_method") or ""),
+                "openlab_processing_state": str(
+                    injection.get("openlab_processing_state") or ""
+                ),
+            }
+            for injection in injections
+        ),
+        key=lambda row: (row["injection_id"], row["source_relative"].casefold()),
+    )
+    peak_rows = sorted(
+        (
+            {
+                "injection_id": str(peak["injection_id"]),
+                "peak_ordinal": int(peak["peak_ordinal"]),
+                "retention_time_min": peak.get("retention_time_min"),
+                "begin_time_min": peak.get("begin_time_min"),
+                "end_time_min": peak.get("end_time_min"),
+                "area": peak.get("area"),
+                "baseline_start": peak.get("baseline_start"),
+                "baseline_end": peak.get("baseline_end"),
+            }
+            for peak in vendor_peaks
+        ),
+        key=lambda row: (row["injection_id"], row["peak_ordinal"]),
+    )
+    fingerprint_payload = {
+        "injections": injection_rows,
+        "vendor_peaks": peak_rows,
+    }
+    fingerprint = hashlib.sha256(
+        json.dumps(
+            fingerprint_payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest().upper()
+    processed_injection_ids = {
+        str(peak["injection_id"]) for peak in vendor_peaks
+    }
+    vendor_result_sets = sorted(
+        {
+            relative
+            for injection in injections
+            if str(injection["injection_id"]) in processed_injection_ids
+            for relative in [
+                _result_set_relative(str(injection.get("source_relative") or ""))
+            ]
+            if relative
+        }
+    )
+    return {
+        "fingerprint_sha256": fingerprint,
+        "selected_injection_count": len(injection_rows),
+        "vendor_peak_row_count": len(peak_rows),
+        "vendor_validation_result_set_count": len(vendor_result_sets),
+        "vendor_validation_result_set_relatives": vendor_result_sets,
+    }
+
+
+def _result_set_relative(source_relative: str) -> str:
+    parts = [part for part in source_relative.replace("\\", "/").split("/") if part]
+    selected: list[str] = []
+    for part in parts:
+        selected.append(part)
+        if part.casefold().endswith(".rslt"):
+            return "/".join(selected)
+    return ""
+
+
 def _match_all_peaks(
     native_peaks: list[dict[str, Any]],
     vendor_peaks: list[dict[str, Any]],
@@ -484,6 +588,12 @@ def _all_peak_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "area_ape_percent": _error_metrics(
             [float(row["area_ape_percent"]) for row in rows]
+        ),
+        "area_absolute_error_mau_s": _error_metrics(
+            [
+                abs(float(row["native_area"]) - float(row["vendor_area"]))
+                for row in rows
+            ]
         ),
         "area_ape_over_15_percent_count": sum(
             float(row["area_ape_percent"]) > 15.0 for row in rows

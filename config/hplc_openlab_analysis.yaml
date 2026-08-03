@@ -68,6 +68,26 @@
       "maximum_area_p95_ape_percent": 10.0
     }
   },
+  "chemstation_compatible_integration": {
+    "candidate_version": "0.4.0",
+    "production_enabled": false,
+    "slope_sensitivity": 1.0,
+    "initial_peak_width_min": 0.02,
+    "area_reject_mau_s": 1.0,
+    "height_reject_mau": 1.7,
+    "area_percent_reject": 0.0,
+    "shoulders_mode": "OFF",
+    "baseline_correction": "Advanced",
+    "tangent_skim_mode": "Standard",
+    "front_skim_height_ratio": 0.0,
+    "tail_skim_height_ratio": 0.0,
+    "skim_valley_ratio": 20.0,
+    "peak_to_valley_ratio": 500.0,
+    "recognition_scaling": "peak_width_normalized",
+    "timed_events": [],
+    "signal_specific_events": [],
+    "method_snapshot_sha256": "4CCFBF222116F1F4AE420E59A0FCFA32B819E22E1A4EEF3BBA04955696A97CD2"
+  },
   "name_rules": {
     "wash_terms": [
       "chong",
