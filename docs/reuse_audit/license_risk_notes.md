@@ -72,6 +72,7 @@ Optional dependencies must remain optional:
 - `hplc-py` 0.2.7 is GPLv3 and remains reference-only. Do not import it from the formal OpenLab workflow or translate its implementation into project code.
 - Agilent `.pmx` processing methods and OpenLab assemblies remain proprietary external artifacts. The project neither redistributes them nor claims that a `.pmx` can be executed independently; native integration is a separate, auditable algorithm.
 - The controlled `src/core/agilent_pmx.py` reader uses only Python standard-library ZIP/XML/hash functions to extract declarative settings from user-supplied PMX files. It executes no vendor code, loads no proprietary assembly, redistributes no PMX, and is not a production dependency. `src/core/hplc_chemstation_integration.py` remains a labelled compatibility candidate until paired non-regression gates pass.
+- `src/core/hplc_pmx_hybrid_integration.py` reuses the in-repository native integrator plus NumPy/SciPy/pybaselines already approved for this workflow. It adds no dependency and remains validation-only; its 2026-08-03 historical comparison failed the absolute-area non-regression gate, so production continues to use the native integrator.
 
 ## Current Local Import Audit
 

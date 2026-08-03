@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import json
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Callable
 from datetime import date, datetime
 from pathlib import Path
@@ -127,6 +127,10 @@ def validate_native_integration(
     all_peak_matches: list[dict[str, Any]] = []
     unmatched_native_peak_count = 0
     unmatched_vendor_peak_count = 0
+    integrator_decisions: Counter[str] = Counter()
+    integrator_changed_peak_count = 0
+    integrator_confirmed_block_count = 0
+    integrator_incomplete_block_count = 0
     for injection_id, injection in injection_by_id.items():
         state = str(injection.get("openlab_processing_state") or "").casefold()
         if state in {"nomethodprovided", "missing_rx", "missing_result"}:
@@ -137,6 +141,17 @@ def validate_native_integration(
                 column["time"],
                 column["signal"],
                 config,
+            )
+            integrator_decisions.update(integrated.get("hybrid_decision_counts", {}))
+            integrator_changed_peak_count += int(
+                integrated.get("changed_peak_count", 0)
+            )
+            scan_audit = integrated.get("scan_audit", {})
+            integrator_confirmed_block_count += int(
+                scan_audit.get("confirmed_block_count", 0)
+            )
+            integrator_incomplete_block_count += int(
+                scan_audit.get("incomplete_block_count", 0)
             )
             matched = match_native_target_peaks(
                 integrated["peaks"],
@@ -172,6 +187,10 @@ def validate_native_integration(
                     "split": split,
                     "injection_id": injection_id,
                     "result_set_id": str(injection["result_set_id"]),
+                    "target_key": _target_for_rt(
+                        float(match["vendor_rt_min"]),
+                        config,
+                    ),
                     **match,
                 }
             )
@@ -204,12 +223,25 @@ def validate_native_integration(
                     int(vendor_peak["peak_ordinal"]) if vendor_peak else None
                 ),
                 "native_peak_ordinal": native_peak["selected_peak_ordinal"],
+                "native_candidate_count": native_peak["candidate_count"],
+                "native_candidate_peak_ordinals": native_peak[
+                    "candidate_peak_ordinals"
+                ],
+                "native_candidate_retention_times_min": native_peak[
+                    "candidate_retention_times_min"
+                ],
+                "native_ambiguous": native_peak["ambiguous"],
                 "vendor_rt_min": (
                     float(vendor_peak["retention_time_min"]) if vendor_peak else None
                 ),
                 "native_rt_min": native_peak["retention_time_min"],
                 "vendor_area": float(vendor_peak["area"]) if vendor_peak else None,
                 "native_area": native_peak["area"] if vendor_peak else None,
+                "native_begin_time_min": native_peak.get("begin_time_min"),
+                "native_end_time_min": native_peak.get("end_time_min"),
+                "native_height_mau": native_peak.get("height"),
+                "native_baseline_start_mau": native_peak.get("baseline_start"),
+                "native_baseline_end_mau": native_peak.get("baseline_end"),
             }
             if vendor_peak and native_peak["retention_time_min"] is not None:
                 row["rt_abs_error_min"] = abs(
@@ -237,6 +269,17 @@ def validate_native_integration(
                 row
                 for row in all_peak_matches
                 if split == "all" or row["split"] == split
+            ]
+        )
+        for split in ("train", "holdout", "all")
+    }
+    non_target_all_peak_metrics = {
+        split: _all_peak_metrics(
+            [
+                row
+                for row in all_peak_matches
+                if row["target_key"] is None
+                and (split == "all" or row["split"] == split)
             ]
         )
         for split in ("train", "holdout", "all")
@@ -312,6 +355,13 @@ def validate_native_integration(
         for row in validation_rows
         if row["vendor_detected"] != row["native_detected"]
     ]
+    rx_processed_injection_ids = sorted(
+        {row["injection_id"] for row in validation_rows}
+    )
+    vendor_peak_injection_ids = sorted(vendor_by_injection)
+    no_vendor_peak_rx_injection_ids = sorted(
+        set(rx_processed_injection_ids) - set(vendor_peak_injection_ids)
+    )
     return {
         "schema_version": "1.0",
         "generated_at": datetime.now().astimezone().isoformat(),
@@ -342,11 +392,11 @@ def validate_native_integration(
         },
         "summary": {
             "selected_injections": dataset["summary"]["selected_injection_count"],
-            "vendor_validation_injections": len(
-                {
-                    row["injection_id"] for row in validation_rows
-                }
-            ),
+            # Kept as a compatibility alias for existing report consumers.
+            "vendor_validation_injections": len(rx_processed_injection_ids),
+            "rx_processed_injection_count": len(rx_processed_injection_ids),
+            "vendor_peak_injection_count": len(vendor_peak_injection_ids),
+            "no_vendor_peak_rx_injection_ids": no_vendor_peak_rx_injection_ids,
             "vendor_peak_rows": len(all_peak_errors),
             "native_integration_failures": len(integration_failures),
             "detection_disagreements": len(detection_disagreements),
@@ -355,12 +405,20 @@ def validate_native_integration(
         },
         "vendor_boundary_recalculation": boundary_metrics,
         "native_target_validation": metrics,
+        "native_target_validation_rows": validation_rows,
+        "integrator_runtime_audit": {
+            "changed_peak_count": integrator_changed_peak_count,
+            "hybrid_decision_counts": dict(sorted(integrator_decisions.items())),
+            "confirmed_accumulator_block_count": integrator_confirmed_block_count,
+            "incomplete_accumulator_block_count": integrator_incomplete_block_count,
+        },
         "native_all_peak_validation": {
             "matching_rule": "one-to-one minimum RT distance, accepted at <= 0.03 min",
             "matched_peak_count": len(all_peak_matches),
             "unmatched_native_peak_count": unmatched_native_peak_count,
             "unmatched_vendor_peak_count": unmatched_vendor_peak_count,
             "metrics": all_peak_metrics,
+            "non_target_metrics": non_target_all_peak_metrics,
             "largest_area_errors": sorted(
                 all_peak_matches,
                 key=lambda row: (

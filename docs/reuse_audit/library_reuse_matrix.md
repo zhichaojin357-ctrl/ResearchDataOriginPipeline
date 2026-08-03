@@ -28,6 +28,8 @@ Scope: the current automated pipeline planning audit only. Dependencies listed h
 
 Core dependencies are deliberately small:
 
+The PMX/native hybrid experiment adds no package. It reuses the project-native detector and the already approved NumPy/SciPy/pybaselines stack, while the standard-library PMX reader supplies declarative settings only. Its 2026-08-03 historical comparison failed the non-target absolute-area P95 gate, so it remains validation-only and does not change the production path.
+
 - `pandas`, `numpy`, `scipy`, `openpyxl`, `PyYAML`: standard table/config/numeric stack.
 - `pybaselines`: reusable baseline correction for FTIR/Raman/EPR/PL style spectra.
 - `originpro`, `pywin32`: OriginPro automation and Windows COM support. OriginPro itself is preinstalled and must not be installed by this project.

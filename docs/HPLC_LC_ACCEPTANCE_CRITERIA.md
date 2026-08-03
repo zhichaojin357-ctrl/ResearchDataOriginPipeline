@@ -127,6 +127,7 @@ Required failure behavior:
 - Keep `.rx` comparison strictly side-channel: its presence, absence, area difference, or detection difference may add a validation-review record but must not alter native signal quality, rerun selection, calculated native values, or the final-use set.
 - Never execute or claim to execute a `.pmx` processing method independently. A controlled candidate validator may read its declarative XML settings without vendor assemblies, must label the result non-vendor/non-equivalent, and must not change production values unless all non-regression gates pass. OpenLab, Agilent assemblies, MestReNova, and `.pmx` files are not required by the production decoder/integrator.
 - A PMX-driven comparison must verify that every result set contributing vendor-validation rows has its own local PMX, all such PMX files resolve to one effective policy, and both algorithms used an identical input fingerprint. Historical confirmation data cannot satisfy the separate fresh-blind promotion gate.
+- A PMX/native hybrid must keep target validation rows bit-identical, keep matched/unmatched and detection counts exactly equal, and report non-target relative-area P95, maximum error, absolute-area P95, and the count above `15%` separately. Every non-target metric must be non-inferior and at least one must materially improve before a fresh blind test is considered. Vendor rows may validate a frozen candidate but must never select a per-injection or per-peak runtime branch.
 
 ### Native integration method contract
 

@@ -26,6 +26,7 @@
 - `src/core/hplc_openlab.py`: Agilent OpenLab `.rslt/.dx/.rx` raw-data decode and verified Excel export workflow.
 - `src/core/agilent_pmx.py`: independent PMX ZIP/XML settings reader and whole-corpus policy-consistency audit for controlled validation.
 - `src/core/hplc_chemstation_integration.py`: non-production ChemStation-compatible integration candidate driven by documented rules and PMX settings.
+- `src/core/hplc_pmx_hybrid_integration.py`: non-production safety-gated PMX/native hybrid experiment; native peak identity and configured target-window intersections are immutable.
 - `src/core/origin_governance.py`: Origin plotting governance and journal-ready report generation.
 - `src/core/readiness.py`: project readiness checks.
 - `src/core/validate.py`: configuration, dependency, output, safety, and Origin contract validation.
