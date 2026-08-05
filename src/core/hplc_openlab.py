@@ -1753,7 +1753,8 @@ def _metadata_payload(
             "version": NATIVE_INTEGRATOR_VERSION,
             "analysis_version": analysis["analysis_version"],
             "vendor_method_required": False,
-            "vendor_results_role": "validation side-channel only",
+            "source_priority": "successful vendor_rx -> native_dx fallback",
+            "vendor_results_role": "primary target source when stored result is successful",
         }
     return {
         "dataset_id": f"hplc_openlab_{dataset['cutoff_date'].replace('-', '')}_plus",

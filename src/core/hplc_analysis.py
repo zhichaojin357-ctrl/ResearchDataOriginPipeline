@@ -64,15 +64,15 @@ PEAK_DETAIL_COLUMNS = (
     "序号",
     "实验日期",
     "样品名",
-    "组分名称",
-    "峰序号",
-    "RT（min）",
-    "标称 RT（min）",
-    "RT 偏差（min）",
-    "峰面积",
-    "上机液浓度（mM）",
-    "原反应液浓度（mM）",
-    "峰匹配状态",
+    "茴香亚砜峰序号",
+    "茴香亚砜出峰时间(min)",
+    "茴香亚砜峰面积",
+    "茴香砜峰序号",
+    "茴香砜出峰时间(min)",
+    "茴香砜峰面积",
+    "茴香硫醚峰序号",
+    "茴香硫醚出峰时间(min)",
+    "茴香硫醚峰面积",
     "数据质量",
     "是否参与最终计算",
     "处理方式",
@@ -125,11 +125,23 @@ def load_hplc_analysis_config(project_root: Path) -> dict[str, Any]:
     loaded = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):
         raise TypeError("HPLC analysis configuration must be a JSON/YAML mapping")
-    for key in ("analysis_version", "date_rules", "targets", "repeat_rules", "quality_thresholds"):
+    for key in (
+        "analysis_version",
+        "peak_selection",
+        "date_rules",
+        "targets",
+        "repeat_rules",
+        "quality_thresholds",
+    ):
         if key not in loaded:
             raise ValueError(f"HPLC analysis configuration is missing required key: {key}")
     if tuple(loaded["targets"].keys()) != TARGET_ORDER:
         raise ValueError(f"HPLC target order must be exactly {TARGET_ORDER}")
+    peak_selection = loaded["peak_selection"]
+    if peak_selection.get("primary_source") != "vendor_rx_when_available":
+        raise ValueError("HPLC primary peak source must be vendor_rx_when_available")
+    if peak_selection.get("fallback_source") != "native_dx":
+        raise ValueError("HPLC fallback peak source must be native_dx")
     return loaded
 
 
@@ -445,7 +457,15 @@ def match_target_peaks(
                 "match_status": status,
                 "candidate_count": 0,
                 "candidate_peak_ordinals": [],
+                "candidate_retention_times_min": [],
                 "ambiguous": False,
+                "selected_peak_ordinal": None,
+                "begin_time_min": None,
+                "end_time_min": None,
+                "height": None,
+                "baseline_start": None,
+                "baseline_end": None,
+                "baseline_model": None,
             }
             continue
         selected = candidates[0]
@@ -471,9 +491,80 @@ def match_target_peaks(
             "match_status": status,
             "candidate_count": len(candidates),
             "candidate_peak_ordinals": [int(item.get("peak_ordinal") or 0) for item in candidates],
+            "candidate_retention_times_min": [
+                float(item["retention_time_min"]) for item in candidates
+            ],
             "ambiguous": ambiguous,
+            "selected_peak_ordinal": int(selected.get("peak_ordinal") or 0),
+            "begin_time_min": selected.get("begin_time_min"),
+            "end_time_min": selected.get("end_time_min"),
+            "height": selected.get("height"),
+            "baseline_start": selected.get("baseline_start"),
+            "baseline_end": selected.get("baseline_end"),
+            "baseline_model": selected.get("baseline_model"),
         }
     return result
+
+
+def _vendor_result_available(
+    injection: dict[str, Any],
+    vendor_peaks: list[dict[str, Any]],
+    config: dict[str, Any],
+) -> bool:
+    """Return whether the paired .rx contains a usable vendor processing result."""
+    state = str(injection.get("openlab_processing_state") or "").casefold()
+    if state in {
+        "nomethodprovided",
+        "missing_rx",
+        "missing_result",
+        "vendor_result_unreadable",
+    }:
+        return False
+    if vendor_peaks:
+        return True
+    success_states = {
+        str(value).casefold()
+        for value in config["peak_selection"].get("vendor_success_states", [])
+    }
+    return bool(state and state in success_states)
+
+
+def _select_primary_target(
+    native_target: dict[str, Any],
+    vendor_target: dict[str, Any],
+    *,
+    vendor_available: bool,
+) -> dict[str, Any]:
+    """Prefer a successful stored OpenLab result while retaining native audit values."""
+    native_detected = native_target.get("retention_time_min") is not None
+    vendor_detected = vendor_target.get("retention_time_min") is not None
+    selected = deepcopy(vendor_target if vendor_available else native_target)
+    if vendor_available:
+        selected.update(
+            {
+                "peak_source": "vendor_rx",
+                "integrator_name": "Agilent OpenLab stored processing result",
+                "integrator_version": "paired .rx",
+                "manual_check_required": True,
+            }
+        )
+    selected.update(
+        {
+            "primary_peak_source": selected.get("peak_source", "native_dx"),
+            "native_detected": native_detected,
+            "native_area": native_target.get("area"),
+            "native_retention_time_min": native_target.get("retention_time_min"),
+            "native_selected_peak_ordinal": native_target.get("selected_peak_ordinal"),
+            "vendor_result_available": vendor_available,
+            "vendor_validation_available": vendor_available,
+            "vendor_detected": vendor_detected,
+            "vendor_area": vendor_target.get("area") if vendor_detected else None,
+            "vendor_retention_time_min": (
+                vendor_target.get("retention_time_min") if vendor_detected else None
+            ),
+        }
+    )
+    return selected
 
 
 def _calibrate_area(area: float | None, target: dict[str, Any], dilution: float) -> dict[str, Any]:
@@ -926,7 +1017,12 @@ def _combine_final_result(
             "area": area,
             "selected_peak_ordinals": [int(value) for value in ordinals if value is not None],
             "match_status": status,
-            "peak_source": "native_dx",
+            "peak_source": " + ".join(
+                dict.fromkeys(
+                    str(item["targets"][key].get("peak_source") or "native_dx")
+                    for item in used
+                )
+            ) or "native_dx",
             **calibration,
         }
 
@@ -1093,8 +1189,19 @@ def _parameter_rows(config: dict[str, Any], generated_at: str) -> list[dict[str,
         ]
     )
     native = config["native_integration"]
+    peak_selection = config["peak_selection"]
     rows.extend(
         [
+            {
+                "category": "峰来源",
+                "parameter": "正式定量峰来源优先级",
+                "value": "已成功处理的OpenLab .rx优先；缺失/失败时回退独立.dx积分",
+                "unit": "",
+                "source": (
+                    f"{peak_selection['primary_source']} -> "
+                    f"{peak_selection['fallback_source']}"
+                ),
+            },
             {
                 "category": "原生解峰",
                 "parameter": "积分器",
@@ -1252,7 +1359,7 @@ def analyze_hplc_openlab_dataset(
                     "raw_file": str(injection.get("raw_file") or ""),
                 }
             )
-        targets = match_native_target_peaks(
+        native_targets = match_native_target_peaks(
             integrated_rows,
             config["targets"],
             ambiguity_margin_min=float(
@@ -1265,46 +1372,51 @@ def analyze_hplc_openlab_dataset(
             config,
             missing_can_be_zero=True,
         )
+        vendor_available = _vendor_result_available(
+            injection,
+            vendor_peaks_by_injection.get(injection_id, []),
+            config,
+        )
         validation_review_threshold = float(
             config["native_integration"]["validation_area_review_error_percent"]
         )
         vendor_validation_reasons: list[str] = []
         native_baseline_model_reasons: list[str] = []
-        for target_key, target in targets.items():
-            if target.get("baseline_model_uncertain"):
+        targets: dict[str, dict[str, Any]] = {}
+        for target_key, native_target in native_targets.items():
+            if native_target.get("baseline_model_uncertain"):
                 native_baseline_model_reasons.append(
-                    f"{target['display_name']}使用共享峰簇基线，候选面积={target['area']:.6g} mAU·s，"
-                    f"独立峰基线面积={float(target['individual_baseline_area']):.6g} mAU·s"
+                    f"{native_target['display_name']}使用共享峰簇基线，"
+                    f"候选面积={native_target['area']:.6g} mAU·s，"
+                    f"独立峰基线面积={float(native_target['individual_baseline_area']):.6g} mAU·s"
                 )
             vendor_target = vendor_targets[target_key]
             vendor_detected = vendor_target["retention_time_min"] is not None
-            native_detected = target["retention_time_min"] is not None
-            target["vendor_validation_available"] = bool(
-                vendor_peaks_by_injection.get(injection_id)
-            )
-            target["vendor_detected"] = vendor_detected
-            target["vendor_area"] = vendor_target["area"] if vendor_detected else None
-            target["vendor_retention_time_min"] = (
-                vendor_target["retention_time_min"] if vendor_detected else None
+            native_detected = native_target["retention_time_min"] is not None
+            target = _select_primary_target(
+                native_target,
+                vendor_target,
+                vendor_available=vendor_available,
             )
             target["vendor_area_ape_percent"] = None
             if analysis_eligible and vendor_detected and native_detected and vendor_target["area"]:
                 target["vendor_area_ape_percent"] = abs(
-                    float(target["area"]) - float(vendor_target["area"])
+                    float(native_target["area"]) - float(vendor_target["area"])
                 ) / abs(float(vendor_target["area"])) * 100.0
                 if target["vendor_area_ape_percent"] > validation_review_threshold:
                     vendor_validation_reasons.append(
-                        f"{target['display_name']}原生面积与可用厂商面积差异"
+                        f"{target['display_name']}原生面积与原厂面积差异"
                         f"{target['vendor_area_ape_percent']:.2f}%"
                     )
             elif (
                 analysis_eligible
-                and target["vendor_validation_available"]
+                and vendor_available
                 and vendor_detected != native_detected
             ):
                 vendor_validation_reasons.append(
                     f"{target['display_name']}原生/厂商检出状态不一致"
                 )
+            targets[target_key] = target
         if any(item["ambiguous"] for item in targets.values()) and quality == "正常":
             quality = "待人工复核"
             quality_reasons.append("至少一个目标峰存在近距离多候选歧义")
@@ -1356,6 +1468,9 @@ def analyze_hplc_openlab_dataset(
             "quantifiable": quantifiable,
             "targets": targets,
             "native_peak_count": len(integrated_rows),
+            "primary_peak_source": (
+                "vendor_rx" if vendor_available else "native_dx"
+            ),
             "native_integration_status": (
                 integration_result.get("status", "") if integration_result else "failed"
             ),
@@ -1508,7 +1623,7 @@ def analyze_hplc_openlab_dataset(
                     before_status="无厂商处理方法峰表",
                     after_result=f"使用 {NATIVE_INTEGRATOR_NAME} {NATIVE_INTEGRATOR_VERSION} 得到候选峰",
                     used_data=record["injection_id"],
-                    details="厂商峰表仅作可用样本的数值对照，不作为原生定量门禁",
+                    details="该进样无可用原厂峰表，因此正式定量回退到独立.dx积分",
                 )
             )
         if analysis_eligible and not quantifiable:
@@ -1567,11 +1682,11 @@ def analyze_hplc_openlab_dataset(
                     experiment_date=experiment_date.isoformat(),
                     sample_name=sample_name,
                     injection_ids=record["injection_id"],
-                    issue_type="厂商旁路验证差异",
+                    issue_type="原厂/原生交叉验证差异",
                     reason=vendor_reason,
                     recommended_action=(
-                        "仅用于核查原生算法；不得以.rx是否存在或其比较结果改变"
-                        "原生色谱质量、重打选择或最终采用集合"
+                        "原厂峰用于正式定量，原生峰保留作独立交叉核查；差异不得改变"
+                        "原始色谱质量、重打选择或最终采用集合"
                     ),
                 )
             )
@@ -1581,10 +1696,10 @@ def analyze_hplc_openlab_dataset(
                     experiment_date=experiment_date.isoformat(),
                     sample_name=sample_name,
                     raw_files=record["raw_file"],
-                    operation_type="厂商旁路数值验证",
+                    operation_type="原厂/原生数值交叉验证",
                     basis=vendor_reason,
                     before_status="原生积分及质量判断已独立完成",
-                    after_result="保留验证差异；不改变原生质量和最终采用决策",
+                    after_result="采用原厂峰定量并保留原生差异；不改变质量和最终采用决策",
                     used_data=record["injection_id"],
                 )
             )
@@ -2059,11 +2174,25 @@ def analyze_hplc_openlab_dataset(
     for index, row in enumerate(final_rows, start=1):
         row["sequence_number"] = index
     peak_details: list[dict[str, Any]] = []
-    detail_index = 1
-    for row in final_rows:
+    for detail_index, row in enumerate(final_rows, start=1):
+        detail: dict[str, Any] = {
+            "sequence_number": detail_index,
+            "experiment_date": row["experiment_date"],
+            "sample_name": row["sample_name"],
+            "data_quality": row["data_quality"],
+            "participates_in_final": bool(row["used_injection_ids"]),
+            "process_method": row["process_method"],
+            "actual_acquisition_time": row["actual_acquisition_time"],
+            "acquisition_method": row["acquisition_method"],
+            "sequence_name": row["sequence_name"],
+            "result_name": row["result_name"],
+            "raw_file": row["raw_file"],
+        }
         for key in TARGET_ORDER:
             target = row["targets"][key]
-            unique_peak_ordinals = list(dict.fromkeys(target["selected_peak_ordinals"]))
+            unique_peak_ordinals = list(
+                dict.fromkeys(target["selected_peak_ordinals"])
+            )
             peak_ordinal: int | str | None
             if len(unique_peak_ordinals) == 1:
                 peak_ordinal = unique_peak_ordinals[0]
@@ -2071,31 +2200,10 @@ def analyze_hplc_openlab_dataset(
                 peak_ordinal = "; ".join(str(value) for value in unique_peak_ordinals)
             else:
                 peak_ordinal = None
-            peak_details.append(
-                {
-                    "sequence_number": detail_index,
-                    "experiment_date": row["experiment_date"],
-                    "sample_name": row["sample_name"],
-                    "component_name": target["display_name"],
-                    "peak_ordinal": peak_ordinal,
-                    "retention_time_min": target["retention_time_min"],
-                    "nominal_rt_min": target["nominal_rt_min"],
-                    "rt_deviation_min": target["rt_deviation_min"],
-                    "area": target["area"],
-                    "injection_concentration_mM": target["injection_concentration_mM"],
-                    "reaction_concentration_mM": target["reaction_concentration_mM"],
-                    "match_status": target["match_status"],
-                    "data_quality": row["data_quality"],
-                    "participates_in_final": bool(row["used_injection_ids"]),
-                    "process_method": row["process_method"],
-                    "actual_acquisition_time": row["actual_acquisition_time"],
-                    "acquisition_method": row["acquisition_method"],
-                    "sequence_name": row["sequence_name"],
-                    "result_name": row["result_name"],
-                    "raw_file": row["raw_file"],
-                }
-            )
-            detail_index += 1
+            detail[f"{key}_peak_ordinal"] = peak_ordinal
+            detail[f"{key}_retention_time_min"] = target["retention_time_min"]
+            detail[f"{key}_area"] = target["area"]
+        peak_details.append(detail)
 
     summary = {
         "input_injection_count": len(records),
@@ -2103,7 +2211,13 @@ def analyze_hplc_openlab_dataset(
             item["native_integration_status"] == "OK" for item in records
         ),
         "vendor_validation_injection_count": sum(
-            bool(vendor_peaks_by_injection.get(item["injection_id"])) for item in records
+            item["primary_peak_source"] == "vendor_rx" for item in records
+        ),
+        "vendor_primary_injection_count": sum(
+            item["primary_peak_source"] == "vendor_rx" for item in records
+        ),
+        "native_fallback_injection_count": sum(
+            item["primary_peak_source"] == "native_dx" for item in records
         ),
         "openlab_no_method_injection_count": sum(
             item["openlab_processing_state"].casefold() == "nomethodprovided" for item in records
@@ -2124,9 +2238,10 @@ def analyze_hplc_openlab_dataset(
     }
     field_mapping = {
         "色谱曲线数据": "raw_sheets[].columns[].time / signal",
-        "原生峰表数据": "analysis.native_peaks[]（由已验证的原始.dx信号独立积分）",
         "原生拒绝候选": "analysis.native_rejected_candidates[]（保留候选保留时间、高度与拒绝原因）",
-        "厂商对照峰表": "peaks[]（OpenLab .rx 厂商积分结果，仅作可用样本的验证参照）",
+        "正式峰面积/出峰时间": "已成功处理的OpenLab .rx峰优先；无可用原厂结果时回退独立.dx积分",
+        "原生峰表数据": "analysis.native_peaks[]（始终由已验证的原始.dx信号独立积分并保留审计）",
+        "厂商峰表": "peaks[]（OpenLab .rx 原厂积分结果；成功状态时作为正式定量峰来源）",
         "样品名称": "injections[].sample_name",
         "序列名称": "injections[].sequence_name（结果集 .acaml SampleContexts/Setup）",
         "OpenLab结果名称": "injections[].result_name（结果集 .acaml SampleContexts/MeasData）",
@@ -2187,8 +2302,9 @@ def attach_hplc_analysis(
         {
             "manual_check_required": True,
             "peak_source": (
-                f"{NATIVE_INTEGRATOR_NAME} {NATIVE_INTEGRATOR_VERSION} from decoded .dx signals; "
-                "vendor .rx peaks are validation-only when present"
+                "successful paired Agilent OpenLab .rx result first; "
+                f"fallback to {NATIVE_INTEGRATOR_NAME} {NATIVE_INTEGRATOR_VERSION} "
+                "from independently decoded .dx signals"
             ),
             "target_identity_basis": "user-supplied nominal RT windows and tolerances",
             "quantification_basis": "user-supplied calibration equations and 100x dilution factor",

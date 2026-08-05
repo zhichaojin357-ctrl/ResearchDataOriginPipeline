@@ -251,6 +251,8 @@ def test_target_peak_matching_selects_nearest_peak_and_preserves_ordinals(config
     assert sulfoxide["area"] == 10.0
     assert sulfoxide["candidate_count"] == 2
     assert sulfoxide["candidate_peak_ordinals"] == [3, 8]
+    assert sulfoxide["candidate_retention_times_min"] == [5.52, 5.48]
+    assert sulfoxide["selected_peak_ordinal"] == 3
     assert matched["thioanisole"]["candidate_peak_ordinals"] == [12]
     assert matched["sulfone"]["area"] == 0.0
 
@@ -281,7 +283,10 @@ def test_native_peak_analysis_allows_nomethodprovided(config: dict, monkeypatch:
     result = analysis.analyze_hplc_openlab_dataset(_analysis_dataset(injection), config)
 
     assert result["summary"]["openlab_no_method_injection_count"] == 1
+    assert result["summary"]["native_fallback_injection_count"] == 1
     assert result["injection_analysis"][0]["native_peak_count"] == 3
+    assert result["injection_analysis"][0]["primary_peak_source"] == "native_dx"
+    assert result["sample_results"][0]["targets"]["sulfoxide"]["area"] == 100.0
     assert result["sample_results"][0]["used_injection_ids"] == ["native"]
 
 
@@ -321,7 +326,7 @@ def test_native_rejected_candidates_remain_auditable(
     ]
 
 
-def test_vendor_comparison_is_a_side_channel_and_cannot_change_final_use(
+def test_successful_vendor_result_is_primary_but_cannot_change_quality_or_final_use(
     config: dict,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -346,11 +351,62 @@ def test_vendor_comparison_is_a_side_channel_and_cannot_change_final_use(
     assert compared["injection_analysis"][0]["quality"] == native_only["injection_analysis"][0]["quality"]
     assert compared["sample_results"][0]["used_injection_ids"] == ["native"]
     assert compared["sample_results"][0]["used_injection_ids"] == native_only["sample_results"][0]["used_injection_ids"]
+    selected = compared["injection_analysis"][0]["targets"]["sulfoxide"]
+    assert selected["peak_source"] == "vendor_rx"
+    assert selected["area"] == 1.0
+    assert selected["native_area"] == 100.0
+    assert compared["sample_results"][0]["targets"]["sulfoxide"]["area"] == 1.0
+    assert compared["summary"]["vendor_primary_injection_count"] == 1
+    assert len(compared["peak_details"]) == len(compared["sample_results"]) == 1
+    assert compared["peak_detail_columns"][3:6] == [
+        "茴香亚砜峰序号",
+        "茴香亚砜出峰时间(min)",
+        "茴香亚砜峰面积",
+    ]
+    assert compared["peak_details"][0]["sulfoxide_peak_ordinal"] == 1
+    assert compared["peak_details"][0]["sulfoxide_retention_time_min"] == 5.5
+    assert compared["peak_details"][0]["sulfoxide_area"] == 1.0
     assert compared["injection_analysis"][0]["vendor_validation_reasons"]
     assert any(
-        item["issue_type"] == "厂商旁路验证差异"
+        item["issue_type"] == "原厂/原生交叉验证差异"
         for item in compared["manual_review"]
     )
+
+
+def test_successful_zero_peak_vendor_result_is_primary_zero_not_missing(
+    config: dict,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(analysis, "integrate_chromatogram", _native_integration_result)
+    injection = _injection(
+        "vendor-zero",
+        "Catalyst 1H",
+        openlab_processing_state="PassedWithWarning",
+        vendor_peak_count=0,
+    )
+
+    result = analysis.analyze_hplc_openlab_dataset(_analysis_dataset(injection), config)
+    selected = result["injection_analysis"][0]["targets"]["sulfoxide"]
+
+    assert result["summary"]["vendor_primary_injection_count"] == 1
+    assert selected["peak_source"] == "vendor_rx"
+    assert selected["retention_time_min"] is None
+    assert selected["area"] == 0.0
+    assert selected["native_area"] == 100.0
+    assert any(
+        item["issue_type"] == "原厂/原生交叉验证差异"
+        for item in result["manual_review"]
+    )
+
+
+def test_failed_vendor_state_cannot_become_primary_even_if_peak_rows_exist(
+    config: dict,
+):
+    assert analysis._vendor_result_available(
+        {"openlab_processing_state": "NoMethodProvided"},
+        [{"retention_time_min": 5.5, "area": 1.0}],
+        config,
+    ) is False
 
 
 def test_discarded_rerun_quality_label_follows_processing_method(

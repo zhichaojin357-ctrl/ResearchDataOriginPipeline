@@ -106,13 +106,14 @@ Allowed behavior:
 - Require the verified ACMD20 namespace, Signal179 encoding, declared payload size, 6,144-byte header/signature, finite signal values, and a strictly increasing time grid; reject unsupported variants explicitly.
 - Preserve each signal's exact time grid and measured values in the processed audit dataset without interpolation, resampling, smoothing, or baseline correction.
 - Detect and integrate peaks with `project-native-hplc-target-integrator` version `1.1.0`; label every such peak `peak_source=native_dx` and retain its algorithm version and integration audit fields.
-- Read available OpenLab `.rx` integration rows as validation evidence, while keeping them distinct from native results.
+- Read successful OpenLab `.rx` integration rows as the preferred target-peak source, while keeping them distinct from native audit results.
 - Process a strictly decoded `NoMethodProvided` acquisition through native integration. The absence of an OpenLab processing method is not, by itself, raw-data corruption or a reason to discard the signal.
 - Preserve sample, vial, method, detector, wavelength, point-count, source hash, and result-set provenance.
 - Write one data-only analysis workbook with exactly seven sheets: `样品结果`, `峰明细`, `数据处理记录`, `排除数据`, `重打分组明细`, `待人工复核`, and `分析参数`.
 - Keep one row per final sample in `样品结果`; retain every injection/rerun/exclusion decision in the audit sheets instead of duplicating final samples.
+- Keep one row per final sample in `峰明细`; for each configured component, place peak ordinal immediately before peak time and peak area.
 - Represent acquisition/processing method as one user-facing `方法` column while retaining source provenance in the processed audit dataset.
-- In `峰明细`, place peak ordinal immediately before retention time and retain bounds, height, area, source, integrator version, target matching, and optional vendor-comparison fields.
+- In `峰明细`, place peak ordinal immediately before peak time and retain area, target matching, candidate concentrations, and sample/method provenance.
 - Keep raw signal points out of the user-facing Excel files unless a later request explicitly asks for them.
 - Use plain white data rows with explicit thin gray cell borders and no alternating-row color style.
 - Write metadata, verification records, and a rendered preview of every one of the seven sheets under the configured external output root.
@@ -122,9 +123,9 @@ Required failure behavior:
 - Fail the run when any in-scope `.dx` acquisition cannot be decoded completely.
 - Fail when the workbook builder or workbook verification step fails.
 - Fail workbook verification if the required seven-sheet contract is incomplete or formula-error inspection fails.
-- Never label a native result as a vendor result. If `.rx` is missing or reports `NoMethodProvided`, record that vendor validation is unavailable and use only the separately labelled native result.
-- Treat an unreadable optional `.rx` as unavailable vendor-comparison evidence; record the parse error without blocking a valid `.dx` decode/integration.
-- Keep `.rx` comparison strictly side-channel: its presence, absence, area difference, or detection difference may add a validation-review record but must not alter native signal quality, rerun selection, calculated native values, or the final-use set.
+- Never label a native result as a vendor result. If `.rx` is missing, unreadable, or reports `NoMethodProvided`, record that the vendor result is unavailable and use the separately labelled native fallback.
+- Treat a successful zero-peak `.rx` as a valid vendor non-detection, not as a missing result.
+- Vendor availability and native/vendor differences may change only the formal target RT/area source according to the fixed source-priority rule. They must not alter raw-signal quality, rerun selection, anomaly exclusion, or the final-use set.
 - Never execute or claim to execute a `.pmx` processing method independently. A controlled candidate validator may read its declarative XML settings without vendor assemblies, must label the result non-vendor/non-equivalent, and must not change production values unless all non-regression gates pass. OpenLab, Agilent assemblies, MestReNova, and `.pmx` files are not required by the production decoder/integrator.
 - A PMX-driven comparison must verify that every result set contributing vendor-validation rows has its own local PMX, all such PMX files resolve to one effective policy, and both algorithms used an identical input fingerprint. Historical confirmation data cannot satisfy the separate fresh-blind promotion gate.
 - A PMX/native hybrid must keep target validation rows bit-identical, keep matched/unmatched and detection counts exactly equal, and report non-target relative-area P95, maximum error, absolute-area P95, and the count above `15%` separately. Every non-target metric must be non-inferior and at least one must materially improve before a fresh blind test is considered. Vendor rows may validate a frozen candidate but must never select a per-injection or per-peak runtime branch.
@@ -149,7 +150,7 @@ For each shared-cluster allocation, retain the corresponding individual-baseline
 
 ### Vendor comparison and holdout gates
 
-Available `.rx` rows are numerical oracles only. Vendor-boundary reconstruction uses the raw signal inside `BeginTime`/`EndTime`, subtracts the straight line from `BaselineStart` to `BaselineEnd`, applies trapezoidal integration, and converts minutes to seconds. It must satisfy:
+Available successful `.rx` rows are the preferred formal peak source and also remain numerical oracles for validating the independent fallback. Vendor-boundary reconstruction uses the raw signal inside `BeginTime`/`EndTime`, subtracts the straight line from `BaselineStart` to `BaselineEnd`, applies trapezoidal integration, and converts minutes to seconds. It must satisfy:
 
 - all-peak median APE `<= 0.1%`;
 - all-peak P95 APE `<= 0.5%`;
@@ -164,7 +165,7 @@ Algorithm tuning and acceptance data must be separated by complete result sets. 
 - area APE P90 `<= 5%`;
 - area APE P95 `<= 10%`.
 
-Any native/vendor detection disagreement or target-area APE over `15%` must be written as a vendor side-channel item in `待人工复核`; it must not be hidden by averaging, substituted for the native value, or allowed to change final-use selection. Ambiguous native target matching remains a native quality review condition.
+Any native/vendor detection disagreement or target-area APE over `15%` must be written as an explicit cross-validation item in `待人工复核`; it must not be hidden by averaging or allowed to change raw-signal quality or final-use selection. Ambiguous matching remains a quality review condition.
 
 Scientific boundary:
 

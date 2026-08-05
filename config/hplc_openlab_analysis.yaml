@@ -1,6 +1,11 @@
 {
   "schema_version": "1.0",
-  "analysis_version": "hplc-openlab-analysis-1.1.0",
+  "analysis_version": "hplc-openlab-analysis-1.2.0",
+  "peak_selection": {
+    "primary_source": "vendor_rx_when_available",
+    "fallback_source": "native_dx",
+    "vendor_success_states": ["Passed", "PassedWithWarning", "not_recorded"]
+  },
   "reaction": {
     "substrate": "thioanisole",
     "target_product": "sulfoxide",

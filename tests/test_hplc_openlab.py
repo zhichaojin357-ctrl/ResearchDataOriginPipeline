@@ -382,7 +382,8 @@ def test_analysis_metadata_records_native_integrator_version(tmp_path: Path) -> 
         "version": "1.1.0",
         "analysis_version": "hplc-openlab-analysis-1.1.0",
         "vendor_method_required": False,
-        "vendor_results_role": "validation side-channel only",
+        "source_priority": "successful vendor_rx -> native_dx fallback",
+        "vendor_results_role": "primary target source when stored result is successful",
     }
 
 

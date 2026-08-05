@@ -261,15 +261,15 @@ const ANALYSIS_PEAK_COLUMNS = [
   "序号",
   "实验日期",
   "样品名",
-  "组分名称",
-  "峰序号",
-  "出峰时间(min)",
-  "标称 RT（min）",
-  "RT 偏差（min）",
-  "峰面积",
-  "上机液浓度（mM）",
-  "原反应液浓度（mM）",
-  "峰匹配状态",
+  "茴香亚砜峰序号",
+  "茴香亚砜出峰时间(min)",
+  "茴香亚砜峰面积",
+  "茴香砜峰序号",
+  "茴香砜出峰时间(min)",
+  "茴香砜峰面积",
+  "茴香硫醚峰序号",
+  "茴香硫醚出峰时间(min)",
+  "茴香硫醚峰面积",
   "数据质量",
   "是否参与最终计算",
   "处理方式",
@@ -436,6 +436,15 @@ function peakDetailValue(record, header) {
     组分名称: ["component_name"],
     峰序号: ["peak_ordinal", "selected_peak_ordinal"],
     "出峰时间(min)": ["retention_time_min", "RT（min）"],
+    茴香亚砜峰序号: ["sulfoxide_peak_ordinal"],
+    "茴香亚砜出峰时间(min)": ["sulfoxide_retention_time_min"],
+    茴香亚砜峰面积: ["sulfoxide_area"],
+    茴香砜峰序号: ["sulfone_peak_ordinal"],
+    "茴香砜出峰时间(min)": ["sulfone_retention_time_min"],
+    茴香砜峰面积: ["sulfone_area"],
+    茴香硫醚峰序号: ["thioanisole_peak_ordinal"],
+    "茴香硫醚出峰时间(min)": ["thioanisole_retention_time_min"],
+    茴香硫醚峰面积: ["thioanisole_area"],
     "RT（min）": ["retention_time_min"],
     "标称 RT（min）": ["nominal_rt_min"],
     "RT 偏差（min）": ["rt_deviation_min"],
@@ -583,6 +592,7 @@ function resolveAnalysisSource(analysis, rowKeys, columnKeys, defaultColumns) {
 
 function normalizePeakColumns(columns) {
   const source = Array.from(columns || ANALYSIS_PEAK_COLUMNS);
+  if (!source.includes("组分名称")) return source;
   const foundComponentIndex = source.indexOf("组分名称");
   const componentIndex = foundComponentIndex >= 0
     ? foundComponentIndex
@@ -612,7 +622,7 @@ function normalizeSingleMethodColumn(columns) {
 }
 
 function analysisColumnWidth(header) {
-  if (["序号", "峰序号"].includes(header)) return 8;
+  if (header === "序号" || header.endsWith("峰序号")) return 10;
   if (header === "实验日期") return 12;
   if (["实际采集时间", "采集时间", "处理时间"].includes(header)) return 20;
   if (header.includes("RT") || header.includes("出峰时间")) return 14;
@@ -631,7 +641,8 @@ function analysisColumnWidth(header) {
 
 function isAnalysisNumericHeader(header) {
   return (
-    ["序号", "峰序号", "反应时间（h）"].includes(header)
+    ["序号", "反应时间（h）"].includes(header)
+    || header.endsWith("峰序号")
     || header.includes("RT")
     || header.includes("出峰时间")
     || header.includes("峰面积")
@@ -660,7 +671,7 @@ function applyAnalysisFormats(sheet, headers, lastRow) {
       formatRange(sheet, range, "0.0000");
     } else if (header === "反应时间（h）") {
       formatRange(sheet, range, "0.###");
-    } else if (["序号", "峰序号"].includes(header)) {
+    } else if (header === "序号" || header.endsWith("峰序号")) {
       formatRange(sheet, range, "#,##0");
     }
     if (isAnalysisNumericHeader(header)) {

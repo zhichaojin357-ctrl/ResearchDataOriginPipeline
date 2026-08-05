@@ -2,7 +2,7 @@
 
 ## Scope
 
-This workflow processes Agilent OpenLab CDS result sets stored as `.rslt` directories. It directly decodes detector chromatograms in `.dx`, independently detects and integrates configured HPLC target peaks, and uses paired `.rx` peak rows only as optional validation evidence. It does not process LC-MS spectra, instrument telemetry, or create plots.
+This workflow processes Agilent OpenLab CDS result sets stored as `.rslt` directories. It directly decodes detector chromatograms in `.dx`, uses successfully processed paired `.rx` peak rows as the formal target-peak source, and independently integrates every usable `.dx` for audit and fallback. It does not process LC-MS spectra, instrument telemetry, or create plots.
 
 Formal entrypoint:
 
@@ -24,9 +24,22 @@ python run.py hplc-openlab-export `
 - Python XML/ZIP support also parses result-set `.acaml` metadata and optional paired `.rx` `Base/InjectionACAML` vendor results.
 - `@oai/artifact-tool` writes, inspects, renders, and exports the final Excel workbook.
 
-`rainbow-api` 1.3.1 may be used by the controlled decoder regression as an optional black-box numerical oracle. It is not imported by the production path and is not required to run the formal command. OpenLab, MestReNova, Agilent assemblies, and `.pmx` processing methods are also not production dependencies. The project does not claim that a `.pmx` file can be executed independently. A standard-library-only PMX reader may extract declarative settings for the controlled candidate comparison described below; it never loads vendor assemblies or treats PMX as an executable engine.
+`rainbow-api` 1.3.1 may be used by the controlled decoder regression as an optional black-box numerical oracle. It is not imported by the production path and is not required to run the formal command. OpenLab, MestReNova, Agilent assemblies, and `.pmx` processing methods are also not production dependencies: the formal path reads stored `.rx` XML data without loading vendor code. The project does not claim that a `.pmx` file can be executed independently. A standard-library-only PMX reader may extract declarative settings for controlled candidate comparisons; it never loads vendor assemblies or treats PMX as an executable engine.
 
 Unsupported ACMD schemas, signal encodings, malformed payloads, empty integrable signals, non-finite values, or non-increasing time axes fail explicitly instead of falling back to a guessed decode.
+
+## Vendor Result Priority And Native Fallback
+
+For each injection, the formal target source is selected by a fixed, versioned rule:
+
+1. A paired `.rx` result whose OpenLab state is `Passed`, `PassedWithWarning`, or `not_recorded` is usable. Its target RT, peak ordinal, integration bounds, height, baseline fields, and area are selected inside the user-configured RT windows.
+2. A successful zero-peak `.rx` is a valid vendor non-detection and contributes zero area; it is not confused with a missing result.
+3. `missing_rx`, `missing_result`, unreadable results, and `NoMethodProvided` are unavailable vendor results. Those injections use the independently decoded and integrated `.dx` targets.
+4. Vendor availability never changes raw-signal quality classification, rerun grouping, anomaly exclusion, or the final-use set. Native/vendor detection and area differences remain explicit audit fields and manual-review items.
+
+An isolated runtime test using the user-supplied OpenLab files reprocessed a natural single-injection result set with the selected GC/LC normalization-percent method. The resulting RT, area, height, begin time, end time, and width were numerically identical to the previously saved OpenLab result. A copied PMX alone could not associate a method with a previously unassociated multi-injection sequence; those `NoMethodProvided` injections therefore remain on the native fallback instead of inventing a vendor result.
+
+No Agilent DLL, PMX, RX, or executable is committed or redistributed by this project. Runtime probes operate only on copied result sets outside the repository and are validation evidence, not a production dependency.
 
 ## Native Peak Integration
 
@@ -48,7 +61,7 @@ The allocation model follows Agilent's documented baseline/valley semantics rath
 
 Anti-overfit controls are explicit. A wider `0.50 min` morphology window was rejected because it improved training-set sulfone error but worsened the date-grouped holdout. Replacing every endpoint with the raw signal was also rejected because it failed on valley-separated clusters. Version `1.1.0` changes only the parameter-free shared-valley allocation rule; target RT windows, detection thresholds, smoothing, morphology window, and raw-signal integration remain unchanged. Because the historical holdout was inspected while confirming this version, it is now a confirmation set rather than a blind set; a future blind-performance claim requires newly acquired, complete result sets.
 
-Every native peak is labelled `peak_source=native_dx` and retains integrator name/version, bounds, baseline, height, area, and manual-review status. Candidates rejected after passing the height gate remain in `analysis.native_rejected_candidates` with injection provenance, retention time, height, and rejection reason. A shared-cluster allocation additionally retains the original individual-baseline area and `baseline_model_uncertain=true`, because raw geometry alone cannot always distinguish a true valley drop-line from two baseline-resolved peaks. Native integration is not presented as an OpenLab vendor result.
+Every native peak is labelled `peak_source=native_dx` and retains integrator name/version, bounds, baseline, height, area, and manual-review status. Candidates rejected after passing the height gate remain in `analysis.native_rejected_candidates` with injection provenance, retention time, height, and rejection reason. A shared-cluster allocation additionally retains the original individual-baseline area and `baseline_model_uncertain=true`, because raw geometry alone cannot always distinguish a true valley drop-line from two baseline-resolved peaks. Native integration is never presented as an OpenLab vendor result and remains available even when the stored `.rx` is selected for formal quantification.
 
 ## PMX-Configured ChemStation-Compatible Candidate
 
@@ -76,18 +89,18 @@ The controlled 2026-08-03 historical comparison parsed all 63 PMX copies and eva
 
 - Exact time and detector-signal arrays in the processed audit dataset, with no resampling, interpolation, smoothing, or baseline correction.
 - Native peak rows and target matches, including source, algorithm version, retention time, integration bounds, area, height, and baseline fields.
-- OpenLab vendor peak rows, when present, including retention time, integration bounds, area, area percent, height, symmetry, and baseline fields; these are retained separately for validation.
+- OpenLab vendor peak rows, when present, including retention time, integration bounds, area, area percent, height, symmetry, and baseline fields; successful rows are the formal target source while native values remain alongside them for audit.
 - Batch, result set, sample, vial, method, detector, wavelength, unit, point count, acquisition time, source size, relative path, and SHA-256 provenance.
 - Raw signal arrays and source hashes remain in the audit dataset and are intentionally omitted from the user-facing Excel files.
 
-An `.rx` processing state of `NoMethodProvided` does not mean that the `.dx` signal is corrupt. When strict decoding and native integration succeed, those acquisitions are processed from `native_dx` and remain subject to the same data-quality and manual-review rules. A missing, unreadable, or method-free `.rx` only means that vendor comparison evidence is unavailable. Vendor presence and comparison differences are side-channel diagnostics and cannot change native quality, rerun selection, native values, or the final-use set.
+An `.rx` processing state of `NoMethodProvided` does not mean that the `.dx` signal is corrupt. When strict decoding and native integration succeed, those acquisitions are processed from `native_dx` and remain subject to the same data-quality and manual-review rules. A missing, unreadable, or method-free `.rx` only means that the vendor peak source is unavailable. Vendor presence and comparison differences cannot change raw-signal quality, rerun selection, or the final-use set.
 
 ## Seven-Sheet Excel Contract
 
 The formal result is one compact analysis workbook with exactly these seven worksheets:
 
 1. `样品结果`: one row per final sample after wash/pre-reaction exclusion and rerun resolution; contains batch/result-set/sample/method provenance, selected target RT/area, candidate concentrations and reaction metrics, quality status, and review reasons.
-2. `峰明细`: auditable native peak details. Peak ordinal is followed by retention time, then bounds, height, area, source, algorithm version, target match, and vendor-comparison fields where available.
+2. `峰明细`: one row per final sample. Each of the three configured components uses the adjacent column order `峰序号 → 出峰时间 → 峰面积`, followed by quality and sample/method provenance.
 3. `数据处理记录`: normalization, classification, target matching, calibration, rerun selection, and calculation decisions.
 4. `排除数据`: wash, pre-reaction, superseded rerun, abnormal, or otherwise excluded records and explicit reasons.
 5. `重打分组明细`: every member of each rerun group, evidence, quality comparison, final-use flag, and selection method.
@@ -105,7 +118,7 @@ The controlled validation command groups complete result sets by acquisition dat
 - training: acquisition date through `2026-07-21`;
 - locked holdout: acquisition date from `2026-07-23` onward.
 
-Vendor rows are numerical comparison evidence only. Recalculation using vendor `BeginTime`, `EndTime`, and the linear `BaselineStart`/`BaselineEnd` fields must meet all of these gates:
+Vendor rows are the preferred formal source when OpenLab reports a successful result. Recalculation using vendor `BeginTime`, `EndTime`, and the linear `BaselineStart`/`BaselineEnd` fields remains an independent parser/integrity gate:
 
 - all-peak median APE no more than `0.1%`;
 - all-peak P95 APE no more than `0.5%`;
@@ -121,14 +134,14 @@ The independent target detector/integrator must meet, for every configured targe
 - area APE P90 no more than `5%`;
 - area APE P95 no more than `10%`.
 
-A native/vendor target-area APE above `15%`, a detection disagreement, or ambiguous target matching creates an explicit manual-review item. These thresholds validate reproducibility against available vendor results; they do not make OpenLab the production computation source.
+A native/vendor target-area APE above `15%`, a detection disagreement, or ambiguous target matching creates an explicit manual-review item. These thresholds validate the independent fallback and do not let vendor availability alter quality classification or rerun selection.
 
 ## Validation and Failure Policy
 
 - All decoded time axes must be finite and strictly increasing.
 - Every decoded signal must be finite and have the same point count as its time axis.
 - Any in-scope decode failure aborts the export instead of producing a partial workbook.
-- Missing `.rx` data and `NoMethodProvided` are recorded as unavailable vendor evidence and do not block a valid native decode/integration.
+- Missing `.rx` data and `NoMethodProvided` are recorded as unavailable vendor results and do not block a valid native decode/integration fallback.
 - Native integration failure, an invalid/short signal, or a failed required quality gate is recorded for manual review and cannot be silently replaced by vendor values.
 - Workbook inspection searches for formula errors and every sheet in every generated workbook is rendered to a preview for visual QA.
 - Successful workbook verification requires the exact seven-sheet contract above.
