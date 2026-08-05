@@ -373,6 +373,20 @@ def test_successful_vendor_result_is_primary_but_cannot_change_quality_or_final_
     )
 
 
+def test_vendor_reprocessed_result_is_not_mislabeled_as_stored_rx():
+    selected = analysis._select_primary_target(
+        {"retention_time_min": 5.5, "area": 100.0, "peak_source": "native_dx"},
+        {"retention_time_min": 5.5, "area": 99.0},
+        vendor_available=True,
+        vendor_result_origin="agilent_processing_server_reprocessed_rx",
+    )
+
+    assert selected["peak_source"] == "vendor_rx"
+    assert selected["vendor_result_origin"] == "agilent_processing_server_reprocessed_rx"
+    assert "Processing Server" in selected["integrator_name"]
+    assert "stored" not in selected["integrator_name"].casefold()
+
+
 def test_successful_zero_peak_vendor_result_is_primary_zero_not_missing(
     config: dict,
     monkeypatch: pytest.MonkeyPatch,

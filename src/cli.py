@@ -262,6 +262,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="work directory under --output-root containing the artifact-tool node_modules link",
     )
     hplc_openlab.add_argument("--force", action="store_true", help="overwrite a same-name workbook")
+    hplc_openlab.add_argument(
+        "--vendor-reprocess",
+        action="store_true",
+        help="reprocess staged result-set copies with the Agilent Processing Server and a complete PMX method",
+    )
+    hplc_openlab.add_argument(
+        "--vendor-runtime-bin",
+        type=Path,
+        help="optional complete-runtime override; defaults to the checked-in hash-verified Agilent bundle",
+    )
+    hplc_openlab.add_argument(
+        "--vendor-bridge-exe",
+        type=Path,
+        help="optional bridge override inside --vendor-runtime-bin; supply all three vendor overrides together",
+    )
+    hplc_openlab.add_argument(
+        "--vendor-processing-method",
+        type=Path,
+        help="optional complete-PMX override; defaults to the checked-in normalization-percent method",
+    )
+    hplc_openlab.add_argument(
+        "--vendor-timeout-seconds",
+        type=int,
+        default=600,
+        help="per-result-set Agilent Processing Server timeout (default: 600)",
+    )
 
     epr_overlay = subparsers.add_parser(
         "epr-overlay",
@@ -635,6 +661,11 @@ def main(argv: list[str] | None = None) -> int:
                 builder_workdir=builder_workdir,
                 output_name=args.output_name,
                 force=bool(args.force),
+                vendor_reprocess=bool(args.vendor_reprocess),
+                vendor_runtime_bin=args.vendor_runtime_bin,
+                vendor_bridge_exe=args.vendor_bridge_exe,
+                vendor_processing_method=args.vendor_processing_method,
+                vendor_timeout_seconds=args.vendor_timeout_seconds,
             ),
         )
         print(f"workbook={result['workbook']}")

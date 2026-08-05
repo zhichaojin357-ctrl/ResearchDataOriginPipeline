@@ -2,7 +2,7 @@
 
 ## Scope
 
-This workflow processes Agilent OpenLab CDS result sets stored as `.rslt` directories. It directly decodes detector chromatograms in `.dx`, uses successfully processed paired `.rx` peak rows as the formal target-peak source, and independently integrates every usable `.dx` for audit and fallback. It does not process LC-MS spectra, instrument telemetry, or create plots.
+This workflow processes Agilent OpenLab CDS result sets stored as `.rslt` directories. It directly decodes detector chromatograms in `.dx`, uses successfully processed paired `.rx` peak rows as the formal target-peak source, and independently integrates every usable `.dx` for audit and fallback. An explicit opt-in mode can copy selected result sets into the external output staging area and invoke Agilent Processing Server from the project-bundled runtime with a complete PMX method before extraction. It does not process LC-MS spectra, instrument telemetry, or create plots.
 
 Formal entrypoint:
 
@@ -15,6 +15,16 @@ python run.py hplc-openlab-export `
   --builder-workdir <artifact-tool-workdir>
 ```
 
+Original-vendor reprocessing is explicit. The checked-in, hash-verified OpenLab
+2.5 processing bundle and default normalization-percent PMX are used when no
+runtime override is supplied:
+
+```powershell
+python run.py hplc-openlab-export `
+  <the arguments above> `
+  --vendor-reprocess
+```
+
 ## Decoder And Reused Components
 
 - Production decoder: `project-native-agilent-openlab-dx` version `1.0.0`.
@@ -24,7 +34,7 @@ python run.py hplc-openlab-export `
 - Python XML/ZIP support also parses result-set `.acaml` metadata and optional paired `.rx` `Base/InjectionACAML` vendor results.
 - `@oai/artifact-tool` writes, inspects, renders, and exports the final Excel workbook.
 
-`rainbow-api` 1.3.1 may be used by the controlled decoder regression as an optional black-box numerical oracle. It is not imported by the production path and is not required to run the formal command. OpenLab, MestReNova, Agilent assemblies, and `.pmx` processing methods are also not production dependencies: the formal path reads stored `.rx` XML data without loading vendor code. The project does not claim that a `.pmx` file can be executed independently. A standard-library-only PMX reader may extract declarative settings for controlled candidate comparisons; it never loads vendor assemblies or treats PMX as an executable engine.
+`rainbow-api` 1.3.1 may be used by the controlled decoder regression as an optional black-box numerical oracle. It is not imported by the production decoder and is not required for the default stored-`.rx` mode. The OpenLab runtime and PMX likewise remain optional for that default mode. In `--vendor-reprocess` mode, the formal command verifies and extracts the project-bundled OpenLab 2.5 processing closure, invokes Agilent's Processing Server through the checked-in bridge, and passes the complete PMX to Agilent's `ModifyAndReprocessSingleRun`; it never treats PMX as a stand-alone executable or reimplements the vendor algorithm.
 
 Unsupported ACMD schemas, signal encodings, malformed payloads, empty integrable signals, non-finite values, or non-increasing time axes fail explicitly instead of falling back to a guessed decode.
 
@@ -37,9 +47,14 @@ For each injection, the formal target source is selected by a fixed, versioned r
 3. `missing_rx`, `missing_result`, unreadable results, and `NoMethodProvided` are unavailable vendor results. Those injections use the independently decoded and integrated `.dx` targets.
 4. Vendor availability never changes raw-signal quality classification, rerun grouping, anomaly exclusion, or the final-use set. Native/vendor detection and area differences remain explicit audit fields and manual-review items.
 
-An isolated runtime test using the user-supplied OpenLab files reprocessed a natural single-injection result set with the selected GC/LC normalization-percent method. The resulting RT, area, height, begin time, end time, and width were numerically identical to the previously saved OpenLab result. A copied PMX alone could not associate a method with a previously unassociated multi-injection sequence; those `NoMethodProvided` injections therefore remain on the native fallback instead of inventing a vendor result.
+An isolated runtime test using the user-supplied OpenLab files reprocessed a natural single-injection result set with the selected GC/LC normalization-percent method. The resulting RT, area, height, begin time, end time, width, and baseline values were numerically identical to the previously saved OpenLab result after peak ordering was normalized. For a multi-injection `NoMethodProvided` result set, merely copying PMX or editing `DaMethodName` was insufficient. The formal adapter therefore constructs a checksum-valid single-injection ACAML closure for each injection inside the staged copy and calls Agilent's full-method `ModifyAndReprocessSingleRun`. This path was verified on the formerly method-free R16 data and produced a successful three-peak vendor result for the first injection.
 
-No Agilent DLL, PMX, RX, or executable is committed or redistributed by this project. Runtime probes operate only on copied result sets outside the repository and are validation evidence, not a production dependency.
+The project stores the approved processing runtime as one ZIP plus a per-file
+SHA-256 manifest and the selected PMX. On first use it rejects unsafe archive
+paths, verifies the archive and every extracted file, and materializes the
+runtime only under `.local_vendor_runtime`. Vendor mode hashes the runtime,
+bridge, method, old/new RX, and original inputs, processes only copied result
+sets, and aborts instead of silently falling back when the vendor call fails.
 
 ## Native Peak Integration
 
@@ -95,6 +110,8 @@ The controlled 2026-08-03 historical comparison parsed all 63 PMX copies and eva
 
 An `.rx` processing state of `NoMethodProvided` does not mean that the `.dx` signal is corrupt. When strict decoding and native integration succeed, those acquisitions are processed from `native_dx` and remain subject to the same data-quality and manual-review rules. A missing, unreadable, or method-free `.rx` only means that the vendor peak source is unavailable. Vendor presence and comparison differences cannot change raw-signal quality, rerun selection, or the final-use set.
 
+When `--vendor-reprocess` is selected, the previous state is historical input only: the copied injection must be reprocessed by Agilent with the selected complete PMX, and the newly generated `.rx` is labelled `agilent_processing_server_reprocessed_rx`. It is never mislabeled as a stored historical result.
+
 ## Seven-Sheet Excel Contract
 
 The formal result is one compact analysis workbook with exactly these seven worksheets:
@@ -141,7 +158,8 @@ A native/vendor target-area APE above `15%`, a detection disagreement, or ambigu
 - All decoded time axes must be finite and strictly increasing.
 - Every decoded signal must be finite and have the same point count as its time axis.
 - Any in-scope decode failure aborts the export instead of producing a partial workbook.
-- Missing `.rx` data and `NoMethodProvided` are recorded as unavailable vendor results and do not block a valid native decode/integration fallback.
+- In default mode, missing `.rx` data and `NoMethodProvided` are recorded as unavailable vendor results and do not block a valid native decode/integration fallback.
+- In `--vendor-reprocess` mode, every selected injection must complete Agilent processing and produce a readable `.rx`; bridge, checksum, PMX, load, processing, timeout, or output failures abort the package instead of being disguised as native fallback.
 - Native integration failure, an invalid/short signal, or a failed required quality gate is recorded for manual review and cannot be silently replaced by vendor values.
 - Workbook inspection searches for formula errors and every sheet in every generated workbook is rendered to a preview for visual QA.
 - Successful workbook verification requires the exact seven-sheet contract above.

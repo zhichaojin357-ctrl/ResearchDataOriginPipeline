@@ -107,7 +107,7 @@ Allowed behavior:
 - Preserve each signal's exact time grid and measured values in the processed audit dataset without interpolation, resampling, smoothing, or baseline correction.
 - Detect and integrate peaks with `project-native-hplc-target-integrator` version `1.1.0`; label every such peak `peak_source=native_dx` and retain its algorithm version and integration audit fields.
 - Read successful OpenLab `.rx` integration rows as the preferred target-peak source, while keeping them distinct from native audit results.
-- Process a strictly decoded `NoMethodProvided` acquisition through native integration. The absence of an OpenLab processing method is not, by itself, raw-data corruption or a reason to discard the signal.
+- In default mode, process a strictly decoded `NoMethodProvided` acquisition through native integration. In explicit vendor mode, derive a checksum-valid single-injection ACAML only in staging and require Agilent's Processing Server to produce a new `.rx` with the selected complete PMX.
 - Preserve sample, vial, method, detector, wavelength, point-count, source hash, and result-set provenance.
 - Write one data-only analysis workbook with exactly seven sheets: `样品结果`, `峰明细`, `数据处理记录`, `排除数据`, `重打分组明细`, `待人工复核`, and `分析参数`.
 - Keep one row per final sample in `样品结果`; retain every injection/rerun/exclusion decision in the audit sheets instead of duplicating final samples.
@@ -123,10 +123,10 @@ Required failure behavior:
 - Fail the run when any in-scope `.dx` acquisition cannot be decoded completely.
 - Fail when the workbook builder or workbook verification step fails.
 - Fail workbook verification if the required seven-sheet contract is incomplete or formula-error inspection fails.
-- Never label a native result as a vendor result. If `.rx` is missing, unreadable, or reports `NoMethodProvided`, record that the vendor result is unavailable and use the separately labelled native fallback.
+- Never label a native result as a vendor result. In default mode, if `.rx` is missing, unreadable, or reports `NoMethodProvided`, record that the vendor result is unavailable and use the separately labelled native fallback. In explicit vendor mode, any missing/failed new `.rx` aborts the package.
 - Treat a successful zero-peak `.rx` as a valid vendor non-detection, not as a missing result.
 - Vendor availability and native/vendor differences may change only the formal target RT/area source according to the fixed source-priority rule. They must not alter raw-signal quality, rerun selection, anomaly exclusion, or the final-use set.
-- Never execute or claim to execute a `.pmx` processing method independently. A controlled candidate validator may read its declarative XML settings without vendor assemblies, must label the result non-vendor/non-equivalent, and must not change production values unless all non-regression gates pass. OpenLab, Agilent assemblies, MestReNova, and `.pmx` files are not required by the production decoder/integrator.
+- Never execute or claim to execute a `.pmx` processing method independently. The optional `--vendor-reprocess` path passes the checked-in complete PMX to Agilent `ModifyAndReprocessSingleRun`; that is vendor execution, not independent PMX execution. The default decoder/integrator still requires no OpenLab runtime. A controlled non-vendor candidate validator may read declarative PMX XML only when it remains explicitly non-equivalent and cannot change production values without all non-regression gates.
 - A PMX-driven comparison must verify that every result set contributing vendor-validation rows has its own local PMX, all such PMX files resolve to one effective policy, and both algorithms used an identical input fingerprint. Historical confirmation data cannot satisfy the separate fresh-blind promotion gate.
 - A PMX/native hybrid must keep target validation rows bit-identical, keep matched/unmatched and detection counts exactly equal, and report non-target relative-area P95, maximum error, absolute-area P95, and the count above `15%` separately. Every non-target metric must be non-inferior and at least one must materially improve before a fresh blind test is considered. Vendor rows may validate a frozen candidate but must never select a per-injection or per-peak runtime branch.
 

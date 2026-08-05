@@ -6,6 +6,7 @@ __pycache__/
 # Local Codex/session state
 .codex/
 .agents/
+.local_vendor_runtime/
 docs/agent_reports/
 config/local.yaml
 config/*.local.yaml

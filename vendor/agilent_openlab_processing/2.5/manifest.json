@@ -1,0 +1,2007 @@
+{
+  "schema_version": "1.0",
+  "runtime_id": "agilent_openlab_data_analysis_2_5_processing",
+  "source_product": "Agilent OpenLab Data Analysis 2.5",
+  "purpose": "ProcessingServer ModifyAndReprocessSingleRun runtime",
+  "archive": {
+    "path": "agilent_openlab_processing_2_5.zip",
+    "size_bytes": 47264639,
+    "sha256": "106c66500104893c75529f123a1fe953a54f4a0216049f8ea6c05f3dc316d0a9",
+    "format": "zip-deflate"
+  },
+  "payload": {
+    "file_count": 390,
+    "size_bytes": 139710916,
+    "files": [
+      {
+        "path": "Bin/2DGCLCQualitativeTransformationChain.xaml",
+        "size_bytes": 108024,
+        "sha256": "1d4bb0038cb92875352653f5845722a9a34676ff21a71d732d22907d9270bcde"
+      },
+      {
+        "path": "Bin/2DGCLCQuantitativeTransformationChain.xaml",
+        "size_bytes": 120726,
+        "sha256": "55c5589a6ca34bc9d37be3682173a56eee5aef5451eb8f784331b2fe631bdf17"
+      },
+      {
+        "path": "Bin/3DUVQuantitativeTransformationChain.xaml",
+        "size_bytes": 162046,
+        "sha256": "58c2d623322734208ad3e8e20afaef129d2eff5b8dbfb5b6bde59f38cae144b1"
+      },
+      {
+        "path": "Bin/AgileIntegrator.dll",
+        "size_bytes": 179200,
+        "sha256": "defd8c8f1b778df20e8423a48da28722067d8c56d9c5de5e78a500a21507b64e"
+      },
+      {
+        "path": "Bin/Agilent.Acaml.Core.dll",
+        "size_bytes": 110592,
+        "sha256": "f51d7e0932fe016b96376afd12ff0f5fbc44fa9566a4907ab04a4e519fd7d901"
+      },
+      {
+        "path": "Bin/Agilent.Acaml21.Utilities.dll",
+        "size_bytes": 307200,
+        "sha256": "e4c282115145db888032ca528f49c83dd90433d225e1df5f85f6b86f914d8b80"
+      },
+      {
+        "path": "Bin/Agilent.CDSReporting.Infrastructure.dll",
+        "size_bytes": 5120,
+        "sha256": "be3b26eab4d5034d7742a4018fa46c3d7f3aaa869c53f36d1c8e7540838c08e5"
+      },
+      {
+        "path": "Bin/Agilent.ChemStation.SampleContainer.Repository.dll",
+        "size_bytes": 26624,
+        "sha256": "d6f4fa8d58f2a39de191b8dfba837c956752bfd8a12d1f5be35919407d6c19de"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Common.dll",
+        "size_bytes": 40448,
+        "sha256": "502ff2fe929eb8c95411a774d0f1e4d326112edbb2e080e9049d7738493a1ed8"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.CoreApplicationTypes.dll",
+        "size_bytes": 16384,
+        "sha256": "c93c399283ebcb6efe3c08b0884eb69b72e54511a75ee02739cd102ffbae4d7a"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.CoreExtensions.dll",
+        "size_bytes": 8192,
+        "sha256": "4cd85df7153bafcef27c072151a3bc4fd48dd6a77421003ba4f73a02e1cf9050"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.DataAnalysisService.dll",
+        "size_bytes": 101888,
+        "sha256": "e087825428844586963f7e5577fd4e6c076a043134ea5d02c87bb01b2de969b8"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.DataInfrastructure.dll",
+        "size_bytes": 251392,
+        "sha256": "04119d3150f27872597fa3baedd03fdf3e14e9c3fe66f9ec681a556c0dd8ff0d"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Method.dll",
+        "size_bytes": 116736,
+        "sha256": "d5eeadbb31954226947d18c7dd20236ea09cc0442071ff24b8994f34a4e57c98"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.PluginInfrastructure.dll",
+        "size_bytes": 20480,
+        "sha256": "254308c9012c20e511effff75353c88bc6115addc298f8c2dc797679f7803c4e"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.ArcherReaderTranslator.dll",
+        "size_bytes": 36352,
+        "sha256": "7ea855c046497107be58cad5a56f532bcddf16b8e26ed2be341093a9840e70c0"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.CompoundsTransformationUILibrary.dll",
+        "size_bytes": 252928,
+        "sha256": "331499ccbbaed922f49a7b9f0064a344037af587d3a351523665310324dff4b6"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.CustomCalculation.dll",
+        "size_bytes": 378368,
+        "sha256": "38a83fd0a75fb8c4adb9b1b644265cc2f650be92ade1c8d845ebe9acce1482e2"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.DefaultCalibrationTransformation.dll",
+        "size_bytes": 90624,
+        "sha256": "679af707115815cc8c160d104dad1c4c47635dc09f0f644bce3d516bef050be6"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.DefaultCompoundIdTransformation.dll",
+        "size_bytes": 261632,
+        "sha256": "529bff66f7190ce7579a83d54d37db95ac5f517d6855cfdb04b2df79e6c0634c"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.DefaultQuantitationTransformation.dll",
+        "size_bytes": 84992,
+        "sha256": "b2ec7ee9f9dd3208118bc8165ddbfa36dbab1f50fda50c83828bea6612d8d3b3"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.DefaultReportingTransformation.dll",
+        "size_bytes": 193024,
+        "sha256": "2d6e5ad5fa14177b8019a6a2c167238f2ae3e3a6fab3834c6e7024fc908b2478"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.DefaultSysSuitTransformation.dll",
+        "size_bytes": 282112,
+        "sha256": "d853fb060a9b58f419537e7ee776d982e4b5d80a152eb6b942a9281b35cf30d3"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.ExtractionTransformation.dll",
+        "size_bytes": 157184,
+        "sha256": "fcbe52d763cfd7bd86a822c1e9fd7900ac9c8fb254c64b0d07b3c52cc43d25a7"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.EZChromIntegratorTransformation.dll",
+        "size_bytes": 146432,
+        "sha256": "97ec88cde807264ad3433bdf69e23ef707d647011788e40c555f0f2a94732ea2"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.EZChromUtilLibrary.dll",
+        "size_bytes": 39424,
+        "sha256": "19f5c7659771a60a89d650fd25c2be0e7f2445002cd6c6477eb9cb71a82daf5d"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.HelperTransformationLibrary.dll",
+        "size_bytes": 17408,
+        "sha256": "013f091d8113a032fef9ff65c8bf5693a27e053f8c48bdb1275696eac5b8b726"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.IntegratorUILibrary.dll",
+        "size_bytes": 40448,
+        "sha256": "41d582c70994a0aa89fcb63aab566fee2ee607c79a39410261dc63dc09383f42"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.ManualMethodIntegrator.dll",
+        "size_bytes": 84480,
+        "sha256": "f802450ebfc19f62dcd32478939fe71fd12191eafaa68449e8d774ed425381d3"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.ManualTwelveToneIntegratorTransformation.dll",
+        "size_bytes": 15360,
+        "sha256": "b78a83a42a624f8f78ac45dd9ec2652869062e0764654e34ea9a446eed98ab17"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.MSLibrarySearchTransformation.dll",
+        "size_bytes": 39424,
+        "sha256": "9022858ce93faea215e6c643531e6e9841b8064ad82dcfe7231cb3b7f0dda94a"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.MSPeakPurityLibrary.dll",
+        "size_bytes": 34816,
+        "sha256": "e2b4200a0b9f64de72989e8701a7285476d8ee421897a24c065bec2dea776e4e"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.MsQuantitationTransformation.dll",
+        "size_bytes": 27136,
+        "sha256": "c2fe005bc570bbec065631d5a22b6234dfbcef2354a978dd9760cecd56c745f5"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.OpenLABRawDataReader.dll",
+        "size_bytes": 40960,
+        "sha256": "4a6772027f536e70c84883c8b6f31eca38591c7d125214aaa22f893829228d8c"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.PeakPurityLibrary.dll",
+        "size_bytes": 52224,
+        "sha256": "468874c3eb339f46938eee89e30af80b9a5fa98e428bc8f41e4a8dacb5e6ba23"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.PostProcessingTransformation.dll",
+        "size_bytes": 85504,
+        "sha256": "15675e8b11959b7be355badb3dff652ab18aa954012a6d3387c68ff8ffd5ff40"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.SamplePurityFirstTransformation.dll",
+        "size_bytes": 112640,
+        "sha256": "a46edc932ab33a4e091f16c852d8d0940108e52de78d182a467416cebe9534b7"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.SamplePuritySecondTransformation.dll",
+        "size_bytes": 17408,
+        "sha256": "7bd04d13e82b3110c586a7d50f0d40058aed94b5392297c5bab303b697fe1db8"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.Scripting.dll",
+        "size_bytes": 45056,
+        "sha256": "61c92f48576d19b0092fe0564b89e4c3660e559f02abda4be3b0bdb207eeb8ed"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.SignalAlignmentTransformation.dll",
+        "size_bytes": 183808,
+        "sha256": "2124902acadb822b0ac93c67d1284d80eb654fb68de301cced04b492bd2d1ffb"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.SpectraTransformation.dll",
+        "size_bytes": 169984,
+        "sha256": "b306740af01021025a3295eddaf12f543bcd668cd7ac6c5899bf3a28fed78848"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.TwelveToneIntegratorTransformation.dll",
+        "size_bytes": 215552,
+        "sha256": "e97381914a60d3b79dbe4da0f0d9678f369ca13dfdbb0f7c33ff7836594a99b8"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Plugins.TwelveToneUtilLibrary.dll",
+        "size_bytes": 52224,
+        "sha256": "8c0a78f103199e2d9ee89cc42b1857280e32be6e5042a7ddea7903de46469ba8"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.ProcessingCore.dll",
+        "size_bytes": 46592,
+        "sha256": "9b8505fab2d7886b0bed8ab925b5829e9df3f19340a3ecb8c0c3d63cbed086f4"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.ProcessingServer.exe",
+        "size_bytes": 40448,
+        "sha256": "793b048ed062c6c940322467fad4b8cdcdfb2e602b91255623554a451d9d4eff"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.ProcessingServer.Exe.config",
+        "size_bytes": 13548,
+        "sha256": "416d0096cf38988f1a09419759dc9687362f9349bc11f79d1ea246eeaca267be"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.ProcessingServices.dll",
+        "size_bytes": 166400,
+        "sha256": "2803553352ada94802e90edbda5ffe332494848cec48273c0ad6ece37abe5821"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.TransformationCommonParameters.dll",
+        "size_bytes": 427008,
+        "sha256": "e5999074aa9d0686e7c84ace85f3396d6b8e9f8eb85dfa87d98cb560b8e72303"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.TransformationCore.dll",
+        "size_bytes": 96768,
+        "sha256": "4baca2de92b952aeacf6ab4e16b916641c1f20c763ea16bf9285b6b3b0a4322f"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.TransformationCoreDefinitions.dll",
+        "size_bytes": 83968,
+        "sha256": "ace051218ceb85c9f4fcb3d21792331e932057b8ac16028d199b79c2cbafb27e"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.TransformationDataContexts.dll",
+        "size_bytes": 49664,
+        "sha256": "0c07b6368d8d45dec9bc82ddc98873b3ad63bae848ff11818309230ab7321593"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.TransformationDataModule.dll",
+        "size_bytes": 18432,
+        "sha256": "e6cba89c31d1d181bb99a7a838efc0b6480c6db3c0b8c34ea8ef18de7f608555"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.TransformationEngine.dll",
+        "size_bytes": 27648,
+        "sha256": "b3ad7829235f8da19fe1492f361a4c4b13592309b5e450eacffd1f535325c054"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.TransformationEvents.dll",
+        "size_bytes": 27136,
+        "sha256": "87109585176b76036a0adb953694c5103162fb80f65dbe1dd9268ff64399c2c8"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Processing.TransformationScripting.dll",
+        "size_bytes": 17920,
+        "sha256": "903e14768ae180509eab56e041da3730a40043c6804bc317c1793345d3122d43"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.Services.dll",
+        "size_bytes": 31232,
+        "sha256": "71939b4fb3791c97ceba411ae42d9a5bdbfe6d7ccae78286b1da498967be1760"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.AcquisitionMethodSetPoints.dll",
+        "size_bytes": 62464,
+        "sha256": "9125172f0f0a8ba621be55e814d7dfff8d93384f8d9bd0ad7f87321ac53c828a"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.ApplicationDataModule.dll",
+        "size_bytes": 423936,
+        "sha256": "8277084a6afc65d3938ef2933d80c328a01fc1759152ffe39b76003a1cacdd34"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.CalibrationCurve.dll",
+        "size_bytes": 146944,
+        "sha256": "5edc00c8d17f030444f7ae178287b977774290efc34ef0b42876fccc0fee0c62"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.Common.dll",
+        "size_bytes": 36352,
+        "sha256": "f185a5b6f21a1aa23948bd8d35a7fd664a5060e5d321a36828ef633891a0298e"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.CommonDefinitions.dll",
+        "size_bytes": 97280,
+        "sha256": "40382bf0348800c44666b77176c28912b914801ce3365d92d291a6ce4d320539"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.CustomCalculationCommonDefinition.dll",
+        "size_bytes": 61952,
+        "sha256": "29f7ffbd2eb6400a69fa02c3a34cc3970a86c6b65ab55011a71cc06503d4f53f"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.CustomCalculationController.dll",
+        "size_bytes": 13824,
+        "sha256": "ef6bde7bb616db4004641af4c70083a8ef196e8d799d2f6417dfa338cb54fcfe"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.CustomCalculationDesigner.exe",
+        "size_bytes": 219648,
+        "sha256": "712cfb77e9146e8446323694ff563ecd8240ead58657f5ad952e02c489e7bcb4"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.CustomCalculationDesigner.exe.config",
+        "size_bytes": 5026,
+        "sha256": "ead014d89cfe79942d1c1720e3504bd5a77ad00c99a9d1f9f73ed8257226d610"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.CustomCalculationFileController.dll",
+        "size_bytes": 24576,
+        "sha256": "39129661543b0d59dd2ad91d678ec2579679f3a42a8902b15a041f654cde5b23"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.CustomCalculationFileSelectionModule.dll",
+        "size_bytes": 39424,
+        "sha256": "928e04d53bab474869aa1d8f06a72d9ad82103f5d256daeef2869b5b9bc894bd"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.CustomCalculationViewModule.dll",
+        "size_bytes": 322560,
+        "sha256": "e5d582b5cfd5ef7baf50c76593cfa483d44c0025f4e47e2b46a72426a9474d0d"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.DataAnalysisViewController.dll",
+        "size_bytes": 241152,
+        "sha256": "e6f9c95dbc9a0086130f6966cf6d39c170494663c08dd998dd08f579a2625a27"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.DataProcessingSingleInjectionsTable.dll",
+        "size_bytes": 220672,
+        "sha256": "d0c46f0db4dbfca2d513b04859ea45f97047bfa6f3f7d9121519e378cfbed1fd"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.DataSelectionModule.dll",
+        "size_bytes": 127488,
+        "sha256": "da0c6cbfdc98800f78e463a9e847c92bb5afe5d6052a0a414ca089c62ca58f35"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.DataSelectionSingleInjectionsTable.dll",
+        "size_bytes": 79872,
+        "sha256": "42c00312fb077b94977edff79f0a597d279ba6b30d45e72d8c39122871dd1f36"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.DataSelectionTree.dll",
+        "size_bytes": 116736,
+        "sha256": "739cfeb001a089dfe163a2dcc6438d6dfc32acae5a8c0733a129d511123c67f4"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.DataSelectionViewController.dll",
+        "size_bytes": 97280,
+        "sha256": "a9ea80ec8eb6ad1805d600b2ff5eacdad1f32fe789f959a751e890cd34992c08"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.DataStructures.dll",
+        "size_bytes": 50688,
+        "sha256": "45095d61698c9e28f1e5a2a73572f34eb733c3cc0fae84ac7102122a5ef98d67"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.DirectoryBrowser.dll",
+        "size_bytes": 70144,
+        "sha256": "c7b4cc5bda10774fd26a74fd7836504375324ef80684fcd9ccc685203b7f9b6a"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.FractionCollectionManager.dll",
+        "size_bytes": 33280,
+        "sha256": "624769c50fa165825dff66ec234783bbaed877e7867b16656edb7be29c420cf7"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.FractionTable.dll",
+        "size_bytes": 62464,
+        "sha256": "f0caee94b35473cfeafcb406a6c61192b867695ab6c52bdde416be0768585d27"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.GraphObjectDataModule.dll",
+        "size_bytes": 9728,
+        "sha256": "a8e792e01845f05852205c76b45567c4f74963e265ed180998300ab242e51e7c"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.GraphObjects.dll",
+        "size_bytes": 64000,
+        "sha256": "fdbfde3ec624f9ed9d505af8214adb63c75a6a863533c7f446e018d912b20bff"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.iDAController.dll",
+        "size_bytes": 38400,
+        "sha256": "6b7a9a1d8720b8de0b95a37b80f21c8617c78bd9e81c2126cf454223864994e8"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.Infrastructure.Windows.dll",
+        "size_bytes": 348672,
+        "sha256": "ebc525edb43fc83ce148ec2948e472a3cc17d5827872b3f9dfb2ff6391a333fe"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.InjectionTree.dll",
+        "size_bytes": 200704,
+        "sha256": "ac42d796dc71aaa4e13e05d8ec6be7020952b52d25434b1b22ec631d0a0d09d9"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.InjectionTreeDataModule.dll",
+        "size_bytes": 31232,
+        "sha256": "dbd4930d9cc083e140c434174184344a8ae4d89b95467b83b0429456bdd023f1"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.Isoplot.dll",
+        "size_bytes": 116224,
+        "sha256": "d25ca1d4762099e27ae09048fc499130c8455042dff923e8952eff9066f6d104"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.LibrarySearchResults.dll",
+        "size_bytes": 47616,
+        "sha256": "497afee48ae5801b502880838a9ac813a1ccd645b96b81f30666d11aee780b45"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.MsPeakTable.dll",
+        "size_bytes": 49152,
+        "sha256": "3a4af26415eb84fcb284eb1fc1807887d0ebf5d374a3a77f09183261fad39cb7"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.MSSpectrum.dll",
+        "size_bytes": 180224,
+        "sha256": "9f8117b5f8b04d7983c49ec5d8f76725af054d43934c01f5b6011972089a31ff"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.PeakDetails.dll",
+        "size_bytes": 80896,
+        "sha256": "cd51893c0f437bccea44b4fca7df41157f9ab93530d14d6cba122587f8e1e6f5"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.PeakOverviewPlot.dll",
+        "size_bytes": 183808,
+        "sha256": "f232bc5648a5473ba156ac5bf1b22e04b3b1af9c70e5097de12353e7dc965514"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.PeakTable.dll",
+        "size_bytes": 163840,
+        "sha256": "e07ef17c7031dd5a9f2344f6d5b85bd27d46b2643746d0ff53fa68aada44f593"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.ProcessingFacade.dll",
+        "size_bytes": 207872,
+        "sha256": "1dc511d45865b0e7b4433bfed29497c49e39b9aaabcf63e4e3a8336d604cda9a"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.ReportDataModule.dll",
+        "size_bytes": 58880,
+        "sha256": "9effb92ebb6b0126329b11da257640f47f941b56abb512235faa7d6bf3f59e64"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.ReportEditor.dll",
+        "size_bytes": 69632,
+        "sha256": "a4dde02e7ea04bd2c39186a02ced95351e3eea41311d7fb094c659c9eacfe694"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.ReportingViewController.dll",
+        "size_bytes": 55808,
+        "sha256": "4355a15302c793fa3266986fba1096af50b1bd94de93bee691fa279d292e9efa"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.ReportPreview.dll",
+        "size_bytes": 163840,
+        "sha256": "9088606d935b0dc42cec94baed6b4e888842691d02be1bdeaf32d204afa28b97"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.ReportTemplateTree.dll",
+        "size_bytes": 106496,
+        "sha256": "fedc427a5676a4c05f6efdec3957c1b4fb2c8613961e34dfd4876ce31f78068f"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.SampleContainer.dll",
+        "size_bytes": 160768,
+        "sha256": "56ac8212f62612af26712bf88b2715f33af3774c17e5411ff087dafe5befd76b"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.SampleDetails.dll",
+        "size_bytes": 56320,
+        "sha256": "dadfe665b97009454c7e00aeb97c1cc5c324b893904c2cc715d29def082f3be6"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.SamplePurityReview.dll",
+        "size_bytes": 48128,
+        "sha256": "ebdadd176e39d46145b9fd79907a369f3d6ae9219453459a0d0cefd78f17db10"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.SearchResults.dll",
+        "size_bytes": 56832,
+        "sha256": "53542b8837cbbc3b8b360fa49bdfe249d0c3f0b8e83a54babf859277555e17e7"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.SignalPlot.dll",
+        "size_bytes": 263680,
+        "sha256": "26444b616b5f87efd6ec14ca1cc378dc3c566ca1856491e91c0240bb5c832372"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.SignalPlotStandardExtensions.dll",
+        "size_bytes": 377344,
+        "sha256": "c470011e56f86611629a28a9be47bbb4ee7fbfaf76512094a8593966909fcbd0"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.SingleInjectionsTable.dll",
+        "size_bytes": 34304,
+        "sha256": "54ad118579e8503a892dcc29c749d9d6b62ecf44a0d2dd8a170c361f364e0206"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.UIMethod.dll",
+        "size_bytes": 111616,
+        "sha256": "466e017e86dc4a11063af0d9a05d914c50cf8523dae09f30ab9c858458beab6b"
+      },
+      {
+        "path": "Bin/Agilent.Chromatography.DataAnalysis.UI.UVSpectrum.dll",
+        "size_bytes": 79872,
+        "sha256": "f717a8445b43112bc2842db7f4d721d480e7f04621195b73421c5b26741aac8d"
+      },
+      {
+        "path": "Bin/Agilent.ChromPlot.Infrastructure.dll",
+        "size_bytes": 28672,
+        "sha256": "d1bd2fe1042bb629d62b41bc974ef5fc62f33cff5a3056f6db923fa00ec0603f"
+      },
+      {
+        "path": "Bin/Agilent.Diagnostics.dll",
+        "size_bytes": 69120,
+        "sha256": "b868b80877591189c967d734727da7b997512126a137be14140820b7294c8942"
+      },
+      {
+        "path": "Bin/Agilent.IntelligenceReporter.PlotAdapters.dll",
+        "size_bytes": 222720,
+        "sha256": "4c953ddff8ae4cc84762e11b81616f8854900037320ca1f5c8d758972b85c253"
+      },
+      {
+        "path": "Bin/Agilent.IntelligenceReporter.RDLEngineRenderControlService.dll",
+        "size_bytes": 456704,
+        "sha256": "11428028a4fcc2940076405ff55d594539089f6aedc7227aae74da0772451db2"
+      },
+      {
+        "path": "Bin/Agilent.IntelligentReporting.HostAdapter.Common.dll",
+        "size_bytes": 201216,
+        "sha256": "c7cde840c20b92680df16e83f79e7519aece9cf48bec087575eec28018c4a7ce"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.Acquisition.AutomationCore.dll",
+        "size_bytes": 82432,
+        "sha256": "4febd50341ecfd2f204dd2821a99019c1cb31bc04523ca8c8f1b8fb24c023ab3"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.Acquisition.AutomationInstrument.dll",
+        "size_bytes": 117248,
+        "sha256": "9068481840a5099818e68b6c18b0982af708c439904a5b1f8f72140cbe5c516b"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.ActivityLogSubsystems.dll",
+        "size_bytes": 11264,
+        "sha256": "6905a680daa7d4f3ff8709255073da8cbd17bb4004bd68bbd039c501a07a4bb1"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.ActivityLogSubsystems.resources.dll",
+        "size_bytes": 7168,
+        "sha256": "9b8f96fb03b4ddcd1b61a5647b5923e67914a332aa3b0b60a75243ce88fb2082"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.APIResources.dll",
+        "size_bytes": 32256,
+        "sha256": "2bd78df758ef2eff3d28039b27ad0d1a74594e420bf9cf377066f613291abf73"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.APIResources.resources.dll",
+        "size_bytes": 19968,
+        "sha256": "0462472b843acf367f09ebec20f63dbbd60e66a74aa97ea7981f0328e0d6a7af"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.Application.Acquisition.dll",
+        "size_bytes": 16384,
+        "sha256": "73a42544a8bc24d9ca30da538bec7da094df8119c9442d7dec7511c925df5e4e"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Automation.dll",
+        "size_bytes": 11776,
+        "sha256": "c8e70340fe515ccc8453aa4daf234171bc11dd5f8856ecd6362ebb9cbdd39e3c"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.CDS.ApplicationPlugIn.dll",
+        "size_bytes": 17408,
+        "sha256": "808ee1ad42ccb2ec6c66a9fb0c856abdca1ebf333d5f2cc63feccc7fd7c724b8"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.CDS.Services.Default.dll",
+        "size_bytes": 13312,
+        "sha256": "49ad0ab4e91e45204586c601d799c6329dd8d4b2a9442c5e2de99ce66d6ee65f"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.CDS.Services.Interfaces.dll",
+        "size_bytes": 10240,
+        "sha256": "83d3cd8b15a93b2d2f06c78c618632d2ee0ac900546b300cec15b9e73d1af28b"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.CDS.Services.Shared.dll",
+        "size_bytes": 27648,
+        "sha256": "a567e4ef1c0c748f4bac7eb8424a56eafa69ab485fe70d6d6e57e6f3558143f9"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.CDSShared.AuditTrailHelper.dll",
+        "size_bytes": 10752,
+        "sha256": "757a729b8b867dc35fffff4d0790d2afe1efd1c808c6907ad1f090fda721937e"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.CDSShared.CoreDefinitions.dll",
+        "size_bytes": 8704,
+        "sha256": "cf2f3f1149860b3f1f6804eee401d29da853e3651b56417d67d8963a2819afc6"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.CDSShared.DataStructures.dll",
+        "size_bytes": 30720,
+        "sha256": "1b04c36b3bb9a85be2f35615119d7d419518f02745e8fa70d51887094013649b"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.CDSShared.OpenLABRevBRawDataReader.dll",
+        "size_bytes": 16384,
+        "sha256": "af7dc2be6d0423755bce466bc65eb8d6d18ef5c6a16e206097e386a985d673a6"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.CDSShared.ProcessingClients.dll",
+        "size_bytes": 111104,
+        "sha256": "bd3b010a1a157d42a5271fbf5e3e389ececb98eb7fd6215d60ca3898cc9e5390"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.CDSShared.Windows.dll",
+        "size_bytes": 36864,
+        "sha256": "538fb5299ae901ad62463c85aa460daf0139811891ad70483e69a614c8a5fe89"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Communication.dll",
+        "size_bytes": 73216,
+        "sha256": "ebdc2879f7fb9ffa594950d50da2a9a832b650522327bf15ceae4666112aa6dd"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.DA.Automation.dll",
+        "size_bytes": 38400,
+        "sha256": "67a570c77ead99927ab1897292c83df14bf4c31b14031f73fcb3db2020d2c4cc"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.DA.ReportingIntegration.dll",
+        "size_bytes": 27136,
+        "sha256": "4c684cdd0da3b947874a1199305c07c55659a976815d78af8561089ff0e09203"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.DataAnalysis.Api.Client.dll",
+        "size_bytes": 129536,
+        "sha256": "7dc1ffe7cf5bc9d39336a8722280e927f7dd4aa4d2a8d0981e8263c1e9c9e131"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.DataAnalysis.Api.DataTransfer.dll",
+        "size_bytes": 66560,
+        "sha256": "52a28aebd5d3dfe4b28ffb7528ed8f16610a1a1d3cc7bda8f1de0151e7b47edf"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.DataAnalysis.Api.dll",
+        "size_bytes": 25088,
+        "sha256": "9177ad59f3afbcb53082b56d3026683456eaed09261252855e420e0c48f27593"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.DataAnalysis.Api.Server.exe",
+        "size_bytes": 87552,
+        "sha256": "9d47dfbf63ebbd09f427468011fc32656a924674749020ff3e7a9dd5340409c9"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.DataAnalysis.Api.Server.exe.config",
+        "size_bytes": 1733,
+        "sha256": "b218ff3eba60e418655c4f8806ee01337fbb97c29159675c4984417380979203"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.DataAnalysis.exe",
+        "size_bytes": 432128,
+        "sha256": "2e5003a36569c08d299fc8774d6a449b7f6e4dd2cf900b9503d07e538f10bfad"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.DataAnalysis.exe.config",
+        "size_bytes": 13413,
+        "sha256": "031dd5925269ff8c83c4ccde37019d980933b2462abdc04dd31f7db8f3b958e2"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.DbAbstraction.dll",
+        "size_bytes": 82432,
+        "sha256": "c59e702e5aed1835355a434c60e484c13e54840afdaaf005af9e0eb3292304ab"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Diagnostics.dll",
+        "size_bytes": 28672,
+        "sha256": "e6b489f03684973e8c7d112ec961ef6d3297d5032e03bf48ba95aa7cf459bc18"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.DopReader.dll",
+        "size_bytes": 22528,
+        "sha256": "074227c563d368388d6520bec2f6644fd9662241391eb52264a27ff1f49db347"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.BusinessObjectModel.dll",
+        "size_bytes": 624128,
+        "sha256": "8d4d3b94a4140f2c3fea1a9681baf7ccfae02b672314ebc909efa62b101a498b"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.Common.dll",
+        "size_bytes": 43008,
+        "sha256": "ef5bb301974cae6f02c4d017c6325c9cfd5cc9e1a6ab2a3dccd0b5b8313689f0"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.DataAccess.AcamlInfrastructure.dll",
+        "size_bytes": 367616,
+        "sha256": "90146314ffc1071f0dbcd707f6c8ecc6314e26b919a5ccd69706c7db189da6f3"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.DataAccess.AcamlInfrastructure.Interfaces.dll",
+        "size_bytes": 54272,
+        "sha256": "99755bb9f18545fbd93bff3b94f8f7e5e16bf36f246c09beacff7c11fea5aee0"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.DataAccess.AcamlObjectModel.dll",
+        "size_bytes": 669184,
+        "sha256": "f6833cc12801bd8107ac9628109b3626ca1a35c14ea87c51e92dbb41feade1f8"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.DataAccess.CoreTypes.dll",
+        "size_bytes": 285696,
+        "sha256": "a2fdcd5ff34483f5409e803f17171c05080db7955d1cebbd7a785b93be41211c"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.DataAccess.Method.dll",
+        "size_bytes": 81920,
+        "sha256": "5be97f5cb471a626e5387741bb0bf1c87f732e69a3525f8394692a25bb70e3c8"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.DataAccess.Method.Interfaces.dll",
+        "size_bytes": 14848,
+        "sha256": "1178726bbc6c7a1b877e31360ee75ac5873d0ca7ed6434ab2f894d0f5e9999c9"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.DataAccess.PluginInfrastructure.dll",
+        "size_bytes": 24576,
+        "sha256": "69fbbaf8f64d37f61862784a83582108f67e885e2da2092219e9b9c324e1d242"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.Diagnostics.dll",
+        "size_bytes": 908800,
+        "sha256": "92ccf4d9b4f28d7e59c6cb797e07ec76da8d54e6e1e293724154cca09c6069c5"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.Infrastructure.DefaultServices.dll",
+        "size_bytes": 62464,
+        "sha256": "c6e2c16a39764e72ac5470518d3de98a23dde48d4bc0963c2c0e35415e4a98cf"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.Infrastructure.Services.Interfaces.dll",
+        "size_bytes": 19968,
+        "sha256": "d46827bbf29c12cdc04602dfa30d0e11bef42775896f28ae5628b91ab500417f"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.Infrastructure.SharedServices.dll",
+        "size_bytes": 145408,
+        "sha256": "c91cbf50561da60dd181d1b5112350c9cfa664030e0715ec5f5db85b6bf9469a"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.Infrastructure.Storage.Interfaces.dll",
+        "size_bytes": 35328,
+        "sha256": "d8f1139aed5a8cb074b959417d26ab0f01c99ff48426ec7826e71792beed8752"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.ApplicationContext.dll",
+        "size_bytes": 156160,
+        "sha256": "5a0ad34f7f0784fbcf277faf918c4a8f5d461b52e15ac6646f017ee5b5b3855d"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.Common.dll",
+        "size_bytes": 179200,
+        "sha256": "bd8a07393ec027c4af07ab2bf731d832d9ce3fec874205f3e65661459386486f"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.CommonDefinitions.dll",
+        "size_bytes": 10752,
+        "sha256": "cb44329d0780784c4ed36c3a721b9cc2ab7624a52ce4761796eb3767fda2f298"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.Layout.dll",
+        "size_bytes": 91648,
+        "sha256": "25e4acb23f8a2d8d21219bea12d1c96172a56e9ef7e33eee8bfdb29214dc2523"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.Module.dll",
+        "size_bytes": 30208,
+        "sha256": "710e4b8f562041983434080b3cdc45e5d9e9fdf8cde5d0d9c44b4ac51b703b7f"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.Themes.dll",
+        "size_bytes": 2013696,
+        "sha256": "a170015d5d8ddd6dee1c16b64d3dc470bb62315a1f61a2aa06730db2de5e459a"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.Windows.dll",
+        "size_bytes": 390144,
+        "sha256": "70de6c459e960a08c7b9beb7963743a07914555e8e37582ee174ad747dd451cd"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.XamDocking.dll",
+        "size_bytes": 20992,
+        "sha256": "1abc441bc84acbca1ca3624eca7b5d101428d6c01b76ad0af7016675f61c457e"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.XamMenu.dll",
+        "size_bytes": 68096,
+        "sha256": "1452f997dd62fe715b6ecdeb92a7e2d576bd2fe57dc7e877d08b17ee0196258b"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Framework.UI.XamOutlookBar.dll",
+        "size_bytes": 24576,
+        "sha256": "63daf56f0b223bf27a61ffd2696787f4d20a07e1ed32efd246591accfe94a134"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Information.dll",
+        "size_bytes": 7168,
+        "sha256": "25139b23055c7c42b4c2cb2de426ac469714993f5c085b21793498a61b5ae779"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Infragistics.Win.dll",
+        "size_bytes": 15924224,
+        "sha256": "cfeb5ced56ccc85b602aef75c0a3040df016280a0d68ff13e6af6ef7f758aa34"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.IntelligenceReporter.CalibPlot.Designer.dll",
+        "size_bytes": 649728,
+        "sha256": "6ee66d985ddcbf28a4a153493a35493905cdd445bf654ffc7f6843be00e74c89"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.IntelligenceReporter.ChartDesigner.dll",
+        "size_bytes": 1157120,
+        "sha256": "0f4d2d7f372ba0b5899228f2b3cc6f96c68ed44f958b60a722b9f8bf1a7cd38c"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.IntelligenceReporter.ChartPlot.dll",
+        "size_bytes": 376320,
+        "sha256": "c5b6fe44e097166dd9f132e257ca0e09cba6ff15601ea36d5dac4b0c6bc41359"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.IntelligenceReporter.ChromPlot.Designer.dll",
+        "size_bytes": 1635328,
+        "sha256": "59c4de26fc138b6a5ec15824b91a2dc66cbf02c736b5d1af1346945d7eec1ac6"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.IntelligenceReporter.MethodInfoControl.dll",
+        "size_bytes": 214528,
+        "sha256": "53190647ba82b9e01dfc3da85fd29918d628513dc9d8654f8152a26f2946181a"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.IntelligenceReporter.MethodInfoDesigner.dll",
+        "size_bytes": 488960,
+        "sha256": "7288679bf0e0fbd26a677a1b6e6af9c3c276336ac618ead9753154ef2b7d0a81"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.IntelligenceReporter.SpectraPlot.Designer.dll",
+        "size_bytes": 859648,
+        "sha256": "2012d9150dccc47bcd041988434171a00c63769f0969f252528c90d162b357e7"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.IntelligenceReporter.UIControls.dll",
+        "size_bytes": 95232,
+        "sha256": "0fecbf85be4803631fd805ca05f094e654079fbde15da26381cfe6f56d0adff6"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.IntelligentReporting.CustomDataProvider.dll",
+        "size_bytes": 11264,
+        "sha256": "0b209a21e4d3babd4645c6cd014d00a38bb6671b689a52bd39af477d9b2fa2ae"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.IntelligentReporting.MethodInfoDataProvider.dll",
+        "size_bytes": 22528,
+        "sha256": "b13cb1f7e1d5e34470a7bf7ade7859396e8734a89b37a60a6ded46ec52361c26"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.IntelligentReporting.OlcfDataServiceClients.dll",
+        "size_bytes": 74752,
+        "sha256": "cb35f7e4503280bcbcaa4b09b0326664c60f0178a05cbb96fac6391323869724"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.IntelligentReporting.OlcfDataServiceCore.dll",
+        "size_bytes": 295936,
+        "sha256": "7d99791dbf98c39060ee9dda92ad776cfb679f24b44b2555106fd7adfc6177f5"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.IntelligentReporting.OlcfDataServiceInfrastructure.dll",
+        "size_bytes": 211968,
+        "sha256": "386bf6fbfe903c65a28975d02fa7a696749badfaa461ce0346ced7e85935dbd1"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.IntelligentReporting.OlcfDataSource.dll",
+        "size_bytes": 24576,
+        "sha256": "7c6b7afa9bf06612a8f44e02fa08321927b1334610b9f4f0bf8babc4325d4350"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.IntelligentReporting.PlotDataProvider.dll",
+        "size_bytes": 64000,
+        "sha256": "74c6fdc90c1373148bda04dafd33ab76f70289b8e9693b9939c2618f5c5e3334"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Licensing.dll",
+        "size_bytes": 33280,
+        "sha256": "10afea69e619a55984d53f6d583b12c7c82401992e66305e585db52ccff26b1f"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Licensing.resources.dll",
+        "size_bytes": 7680,
+        "sha256": "67858047758e0d7f0fd46eb99b21fb39ca2939e12ec7df9186bc5f100eae7c64"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.RawData.dll",
+        "size_bytes": 254464,
+        "sha256": "055dc156e32efd709e8594ec75ad49889d002dce360a909841a8fe3d0ba3eb63"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.RawData.UnPackageDx.exe",
+        "size_bytes": 16384,
+        "sha256": "fa6667181ac2f245623d5b4f5a150308c0c0d5fe53172ffbafa328d7561c7a0d"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.AppManager.dll",
+        "size_bytes": 422912,
+        "sha256": "20fec82ae3855eaf3830c7093002f3d9def69dc040abe75949ce7bc268d81e55"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.AuditManager.dll",
+        "size_bytes": 31744,
+        "sha256": "d10fcfc6dcc1fbffc20aead55b3432397f56ecffdb9ac1047ad892d613dfd7d9"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.ChartPlugIn.dll",
+        "size_bytes": 76288,
+        "sha256": "313b56bc7cce27e792f9b8b6347e60c3dfdd4bb98787777b21b3f9ccfe9e3dcb"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.ChromatogramPlugIn.dll",
+        "size_bytes": 161792,
+        "sha256": "6d7621e6184e95a68465d7419f1dfc7f2a8c70368c2dc8dc84af403e7541f3d7"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.Controls.dll",
+        "size_bytes": 338944,
+        "sha256": "17d22252ba0500e4daa6ad3d69b857ce7fd51554d8d5c8600c68f0cbf319da02"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.Designers.dll",
+        "size_bytes": 2614784,
+        "sha256": "97a965501c781d2de9d8acb5973bedd0a546237024c2af4eb5eb6fd6677dc8e3"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.ExpressionEditor.dll",
+        "size_bytes": 200704,
+        "sha256": "4c261ab13f6495534165cfd82f6ddae6e23771c3167434a2b6ddcff5c4a15ffa"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.ExpressionManager.dll",
+        "size_bytes": 264192,
+        "sha256": "8b2cd862e0f026c15517753e1c12fffeb30d42e954f503612d565d4e5c091217"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.Infrastructure.dll",
+        "size_bytes": 13312,
+        "sha256": "f951e59294c65535642d3ac97bb0d45098aec5199fc113d583595cf64125fdbc"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.MethodInfoPlugIn.dll",
+        "size_bytes": 34304,
+        "sha256": "81575f4b60da92671134df1c2fcbe462af2fa839b8ba123d761b9d24dd8382fe"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.RDLElements.dll",
+        "size_bytes": 166912,
+        "sha256": "92615a4a87ccdb8605076496500aef86a13e670b7f36b99a4ae8c3e16a11aa63"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.RDLElements.XmlSerializers.dll",
+        "size_bytes": 533504,
+        "sha256": "66475fe32f0cc53e57a2f2db2d6e42ef1312b6fd79c27c8fa87984f529365f36"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.RDLEngine.dll",
+        "size_bytes": 655872,
+        "sha256": "f1b12f33bf1bc4641ef60a9d0e87c0e238ef3a950aabd83838fdbdf2f7c899c8"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.RTE.dll",
+        "size_bytes": 1507840,
+        "sha256": "85cacd11e6bdf24cfea5d4c90c79c54000ea57fba2e6c48e5a1791160e0a0aa4"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.RTEInfrastructure.dll",
+        "size_bytes": 12800,
+        "sha256": "44191112099f951a54312cf6e0f18cddb6eaa1f322e3872e310d394ef78b2793"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.UIControllers.dll",
+        "size_bytes": 272896,
+        "sha256": "c884131f1ad8365e6337d317f89a308caff6c9054ea7672b2bd83f5d6722ea90"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.UIElements.dll",
+        "size_bytes": 807936,
+        "sha256": "445d60f69ff4d76e0084d9ec4b0165b98d1cd186e3bbcea431c6e0d3da25e9af"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.ReportEditor.UIInfrastructure.dll",
+        "size_bytes": 573440,
+        "sha256": "843b00890798d31544c4539146548482ede22e697810c362bb247abae61fd7f6"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.CriPackageCustomMatrix.dll",
+        "size_bytes": 122368,
+        "sha256": "ca8d320dd8a05f2ece4ca7a3bf0b57924bb0bccf13d94ad1c73cee8d23e1a359"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.CriPackageCustomTable.dll",
+        "size_bytes": 141824,
+        "sha256": "ac62380a7c2f095c12236860b7d6d9aae8570c1997e5b833f9dcdc496a5291d9"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.CriPackageMethodInfoV2.dll",
+        "size_bytes": 43008,
+        "sha256": "9541614dd91d54721de2052e2658c93939d2ee4b145b2161f3a2a82412a1cc64"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.DataService.Client.dll",
+        "size_bytes": 38400,
+        "sha256": "03ebb23b08c5eb71cecd3b965fad55b72ca1b147a2a2257ac9e7ae2158871cf5"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.DataService.Core.dll",
+        "size_bytes": 82432,
+        "sha256": "3539565964cc85ef0c47abcfa3da271e0a6c0e44a31953df41715d846c59a28d"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.DataService.Infrastructure.dll",
+        "size_bytes": 59392,
+        "sha256": "961494c11fecf2110dae2718221a63f238d8e6e1d5d748b5d081f2527fe33b1b"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.Integration.CommonIntegration.dll",
+        "size_bytes": 17408,
+        "sha256": "4470d1f03db937a7fea60a60ccaf51fc4e4a843bb5f675d0c1bdf1111d7784d0"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.iText.dll",
+        "size_bytes": 4326912,
+        "sha256": "f31b9714254b3d39686af23a3b595dbcf42317a6fa9bfd80c0aba05935bbf991"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.RdlEngine.API.dll",
+        "size_bytes": 7168,
+        "sha256": "7afbc9a7e6ff1bed1dfd4b905a47ee1b1701fa373086dd59c0080629c45f1916"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.Reporting.RdlEngine.dll",
+        "size_bytes": 6161408,
+        "sha256": "ca5235d61055dbc3931b748ddacf4a180a4d71ba53446f971c6bb2a5225f5727"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.Reporting.SDKv2.dll",
+        "size_bytes": 58368,
+        "sha256": "31d86e56152dca29857dd4f1ebf3a76e6f00dc5acff05f6e1d598f24a54bd312"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Reporting.SDKv2.Helpers.dll",
+        "size_bytes": 25088,
+        "sha256": "c75110f7331b07a686894a6da87f17fb5075accf3564cc3677315203e2bae8ab"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.Reporting.TemplateDocumentation.dll",
+        "size_bytes": 260096,
+        "sha256": "78afa7af87391a67686464762f51951fae5c9f20d371073e13e5aa8e307dec34"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SampleContainer.Contract.dll",
+        "size_bytes": 18432,
+        "sha256": "b4c3796886a0e7a997a5f9de5f2f16bf31ca15604cb710c0e264e994d69cd981"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SampleContainer.dll",
+        "size_bytes": 35840,
+        "sha256": "7c8bddfd059125a58e6626ffaad00ee5d294cb15122e91cf6d65d8c7e9b6cea2"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Services.FileHandling.dll",
+        "size_bytes": 11776,
+        "sha256": "5e3ef4550c3b448d81460a6196e8d78b9a98020799ac14864145779acefe8f73"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SharedServices.Administration.dll",
+        "size_bytes": 28160,
+        "sha256": "885f9ae79bb6a9898ec1b2aba7e41018801715852abdcff17101022d50bf690b"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SharedServices.Common.dll",
+        "size_bytes": 105472,
+        "sha256": "5d0801e0c46b889c60ea0f7b1768e630d52c18784649df9d34302fd974a6244a"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SharedServices.Data.dll",
+        "size_bytes": 9216,
+        "sha256": "b08f0cc873cf3914ad9c7ef0a706e710857ea0582a62a56951c4b7f2d1027033"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SharedServices.Data.resources.dll",
+        "size_bytes": 6656,
+        "sha256": "f09356374c53f8b1273bb2e89b487ae0d34e57dff3f3ef42ff670122172a2ecc"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SharedServices.dll",
+        "size_bytes": 239104,
+        "sha256": "729697da2501706a218ac77f605fff7b01d31ecda4253fc2c0232c31ad26ee04"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SharedServices.DocumentService.dll",
+        "size_bytes": 5120,
+        "sha256": "eea462fcb9a21312068c3662994d52686ae7d92e805a853548c4f62f6b5a1112"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SharedServices.Login.dll",
+        "size_bytes": 213504,
+        "sha256": "d8b7a98a56803cc63cf29f331489e78b3a41e056cb2c78185437da6c24951d90"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SharedServices.Login.resources.dll",
+        "size_bytes": 90112,
+        "sha256": "aed5dab6005bdedc8fb276e01aa3a7d0eb981a3087589195aa4291899ba94fd8"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SharedServices.v2.dll",
+        "size_bytes": 19456,
+        "sha256": "3bb1adc2da43e81b6ce7b43f9b7691c8613ef2f2529e468a9433613c1ef7cbff"
+      },
+      {
+        "path": "Bin/Agilent.OpenLAB.SignalReader.dll",
+        "size_bytes": 173568,
+        "sha256": "290296e648b7cac8a7e74a4a74fb3dfebbe565cc10791fc2edb35f1981e46c10"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.AFS.dll",
+        "size_bytes": 24064,
+        "sha256": "aa66a9d0561e5264e50f4e545ca8a837ac85f88b745d278e2c7b8ae686fb2cc7"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.AFS.resources.dll",
+        "size_bytes": 6656,
+        "sha256": "4a3047523c1dba95abf5458f5b4ac5f517cfd2f37b20abfd8ab0deb1dccee679"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.AgilentECM.dll",
+        "size_bytes": 103424,
+        "sha256": "c7007b11d39a54934f0536270fe3bb3e4db90ca6b035075cbb8a1a73f1bc97a4"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.AgilentECM.resources.dll",
+        "size_bytes": 6656,
+        "sha256": "af1cb35f03317646fd1c45e0825b1a654d0ce9dce00fb132bade8d8583a7db79"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.Client.dll",
+        "size_bytes": 300544,
+        "sha256": "7a4dc20c30e123a48bf8552b63b5a0ea755a5480d239b65c138876754b931e53"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.Client.resources.dll",
+        "size_bytes": 16896,
+        "sha256": "128a27f531a0cdad662fe5df49e3da4a00c671b6a700e0f55c3caa4f24329988"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.Dialogs.dll",
+        "size_bytes": 7680,
+        "sha256": "6c541077b6bec4acdf9cc0cc9b8339c97578adf6dcde3404d9b7891a6e6b3e66"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.dll",
+        "size_bytes": 138240,
+        "sha256": "61875f5d4ca25a15d1571a8dfdcb1f3388ff8c41641e64c24748947ab02a046e"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.FileSystem.dll",
+        "size_bytes": 43008,
+        "sha256": "1f44b458d83999ec5118781c7665aa82563090088e978a6730425a4786686ec2"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.resources.dll",
+        "size_bytes": 13824,
+        "sha256": "3c1788c153cba2bf96b086db752b99c1e16980b32d0bc10904366f8d746627a4"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.Storage.Utils.dll",
+        "size_bytes": 7680,
+        "sha256": "735ff1708cd4e99d023d5fd0a0f1b52a8405d0a62c5ed527a21322b26a8a420d"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.SystemCover.dll",
+        "size_bytes": 27136,
+        "sha256": "4b5ba36de0a2fa4bed69d21bd7c46a8bc793dc7472874a5193149065c8b5939e"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.AgtPlotControl.dll",
+        "size_bytes": 240640,
+        "sha256": "5aa521c92103ffa487c6ea889edcde606622077a505088506e3141026d735044"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.AuditTrailViewer.dll",
+        "size_bytes": 263680,
+        "sha256": "eaceed4735fc00052a1d7c19942e25a0b8a99455cc2c88b136c8acbfebb3ff3b"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.ExpressionEditor.Common.dll",
+        "size_bytes": 14336,
+        "sha256": "a8b93e2e57c65a94f3e07f14dc85ffd2b58614cbe164949e9da564b983e843bb"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.ExpressionEditor.Language.Roslyn.dll",
+        "size_bytes": 38400,
+        "sha256": "c18bf2fb215e7a429610b0fa9ae6d5550493061f9f7a9ccdafe262b8bec80f95"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.ExpressionEditor.UI.dll",
+        "size_bytes": 2793984,
+        "sha256": "8786114cbdf5268db9f87f9840d38501d3fe6a06616b1b1d13a42a3e823126a8"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.Geometry.dll",
+        "size_bytes": 17920,
+        "sha256": "fb722b02cb00c6fc3747f689e270755f4aeafa67e0e4bcf04d5e8466a7585308"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.GraphObjectDataConverters.dll",
+        "size_bytes": 17408,
+        "sha256": "6dc5bb1f1c87a7fb1f1bf235a30704c4bcd3eb5aa84ed906ddbb23afb664dc98"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.GraphObjects.dll",
+        "size_bytes": 350208,
+        "sha256": "4fdcae5058435bf5a4412221e6e622b0c78a4e891e89399d47d213010c688de0"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.PdfViewer.dll",
+        "size_bytes": 49664,
+        "sha256": "8057d3a43bd3c2a0cfec03f6b03b444d290312e6d842ec6b00d1095445114c4f"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.SampleContainerAdapter.dll",
+        "size_bytes": 32768,
+        "sha256": "459523453a74d3ad491b231e71ac29c7245836db9eb8ac61f12804489ae5ac69"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Controls.WinFormsControls.dll",
+        "size_bytes": 150016,
+        "sha256": "506e6b93d66b3cff5c23c68da2ab17f8d9281b1e730d7f1f34d8742c09fc1aa7"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Core.dll",
+        "size_bytes": 7168,
+        "sha256": "fe38a54c71166ab0e3720518f90ba9c0802d8036a5b72a62018804a66636d2cb"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.DataStructures.dll",
+        "size_bytes": 87552,
+        "sha256": "cc0865ed838de693527bc89f9c9e3cd93949cef466a4d99a404f57826c4a36c7"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Environment.dll",
+        "size_bytes": 24064,
+        "sha256": "0c40bc83de571c47e0a9ea393f7d0432865587fb7451a2d3919426e0e8d46aed"
+      },
+      {
+        "path": "Bin/Agilent.OpenLab.UI.Environment.resources.dll",
+        "size_bytes": 7168,
+        "sha256": "f4aea9132ba6eaa71851f1a5ba9f7a9ae678db6282252cd590d4da898683d481"
+      },
+      {
+        "path": "Bin/Agilent.RapidControl.SampleContainerManager.dll",
+        "size_bytes": 147968,
+        "sha256": "b4d89c7a010152ad251e8819bd9222de8a0d8fd3253f95239c6c922e46250848"
+      },
+      {
+        "path": "Bin/Agilent.SampleContainerCombinedControl.dll",
+        "size_bytes": 95232,
+        "sha256": "6a28bc358b65a09fe783f5819e81faa0b94af7834232dd54ecb9e4cede51f139"
+      },
+      {
+        "path": "Bin/Agilent.SampleContainerControl.dll",
+        "size_bytes": 486400,
+        "sha256": "ce0f10fb8b2329a239be75569f0ed8ee120458530b120aa10f38d772dc511ef6"
+      },
+      {
+        "path": "Bin/Agilent.SampleContainerControl.Resources.dll",
+        "size_bytes": 129024,
+        "sha256": "68a41026345b20607cbc83d70aafb326b5c479bdc36443b59c7e899e552c10d6"
+      },
+      {
+        "path": "Bin/Agilent.SampleContainerControl.Wpf.dll",
+        "size_bytes": 45056,
+        "sha256": "6e1a69c483cdd25f231fbfe3e7533768bec0689cef56a495beb6fbca7f4242eb"
+      },
+      {
+        "path": "Bin/Agilent.SampleContainerDeviceControl.dll",
+        "size_bytes": 182784,
+        "sha256": "8504ec308470b09dad885212034180925cf82172ff9df92909566f9f6b435134"
+      },
+      {
+        "path": "Bin/Agilent.SampleContainerLocationFormatter.dll",
+        "size_bytes": 22016,
+        "sha256": "3cc38cdbf549b4b8ffcdc22865a62895a88a63520c960f6455e306cba680538f"
+      },
+      {
+        "path": "Bin/Agilent.XSR.ReportScratchPad.dll",
+        "size_bytes": 82432,
+        "sha256": "9b519739befc1936fa118c06b610e942fdfdea2f12bdfc2935196ee8a549e395"
+      },
+      {
+        "path": "Bin/AgtChromPlot.dll",
+        "size_bytes": 358400,
+        "sha256": "be669c2232abec3af92dd0b7227f9fc896fbd3696bffa4e47784fd737ec3aea7"
+      },
+      {
+        "path": "Bin/agtCustomizeFolder.dll",
+        "size_bytes": 9728,
+        "sha256": "00638809e97d10511498a8cb7fe6d470866dfc4f285e3e5d20b62163d2f42140"
+      },
+      {
+        "path": "Bin/agtpichashsignature.dll",
+        "size_bytes": 43008,
+        "sha256": "db9ab250a872b72e3d82d1f1c5dcd44ed03469428c8e1d591e6c27014313e006"
+      },
+      {
+        "path": "Bin/agtsampleinforw.dll",
+        "size_bytes": 86016,
+        "sha256": "4bcdd74af2abfc343fa97b6ac789d3ec82df5948ee34f63d9f9326baf41c482d"
+      },
+      {
+        "path": "Bin/AIACommon.dll",
+        "size_bytes": 56320,
+        "sha256": "f011e21d941ac5f93029f1513ccde68d882df19423ec239b503b57d6ee7457d1"
+      },
+      {
+        "path": "Bin/BaseCommon.dll",
+        "size_bytes": 580096,
+        "sha256": "bf8d91d47410e2c8260e628669f7a530b096e4ead1e82142c94f9e9d48f0cc45"
+      },
+      {
+        "path": "Bin/BaseDataAccess.dll",
+        "size_bytes": 2555904,
+        "sha256": "b41a60f0abb72bd9ea136a544bff61c51301ca72e927cf22ded66256e595e527"
+      },
+      {
+        "path": "Bin/BaseDataAccess.dll.config",
+        "size_bytes": 324,
+        "sha256": "301b64d0c14a73bbe459f646fda4ef245a22eb37a3d11d4453ed45799b2e99e7"
+      },
+      {
+        "path": "Bin/BaseDataWriter.dll",
+        "size_bytes": 127488,
+        "sha256": "a22f959cc899de3946813ffeca01a396fb24eb8a109cb8bbb46504b50289813e"
+      },
+      {
+        "path": "Bin/BaseError.dll",
+        "size_bytes": 10240,
+        "sha256": "64463c3403d833a37bc8d69c7dda1c2dac0eb2c9817304faaeadfad729ce31e7"
+      },
+      {
+        "path": "Bin/BaseMsUtils.dll",
+        "size_bytes": 547328,
+        "sha256": "9a6c4d2c68936586bd50eacabc0c31cee45496e3afcd5e78c8ff2ed24974ccd6"
+      },
+      {
+        "path": "Bin/BaseTof.dll",
+        "size_bytes": 1376256,
+        "sha256": "677732fcbd85a1c76174d34c60990ccdb62c7045b1161ced54c9c2f7613ae2cc"
+      },
+      {
+        "path": "Bin/CCHighlightingDefinition.xshd",
+        "size_bytes": 9627,
+        "sha256": "ac2617785e579f16a4d409b2fb16d71c255c72b33059d379bcaf1aabb9f14ed1"
+      },
+      {
+        "path": "Bin/CommandProcessorEx.dll",
+        "size_bytes": 288768,
+        "sha256": "7de7a5aeebc49384afde07e3af1e6365014ad7b02c5270c0b8542712d5e413db"
+      },
+      {
+        "path": "Bin/CoreAmdisDeconvolution.dll",
+        "size_bytes": 153088,
+        "sha256": "9f3fe9f9c1e4303161203406d8045c273748af3b52aee7ff280ea005988636cc"
+      },
+      {
+        "path": "Bin/CoreDA.dll",
+        "size_bytes": 1167872,
+        "sha256": "187db7d8273b1092fde651fcb6547d930e8cced20553eeee68d9a8209f352b92"
+      },
+      {
+        "path": "Bin/CoreDataAccess.dll",
+        "size_bytes": 98304,
+        "sha256": "b5f68538c9720fb5caa01ff491c7af10fca5647b13cca862aa19e1e76f913145"
+      },
+      {
+        "path": "Bin/CoreDefinitions.dll",
+        "size_bytes": 1053696,
+        "sha256": "05f1baabfff8cc999e3d808166244f18e25f3ebdb3526ee9cfb97f52e73d5cd1"
+      },
+      {
+        "path": "Bin/CoreMsMsIntegrator.dll",
+        "size_bytes": 345088,
+        "sha256": "31793995329a15c61783d34856a07159a29f66e30c929861c9532a8e832ba466"
+      },
+      {
+        "path": "Bin/CoreTypes.dll",
+        "size_bytes": 2437120,
+        "sha256": "e0006d159994fd8b3cca0536e4f83f1e1b72daa6ad8b7b0baf6103c2a5a5d9aa"
+      },
+      {
+        "path": "Bin/CSScriptLibrary.dll",
+        "size_bytes": 156672,
+        "sha256": "6aaf90b945445f8ed163907c57728c144569b7ff0d4b431aa31d99ea07f7af1b"
+      },
+      {
+        "path": "Bin/ctnt66_64.dll",
+        "size_bytes": 226304,
+        "sha256": "5b1b441ca39cf0532a62a41b22307116ef6ec517269b3a38579370bc30078bf2"
+      },
+      {
+        "path": "Bin/DocumentFormat.OpenXml.dll",
+        "size_bytes": 5812328,
+        "sha256": "40f293a772b3017814557bfb6ffd0077c7b81dc4fdc1caa7498db64c38dcc25f"
+      },
+      {
+        "path": "Bin/DopFacade.dll",
+        "size_bytes": 53248,
+        "sha256": "42309f99dc34e1cfe2837b841c4d6f0d059ba443c79327119af30afcf01f21af"
+      },
+      {
+        "path": "Bin/EzChromIntegrator.dll",
+        "size_bytes": 123904,
+        "sha256": "e68f79e7e4be65d9844394e8e879135739f5b67cc230e43742892278cff95e05"
+      },
+      {
+        "path": "Bin/GCMSAIALibNET.dll",
+        "size_bytes": 75776,
+        "sha256": "b96810863631a2095e42cd9b80bb8f2a98587b8cc6cdac289c2d84eb589afbe2"
+      },
+      {
+        "path": "Bin/HIACPNet.dll",
+        "size_bytes": 105472,
+        "sha256": "9fb78669144b94bfff9ffdc96550c2565ff4593d6756a9ccf6653067047c3ca1"
+      },
+      {
+        "path": "Bin/ICSharpCode.AvalonEdit.dll",
+        "size_bytes": 606208,
+        "sha256": "2bf6079c143f177d954731db2ffde515bee8fbd6261e0d338ba8e7c8df1ab658"
+      },
+      {
+        "path": "Bin/InfragisticsWPF4.DataPresenter.v14.2.dll",
+        "size_bytes": 3606016,
+        "sha256": "4c07534cdbb6011b5c5f8940fc30f0c5cb239cfa6bd6b7e342b9dbfb7ff2bd41"
+      },
+      {
+        "path": "Bin/InfragisticsWPF4.DockManager.v14.2.dll",
+        "size_bytes": 994304,
+        "sha256": "b6ce10da96ab7f1e28cb8bd9912c22c808bb64897150e4a63c8de12d73c694e5"
+      },
+      {
+        "path": "Bin/InfragisticsWPF4.Editors.v14.2.dll",
+        "size_bytes": 959488,
+        "sha256": "1ac84a941a649469e38375a50e12369aa935312f7da4a5cdd990390067a78926"
+      },
+      {
+        "path": "Bin/InfragisticsWPF4.OutlookBar.v14.2.dll",
+        "size_bytes": 527360,
+        "sha256": "94eb874bc73a3b2526b5d2ddfd4a8c6d9f7349c4358c3e29d36f5a0b2ca1f76a"
+      },
+      {
+        "path": "Bin/InfragisticsWPF4.Ribbon.v14.2.dll",
+        "size_bytes": 2489344,
+        "sha256": "ecaef052e10b7d6f5bea03c5b618660afe35c7bbfa22c295537df24607b06411"
+      },
+      {
+        "path": "Bin/InfragisticsWPF4.v14.2.dll",
+        "size_bytes": 1982976,
+        "sha256": "8d9225656cf5141fa2213648dbef0398ea54d4a4b09a5d440c8af6bf201c9f1f"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CommonInterfaces.dll",
+        "size_bytes": 53760,
+        "sha256": "747e1cee175978e163085198a5343075d592a00239f024e0885e590f48a64ef8"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CommonInterfaces.XmlSerializers.dll",
+        "size_bytes": 23552,
+        "sha256": "bcf269652078698d620317a1f252347c0e3eeb3e57923183187a4b193de0ce11"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageCalibCurvePlot.dll",
+        "size_bytes": 68608,
+        "sha256": "335bfe77127b425f9c321ae4395e6faed28cee88afce66ed6eaa5cfeee6e437e"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageCalibrationTable.dll",
+        "size_bytes": 350208,
+        "sha256": "48ebba8d7440495f8fd0c49d355cd9bb46416aa6da2ec8c845df5ba58b592628"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageChartPlot.dll",
+        "size_bytes": 65536,
+        "sha256": "fceed95f7356b240fa2beebfed6cc1578de4d263c1c3959a73cea4ba841e7058"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageChromatogramPlot.dll",
+        "size_bytes": 153600,
+        "sha256": "05098a5819c3b984ffb013df0e77eca263ed14bd4cafba7c30da431efbee3f15"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageCustomTable.dll",
+        "size_bytes": 22016,
+        "sha256": "2b88b4b82ae1c3442e15413d4fa72a856e5e855985d803e09cad707517f4b097"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageEMFCounterTable.dll",
+        "size_bytes": 224256,
+        "sha256": "fac94b65a7ae362ce06e8b2e63f3f0a076300db6ac31b05e1bce0dc6e8741538"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageFractionResults.dll",
+        "size_bytes": 237568,
+        "sha256": "faa0d53c7c3803856ec6167060def8b5564eaa6f30d2c5c5ac3cee9d62266a99"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageGraphicalSampleLocation.dll",
+        "size_bytes": 364032,
+        "sha256": "72e8519963b5c9810b47ce8f97e795663df65422c98553ff2dceb0c14cd3b66a"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageInstrumentInfo.dll",
+        "size_bytes": 634880,
+        "sha256": "bbb5901b4718957512fe2943d0e25035940c6a5d094eaaa96cd951ceaef7167e"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageIonChromatogram.dll",
+        "size_bytes": 67072,
+        "sha256": "015d51c692a8d1b88485c9328da21eff90eedfb11824f8a34eb374f10de3bcea"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageLibrarySearchResults.dll",
+        "size_bytes": 1082368,
+        "sha256": "a3a67552e3865e0b6cc8cbdd051d83c65e42fc9beeebea94c737c641b756d7f3"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageMethodInfo.dll",
+        "size_bytes": 154112,
+        "sha256": "656643b1017e0b76ab95899b0887f5841242e53db10314f198eadaefda760a42"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageMethodPath.dll",
+        "size_bytes": 79872,
+        "sha256": "9b3a814c1e7534cc0f6d21a289b18ba6c75a774ba7d5bf0d3dc545de6a772412"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageSingleMethodParameter.dll",
+        "size_bytes": 229376,
+        "sha256": "3a8709c0a9f469a3d7386c4beba4c5b613a6a66fc9d37d314e659c112b06c545"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.CriPackageSpectrumPlot.dll",
+        "size_bytes": 179712,
+        "sha256": "4e0c84b4750952de061df6e1e15f0a1273430df9601416250b7f5d22c0ac08b0"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.ReportControlInfrastructure.dll",
+        "size_bytes": 74240,
+        "sha256": "992a313677a3e554e20d28ea8dfaa9a1fa6a6772a81197aba5cb9580b201ce3e"
+      },
+      {
+        "path": "Bin/IntelligenceReporter.ReportControls.dll",
+        "size_bytes": 346624,
+        "sha256": "06eeee5afd9ac033391f32ac606db2403f7e1147375950e14d5ce2416bf58f1a"
+      },
+      {
+        "path": "Bin/IntelligentReporting.RenderServiceHost.exe",
+        "size_bytes": 31232,
+        "sha256": "145a90c562b0a0f1ca6f74727feee9fad60e9bf35c2d13a784f301aa49ba38fa"
+      },
+      {
+        "path": "Bin/IntelligentReporting.RenderServiceHost.exe.config",
+        "size_bytes": 4599,
+        "sha256": "0c63eb36b5c26584fa736aeaa03226bf26fe467c0494fcc05d2942391a4524fe"
+      },
+      {
+        "path": "Bin/IntelligentReporting.RenderServiceHost.exe.system.diagnostics.config",
+        "size_bytes": 1098,
+        "sha256": "cbc6d71573ef78eea8953b2d4442308193b2e2ba99df14e996a28d9a703f722d"
+      },
+      {
+        "path": "Bin/itextsharp.licensekey.dll",
+        "size_bytes": 16896,
+        "sha256": "88739823b992ed32aadbcb284b210ca8250278258f29839bf714f2469e18c912"
+      },
+      {
+        "path": "Bin/itgr12talgo64.dll",
+        "size_bytes": 227328,
+        "sha256": "1e5ce26933930468092c4085ec1bcfc987b9552e47ca5d9516fb2f75a8c44f14"
+      },
+      {
+        "path": "Bin/itgr12tmgr64.dll",
+        "size_bytes": 218112,
+        "sha256": "6c7a82d66fa5cbdb0530c8fc9f1184daaa5d938d5ff3445d95af1f727e75cdcb"
+      },
+      {
+        "path": "Bin/LCDataWriter.dll",
+        "size_bytes": 73728,
+        "sha256": "7cd6a67756fbbabd0e1ab425dd9abec04939fc9cc031777e53ffe43e11d5dbcf"
+      },
+      {
+        "path": "Bin/LCMSSamplePurityTransformationChain.xaml",
+        "size_bytes": 161003,
+        "sha256": "377bf7a15485b2c4612457f0347bb74cfcf236e147d9314c5cc9caf2809208cd"
+      },
+      {
+        "path": "Bin/LICENSE",
+        "size_bytes": 11560,
+        "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5"
+      },
+      {
+        "path": "Bin/LinqStatistics.dll",
+        "size_bytes": 50688,
+        "sha256": "e2d32dd9c05ffc207f2e11ff2a646b9f68912650675e069661acde836b63c36b"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.Analyzers.dll",
+        "size_bytes": 74952,
+        "sha256": "4cf14195243e6b9961ae3fd3d171b51e48c70375a4354decafaaf90515e9b278"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.CSharp.Analyzers.dll",
+        "size_bytes": 17624,
+        "sha256": "711911705bd79de169681d8b8c53a071b512227f5ee6a06ab2e7fd1765aecd7c"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.CSharp.dll",
+        "size_bytes": 4496296,
+        "sha256": "b1c88077a55657ea61c4024903c539ea2601199e4c91c96bd6bf195c5b3d5d50"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.CSharp.Scripting.dll",
+        "size_bytes": 27576,
+        "sha256": "f0b05c935bfe9d5134d94d4bed4b7b55a76632e67c4179b4ab803792ffbb0a36"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.CSharp.Workspaces.dll",
+        "size_bytes": 628672,
+        "sha256": "39b202e5fa156dc60acf266fe540e98b595b0172c89e6f9714588d3ebf6e73aa"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.dll",
+        "size_bytes": 2088856,
+        "sha256": "7b255f6face573b0e3a98978d74bb23a2072480fe7bc3d5436ec43f6d43f8af2"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.Scripting.dll",
+        "size_bytes": 128432,
+        "sha256": "0cceb527ff4a1fb7022032ad5b97cdff7ccfb2c42be64e7317311f9d82cb8af3"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.VisualBasic.Analyzers.dll",
+        "size_bytes": 18144,
+        "sha256": "2080c63be9d03efb9644d8e8d032bdc5fb2bce60b906c23c7e623a51b3e8e31b"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.VisualBasic.dll",
+        "size_bytes": 5160880,
+        "sha256": "6e39f5e8db8ef94907bab7c8dbce15d30d7234220c3540fee3288a9bd94382bd"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.VisualBasic.Workspaces.dll",
+        "size_bytes": 738248,
+        "sha256": "754fe86f2b15aad817547f711499372515880d57f27b4fea845e0166c61d3056"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.Workspaces.Desktop.dll",
+        "size_bytes": 156888,
+        "sha256": "584ba6106d0297f4f756d453a589902ad465f7d9201c66f540dec28642f3003e"
+      },
+      {
+        "path": "Bin/Microsoft.CodeAnalysis.Workspaces.dll",
+        "size_bytes": 2359728,
+        "sha256": "5b4de07ffb2c8d71b0a603c8f29ff211095bcd897bee5fc57bf05dc0645ad58e"
+      },
+      {
+        "path": "Bin/Microsoft.IO.RecyclableMemoryStream.dll",
+        "size_bytes": 31472,
+        "sha256": "5ffe4416e22669f4b8655367dbd57909f4cc1d4fc88a5e152af0929a20e973cb"
+      },
+      {
+        "path": "Bin/Microsoft.Practices.Prism.dll",
+        "size_bytes": 153416,
+        "sha256": "3e4ef152246eb9d1ebf58c2bb93ea038232afa0c1df03b6d3a9e398620938759"
+      },
+      {
+        "path": "Bin/Microsoft.Practices.Prism.UnityExtensions.dll",
+        "size_bytes": 24904,
+        "sha256": "e52b2991fe9bfd7b28ea84832a4ddf5875b6bd7d7a13354e3548a0d7eb349675"
+      },
+      {
+        "path": "Bin/Microsoft.Practices.ServiceLocation.dll",
+        "size_bytes": 27448,
+        "sha256": "2028dba77ffefc0fb9f3cf5aba68868d6f706cb2599b1a67d5784d1cc411ccf7"
+      },
+      {
+        "path": "Bin/Microsoft.Practices.Unity.dll",
+        "size_bytes": 123976,
+        "sha256": "7910859afc2969ce1745835fd920766767d079206a5ff10036a92a0c42c9a8a2"
+      },
+      {
+        "path": "Bin/Microsoft.Windows.Shell.dll",
+        "size_bytes": 167808,
+        "sha256": "b6e0b3380cd45473f36d3fd822b85591bc2f7d0a1475355dc35e978f412522c4"
+      },
+      {
+        "path": "Bin/MSActualDefs_Example.xml",
+        "size_bytes": 3574,
+        "sha256": "439115f425b1f5707bb4f28d112af8297530f8fb5d2c347f9421a27e8004c4e2"
+      },
+      {
+        "path": "Bin/MSDChemCPUtil.dll",
+        "size_bytes": 23552,
+        "sha256": "abb080dd7d2996c5bfe314bf81138dccd4ff48ab2ae2494590034990ca840ce1"
+      },
+      {
+        "path": "Bin/MSDChemDataFile.dll",
+        "size_bytes": 113664,
+        "sha256": "3f8b70f8aa57d7ad309ce8e660cfc592bfb29a434dceccfd0d869b46f4a70696"
+      },
+      {
+        "path": "Bin/MSScan.xsd",
+        "size_bytes": 5559,
+        "sha256": "5553c3056ee6f8a10abdfabe83242b29dac27f667eed975c5b889c1e80728ff3"
+      },
+      {
+        "path": "Bin/MSTransformationChain.xaml",
+        "size_bytes": 165258,
+        "sha256": "2aac70ec95d722cc76addcb45b3dcb5cf37847c485f88be4aa7ff64a8ccbaa3e"
+      },
+      {
+        "path": "Bin/MSTS_Example.xml",
+        "size_bytes": 413,
+        "sha256": "443091150bc581923d6ef8fb03c1f4bf666f8844709012eb0c545f078f04c57b"
+      },
+      {
+        "path": "Bin/MSTS_XSpecific_Example.xml",
+        "size_bytes": 1870,
+        "sha256": "5e0f339576a5e40a4bbd00bfdbde93c16e36ef75a605657c9677a7e16a78fc9d"
+      },
+      {
+        "path": "Bin/netcdf.COPYRIGHT",
+        "size_bytes": 1847,
+        "sha256": "c0ad5c844761b67344176b8ee41195095141403b7002a5955c0bc943c6c67dd2"
+      },
+      {
+        "path": "Bin/netcdf.dll",
+        "size_bytes": 352510,
+        "sha256": "a91d3d7a3c1da1ccc903310d630ff8ebf56323bfafd1ed2834938a22a6092c66"
+      },
+      {
+        "path": "Bin/nistdl64_2gb.dll",
+        "size_bytes": 820736,
+        "sha256": "ad31c16ca1bef872a9db4a2ec5ffcee5009928c792b16fd39b355e0245eec62c"
+      },
+      {
+        "path": "Bin/nistmsclp_2gb.dll",
+        "size_bytes": 96256,
+        "sha256": "84c5f0255f90264d3a36e97843174785bf5ef86117acadabe5971faa32f52932"
+      },
+      {
+        "path": "Bin/NormPercentTransformationChain.xaml",
+        "size_bytes": 129096,
+        "sha256": "40ddc8e15ef77e4da170e57465630f98ba486ee81533e469e9614f0351d66a16"
+      },
+      {
+        "path": "Bin/OpenLabVendorBridge.exe",
+        "size_bytes": 21504,
+        "sha256": "eac90af61d134c4bf86270d94f5e7c1ac40e2c4b5316b0bf03f16d20b0085209"
+      },
+      {
+        "path": "Bin/Patagames.Pdf.dll",
+        "size_bytes": 238592,
+        "sha256": "fb53d2cfbc61f613c75281d5eb65bcf103072414534f2626abd7f0244fd79028"
+      },
+      {
+        "path": "Bin/Patagames.Pdf.WinForms.dll",
+        "size_bytes": 205824,
+        "sha256": "03954ef56a0179008d94d561800ffde04a2a4efe715c56ecf08c29167f48912c"
+      },
+      {
+        "path": "Bin/Patagames.Pdf.Wpf.dll",
+        "size_bytes": 205824,
+        "sha256": "9a0694c4636706eedbcf4736053694bc7039013d83aa59edf33c26d894a6d0f5"
+      },
+      {
+        "path": "Bin/pdfium.dll",
+        "size_bytes": 13401600,
+        "sha256": "981cfc04dd812824e82e366abf91cf1118cc85963707baadf8c4542abb34d027"
+      },
+      {
+        "path": "Bin/protobuf-net.dll",
+        "size_bytes": 197632,
+        "sha256": "66653d787ab796a55c55afdfa35d2fd9ad78c89bbd51e0d01965214399fa56b6"
+      },
+      {
+        "path": "Bin/QuantCoreDataTypes.dll",
+        "size_bytes": 117760,
+        "sha256": "8a5016642bd754447a28db71798d49d091e5caf1b69051fe3d8b67de602b7ad3"
+      },
+      {
+        "path": "Bin/QuantDeconvolutionConfig.xml",
+        "size_bytes": 4168,
+        "sha256": "9de615d8729d542fb07913eb1ad6488065550de078442020c4242cee0449728d"
+      },
+      {
+        "path": "Bin/QuantDeconvolutionConfig_GC.xml",
+        "size_bytes": 3775,
+        "sha256": "a61f444d3e4e4b5e1308ddd9318b2615f8f215c3c977120223d955b55cc459d0"
+      },
+      {
+        "path": "Bin/QuantDeconvolutionConfig_LC.xml",
+        "size_bytes": 3732,
+        "sha256": "9fafb33697e1d4bb82ff7deea1569eea96c5630a62062d99d28eff7a2a0576d4"
+      },
+      {
+        "path": "Bin/QuantIntegrator.dll",
+        "size_bytes": 178176,
+        "sha256": "e8767ed75136f6d37f2a5e46b3f1aadfac0c5029c81cff44814d45f02a27722d"
+      },
+      {
+        "path": "Bin/Quantitation.dll",
+        "size_bytes": 606208,
+        "sha256": "869b7411e4e9e78a463599c2a7711996d7fd5ea52d3ea4189db84646a5332d30"
+      },
+      {
+        "path": "Bin/QuantUtils.dll",
+        "size_bytes": 181760,
+        "sha256": "95a42b2d65109e3c5141c35c7d1e4d91528e0f98eef24cbe730309904a3c3970"
+      },
+      {
+        "path": "Bin/RibbonControlsLibrary.dll",
+        "size_bytes": 802168,
+        "sha256": "370e33619d01ef12f9282bbeed6f3649c9824203897c7d968baf9ad88c4bf639"
+      },
+      {
+        "path": "Bin/RTE.config",
+        "size_bytes": 12049,
+        "sha256": "01f840f2721ef3db9cfd8fba9e7c817a03c5c6cbfcd4185b8837b2be96dffed0"
+      },
+      {
+        "path": "Bin/RTE.ja-JP.config",
+        "size_bytes": 12082,
+        "sha256": "aa634226b8f8e00f78d02ec529b1c01b3e952d55e9a08a348b1580c3e45d3dee"
+      },
+      {
+        "path": "Bin/RTE.pt-BR.config",
+        "size_bytes": 12008,
+        "sha256": "ab89f7d2b46d08b316dc1c56c1548c0d6ea911201d8cfe3e85a2deca85fc730a"
+      },
+      {
+        "path": "Bin/RTE.ru-RU.config",
+        "size_bytes": 12219,
+        "sha256": "49d9dd091cf86bde387a90aefd11d7c6c5e67b9ccf4a6d1e13b9107b9a38bfff"
+      },
+      {
+        "path": "Bin/RTE.zh-CHS.config",
+        "size_bytes": 11962,
+        "sha256": "7aa22ae75f0f356eac4c1b862f71ae1a986acf5df3dc0c14dd0d365f3c44e577"
+      },
+      {
+        "path": "Bin/SequenceAcamlGeneratorAcamlFix.dll",
+        "size_bytes": 6656,
+        "sha256": "f74032d67abcd340a7f5ea8c6545e3cec9e8072ed7f2ac356256387470b6da7e"
+      },
+      {
+        "path": "Bin/System.Collections.Immutable.dll",
+        "size_bytes": 180984,
+        "sha256": "39bda1b32e855687f89cfc4bac39a894145d1d91a6c6129fce0a77aea66644a0"
+      },
+      {
+        "path": "Bin/System.Composition.AttributedModel.dll",
+        "size_bytes": 25880,
+        "sha256": "bde87aa3639e2d5d79b11ba100cfe2983c56f1fa69770f1c7549800c0f65c8ac"
+      },
+      {
+        "path": "Bin/System.Composition.Convention.dll",
+        "size_bytes": 60672,
+        "sha256": "8457c070c29122177429f2ab31493a5dbd4ee5a52b5ecce5a143ad6cf3d061ee"
+      },
+      {
+        "path": "Bin/System.Composition.Hosting.dll",
+        "size_bytes": 63224,
+        "sha256": "4b5103cae18733afe23555d67568efa2441665b49d9cc987dae131213f5ad4b6"
+      },
+      {
+        "path": "Bin/System.Composition.Runtime.dll",
+        "size_bytes": 30456,
+        "sha256": "ed5ed007fd37bb90bcd2fe223820de9e88dcfb4c24b5c944d5fe62c62635ad24"
+      },
+      {
+        "path": "Bin/System.Composition.TypedParts.dll",
+        "size_bytes": 66816,
+        "sha256": "d992b4919898e055f702ff7c7a960129e1aa55c82eaa7b7c7c14b78d043ef6c2"
+      },
+      {
+        "path": "Bin/System.IO.FileSystem.dll",
+        "size_bytes": 22744,
+        "sha256": "b7c22c13eba3efeb7db86b37d3549c6f9e830dfcce45a078fc349cab32f7cde7"
+      },
+      {
+        "path": "Bin/System.Reflection.Metadata.dll",
+        "size_bytes": 450280,
+        "sha256": "c56d218915d3b3e09d7a0a2547ecc060f7a34c1777badcbfe98aa04f5da52566"
+      },
+      {
+        "path": "Bin/System.Windows.Interactivity.dll",
+        "size_bytes": 39936,
+        "sha256": "4aace8c8a330ae8429cd8cc1b6804076d3a9ffd633470f91fd36bdd25bb57876"
+      },
+      {
+        "path": "Bin/zlib1_x64.dll",
+        "size_bytes": 134656,
+        "sha256": "e6ea96da2c584301879cb7ad4d6864e734bef06359157bb89c742bb71aa51034"
+      },
+      {
+        "path": "Methods/GC_LC 归一化百分比_DefaultMethod.pmx",
+        "size_bytes": 20843,
+        "sha256": "4ccfbf222116f1f4ae420e59a0fcfa32b819e22e1a4eef3bba04955696a97cd2"
+      }
+    ]
+  },
+  "entrypoints": {
+    "processing_server": "Bin/Agilent.Chromatography.DataAnalysis.Processing.ProcessingServer.exe",
+    "bridge": "Bin/OpenLabVendorBridge.exe",
+    "default_processing_method": "Methods/GC_LC 归一化百分比_DefaultMethod.pmx"
+  },
+  "minimization": {
+    "source_file_count": 391,
+    "excluded_project_diagnostic_files": [
+      "Bin/OpenLabIntegratorProbe.exe",
+      "Bin/OpenLabServicesHarness.exe"
+    ],
+    "reason_for_conservative_closure": "OpenLab discovers processing, raw-reader, quantitation, and reporting components through PMX-embedded type names and runtime composition. Static-reference subsets of 89 and 127 files did not complete ProcessingServer reprocessing, so no further vendor components were removed without a passing natural-exit smoke test."
+  },
+  "validation_baseline": {
+    "dataset": "R01 single-injection copied result set",
+    "bridge_exit_code": 0,
+    "bridge_report_success": true,
+    "elapsed_seconds": 4.703,
+    "rx_before_size_bytes": 5951,
+    "rx_after_size_bytes": 6302,
+    "rx_before_sha256": "845b1d330bc7178bd17ed260bda06906e2228dc4103b2172392fa05e49d2e69e",
+    "rx_after_sha256": "c0428098e5300a42de69ed35dbb8e26ee939f9343dacc402a2d2d992630dffb8",
+    "residual_bridge_or_processing_server_processes": 0
+  },
+  "bundled_archive_validation": {
+    "runtime_source": "hash-verified extraction cache created only from the checked-in archive",
+    "dataset": "R01 single-injection copied result set",
+    "bridge_exit_code": 0,
+    "bridge_report_success": true,
+    "job_status": "succeeded",
+    "load_errors": [],
+    "failures": [],
+    "elapsed_seconds": 8.937,
+    "rx_before_size_bytes": 5951,
+    "rx_after_size_bytes": 6270,
+    "rx_before_sha256": "845b1d330bc7178bd17ed260bda06906e2228dc4103b2172392fa05e49d2e69e",
+    "rx_after_sha256": "e4d07dfe78378d5392f88454079fc048b713f6366afe60574e76b25ff89d32af",
+    "residual_bridge_or_processing_server_processes": 0
+  }
+}

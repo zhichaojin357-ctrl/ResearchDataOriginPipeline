@@ -68,6 +68,8 @@
 - `scripts/origin/origin_plot_from_template.ps1`
 - `scripts/data_types/hplc_lc/plot_hplc_calibration_origin.ps1` (fixed-data calibration regression/rebuild helper, not a generic HPLC entrypoint)
 - `scripts/data_types/hplc_lc/build_openlab_workbook.mjs`
+- `scripts/data_types/hplc_lc/openlab_vendor_bridge/` (project bridge source plus the controlled runtime-bundle builder/verifier)
+- `scripts/data_types/hplc_lc/verify_openlab_vendor_reprocessing.py` (JSON-only original-algorithm feasibility/equivalence check; no Excel or plot)
 - `scripts/data_types/xrd/plot_xrd_no_card_overlay_origin.py`
 - `scripts/validation/verify_jeol_epr_decode_against_exports.py`
 

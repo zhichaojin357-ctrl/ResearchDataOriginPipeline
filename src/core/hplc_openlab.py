@@ -35,6 +35,12 @@ from src.core.hplc_peak_integration import (
     NATIVE_INTEGRATOR_NAME,
     NATIVE_INTEGRATOR_VERSION,
 )
+from src.core.hplc_openlab_vendor import (
+    OpenLabVendorReprocessResult,
+    apply_vendor_reprocess_provenance,
+    reprocess_openlab_with_vendor_method,
+    resolve_bundled_openlab_vendor_assets,
+)
 from src.core.project import (
     ensure_output_path_separate_from_inputs,
     ensure_output_path_within_root,
@@ -59,6 +65,11 @@ class HplcOpenLabExportOptions:
     builder_workdir: Path
     output_name: str | None = None
     force: bool = False
+    vendor_reprocess: bool = False
+    vendor_runtime_bin: Path | None = None
+    vendor_bridge_exe: Path | None = None
+    vendor_processing_method: Path | None = None
+    vendor_timeout_seconds: int = 600
 
 
 @dataclass(frozen=True)
@@ -69,6 +80,33 @@ class _HplcOutputPlan:
 
 class _HplcRollbackError(RuntimeError):
     """Raised when a failed package commit could not be rolled back completely."""
+
+
+def _resolved_vendor_options(options: HplcOpenLabExportOptions) -> tuple[Path, Path, Path] | None:
+    supplied = (
+        options.vendor_runtime_bin,
+        options.vendor_bridge_exe,
+        options.vendor_processing_method,
+    )
+    if not options.vendor_reprocess:
+        if any(value is not None for value in supplied):
+            raise ValueError(
+                "Agilent vendor runtime, bridge, and method options require --vendor-reprocess"
+            )
+        return None
+    if options.vendor_timeout_seconds <= 0:
+        raise ValueError("--vendor-timeout-seconds must be greater than zero")
+    if not any(value is not None for value in supplied):
+        bundled = resolve_bundled_openlab_vendor_assets()
+        return bundled.runtime_bin, bundled.bridge_exe, bundled.processing_method
+    if any(value is None for value in supplied):
+        raise ValueError(
+            "Vendor runtime overrides must provide --vendor-runtime-bin, "
+            "--vendor-bridge-exe, and --vendor-processing-method together"
+        )
+    runtime_bin, bridge_exe, processing_method = supplied
+    assert runtime_bin is not None and bridge_exe is not None and processing_method is not None
+    return runtime_bin.resolve(), bridge_exe.resolve(), processing_method.resolve()
 
 
 def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOptions) -> dict[str, Any]:
@@ -89,6 +127,7 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
     ensure_safe_output_file_target(builder_workdir, output_root=output_root)
     _validate_artifact_workdir(builder_workdir)
     builder_source = _validate_workbook_builder_inputs(project_root, options.node_exe)
+    vendor_options = _resolved_vendor_options(options)
 
     output_name = options.output_name or f"agilent_hplc_openlab_{options.since:%Y%m%d}_plus.xlsx"
     if Path(output_name).name != output_name or Path(output_name).suffix.casefold() != ".xlsx":
@@ -101,16 +140,30 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
     previews_dir = output_root / "workbook_previews"
     logs_dir = output_root / "logs"
 
-    dataset = extract_hplc_openlab_dataset(input_root, options.since)
-    if "analysis" not in dataset:
-        dataset = attach_hplc_analysis(dataset, project_root)
-    dataset["workbook_plan"] = _build_workbook_plan(dataset, workbook_path)
-    workbook_paths = _planned_workbook_paths(output_root, workbook_path, dataset["workbook_plan"])
+    planning_dataset = extract_hplc_openlab_dataset(input_root, options.since)
+    if "analysis" not in planning_dataset:
+        planning_dataset = attach_hplc_analysis(planning_dataset, project_root)
+    planning_dataset["workbook_plan"] = _build_workbook_plan(planning_dataset, workbook_path)
+    workbook_paths = _planned_workbook_paths(
+        output_root,
+        workbook_path,
+        planning_dataset["workbook_plan"],
+    )
     dataset_path = processed_dir / f"{slug}_dataset.json"
     verification_path = reports_dir / f"{slug}_workbook_verification.json"
     builder_log_path = logs_dir / f"{slug}_workbook_builder.log"
     metadata_path = metadata_dir / "metadata.json"
     report_path = reports_dir / f"{slug}_processing_summary.md"
+    vendor_manifest_path = (
+        reports_dir / f"{slug}_vendor_reprocessing.json"
+        if vendor_options is not None
+        else None
+    )
+    vendor_log_path = (
+        logs_dir / f"{slug}_openlab_processing_server.log"
+        if vendor_options is not None
+        else None
+    )
     file_targets = (
         *workbook_paths,
         dataset_path,
@@ -118,10 +171,11 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
         builder_log_path,
         metadata_path,
         report_path,
+        *((vendor_manifest_path, vendor_log_path) if vendor_options is not None else ()),
     )
     preview_targets = _planned_preview_directories(
         previews_dir,
-        dataset["workbook_plan"],
+        planning_dataset["workbook_plan"],
     )
     _preflight_hplc_outputs(
         output_root,
@@ -189,6 +243,16 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
             output_root,
             stage_payload_root,
         )
+        staged_vendor_manifest_path = (
+            _staged_hplc_path(vendor_manifest_path, output_root, stage_payload_root)
+            if vendor_manifest_path is not None
+            else None
+        )
+        staged_vendor_log_path = (
+            _staged_hplc_path(vendor_log_path, output_root, stage_payload_root)
+            if vendor_log_path is not None
+            else None
+        )
         staged_preview_targets = tuple(
             _staged_hplc_path(path, output_root, stage_payload_root)
             for path in preview_targets
@@ -198,6 +262,48 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
             output_root,
             stage_payload_root,
         )
+
+        vendor_result: OpenLabVendorReprocessResult | None = None
+        if vendor_options is not None:
+            runtime_bin, bridge_exe, processing_method = vendor_options
+            vendor_result = reprocess_openlab_with_vendor_method(
+                source_root=input_root,
+                staged_input_root=stage_root / "vendor_input",
+                dataset=planning_dataset,
+                runtime_bin=runtime_bin,
+                bridge_exe=bridge_exe,
+                processing_method=processing_method,
+                timeout_seconds=options.vendor_timeout_seconds,
+            )
+            dataset = extract_hplc_openlab_dataset(
+                vendor_result.effective_input_root,
+                options.since,
+            )
+            dataset = apply_vendor_reprocess_provenance(
+                dataset,
+                vendor_result,
+                source_root_name=input_root.name,
+            )
+            dataset = attach_hplc_analysis(dataset, project_root)
+            dataset["workbook_plan"] = _build_workbook_plan(dataset, workbook_path)
+            vendor_workbook_paths = _planned_workbook_paths(
+                output_root,
+                workbook_path,
+                dataset["workbook_plan"],
+            )
+            if vendor_workbook_paths != workbook_paths:
+                raise RuntimeError("Vendor reprocessing changed the planned HPLC workbook layout")
+            assert staged_vendor_manifest_path is not None
+            assert staged_vendor_log_path is not None
+            staged_vendor_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            staged_vendor_manifest_path.write_text(
+                json.dumps(vendor_result.manifest, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            staged_vendor_log_path.parent.mkdir(parents=True, exist_ok=True)
+            staged_vendor_log_path.write_text(vendor_result.log_text, encoding="utf-8")
+        else:
+            dataset = planning_dataset
 
         staged_dataset_path.parent.mkdir(parents=True, exist_ok=True)
         staged_dataset_path.write_text(
@@ -243,6 +349,8 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
             builder_log_path=staged_builder_log_path,
             metadata_path=staged_metadata_path,
             report_path=staged_report_path,
+            vendor_manifest_path=staged_vendor_manifest_path,
+            vendor_log_path=staged_vendor_log_path,
             preview_directories=staged_preview_targets,
             previews_root=staged_previews_dir,
         )
@@ -272,6 +380,11 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
             staged_builder_log_path,
             staged_metadata_path,
             staged_report_path,
+            *(
+                (staged_vendor_manifest_path, staged_vendor_log_path)
+                if staged_vendor_manifest_path is not None and staged_vendor_log_path is not None
+                else ()
+            ),
         )
         _commit_staged_hplc_package(
             output_root=output_root,
@@ -299,6 +412,8 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
         "report": report_path,
         "verification": verification_path,
         "preview_dir": previews_dir,
+        "vendor_manifest": vendor_manifest_path,
+        "vendor_log": vendor_log_path,
         "summary": dataset["summary"],
     }
 
@@ -561,6 +676,8 @@ def _validate_staged_hplc_package(
     report_path: Path,
     preview_directories: tuple[Path, ...],
     previews_root: Path,
+    vendor_manifest_path: Path | None = None,
+    vendor_log_path: Path | None = None,
 ) -> tuple[Path, ...]:
     for workbook in workbook_paths:
         _validate_xlsx_package(workbook, output_root=stage_payload_root)
@@ -612,6 +729,29 @@ def _validate_staged_hplc_package(
         raise RuntimeError("Workbook builder log does not record a successful exit")
     if not report_path.read_text(encoding="utf-8").strip():
         raise RuntimeError("Staged OpenLab processing report is empty")
+    if (vendor_manifest_path is None) != (vendor_log_path is None):
+        raise RuntimeError("Vendor manifest and log must be staged together")
+    if vendor_manifest_path is not None and vendor_log_path is not None:
+        _assert_safe_regular_file(
+            vendor_manifest_path,
+            output_root=stage_payload_root,
+            require_nonempty=True,
+        )
+        _assert_safe_regular_file(
+            vendor_log_path,
+            output_root=stage_payload_root,
+            require_nonempty=True,
+        )
+        try:
+            vendor_manifest = json.loads(vendor_manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Staged OpenLab vendor manifest is unreadable") from exc
+        if not vendor_manifest.get("vendor_code_executed"):
+            raise RuntimeError("Staged OpenLab vendor manifest does not prove vendor execution")
+        if vendor_manifest.get("completed_injection_count") != dataset["summary"][
+            "selected_injection_count"
+        ]:
+            raise RuntimeError("Staged OpenLab vendor manifest injection count is incomplete")
 
     safe_previews_root = ensure_safe_output_file_target(
         previews_root,
@@ -1155,7 +1295,10 @@ def _build_injection_record(
     context: dict[str, Any],
 ) -> dict[str, Any]:
     relative = dx_path.relative_to(input_root)
-    batch_folder = relative.parts[0] if relative.parts else input_root.name
+    if input_root.suffix.casefold() == ".rslt" and len(relative.parts) == 1:
+        batch_folder = input_root.parent.name
+    else:
+        batch_folder = relative.parts[0] if relative.parts else input_root.name
     result_set_folder = dx_path.parent.name
     result_set_key = _relative_text(dx_path.parent, input_root)
     raw_file_info = context["injections_by_raw_file"].get(dx_path.name, {})
@@ -1223,6 +1366,7 @@ def _build_injection_record(
         "sample_name": sample_name,
         "vial_position": vial_position,
         "raw_file": dx_path.name,
+        "injection_guid": str(raw_file_info.get("InjectionId") or ""),
         "source_relative": _relative_text(dx_path, input_root),
         "source_size_bytes": dx_path.stat().st_size,
         "source_sha256": file_sha256(dx_path),
@@ -1370,8 +1514,10 @@ def _parse_rx_result(rx_path: Path, context: dict[str, Any]) -> dict[str, Any]:
         return {"peaks": [], "state": "missing_result", "warning": "配套 .rx 中没有 Result 节点"}
 
     peaks: list[dict[str, Any]] = []
-    ordinal = 0
-    for signal_result in _direct_local(result, "SignalResult"):
+    signal_peak_groups: dict[tuple[str, str | int], list[dict[str, Any]]] = {}
+    for signal_result_index, signal_result in enumerate(
+        _direct_local(result, "SignalResult")
+    ):
         signal_ref = _first_descendant(signal_result, "Signal_ID")
         signal_id = signal_ref.get("id") if signal_ref is not None else ""
         signal_info = context["signals"].get(signal_id, {})
@@ -1379,9 +1525,21 @@ def _parse_rx_result(rx_path: Path, context: dict[str, Any]) -> dict[str, Any]:
         signal_peaks = list(_direct_local(signal_result, "Peak"))
         if signal_type and signal_type.casefold() != "chromatogram":
             continue
-        for peak in signal_peaks:
-            ordinal += 1
-            peaks.append(_peak_record(peak, signal_info, ordinal))
+        group_key: tuple[str, str | int] = (
+            ("signal_id", signal_id)
+            if signal_id
+            else ("signal_result", signal_result_index)
+        )
+        parsed_signal_peaks = signal_peak_groups.setdefault(group_key, [])
+        parsed_signal_peaks.extend(
+            _peak_record(peak, signal_info, 0) for peak in signal_peaks
+        )
+
+    for parsed_signal_peaks in signal_peak_groups.values():
+        parsed_signal_peaks.sort(key=_vendor_peak_retention_order)
+        for ordinal, peak_record in enumerate(parsed_signal_peaks, start=1):
+            peak_record["peak_ordinal"] = ordinal
+            peaks.append(peak_record)
 
     status_items: list[str] = []
     state = _text_of_first(result, "TransformationChainState") or "not_recorded"
@@ -1438,6 +1596,20 @@ def _peak_record(peak: ET.Element, signal_info: dict[str, Any], ordinal: int) ->
         "identity_assignment": IDENTITY_BOUNDARY,
         "manual_check_required": True,
     }
+
+
+def _vendor_peak_retention_order(peak: dict[str, Any]) -> tuple[float, float, float, float]:
+    """Return a chronological key; Python's stable sort preserves exact XML ties."""
+
+    def ordered_number(value: Any) -> float:
+        return float(value) if value is not None else math.inf
+
+    return (
+        ordered_number(peak.get("retention_time_min")),
+        ordered_number(peak.get("begin_time_min")),
+        ordered_number(peak.get("end_time_min")),
+        ordered_number(peak.get("area")),
+    )
 
 
 def _build_workbook_plan(
@@ -1748,13 +1920,22 @@ def _metadata_payload(
     analysis = dataset.get("analysis") or {}
     algorithm_provenance = dict(dataset["library_provenance"])
     if analysis.get("analysis_version"):
+        vendor_reprocessing = algorithm_provenance.get("vendor_reprocessing")
         algorithm_provenance["native_peak_integration"] = {
             "name": NATIVE_INTEGRATOR_NAME,
             "version": NATIVE_INTEGRATOR_VERSION,
             "analysis_version": analysis["analysis_version"],
-            "vendor_method_required": False,
-            "source_priority": "successful vendor_rx -> native_dx fallback",
-            "vendor_results_role": "primary target source when stored result is successful",
+            "vendor_method_required": bool(vendor_reprocessing),
+            "source_priority": (
+                "Agilent Processing Server reprocessed_rx -> native_dx audit"
+                if vendor_reprocessing
+                else "successful vendor_rx -> native_dx fallback"
+            ),
+            "vendor_results_role": (
+                "primary target source after explicit complete-PMX vendor reprocessing"
+                if vendor_reprocessing
+                else "primary target source when stored result is successful"
+            ),
         }
     return {
         "dataset_id": f"hplc_openlab_{dataset['cutoff_date'].replace('-', '')}_plus",
@@ -1795,6 +1976,7 @@ def _summary_markdown(
 ) -> str:
     summary = dataset["summary"]
     analysis_summary = dataset.get("analysis", {}).get("summary", {})
+    vendor_reprocessing = dataset.get("library_provenance", {}).get("vendor_reprocessing")
     relative_workbooks = [
         path.resolve().relative_to(output_root.resolve()).as_posix()
         for path in workbook_paths
@@ -1808,6 +1990,7 @@ def _summary_markdown(
             f"- Result sets: `{summary['result_set_count']}`",
             f"- Batches: `{summary['batch_count']}`",
             f"- Vendor peaks retained for validation: `{summary['peak_count']}`",
+            f"- Agilent Processing Server reprocessed: `{'yes' if vendor_reprocessing else 'no'}`",
             f"- Raw signal points: `{summary['signal_point_count']}`",
             f"- Native-integrated injections: `{analysis_summary.get('native_integrated_injection_count', 0)}`",
             f"- Final sample rows: `{analysis_summary.get('final_sample_row_count', 0)}`",

@@ -31,6 +31,7 @@ from src.core.hplc_openlab import (
     run_hplc_openlab_export,
 )
 from src.core.agilent_dx import SIGNAL179_HEADER_MAGIC, SIGNAL179_HEADER_SIZE
+from src.core.hplc_openlab_vendor import OpenLabVendorReprocessResult
 from src.core.process import _manifest_auxiliary_skip_reason
 from src.scanner.scanner import scan_raw_data
 
@@ -126,6 +127,118 @@ def test_result_set_and_vendor_peak_xml_are_joined_without_identity_assignment(t
     assert "Vendor result retained" in result["warning"]
 
 
+def test_vendor_peak_ordinals_follow_retention_time_per_signal_not_rx_xml_order(
+    tmp_path: Path,
+) -> None:
+    rx_path = tmp_path / "unordered.rx"
+    rx_xml = """
+      <Root>
+        <Result>
+          <TransformationChainState>Processed</TransformationChainState>
+          <SignalResult>
+            <Signal_ID id="signal-a" />
+            <Peak><RetentionTime val="7.30" /><Area val="70" /></Peak>
+            <Peak><RetentionTime val="3.10" /><Area val="30" /></Peak>
+          </SignalResult>
+          <SignalResult>
+            <Signal_ID id="signal-b" />
+            <Peak><RetentionTime val="5.20" /><Area val="50" /></Peak>
+            <Peak><RetentionTime val="1.40" /><Area val="10" /></Peak>
+          </SignalResult>
+          <SignalResult>
+            <Signal_ID id="signal-a" />
+            <Peak><RetentionTime val="2.00" /><Area val="20" /></Peak>
+          </SignalResult>
+        </Result>
+      </Root>
+    """
+    with zipfile.ZipFile(rx_path, "w") as archive:
+        archive.writestr("Base/InjectionACAML", rx_xml)
+
+    result = _parse_rx_result(
+        rx_path,
+        {
+            "signals": {
+                "signal-a": {"name": "A", "type": "Chromatogram"},
+                "signal-b": {"name": "B", "type": "Chromatogram"},
+            }
+        },
+    )
+
+    assert [
+        (peak["signal_name"], peak["peak_ordinal"], peak["retention_time_min"])
+        for peak in result["peaks"]
+    ] == [
+        ("A", 1, 2.0),
+        ("A", 2, 3.1),
+        ("A", 3, 7.3),
+        ("B", 1, 1.4),
+        ("B", 2, 5.2),
+    ]
+
+
+def test_vendor_peak_ordinal_ties_are_deterministic_and_missing_retention_is_last(
+    tmp_path: Path,
+) -> None:
+    rx_path = tmp_path / "retention-ties.rx"
+    rx_xml = """
+      <Root>
+        <Result>
+          <SignalResult>
+            <Signal_ID id="signal-a" />
+            <Peak>
+              <RetentionTime val="5.00" /><BeginTime val="4.80" />
+              <EndTime val="5.20" /><Area val="50" /><Height val="501" />
+            </Peak>
+            <Peak>
+              <RetentionTime val="5.00" /><BeginTime val="4.70" />
+              <EndTime val="5.30" /><Area val="80" /><Height val="800" />
+            </Peak>
+            <Peak>
+              <RetentionTime val="5.00" /><BeginTime val="4.70" />
+              <EndTime val="5.10" /><Area val="90" /><Height val="900" />
+            </Peak>
+            <Peak>
+              <RetentionTime val="5.00" /><BeginTime val="4.70" />
+              <EndTime val="5.10" /><Area val="10" /><Height val="100" />
+            </Peak>
+            <Peak><BeginTime val="0.10" /><Area val="1" /><Height val="10" /></Peak>
+            <Peak>
+              <RetentionTime val="5.00" /><BeginTime val="4.80" />
+              <EndTime val="5.20" /><Area val="50" /><Height val="502" />
+            </Peak>
+          </SignalResult>
+        </Result>
+      </Root>
+    """
+    with zipfile.ZipFile(rx_path, "w") as archive:
+        archive.writestr("Base/InjectionACAML", rx_xml)
+
+    result = _parse_rx_result(
+        rx_path,
+        {"signals": {"signal-a": {"name": "A", "type": "Chromatogram"}}},
+    )
+
+    assert [
+        (
+            peak["peak_ordinal"],
+            peak["retention_time_min"],
+            peak["begin_time_min"],
+            peak["end_time_min"],
+            peak["area"],
+            peak["height"],
+        )
+        for peak in result["peaks"]
+    ] == [
+        (1, 5.0, 4.7, 5.1, 10.0, 100.0),
+        (2, 5.0, 4.7, 5.1, 90.0, 900.0),
+        (3, 5.0, 4.7, 5.3, 80.0, 800.0),
+        (4, 5.0, 4.8, 5.2, 50.0, 501.0),
+        (5, 5.0, 4.8, 5.2, 50.0, 502.0),
+        (6, None, 0.1, None, 1.0, 10.0),
+    ]
+
+
 def test_missing_rx_is_recorded_without_inventing_peaks(tmp_path: Path):
     result = _parse_rx_result(tmp_path / "missing.rx", {"signals": {}})
 
@@ -155,6 +268,38 @@ def test_openlab_cli_accepts_inclusive_iso_date_contract(tmp_path: Path):
 
     assert args.command == "hplc-openlab-export"
     assert args.since == date(2026, 7, 18)
+
+
+def test_openlab_cli_accepts_explicit_vendor_processing_contract(tmp_path: Path):
+    runtime_bin = tmp_path / "runtime" / "Bin"
+    args = build_parser().parse_args(
+        [
+            "hplc-openlab-export",
+            "--input",
+            str(tmp_path / "raw"),
+            "--since",
+            "2026-07-18",
+            "--output-root",
+            str(tmp_path / "output"),
+            "--node-exe",
+            str(tmp_path / "node.exe"),
+            "--builder-workdir",
+            str(tmp_path / "output" / ".artifact_work"),
+            "--vendor-reprocess",
+            "--vendor-runtime-bin",
+            str(runtime_bin),
+            "--vendor-bridge-exe",
+            str(runtime_bin / "OpenLabVendorBridge.exe"),
+            "--vendor-processing-method",
+            str(tmp_path / "GC_LC_DefaultMethod.pmx"),
+            "--vendor-timeout-seconds",
+            "900",
+        ]
+    )
+
+    assert args.vendor_reprocess is True
+    assert args.vendor_runtime_bin == runtime_bin
+    assert args.vendor_timeout_seconds == 900
 
 
 def test_result_set_injection_time_is_converted_to_dx_local_offset():
@@ -359,6 +504,88 @@ def test_openlab_export_preflights_all_outputs_before_writing_and_force_overwrit
     assert all(zipfile.is_zipfile(path) for path in result["workbooks"])
 
 
+def test_openlab_export_commits_vendor_manifest_and_reprocessed_dataset_together(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    input_root = tmp_path / "raw"
+    input_root.mkdir()
+    output_root = tmp_path / "output"
+    builder_workdir = output_root / ".artifact_work"
+    (builder_workdir / "node_modules" / "@oai" / "artifact-tool").mkdir(parents=True)
+    node_exe = tmp_path / "node.exe"
+    node_exe.write_bytes(b"node")
+    runtime_bin = tmp_path / "runtime" / "Bin"
+    runtime_bin.mkdir(parents=True)
+    bridge_exe = runtime_bin / "OpenLabVendorBridge.exe"
+    method = tmp_path / "GC_LC_DefaultMethod.pmx"
+    bridge_exe.write_bytes(b"bridge")
+    method.write_bytes(b"pmx")
+    dataset = _minimal_openlab_run_dataset(date(2026, 7, 18))
+    dataset["scientific_boundary"]["peak_source"] = "stored"
+    dataset["injections"][0].update(
+        {
+            "source_relative": "batch/sample.rslt/one.dx",
+            "raw_file": "one.dx",
+            "injection_guid": "guid-1",
+        }
+    )
+    extract_calls = 0
+
+    def fake_extract(*_args, **_kwargs):
+        nonlocal extract_calls
+        extract_calls += 1
+        return json.loads(json.dumps(dataset))
+
+    def fake_reprocess(**kwargs):
+        return OpenLabVendorReprocessResult(
+            effective_input_root=kwargs["staged_input_root"],
+            manifest={
+                "vendor_code_executed": True,
+                "completed_injection_count": 1,
+                "completed_result_set_count": 1,
+            },
+            log_text="vendor bridge exit_code=0",
+            injection_provenance={
+                "batch/sample.rslt/one.dx": {
+                    "vendor_result_origin": "agilent_processing_server_reprocessed_rx",
+                    "vendor_reprocess_status": "success",
+                }
+            },
+        )
+
+    monkeypatch.setattr("src.core.hplc_openlab.extract_hplc_openlab_dataset", fake_extract)
+    monkeypatch.setattr("src.core.hplc_openlab.reprocess_openlab_with_vendor_method", fake_reprocess)
+    monkeypatch.setattr("src.core.hplc_openlab.attach_hplc_analysis", lambda payload, _root: payload)
+    monkeypatch.setattr("src.core.hplc_openlab._run_workbook_builder", lambda **kwargs: _write_complete_fake_openlab_package(kwargs))
+
+    result = run_hplc_openlab_export(
+        project_root,
+        HplcOpenLabExportOptions(
+            input_root=input_root,
+            since=date(2026, 7, 18),
+            output_root=output_root,
+            node_exe=node_exe,
+            builder_workdir=builder_workdir,
+            vendor_reprocess=True,
+            vendor_runtime_bin=runtime_bin,
+            vendor_bridge_exe=bridge_exe,
+            vendor_processing_method=method,
+        ),
+    )
+
+    assert extract_calls == 2
+    assert json.loads(result["vendor_manifest"].read_text(encoding="utf-8"))[
+        "vendor_code_executed"
+    ] is True
+    assert result["vendor_log"].read_text(encoding="utf-8") == "vendor bridge exit_code=0"
+    processed = json.loads(result["dataset"].read_text(encoding="utf-8"))
+    assert processed["injections"][0]["vendor_result_origin"] == (
+        "agilent_processing_server_reprocessed_rx"
+    )
+
+
 def test_analysis_metadata_records_native_integrator_version(tmp_path: Path) -> None:
     dataset = _minimal_openlab_run_dataset(date(2026, 7, 18))
     dataset["analysis"] = {
@@ -385,6 +612,31 @@ def test_analysis_metadata_records_native_integrator_version(tmp_path: Path) -> 
         "source_priority": "successful vendor_rx -> native_dx fallback",
         "vendor_results_role": "primary target source when stored result is successful",
     }
+
+
+def test_analysis_metadata_labels_complete_pmx_vendor_reprocessing(tmp_path: Path) -> None:
+    dataset = _minimal_openlab_run_dataset(date(2026, 7, 18))
+    dataset["analysis"] = {"analysis_version": "hplc-openlab-analysis-1.2.0", "summary": {}}
+    dataset["library_provenance"]["vendor_reprocessing"] = {
+        "vendor_code_executed": True,
+        "operation": "ModifyAndReprocessSingleRun",
+    }
+    output_root = tmp_path / "output"
+    workbook_path = output_root / "analysis.xlsx"
+    dataset["workbook_plan"] = _build_workbook_plan(dataset, workbook_path)
+
+    metadata = _metadata_payload(
+        dataset,
+        [workbook_path],
+        output_root,
+        output_root / "processed_data" / "dataset.json",
+        output_root / "reports" / "verification.json",
+    )
+
+    provenance = metadata["algorithm_provenance"]["native_peak_integration"]
+    assert provenance["vendor_method_required"] is True
+    assert "Processing Server" in provenance["source_priority"]
+    assert "explicit complete-PMX" in provenance["vendor_results_role"]
 
 
 def test_openlab_export_rejects_output_inside_raw_input_before_writing(

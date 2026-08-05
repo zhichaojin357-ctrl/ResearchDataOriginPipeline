@@ -534,17 +534,28 @@ def _select_primary_target(
     vendor_target: dict[str, Any],
     *,
     vendor_available: bool,
+    vendor_result_origin: str = "stored_rx",
 ) -> dict[str, Any]:
-    """Prefer a successful stored OpenLab result while retaining native audit values."""
+    """Prefer a successful OpenLab result while retaining native audit values."""
     native_detected = native_target.get("retention_time_min") is not None
     vendor_detected = vendor_target.get("retention_time_min") is not None
     selected = deepcopy(vendor_target if vendor_available else native_target)
     if vendor_available:
+        reprocessed = vendor_result_origin == "agilent_processing_server_reprocessed_rx"
         selected.update(
             {
                 "peak_source": "vendor_rx",
-                "integrator_name": "Agilent OpenLab stored processing result",
-                "integrator_version": "paired .rx",
+                "vendor_result_origin": vendor_result_origin,
+                "integrator_name": (
+                    "Agilent OpenLab Processing Server (complete PMX reprocessing)"
+                    if reprocessed
+                    else "Agilent OpenLab stored processing result"
+                ),
+                "integrator_version": (
+                    "locally executed vendor Processing Server"
+                    if reprocessed
+                    else "paired .rx"
+                ),
                 "manual_check_required": True,
             }
         )
@@ -1397,6 +1408,9 @@ def analyze_hplc_openlab_dataset(
                 native_target,
                 vendor_target,
                 vendor_available=vendor_available,
+                vendor_result_origin=str(
+                    injection.get("vendor_result_origin") or "stored_rx"
+                ),
             )
             target["vendor_area_ape_percent"] = None
             if analysis_eligible and vendor_detected and native_detected and vendor_target["area"]:
