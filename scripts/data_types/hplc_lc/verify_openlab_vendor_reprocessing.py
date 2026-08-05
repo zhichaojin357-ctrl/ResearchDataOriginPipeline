@@ -11,6 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.core.hplc_analysis import attach_hplc_analysis
 from src.core.hplc_openlab import extract_hplc_openlab_dataset
 from src.core.hplc_openlab_vendor import (
     compare_vendor_peak_datasets,
@@ -89,6 +90,16 @@ def main(argv: list[str] | None = None) -> int:
         timeout_seconds=args.timeout_seconds,
     )
     candidate = extract_hplc_openlab_dataset(vendor_result.effective_input_root, args.since)
+    analyzed_candidate = attach_hplc_analysis(candidate, PROJECT_ROOT)
+    analysis_summary = analyzed_candidate["analysis"]["summary"]
+    if analysis_summary["vendor_result_unavailable_injection_count"] != 0:
+        raise RuntimeError("Vendor-only analysis still contains unavailable vendor results")
+    if analysis_summary["vendor_primary_injection_count"] != candidate["summary"][
+        "selected_injection_count"
+    ]:
+        raise RuntimeError("Vendor-only analysis did not accept every reprocessed injection")
+    if any(key.startswith("native_") for key in analyzed_candidate["analysis"]):
+        raise RuntimeError("Removed native-integration fields reappeared in HPLC analysis")
     comparison = compare_vendor_peak_datasets(reference, candidate)
     stored_peak_count = int(comparison["reference_peak_count"])
     equivalence_applicable = stored_peak_count > 0
@@ -109,6 +120,16 @@ def main(argv: list[str] | None = None) -> int:
             **comparison,
         },
         "new_vendor_peak_count": int(candidate["summary"]["peak_count"]),
+        "vendor_only_analysis": {
+            "analysis_version": analyzed_candidate["analysis"]["analysis_version"],
+            "vendor_primary_injection_count": analysis_summary[
+                "vendor_primary_injection_count"
+            ],
+            "vendor_result_unavailable_injection_count": analysis_summary[
+                "vendor_result_unavailable_injection_count"
+            ],
+            "native_integration_fields_present": False,
+        },
         "source_input_unchanged": bool(vendor_result.manifest["source_input_unchanged"]),
         "excel_created": False,
         "plot_created": False,

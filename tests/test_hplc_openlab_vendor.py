@@ -212,8 +212,8 @@ def test_vendor_adapter_invokes_bridge_only_on_a_copy_and_joins_provenance(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    source_root = tmp_path / "raw"
-    result_set = source_root / "batch" / "sample.rslt"
+    source_root = tmp_path / "sample.rslt"
+    result_set = source_root
     result_set.mkdir(parents=True)
     (result_set / "sample.acaml").write_text(_acaml(), encoding="utf-8")
     (result_set / "one.dx").write_bytes(b"raw-one")
@@ -229,7 +229,7 @@ def test_vendor_adapter_invokes_bridge_only_on_a_copy_and_joins_provenance(
     dataset = {
         "injections": [
             {
-                "source_relative": "batch/sample.rslt/one.dx",
+                "source_relative": "one.dx",
                 "raw_file": "one.dx",
                 "injection_guid": "guid-1",
                 "sequence_order": 1,
@@ -276,8 +276,9 @@ def test_vendor_adapter_invokes_bridge_only_on_a_copy_and_joins_provenance(
 
     source_after = {path.relative_to(source_root): path.read_bytes() for path in source_root.rglob("*") if path.is_file()}
     assert source_after == source_before
-    assert (result.effective_input_root / "batch" / "sample.rslt" / "one.rx").read_bytes() == b"new-vendor-rx"
-    provenance = result.injection_provenance["batch/sample.rslt/one.dx"]
+    assert result.effective_input_root.name == "sample.rslt"
+    assert (result.effective_input_root / "one.rx").read_bytes() == b"new-vendor-rx"
+    provenance = result.injection_provenance["one.dx"]
     assert provenance["vendor_result_origin"] == VENDOR_RESULT_ORIGIN
     assert provenance["vendor_reprocess_status"] == "success"
     assert result.manifest["vendor_code_executed"] is True
@@ -287,7 +288,7 @@ def test_vendor_adapter_invokes_bridge_only_on_a_copy_and_joins_provenance(
         "source_root_name": "staged",
         "library_provenance": {},
         "scientific_boundary": {},
-        "injections": [{"source_relative": "batch/sample.rslt/one.dx"}],
+        "injections": [{"source_relative": "one.dx"}],
     }
     apply_vendor_reprocess_provenance(extracted, result, source_root_name="raw")
     assert extracted["source_root_name"] == "raw"

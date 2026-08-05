@@ -56,29 +56,7 @@ def _repeat_record(
     }
 
 
-def _native_integration_result(*_args: object, **_kwargs: object) -> dict:
-    peaks = []
-    for ordinal, (retention_time, area) in enumerate(
-        ((5.50, 100.0), (7.34, 100.0), (16.52, 100.0)), start=1
-    ):
-        peaks.append(
-            {
-                "peak_ordinal": ordinal,
-                "retention_time_min": retention_time,
-                "area": area,
-                "begin_time_min": retention_time - 0.1,
-                "end_time_min": retention_time + 0.1,
-                "height": 10.0,
-                "baseline_start": 0.0,
-                "baseline_end": 0.0,
-                "integrator_name": "synthetic-native",
-                "integrator_version": "test",
-            }
-        )
-    return {"status": "OK", "peaks": peaks}
-
-
-def _analysis_dataset(*injections: dict) -> dict:
+def _analysis_dataset(*injections: dict, include_vendor_peaks: bool = True) -> dict:
     columns = [
         {
             "injection_id": item["injection_id"],
@@ -87,7 +65,31 @@ def _analysis_dataset(*injections: dict) -> dict:
         }
         for item in injections
     ]
-    return {"injections": list(injections), "raw_sheets": [{"columns": columns}], "peaks": []}
+    peaks = []
+    if include_vendor_peaks:
+        for injection in injections:
+            for ordinal, (retention_time, area) in enumerate(
+                ((5.50, 100.0), (7.34, 100.0), (16.52, 100.0)), start=1
+            ):
+                peaks.append(
+                    {
+                        "injection_id": injection["injection_id"],
+                        "peak_ordinal": ordinal,
+                        "retention_time_min": retention_time,
+                        "area": area,
+                        "begin_time_min": retention_time - 0.1,
+                        "end_time_min": retention_time + 0.1,
+                        "height": 10.0,
+                        "baseline_start": 0.0,
+                        "baseline_end": 0.0,
+                        "baseline_model": "Linear",
+                    }
+                )
+    return {
+        "injections": list(injections),
+        "raw_sheets": [{"columns": columns}],
+        "peaks": peaks,
+    }
 
 
 def _injection(
@@ -214,8 +216,7 @@ def test_english_pre_reaction_alias_and_plain_zero_hour_are_c0_candidates(config
     assert analysis.extract_reaction_time_h("ordinary-condition 0H") == 0.0
 
 
-def test_c0_never_crosses_different_condition_keys(config: dict, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(analysis, "integrate_chromatogram", _native_integration_result)
+def test_c0_never_crosses_different_condition_keys(config: dict):
     pre_reaction = _injection("c0", "SM", sequence_order=1)
     condition_a = _injection("a", "Catalyst A 1H", sequence_order=2)
     condition_b = _injection(
@@ -270,73 +271,37 @@ def test_manual_repeat_override_cannot_cross_batch_or_condition_boundary(config:
         analysis._assign_repeat_groups([second, third], configured)
 
 
-def test_native_peak_analysis_allows_nomethodprovided(config: dict, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(analysis, "integrate_chromatogram", _native_integration_result)
+def test_missing_vendor_result_never_falls_back_to_project_integration(config: dict):
     injection = _injection(
-        "native",
+        "unprocessed",
         "Catalyst 1H",
         openlab_processing_state="NoMethodProvided",
         acquisition_method="",
         processing_method="",
     )
 
-    result = analysis.analyze_hplc_openlab_dataset(_analysis_dataset(injection), config)
+    result = analysis.analyze_hplc_openlab_dataset(
+        _analysis_dataset(injection, include_vendor_peaks=False), config
+    )
 
     assert result["summary"]["openlab_no_method_injection_count"] == 1
-    assert result["summary"]["native_fallback_injection_count"] == 1
-    assert result["injection_analysis"][0]["native_peak_count"] == 3
-    assert result["injection_analysis"][0]["primary_peak_source"] == "native_dx"
-    assert result["sample_results"][0]["targets"]["sulfoxide"]["area"] == 100.0
-    assert result["sample_results"][0]["used_injection_ids"] == ["native"]
+    assert result["summary"]["vendor_result_unavailable_injection_count"] == 1
+    assert result["injection_analysis"][0]["primary_peak_source"] == "vendor_unavailable"
+    assert result["sample_results"][0]["targets"]["sulfoxide"]["area"] is None
+    assert result["sample_results"][0]["used_injection_ids"] == []
+    assert "native_peaks" not in result
+    assert "native_rejected_candidates" not in result
+    assert any(
+        item["issue_type"] == "原厂积分结果缺失" for item in result["manual_review"]
+    )
 
 
-def test_native_rejected_candidates_remain_auditable(
-    config: dict,
-    monkeypatch: pytest.MonkeyPatch,
-):
-    def integration_with_rejection(*_args: object, **_kwargs: object) -> dict:
-        result = _native_integration_result()
-        result["rejected_candidates"] = [
-            {
-                "retention_time_min": 7.11,
-                "corrected_height_mau": 1.8,
-                "reason": "synthetic rejected candidate",
-                "manual_check_required": True,
-            }
-        ]
-        return result
-
-    monkeypatch.setattr(analysis, "integrate_chromatogram", integration_with_rejection)
-    injection = _injection("native", "Catalyst 1H")
-
-    result = analysis.analyze_hplc_openlab_dataset(_analysis_dataset(injection), config)
-
-    assert result["native_rejected_candidates"] == [
-        {
-            "retention_time_min": 7.11,
-            "corrected_height_mau": 1.8,
-            "reason": "synthetic rejected candidate",
-            "manual_check_required": True,
-            "injection_id": "native",
-            "result_set_id": "result-set-A",
-            "sample_name": "Catalyst 1H",
-            "acquisition_local": "2026-07-18T10:00:00+08:00",
-            "raw_file": "native.dx",
-        }
-    ]
-
-
-def test_successful_vendor_result_is_primary_but_cannot_change_quality_or_final_use(
-    config: dict,
-    monkeypatch: pytest.MonkeyPatch,
-):
-    monkeypatch.setattr(analysis, "integrate_chromatogram", _native_integration_result)
-    injection = _injection("native", "Catalyst 1H")
-    without_vendor = _analysis_dataset(injection)
-    with_vendor = deepcopy(without_vendor)
+def test_successful_vendor_result_is_the_only_peak_source(config: dict):
+    injection = _injection("vendor", "Catalyst 1H")
+    with_vendor = _analysis_dataset(injection)
     with_vendor["peaks"] = [
         {
-            "injection_id": "native",
+            "injection_id": "vendor",
             "peak_ordinal": ordinal,
             "retention_time_min": retention_time,
             "area": 1.0,
@@ -344,17 +309,13 @@ def test_successful_vendor_result_is_primary_but_cannot_change_quality_or_final_
         for ordinal, retention_time in enumerate((5.50, 7.34, 16.52), start=1)
     ]
 
-    native_only = analysis.analyze_hplc_openlab_dataset(without_vendor, config)
     compared = analysis.analyze_hplc_openlab_dataset(with_vendor, config)
 
     assert compared["injection_analysis"][0]["quality"] == "正常"
-    assert compared["injection_analysis"][0]["quality"] == native_only["injection_analysis"][0]["quality"]
-    assert compared["sample_results"][0]["used_injection_ids"] == ["native"]
-    assert compared["sample_results"][0]["used_injection_ids"] == native_only["sample_results"][0]["used_injection_ids"]
+    assert compared["sample_results"][0]["used_injection_ids"] == ["vendor"]
     selected = compared["injection_analysis"][0]["targets"]["sulfoxide"]
     assert selected["peak_source"] == "vendor_rx"
     assert selected["area"] == 1.0
-    assert selected["native_area"] == 100.0
     assert compared["sample_results"][0]["targets"]["sulfoxide"]["area"] == 1.0
     assert compared["summary"]["vendor_primary_injection_count"] == 1
     assert len(compared["peak_details"]) == len(compared["sample_results"]) == 1
@@ -366,16 +327,10 @@ def test_successful_vendor_result_is_primary_but_cannot_change_quality_or_final_
     assert compared["peak_details"][0]["sulfoxide_peak_ordinal"] == 1
     assert compared["peak_details"][0]["sulfoxide_retention_time_min"] == 5.5
     assert compared["peak_details"][0]["sulfoxide_area"] == 1.0
-    assert compared["injection_analysis"][0]["vendor_validation_reasons"]
-    assert any(
-        item["issue_type"] == "原厂/原生交叉验证差异"
-        for item in compared["manual_review"]
-    )
 
 
 def test_vendor_reprocessed_result_is_not_mislabeled_as_stored_rx():
-    selected = analysis._select_primary_target(
-        {"retention_time_min": 5.5, "area": 100.0, "peak_source": "native_dx"},
+    selected = analysis._select_vendor_target(
         {"retention_time_min": 5.5, "area": 99.0},
         vendor_available=True,
         vendor_result_origin="agilent_processing_server_reprocessed_rx",
@@ -389,9 +344,7 @@ def test_vendor_reprocessed_result_is_not_mislabeled_as_stored_rx():
 
 def test_successful_zero_peak_vendor_result_is_primary_zero_not_missing(
     config: dict,
-    monkeypatch: pytest.MonkeyPatch,
 ):
-    monkeypatch.setattr(analysis, "integrate_chromatogram", _native_integration_result)
     injection = _injection(
         "vendor-zero",
         "Catalyst 1H",
@@ -399,18 +352,15 @@ def test_successful_zero_peak_vendor_result_is_primary_zero_not_missing(
         vendor_peak_count=0,
     )
 
-    result = analysis.analyze_hplc_openlab_dataset(_analysis_dataset(injection), config)
+    result = analysis.analyze_hplc_openlab_dataset(
+        _analysis_dataset(injection, include_vendor_peaks=False), config
+    )
     selected = result["injection_analysis"][0]["targets"]["sulfoxide"]
 
     assert result["summary"]["vendor_primary_injection_count"] == 1
     assert selected["peak_source"] == "vendor_rx"
     assert selected["retention_time_min"] is None
     assert selected["area"] == 0.0
-    assert selected["native_area"] == 100.0
-    assert any(
-        item["issue_type"] == "原厂/原生交叉验证差异"
-        for item in result["manual_review"]
-    )
 
 
 def test_failed_vendor_state_cannot_become_primary_even_if_peak_rows_exist(
@@ -421,13 +371,22 @@ def test_failed_vendor_state_cannot_become_primary_even_if_peak_rows_exist(
         [{"retention_time_min": 5.5, "area": 1.0}],
         config,
     ) is False
+    injection = _injection(
+        "failed-vendor",
+        "Catalyst 1H",
+        openlab_processing_state="NoMethodProvided",
+    )
+    result = analysis.analyze_hplc_openlab_dataset(_analysis_dataset(injection), config)
+    selected = result["injection_analysis"][0]["targets"]["sulfoxide"]
+    assert selected["peak_source"] == "vendor_result_unavailable"
+    assert selected["area"] is None
+    assert selected["retention_time_min"] is None
+    assert result["sample_results"][0]["used_injection_ids"] == []
 
 
 def test_discarded_rerun_quality_label_follows_processing_method(
     config: dict,
-    monkeypatch: pytest.MonkeyPatch,
 ):
-    monkeypatch.setattr(analysis, "integrate_chromatogram", _native_integration_result)
     result = analysis.analyze_hplc_openlab_dataset(
         _analysis_dataset(_injection("used", "Catalyst 1H")),
         config,

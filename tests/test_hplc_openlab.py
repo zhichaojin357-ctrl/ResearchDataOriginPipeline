@@ -586,7 +586,7 @@ def test_openlab_export_commits_vendor_manifest_and_reprocessed_dataset_together
     )
 
 
-def test_analysis_metadata_records_native_integrator_version(tmp_path: Path) -> None:
+def test_analysis_metadata_records_vendor_only_integration_policy(tmp_path: Path) -> None:
     dataset = _minimal_openlab_run_dataset(date(2026, 7, 18))
     dataset["analysis"] = {
         "analysis_version": "hplc-openlab-analysis-1.1.0",
@@ -604,13 +604,13 @@ def test_analysis_metadata_records_native_integrator_version(tmp_path: Path) -> 
         output_root / "reports" / "verification.json",
     )
 
-    assert metadata["algorithm_provenance"]["native_peak_integration"] == {
-        "name": "project-native-hplc-target-integrator",
-        "version": "1.1.0",
+    assert metadata["algorithm_provenance"]["peak_integration"] == {
+        "name": "Agilent OpenLab vendor integration",
         "analysis_version": "hplc-openlab-analysis-1.1.0",
         "vendor_method_required": False,
-        "source_priority": "successful vendor_rx -> native_dx fallback",
-        "vendor_results_role": "primary target source when stored result is successful",
+        "source_priority": "successful stored Agilent .rx only",
+        "vendor_results_role": "sole target source when stored result is successful",
+        "native_fallback_removed": True,
     }
 
 
@@ -633,10 +633,11 @@ def test_analysis_metadata_labels_complete_pmx_vendor_reprocessing(tmp_path: Pat
         output_root / "reports" / "verification.json",
     )
 
-    provenance = metadata["algorithm_provenance"]["native_peak_integration"]
+    provenance = metadata["algorithm_provenance"]["peak_integration"]
     assert provenance["vendor_method_required"] is True
     assert "Processing Server" in provenance["source_priority"]
-    assert "explicit complete-PMX" in provenance["vendor_results_role"]
+    assert "complete-PMX" in provenance["vendor_results_role"]
+    assert provenance["native_fallback_removed"] is True
 
 
 def test_openlab_export_rejects_output_inside_raw_input_before_writing(
@@ -1006,7 +1007,7 @@ def _minimal_openlab_run_dataset(since: date) -> dict:
     }
 
 
-def test_unreadable_optional_rx_cannot_block_native_dx_processing(tmp_path: Path):
+def test_unreadable_optional_rx_is_reported_for_vendor_reprocessing(tmp_path: Path):
     rx_path = tmp_path / "corrupt.rx"
     rx_path.write_bytes(b"not a zip archive")
 

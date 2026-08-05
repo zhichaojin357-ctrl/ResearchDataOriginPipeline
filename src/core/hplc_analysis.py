@@ -13,13 +13,6 @@ from typing import Any, Iterable
 
 import numpy as np
 
-from src.core.hplc_peak_integration import (
-    NATIVE_INTEGRATOR_NAME,
-    NATIVE_INTEGRATOR_VERSION,
-    integrate_chromatogram,
-    match_native_target_peaks,
-)
-
 
 ANALYSIS_CONFIG_RELATIVE_PATH = Path("config") / "hplc_openlab_analysis.yaml"
 TARGET_ORDER = ("sulfoxide", "sulfone", "thioanisole")
@@ -138,10 +131,10 @@ def load_hplc_analysis_config(project_root: Path) -> dict[str, Any]:
     if tuple(loaded["targets"].keys()) != TARGET_ORDER:
         raise ValueError(f"HPLC target order must be exactly {TARGET_ORDER}")
     peak_selection = loaded["peak_selection"]
-    if peak_selection.get("primary_source") != "vendor_rx_when_available":
-        raise ValueError("HPLC primary peak source must be vendor_rx_when_available")
-    if peak_selection.get("fallback_source") != "native_dx":
-        raise ValueError("HPLC fallback peak source must be native_dx")
+    if peak_selection.get("primary_source") != "vendor_rx_only":
+        raise ValueError("HPLC primary peak source must be vendor_rx_only")
+    if peak_selection.get("missing_result_action") != "require_vendor_reprocess":
+        raise ValueError("Missing HPLC vendor results must require vendor reprocessing")
     return loaded
 
 
@@ -529,17 +522,15 @@ def _vendor_result_available(
     return bool(state and state in success_states)
 
 
-def _select_primary_target(
-    native_target: dict[str, Any],
+def _select_vendor_target(
     vendor_target: dict[str, Any],
     *,
     vendor_available: bool,
     vendor_result_origin: str = "stored_rx",
 ) -> dict[str, Any]:
-    """Prefer a successful OpenLab result while retaining native audit values."""
-    native_detected = native_target.get("retention_time_min") is not None
+    """Select only an Agilent-produced target; never synthesize a native fallback."""
     vendor_detected = vendor_target.get("retention_time_min") is not None
-    selected = deepcopy(vendor_target if vendor_available else native_target)
+    selected = deepcopy(vendor_target)
     if vendor_available:
         reprocessed = vendor_result_origin == "agilent_processing_server_reprocessed_rx"
         selected.update(
@@ -559,15 +550,20 @@ def _select_primary_target(
                 "manual_check_required": True,
             }
         )
+    else:
+        selected.update(
+            {
+                "peak_source": "vendor_result_unavailable",
+                "vendor_result_origin": None,
+                "integrator_name": None,
+                "integrator_version": None,
+                "manual_check_required": True,
+            }
+        )
     selected.update(
         {
-            "primary_peak_source": selected.get("peak_source", "native_dx"),
-            "native_detected": native_detected,
-            "native_area": native_target.get("area"),
-            "native_retention_time_min": native_target.get("retention_time_min"),
-            "native_selected_peak_ordinal": native_target.get("selected_peak_ordinal"),
+            "primary_peak_source": "vendor_rx" if vendor_available else "vendor_unavailable",
             "vendor_result_available": vendor_available,
-            "vendor_validation_available": vendor_available,
             "vendor_detected": vendor_detected,
             "vendor_area": vendor_target.get("area") if vendor_detected else None,
             "vendor_retention_time_min": (
@@ -1030,10 +1026,10 @@ def _combine_final_result(
             "match_status": status,
             "peak_source": " + ".join(
                 dict.fromkeys(
-                    str(item["targets"][key].get("peak_source") or "native_dx")
+                    str(item["targets"][key].get("peak_source") or "vendor_result_unavailable")
                     for item in used
                 )
-            ) or "native_dx",
+            ) or "vendor_result_unavailable",
             **calibration,
         }
 
@@ -1199,54 +1195,22 @@ def _parameter_rows(config: dict[str, Any], generated_at: str) -> list[dict[str,
             {"category": "重打", "parameter": "识别证据", "value": "序列名/结果名/文件名明确重打标记、同序列相邻同名样品、同名序列样品列表、第二天同名同条件且有结构证据；批次硬边界优先", "unit": "", "source": "用户规则"},
         ]
     )
-    native = config["native_integration"]
     peak_selection = config["peak_selection"]
     rows.extend(
         [
             {
                 "category": "峰来源",
                 "parameter": "正式定量峰来源优先级",
-                "value": "已成功处理的OpenLab .rx优先；缺失/失败时回退独立.dx积分",
+                "value": "仅使用OpenLab原厂 .rx；缺失/失败时必须运行原厂重处理，不再自研积分",
                 "unit": "",
-                "source": (
-                    f"{peak_selection['primary_source']} -> "
-                    f"{peak_selection['fallback_source']}"
-                ),
+                "source": f"{peak_selection['primary_source']} -> {peak_selection['missing_result_action']}",
             },
             {
-                "category": "原生解峰",
+                "category": "原厂积分",
                 "parameter": "积分器",
-                "value": f"{NATIVE_INTEGRATOR_NAME} {NATIVE_INTEGRATOR_VERSION}",
+                "value": "Agilent OpenLab stored .rx or Processing Server complete-PMX reprocessing",
                 "unit": "",
-                "source": "项目正式模块",
-            },
-            {
-                "category": "原生解峰",
-                "parameter": "平滑",
-                "value": f"Savitzky-Golay {native['smoothing_window_points']}点/{native['smoothing_polyorder']}阶",
-                "unit": "",
-                "source": "训练集及留出集厂商峰对照",
-            },
-            {
-                "category": "原生解峰",
-                "parameter": "形态学基线半窗",
-                "value": native["morphology_half_window_min"],
-                "unit": "min",
-                "source": "集中配置",
-            },
-            {
-                "category": "原生解峰",
-                "parameter": "共洗脱峰基线分配",
-                "value": "共享谷点的相邻峰使用簇外端点共用直线基线，并在谷点垂直分峰",
-                "unit": "",
-                "source": "Agilent公开积分语义；按完整结果集分组的历史语料验证",
-            },
-            {
-                "category": "原生解峰",
-                "parameter": "厂商面积差异复核阈值",
-                "value": native["validation_area_review_error_percent"],
-                "unit": "%",
-                "source": "集中配置；仅在厂商峰可用时对照",
+                "source": "原厂结果或项目内置原厂运行时",
             },
         ]
     )
@@ -1265,7 +1229,7 @@ def _parameter_rows(config: dict[str, Any], generated_at: str) -> list[dict[str,
             {"category": "程序", "parameter": "分析版本", "value": config["analysis_version"], "unit": "", "source": "项目配置"},
             {"category": "程序", "parameter": "数据处理时间", "value": generated_at, "unit": "", "source": "运行时"},
             {"category": "科学边界", "parameter": "结果状态", "value": "用户提供RT映射和标曲的候选定量；所有转化率/选择性/产率仍需人工复核", "unit": "", "source": "claim policy"},
-            {"category": "科学边界", "parameter": "23.5 min未知峰", "value": "可保留在原生全峰审计数据中，不参与三组分计算", "unit": "", "source": "用户提供"},
+            {"category": "科学边界", "parameter": "23.5 min未知峰", "value": "可保留在原厂全峰审计数据中，不参与三组分计算", "unit": "", "source": "用户提供"},
         ]
     )
     return rows
@@ -1282,8 +1246,6 @@ def analyze_hplc_openlab_dataset(
         vendor_peaks_by_injection[str(peak.get("injection_id") or "")].append(peak)
     signal_by_injection = _signal_columns_by_injection(dataset)
     records: list[dict[str, Any]] = []
-    native_peaks: list[dict[str, Any]] = []
-    native_rejected_candidates: list[dict[str, Any]] = []
     processing_log: list[dict[str, Any]] = []
     excluded_data: list[dict[str, Any]] = []
     manual_review: list[dict[str, Any]] = []
@@ -1328,108 +1290,35 @@ def analyze_hplc_openlab_dataset(
             signal_column,
             config,
         )
-        integration_result: dict[str, Any] | None = None
-        integration_error = ""
-        if quantifiable and signal_column is not None and analysis_eligible:
-            try:
-                integration_result = integrate_chromatogram(
-                    signal_column.get("time") or [],
-                    signal_column.get("signal") or [],
-                    config,
-                )
-            except Exception as exc:
-                integration_error = f"{type(exc).__name__}: {exc}"
-                quantifiable = False
-                quality = "异常"
-                quality_reasons.append(f"原生峰积分失败：{integration_error}")
-        integrated_rows = list(integration_result.get("peaks", [])) if integration_result else []
-        rejected_rows = (
-            list(integration_result.get("rejected_candidates", []))
-            if integration_result
-            else []
-        )
-        for peak in integrated_rows:
-            native_peaks.append(
-                {
-                    **peak,
-                    "injection_id": injection_id,
-                    "result_set_id": str(injection.get("result_set_id") or ""),
-                    "sample_name": sample_name,
-                    "acquisition_local": str(injection["acquisition_local"]),
-                    "raw_file": str(injection.get("raw_file") or ""),
-                }
-            )
-        for candidate in rejected_rows:
-            native_rejected_candidates.append(
-                {
-                    **candidate,
-                    "injection_id": injection_id,
-                    "result_set_id": str(injection.get("result_set_id") or ""),
-                    "sample_name": sample_name,
-                    "acquisition_local": str(injection["acquisition_local"]),
-                    "raw_file": str(injection.get("raw_file") or ""),
-                }
-            )
-        native_targets = match_native_target_peaks(
-            integrated_rows,
-            config["targets"],
-            ambiguity_margin_min=float(
-                config["quality_thresholds"]["ambiguous_rt_distance_margin_min"]
-            ),
-            signal_quantifiable=quantifiable and quality != "异常" and analysis_eligible,
-        )
-        vendor_targets = match_target_peaks(
-            vendor_peaks_by_injection.get(injection_id, []),
-            config,
-            missing_can_be_zero=True,
-        )
+        raw_signal_quantifiable = quantifiable
+        injection_vendor_peaks = vendor_peaks_by_injection.get(injection_id, [])
         vendor_available = _vendor_result_available(
             injection,
-            vendor_peaks_by_injection.get(injection_id, []),
+            injection_vendor_peaks,
             config,
         )
-        validation_review_threshold = float(
-            config["native_integration"]["validation_area_review_error_percent"]
+        vendor_targets = match_target_peaks(
+            injection_vendor_peaks if vendor_available else [],
+            config,
+            missing_can_be_zero=vendor_available,
         )
-        vendor_validation_reasons: list[str] = []
-        native_baseline_model_reasons: list[str] = []
+        if analysis_eligible and not vendor_available:
+            quantifiable = False
+            if quality == "正常":
+                quality = "待人工复核"
+            quality_reasons.append(
+                "缺少可用原厂积分结果；必须使用 --vendor-reprocess 调用原厂 Processing Server"
+            )
         targets: dict[str, dict[str, Any]] = {}
-        for target_key, native_target in native_targets.items():
-            if native_target.get("baseline_model_uncertain"):
-                native_baseline_model_reasons.append(
-                    f"{native_target['display_name']}使用共享峰簇基线，"
-                    f"候选面积={native_target['area']:.6g} mAU·s，"
-                    f"独立峰基线面积={float(native_target['individual_baseline_area']):.6g} mAU·s"
-                )
+        for target_key in TARGET_ORDER:
             vendor_target = vendor_targets[target_key]
-            vendor_detected = vendor_target["retention_time_min"] is not None
-            native_detected = native_target["retention_time_min"] is not None
-            target = _select_primary_target(
-                native_target,
+            target = _select_vendor_target(
                 vendor_target,
                 vendor_available=vendor_available,
                 vendor_result_origin=str(
                     injection.get("vendor_result_origin") or "stored_rx"
                 ),
             )
-            target["vendor_area_ape_percent"] = None
-            if analysis_eligible and vendor_detected and native_detected and vendor_target["area"]:
-                target["vendor_area_ape_percent"] = abs(
-                    float(native_target["area"]) - float(vendor_target["area"])
-                ) / abs(float(vendor_target["area"])) * 100.0
-                if target["vendor_area_ape_percent"] > validation_review_threshold:
-                    vendor_validation_reasons.append(
-                        f"{target['display_name']}原生面积与原厂面积差异"
-                        f"{target['vendor_area_ape_percent']:.2f}%"
-                    )
-            elif (
-                analysis_eligible
-                and vendor_available
-                and vendor_detected != native_detected
-            ):
-                vendor_validation_reasons.append(
-                    f"{target['display_name']}原生/厂商检出状态不一致"
-                )
             targets[target_key] = target
         if any(item["ambiguous"] for item in targets.values()) and quality == "正常":
             quality = "待人工复核"
@@ -1476,19 +1365,12 @@ def analyze_hplc_openlab_dataset(
             "is_light_boundary_uncertain": is_light_boundary_uncertain,
             "quality": quality,
             "quality_reasons": quality_reasons,
-            "vendor_validation_reasons": vendor_validation_reasons,
-            "native_baseline_model_reasons": native_baseline_model_reasons,
             "quality_metrics": metrics,
+            "raw_signal_quantifiable": raw_signal_quantifiable,
             "quantifiable": quantifiable,
             "targets": targets,
-            "native_peak_count": len(integrated_rows),
-            "primary_peak_source": (
-                "vendor_rx" if vendor_available else "native_dx"
-            ),
-            "native_integration_status": (
-                integration_result.get("status", "") if integration_result else "failed"
-            ),
-            "native_integration_error": integration_error,
+            "vendor_result_available": vendor_available,
+            "primary_peak_source": "vendor_rx" if vendor_available else "vendor_unavailable",
             "sequence_order": injection.get("sequence_order"),
             "method_name": method_name,
             "raw_file": str(injection.get("raw_file") or ""),
@@ -1621,33 +1503,39 @@ def analyze_hplc_openlab_dataset(
                     recommended_action="确认该进样实际属于哪一实验批次后，通过集中配置中的人工覆盖重新运行",
                 )
             )
-        if (
-            analysis_eligible
-            and record["openlab_processing_state"].casefold() == "nomethodprovided"
-            and record["native_integration_status"] == "OK"
-        ):
+        if analysis_eligible and not record["vendor_result_available"]:
             processing_log.append(
                 _log_entry(
                     generated_at,
                     experiment_date=experiment_date.isoformat(),
                     sample_name=sample_name,
                     raw_files=record["raw_file"],
-                    operation_type="原生DX峰积分",
-                    basis=f"OpenLab状态={record['openlab_processing_state']}；原始.dx信号通过完整性检查",
-                    before_status="无厂商处理方法峰表",
-                    after_result=f"使用 {NATIVE_INTEGRATOR_NAME} {NATIVE_INTEGRATOR_VERSION} 得到候选峰",
-                    used_data=record["injection_id"],
-                    details="该进样无可用原厂峰表，因此正式定量回退到独立.dx积分",
+                    operation_type="原厂积分结果缺失",
+                    basis=f"OpenLab状态={record['openlab_processing_state']}；未发现可用原厂 .rx 峰表",
+                    before_status="原始.dx信号已解码但未作项目自研积分",
+                    after_result="禁止自动定量，等待原厂 Processing Server 重处理",
+                    discarded_data=record["injection_id"],
+                    details="运行 hplc-openlab-export --vendor-reprocess 后再生成正式结果",
                 )
             )
-        if analysis_eligible and not quantifiable:
+            manual_review.append(
+                _manual_review(
+                    experiment_date=experiment_date.isoformat(),
+                    sample_name=sample_name,
+                    injection_ids=record["injection_id"],
+                    issue_type="原厂积分结果缺失",
+                    reason=f"OpenLab状态={record['openlab_processing_state']}；自研积分已删除且不再回退",
+                    recommended_action="使用 --vendor-reprocess 调用项目内置 Agilent Processing Server 和完整 PMX",
+                )
+            )
+        if analysis_eligible and not record["raw_signal_quantifiable"]:
             manual_review.append(
                 _manual_review(
                     experiment_date=experiment_date.isoformat(),
                     sample_name=sample_name,
                     injection_ids=record["injection_id"],
                     issue_type="原始色谱不可定量",
-                    reason="；".join(quality_reasons) or integration_error or "缺少可用原始信号",
+                    reason="；".join(quality_reasons) or "缺少可用原始信号",
                     recommended_action="检查.dx文件完整性和原始色谱；不得把数据缺失静默记为零峰",
                 )
             )
@@ -1658,19 +1546,19 @@ def analyze_hplc_openlab_dataset(
                     sample_name=sample_name,
                     raw_files=record["raw_file"],
                     operation_type="原始信号完整性检查",
-                    basis="；".join(quality_reasons) or integration_error,
+                    basis="；".join(quality_reasons),
                     before_status="信号解码完成",
                     after_result="保留审计记录但禁止自动定量",
                     discarded_data=record["injection_id"],
                 )
             )
-        elif analysis_eligible and quality != "正常":
+        elif analysis_eligible and vendor_available and quality != "正常":
             manual_review.append(
                 _manual_review(
                     experiment_date=experiment_date.isoformat(),
                     sample_name=sample_name,
                     injection_ids=record["injection_id"],
-                    issue_type="色谱质量或原生积分待复核",
+                    issue_type="色谱质量或原厂积分待复核",
                     reason="；".join(quality_reasons),
                     recommended_action="核对原始色谱、目标峰峰形、积分边界及同组重复进样；确认前不自动采用",
                 )
@@ -1683,66 +1571,10 @@ def analyze_hplc_openlab_dataset(
                     raw_files=record["raw_file"],
                     operation_type="色谱质量判断",
                     basis="；".join(quality_reasons),
-                    before_status="原生积分完成",
+                    before_status="原厂积分结果已读取",
                     after_result=quality,
                     used_data=record["injection_id"] if quality == "待人工复核" else "",
                     discarded_data=record["injection_id"] if quality == "异常" else "",
-                )
-            )
-        if analysis_eligible and vendor_validation_reasons:
-            vendor_reason = "；".join(vendor_validation_reasons)
-            manual_review.append(
-                _manual_review(
-                    experiment_date=experiment_date.isoformat(),
-                    sample_name=sample_name,
-                    injection_ids=record["injection_id"],
-                    issue_type="原厂/原生交叉验证差异",
-                    reason=vendor_reason,
-                    recommended_action=(
-                        "原厂峰用于正式定量，原生峰保留作独立交叉核查；差异不得改变"
-                        "原始色谱质量、重打选择或最终采用集合"
-                    ),
-                )
-            )
-            processing_log.append(
-                _log_entry(
-                    generated_at,
-                    experiment_date=experiment_date.isoformat(),
-                    sample_name=sample_name,
-                    raw_files=record["raw_file"],
-                    operation_type="原厂/原生数值交叉验证",
-                    basis=vendor_reason,
-                    before_status="原生积分及质量判断已独立完成",
-                    after_result="采用原厂峰定量并保留原生差异；不改变质量和最终采用决策",
-                    used_data=record["injection_id"],
-                )
-            )
-        if analysis_eligible and native_baseline_model_reasons:
-            baseline_reason = "；".join(native_baseline_model_reasons)
-            manual_review.append(
-                _manual_review(
-                    experiment_date=experiment_date.isoformat(),
-                    sample_name=sample_name,
-                    injection_ids=record["injection_id"],
-                    issue_type="峰簇基线模型待确认",
-                    reason=baseline_reason,
-                    recommended_action=(
-                        "结合原色谱和处理方法确认应采用共用谷点垂线还是独立峰基线；"
-                        "当前同时保留两种面积，不以厂商结果替换原生候选"
-                    ),
-                )
-            )
-            processing_log.append(
-                _log_entry(
-                    generated_at,
-                    experiment_date=experiment_date.isoformat(),
-                    sample_name=sample_name,
-                    raw_files=record["raw_file"],
-                    operation_type="峰簇共用基线分配",
-                    basis=baseline_reason,
-                    before_status="相邻原生峰共享局部谷点",
-                    after_result="采用共用基线候选，并保留独立峰基线面积供复核",
-                    used_data=record["injection_id"],
                 )
             )
         for target in targets.values():
@@ -1911,7 +1743,7 @@ def analyze_hplc_openlab_dataset(
                     used = normal
                     discarded = non_normal
                     process_method = "舍弃异常重打" if discarded else "单次正常"
-                    process_note = "优先采用唯一色谱质量正常且原生积分可用的进样"
+                    process_note = "优先采用唯一色谱质量正常且原厂积分可用的进样"
             else:
                 used = []
                 discarded = []
@@ -1924,7 +1756,7 @@ def analyze_hplc_openlab_dataset(
                         injection_ids="; ".join(item["injection_id"] for item in members),
                         issue_type="重打组全部异常或不可定量",
                         reason=_unique_text(reason for item in members for reason in item["quality_reasons"]),
-                        recommended_action="检查原始色谱、原生积分边界及重打关系后人工指定最终采用数据",
+                        recommended_action="检查原始色谱、原厂积分边界及重打关系后人工指定最终采用数据",
                     )
                 )
         else:
@@ -1941,7 +1773,7 @@ def analyze_hplc_openlab_dataset(
                 process_note = "单次正常进样"
             else:
                 process_method = "待人工复核"
-                process_note = "唯一进样异常或缺少可用原始信号/原生积分，不自动定量"
+                process_note = "唯一进样异常或缺少可用原始信号/原厂积分，不自动定量"
 
         final_row = _combine_final_result(
             members,
@@ -2101,7 +1933,7 @@ def analyze_hplc_openlab_dataset(
                         injection_ids="; ".join(row["member_injection_ids"]),
                         issue_type="定量结果异常",
                         reason="；".join(anomaly_messages),
-                        recommended_action="核对C₀批次、重打分组、峰匹配、稀释和原生积分；保留当前未截断计算值",
+                        recommended_action="核对C₀批次、重打分组、峰匹配、稀释和原厂积分；保留当前未截断计算值",
                     )
                 )
                 processing_log.append(
@@ -2221,17 +2053,11 @@ def analyze_hplc_openlab_dataset(
 
     summary = {
         "input_injection_count": len(records),
-        "native_integrated_injection_count": sum(
-            item["native_integration_status"] == "OK" for item in records
-        ),
-        "vendor_validation_injection_count": sum(
-            item["primary_peak_source"] == "vendor_rx" for item in records
-        ),
         "vendor_primary_injection_count": sum(
             item["primary_peak_source"] == "vendor_rx" for item in records
         ),
-        "native_fallback_injection_count": sum(
-            item["primary_peak_source"] == "native_dx" for item in records
+        "vendor_result_unavailable_injection_count": sum(
+            item["primary_peak_source"] == "vendor_unavailable" for item in records
         ),
         "openlab_no_method_injection_count": sum(
             item["openlab_processing_state"].casefold() == "nomethodprovided" for item in records
@@ -2252,10 +2078,8 @@ def analyze_hplc_openlab_dataset(
     }
     field_mapping = {
         "色谱曲线数据": "raw_sheets[].columns[].time / signal",
-        "原生拒绝候选": "analysis.native_rejected_candidates[]（保留候选保留时间、高度与拒绝原因）",
-        "正式峰面积/出峰时间": "已成功处理的OpenLab .rx峰优先；无可用原厂结果时回退独立.dx积分",
-        "原生峰表数据": "analysis.native_peaks[]（始终由已验证的原始.dx信号独立积分并保留审计）",
-        "厂商峰表": "peaks[]（OpenLab .rx 原厂积分结果；成功状态时作为正式定量峰来源）",
+        "正式峰面积/出峰时间": "仅来自OpenLab .rx原厂积分；缺失时必须运行 --vendor-reprocess",
+        "厂商峰表": "peaks[]（OpenLab存量 .rx 或 Processing Server 完整PMX重处理结果）",
         "样品名称": "injections[].sample_name",
         "序列名称": "injections[].sequence_name（结果集 .acaml SampleContexts/Setup）",
         "OpenLab结果名称": "injections[].result_name（结果集 .acaml SampleContexts/MeasData）",
@@ -2276,8 +2100,6 @@ def analyze_hplc_openlab_dataset(
         "summary": summary,
         "sample_results": final_rows,
         "peak_details": peak_details,
-        "native_peaks": native_peaks,
-        "native_rejected_candidates": native_rejected_candidates,
         "processing_log": processing_log,
         "excluded_data": excluded_data,
         "rerun_group_details": rerun_details,
@@ -2316,9 +2138,8 @@ def attach_hplc_analysis(
         {
             "manual_check_required": True,
             "peak_source": (
-                "successful paired Agilent OpenLab .rx result first; "
-                f"fallback to {NATIVE_INTEGRATOR_NAME} {NATIVE_INTEGRATOR_VERSION} "
-                "from independently decoded .dx signals"
+                "Agilent OpenLab .rx vendor results only; missing or failed results require "
+                "project-bundled Processing Server complete-PMX reprocessing; no native fallback"
             ),
             "target_identity_basis": "user-supplied nominal RT windows and tolerances",
             "quantification_basis": "user-supplied calibration equations and 100x dilution factor",

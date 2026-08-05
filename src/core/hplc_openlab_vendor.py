@@ -289,6 +289,11 @@ def reprocess_openlab_with_vendor_method(
         raise ValueError("Vendor reprocessing requires at least one selected injection")
     groups = _group_selected_injections(source_root, selected)
     source_snapshot = _snapshot_result_sets(source_root, groups)
+    effective_input_root = (
+        staged_input_root / source_root.parent.name / source_root.name
+        if source_root.suffix.casefold() == ".rslt"
+        else staged_input_root
+    )
 
     started_at = datetime.now().astimezone()
     method_sha256 = file_sha256(processing_method)
@@ -307,7 +312,7 @@ def reprocess_openlab_with_vendor_method(
     try:
         for relative_result_set, members in groups.items():
             source_result_set = (source_root / relative_result_set).resolve()
-            staged_result_set = (staged_input_root / relative_result_set).resolve()
+            staged_result_set = (effective_input_root / relative_result_set).resolve()
             _copy_result_set(source_result_set, staged_result_set)
             method_target = staged_result_set / processing_method.name
             shutil.copy2(processing_method, method_target)
@@ -446,7 +451,7 @@ def reprocess_openlab_with_vendor_method(
         "result_sets": result_set_reports,
     }
     return OpenLabVendorReprocessResult(
-        effective_input_root=staged_input_root,
+        effective_input_root=effective_input_root,
         manifest=manifest,
         log_text="\n".join(log_parts),
         injection_provenance=injection_provenance,

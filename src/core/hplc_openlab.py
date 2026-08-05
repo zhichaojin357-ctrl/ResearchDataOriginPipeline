@@ -31,10 +31,6 @@ from src.core.file_utils import (
     plan_safe_owned_directory_removal,
 )
 from src.core.hplc_analysis import attach_hplc_analysis
-from src.core.hplc_peak_integration import (
-    NATIVE_INTEGRATOR_NAME,
-    NATIVE_INTEGRATOR_VERSION,
-)
 from src.core.hplc_openlab_vendor import (
     OpenLabVendorReprocessResult,
     apply_vendor_reprocess_provenance,
@@ -1559,7 +1555,7 @@ def _parse_optional_rx_result(
     rx_path: Path,
     context: dict[str, Any],
 ) -> dict[str, Any]:
-    """Read optional vendor results without making native .dx processing depend on them."""
+    """Read optional vendor results without blocking independent raw .dx decoding."""
     try:
         return _parse_rx_result(rx_path, context)
     except (OSError, ValueError, zipfile.BadZipFile, ET.ParseError) as exc:
@@ -1921,21 +1917,21 @@ def _metadata_payload(
     algorithm_provenance = dict(dataset["library_provenance"])
     if analysis.get("analysis_version"):
         vendor_reprocessing = algorithm_provenance.get("vendor_reprocessing")
-        algorithm_provenance["native_peak_integration"] = {
-            "name": NATIVE_INTEGRATOR_NAME,
-            "version": NATIVE_INTEGRATOR_VERSION,
+        algorithm_provenance["peak_integration"] = {
+            "name": "Agilent OpenLab vendor integration",
             "analysis_version": analysis["analysis_version"],
             "vendor_method_required": bool(vendor_reprocessing),
             "source_priority": (
-                "Agilent Processing Server reprocessed_rx -> native_dx audit"
+                "Agilent Processing Server complete-PMX reprocessed .rx"
                 if vendor_reprocessing
-                else "successful vendor_rx -> native_dx fallback"
+                else "successful stored Agilent .rx only"
             ),
             "vendor_results_role": (
-                "primary target source after explicit complete-PMX vendor reprocessing"
+                "sole target source after explicit complete-PMX vendor reprocessing"
                 if vendor_reprocessing
-                else "primary target source when stored result is successful"
+                else "sole target source when stored result is successful"
             ),
+            "native_fallback_removed": True,
         }
     return {
         "dataset_id": f"hplc_openlab_{dataset['cutoff_date'].replace('-', '')}_plus",
@@ -1957,7 +1953,7 @@ def _metadata_payload(
         "manual_check_items": [
             "目标峰使用用户提供的RT窗口候选映射，化学身份及峰积分边界仍需人工复核",
             "转化率、选择性、产率和回收率依据用户提供标曲与稀释倍数计算，属于待复核候选结果",
-            "请优先复核待人工复核工作表、重打分组、同批次C₀及原生/厂商面积差异提示",
+            "请优先复核待人工复核工作表、重打分组、同批次C₀及原厂结果可用性提示",
             "原始色谱信号已完整解码并保存在审计数据集中，但按用户要求不放入简化 Excel",
         ],
         "forbidden_claims": dataset["scientific_boundary"]["forbidden_outputs"],
@@ -1992,7 +1988,7 @@ def _summary_markdown(
             f"- Vendor peaks retained for validation: `{summary['peak_count']}`",
             f"- Agilent Processing Server reprocessed: `{'yes' if vendor_reprocessing else 'no'}`",
             f"- Raw signal points: `{summary['signal_point_count']}`",
-            f"- Native-integrated injections: `{analysis_summary.get('native_integrated_injection_count', 0)}`",
+            f"- Vendor-result unavailable injections: `{analysis_summary.get('vendor_result_unavailable_injection_count', 0)}`",
             f"- Final sample rows: `{analysis_summary.get('final_sample_row_count', 0)}`",
             f"- Manual-review items: `{analysis_summary.get('manual_review_item_count', 0)}`",
             f"- Excel workbooks: `{len(relative_workbooks)}`",
