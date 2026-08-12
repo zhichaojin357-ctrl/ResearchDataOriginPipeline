@@ -139,7 +139,7 @@ def compare_style_snapshots(
     product: OpjuStyleSnapshot | dict[str, Any],
     *,
     tolerance: float = 0.10,
-    required_line_width_pt: float = 3.0,
+    required_line_width_pt: float | None = 3.0,
     require_axis_title_bold: bool = True,
     product_closer_than_v1: bool | None = None,
 ) -> ConformanceReport:
@@ -149,6 +149,25 @@ def compare_style_snapshots(
     missing: list[str] = []
     compared = 0
     matched = 0
+    for field_name in ("layer_count", "plot_count"):
+        expected_count = _snapshot_count(exemplar, field_name)
+        if expected_count <= 0:
+            continue
+        actual_count = _snapshot_count(product, field_name)
+        compared += 1
+        if actual_count == expected_count:
+            matched += 1
+        else:
+            issues.append(
+                ConformanceIssue(
+                    field=field_name,
+                    exemplar=expected_count,
+                    product=actual_count,
+                    category="structure",
+                    severity="fail",
+                    message=f"product {field_name} differs from exemplar",
+                )
+            )
     for category, fields in REQUIRED_FIELD_GROUPS.items():
         for field_name in fields:
             if field_name not in exemplar_values:
@@ -278,9 +297,42 @@ def compare_style_snapshots(
                 message="critical product plot line-width readback is unavailable",
             )
         )
-    expected_origin_width = required_line_width_pt * 500.0
-    for index, value in enumerate(line_widths, start=1):
-        if not _within_tolerance(expected_origin_width, value, 0.02):
+    exemplar_line_widths = _plot_widths(exemplar)
+    if required_line_width_pt is None and exemplar_line_widths and len(exemplar_line_widths) != len(line_widths):
+        issues.append(
+            ConformanceIssue(
+                field="plot_line_widths",
+                exemplar=str(exemplar_line_widths),
+                product=str(line_widths),
+                category="plot",
+                severity="fail",
+                message="product line-width count differs from exemplar",
+            )
+        )
+    if required_line_width_pt is None and not exemplar_line_widths:
+        missing.append("exemplar:plot_line_widths")
+        issues.append(
+            ConformanceIssue(
+                field="plot_line_widths",
+                exemplar=None,
+                product=str(line_widths) if line_widths else None,
+                category="plot",
+                severity="fail",
+                message="critical exemplar plot line-width readback is unavailable",
+            )
+        )
+    expected_widths = (
+        exemplar_line_widths
+        if required_line_width_pt is None
+        else [required_line_width_pt * 500.0 for _value in line_widths]
+    )
+    for index, (expected_origin_width, value) in enumerate(zip(expected_widths, line_widths), start=1):
+        matches = (
+            _within_absolute_tolerance(expected_origin_width, value, 0.01)
+            if required_line_width_pt is None
+            else _within_tolerance(expected_origin_width, value, 0.02)
+        )
+        if not matches:
             issues.append(
                 ConformanceIssue(
                     field=f"plot[{index}].line_width",
@@ -288,7 +340,11 @@ def compare_style_snapshots(
                     product=value,
                     category="plot",
                     severity="fail",
-                    message="product line width does not match required 3 pt policy",
+                    message=(
+                        "product line width differs from exemplar"
+                        if required_line_width_pt is None
+                        else f"product line width does not match required {required_line_width_pt:g} pt policy"
+                    ),
                 )
             )
 
@@ -343,6 +399,14 @@ def conformance_distance(report: ConformanceReport | dict[str, Any]) -> float:
     if compared <= 0:
         return float("inf")
     return max(compared - matched, 0.0) / compared + issue_penalty
+
+
+def _snapshot_count(snapshot: OpjuStyleSnapshot | dict[str, Any], field_name: str) -> int:
+    value = getattr(snapshot, field_name, 0) if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get(field_name, 0)
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 def _combined_numeric_values(snapshot: OpjuStyleSnapshot | dict[str, Any]) -> dict[str, float]:

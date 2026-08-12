@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import math
+import re
 import shutil
 import tempfile
 import csv
@@ -16,10 +18,12 @@ from src.core.image_artifacts import (
     validate_tif_physical_resolution,
 )
 from src.core.output_sanitizer import render_output_path, scrub_output_text
+from src.origin.conformance import compare_style_snapshots
 from src.origin.operations import connect_origin, quote_labtalk, safe_origin_name
 from src.origin.style_mimic import read_graph_style_snapshot
 from src.origin.style_registry import load_origin_style_manifest, resolve_origin_style_asset
-from src.origin.template_format import parse_origin_dataset_name
+from src.origin.template_binding import resolve_template_binding_contract
+from src.origin.template_format import parse_origin_dataset_reference
 
 
 DEFAULT_STYLE_ASSET_ROOT = Path("templates") / "origin_styles"
@@ -154,6 +158,9 @@ class OriginStyleAssetReplayItem:
     data_type: str
     source_opju: Path
     graph_page: str
+    comparison_mode: str = "reference_opju_comparison"
+    graph_template_path: Path | None = None
+    binding_contract_path: Path | None = None
     style_source_product_key: str = ""
     style_source_theme_path: Path | None = None
 
@@ -467,7 +474,7 @@ def export_origin_style_assets(
                 "schema_version": _origin_style_manifest_schema_version_for_write(manifest_path),
                 "generated_at": datetime.now().isoformat(timespec="seconds"),
                 "asset_root": render_output_path(plan.asset_root, project_root=project_root),
-                "origin_dependency_boundary": "Project-local .oth Graph Themes are the runtime format assets. Current .otpu files are quarantined harvest records and are never runtime fallbacks. JSON snapshots store readback plot colours and key numeric style values, while reference_opju/*.opju stores reviewed templates for recovery and replay evidence. Product runs use accepted project-local .oth/snapshot assets without requiring external template OPJU files.",
+                "origin_dependency_boundary": "Current formal exact-style runs use isolated reviewed reference_opju copies. Harvested .oth/.otpu assets remain quarantined until a fresh-project replay uses identical explicit per-plot X/Y data and mappings, saves and reopens the generated OPJU, exports native 600 dpi, has zero decoded-pixel difference, and passes manual preview.",
                 "assets": entries,
             }
         )
@@ -602,7 +609,11 @@ def run_origin_style_asset_replay(
                     ),
                     project_root=project_root,
                 )
-    compared_count = sum(1 for item in results if item.get("status") == "matched")
+    compared_count = sum(
+        1
+        for item in results
+        if item.get("status") in {"matched", "fresh_project_same_data_match"}
+    )
     self_replay_count = sum(
         1 for item in results if item.get("status") == "reference_opju_self_replay"
     )
@@ -651,6 +662,35 @@ def build_origin_style_asset_replay_plan(
         source = Path(source_text)
         if not source.is_absolute():
             source = project_root / source
+        comparison_mode = str(
+            raw.get("comparison_mode") or "reference_opju_comparison"
+        ).strip()
+        if comparison_mode not in {
+            "reference_opju_comparison",
+            "fresh_project_graph_template_same_data",
+        }:
+            raise ValueError(
+                f"Unsupported Origin style replay comparison_mode: {comparison_mode}"
+            )
+        graph_template_path: Path | None = None
+        graph_template_text = str(raw.get("graph_template") or "").strip()
+        if graph_template_text:
+            graph_template_path = Path(graph_template_text)
+            if not graph_template_path.is_absolute():
+                graph_template_path = project_root / graph_template_path
+        if (
+            comparison_mode == "fresh_project_graph_template_same_data"
+            and graph_template_path is None
+        ):
+            raise ValueError(
+                "fresh_project_graph_template_same_data replay requires graph_template"
+            )
+        binding_contract_path: Path | None = None
+        binding_contract_text = str(raw.get("binding_contract") or "").strip()
+        if binding_contract_text:
+            binding_contract_path = Path(binding_contract_text)
+            if not binding_contract_path.is_absolute():
+                binding_contract_path = project_root / binding_contract_path
         style_source_product_key = str(raw.get("style_source_product_key") or "").strip()
         style_source_theme_path = _style_source_theme_from_plan(project_root, raw, style_source_product_key)
         items.append(
@@ -659,6 +699,9 @@ def build_origin_style_asset_replay_plan(
                 data_type=str(raw.get("data_type") or product_key),
                 source_opju=source,
                 graph_page=graph_page,
+                comparison_mode=comparison_mode,
+                graph_template_path=graph_template_path,
+                binding_contract_path=binding_contract_path,
                 style_source_product_key=style_source_product_key,
                 style_source_theme_path=style_source_theme_path,
             )
@@ -674,6 +717,13 @@ def _replay_compare_one_item(
 ) -> dict[str, object]:
     product_dir = output_dir / "products" / safe_origin_name(item.product_key, "Product")
     product_dir.mkdir(parents=True, exist_ok=True)
+    if item.comparison_mode == "fresh_project_graph_template_same_data":
+        return _replay_fresh_graph_template_same_data(
+            operations,
+            project_root,
+            product_dir,
+            item,
+        )
     asset = resolve_origin_style_asset(project_root, item.product_key)
     if asset is None or asset.template_opju_path is None or not asset.template_opju_path.is_file():
         result = {
@@ -761,6 +811,444 @@ def _replay_compare_one_item(
         }
     )
     (product_dir / "comparison.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    return result
+
+
+def _replay_fresh_graph_template_same_data(
+    operations: object,
+    project_root: Path,
+    product_dir: Path,
+    item: OriginStyleAssetReplayItem,
+) -> dict[str, object]:
+    """Validate one OTP/OTPU in a new project with exact reference plot data.
+
+    The reference OPJU is copied and opened only to read the reviewed graph,
+    its explicit X/Y mappings, column metadata, and reference pixels.  The
+    candidate project is then created from scratch and receives only those
+    values plus the detached graph template.  The reference OPJU is never a
+    product base and is not loaded while the candidate graph is constructed.
+    """
+
+    template_path = item.graph_template_path
+    base_result: dict[str, object] = {
+        "product_key": item.product_key,
+        "data_type": item.data_type,
+        "comparison_mode": item.comparison_mode,
+        "comparison_scope": "fresh_project_same_data",
+        "source_opju": render_output_path(item.source_opju, project_root=project_root),
+        "graph_template": render_output_path(template_path, project_root=project_root)
+        if template_path is not None
+        else "",
+        "graph_page": item.graph_page,
+        "reference_opju_used_as_product_base": False,
+        "runtime_reference_opju_loaded_during_fresh_plot": False,
+        "manual_preview_required": True,
+        "style_asset_validated": False,
+    }
+    if not item.source_opju.is_file():
+        return _write_fresh_template_replay_failure(
+            product_dir,
+            base_result,
+            "Source reference OPJU is missing.",
+        )
+    if (
+        template_path is None
+        or not template_path.is_file()
+        or template_path.suffix.casefold() not in {".otp", ".otpu"}
+    ):
+        return _write_fresh_template_replay_failure(
+            product_dir,
+            base_result,
+            "Candidate graph template is missing or is not OTP/OTPU.",
+        )
+
+    source_hash_before = file_sha256(item.source_opju)
+    template_hash_before = file_sha256(template_path)
+    runtime_dir = Path(
+        tempfile.mkdtemp(
+            prefix=f"rdop_fresh_replay_{safe_origin_name(item.product_key, 'Style')}_"
+        )
+    )
+    runtime_reference = runtime_dir / f"reference{item.source_opju.suffix.casefold()}"
+    runtime_template = runtime_dir / f"candidate{template_path.suffix.casefold()}"
+    runtime_candidate_opju = runtime_dir / "candidate.opju"
+    runtime_reference_png = runtime_dir / "reference_same_data.png"
+    runtime_candidate_png = runtime_dir / "candidate_same_data.png"
+    runtime_candidate_tif = runtime_dir / "candidate_600dpi.tif"
+    final_reference_png = product_dir / "reference_same_data.png"
+    final_candidate_png = product_dir / "candidate_same_data.png"
+    final_candidate_tif = product_dir / "candidate_600dpi.tif"
+    final_candidate_opju = product_dir / f"{safe_origin_name(item.product_key, 'Product')}.opju"
+    result = dict(base_result)
+    try:
+        shutil.copy2(item.source_opju, runtime_reference)
+        shutil.copy2(template_path, runtime_template)
+        operations.new_project()
+        loaded = operations.load_project(runtime_reference)
+        if not getattr(loaded, "ok", False):
+            raise RuntimeError(getattr(loaded, "message", "Reference OPJU load failed."))
+
+        reference_data = read_graph_data_snapshot(
+            operations,
+            item.graph_page,
+            source_label="isolated_reference_copy.opju",
+        )
+        if str(reference_data.get("status") or "") != "ready":
+            raise RuntimeError("Reference graph data snapshot is not ready.")
+        plot_records = [
+            dict(plot)
+            for plot in reference_data.get("plots", [])
+            if isinstance(plot, dict)
+        ]
+        mapping_records = [
+            {
+                "layer_index": plot.get("layer_index"),
+                "plot_index": plot.get("plot_index"),
+                "x_dataset": plot.get("x_dataset"),
+                "y_dataset": plot.get("y_dataset"),
+                "row_from": plot.get("plot_row_from"),
+                "row_to": plot.get("plot_row_to"),
+            }
+            for plot in plot_records
+        ]
+        binding = resolve_template_binding_contract(
+            item.product_key,
+            item.graph_page,
+            mapping_records,
+            path=item.binding_contract_path,
+        )
+        if not binding.ok or binding.contract is None:
+            raise RuntimeError(binding.message)
+        if source_hash_before != binding.contract.reference_opju_sha256:
+            raise RuntimeError(
+                "Reference OPJU hash does not match the reviewed binding contract."
+            )
+        if any(int(plot.get("layer_index") or 0) != 1 for plot in plot_records):
+            raise RuntimeError(
+                "Fresh graph-template replay currently requires all contracted plots in layer 1."
+            )
+
+        books = {
+            str(plot.get("book_name") or "").strip() for plot in plot_records
+        } | {
+            str(plot.get("x_book_name") or "").strip() for plot in plot_records
+        }
+        books.discard("")
+        sheet_indices = {
+            int(plot.get("sheet_index") or 0) for plot in plot_records
+        } | {
+            int(plot.get("x_sheet_index") or 0) for plot in plot_records
+        }
+        if len(books) != 1 or sheet_indices != {1}:
+            raise RuntimeError(
+                "Fresh graph-template replay requires one source workbook and worksheet index 1."
+            )
+        reference_book = next(iter(books))
+
+        column_values: dict[int, list[float]] = {}
+        xy_ranges: list[dict[str, int]] = []
+        for plot in plot_records:
+            x_col = int(plot.get("x_col_index")) + 1
+            y_col = int(plot.get("y_col_index")) + 1
+            x_values = [
+                math.nan if value is None else float(value)
+                for value in list(plot.get("x_values") or [])
+            ]
+            y_values = [
+                math.nan if value is None else float(value)
+                for value in list(plot.get("y_values") or [])
+            ]
+            for index, values in ((x_col, x_values), (y_col, y_values)):
+                existing = column_values.get(index)
+                if existing is not None and existing != values:
+                    raise RuntimeError(
+                        f"Reference plots disagree on worksheet column {index}."
+                    )
+                column_values[index] = values
+            xy_ranges.append(
+                {
+                    "x_col": x_col,
+                    "y_col": y_col,
+                    "row_from": int(plot.get("plot_row_from")),
+                    "row_to": int(plot.get("plot_row_to")),
+                }
+            )
+        ordered_indices = sorted(column_values)
+        if ordered_indices != list(range(1, max(ordered_indices, default=0) + 1)):
+            raise RuntimeError(
+                "Fresh graph-template replay requires contiguous source worksheet columns."
+            )
+        metadata_read = operations.get_worksheet_column_metadata(
+            reference_book,
+            ordered_indices,
+        )
+        if not getattr(metadata_read, "ok", False):
+            raise RuntimeError(
+                getattr(metadata_read, "message", "Reference column metadata read failed.")
+            )
+        column_metadata = list(metadata_read.payload.get("columns", []))
+        reference_style = read_graph_style_snapshot(
+            operations,
+            item.graph_page,
+            source_label="isolated_reference_copy.opju",
+        )
+        try:
+            page_width = int(round(float(reference_style.layout_values["page.width"])))
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            raise RuntimeError("Reference graph page width readback failed.") from exc
+        reference_png_export = operations.export_graph(
+            item.graph_page,
+            runtime_reference_png,
+            "png",
+            dpi=600,
+            pixel_width=page_width,
+        )
+        if not getattr(reference_png_export, "ok", False):
+            raise RuntimeError(
+                getattr(reference_png_export, "message", "Reference PNG export failed.")
+            )
+
+        operations.new_project()
+        created = operations.create_worksheet(reference_book, "Sheet1")
+        if not getattr(created, "ok", False):
+            raise RuntimeError(
+                getattr(created, "message", "Fresh worksheet creation failed.")
+            )
+        actual_book = str(created.payload.get("book_name") or "")
+        written = operations.set_worksheet_data(
+            actual_book,
+            "Sheet1",
+            [column_values[index] for index in ordered_indices],
+        )
+        if not getattr(written, "ok", False):
+            raise RuntimeError(
+                getattr(written, "message", "Fresh worksheet data write failed.")
+            )
+        metadata_write = operations.set_worksheet_column_metadata(
+            actual_book,
+            column_metadata,
+        )
+        if not getattr(metadata_write, "ok", False):
+            raise RuntimeError(
+                getattr(metadata_write, "message", "Fresh worksheet metadata write failed.")
+            )
+        plotted = operations.create_graph_from_xy_pairs_template(
+            item.graph_page,
+            runtime_template,
+            actual_book,
+            xy_ranges,
+            plot_type="line+symbol",
+            rescale=False,
+            legend=False,
+        )
+        if not getattr(plotted, "ok", False):
+            raise RuntimeError(
+                getattr(plotted, "message", "Fresh graph-template plot failed.")
+            )
+        saved = operations.save_project(runtime_candidate_opju)
+        if not getattr(saved, "ok", False) or not runtime_candidate_opju.is_file():
+            raise RuntimeError(
+                getattr(saved, "message", "Fresh candidate OPJU save failed.")
+            )
+
+        operations.new_project()
+        reopened = operations.load_project(runtime_candidate_opju)
+        if not getattr(reopened, "ok", False):
+            raise RuntimeError(
+                getattr(reopened, "message", "Fresh candidate OPJU reopen failed.")
+            )
+        candidate_data = read_graph_data_snapshot(
+            operations,
+            item.graph_page,
+            source_label="fresh_graph_template_candidate.opju",
+        )
+        candidate_style = read_graph_style_snapshot(
+            operations,
+            item.graph_page,
+            source_label="fresh_graph_template_candidate.opju",
+        )
+        candidate_png_export = operations.export_graph(
+            item.graph_page,
+            runtime_candidate_png,
+            "png",
+            dpi=600,
+            pixel_width=page_width,
+        )
+        if not getattr(candidate_png_export, "ok", False):
+            raise RuntimeError(
+                getattr(candidate_png_export, "message", "Candidate PNG export failed.")
+            )
+        tif_evidence = _export_replay_tif_with_physical_validation(
+            operations,
+            item.graph_page,
+            runtime_candidate_tif,
+            dpi=600,
+        )
+
+        same_data = compare_graph_data_snapshots(reference_data, candidate_data)
+        style_conformance = compare_style_snapshots(
+            reference_style,
+            candidate_style,
+            required_line_width_pt=3.0,
+        ).to_dict()
+        pixels = _compare_replay_pngs(
+            runtime_reference_png,
+            runtime_candidate_png,
+            product_dir,
+        )
+        axis_gate = _fresh_template_axis_title_gate(reference_style, candidate_style)
+        source_hash_after = file_sha256(item.source_opju)
+        template_hash_after = file_sha256(template_path)
+        automated_pass = bool(
+            same_data.get("same_data")
+            and style_conformance.get("status") == "pass"
+            and axis_gate.get("pass")
+            and pixels.get("exact_pixel_match")
+            and tif_evidence.get("ok")
+            and source_hash_before == source_hash_after
+            and template_hash_before == template_hash_after
+        )
+        for source, target in (
+            (runtime_reference_png, final_reference_png),
+            (runtime_candidate_png, final_candidate_png),
+            (runtime_candidate_tif, final_candidate_tif),
+            (runtime_candidate_opju, final_candidate_opju),
+        ):
+            if source.is_file() and source.stat().st_size > 0:
+                shutil.copy2(source, target)
+        result.update(
+            {
+                "status": (
+                    "fresh_project_same_data_match"
+                    if automated_pass
+                    else "mismatch"
+                ),
+                "message": (
+                    "Fresh-project same-data graph-template replay passed all automated gates; manual preview is still required."
+                    if automated_pass
+                    else "Fresh-project same-data graph-template replay failed one or more automated gates."
+                ),
+                "automated_acceptance_passed": automated_pass,
+                "candidate_graph_template_sha256": template_hash_before,
+                "candidate_graph_template_unchanged": template_hash_before
+                == template_hash_after,
+                "source_opju_sha256": source_hash_before,
+                "source_opju_unchanged": source_hash_before == source_hash_after,
+                "binding_contract": binding.to_dict(),
+                "reference_column_metadata": column_metadata,
+                "reference_data": reference_data,
+                "candidate_data": candidate_data,
+                "same_data_comparison": same_data,
+                "reference_style": reference_style.to_dict(),
+                "candidate_style": candidate_style.to_dict(),
+                "style_conformance": style_conformance,
+                "axis_title_hard_gate": axis_gate,
+                "comparison": pixels,
+                "tif_resolution_evidence": tif_evidence,
+                "artifacts": {
+                    "reference_png": str(final_reference_png),
+                    "candidate_png": str(final_candidate_png),
+                    "candidate_tif": str(final_candidate_tif),
+                    "candidate_opju": str(final_candidate_opju),
+                },
+                "reference_plot_values_sha256": reference_data.get(
+                    "plot_values_sha256", ""
+                ),
+                "generated_plot_values_sha256": candidate_data.get(
+                    "plot_values_sha256", ""
+                ),
+                "reference_plot_mapping_sha256": reference_data.get(
+                    "plot_mapping_sha256", ""
+                ),
+                "generated_plot_mapping_sha256": candidate_data.get(
+                    "plot_mapping_sha256", ""
+                ),
+                "saved_reopened": True,
+                "native_tif_600dpi_verified": bool(tif_evidence.get("ok")),
+                "exact_pixel_match": bool(pixels.get("exact_pixel_match")),
+                "same_size": bool(pixels.get("same_size")),
+                "changed_pixels": pixels.get("changed_pixels"),
+                "rms": pixels.get("rms"),
+                "reference_opju_self_replay": False,
+            }
+        )
+    except Exception as exc:
+        result.update(
+            {
+                "status": "failed",
+                "message": scrub_output_text(
+                    f"Fresh graph-template replay failed: {type(exc).__name__}: {exc}",
+                    project_root=project_root,
+                ),
+                "automated_acceptance_passed": False,
+                "source_opju_sha256": source_hash_before,
+                "candidate_graph_template_sha256": template_hash_before,
+            }
+        )
+    finally:
+        shutil.rmtree(runtime_dir, ignore_errors=True)
+    (product_dir / "comparison.json").write_text(
+        json.dumps(result, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return result
+
+
+def _fresh_template_axis_title_gate(
+    reference_style: object,
+    candidate_style: object,
+) -> dict[str, object]:
+    reference_strings = dict(getattr(reference_style, "audit_string_values", {}) or {})
+    candidate_strings = dict(getattr(candidate_style, "audit_string_values", {}) or {})
+    reference_numeric = {
+        **dict(getattr(reference_style, "layout_values", {}) or {}),
+        **dict(getattr(reference_style, "audit_numeric_values", {}) or {}),
+    }
+    candidate_numeric = {
+        **dict(getattr(candidate_style, "layout_values", {}) or {}),
+        **dict(getattr(candidate_style, "audit_numeric_values", {}) or {}),
+    }
+    gate: dict[str, object] = {
+        "reference_x_text": reference_strings.get("xb.text$"),
+        "candidate_x_text": candidate_strings.get("xb.text$"),
+        "reference_y_text": reference_strings.get("yl.text$"),
+        "candidate_y_text": candidate_strings.get("yl.text$"),
+        "x_visual_bold_matches": "\\b("
+        in str(candidate_strings.get("xb.text$", ""))
+        and candidate_strings.get("xb.text$") == reference_strings.get("xb.text$"),
+        "y_visual_bold_matches": "\\b("
+        in str(candidate_strings.get("yl.text$", ""))
+        and candidate_strings.get("yl.text$") == reference_strings.get("yl.text$"),
+        "x_size_matches": candidate_numeric.get("xb.fsize")
+        == reference_numeric.get("xb.fsize"),
+        "y_size_matches": candidate_numeric.get("yl.fsize")
+        == reference_numeric.get("yl.fsize"),
+        "x_tick_bold_matches": candidate_numeric.get("layer.x.label.bold")
+        == reference_numeric.get("layer.x.label.bold"),
+        "y_tick_bold_matches": candidate_numeric.get("layer.y.label.bold")
+        == reference_numeric.get("layer.y.label.bold"),
+    }
+    gate["pass"] = all(
+        value is True for key, value in gate.items() if key.endswith("_matches")
+    )
+    return gate
+
+
+def _write_fresh_template_replay_failure(
+    product_dir: Path,
+    base_result: dict[str, object],
+    message: str,
+) -> dict[str, object]:
+    result = {
+        **base_result,
+        "status": "failed",
+        "message": message,
+        "automated_acceptance_passed": False,
+    }
+    (product_dir / "comparison.json").write_text(
+        json.dumps(result, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     return result
 
 
@@ -955,6 +1443,8 @@ def _compare_replay_pngs(source_png: Path, asset_png: Path, product_dir: Path) -
         return {
             "image_size": list(source.size),
             "asset_image_size": list(asset.size),
+            "same_size": False,
+            "changed_pixels": None,
             "exact_pixel_match": False,
             "rms": math.inf,
             "diff_bbox": "size_mismatch",
@@ -962,7 +1452,16 @@ def _compare_replay_pngs(source_png: Path, asset_png: Path, product_dir: Path) -
     diff = ImageChops.difference(source, asset)
     stat = ImageStat.Stat(diff)
     rms = math.sqrt(sum(value * value for value in stat.rms))
-    bbox = diff.getbbox()
+    # Pillow's RGBA ``getbbox()`` can return ``None`` when RGB channels differ
+    # but the alpha-difference band is entirely zero.  Collapse all decoded
+    # channels into one non-zero mask so opaque color changes cannot be
+    # misclassified as an exact match.
+    diff_bands = diff.split()
+    change_mask = diff_bands[0]
+    for band in diff_bands[1:]:
+        change_mask = ImageChops.lighter(change_mask, band)
+    bbox = change_mask.getbbox()
+    changed_pixels = 0 if bbox is None else sum(change_mask.histogram()[1:])
     side_by_side = product_dir / "side_by_side.png"
     side = Image.new("RGBA", (source.width * 2, source.height), "white")
     side.paste(source, (0, 0))
@@ -970,9 +1469,12 @@ def _compare_replay_pngs(source_png: Path, asset_png: Path, product_dir: Path) -
     side.save(side_by_side)
     return {
         "image_size": list(source.size),
+        "asset_image_size": list(asset.size),
+        "same_size": True,
+        "changed_pixels": changed_pixels,
         "rms": float(rms),
         "diff_bbox": list(bbox) if bbox else None,
-        "exact_pixel_match": bbox is None,
+        "exact_pixel_match": bbox is None and rms == 0.0,
         "side_by_side_png": str(side_by_side),
     }
 
@@ -1015,20 +1517,16 @@ def read_graph_data_snapshot(
 ) -> dict[str, object]:
     plots: list[dict[str, object]] = []
     layers: list[dict[str, object]] = []
-    worksheet_cache: dict[str, dict[str, object]] = {}
+    worksheet_cache: dict[tuple[str, int], dict[str, object]] = {}
     for layer_index in range(1, max_layers + 1):
         result = operations.get_graph_plot_dataset_names(graph_page, layer_index=layer_index)
         if not getattr(result, "ok", False):
-            if plots:
-                break
             continue
         result_payload = dict(getattr(result, "payload", {}) or {})
         names = [str(name) for name in result_payload.get("plot_dataset_names", []) if str(name).strip()]
-        if not names and plots:
-            break
         if not names:
             continue
-        explicit_x_datasets = _read_explicit_plot_x_datasets(
+        explicit_plot_mappings = _read_explicit_plot_mappings(
             operations,
             graph_page,
             layer_index,
@@ -1045,7 +1543,7 @@ def read_graph_data_snapshot(
                 dataset,
                 worksheet_cache,
                 sheet_name=sheet_name,
-                explicit_x_dataset=explicit_x_datasets.get((plot_index, dataset)),
+                explicit_mapping=explicit_plot_mappings.get((plot_index, dataset)),
             )
             plots.append(plot_record)
             layer_plots.append(plot_record)
@@ -1057,8 +1555,32 @@ def read_graph_data_snapshot(
             }
         )
     failed_plots = [plot for plot in plots if plot.get("status") != "ready"]
+    data_digest_rows = [
+        {
+            "layer_index": plot.get("layer_index"),
+            "plot_index": plot.get("plot_index"),
+            "xy_data_sha256": plot.get("xy_data_sha256"),
+        }
+        for plot in plots
+        if plot.get("status") == "ready"
+    ]
+    mapping_digest_rows = [
+        {
+            "layer_index": plot.get("layer_index"),
+            "plot_index": plot.get("plot_index"),
+            "x_dataset": plot.get("x_dataset"),
+            "y_dataset": plot.get("y_dataset"),
+            "x_mapping_source": plot.get("x_mapping_source"),
+            "plot_row_from": plot.get("plot_row_from"),
+            "plot_row_to": plot.get("plot_row_to"),
+        }
+        for plot in plots
+        if plot.get("status") == "ready"
+    ]
+    plot_values_sha256 = _stable_json_sha256(data_digest_rows) if data_digest_rows else ""
+    plot_mapping_sha256 = _stable_json_sha256(mapping_digest_rows) if mapping_digest_rows else ""
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "status": "ready" if plots and not failed_plots else "failed",
         "source_opju": source_label,
         "graph_page": graph_page,
@@ -1067,8 +1589,127 @@ def read_graph_data_snapshot(
         "plot_count": len(plots),
         "layers": layers,
         "plots": plots,
+        "plot_values_sha256": plot_values_sha256,
+        "plot_mapping_sha256": plot_mapping_sha256,
+        "plot_data_sha256": _stable_json_sha256(
+            {"values": plot_values_sha256, "mapping": plot_mapping_sha256}
+        )
+        if data_digest_rows
+        else "",
         "mapping_failure_count": len(failed_plots),
-        "mapping_policy": "Use explicit graph plot X/Y mappings first, then worksheet column designations or Origin wks.col.findX() readback; never infer X from the Y column position.",
+        "mapping_policy": "Use Origin range -wx/-wy plus nameof(range)$ first, preserving @sheet creation indices and plotted row bounds; worksheet designations/findX are diagnostic fallbacks only and cannot prove same-data exact replay.",
+        "same_data_exact_requirement": "Reference and generated graphs must have identical plot_values_sha256 and plot_mapping_sha256 values from explicit Origin plotdata X/Y readback before pixel equality may be accepted as one-to-one evidence.",
+    }
+
+
+def compare_graph_data_snapshots(
+    reference: dict[str, object],
+    generated: dict[str, object],
+    *,
+    require_explicit_plotdata_mapping: bool = True,
+) -> dict[str, object]:
+    """Verify that two graph snapshots use the same plotted data and mapping."""
+
+    reasons: list[str] = []
+    for label, snapshot in (("reference", reference), ("generated", generated)):
+        try:
+            schema_version = int(snapshot.get("schema_version", 0) or 0)
+        except (TypeError, ValueError):
+            schema_version = 0
+        if schema_version != 3:
+            reasons.append(f"{label} graph data snapshot is not schema_version 3")
+    if str(reference.get("status") or "") != "ready":
+        reasons.append("reference graph data snapshot is not ready")
+    if str(generated.get("status") or "") != "ready":
+        reasons.append("generated graph data snapshot is not ready")
+    for field in ("plot_count", "layer_count_with_plots"):
+        if reference.get(field) != generated.get(field):
+            reasons.append(f"{field} differs")
+
+    reference_values_hash = str(reference.get("plot_values_sha256") or "")
+    generated_values_hash = str(generated.get("plot_values_sha256") or "")
+    if not re.fullmatch(r"[0-9a-f]{64}", reference_values_hash):
+        reasons.append("reference plot-values hash is missing or malformed")
+    if not re.fullmatch(r"[0-9a-f]{64}", generated_values_hash):
+        reasons.append("generated plot-values hash is missing or malformed")
+    if reference_values_hash and generated_values_hash and reference_values_hash != generated_values_hash:
+        reasons.append("plotted X/Y values differ")
+
+    reference_mapping_hash = str(reference.get("plot_mapping_sha256") or "")
+    generated_mapping_hash = str(generated.get("plot_mapping_sha256") or "")
+    if reference_mapping_hash != generated_mapping_hash:
+        reasons.append("plot X/Y dataset mapping differs")
+
+    plot_records: dict[str, dict[tuple[int, int], dict[str, object]]] = {}
+    for label, snapshot in (("reference", reference), ("generated", generated)):
+        indexed: dict[tuple[int, int], dict[str, object]] = {}
+        raw_plots = snapshot.get("plots")
+        if not isinstance(raw_plots, list) or not raw_plots:
+            reasons.append(f"{label} plot records are missing")
+            plot_records[label] = indexed
+            continue
+        for raw in raw_plots:
+            if not isinstance(raw, dict):
+                reasons.append(f"{label} contains a non-object plot record")
+                continue
+            try:
+                key = (int(raw.get("layer_index")), int(raw.get("plot_index")))
+            except (TypeError, ValueError):
+                reasons.append(f"{label} plot record lacks numeric layer/plot identity")
+                continue
+            if key in indexed:
+                reasons.append(f"{label} contains duplicate plot identity {key}")
+                continue
+            indexed[key] = raw
+            for hash_field in ("x_data_sha256", "y_data_sha256", "xy_data_sha256"):
+                if re.fullmatch(r"[0-9a-f]{64}", str(raw.get(hash_field) or "")) is None:
+                    reasons.append(f"{label} plot {key} has no valid {hash_field}")
+        plot_records[label] = indexed
+
+    reference_plots = plot_records.get("reference", {})
+    generated_plots = plot_records.get("generated", {})
+    if set(reference_plots) != set(generated_plots):
+        reasons.append("layer/plot identities differ")
+    for key in sorted(set(reference_plots) & set(generated_plots)):
+        reference_plot = reference_plots[key]
+        generated_plot = generated_plots[key]
+        for field, message in (
+            ("x_data_sha256", "X values differ"),
+            ("y_data_sha256", "Y values differ"),
+            ("xy_data_sha256", "paired X/Y values differ"),
+            ("plot_row_from", "displayed row start differs"),
+            ("plot_row_to", "displayed row end differs"),
+            ("row_count", "displayed row count differs"),
+        ):
+            if reference_plot.get(field) != generated_plot.get(field):
+                reasons.append(f"plot {key} {message}")
+
+    if require_explicit_plotdata_mapping:
+        for label, snapshot in (("reference", reference), ("generated", generated)):
+            plots = snapshot.get("plots")
+            if not isinstance(plots, list) or not plots:
+                continue
+            fallback_indices = [
+                str(plot.get("plot_index") or "?")
+                for plot in plots
+                if not isinstance(plot, dict)
+                or str(plot.get("x_mapping_source") or "") != "graph_plot_mapping"
+                or str(plot.get("plot_row_range_source") or "") != "graph_plot_mapping"
+            ]
+            if fallback_indices:
+                reasons.append(
+                    f"{label} plots lack explicit Origin plotdata X/Y readback: "
+                    + ", ".join(fallback_indices)
+                )
+
+    return {
+        "status": "matched" if not reasons else "mismatch",
+        "same_data": not reasons,
+        "reference_plot_values_sha256": reference_values_hash,
+        "generated_plot_values_sha256": generated_values_hash,
+        "reference_plot_mapping_sha256": reference_mapping_hash,
+        "generated_plot_mapping_sha256": generated_mapping_hash,
+        "reasons": reasons,
     }
 
 
@@ -1078,12 +1719,12 @@ def _graph_plot_data_record(
     layer_index: int,
     plot_index: int,
     dataset: str,
-    worksheet_cache: dict[str, dict[str, object]],
+    worksheet_cache: dict[tuple[str, int], dict[str, object]],
     *,
     sheet_name: str,
-    explicit_x_dataset: str | None = None,
+    explicit_mapping: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    parsed = parse_origin_dataset_name(dataset)
+    parsed = parse_origin_dataset_reference(dataset)
     base = {
         "graph_page": graph_page,
         "layer_index": int(layer_index),
@@ -1092,22 +1733,32 @@ def _graph_plot_data_record(
     }
     if parsed is None:
         return {**base, "status": "unparsed_dataset_name"}
-    book_name, y_col_index = parsed
-    y_worksheet = _cached_worksheet_data(operations, worksheet_cache, book_name, sheet_name)
+    book_name = parsed.book_name
+    y_col_index = parsed.column_index
+    y_sheet_index = parsed.sheet_index
+    y_worksheet = _cached_worksheet_data(
+        operations,
+        worksheet_cache,
+        book_name,
+        y_sheet_index,
+        default_sheet_name=sheet_name,
+    )
     if not y_worksheet.get("ok"):
         return {
             **base,
             "status": "worksheet_read_failed",
             "book_name": book_name,
-            "sheet_name": sheet_name,
+            "sheet_name": str(y_sheet_index),
+            "sheet_index": y_sheet_index,
             "message": str(y_worksheet.get("message") or ""),
         }
     y_columns = list(y_worksheet.get("columns", []))
     actual_sheet_name = str(y_worksheet.get("sheet_name") or "")
 
     mapping_source = ""
+    explicit_x_dataset = str((explicit_mapping or {}).get("x_dataset") or "").strip()
     if explicit_x_dataset:
-        parsed_x = parse_origin_dataset_name(explicit_x_dataset)
+        parsed_x = parse_origin_dataset_reference(explicit_x_dataset)
         if parsed_x is None:
             return {
                 **base,
@@ -1117,7 +1768,9 @@ def _graph_plot_data_record(
                 "x_dataset_readback": explicit_x_dataset,
                 "message": "explicit graph plot X dataset name could not be parsed",
             }
-        x_book_name, x_col_index = parsed_x
+        x_book_name = parsed_x.book_name
+        x_col_index = parsed_x.column_index
+        x_sheet_index = parsed_x.sheet_index
         mapping_source = "graph_plot_mapping"
     else:
         resolved_x = _resolve_corresponding_x_column(
@@ -1137,11 +1790,18 @@ def _graph_plot_data_record(
             }
         x_col_index, mapping_source = resolved_x
         x_book_name = book_name
+        x_sheet_index = y_sheet_index
 
     x_worksheet = (
         y_worksheet
-        if x_book_name == book_name
-        else _cached_worksheet_data(operations, worksheet_cache, x_book_name, sheet_name)
+        if x_book_name == book_name and x_sheet_index == y_sheet_index
+        else _cached_worksheet_data(
+            operations,
+            worksheet_cache,
+            x_book_name,
+            x_sheet_index,
+            default_sheet_name=sheet_name,
+        )
     )
     if not x_worksheet.get("ok"):
         return {
@@ -1150,6 +1810,7 @@ def _graph_plot_data_record(
             "book_name": book_name,
             "sheet_name": actual_sheet_name,
             "x_book_name": x_book_name,
+            "x_sheet_index": x_sheet_index,
             "message": str(x_worksheet.get("message") or ""),
         }
     x_columns = list(x_worksheet.get("columns", []))
@@ -1168,35 +1829,80 @@ def _graph_plot_data_record(
         }
     x_values = [_json_safe_value(value) for value in x_columns[x_col_index]]
     y_values = [_json_safe_value(value) for value in y_columns[y_col_index]]
-    row_count = min(len(x_values), len(y_values))
+    available_row_count = min(len(x_values), len(y_values))
+    raw_row_from = (explicit_mapping or {}).get("row_from")
+    raw_row_to = (explicit_mapping or {}).get("row_to")
+    try:
+        plot_row_from = int(raw_row_from) if raw_row_from is not None else 1
+        plot_row_to = int(raw_row_to) if raw_row_to is not None else available_row_count
+    except (TypeError, ValueError):
+        plot_row_from = 0
+        plot_row_to = -1
+    if (
+        plot_row_from < 1
+        or plot_row_to < plot_row_from
+        or plot_row_to > available_row_count
+    ):
+        return {
+            **base,
+            "status": "plot_row_range_invalid",
+            "book_name": book_name,
+            "sheet_name": actual_sheet_name,
+            "x_dataset": explicit_x_dataset,
+            "plot_row_from": plot_row_from,
+            "plot_row_to": plot_row_to,
+            "available_row_count": available_row_count,
+        }
+    start = plot_row_from - 1
+    stop = plot_row_to
+    x_values = x_values[start:stop]
+    y_values = y_values[start:stop]
+    row_count = len(x_values)
+    x_dataset = explicit_x_dataset or _format_origin_dataset_reference(
+        x_book_name,
+        x_col_index,
+        x_sheet_index,
+    )
     _activate_graph_layer_for_style_readback(operations, graph_page, layer_index)
     return {
         **base,
         "status": "ready",
         "book_name": book_name,
         "sheet_name": actual_sheet_name,
-        "x_dataset": f"{x_book_name}_{_origin_column_letters(x_col_index)}",
+        "sheet_index": y_sheet_index,
+        "x_dataset": x_dataset,
         "x_book_name": x_book_name,
         "x_sheet_name": x_sheet_name,
+        "x_sheet_index": x_sheet_index,
         "x_mapping_source": mapping_source,
         "x_col_index": x_col_index,
         "y_col_index": y_col_index,
         "x_col_letter": _origin_column_letters(x_col_index),
         "y_col_letter": _origin_column_letters(y_col_index),
         "row_count": row_count,
+        "plot_row_from": plot_row_from,
+        "plot_row_to": plot_row_to,
+        "plot_row_range_source": (
+            "graph_plot_mapping"
+            if raw_row_from is not None and raw_row_to is not None
+            else "full_worksheet_fallback"
+        ),
         "style": _read_plot_style_properties(operations, dataset),
         "x_values": x_values,
         "y_values": y_values,
+        "x_data_sha256": _stable_json_sha256(x_values),
+        "y_data_sha256": _stable_json_sha256(y_values),
+        "xy_data_sha256": _stable_json_sha256({"x": x_values, "y": y_values}),
     }
 
 
-def _read_explicit_plot_x_datasets(
+def _read_explicit_plot_mappings(
     operations: object,
     graph_page: str,
     layer_index: int,
     plot_dataset_names: list[str],
     initial_payload: dict[str, object],
-) -> dict[tuple[int, str], str]:
+) -> dict[tuple[int, str], dict[str, object]]:
     payloads = [initial_payload]
     for method_name in ("get_graph_plot_dataset_mappings", "get_graph_plot_xy_mappings"):
         method = getattr(operations, method_name, None)
@@ -1209,7 +1915,7 @@ def _read_explicit_plot_x_datasets(
         if getattr(result, "ok", False):
             payloads.append(dict(getattr(result, "payload", {}) or {}))
 
-    resolved: dict[tuple[int, str], str] = {}
+    resolved: dict[tuple[int, str], dict[str, object]] = {}
     for payload in payloads:
         for key in ("plot_x_dataset_names", "x_dataset_names"):
             x_names = payload.get(key)
@@ -1218,7 +1924,10 @@ def _read_explicit_plot_x_datasets(
             for index, value in enumerate(x_names, start=1):
                 if index <= len(plot_dataset_names) and str(value).strip():
                     dataset = plot_dataset_names[index - 1]
-                    resolved.setdefault((index, dataset), str(value).strip())
+                    resolved.setdefault(
+                        (index, dataset),
+                        {"plot_index": index, "x_dataset": str(value).strip(), "y_dataset": dataset},
+                    )
 
         for key in ("plot_mappings", "plot_dataset_mappings", "plot_xy_mappings", "plots"):
             mappings = payload.get(key)
@@ -1246,20 +1955,48 @@ def _read_explicit_plot_x_datasets(
                 if 1 <= plot_index <= len(plot_dataset_names):
                     dataset = plot_dataset_names[plot_index - 1]
                     if not y_dataset or y_dataset == dataset:
-                        resolved.setdefault((plot_index, dataset), x_dataset)
+                        candidate = {
+                            "plot_index": plot_index,
+                            "x_dataset": x_dataset,
+                            "y_dataset": dataset,
+                            "row_from": row.get("row_from"),
+                            "row_to": row.get("row_to"),
+                            "row_count": row.get("row_count"),
+                        }
+                        key = (plot_index, dataset)
+                        existing = resolved.get(key)
+                        candidate_has_range = (
+                            candidate.get("row_from") is not None
+                            and candidate.get("row_to") is not None
+                        )
+                        existing_has_range = bool(
+                            existing
+                            and existing.get("row_from") is not None
+                            and existing.get("row_to") is not None
+                        )
+                        if existing is None or (candidate_has_range and not existing_has_range):
+                            resolved[key] = candidate
     return resolved
 
 
 def _cached_worksheet_data(
     operations: object,
-    worksheet_cache: dict[str, dict[str, object]],
+    worksheet_cache: dict[tuple[str, int], dict[str, object]],
     book_name: str,
-    sheet_name: str,
+    sheet_index: int,
+    *,
+    default_sheet_name: str,
 ) -> dict[str, object]:
-    cached = worksheet_cache.get(book_name)
+    cache_key = (book_name, int(sheet_index))
+    cached = worksheet_cache.get(cache_key)
     if cached is not None:
         return {"ok": True, **cached}
-    read = _read_worksheet_data_with_fallback(operations, book_name, sheet_name)
+    read = _read_worksheet_data_with_fallback(
+        operations,
+        book_name,
+        str(int(sheet_index)),
+        default_sheet_name=default_sheet_name if int(sheet_index) == 1 else "",
+    )
     if not getattr(read, "ok", False):
         return {"ok": False, "message": str(getattr(read, "message", ""))}
     payload = dict(getattr(read, "payload", {}) or {})
@@ -1267,7 +2004,7 @@ def _cached_worksheet_data(
         "columns": list(payload.get("columns", [])),
         "sheet_name": str(payload.get("sheet_name") or ""),
     }
-    worksheet_cache[book_name] = cached
+    worksheet_cache[cache_key] = cached
     return {"ok": True, **cached}
 
 
@@ -1357,9 +2094,15 @@ def _x_column_from_origin_findx(
     return one_based - 1
 
 
-def _read_worksheet_data_with_fallback(operations: object, book_name: str, sheet_name: str) -> object:
+def _read_worksheet_data_with_fallback(
+    operations: object,
+    book_name: str,
+    sheet_name: str,
+    *,
+    default_sheet_name: str = "",
+) -> object:
     attempts: list[str] = []
-    for candidate in (sheet_name, ""):
+    for candidate in (sheet_name, default_sheet_name, ""):
         if candidate in attempts:
             continue
         attempts.append(candidate)
@@ -1392,7 +2135,29 @@ def _origin_column_letters(zero_based_index: int) -> str:
     return letters
 
 
+def _format_origin_dataset_reference(
+    book_name: str,
+    zero_based_column_index: int,
+    sheet_index: int,
+) -> str:
+    suffix = f"@{int(sheet_index)}" if int(sheet_index) != 1 else ""
+    return f"{book_name}_{_origin_column_letters(zero_based_column_index)}{suffix}"
+
+
+def _stable_json_sha256(value: object) -> str:
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
 def _json_safe_value(value: object) -> object:
+    if value is None:
+        return None
     try:
         number = float(value)
     except (TypeError, ValueError):

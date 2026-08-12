@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "product_key": "BET",
+      "data_type": "BET",
+      "source_opju": "templates/origin_styles/reference_opju/BET.opju",
+      "graph_page": "Graph5",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/BET_verified_20260813.otpu",
+      "binding_contract": "templates/origin_styles/binding_contracts/BET.json"
+    }
+  ]
+}

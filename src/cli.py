@@ -68,7 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     template_format = subparsers.add_parser(
         "template-format-products",
-        help="generate final OPJU/TIF/PNG products from current data using saved Origin format themes",
+        help=(
+            "generate OPJU/TIF/PNG products using project-local Origin runtime assets "
+            "without changing established legacy OTH behavior"
+        ),
     )
     template_format.add_argument("--pairing", type=Path, required=True, help="OPJU/data pairing plan JSON")
     template_format.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
@@ -82,9 +85,19 @@ def build_parser() -> argparse.ArgumentParser:
     template_source.add_argument(
         "--asset-only",
         action="store_true",
-        help="use only project-local Origin style assets and skip all external template discovery and preview export",
+        help=(
+            "use only project-local runtime style assets (legacy accepted OTH assets or "
+            "independently validated replacements); skip external template discovery and preview export"
+        ),
     )
-    template_source.add_argument("--exemplar-driven", action="store_true", help="use the OPJU selected in the pairing plan for each data type instead of project-local .oth style assets")
+    template_source.add_argument(
+        "--exemplar-driven",
+        action="store_true",
+        help=(
+            "explicit baseline/diagnostic mode: replace data in an isolated copy of the reviewed "
+            "pairing-plan OPJU; this remains runtime-OPJU-dependent"
+        ),
+    )
     template_format.add_argument("--compact-output", action="store_true", help="write deliverables under products/<type> with minimal top-level output folders")
     template_format.add_argument("--only-type", help="run template-format generation for one product type first, for example XRD")
     template_format.add_argument(
@@ -98,7 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     origin_style_assets = subparsers.add_parser(
         "export-origin-style-assets",
-        help="export project-local Origin .oth runtime themes and .otpu harvest records",
+        help="harvest quarantined Origin style candidates for independent replay validation",
     )
     origin_style_assets.add_argument("--run-root", type=Path, help="accepted template-format run root to harvest")
     origin_style_assets.add_argument("--template-plan", type=Path, help="JSON plan with multiple template OPJU items to harvest")
@@ -107,11 +120,18 @@ def build_parser() -> argparse.ArgumentParser:
     origin_style_assets.add_argument("--data-type", help="data type label for --template-opju; defaults to --product-key")
     origin_style_assets.add_argument("--graph-page", help="graph page to save from --template-opju, for example Graph4")
     origin_style_assets.add_argument("--asset-root", type=Path, help="style asset root; defaults to templates/origin_styles")
-    origin_style_assets.add_argument("--with-origin", action="store_true", help="launch isolated Origin and create .oth files")
+    origin_style_assets.add_argument(
+        "--with-origin",
+        action="store_true",
+        help="launch isolated Origin and create candidate assets; this does not validate them for runtime use",
+    )
 
     origin_style_replay = subparsers.add_parser(
         "origin-style-asset-replay",
-        help="export source-template and project-local asset graph previews and compare them pixel-by-pixel",
+        help=(
+            "diagnostic style replay; supports explicit fresh-project same-data OTPU validation "
+            "but never promotes an asset or substitutes for manual preview"
+        ),
     )
     origin_style_replay.add_argument("--template-plan", type=Path, required=True, help="JSON plan with template OPJU items")
     origin_style_replay.add_argument("--output-dir", type=Path, required=True, help="single output folder for replay products")

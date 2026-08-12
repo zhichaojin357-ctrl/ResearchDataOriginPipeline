@@ -2,7 +2,7 @@
   "schema_version": 2,
   "generated_at": "2026-07-06T09:14:15",
   "asset_root": "templates/origin_styles",
-  "origin_dependency_boundary": "Project-local .oth Graph Themes store copied Origin graph formats, .otpu Graph Templates preserve complex graph-layer structure when needed, JSON snapshots store readback plot colours and key numeric style values, and reference_opju/*.opju stores reviewed complex templates that require exact multi-layer/data-replacement reuse. Product runs use these project-local assets without requiring external template OPJU files.",
+  "origin_dependency_boundary": "Legacy accepted .oth themes remain compatibility runtime assets for data types that have not yet been migrated. Historical batch-derived .otpu files are quarantined and are not runtime fallbacks. A detached replacement asset may be promoted only after a fresh-project replay uses the exact same per-plot X/Y data and mappings, saves and reopens the generated OPJU, exports a native 600 dpi TIFF, has zero decoded-pixel difference, and passes manual preview. BET is the first independently validated .otpu runtime asset.",
   "assets": [
     {
       "product_key": "BET",
@@ -14,22 +14,28 @@
       "reference_preview_png": "",
       "template_preview_comparison_png": "",
       "preview_rms": null,
-      "source_mode": "direct_fdrive_template_opju",
-      "graph_template": "graph_templates/BET.otpu",
+      "source_mode": "individually_regenerated_from_reviewed_reference_opju",
+      "format_theme_role": "quarantined_nonruntime",
+      "historical_graph_template": "graph_templates/BET.otpu",
+      "historical_graph_template_status": "quarantined_unvalidated",
+      "graph_template": "graph_templates/BET_verified_20260813.otpu",
+      "binding_contract": "binding_contracts/BET.json",
+      "runtime_validation_evidence": "validation_evidence/BET_verified_20260813.json",
+      "validation_plan": "validation_plans/BET_verified_20260813.json",
       "style_snapshot": "snapshots/BET.json",
       "data_snapshot": "data_snapshots/BET.json",
       "template_opju": "reference_opju/BET.opju",
-      "asset_kind": "oth",
-      "sha256": "9215905034376f090021267ec7e525f1c4bd387bba77780689b37ad7eeab32cd",
-      "file_size_bytes": 22036,
+      "asset_kind": "otpu",
+      "sha256": "790996592db6f24dbda390aed56ff5a7b4bdddfab8649692836eab06df239545",
+      "file_size_bytes": 52229,
       "expected_layer_count": 1,
       "expected_plot_count": 6,
-      "origin_version": "",
-      "origin_build": "",
-      "pipeline_git_commit": "",
-      "harvested_at": "2026-07-06T09:14:15",
+      "origin_version": "10.3",
+      "origin_build": "197",
+      "pipeline_git_commit": "1590826",
+      "harvested_at": "2026-08-13T00:44:44.1611010+08:00",
       "source_opju_hash": "90dccbf42a7addb8b4e13f425a28df988177bd29fd95864ed0f402de630c9d24",
-      "exact_pixel_match": null,
+      "exact_pixel_match": true,
       "file_integrity": {
         "format_theme": {
           "kind": "oth",
@@ -38,8 +44,23 @@
         },
         "graph_template": {
           "kind": "otpu",
-          "sha256": "cb1f940eff85cd695617378103e99785f5f95b46f0a5d27694ae332ad98b1e91",
-          "size_bytes": 52224
+          "sha256": "790996592db6f24dbda390aed56ff5a7b4bdddfab8649692836eab06df239545",
+          "size_bytes": 52229
+        },
+        "binding_contract": {
+          "kind": "json",
+          "sha256": "ce47649469e85c7ea7149771418399171a88411ecc111fd405e4d8d80af93ff3",
+          "size_bytes": 2023
+        },
+        "runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "30f166c9a3d77cd04629ade3f17f8522e9b3d31db9c2e40f0595d48ffc818dd2",
+          "size_bytes": 3022
+        },
+        "validation_plan": {
+          "kind": "json",
+          "sha256": "50a9c1598160b915613546254d9cbf08b94fd568796bf7dd33a580c2876d3f1c",
+          "size_bytes": 429
         },
         "style_snapshot": {
           "kind": "json",
@@ -56,6 +77,32 @@
           "sha256": "90dccbf42a7addb8b4e13f425a28df988177bd29fd95864ed0f402de630c9d24",
           "size_bytes": 210857
         }
+      },
+      "runtime_validation": {
+        "status": "accepted",
+        "asset_kind": "otpu",
+        "asset_path": "graph_templates/BET_verified_20260813.otpu",
+        "asset_sha256": "790996592db6f24dbda390aed56ff5a7b4bdddfab8649692836eab06df239545",
+        "reference_opju_sha256": "90dccbf42a7addb8b4e13f425a28df988177bd29fd95864ed0f402de630c9d24",
+        "binding_contract_sha256": "ce47649469e85c7ea7149771418399171a88411ecc111fd405e4d8d80af93ff3",
+        "evidence_sha256": "30f166c9a3d77cd04629ade3f17f8522e9b3d31db9c2e40f0595d48ffc818dd2",
+        "comparison_scope": "fresh_project_same_data",
+        "fresh_project_verified": true,
+        "style_asset_only": true,
+        "same_data_verified": true,
+        "reference_plot_values_sha256": "8481e57ebf645083685c49d12c4865ccf5cdb8ebac48fcf80144dc6307334986",
+        "generated_plot_values_sha256": "8481e57ebf645083685c49d12c4865ccf5cdb8ebac48fcf80144dc6307334986",
+        "reference_plot_mapping_sha256": "ffd5f35978e12c48684777691372a214b124b1eba923d8b957112ef21d974c53",
+        "generated_plot_mapping_sha256": "ffd5f35978e12c48684777691372a214b124b1eba923d8b957112ef21d974c53",
+        "saved_reopened": true,
+        "native_tif_600dpi_verified": true,
+        "manual_preview_passed": true,
+        "axis_title_hard_gate": true,
+        "exact_pixel_match": true,
+        "same_size": true,
+        "changed_pixels": 0,
+        "rms": 0.0,
+        "reference_opju_self_replay": false
       }
     },
     {

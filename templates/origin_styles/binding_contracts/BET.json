@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "BET",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "90dccbf42a7addb8b4e13f425a28df988177bd29fd95864ed0f402de630c9d24",
+      "graph_page": "Graph5",
+      "source_series_count": 6,
+      "source_schema": {
+        "status": "ready",
+        "layout": "paired_xy_columns",
+        "x_header_suffix": "_relative_pressure_p_p0",
+        "y_header_suffix": "_quantity_adsorbed_cm3_g_stp",
+        "transform": "identity_numeric_copy",
+        "identity_rule": "Each X/Y header pair must have the same nonempty series prefix; prefixes must be unique."
+      },
+      "plots": [
+        {"layer_index": 1, "plot_index": 1, "x_dataset": "Isotherm_A", "y_dataset": "Isotherm_B", "row_from": 1, "row_to": 32, "source_series_index": 1, "semantic_role": "material_1_adsorption"},
+        {"layer_index": 1, "plot_index": 2, "x_dataset": "Isotherm_C", "y_dataset": "Isotherm_D", "row_from": 1, "row_to": 32, "source_series_index": 2, "semantic_role": "material_1_desorption"},
+        {"layer_index": 1, "plot_index": 3, "x_dataset": "Isotherm_E", "y_dataset": "Isotherm_F", "row_from": 1, "row_to": 33, "source_series_index": 3, "semantic_role": "material_2_adsorption"},
+        {"layer_index": 1, "plot_index": 4, "x_dataset": "Isotherm_G", "y_dataset": "Isotherm_H", "row_from": 1, "row_to": 33, "source_series_index": 4, "semantic_role": "material_2_desorption"},
+        {"layer_index": 1, "plot_index": 5, "x_dataset": "Isotherm_I", "y_dataset": "Isotherm_J", "row_from": 1, "row_to": 33, "source_series_index": 5, "semantic_role": "material_3_adsorption"},
+        {"layer_index": 1, "plot_index": 6, "x_dataset": "Isotherm_K", "y_dataset": "Isotherm_L", "row_from": 1, "row_to": 33, "source_series_index": 6, "semantic_role": "material_3_desorption"}
+      ]
+    }
+  ]
+}

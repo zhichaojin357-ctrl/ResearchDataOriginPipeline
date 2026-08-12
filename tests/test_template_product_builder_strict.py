@@ -20,12 +20,14 @@ from src.core.template_product_builder import (
     _template_candidate_files,
     _template_display_path,
     _template_mott_candidate_files,
+    _template_independent_xy_table,
     _template_photocurrent_candidate_files,
     _template_pl_candidate_files,
     _template_same_x_overlay_table,
     _template_xy_series_label,
     _force_template_axis_titles_visible,
     _infer_template_epr_reference_dir,
+    _load_independent_style_replay_evidence,
     _position_template_axis_titles_outside_plot,
     _preferred_template_xps_graph_name,
     _relevant_strict_readback_values,
@@ -53,6 +55,41 @@ from src.core.template_product_common import ProductContext, TargetPairing
 from src.core.xps_heterojunction import XpsFitRecord
 from src.origin.style_mimic import OpjuStyleSnapshot
 from src.origin.user_style import ResolvedPlotStyle
+
+
+def _validated_style_entry(
+    product_key: str,
+    graph_page: str,
+    format_theme: str,
+    **extra: object,
+) -> dict[str, object]:
+    return {
+        "product_key": product_key,
+        "data_type": product_key,
+        "status": "accepted",
+        "graph_page": graph_page,
+        "format_theme": format_theme,
+        "runtime_validation": {
+            "status": "accepted",
+            "comparison_scope": "fresh_project_same_data",
+            "fresh_project_verified": True,
+            "style_asset_only": True,
+            "same_data_verified": True,
+            "reference_plot_values_sha256": "1" * 64,
+            "generated_plot_values_sha256": "1" * 64,
+            "reference_plot_mapping_sha256": "2" * 64,
+            "generated_plot_mapping_sha256": "2" * 64,
+            "saved_reopened": True,
+            "native_tif_600dpi_verified": True,
+            "manual_preview_passed": True,
+            "exact_pixel_match": True,
+            "same_size": True,
+            "changed_pixels": 0,
+            "rms": 0,
+            "reference_opju_self_replay": False,
+        },
+        **extra,
+    }
 
 
 class _FakeOriginOps:
@@ -88,8 +125,37 @@ def test_reference_opju_self_replay_cannot_validate_saved_style_asset(
     reason = str(result["reason"])
     assert "status is not matched" in reason
     assert "style_asset_validated is false" in reason
-    assert "comparison_scope is not independent_theme_application" in reason
+    assert "comparison_scope is not fresh_project_same_data" in reason
     assert "source and generated OPJU hashes are identical" in reason
+
+
+def test_checked_in_bet_otpu_evidence_is_manifest_bound_and_tamper_detected(
+    tmp_path: Path,
+) -> None:
+    project = Path(__file__).resolve().parents[1]
+    evidence = (
+        project
+        / "templates"
+        / "origin_styles"
+        / "validation_evidence"
+        / "BET_verified_20260813.json"
+    )
+
+    loaded = _load_independent_style_replay_evidence(project, evidence)
+
+    assert loaded["bet"]["ok"] is True
+    assert loaded["bet"]["asset_generation_mode"] == "new_graph_plus_verified_otpu"
+
+    tampered = tmp_path / "BET_tampered.json"
+    payload = json.loads(evidence.read_text(encoding="utf-8"))
+    payload["pixels"]["changed_pixels"] = 1
+    tampered.write_text(json.dumps(payload), encoding="utf-8")
+
+    rejected = _load_independent_style_replay_evidence(project, tampered)
+
+    assert rejected["bet"]["ok"] is False
+    assert "changed-pixel count is not zero" in rejected["bet"]["reason"]
+    assert "validation evidence does not match" in rejected["bet"]["reason"]
 
 
 def test_template_candidate_pool_excludes_f_drive_xps_templates(tmp_path: Path) -> None:
@@ -159,18 +225,16 @@ def test_project_style_asset_candidate_does_not_preseed_manifest_preview_as_runt
     (style_root / "manifest.json").write_text(
         json.dumps(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "assets": [
-                    {
-                        "product_key": "Raman",
-                        "data_type": "Raman",
-                        "status": "accepted",
-                        "graph_page": "Graph4",
-                        "format_theme": "format_themes/Raman.oth",
-                        "reference_preview_png": "previews/Raman_reference.png",
-                        "template_plot_count": 3,
-                        "layer_count": 1,
-                    }
+                    _validated_style_entry(
+                        "Raman",
+                        "Graph4",
+                        "format_themes/Raman.oth",
+                        reference_preview_png="previews/Raman_reference.png",
+                        template_plot_count=3,
+                        layer_count=1,
+                    )
                 ],
             }
         ),
@@ -198,16 +262,14 @@ def test_project_style_asset_candidate_uses_snapshot_plot_count_when_manifest_om
     (style_root / "manifest.json").write_text(
         json.dumps(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "assets": [
-                    {
-                        "product_key": "BET",
-                        "data_type": "BET",
-                        "status": "accepted",
-                        "graph_page": "Graph5",
-                        "format_theme": "format_themes/BET.oth",
-                        "style_snapshot": "snapshots/BET.json",
-                    }
+                    _validated_style_entry(
+                        "BET",
+                        "Graph5",
+                        "format_themes/BET.oth",
+                        style_snapshot="snapshots/BET.json",
+                    )
                 ],
             }
         ),
@@ -232,17 +294,15 @@ def test_project_style_asset_prefers_saved_format_theme_over_copied_opju(tmp_pat
     (style_root / "manifest.json").write_text(
         json.dumps(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "assets": [
-                    {
-                        "product_key": "photocurrent",
-                        "data_type": "photocurrent",
-                        "status": "accepted",
-                        "graph_page": "Graph1",
-                        "format_theme": "format_themes/photocurrent.oth",
-                        "template_opju": "reference_opju/photocurrent.opju",
-                        "template_plot_count": 3,
-                    }
+                    _validated_style_entry(
+                        "photocurrent",
+                        "Graph1",
+                        "format_themes/photocurrent.oth",
+                        template_opju="reference_opju/photocurrent.opju",
+                        template_plot_count=3,
+                    )
                 ],
             }
         ),
@@ -891,9 +951,67 @@ def test_template_preview_comparison_resolves_run_relative_artifacts(tmp_path: P
     assert audit["strict_match_count"] == 1
     assert audit["items"][0]["ready"] is True
     assert audit["items"][0]["strict_visual_match"] is True
+    assert audit["items"][0]["strict_visual_match_deprecated"] is True
+    assert audit["items"][0]["style_data_binding"]["status"] == "matched"
+    assert audit["items"][0]["same_data_exact"]["status"] == "not_evaluated"
+    assert audit["items"][0]["current_product_pixel_exact"]["claim_allowed"] is False
+    assert audit["items"][0]["one_to_one_exact_match"] is False
     assert audit["items"][0]["reference_preview_png"] == "BET/reference_exports/BET_reference.png"
     assert audit["items"][0]["generated_preview_png"] == "BET/figures_preview/BET_preview.png"
     assert audit["items"][0]["side_by_side_png"] == "reports/template_preview_comparisons/BET_template_vs_generated.png"
+
+
+def test_validated_otpu_current_data_rms_is_review_signal_not_style_failure(
+    tmp_path: Path,
+) -> None:
+    product_root = tmp_path / "products" / "BET"
+    product_root.mkdir(parents=True)
+    reference = product_root / "reference.png"
+    generated = product_root / "generated.png"
+    metadata = product_root / "metadata.json"
+    Image.new("RGB", (32, 24), "white").save(reference)
+    Image.new("RGB", (32, 24), "black").save(generated)
+    metadata.write_text(
+        json.dumps(
+            {
+                "template_plot_count": 1,
+                "origin_status": {
+                    "template_format_plan": {"mode": "verified_graph_template"},
+                    "origin_processing": {
+                        "method": "fresh_graph_verified_otpu_explicit_xy"
+                    },
+                    "product_style": {"plot_count": 1},
+                    "conformance": {"compared_fields": 4, "matched_fields": 4},
+                },
+                "source_files": ["raw1.csv"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    product = {
+        "type": "BET",
+        "status": "accepted",
+        "visual_acceptance": True,
+        "template_format_mode": "verified_graph_template",
+        "origin_processing_method": "fresh_graph_verified_otpu_explicit_xy",
+        "reference_preview_png": str(reference),
+        "preview_png": str(generated),
+        "metadata": str(metadata),
+    }
+
+    audit = _write_template_preview_comparison(
+        tmp_path,
+        [product],
+        style_replay_evidence={"bet": {"ok": True, "reason": "validated"}},
+    )
+
+    item = audit["items"][0]
+    assert item["preview_rms"] > 35.0
+    assert item["style_data_binding"]["status"] == "matched"
+    assert item["style_data_binding"]["preview_review_is_diagnostic_only"] is True
+    assert item["style_data_binding"]["review_reasons"]
+    assert item["strict_visual_match"] is True
+    assert product["status"] == "accepted"
     report = (tmp_path / "reports" / "template_preview_comparison.json").read_text(encoding="utf-8")
     assert str(tmp_path) not in report
 
@@ -952,6 +1070,29 @@ def test_template_overlay_table_unions_x_grid_without_truncating_longer_series()
     assert [row[0] for row in rows] == [0.0, 0.5, 1.0]
     assert rows[1] == [0.5, 5.0, 5.0]
     assert rows[2] == [1.0, 10.0, 20.0]
+
+
+def test_template_independent_xy_table_preserves_order_and_does_not_interpolate() -> None:
+    headers, rows = _template_independent_xy_table(
+        "relative_pressure_p_p0",
+        "quantity_adsorbed_cm3_g_stp",
+        [
+            ("sample_adsorption", [[0.1, 10.0], [0.9, 90.0]]),
+            ("sample_desorption", [[0.95, 95.0], [0.4, 40.0], [0.2, 20.0]]),
+        ],
+    )
+
+    assert headers == [
+        "sample_adsorption_relative_pressure_p_p0",
+        "sample_adsorption_quantity_adsorbed_cm3_g_stp",
+        "sample_desorption_relative_pressure_p_p0",
+        "sample_desorption_quantity_adsorbed_cm3_g_stp",
+    ]
+    assert rows == [
+        [0.1, 10.0, 0.95, 95.0],
+        [0.9, 90.0, 0.4, 40.0],
+        [None, None, 0.2, 20.0],
+    ]
 
 
 def test_template_bet_series_label_matches_template_short_names() -> None:

@@ -160,6 +160,12 @@ def quote_origin_text(value: object) -> str:
     return quote_labtalk(origin_chemical_subscripts(value))
 
 
+def quote_origin_markup(value: object) -> str:
+    """Escape a LabTalk string without doubling Origin rich-text markup."""
+
+    return str(value or "").replace('"', '\\"').replace("\r", " ").replace("\n", " ")
+
+
 def to_origin_path(path: str | Path) -> str:
     return str(path).replace("\\", "/")
 
@@ -432,6 +438,109 @@ class OriginOperations:
             {"graph_name": graph_name, "layer_index": int(layer_index), "plot_dataset_names": names},
         )
 
+    def get_graph_plot_dataset_mappings(self, graph_name: str, layer_index: int = 1) -> OperationResult:
+        """Read every plot's actual X/Y datasets from the active Origin layer.
+
+        ``DataPlot.Name`` exposes only the plotted Y dataset.  That is not
+        enough for templates containing independent X/Y pairs or datasets on
+        later worksheet sheets.  ``range -wx/-wy`` resolves the actual plot
+        datasets and ``nameof(range)$`` preserves an ``@sheet`` creation-index
+        suffix where applicable.  This path is used because direct
+        ``nameof(plotdata(...))$`` assignment is not evaluated reliably by the
+        installed Origin COM/LabTalk bridge.
+        """
+
+        layer = self._graph_layer(graph_name, layer_index)
+        if not layer:
+            return OperationResult(False, f"Graph layer not found: [{graph_name}]{int(layer_index)}")
+        graph_reference = str(graph_name).strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", graph_reference):
+            return OperationResult(False, "Graph page has an unsafe internal name for plot-range readback")
+        data_plots = layer.DataPlots
+        activated = self.run_labtalk(
+            f'win -a "{quote_labtalk(graph_name)}"; layer -s {int(layer_index)};'
+        )
+        if not activated.ok:
+            return OperationResult(
+                False,
+                f"Could not activate graph layer: [{graph_name}]{int(layer_index)}",
+            )
+
+        mappings: list[dict[str, object]] = []
+        x_names: list[str] = []
+        y_names: list[str] = []
+        failure_count = 0
+        for zero_based_index in range(int(data_plots.Count)):
+            plot_index = zero_based_index + 1
+            expected_y = str(data_plots.Item(zero_based_index).Name)
+            script = (
+                'string __rdop_plot_x$=""; string __rdop_plot_y$=""; '
+                f'range -wx __rdop_plot_x_range=[{graph_reference}]{int(layer_index)}!{plot_index}; '
+                f'range -wy __rdop_plot_y_range=[{graph_reference}]{int(layer_index)}!{plot_index}; '
+                f'range __rdop_plot_range=[{graph_reference}]{int(layer_index)}!{plot_index}; '
+                '__rdop_plot_x$=nameof(__rdop_plot_x_range)$; '
+                '__rdop_plot_y$=nameof(__rdop_plot_y_range)$; '
+                '__rdop_plot_begin=nan; __rdop_plot_end=nan; '
+                'get __rdop_plot_range -b __rdop_plot_begin; '
+                'get __rdop_plot_range -e __rdop_plot_end;'
+            )
+            executed = self.run_labtalk(script)
+            if executed.ok:
+                x_dataset = str(self.app.LTStr("__rdop_plot_x$") or "").strip()
+                y_dataset = str(self.app.LTStr("__rdop_plot_y$") or "").strip()
+                try:
+                    row_from = int(round(float(self.app.LTVar("__rdop_plot_begin"))))
+                    row_to = int(round(float(self.app.LTVar("__rdop_plot_end"))))
+                except (TypeError, ValueError, OverflowError):
+                    row_from = 0
+                    row_to = -1
+            else:
+                x_dataset = ""
+                y_dataset = ""
+                row_from = 0
+                row_to = -1
+            dataplot_name_matches = bool(y_dataset and y_dataset == expected_y)
+            ready = bool(
+                x_dataset
+                and y_dataset
+                and dataplot_name_matches
+                and row_from >= 1
+                and row_to >= row_from
+            )
+            if not ready:
+                failure_count += 1
+            mappings.append(
+                {
+                    "plot_index": plot_index,
+                    "x_dataset": x_dataset,
+                    "y_dataset": y_dataset,
+                    "dataplot_name": expected_y,
+                    "dataplot_name_matches": dataplot_name_matches,
+                    "row_from": row_from,
+                    "row_to": row_to,
+                    "row_count": row_to - row_from + 1 if ready else 0,
+                    "status": "ready" if ready else "mapping_read_failed",
+                }
+            )
+            x_names.append(x_dataset)
+            y_names.append(y_dataset)
+
+        return OperationResult(
+            True,
+            "Graph plot X/Y dataset mappings read",
+            {
+                "graph_name": graph_name,
+                "layer_index": int(layer_index),
+                "plot_count": int(data_plots.Count),
+                "mapping_failure_count": failure_count,
+                "plot_x_dataset_names": x_names,
+                "plot_y_dataset_names": y_names,
+                "plot_dataset_names": y_names,
+                "plot_mappings": mappings,
+                "mapping_source": "Origin range -wx/-wy plus nameof(range)$",
+            },
+        )
+
     def _graph_layer(self, graph_name: str, layer_index: int = 1) -> Any:
         graph = str(graph_name)
         index = int(layer_index)
@@ -448,36 +557,129 @@ class OriginOperations:
         return None
 
     def replace_template_workbook_columns(self, workbook_columns: dict[str, dict[int, Iterable[float]]]) -> OperationResult:
-        updated: list[dict[str, object]] = []
-        for book_name, columns in workbook_columns.items():
-            if not book_name or not columns:
-                continue
-            target = f"[{book_name}]Sheet1"
-            for column_index, values in sorted(columns.items()):
-                column_values = [float(value) for value in values]
-                write_mode = self._put_template_workbook_column(target, column_values, int(column_index))
-                updated.append(
-                    {
-                        "book_name": str(book_name),
-                        "column_index": int(column_index),
-                        "rows": len(column_values),
-                        "write_mode": write_mode,
-                    }
-                )
-        if not updated:
-            return OperationResult(False, "No template workbook columns were provided")
-        return OperationResult(True, "Template workbook columns replaced", {"updated_columns": updated})
+        return self.replace_template_worksheet_columns(
+            {
+                str(book_name): {"Sheet1": columns}
+                for book_name, columns in workbook_columns.items()
+            }
+        )
 
-    def _put_template_workbook_column(self, target: str, column_values: list[float], column_index: int) -> str:
+    def replace_template_worksheet_columns(
+        self,
+        worksheet_columns: dict[str, dict[str | int, dict[int, Iterable[float]]]],
+    ) -> OperationResult:
+        """Replace explicitly addressed worksheet columns without guessing a sheet.
+
+        Sheet references may be worksheet names or Origin creation indices.  A
+        creation index is necessary for dataset names such as ``Book1_G@2``.
+        """
+
+        updated: list[dict[str, object]] = []
+        for book_name, sheets in worksheet_columns.items():
+            if not book_name or not sheets:
+                continue
+            for sheet_reference, columns in sheets.items():
+                if not columns:
+                    continue
+                sheet = str(sheet_reference).strip()
+                if not sheet:
+                    continue
+                target = f"[{book_name}]{sheet}"
+                for column_index, values in sorted(columns.items()):
+                    column_values = [_origin_numeric_or_missing(value) for value in values]
+                    write_mode = self._put_template_workbook_column(target, column_values, int(column_index))
+                    updated.append(
+                        {
+                            "book_name": str(book_name),
+                            "sheet_reference": sheet,
+                            "column_index": int(column_index),
+                            "rows": len(column_values),
+                            "write_mode": write_mode,
+                        }
+                    )
+        if not updated:
+            return OperationResult(False, "No template worksheet columns were provided")
+        return OperationResult(True, "Template worksheet columns replaced", {"updated_columns": updated})
+
+    def replace_template_worksheet_ranges(
+        self,
+        worksheet_ranges: Iterable[dict[str, object]],
+    ) -> OperationResult:
+        """Replace exact one-based worksheet row ranges used by template plots."""
+
+        updated: list[dict[str, object]] = []
+        for raw in worksheet_ranges:
+            book_name = str(raw.get("book_name") or "").strip()
+            sheet_reference = str(raw.get("sheet_reference") or raw.get("sheet_index") or "").strip()
+            try:
+                column_index = int(raw.get("column_index"))
+                row_from = int(raw.get("row_from"))
+            except (TypeError, ValueError):
+                return OperationResult(False, "Template worksheet range has invalid column/row indices")
+            values = raw.get("values")
+            if (
+                not book_name
+                or not sheet_reference
+                or column_index < 0
+                or row_from < 1
+                or not isinstance(values, (list, tuple))
+                or not values
+            ):
+                return OperationResult(False, "Template worksheet range is incomplete")
+            column_values = [_origin_numeric_or_missing(value) for value in values]
+            row_to = row_from + len(column_values) - 1
+            declared_row_to = raw.get("row_to")
+            if declared_row_to is not None:
+                try:
+                    expected_row_to = int(declared_row_to)
+                except (TypeError, ValueError):
+                    return OperationResult(False, "Template worksheet range has an invalid row_to")
+                if expected_row_to != row_to:
+                    return OperationResult(False, "Template worksheet range length does not match row_from/row_to")
+            target = f"[{book_name}]{sheet_reference}"
+            write_mode = self._put_template_workbook_column(
+                target,
+                column_values,
+                column_index,
+                row_start=row_from - 1,
+            )
+            updated.append(
+                {
+                    "book_name": book_name,
+                    "sheet_reference": sheet_reference,
+                    "column_index": column_index,
+                    "row_from": row_from,
+                    "row_to": row_to,
+                    "rows": len(column_values),
+                    "write_mode": write_mode,
+                }
+            )
+        if not updated:
+            return OperationResult(False, "No template worksheet ranges were provided")
+        return OperationResult(True, "Template worksheet ranges replaced", {"updated_ranges": updated})
+
+    def _put_template_workbook_column(
+        self,
+        target: str,
+        column_values: list[float],
+        column_index: int,
+        *,
+        row_start: int = 0,
+    ) -> str:
         try:
-            self.app.PutWorksheet(target, column_values, 0, column_index)
+            self.app.PutWorksheet(target, column_values, int(row_start), column_index)
             return "single"
         except Exception:
             if len(column_values) <= 1:
                 raise
             chunk_size = 512
-            for row_start in range(0, len(column_values), chunk_size):
-                self.app.PutWorksheet(target, column_values[row_start : row_start + chunk_size], row_start, column_index)
+            for chunk_offset in range(0, len(column_values), chunk_size):
+                self.app.PutWorksheet(
+                    target,
+                    column_values[chunk_offset : chunk_offset + chunk_size],
+                    int(row_start) + chunk_offset,
+                    column_index,
+                )
             return f"chunked_{chunk_size}"
 
     def import_csv_to_worksheet(self, file_path: str | Path, book_name: str = "", delimiter: str = ",") -> OperationResult:
@@ -543,6 +745,204 @@ class OriginOperations:
             template_arg = path.name
         graph = self.app.CreatePage(3, safe_origin_name(graph_name, "Graph"), template_arg)
         return OperationResult(True, "Graph created from template", {"graph_name": graph, "template_path": str(path)})
+
+    def create_graph_from_xy_pairs_template(
+        self,
+        graph_name: str,
+        template_path: str | Path,
+        data_book: str,
+        xy_ranges: Iterable[dict[str, object]],
+        *,
+        plot_type: str = "line+symbol",
+        rescale: bool = False,
+        legend: bool = False,
+    ) -> OperationResult:
+        """Create a fresh graph from one OTP/OTPU and explicit worksheet X/Y ranges.
+
+        Passing the absolute template path directly to ``plotxy`` loads the
+        complete graph-template format tree.  This preserves formatting that a
+        partial property replay cannot represent, including rich-text axis
+        titles, font sizes, legend geometry, plot holders, axes, and layout.
+        """
+
+        path = Path(template_path)
+        if not path.is_file() or path.suffix.casefold() not in {".otp", ".otpu"}:
+            return OperationResult(False, f"Graph template file not found or unsupported: {path}")
+        ptype = PLOT_TYPES.get(plot_type)
+        if ptype is None:
+            return OperationResult(False, f"Unsupported plot type: {plot_type}")
+        safe_graph = safe_origin_name(graph_name, "Graph")
+        safe_book = str(data_book).strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", safe_book):
+            return OperationResult(False, "Worksheet book has an unsafe internal name for template plotting")
+
+        rendered_ranges: list[str] = []
+        normalized_ranges: list[dict[str, int]] = []
+        for raw in xy_ranges:
+            if not isinstance(raw, dict):
+                return OperationResult(False, "Every template XY range must be an object")
+            try:
+                x_col = int(raw.get("x_col"))
+                y_col = int(raw.get("y_col"))
+                row_from = int(raw.get("row_from"))
+                row_to = int(raw.get("row_to"))
+            except (TypeError, ValueError):
+                return OperationResult(False, "Template XY range has nonnumeric column or row indices")
+            if min(x_col, y_col, row_from) < 1 or row_to < row_from:
+                return OperationResult(False, "Template XY range has invalid column or row bounds")
+            rendered_ranges.append(f"({x_col},{y_col}[{row_from}:{row_to}])")
+            normalized_ranges.append(
+                {
+                    "x_col": x_col,
+                    "y_col": y_col,
+                    "row_from": row_from,
+                    "row_to": row_to,
+                }
+            )
+        if not rendered_ranges:
+            return OperationResult(False, "No template XY ranges were provided")
+
+        activated = self.run_labtalk(f'win -a "{quote_labtalk(safe_book)}"; layer -s 1;')
+        if not activated.ok:
+            return OperationResult(False, f"Could not activate template data workbook: {safe_book}")
+        template = quote_labtalk(to_origin_path(path.resolve()))
+        command = (
+            f"plotxy iy:=({','.join(rendered_ranges)}) plot:={ptype} size:=-1 "
+            f"rescale:={1 if rescale else 0} legend:={1 if legend else 0} "
+            f'ogl:=[<new template:="{template}" name:="{quote_labtalk(safe_graph)}">];'
+        )
+        plotted = self.run_labtalk(command)
+        if not plotted.ok:
+            return OperationResult(
+                False,
+                f"Origin plotxy failed to create graph from template: {path.name}",
+                {"graph_name": safe_graph, "template_path": str(path)},
+            )
+        layer = self._graph_layer(safe_graph, 1)
+        if layer is None:
+            return OperationResult(
+                False,
+                "Origin plotxy returned success but the requested template graph was not created",
+                {"graph_name": safe_graph, "template_path": str(path)},
+            )
+        actual_plot_count = int(layer.DataPlots.Count)
+        if actual_plot_count != len(normalized_ranges):
+            return OperationResult(
+                False,
+                "Origin template graph plot count does not match the explicit XY ranges",
+                {
+                    "graph_name": safe_graph,
+                    "template_path": str(path),
+                    "expected_plot_count": len(normalized_ranges),
+                    "actual_plot_count": actual_plot_count,
+                },
+            )
+        return OperationResult(
+            True,
+            "Graph created from absolute template with explicit X/Y ranges",
+            {
+                "graph_name": safe_graph,
+                "template_path": str(path),
+                "plot_type": plot_type,
+                "xy_ranges": normalized_ranges,
+                "plot_count": actual_plot_count,
+            },
+        )
+
+    def get_worksheet_column_metadata(
+        self,
+        book_name: str,
+        column_indices: Iterable[int],
+    ) -> OperationResult:
+        """Read Origin column labels and designations through LabTalk variables."""
+
+        book = str(book_name).strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", book):
+            return OperationResult(False, "Worksheet book has an unsafe internal name")
+        activated = self.run_labtalk(f'win -a "{quote_labtalk(book)}"; layer -s 1;')
+        if not activated.ok:
+            return OperationResult(False, f"Could not activate worksheet book: {book}")
+        metadata: list[dict[str, object]] = []
+        for raw_index in column_indices:
+            try:
+                index = int(raw_index)
+            except (TypeError, ValueError):
+                return OperationResult(False, "Worksheet column index is not numeric")
+            if index < 1:
+                return OperationResult(False, "Worksheet column index must be one-based and positive")
+            script = (
+                f'string __rdop_col_lname$=wks.col{index}.lname$; '
+                f'string __rdop_col_unit$=wks.col{index}.unit$; '
+                f'string __rdop_col_comment$=wks.col{index}.comment$; '
+                f'__rdop_col_type=wks.col{index}.type;'
+            )
+            read = self.run_labtalk(script)
+            if not read.ok:
+                return OperationResult(False, f"Could not read worksheet column metadata: {book} col {index}")
+            try:
+                column_type = int(round(float(self.app.LTVar("__rdop_col_type"))))
+            except (TypeError, ValueError, OverflowError):
+                return OperationResult(False, f"Worksheet column type readback failed: {book} col {index}")
+            metadata.append(
+                {
+                    "column_index": index,
+                    "long_name": str(self.app.LTStr("__rdop_col_lname$") or ""),
+                    "unit": str(self.app.LTStr("__rdop_col_unit$") or ""),
+                    "comment": str(self.app.LTStr("__rdop_col_comment$") or ""),
+                    "type": column_type,
+                }
+            )
+        if not metadata:
+            return OperationResult(False, "No worksheet column indices were provided")
+        return OperationResult(
+            True,
+            "Worksheet column metadata read",
+            {"book_name": book, "columns": metadata},
+        )
+
+    def set_worksheet_column_metadata(
+        self,
+        book_name: str,
+        columns: Iterable[dict[str, object]],
+    ) -> OperationResult:
+        """Write labels while preserving Origin rich-text backslashes."""
+
+        book = str(book_name).strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", book):
+            return OperationResult(False, "Worksheet book has an unsafe internal name")
+        activated = self.run_labtalk(f'win -a "{quote_labtalk(book)}"; layer -s 1;')
+        if not activated.ok:
+            return OperationResult(False, f"Could not activate worksheet book: {book}")
+        updated: list[int] = []
+        for raw in columns:
+            if not isinstance(raw, dict):
+                return OperationResult(False, "Every worksheet metadata record must be an object")
+            try:
+                index = int(raw.get("column_index"))
+                column_type = int(raw.get("type"))
+            except (TypeError, ValueError):
+                return OperationResult(False, "Worksheet metadata has invalid column/type values")
+            if index < 1 or column_type not in {1, 2, 3, 4, 5, 6, 7}:
+                return OperationResult(False, "Worksheet metadata has unsupported column/type values")
+            long_name = quote_origin_markup(raw.get("long_name", ""))
+            unit = quote_origin_markup(raw.get("unit", ""))
+            comment = quote_origin_markup(raw.get("comment", ""))
+            written = self.run_labtalk(
+                f'wks.col{index}.lname$="{long_name}"; '
+                f'wks.col{index}.unit$="{unit}"; '
+                f'wks.col{index}.comment$="{comment}"; '
+                f'wks.col{index}.type={column_type};'
+            )
+            if not written.ok:
+                return OperationResult(False, f"Could not write worksheet column metadata: {book} col {index}")
+            updated.append(index)
+        if not updated:
+            return OperationResult(False, "No worksheet column metadata was provided")
+        return OperationResult(
+            True,
+            "Worksheet column metadata written",
+            {"book_name": book, "column_indices": updated},
+        )
 
     def save_graph_theme(
         self,
@@ -736,11 +1136,16 @@ class OriginOperations:
         if output_path.exists():
             output_path.unlink()
         graph = quote_labtalk(graph_name)
-        target = quote_labtalk(to_origin_path(output_path))
+        template_name = quote_labtalk(output_path.stem)
+        output_folder = quote_labtalk(to_origin_path(output_path.parent.resolve()))
         self.run_labtalk(f'win -a "{graph}";')
-        ok = self.run_labtalk(f'save -t {graph} "{target}";')
+        ok = self.run_labtalk(
+            f'template_saveas pg:={graph} category:="ResearchDataOrigin" '
+            f'template:="{template_name}" filepath:="{output_folder}" '
+            'emf:=0 bmp:=0 loadsys:=0;'
+        )
         if not ok.ok:
-            return OperationResult(False, f"Origin save -t failed for {graph_name}", {"file_path": str(output_path)})
+            return OperationResult(False, f"Origin template_saveas failed for {graph_name}", {"file_path": str(output_path)})
         if not _wait_for_file(output_path, timeout_seconds):
             return OperationResult(False, f"No graph template produced at {output_path}", {"file_path": str(output_path)})
         return OperationResult(True, "Graph template saved", {"graph_name": graph_name, "file_path": str(output_path)})
@@ -1212,6 +1617,14 @@ def _operation_float(value: object) -> float | None:
     except (TypeError, ValueError):
         return None
     return number if math.isfinite(number) else None
+
+
+def _origin_numeric_or_missing(value: object) -> float:
+    """Normalize an Origin worksheet value without dropping missing cells."""
+
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return math.nan
+    return float(value)
 
 
 def _write_plain_legend_labels(

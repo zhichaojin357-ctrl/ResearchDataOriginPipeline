@@ -29,6 +29,8 @@ REQUIRED_STYLE_PRODUCT_KEYS = (
 STYLE_ASSET_FILE_FIELDS = (
     "format_theme",
     "graph_template",
+    "binding_contract",
+    "runtime_validation_evidence",
     "style_snapshot",
     "data_snapshot",
     "template_opju",
@@ -37,6 +39,7 @@ STYLE_ASSET_FILE_FIELDS = (
     "reference_preview_png",
     "template_preview_comparison_png",
 )
+RUNTIME_VALIDATION_SCOPE = "fresh_project_same_data"
 
 
 @dataclass(frozen=True)
@@ -53,6 +56,11 @@ class OriginStyleAsset:
     source_run_root: str = ""
     preview_png: Path | None = None
     reference_preview_png: Path | None = None
+    runtime_asset_kind: str = ""
+    runtime_asset_path: Path | None = None
+    runtime_asset_sha256: str = ""
+    binding_contract_path: Path | None = None
+    runtime_validation_evidence_path: Path | None = None
 
     def to_dict(self, project_root: Path) -> dict[str, object]:
         return {
@@ -76,6 +84,26 @@ class OriginStyleAsset:
             "source_run_root": render_output_path(self.source_run_root) if self.source_run_root else "",
             "preview_png": _relative_or_absolute(self.preview_png, project_root / "templates" / "origin_styles") if self.preview_png else "",
             "reference_preview_png": _relative_or_absolute(self.reference_preview_png, project_root / "templates" / "origin_styles") if self.reference_preview_png else "",
+            "runtime_asset_kind": self.runtime_asset_kind,
+            "runtime_asset": _relative_or_absolute(
+                self.runtime_asset_path,
+                project_root / "templates" / "origin_styles",
+            )
+            if self.runtime_asset_path
+            else "",
+            "runtime_asset_sha256": self.runtime_asset_sha256,
+            "binding_contract": _relative_or_absolute(
+                self.binding_contract_path,
+                project_root / "templates" / "origin_styles",
+            )
+            if self.binding_contract_path
+            else "",
+            "runtime_validation_evidence": _relative_or_absolute(
+                self.runtime_validation_evidence_path,
+                project_root / "templates" / "origin_styles",
+            )
+            if self.runtime_validation_evidence_path
+            else "",
         }
 
 
@@ -228,15 +256,25 @@ def _validate_v2_style_asset_entry(
     resolved_files: dict[str, Path],
     failures: list[str],
 ) -> None:
-    primary = resolved_files.get("format_theme") or resolved_files.get("graph_template")
+    asset_kind = str(asset.get("asset_kind") or "").casefold().lstrip(".")
+    primary_field = {"oth": "format_theme", "otpu": "graph_template"}.get(
+        asset_kind
+    )
+    primary = resolved_files.get(primary_field) if primary_field else None
     required = ("asset_kind", "sha256", "file_size_bytes", "expected_layer_count", "expected_plot_count", "harvested_at", "source_mode")
     missing = [field for field in required if asset.get(field) in (None, "")]
     if missing:
         failures.append("manifest v2 fields missing: " + ", ".join(missing))
+    if primary_field is None and asset_kind:
+        failures.append(f"unsupported runtime asset_kind: {asset_kind}")
+    elif primary is None and primary_field is not None:
+        failures.append(
+            f"asset_kind {asset_kind} requires a readable {primary_field}"
+        )
     if primary is not None:
         _validate_recorded_file(primary, asset.get("sha256"), asset.get("file_size_bytes"), "primary asset", failures)
         expected_kind = primary.suffix.casefold().lstrip(".")
-        if str(asset.get("asset_kind") or "").casefold().lstrip(".") != expected_kind:
+        if asset_kind != expected_kind:
             failures.append(f"asset_kind does not match primary asset extension {expected_kind}")
 
     for field in ("expected_layer_count", "expected_plot_count"):
@@ -343,16 +381,25 @@ def resolve_origin_style_asset(
     project_root: Path,
     product_key: str,
     manifest_path: Path | None = None,
+    *,
+    require_runtime_validation: bool = False,
 ) -> OriginStyleAsset | None:
     manifest_file = origin_style_manifest_path(project_root, manifest_path)
     manifest = load_origin_style_manifest(project_root, manifest_file)
     base = manifest_file.parent
+    schema_version = int(manifest.get("schema_version", 1))
     requested = _style_key(product_key)
     for raw in manifest.get("assets", []):
         if not isinstance(raw, dict):
             continue
         keys = {str(raw.get("product_key", "")), str(raw.get("data_type", ""))}
         if requested not in {_style_key(key) for key in keys}:
+            continue
+        # Resolution is also used by harvest/replay diagnostics, which must be
+        # able to inspect quarantined candidates.  Formal product callers opt
+        # into this gate explicitly so diagnostics cannot accidentally promote
+        # their own input by making it unresolvable.
+        if require_runtime_validation and not origin_style_asset_runtime_validated(raw):
             continue
         format_theme = _resolve_local_manifest_path(base, raw.get("format_theme"))
         graph_template = _resolve_local_manifest_path(base, raw.get("graph_template"))
@@ -369,6 +416,44 @@ def resolve_origin_style_asset(
         data_snapshot = _resolve_local_manifest_path(base, raw.get("data_snapshot"))
         if data_snapshot is not None and not data_snapshot.is_file():
             data_snapshot = None
+        binding_contract = _resolve_local_manifest_path(base, raw.get("binding_contract"))
+        if binding_contract is not None and not binding_contract.is_file():
+            binding_contract = None
+        validation_evidence = _resolve_local_manifest_path(
+            base,
+            raw.get("runtime_validation_evidence"),
+        )
+        if validation_evidence is not None and not validation_evidence.is_file():
+            validation_evidence = None
+        runtime_kind, runtime_field, runtime_relative, runtime_sha256 = (
+            _runtime_style_asset_binding(raw)
+        )
+        runtime_asset = {
+            "format_theme": format_theme,
+            "graph_template": graph_template,
+        }.get(runtime_field)
+        if require_runtime_validation:
+            validation = raw.get("runtime_validation")
+            validation = validation if isinstance(validation, dict) else {}
+            if (
+                runtime_asset is None
+                or not runtime_asset.is_file()
+            ):
+                continue
+            if runtime_kind == "otpu" and (
+                not runtime_relative
+                or file_sha256(runtime_asset).casefold() != runtime_sha256
+                or template_opju is None
+                or file_sha256(template_opju).casefold()
+                != str(validation.get("reference_opju_sha256") or "").casefold()
+                or binding_contract is None
+                or file_sha256(binding_contract).casefold()
+                != str(validation.get("binding_contract_sha256") or "").casefold()
+                or validation_evidence is None
+                or file_sha256(validation_evidence).casefold()
+                != str(validation.get("evidence_sha256") or "").casefold()
+            ):
+                continue
         return OriginStyleAsset(
             product_key=str(raw.get("product_key") or product_key),
             data_type=str(raw.get("data_type") or product_key),
@@ -382,8 +467,161 @@ def resolve_origin_style_asset(
             source_run_root=str(raw.get("source_run_root") or manifest.get("source_run_root") or ""),
             preview_png=_resolve_local_manifest_path(base, raw.get("preview_png")),
             reference_preview_png=_resolve_local_manifest_path(base, raw.get("reference_preview_png")),
+            runtime_asset_kind=runtime_kind,
+            runtime_asset_path=runtime_asset,
+            runtime_asset_sha256=runtime_sha256,
+            binding_contract_path=binding_contract,
+            runtime_validation_evidence_path=validation_evidence,
         )
     return None
+
+
+def resolve_origin_runtime_style_asset(
+    project_root: Path,
+    product_key: str,
+    manifest_path: Path | None = None,
+) -> OriginStyleAsset | None:
+    """Resolve a runtime asset without changing legacy OTH behavior.
+
+    Existing OTH assets remain the compatibility path until their data type is
+    migrated and visually accepted. Detached graph templates are fail-closed:
+    an OTPU can run only after the exact asset/evidence binding passes.
+    """
+
+    candidate = resolve_origin_style_asset(
+        project_root,
+        product_key,
+        manifest_path,
+        require_runtime_validation=False,
+    )
+    if candidate is None:
+        return candidate
+    if candidate.runtime_asset_kind == "oth":
+        return candidate if candidate.status.casefold() == "accepted" else None
+    return resolve_origin_style_asset(
+        project_root,
+        product_key,
+        manifest_path,
+        require_runtime_validation=True,
+    )
+
+
+def origin_style_asset_runtime_validated(raw: dict[str, object]) -> bool:
+    """Return whether an asset passed an independent fresh-project replay.
+
+    File hashes and a reference-OPJU self replay are integrity evidence, not
+    proof that an .oth/.otpu asset can recreate the reviewed graph in a clean
+    Origin project.
+    """
+
+    validation = raw.get("runtime_validation")
+    if not isinstance(validation, dict):
+        return False
+    runtime_kind, runtime_field, runtime_path, runtime_sha256 = (
+        _runtime_style_asset_binding(raw)
+    )
+    if runtime_kind not in {"oth", "otpu"} or not runtime_field:
+        return False
+    # Existing graph templates remain quarantined by default.  OTPU runtime
+    # activation is deliberately narrow until each data type has its own
+    # fresh-project same-data replay and visual acceptance.
+    if runtime_kind == "otpu" and _style_key(str(raw.get("product_key") or "")) != "bet":
+        return False
+    integrity = raw.get("file_integrity")
+    runtime_record = integrity.get(runtime_field) if isinstance(integrity, dict) else None
+    reference_record = integrity.get("template_opju") if isinstance(integrity, dict) else None
+    binding_record = integrity.get("binding_contract") if isinstance(integrity, dict) else None
+    evidence_record = (
+        integrity.get("runtime_validation_evidence")
+        if isinstance(integrity, dict)
+        else None
+    )
+    validation_asset_kind = str(validation.get("asset_kind") or "").casefold().lstrip(".")
+    validation_asset_path = str(validation.get("asset_path") or "").replace("\\", "/")
+    validation_asset_sha256 = str(validation.get("asset_sha256") or "").casefold()
+    validation_reference_sha256 = str(
+        validation.get("reference_opju_sha256") or ""
+    ).casefold()
+    validation_binding_sha256 = str(
+        validation.get("binding_contract_sha256") or ""
+    ).casefold()
+    validation_evidence_sha256 = str(
+        validation.get("evidence_sha256") or ""
+    ).casefold()
+    strict_otpu_binding = runtime_kind == "otpu"
+    recorded_runtime_sha256 = str(
+        runtime_record.get("sha256") if isinstance(runtime_record, dict) else ""
+    ).casefold()
+    recorded_reference_sha256 = str(
+        reference_record.get("sha256") if isinstance(reference_record, dict) else ""
+    ).casefold()
+    recorded_binding_sha256 = str(
+        binding_record.get("sha256") if isinstance(binding_record, dict) else ""
+    ).casefold()
+    recorded_evidence_sha256 = str(
+        evidence_record.get("sha256") if isinstance(evidence_record, dict) else ""
+    ).casefold()
+    reference_values_hash = str(validation.get("reference_plot_values_sha256") or "").casefold()
+    generated_values_hash = str(validation.get("generated_plot_values_sha256") or "").casefold()
+    reference_mapping_hash = str(validation.get("reference_plot_mapping_sha256") or "").casefold()
+    generated_mapping_hash = str(validation.get("generated_plot_mapping_sha256") or "").casefold()
+    return (
+        str(raw.get("status") or "").casefold() == "accepted"
+        and str(validation.get("status") or "").casefold() == "accepted"
+        and (
+            not strict_otpu_binding
+            or (
+                validation_asset_kind == runtime_kind
+                and validation_asset_path == runtime_path
+                and re.fullmatch(r"[0-9a-f]{64}", runtime_sha256) is not None
+                and validation_asset_sha256
+                == runtime_sha256
+                == recorded_runtime_sha256
+                and re.fullmatch(r"[0-9a-f]{64}", validation_reference_sha256)
+                is not None
+                and validation_reference_sha256
+                == str(raw.get("source_opju_hash") or "").casefold()
+                == recorded_reference_sha256
+                and re.fullmatch(r"[0-9a-f]{64}", validation_binding_sha256)
+                is not None
+                and validation_binding_sha256 == recorded_binding_sha256
+                and re.fullmatch(r"[0-9a-f]{64}", validation_evidence_sha256)
+                is not None
+                and validation_evidence_sha256 == recorded_evidence_sha256
+            )
+        )
+        and str(validation.get("comparison_scope") or "").casefold()
+        == RUNTIME_VALIDATION_SCOPE
+        and validation.get("fresh_project_verified") is True
+        and validation.get("style_asset_only") is True
+        and validation.get("same_data_verified") is True
+        and re.fullmatch(r"[0-9a-f]{64}", reference_values_hash) is not None
+        and reference_values_hash == generated_values_hash
+        and re.fullmatch(r"[0-9a-f]{64}", reference_mapping_hash) is not None
+        and reference_mapping_hash == generated_mapping_hash
+        and validation.get("saved_reopened") is True
+        and validation.get("native_tif_600dpi_verified") is True
+        and validation.get("manual_preview_passed") is True
+        and validation.get("exact_pixel_match") is True
+        and validation.get("same_size") is True
+        and validation.get("changed_pixels") == 0
+        and validation.get("rms") == 0
+        and validation.get("reference_opju_self_replay") is not True
+    )
+
+
+def _runtime_style_asset_binding(
+    raw: dict[str, object],
+) -> tuple[str, str, str, str]:
+    kind = str(raw.get("asset_kind") or "").casefold().lstrip(".")
+    if not kind and str(raw.get("format_theme") or "").strip():
+        # Backward-compatible OTH entries keep their established runtime
+        # behavior.  Exact asset/path/hash binding is mandatory for newly
+        # activated OTPU assets, not retroactively for unrelated OTH users.
+        kind = "oth"
+    field = {"oth": "format_theme", "otpu": "graph_template"}.get(kind, "")
+    relative_path = str(raw.get(field) or "").strip().replace("\\", "/") if field else ""
+    return kind, field, relative_path, str(raw.get("sha256") or "").casefold()
 
 
 def _resolve_manifest_path(base: Path, value: object) -> Path | None:

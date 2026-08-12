@@ -316,6 +316,236 @@ def test_origin_style_manifest_resolves_project_local_format_theme(tmp_path: Pat
     assert resolved.template_opju_path == template_opju
 
 
+def test_schema_v2_runtime_asset_requires_independent_fresh_project_replay(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    manifest = style_root / "manifest.json"
+    entry = {
+        "product_key": "BET",
+        "data_type": "BET",
+        "format_theme": "format_themes/BET.oth",
+        "asset_kind": "oth",
+        "sha256": file_sha256(theme),
+        "file_integrity": {
+            "format_theme": {
+                "kind": "oth",
+                "sha256": file_sha256(theme),
+                "size_bytes": theme.stat().st_size,
+            }
+        },
+        "status": "accepted",
+    }
+    manifest.write_text(
+        json.dumps({"schema_version": 2, "assets": [entry]}),
+        encoding="utf-8",
+    )
+
+    from src.origin.style_registry import (
+        resolve_origin_runtime_style_asset,
+        resolve_origin_style_asset,
+    )
+
+    assert resolve_origin_style_asset(project, "BET") is not None
+    assert resolve_origin_runtime_style_asset(project, "BET") is not None
+    assert resolve_origin_style_asset(
+        project,
+        "BET",
+        require_runtime_validation=True,
+    ) is None
+    assert resolve_origin_runtime_style_asset(project, "BET") is not None
+
+    entry["runtime_validation"] = {
+        "status": "accepted",
+        "asset_kind": "oth",
+        "asset_path": "format_themes/BET.oth",
+        "asset_sha256": file_sha256(theme),
+        "comparison_scope": "fresh_project_same_data",
+        "fresh_project_verified": True,
+        "style_asset_only": True,
+        "same_data_verified": True,
+        "reference_plot_values_sha256": "1" * 64,
+        "generated_plot_values_sha256": "1" * 64,
+        "reference_plot_mapping_sha256": "2" * 64,
+        "generated_plot_mapping_sha256": "2" * 64,
+        "saved_reopened": True,
+        "native_tif_600dpi_verified": True,
+        "manual_preview_passed": True,
+        "exact_pixel_match": True,
+        "same_size": True,
+        "changed_pixels": 0,
+        "rms": 0,
+        "reference_opju_self_replay": False,
+    }
+    manifest.write_text(
+        json.dumps({"schema_version": 2, "assets": [entry]}),
+        encoding="utf-8",
+    )
+
+    assert resolve_origin_style_asset(
+        project,
+        "BET",
+        require_runtime_validation=True,
+    ) is not None
+
+    entry["status"] = "quarantined_unvalidated"
+    manifest.write_text(
+        json.dumps({"schema_version": 2, "assets": [entry]}),
+        encoding="utf-8",
+    )
+    assert resolve_origin_style_asset(
+        project,
+        "BET",
+        require_runtime_validation=True,
+    ) is None
+    assert resolve_origin_runtime_style_asset(project, "BET") is None
+
+
+def test_runtime_validated_bet_otpu_is_bound_to_exact_asset_not_legacy_oth(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    verified = style_root / "graph_templates" / "BET_verified.otpu"
+    legacy = style_root / "graph_templates" / "BET.otpu"
+    reference = style_root / "reference_opju" / "BET.opju"
+    binding = style_root / "binding_contracts.json"
+    evidence = style_root / "validation_evidence" / "BET.json"
+    for path in (theme, verified, legacy, reference, evidence):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    theme.write_bytes(b"legacy-theme")
+    verified.write_bytes(b"verified-template")
+    legacy.write_bytes(b"bad-historical-template")
+    reference.write_bytes(b"reviewed-reference")
+    binding.write_text("{}", encoding="utf-8")
+    evidence.write_text("{}", encoding="utf-8")
+    entry = {
+        "product_key": "BET",
+        "data_type": "BET",
+        "status": "accepted",
+        "graph_page": "Graph5",
+        "asset_kind": "otpu",
+        "sha256": file_sha256(verified),
+        "format_theme": "format_themes/BET.oth",
+        "graph_template": "graph_templates/BET_verified.otpu",
+        "template_opju": "reference_opju/BET.opju",
+        "binding_contract": "binding_contracts.json",
+        "runtime_validation_evidence": "validation_evidence/BET.json",
+        "source_opju_hash": file_sha256(reference),
+        "file_integrity": {
+            "graph_template": {
+                "kind": "otpu",
+                "sha256": file_sha256(verified),
+                "size_bytes": verified.stat().st_size,
+            },
+            "template_opju": {
+                "kind": "opju",
+                "sha256": file_sha256(reference),
+                "size_bytes": reference.stat().st_size,
+            },
+            "binding_contract": {
+                "kind": "json",
+                "sha256": file_sha256(binding),
+                "size_bytes": binding.stat().st_size,
+            },
+            "runtime_validation_evidence": {
+                "kind": "json",
+                "sha256": file_sha256(evidence),
+                "size_bytes": evidence.stat().st_size,
+            },
+        },
+        "runtime_validation": {
+            "status": "accepted",
+            "asset_kind": "otpu",
+            "asset_path": "graph_templates/BET_verified.otpu",
+            "asset_sha256": file_sha256(verified),
+            "reference_opju_sha256": file_sha256(reference),
+            "binding_contract_sha256": file_sha256(binding),
+            "evidence_sha256": file_sha256(evidence),
+            "comparison_scope": "fresh_project_same_data",
+            "fresh_project_verified": True,
+            "style_asset_only": True,
+            "same_data_verified": True,
+            "reference_plot_values_sha256": "1" * 64,
+            "generated_plot_values_sha256": "1" * 64,
+            "reference_plot_mapping_sha256": "2" * 64,
+            "generated_plot_mapping_sha256": "2" * 64,
+            "saved_reopened": True,
+            "native_tif_600dpi_verified": True,
+            "manual_preview_passed": True,
+            "exact_pixel_match": True,
+            "same_size": True,
+            "changed_pixels": 0,
+            "rms": 0,
+            "reference_opju_self_replay": False,
+        },
+    }
+    (style_root / "manifest.json").write_text(
+        json.dumps({"schema_version": 2, "assets": [entry]}),
+        encoding="utf-8",
+    )
+
+    resolved = resolve_origin_style_asset(
+        project,
+        "BET",
+        require_runtime_validation=True,
+    )
+
+    assert resolved is not None
+    assert resolved.runtime_asset_kind == "otpu"
+    assert resolved.runtime_asset_path == verified
+    assert resolved.format_theme_path == theme
+    assert resolved.runtime_asset_path != legacy
+
+    entry["runtime_validation"]["asset_path"] = "format_themes/BET.oth"
+    (style_root / "manifest.json").write_text(
+        json.dumps({"schema_version": 2, "assets": [entry]}),
+        encoding="utf-8",
+    )
+    assert resolve_origin_style_asset(
+        project,
+        "BET",
+        require_runtime_validation=True,
+    ) is None
+
+
+def test_schema_v1_style_asset_cannot_bypass_runtime_validation_gate(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "BET.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "status": "accepted",
+                        "graph_page": "Graph5",
+                        "format_theme": "format_themes/BET.oth",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert resolve_origin_style_asset(project, "BET") is not None
+    assert resolve_origin_style_asset(
+        project,
+        "BET",
+        require_runtime_validation=True,
+    ) is None
+
+
 def test_template_plan_uses_project_format_theme_when_opju_is_missing(tmp_path: Path) -> None:
     project = tmp_path / "project"
     asset = project / "templates" / "origin_styles" / "format_themes" / "EPR.oth"
@@ -514,6 +744,47 @@ def test_template_plan_can_use_style_source_product_key(tmp_path: Path) -> None:
     assert export_plan.items[0].style_source_theme_path == theme
     assert replay_plan.items[0].style_source_product_key == "XPS_in_situ"
     assert replay_plan.items[0].style_source_theme_path == theme
+
+
+def test_replay_plan_parses_explicit_fresh_project_graph_template_mode(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    source = project / "templates" / "origin_styles" / "reference_opju" / "BET.opju"
+    template = tmp_path / "candidate.otpu"
+    binding_contract = project / "templates" / "origin_styles" / "binding_contracts" / "BET.json"
+    source.parent.mkdir(parents=True)
+    binding_contract.parent.mkdir(parents=True)
+    source.write_bytes(b"opju")
+    template.write_bytes(b"otpu")
+    binding_contract.write_text("{}", encoding="utf-8")
+    plan_json = tmp_path / "plan.json"
+    plan_json.write_text(
+        json.dumps(
+            {
+                "items": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "source_opju": str(source),
+                        "graph_page": "Graph5",
+                        "comparison_mode": "fresh_project_graph_template_same_data",
+                        "graph_template": str(template),
+                        "binding_contract": "templates/origin_styles/binding_contracts/BET.json",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from src.core.origin_style_assets import build_origin_style_asset_replay_plan
+
+    plan = build_origin_style_asset_replay_plan(project, plan_json, tmp_path / "out")
+
+    assert plan.items[0].comparison_mode == "fresh_project_graph_template_same_data"
+    assert plan.items[0].graph_template_path == template
+    assert plan.items[0].binding_contract_path == binding_contract
 
 
 def test_style_asset_manifest_merge_preserves_other_assets_and_existing_previews(tmp_path: Path) -> None:
@@ -856,7 +1127,7 @@ def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
     assert plots["Book3_F"]["style"]["color"] == 23709421.0
 
 
-def test_graph_data_snapshot_falls_back_to_default_sheet_and_plot_instance_names() -> None:
+def test_graph_data_snapshot_preserves_plot_instance_sheet_creation_indices() -> None:
     from src.core.origin_style_assets import read_graph_data_snapshot
     from src.origin.operations import OperationResult
 
@@ -867,8 +1138,7 @@ def test_graph_data_snapshot_falls_back_to_default_sheet_and_plot_instance_names
             return OperationResult(False, "missing")
 
         def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
-            if sheet_name == "Sheet1":
-                return OperationResult(False, "Worksheet data is not iterable")
+            y_values = [50.0, 60.0] if sheet_name in {"1", "Sheet1", ""} else [70.0, 80.0]
             return OperationResult(
                 True,
                 "ok",
@@ -880,7 +1150,7 @@ def test_graph_data_snapshot_falls_back_to_default_sheet_and_plot_instance_names
                         [3.0],
                         [4.0],
                         [5.0, 6.0],
-                        [50.0, 60.0],
+                        y_values,
                     ]
                 },
             )
@@ -899,9 +1169,10 @@ def test_graph_data_snapshot_falls_back_to_default_sheet_and_plot_instance_names
 
     assert [plot["status"] for plot in plots] == ["ready", "ready"]
     assert [plot["y_dataset"] for plot in plots] == ["Book1_G", "Book1_G@2"]
-    assert [plot["x_dataset"] for plot in plots] == ["Book1_F", "Book1_F"]
-    assert [plot["sheet_name"] for plot in plots] == ["", ""]
-    assert plots[1]["y_values"] == [50.0, 60.0]
+    assert [plot["x_dataset"] for plot in plots] == ["Book1_F", "Book1_F@2"]
+    assert [plot["sheet_name"] for plot in plots] == ["1", "2"]
+    assert plots[1]["y_values"] == [70.0, 80.0]
+    assert plots[0]["xy_data_sha256"] != plots[1]["xy_data_sha256"]
 
 
 def test_graph_data_snapshot_supports_shared_x_for_multiple_y_columns() -> None:
@@ -957,6 +1228,182 @@ def test_graph_data_snapshot_prefers_explicit_plot_mapping_over_column_designati
     assert {plot["x_mapping_source"] for plot in snapshot["plots"]} == {"graph_plot_mapping"}
 
 
+def test_graph_data_snapshot_prefers_explicit_plot_row_bounds_over_x_name_hint() -> None:
+    from src.core.origin_style_assets import read_graph_data_snapshot
+    from src.origin.operations import OperationResult
+
+    class FakeOriginOps:
+        def get_graph_plot_dataset_names(
+            self,
+            _graph_name: str,
+            layer_index: int = 1,
+        ) -> OperationResult:
+            if layer_index != 1:
+                return OperationResult(False, "missing")
+            return OperationResult(
+                True,
+                "ok",
+                {
+                    "plot_dataset_names": ["Book1_B"],
+                    "plot_x_dataset_names": ["Book1_A"],
+                },
+            )
+
+        def get_graph_plot_dataset_mappings(
+            self,
+            _graph_name: str,
+            layer_index: int = 1,
+        ) -> OperationResult:
+            return OperationResult(
+                True,
+                "ok",
+                {
+                    "plot_mappings": [
+                        {
+                            "plot_index": 1,
+                            "x_dataset": "Book1_A",
+                            "y_dataset": "Book1_B",
+                            "row_from": 1,
+                            "row_to": 2,
+                        }
+                    ]
+                },
+            )
+
+        def get_worksheet_data(self, _book_name: str, _sheet_name: str) -> OperationResult:
+            return OperationResult(
+                True,
+                "ok",
+                {"columns": [[1.0, 2.0, 999.0], [10.0, 20.0, 999.0]]},
+            )
+
+    snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph1", max_layers=1)
+    [plot] = snapshot["plots"]
+
+    assert plot["plot_row_from"] == 1
+    assert plot["plot_row_to"] == 2
+    assert plot["plot_row_range_source"] == "graph_plot_mapping"
+    assert plot["x_values"] == [1.0, 2.0]
+    assert plot["y_values"] == [10.0, 20.0]
+
+
+def test_graph_data_snapshot_comparison_requires_same_values_and_explicit_mapping() -> None:
+    from src.core.origin_style_assets import compare_graph_data_snapshots
+
+    base = {
+        "schema_version": 3,
+        "status": "ready",
+        "plot_count": 1,
+        "layer_count_with_plots": 1,
+        "plot_values_sha256": "1" * 64,
+        "plot_mapping_sha256": "2" * 64,
+        "plots": [
+            {
+                "layer_index": 1,
+                "plot_index": 1,
+                "x_mapping_source": "graph_plot_mapping",
+                "plot_row_range_source": "graph_plot_mapping",
+                "plot_row_from": 1,
+                "plot_row_to": 2,
+                "row_count": 2,
+                "x_data_sha256": "3" * 64,
+                "y_data_sha256": "4" * 64,
+                "xy_data_sha256": "5" * 64,
+            }
+        ],
+    }
+
+    matched = compare_graph_data_snapshots(base, dict(base))
+    different_values = compare_graph_data_snapshots(
+        base,
+        {**base, "plot_values_sha256": "3" * 64},
+    )
+    inferred_mapping = compare_graph_data_snapshots(
+        base,
+        {
+            **base,
+            "plots": [
+                {
+                    **base["plots"][0],
+                    "x_mapping_source": "worksheet_column_designations",
+                }
+            ],
+        },
+    )
+
+    assert matched["same_data"] is True
+    assert different_values["same_data"] is False
+    assert "plotted X/Y values differ" in different_values["reasons"]
+    assert inferred_mapping["same_data"] is False
+    assert any("lack explicit Origin plotdata" in reason for reason in inferred_mapping["reasons"])
+
+
+def test_graph_data_snapshot_scans_past_empty_middle_layer() -> None:
+    from src.core.origin_style_assets import read_graph_data_snapshot
+    from src.origin.operations import OperationResult
+
+    class FakeOriginOps:
+        def get_graph_plot_dataset_names(
+            self,
+            _graph_name: str,
+            layer_index: int = 1,
+        ) -> OperationResult:
+            if layer_index == 1:
+                return OperationResult(
+                    True,
+                    "ok",
+                    {
+                        "plot_dataset_names": ["Book1_B"],
+                        "plot_mappings": [
+                            {
+                                "plot_index": 1,
+                                "x_dataset": "Book1_A",
+                                "y_dataset": "Book1_B",
+                                "row_from": 1,
+                                "row_to": 2,
+                            }
+                        ],
+                    },
+                )
+            if layer_index == 2:
+                return OperationResult(True, "ok", {"plot_dataset_names": []})
+            if layer_index == 3:
+                return OperationResult(
+                    True,
+                    "ok",
+                    {
+                        "plot_dataset_names": ["Book2_B"],
+                        "plot_mappings": [
+                            {
+                                "plot_index": 1,
+                                "x_dataset": "Book2_A",
+                                "y_dataset": "Book2_B",
+                                "row_from": 1,
+                                "row_to": 2,
+                            }
+                        ],
+                    },
+                )
+            return OperationResult(False, "missing")
+
+        def get_worksheet_data(self, book_name: str, _sheet_name: str) -> OperationResult:
+            offset = 0.0 if book_name == "Book1" else 100.0
+            return OperationResult(
+                True,
+                "ok",
+                {"columns": [[1.0, 2.0], [10.0 + offset, 20.0 + offset]]},
+            )
+
+    snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph1", max_layers=4)
+
+    assert snapshot["status"] == "ready"
+    assert [item["layer_index"] for item in snapshot["layers"]] == [1, 3]
+    assert [(item["layer_index"], item["plot_index"]) for item in snapshot["plots"]] == [
+        (1, 1),
+        (3, 1),
+    ]
+
+
 def test_graph_data_snapshot_uses_origin_findx_readback_when_designations_are_not_exposed() -> None:
     from src.core.origin_style_assets import read_graph_data_snapshot
     from src.origin.operations import OperationResult
@@ -1007,6 +1454,14 @@ def test_graph_data_snapshot_fails_when_x_mapping_cannot_be_read_reliably() -> N
     assert snapshot["status"] == "failed"
     assert snapshot["plots"][0]["status"] == "x_mapping_unavailable"
     assert "x_dataset" not in snapshot["plots"][0]
+
+
+def test_graph_data_snapshot_normalization_preserves_missing_cells() -> None:
+    from src.core.origin_style_assets import _json_safe_value
+
+    assert _json_safe_value(None) is None
+    assert _json_safe_value("") is None
+    assert _json_safe_value("None") == "None"
 
 
 def test_style_asset_export_loads_working_copy_not_source_opju(tmp_path: Path, monkeypatch) -> None:
@@ -1248,6 +1703,28 @@ def test_replay_comparison_writes_side_by_side_without_diff_png(tmp_path: Path) 
     assert not (tmp_path / "diff.png").exists()
 
 
+def test_replay_comparison_detects_opaque_rgb_change_with_equal_alpha(tmp_path: Path) -> None:
+    from PIL import Image
+
+    from src.core.origin_style_assets import _compare_replay_pngs
+
+    source = tmp_path / "source.png"
+    asset = tmp_path / "asset.png"
+    source_image = Image.new("RGBA", (2, 2), (255, 255, 255, 255))
+    asset_image = source_image.copy()
+    asset_image.putpixel((1, 0), (0, 255, 255, 255))
+    source_image.save(source)
+    asset_image.save(asset)
+
+    comparison = _compare_replay_pngs(source, asset, tmp_path)
+
+    assert comparison["same_size"] is True
+    assert comparison["exact_pixel_match"] is False
+    assert comparison["changed_pixels"] == 1
+    assert comparison["diff_bbox"] == [1, 0, 2, 1]
+    assert comparison["rms"] > 0.0
+
+
 def test_replay_same_opju_content_is_determinism_evidence_not_style_validation(
     tmp_path: Path,
     monkeypatch,
@@ -1300,6 +1777,56 @@ def test_replay_same_opju_content_is_determinism_evidence_not_style_validation(
     assert result["same_reference_content"] is True
 
 
+def test_replay_dispatches_fresh_graph_template_mode_without_resolving_legacy_asset(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from src.core.origin_style_assets import (
+        OriginStyleAssetReplayItem,
+        _replay_compare_one_item,
+    )
+
+    source = tmp_path / "BET.opju"
+    template = tmp_path / "BET_verified.otpu"
+    source.write_bytes(b"opju")
+    template.write_bytes(b"otpu")
+    captured: dict[str, object] = {}
+
+    def fake_fresh(_operations, project_root, product_dir, item):
+        captured.update(
+            {
+                "project_root": project_root,
+                "product_dir": product_dir,
+                "item": item,
+            }
+        )
+        return {"status": "fresh_project_same_data_match"}
+
+    monkeypatch.setattr(
+        "src.core.origin_style_assets._replay_fresh_graph_template_same_data",
+        fake_fresh,
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.resolve_origin_style_asset",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy asset resolver must not run")
+        ),
+    )
+
+    item = OriginStyleAssetReplayItem(
+        product_key="BET",
+        data_type="BET",
+        source_opju=source,
+        graph_page="Graph5",
+        comparison_mode="fresh_project_graph_template_same_data",
+        graph_template_path=template,
+    )
+    result = _replay_compare_one_item(object(), tmp_path, tmp_path / "out", item)
+
+    assert result["status"] == "fresh_project_same_data_match"
+    assert captured["item"] is item
+
+
 def test_replay_summary_excludes_self_replay_from_compared_count(
     tmp_path: Path,
     monkeypatch,
@@ -1347,6 +1874,53 @@ def test_replay_summary_excludes_self_replay_from_compared_count(
     assert result["inconclusive_count"] == 1
     assert result["failure_count"] == 0
     assert result["origin_close_ok"] is True
+
+
+def test_replay_summary_counts_fresh_same_data_match(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from src.core.origin_style_assets import (
+        OriginStyleAssetReplayItem,
+        OriginStyleAssetReplayPlan,
+        run_origin_style_asset_replay,
+    )
+
+    item = OriginStyleAssetReplayItem(
+        product_key="BET",
+        data_type="BET",
+        source_opju=tmp_path / "BET.opju",
+        graph_page="Graph5",
+        comparison_mode="fresh_project_graph_template_same_data",
+        graph_template_path=tmp_path / "BET.otpu",
+    )
+    plan = OriginStyleAssetReplayPlan(
+        project_root=tmp_path,
+        output_dir=tmp_path / "out",
+        items=[item],
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.build_origin_style_asset_replay_plan",
+        lambda *_args, **_kwargs: plan,
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets._replay_compare_one_item",
+        lambda *_args, **_kwargs: {"status": "fresh_project_same_data_match"},
+    )
+    monkeypatch.setattr(
+        "src.core.origin_style_assets.connect_origin",
+        lambda **_kwargs: SimpleNamespace(close=lambda: SimpleNamespace(ok=True)),
+    )
+
+    result = run_origin_style_asset_replay(
+        tmp_path,
+        tmp_path / "plan.json",
+        plan.output_dir,
+        with_origin=True,
+    )
+
+    assert result["compared_count"] == 1
+    assert result["failure_count"] == 0
 
 
 def test_replay_summary_fails_when_origin_close_is_not_confirmed(

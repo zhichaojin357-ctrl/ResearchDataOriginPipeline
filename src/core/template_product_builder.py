@@ -70,8 +70,10 @@ from src.origin.embedded_template_snapshots import (
 from src.origin.operations import connect_origin, quote_labtalk
 from src.origin.style_registry import (
     load_origin_style_manifest,
+    origin_style_asset_runtime_validated,
     origin_style_manifest_path,
     resolve_origin_style_asset,
+    resolve_origin_runtime_style_asset,
     validate_origin_style_asset_integrity,
 )
 from src.origin.style_mimic import OpjuStyleSnapshot, apply_style_snapshot, extract_style_snapshot, read_graph_style_snapshot
@@ -387,15 +389,16 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
         product_key = str(raw.get("product_key") or raw.get("data_type") or "")
         if product_key not in TEMPLATE_TARGET_TYPES:
             continue
-        asset = resolve_origin_style_asset(project_root, product_key, manifest_path)
+        asset = resolve_origin_runtime_style_asset(project_root, product_key, manifest_path)
         if asset is None:
             continue
         style_asset = asset.to_dict(project_root)
+        runtime_path = asset.runtime_asset_path or asset.format_theme_path
         snapshot_layer_count, snapshot_plot_count = _style_asset_snapshot_counts(asset.style_snapshot_path)
         candidates.append(
             TemplateCandidate(
                 product_key=product_key,
-                path=asset.format_theme_path,
+                path=runtime_path,
                 source="project_origin_style_asset",
                 path_score=1,
                 status="valid",
@@ -411,7 +414,9 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
                     default=snapshot_plot_count,
                 ),
                 reason=(
-                    "project-local saved Origin format theme fallback"
+                    "project-local independently validated Origin graph template"
+                    if asset.runtime_asset_kind == "otpu"
+                    else "project-local saved Origin format theme fallback"
                 ),
                 metadata={
                     "style_package": True,
@@ -1031,6 +1036,28 @@ def _require_asset_only_style_integrity(project_root: Path, target_types: tuple[
     failures = [str(item) for item in result.get("failures", [])]
     if int(result.get("schema_version", 0) or 0) < 2:
         failures.insert(0, "Origin style manifest schema v2 is required for hash-verified asset-only generation")
+    manifest = load_origin_style_manifest(project_root)
+    validation_required = {
+        str(item.get("product_key") or item.get("data_type") or "")
+        for item in manifest.get("assets", [])
+        if isinstance(item, dict)
+        and str(item.get("asset_kind") or "oth").casefold().lstrip(".") != "oth"
+    }
+    runtime_validated = {
+        str(item.get("product_key") or item.get("data_type") or "")
+        for item in manifest.get("assets", [])
+        if isinstance(item, dict) and origin_style_asset_runtime_validated(item)
+    }
+    missing_runtime_validation = [
+        product_key
+        for product_key in target_types
+        if product_key in validation_required and product_key not in runtime_validated
+    ]
+    if missing_runtime_validation:
+        failures.append(
+            "missing independent fresh-project same-data visual validation: "
+            + ", ".join(missing_runtime_validation)
+        )
     if not bool(result.get("ok")) or failures:
         details = "; ".join(failures) or "unknown style-asset integrity failure"
         raise ValueError(f"Asset-only style integrity check failed: {details}")
@@ -1492,20 +1519,26 @@ def _build_template_bet_multisource_table(pairing: TargetPairing, template: Temp
             break
     if len(series) < 2:
         return None
-    headers, rows = _template_same_x_overlay_table("relative_pressure_p_p0", series[:target_series])
+    selected_series = series[:target_series]
+    headers, rows = _template_independent_xy_table(
+        "relative_pressure_p_p0",
+        "quantity_adsorbed_cm3_g_stp",
+        selected_series,
+    )
     labels = {
         "x_label": "Relative Pressure (P/P_0)",
         "y_label": "Quantity Adsorbed (cm3/g STP)",
         "title": "BET isotherm exemplar",
         "plot_type": "line+symbol",
+        "legend_entries": [label.replace("_", " ") for label, _values in selected_series],
         "notes": "Multiple real BET source exports were used to match the OPJU exemplar curve structure; no BET model conclusion is generated.",
     }
     alignment = _template_alignment_payload(
         pairing,
         template,
         used_files,
-        len(headers) - 1,
-        "template_aligned_bet_coherent_material_cohort",
+        len(selected_series),
+        "template_aligned_bet_independent_xy_coherent_material_cohort",
     )
     alignment["selected_materials"] = [_template_bet_series_label_from_path(path) for path in used_files]
     alignment["cohort_directory"] = str(cohort) if cohort is not None else ""
@@ -1853,6 +1886,44 @@ def _template_same_x_overlay_table(
         for _label, rows in series:
             row.append(rows[index][1])
         output.append(row)
+    return headers, output
+
+
+def _template_independent_xy_table(
+    x_suffix: str,
+    y_suffix: str,
+    series: list[tuple[str, list[list[float | str | None]]]],
+) -> tuple[list[str], list[list[float | str | None]]]:
+    """Preserve every source series as its own adjacent X/Y column pair.
+
+    This table intentionally performs no sorting, de-duplication, interpolation,
+    or shared-grid projection.  Shorter series are padded only after their last
+    supplied pair so strict Origin row-range binding can reject any nonmissing
+    value that would otherwise be dropped.
+    """
+
+    headers: list[str] = []
+    normalized: list[list[list[float | str | None]]] = []
+    for label, source_rows in series:
+        identity = safe_name(label)
+        headers.extend((f"{identity}_{x_suffix}", f"{identity}_{y_suffix}"))
+        normalized.append(
+            [
+                [row[0], row[1]]
+                for row in source_rows
+                if len(row) >= 2
+            ]
+        )
+    row_count = max((len(source_rows) for source_rows in normalized), default=0)
+    output: list[list[float | str | None]] = []
+    for row_index in range(row_count):
+        output_row: list[float | str | None] = []
+        for source_rows in normalized:
+            if row_index < len(source_rows):
+                output_row.extend(source_rows[row_index])
+            else:
+                output_row.extend((None, None))
+        output.append(output_row)
     return headers, output
 
 
@@ -4006,17 +4077,45 @@ def _build_template_acceptance(
     template_base_mode = _is_template_base_origin_status(export_status)
     saved_format_theme_mode = _is_saved_format_theme_origin_status(export_status)
     cached_style_package_mode = _is_cached_style_package_origin_status(export_status)
-    saved_style_asset_mode = saved_format_theme_mode or cached_style_package_mode
+    saved_style_asset_mode = (
+        saved_format_theme_mode
+        or cached_style_package_mode
+        or _is_verified_graph_template_origin_status(export_status)
+    )
+    origin_processing = (
+        export_status.get("origin_processing")
+        if isinstance(export_status.get("origin_processing"), dict)
+        else {}
+    )
+    preserve_exemplar_exact = (
+        str(origin_processing.get("style_contract") or "")
+        == "preserve_exemplar_exact"
+    )
     axis_title_bold_required = _export_exemplar_axis_title_bold_required(export_status)
     widths = product_style.get("plot_line_widths", []) if isinstance(product_style, dict) else []
-    line_width_ok = _line_widths_accepted(widths)
-    if saved_style_asset_mode:
+    line_width_ok = (
+        _line_widths_match_exemplar_conformance(conformance, widths)
+        if preserve_exemplar_exact
+        else _line_widths_accepted(widths)
+    )
+    if preserve_exemplar_exact:
+        exemplar_checks = _saved_style_asset_exemplar_readback(
+            export_status.get("exemplar_style"),
+            product_style,
+        )
+        axis_checks = {
+            key: value
+            for key, value in exemplar_checks.items()
+            if key.startswith("axis_title_")
+        }
+        axis_title_ok = bool(axis_checks) and all(axis_checks.values())
+    elif saved_style_asset_mode:
         axis_title_ok = bool(conformance) and (
             not axis_title_bold_required or bool(conformance.get("axis_title_bold"))
         )
     else:
         axis_title_ok = bool(conformance.get("axis_title_bold")) if conformance else bool(export_status.get("axis_title_bold_policy"))
-    if strict_readback:
+    if strict_readback and not preserve_exemplar_exact:
         if saved_style_asset_mode:
             axis_title_ok = axis_title_ok and bool(strict_readback.get("axis_title_visible", True))
         elif template_base_mode:
@@ -4042,7 +4141,11 @@ def _build_template_acceptance(
             "independent reference preview missing or invalid; the generated product preview cannot serve as its own reference"
         )
     if not line_width_ok:
-        notes.append("line width readback did not meet 3 pt policy")
+        notes.append(
+            "line width readback did not match the exemplar"
+            if preserve_exemplar_exact
+            else "line width readback did not meet 3 pt policy"
+        )
     if not axis_title_ok:
         notes.append("axis title bold/readback did not pass")
     conformance_reasons = _template_conformance_acceptance_reasons(conformance)
@@ -4102,7 +4205,6 @@ def _build_template_acceptance(
             visual_ok = False
             notes.append("XPS component fill was not applied/read back as required")
     if product.product_key != "EIS":
-        origin_processing = export_status.get("origin_processing") if isinstance(export_status.get("origin_processing"), dict) else {}
         if not origin_processing.get("applied") or "Origin" not in str(origin_processing.get("processing_location", "")):
             visual_ok = False
             notes.append("Origin-side data processing was not executed/read back for this non-EIS product")
@@ -4110,6 +4212,7 @@ def _build_template_acceptance(
         strict_readback,
         template_base_mode=template_base_mode,
         saved_style_asset_mode=saved_style_asset_mode,
+        preserve_exemplar_exact=preserve_exemplar_exact,
         axis_title_bold_required=axis_title_bold_required,
         exemplar_style=export_status.get("exemplar_style"),
         product_style=product_style,
@@ -4184,11 +4287,26 @@ def _is_saved_format_theme_origin_status(export_status: dict[str, object]) -> bo
     return str(origin_processing.get("method", "")) == "saved_format_theme_apply"
 
 
+def _is_verified_graph_template_origin_status(
+    export_status: dict[str, object],
+) -> bool:
+    origin_processing = (
+        export_status.get("origin_processing")
+        if isinstance(export_status.get("origin_processing"), dict)
+        else {}
+    )
+    return (
+        str(origin_processing.get("method", ""))
+        == "fresh_graph_verified_otpu_explicit_xy"
+    )
+
+
 def _relevant_strict_readback_values(
     strict_readback: dict[str, object],
     *,
     template_base_mode: bool,
     saved_style_asset_mode: bool = False,
+    preserve_exemplar_exact: bool = False,
     axis_title_bold_required: bool = True,
     exemplar_style: object = None,
     product_style: object = None,
@@ -4208,12 +4326,35 @@ def _relevant_strict_readback_values(
             )
         )
         return values
+    if preserve_exemplar_exact:
+        return _saved_style_asset_exemplar_readback(
+            exemplar_style,
+            product_style,
+        )
     if not template_base_mode:
         return strict_readback
     keys = ("font_family_arial", "axis_title_visible", "axis_title_no_overlap")
     if axis_title_bold_required:
         keys = ("font_family_arial", "axis_title_bold", "axis_title_visible", "axis_title_no_overlap")
     return {key: strict_readback.get(key) for key in keys if key in strict_readback}
+
+
+def _line_widths_match_exemplar_conformance(
+    conformance: dict[str, object],
+    widths: object,
+) -> bool:
+    if not isinstance(widths, (list, tuple)) or not widths or not conformance:
+        return False
+    issues = conformance.get("issues")
+    rows = [item for item in issues if isinstance(item, dict)] if isinstance(issues, list) else []
+    return not any(
+        str(item.get("severity") or "").casefold() == "fail"
+        and (
+            str(item.get("field") or "") == "plot_line_widths"
+            or str(item.get("field") or "").endswith(".line_width")
+        )
+        for item in rows
+    )
 
 
 def _saved_style_asset_exemplar_readback(
@@ -4244,6 +4385,14 @@ def _saved_style_asset_exemplar_readback(
             exemplar_numeric,
             product_numeric,
             axis_size_fields,
+        )
+
+    axis_visibility_fields = ("xb.show", "yl.show")
+    if any(field in exemplar_numeric for field in axis_visibility_fields):
+        checks["axis_title_visibility_matches_exemplar"] = _reported_numeric_fields_match(
+            exemplar_numeric,
+            product_numeric,
+            axis_visibility_fields,
         )
 
     bold_evidence_fields = ("xb.bold", "yl.bold")
@@ -4779,6 +4928,12 @@ def _write_template_preview_comparison(
         conformance = _template_product_conformance(product, metadata)
         style_match_ratio = _template_style_match_ratio(conformance)
         preview_rms = _to_float(image_metrics.get("preview_rms"))
+        preview_review_reasons = _template_preview_review_reasons(
+            ready=ready,
+            preview_rms=preview_rms,
+            reference_size=str(image_metrics.get("reference_size") or ""),
+            generated_size=str(image_metrics.get("generated_size") or ""),
+        )
         saved_style_asset_mode = _is_saved_style_asset_preview_product(product, metadata)
         replay_validation = (
             (style_replay_evidence or {}).get(
@@ -4814,11 +4969,10 @@ def _write_template_preview_comparison(
                 mode_label="XRD clean graph rebuild",
             )
         else:
-            strict_reasons = _template_strict_visual_reasons(
+            strict_reasons = _template_style_data_binding_reasons(
                 ready=ready,
                 plot_count_delta=plot_count_delta,
                 style_match_ratio=style_match_ratio,
-                preview_rms=preview_rms,
                 text_only_legend=_template_text_only_legend_policy(product, metadata),
             )
         for reason in _template_conformance_acceptance_reasons(conformance):
@@ -4832,14 +4986,75 @@ def _write_template_preview_comparison(
         plot_count_reason = f"plot count differs from template by {plot_count_delta}"
         if plot_count_delta != 0 and plot_count_reason not in strict_reasons:
             strict_reasons.append(plot_count_reason)
-        strict_visual_match = not strict_reasons
+        # Different current data normally produce different pixels.  Once a
+        # detached style asset has independent same-data exact validation,
+        # reference/current preview RMS remains a manual-review signal and
+        # must not be reinterpreted as a style/data-binding failure.
+        validated_asset_rms_is_diagnostic = bool(
+            saved_style_asset_mode and replay_validation.get("ok")
+        )
+        style_data_binding_status = (
+            "blocked"
+            if strict_reasons
+            else (
+                "review_required"
+                if preview_review_reasons and not validated_asset_rms_is_diagnostic
+                else "matched"
+            )
+        )
+        style_data_binding_match = style_data_binding_status == "matched"
+        strict_visual_match = style_data_binding_match
         if embedded_snapshot_mode:
             strict_status = "embedded_template_snapshot_match" if strict_visual_match else "blocked_embedded_template_snapshot"
         elif xrd_clean_rebuild_mode:
             strict_status = "xrd_clean_graph_rebuild_match" if strict_visual_match else "blocked_xrd_clean_graph_rebuild"
         else:
             strict_status = "strict_visual_match" if strict_visual_match else "blocked_not_one_to_one"
-        strict_message = "; ".join(strict_reasons)
+        style_data_binding = {
+            "status": style_data_binding_status,
+            "match": style_data_binding_match,
+            "blocking_reasons": list(strict_reasons),
+            "review_reasons": list(preview_review_reasons),
+            "preview_review_is_diagnostic_only": validated_asset_rms_is_diagnostic,
+            "preview_comparison_ready": ready,
+            "preview_rms": preview_rms,
+            "preview_rms_role": "diagnostic_only_not_exact_evidence",
+            "plot_structure_pass": plot_count_delta == 0,
+            "style_conformance_pass": not _template_conformance_acceptance_reasons(conformance),
+        }
+        asset_same_data_exact_validation = {
+            "status": (
+                "verified"
+                if saved_style_asset_mode and bool(replay_validation.get("ok"))
+                else ("invalid" if saved_style_asset_mode else "not_supplied")
+            ),
+            "asset_runtime_use_allowed": bool(
+                saved_style_asset_mode and replay_validation.get("ok")
+            ),
+            "comparison_scope": (
+                "fresh_project_same_data"
+                if saved_style_asset_mode and bool(replay_validation.get("ok"))
+                else "not_evaluated"
+            ),
+            "reason": str(
+                replay_validation.get("reason")
+                if saved_style_asset_mode
+                else "same-data exact replay evidence was not supplied for this real-data product"
+            ),
+        }
+        current_product_pixel_exact = {
+            "status": "not_evaluated",
+            "claim_allowed": False,
+            "comparison_scope": "current_product",
+            "reason": (
+                "This product contains current processed data. A historical same-data style-asset "
+                "validation cannot prove that this product is pixel-identical to the reference-data preview."
+            ),
+        }
+        # Compatibility alias.  It intentionally describes the current product,
+        # not the historical validation attached to the reusable style asset.
+        same_data_exact = dict(current_product_pixel_exact)
+        strict_message = "; ".join([*strict_reasons, *preview_review_reasons])
         if strict_message and message:
             message = f"{message}; {strict_message}"
         elif strict_message:
@@ -4852,7 +5067,14 @@ def _write_template_preview_comparison(
         product["preview_rms"] = preview_rms
         product["style_match_ratio"] = style_match_ratio
         product["independent_style_replay"] = replay_validation
+        product["evidence_schema_version"] = 2
+        product["style_data_binding"] = style_data_binding
+        product["asset_same_data_exact_validation"] = asset_same_data_exact_validation
+        product["current_product_pixel_exact"] = current_product_pixel_exact
+        product["same_data_exact"] = same_data_exact
+        product["one_to_one_exact_match"] = False
         product["strict_visual_match"] = strict_visual_match
+        product["strict_visual_match_deprecated"] = True
         product["strict_status"] = strict_status
         previous_visual_acceptance = product.get("visual_acceptance")
         if previous_visual_acceptance is None:
@@ -4872,7 +5094,7 @@ def _write_template_preview_comparison(
             detail = strict_message or "template/generated preview comparison did not pass"
             product["notes"] = _append_template_acceptance_note(
                 product.get("notes"),
-                f"{strict_status}: {detail}",
+                f"style_data_binding_{style_data_binding_status}: {detail}",
             )
         items.append(
             {
@@ -4892,6 +5114,12 @@ def _write_template_preview_comparison(
                 "generated_size": image_metrics.get("generated_size", ""),
                 "strict_visual_match": strict_visual_match,
                 "strict_status": strict_status,
+                "strict_visual_match_deprecated": True,
+                "style_data_binding": style_data_binding,
+                "asset_same_data_exact_validation": asset_same_data_exact_validation,
+                "current_product_pixel_exact": current_product_pixel_exact,
+                "same_data_exact": same_data_exact,
+                "one_to_one_exact_match": False,
                 "saved_style_asset_mode": saved_style_asset_mode,
                 "independent_style_replay": replay_validation,
                 "embedded_template_snapshot_mode": embedded_snapshot_mode,
@@ -4914,9 +5142,15 @@ def _write_template_preview_comparison(
     audit = {
         "ready_count": sum(1 for item in items if item["ready"]),
         "strict_match_count": sum(1 for item in items if item["strict_visual_match"]),
+        "style_data_binding_match_count": sum(
+            1 for item in items if item["style_data_binding"]["status"] == "matched"
+        ),
+        "same_data_exact_match_count": sum(
+            1 for item in items if item["one_to_one_exact_match"]
+        ),
         "product_count": len(items),
         "items": items,
-        "policy": "Every product requires an independent reference preview and a ready reference-vs-generated comparison. Saved style assets, embedded snapshots, and clean rebuilds do not bypass the final visual gate.",
+        "policy": "Real-data style/data-binding acceptance is separate from same-data exact replay. Preview RMS for different or unverified data is diagnostic and never proves one-to-one replication.",
         "no_fabrication_policy": "Missing reference-format series are reported as data gaps, not silently created from preview images or copied annotations.",
     }
     _synchronize_template_product_acceptance_artifacts(
@@ -4932,17 +5166,19 @@ def _write_template_preview_comparison(
         "",
         "- Policy: external OPJU/template products compare the saved reference-format preview with the regenerated product preview.",
         "- Independent-reference policy: every accepted product must have a separate reference preview and a ready reference-vs-generated comparison; saved themes and embedded snapshots are not exemptions.",
-        "- Strict policy: one-to-one status requires matching plot counts and sufficient style readback; preview RMS is retained as a data-shape review signal after real-data replacement.",
+        "- Exact policy: one-to-one status requires an independent fresh-project replay with identical per-plot X/Y values and mappings, save/reopen readback, native 600 dpi, zero decoded-pixel difference, and manual preview.",
+        "- Real-data policy: style/data-binding is evaluated separately; preview RMS is diagnostic only because different data normally produce different pixels.",
         "- No-fabrication policy: missing source series/reference cards/annotations are reported, not invented.",
         f"- Ready: {audit['ready_count']}/{audit['product_count']}",
-        f"- Strict visual match: {audit['strict_match_count']}/{audit['product_count']}",
+        f"- Style/data-binding match: {audit['style_data_binding_match_count']}/{audit['product_count']}",
+        f"- Same-data exact match: {audit['same_data_exact_match_count']}/{audit['product_count']}",
         "",
-        "| Type | Status | Reference Preview | Generated Preview | Side-by-side | Ready | Reference Plots | Product Plots | RMS | Strict | Message |",
-        "|---|---:|---|---|---|---:|---:|---:|---:|---:|---|",
+        "| Type | Status | Reference Preview | Generated Preview | Side-by-side | Ready | Reference Plots | Product Plots | RMS (diagnostic) | Style/Data Binding | Same-data Exact | Message |",
+        "|---|---:|---|---|---|---:|---:|---:|---:|---|---|---|",
     ]
     for item in items:
         lines.append(
-            "| {type} | {status} | {ref} | {gen} | {side} | {ready} | {template_plots} | {product_plots} | {rms} | {strict} | {message} |".format(
+            "| {type} | {status} | {ref} | {gen} | {side} | {ready} | {template_plots} | {product_plots} | {rms} | {binding} | {exact} | {message} |".format(
                 type=item["type"],
                 status=item["status"],
                 ref=_path_for_summary(run_root, item["reference_preview_png"], True),
@@ -4952,7 +5188,8 @@ def _write_template_preview_comparison(
                 template_plots=item["template_plot_count"],
                 product_plots=item["product_plot_count"],
                 rms="" if item["preview_rms"] is None else f"{float(item['preview_rms']):.2f}",
-                strict=item["strict_visual_match"],
+                binding=item["style_data_binding"]["status"],
+                exact=item["same_data_exact"]["status"],
                 message=str(item["message"]).replace("|", "/"),
             )
         )
@@ -4972,11 +5209,22 @@ def _synchronize_template_product_acceptance_artifacts(
     for product, raw_item in zip(products, items):
         item = raw_item if isinstance(raw_item, dict) else {}
         evidence = {
+            "evidence_schema_version": 2,
             "final_status": str(product.get("status") or "blocked"),
             "visual_acceptance": bool(product.get("visual_acceptance")),
             "ready": bool(item.get("ready")),
             "strict_visual_match": bool(item.get("strict_visual_match")),
+            "strict_visual_match_deprecated": True,
             "strict_status": str(item.get("strict_status") or ""),
+            "style_data_binding": dict(item.get("style_data_binding") or {}),
+            "asset_same_data_exact_validation": dict(
+                item.get("asset_same_data_exact_validation") or {}
+            ),
+            "current_product_pixel_exact": dict(
+                item.get("current_product_pixel_exact") or {}
+            ),
+            "same_data_exact": dict(item.get("same_data_exact") or {}),
+            "one_to_one_exact_match": bool(item.get("one_to_one_exact_match")),
             "reference_preview_png": str(item.get("reference_preview_png") or ""),
             "generated_preview_png": str(item.get("generated_preview_png") or ""),
             "comparison_png": str(item.get("side_by_side_png") or ""),
@@ -5003,7 +5251,17 @@ def _synchronize_template_product_acceptance_artifacts(
                 metadata_payload["template_preview_comparison_png"] = evidence["comparison_png"]
                 metadata_payload["template_preview_comparison_ready"] = evidence["ready"]
                 metadata_payload["strict_visual_match"] = evidence["strict_visual_match"]
+                metadata_payload["strict_visual_match_deprecated"] = True
                 metadata_payload["strict_status"] = evidence["strict_status"]
+                metadata_payload["style_data_binding"] = evidence["style_data_binding"]
+                metadata_payload["asset_same_data_exact_validation"] = evidence[
+                    "asset_same_data_exact_validation"
+                ]
+                metadata_payload["current_product_pixel_exact"] = evidence[
+                    "current_product_pixel_exact"
+                ]
+                metadata_payload["same_data_exact"] = evidence["same_data_exact"]
+                metadata_payload["one_to_one_exact_match"] = evidence["one_to_one_exact_match"]
                 metadata_payload["visual_acceptance_audit"] = evidence
                 metadata_payload["acceptance_notes"] = _merged_template_acceptance_notes(
                     metadata_payload.get("acceptance_notes"),
@@ -5069,26 +5327,31 @@ def _synchronize_template_product_report(
         f"- Generated preview: {evidence.get('generated_preview_png') or 'missing'}",
         f"- Side-by-side comparison: {evidence.get('comparison_png') or 'missing'}",
         f"- Comparison ready: {bool(evidence.get('ready'))}",
-        f"- Strict visual match: {bool(evidence.get('strict_visual_match'))}",
-        f"- Strict status: {evidence.get('strict_status') or 'blocked_not_one_to_one'}",
+        f"- Real-data style/data-binding: {(evidence.get('style_data_binding') or {}).get('status', 'blocked')}",
+        f"- Reusable asset same-data validation: {(evidence.get('asset_same_data_exact_validation') or {}).get('status', 'not_supplied')}",
+        f"- Current-product pixel exactness: {(evidence.get('current_product_pixel_exact') or {}).get('status', 'not_evaluated')}",
+        f"- One-to-one exact claim allowed: {bool(evidence.get('one_to_one_exact_match'))}",
+        f"- Preview RMS: {evidence.get('preview_rms')} (diagnostic only; not exact evidence)",
+        f"- Legacy strict visual match: {bool(evidence.get('strict_visual_match'))}",
+        f"- Legacy strict status: {evidence.get('strict_status') or 'blocked_not_one_to_one'}",
         f"- Comparison message: {evidence.get('message') or 'none'}",
     ]
     report_path.write_text("\n".join([*lines, *final_section]).rstrip() + "\n", encoding="utf-8")
 
 
 def _is_saved_style_asset_preview_product(product: dict[str, object], metadata: dict[str, object]) -> bool:
-    if str(product.get("template_format_mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template"}:
+    if str(product.get("template_format_mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template", "verified_graph_template"}:
         return True
-    if str(product.get("origin_processing_method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template"}:
+    if str(product.get("origin_processing_method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template", "fresh_graph_verified_otpu_explicit_xy"}:
         return True
     origin_status = metadata.get("origin_status") if isinstance(metadata.get("origin_status"), dict) else {}
     template_format_plan = (
         origin_status.get("template_format_plan") if isinstance(origin_status.get("template_format_plan"), dict) else {}
     )
-    if str(template_format_plan.get("mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template"}:
+    if str(template_format_plan.get("mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template", "verified_graph_template"}:
         return True
     for candidate in (metadata.get("origin_processing"), origin_status.get("origin_processing")):
-        if isinstance(candidate, dict) and str(candidate.get("method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template"}:
+        if isinstance(candidate, dict) and str(candidate.get("method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template", "fresh_graph_verified_otpu_explicit_xy"}:
             return True
     return False
 
@@ -5111,8 +5374,16 @@ def _load_independent_style_replay_evidence(
     except json.JSONDecodeError as exc:
         raise ValueError(f"Style replay report is not valid JSON: {report_path}") from exc
     items = payload.get("items") if isinstance(payload, dict) else None
+    if (
+        isinstance(payload, dict)
+        and str(payload.get("evidence_kind") or "")
+        == "origin_fresh_project_same_data_graph_template_validation"
+    ):
+        items = [{**payload, "_evidence_file": str(path)}]
     if not isinstance(items, list):
-        raise ValueError("Style replay report must contain an items list.")
+        raise ValueError(
+            "Style replay report must contain an items list or one accepted graph-template validation record."
+        )
 
     validations: dict[str, dict[str, object]] = {}
     for raw in items:
@@ -5137,18 +5408,60 @@ def _validate_independent_style_replay_item(
     product_key: str,
     item: dict[str, object],
 ) -> dict[str, object]:
+    if (
+        str(item.get("evidence_kind") or "")
+        == "origin_fresh_project_same_data_graph_template_validation"
+    ):
+        return _validate_manifest_bound_graph_template_evidence(
+            project_root,
+            product_key,
+            item,
+        )
     comparison = item.get("comparison") if isinstance(item.get("comparison"), dict) else {}
     reasons: list[str] = []
     if str(item.get("status") or "") != "matched":
         reasons.append("status is not matched")
     if not bool(item.get("style_asset_validated")):
         reasons.append("style_asset_validated is false")
-    if str(item.get("comparison_scope") or "") != "independent_theme_application":
-        reasons.append("comparison_scope is not independent_theme_application")
+    if str(item.get("comparison_scope") or "") != "fresh_project_same_data":
+        reasons.append("comparison_scope is not fresh_project_same_data")
     if str(item.get("asset_generation_mode") or "") != "new_graph_plus_format_theme":
         reasons.append("asset_generation_mode is not new_graph_plus_format_theme")
+    if not bool(item.get("fresh_project_verified")):
+        reasons.append("fresh_project_verified is false")
+    if not bool(item.get("style_asset_only")):
+        reasons.append("style_asset_only is false")
+    if not bool(item.get("same_data_verified")):
+        reasons.append("same_data_verified is false")
+    reference_values_hash = str(item.get("reference_plot_values_sha256") or "").casefold()
+    generated_values_hash = str(item.get("generated_plot_values_sha256") or "").casefold()
+    if not re.fullmatch(r"[0-9a-f]{64}", reference_values_hash):
+        reasons.append("reference plot-values hash is missing or malformed")
+    if not re.fullmatch(r"[0-9a-f]{64}", generated_values_hash):
+        reasons.append("generated plot-values hash is missing or malformed")
+    if reference_values_hash and generated_values_hash and reference_values_hash != generated_values_hash:
+        reasons.append("reference and generated plotted X/Y values differ")
+    reference_mapping_hash = str(item.get("reference_plot_mapping_sha256") or "").casefold()
+    generated_mapping_hash = str(item.get("generated_plot_mapping_sha256") or "").casefold()
+    if not re.fullmatch(r"[0-9a-f]{64}", reference_mapping_hash):
+        reasons.append("reference plot-mapping hash is missing or malformed")
+    if not re.fullmatch(r"[0-9a-f]{64}", generated_mapping_hash):
+        reasons.append("generated plot-mapping hash is missing or malformed")
+    if reference_mapping_hash and generated_mapping_hash and reference_mapping_hash != generated_mapping_hash:
+        reasons.append("reference and generated plot X/Y mappings differ")
+    if not bool(item.get("saved_reopened")):
+        reasons.append("saved_reopened is false")
+    if not bool(item.get("native_tif_600dpi_verified")):
+        reasons.append("native_tif_600dpi_verified is false")
+    if not bool(item.get("manual_preview_passed")):
+        reasons.append("manual_preview_passed is false")
     if not bool(comparison.get("exact_pixel_match")):
         reasons.append("exact_pixel_match is false")
+    if comparison.get("same_size") is not True:
+        reasons.append("same_size is not true")
+    changed_pixels = _to_float(comparison.get("changed_pixels"))
+    if changed_pixels is None or abs(changed_pixels) > 1e-12:
+        reasons.append("changed_pixels is not zero")
     rms = _to_float(comparison.get("rms"))
     if rms is None or abs(rms) > 1e-12:
         reasons.append("RMS is not zero")
@@ -5189,7 +5502,143 @@ def _validate_independent_style_replay_item(
         "comparison_scope": str(item.get("comparison_scope") or ""),
         "asset_generation_mode": str(item.get("asset_generation_mode") or ""),
         "exact_pixel_match": bool(comparison.get("exact_pixel_match")),
+        "same_size": comparison.get("same_size") is True,
+        "changed_pixels": changed_pixels,
         "rms": rms,
+    }
+
+
+def _validate_manifest_bound_graph_template_evidence(
+    project_root: Path,
+    product_key: str,
+    item: dict[str, object],
+) -> dict[str, object]:
+    reasons: list[str] = []
+    asset_record = item.get("asset") if isinstance(item.get("asset"), dict) else {}
+    reference = item.get("reference") if isinstance(item.get("reference"), dict) else {}
+    binding = (
+        item.get("binding_contract")
+        if isinstance(item.get("binding_contract"), dict)
+        else {}
+    )
+    same_data = item.get("same_data") if isinstance(item.get("same_data"), dict) else {}
+    style = item.get("style") if isinstance(item.get("style"), dict) else {}
+    pixels = item.get("pixels") if isinstance(item.get("pixels"), dict) else {}
+    save_reopen = (
+        item.get("save_reopen") if isinstance(item.get("save_reopen"), dict) else {}
+    )
+    tif = item.get("tif_600dpi") if isinstance(item.get("tif_600dpi"), dict) else {}
+    if str(item.get("status") or "") != "accepted":
+        reasons.append("validation evidence status is not accepted")
+    if item.get("manual_preview_passed") is not True:
+        reasons.append("manual preview is not accepted")
+    if str(asset_record.get("kind") or "") != "otpu":
+        reasons.append("validation evidence asset kind is not otpu")
+    if reference.get("used_as_product_base") is not False:
+        reasons.append("reference OPJU was not explicitly excluded as the product base")
+    if reference.get("loaded_during_fresh_plot") is not False:
+        reasons.append("reference OPJU was loaded during fresh graph construction")
+    if reference.get("source_unchanged") is not True:
+        reasons.append("reference OPJU unchanged check failed")
+    if same_data.get("verified") is not True:
+        reasons.append("same-data verification is false")
+    reference_values = str(
+        same_data.get("reference_plot_values_sha256") or ""
+    ).casefold()
+    generated_values = str(
+        same_data.get("generated_plot_values_sha256") or ""
+    ).casefold()
+    reference_mapping = str(
+        same_data.get("reference_plot_mapping_sha256") or ""
+    ).casefold()
+    generated_mapping = str(
+        same_data.get("generated_plot_mapping_sha256") or ""
+    ).casefold()
+    if (
+        re.fullmatch(r"[0-9a-f]{64}", reference_values) is None
+        or reference_values != generated_values
+    ):
+        reasons.append("reference and generated plotted values are not hash-identical")
+    if (
+        re.fullmatch(r"[0-9a-f]{64}", reference_mapping) is None
+        or reference_mapping != generated_mapping
+    ):
+        reasons.append("reference and generated plot mappings are not hash-identical")
+    if str(style.get("status") or "") != "pass":
+        reasons.append("style conformance did not pass")
+    if style.get("axis_title_hard_gate") is not True:
+        reasons.append("axis-title hard gate did not pass")
+    if pixels.get("exact_pixel_match") is not True:
+        reasons.append("exact decoded-pixel match is false")
+    if pixels.get("same_size") is not True:
+        reasons.append("reference and candidate image sizes differ")
+    if _to_float(pixels.get("changed_pixels")) != 0:
+        reasons.append("changed-pixel count is not zero")
+    if _to_float(pixels.get("rms")) != 0:
+        reasons.append("pixel RMS is not zero")
+    if save_reopen.get("saved_reopened") is not True:
+        reasons.append("candidate OPJU was not saved and reopened")
+    if tif.get("verified") is not True or _to_float(tif.get("requested_dpi")) != 600:
+        reasons.append("native 600 dpi TIFF validation failed")
+
+    asset = resolve_origin_style_asset(
+        project_root,
+        product_key,
+        require_runtime_validation=True,
+    )
+    if asset is None:
+        reasons.append("current manifest-bound runtime style asset is unavailable")
+    else:
+        evidence_file = Path(str(item.get("_evidence_file") or ""))
+        checks: list[tuple[str, Path | None, str]] = [
+            (
+                "runtime graph template",
+                asset.runtime_asset_path,
+                str(asset_record.get("sha256") or "").casefold(),
+            ),
+            (
+                "reference OPJU",
+                asset.template_opju_path,
+                str(reference.get("sha256") or "").casefold(),
+            ),
+            (
+                "binding contract",
+                asset.binding_contract_path,
+                str(binding.get("sha256") or "").casefold(),
+            ),
+            (
+                "validation evidence",
+                asset.runtime_validation_evidence_path,
+                file_sha256(evidence_file) if evidence_file.is_file() else "",
+            ),
+        ]
+        for label, path, recorded_hash in checks:
+            if (
+                path is None
+                or not path.is_file()
+                or re.fullmatch(r"[0-9a-f]{64}", recorded_hash) is None
+                or file_sha256(path) != recorded_hash
+            ):
+                reasons.append(f"{label} does not match the current manifest-bound asset")
+        if str(asset_record.get("path") or "").replace("\\", "/") != str(
+            asset.runtime_asset_path.relative_to(
+                project_root / "templates" / "origin_styles"
+            )
+        ).replace("\\", "/"):
+            reasons.append("runtime graph-template path differs from the current asset")
+        if str(reference.get("graph_page") or "") != str(asset.graph_page or ""):
+            reasons.append("reference graph page differs from the current asset")
+
+    return {
+        "ok": not reasons,
+        "reason": "; ".join(reasons) if reasons else "validated",
+        "status": str(item.get("status") or ""),
+        "comparison_scope": "fresh_project_same_data",
+        "asset_generation_mode": "new_graph_plus_verified_otpu",
+        "exact_pixel_match": pixels.get("exact_pixel_match") is True,
+        "same_size": pixels.get("same_size") is True,
+        "changed_pixels": _to_float(pixels.get("changed_pixels")),
+        "rms": _to_float(pixels.get("rms")),
     }
 
 
@@ -5331,6 +5780,34 @@ def _template_strict_visual_reasons(
     preview_rms: float | None,
     text_only_legend: bool = False,
 ) -> list[str]:
+    """Compatibility wrapper for the former combined visual gate.
+
+    New code must consume style/data-binding blockers and preview-review
+    signals separately.  Keeping this wrapper avoids breaking older callers.
+    """
+
+    reasons = _template_style_data_binding_reasons(
+        ready=ready,
+        plot_count_delta=plot_count_delta,
+        style_match_ratio=style_match_ratio,
+        text_only_legend=text_only_legend,
+    )
+    reasons.extend(
+        _template_preview_review_reasons(
+            ready=ready,
+            preview_rms=preview_rms,
+        )
+    )
+    return reasons
+
+
+def _template_style_data_binding_reasons(
+    *,
+    ready: bool,
+    plot_count_delta: int,
+    style_match_ratio: float | None,
+    text_only_legend: bool = False,
+) -> list[str]:
     reasons: list[str] = []
     if not ready:
         reasons.append("template/generated preview comparison is not ready")
@@ -5341,10 +5818,29 @@ def _template_strict_visual_reasons(
         reasons.append("style match ratio is unavailable")
     elif style_match_ratio < 0.90 and not text_only_legend_match:
         reasons.append(f"style match ratio {style_match_ratio:.2f} is below 0.90")
+    return reasons
+
+
+def _template_preview_review_reasons(
+    *,
+    ready: bool,
+    preview_rms: float | None,
+    reference_size: str = "",
+    generated_size: str = "",
+) -> list[str]:
+    """Return manual-review signals that cannot establish exactness."""
+
+    if not ready:
+        return []
+    reasons: list[str] = []
     if preview_rms is None:
         reasons.append("preview RMS is unavailable")
     elif preview_rms > 35.0:
         reasons.append(f"preview RMS {preview_rms:.2f} is above 35.00")
+    if reference_size and generated_size and reference_size != generated_size:
+        reasons.append(
+            f"preview sizes differ ({reference_size} vs {generated_size}); manual review is required"
+        )
     return reasons
 
 
@@ -5359,11 +5855,10 @@ def _embedded_template_snapshot_strict_visual_reasons(
     allowed_methods: set[str] | None = None,
     mode_label: str = "embedded template snapshot",
 ) -> list[str]:
-    reasons = _template_strict_visual_reasons(
+    reasons = _template_style_data_binding_reasons(
         ready=ready,
         plot_count_delta=plot_count_delta,
         style_match_ratio=style_match_ratio,
-        preview_rms=preview_rms,
         text_only_legend=_template_text_only_legend_policy(product, metadata),
     )
     if not ready:

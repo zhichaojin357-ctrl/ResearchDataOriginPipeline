@@ -12,6 +12,10 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from src.core.file_utils import file_sha256
+from src.core.origin_style_assets import (
+    compare_graph_data_snapshots,
+    read_graph_data_snapshot,
+)
 from src.core.template_product_common import ProductContext, _product_output_path
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.origin_runtime import (
@@ -32,9 +36,18 @@ from src.core.template_product_builder import (
 from src.origin.conformance import compare_style_snapshots
 from src.origin.embedded_template_snapshots import embedded_template_snapshot
 from src.origin.operations import connect_origin, quote_labtalk
-from src.origin.style_registry import resolve_origin_style_asset
+from src.origin.style_registry import resolve_origin_runtime_style_asset
 from src.origin.style_mimic import apply_style_snapshot, extract_style_snapshot, read_graph_style_snapshot
-from src.origin.template_format import build_template_dataset_updates, build_template_format_plan
+from src.origin.template_binding import (
+    load_template_binding_contracts,
+    resolve_template_binding_contract,
+    validate_template_source_bindings,
+)
+from src.origin.template_format import (
+    build_template_dataset_updates,
+    build_template_format_plan,
+    build_template_xy_dataset_updates,
+)
 from src.origin.text_format import origin_bold_text
 from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overrides
 from src.processors.base import safe_name
@@ -97,7 +110,7 @@ def build_template_product_builder_options(options: TemplateFormatExecutorOption
         xps_smooth_gradient_fill=True,
         cleanup_empty_run_layout_dirs=True,
         project_style_asset_fallback=True,
-        prefer_project_style_assets=True,
+        prefer_project_style_assets=not options.exemplar_driven,
         external_reference_preview_comparison=not options.exemplar_driven and not options.asset_only,
         asset_only=options.asset_only,
         exemplar_driven=options.exemplar_driven,
@@ -118,7 +131,7 @@ def run_template_format_executor(project_root: Path, options: TemplateFormatExec
             product,
             style,
             project_root=project_root,
-            prefer_project_style_asset=True,
+            prefer_project_style_asset=not options.exemplar_driven,
             preserve_exemplar_style=options.exemplar_driven,
             asset_only=options.asset_only,
         ),
@@ -153,27 +166,134 @@ def _with_default_xps_non_in_situ_template_root(
     return options
 
 
-def apply_template_base_data_replacement(operations: object, product: ProductContext, graph_name: str) -> dict[str, object]:
-    plot_names_result = _read_template_plot_dataset_names(operations, graph_name)
-    if not plot_names_result["ok"]:
-        return {"ok": False, "message": str(plot_names_result.get("message") or "plot dataset read failed")}
-    plot_dataset_names = list(plot_names_result["plot_dataset_names"])
+def apply_template_base_data_replacement(
+    operations: object,
+    product: ProductContext,
+    graph_name: str,
+    *,
+    require_complete_mapping: bool = False,
+    reference_opju_sha256: str = "",
+) -> dict[str, object]:
     headers, rows = _read_processed_csv(product.processed_data)
     headers, rows, column_mapping = _template_base_ordered_processed_table(product, headers, rows)
-    updates = build_template_dataset_updates(
-        plot_dataset_names,
-        headers,
-        rows,
-        allow_partial=True,
-        paired_xy_columns=product.product_key == "XRD" and _xrd_standard_card_keeps_line_sample_legend(product),
-    )
-    if updates.status not in {"ready", "partial"}:
-        return {
-            "ok": False,
-            "message": "; ".join(updates.warnings) or "template dataset update plan is blocked",
-            "template_dataset_updates": updates.to_dict(),
-        }
-    replaced = operations.replace_template_workbook_columns(updates.workbook_columns)
+    if require_complete_mapping:
+        plot_mappings_result = _read_template_plot_dataset_mappings(operations, graph_name)
+        if not plot_mappings_result["ok"]:
+            return {
+                "ok": False,
+                "message": str(
+                    plot_mappings_result.get("message")
+                    or "explicit template X/Y dataset mapping read failed"
+                ),
+                "template_plot_mapping": plot_mappings_result,
+            }
+        binding_resolution = resolve_template_binding_contract(
+            product.product_key,
+            graph_name,
+            list(plot_mappings_result["plot_mappings"]),
+        )
+        if not binding_resolution.ok or binding_resolution.contract is None:
+            return {
+                "ok": False,
+                "message": binding_resolution.message,
+                "template_binding_contract": binding_resolution.to_dict(),
+                "template_plot_mapping": plot_mappings_result,
+            }
+        actual_reference_hash = str(reference_opju_sha256 or "").strip().casefold()
+        expected_reference_hash = binding_resolution.contract.reference_opju_sha256
+        if actual_reference_hash != expected_reference_hash:
+            return {
+                "ok": False,
+                "message": (
+                    "Reference OPJU hash does not match the reviewed binding contract; "
+                    "strict replacement was blocked before any worksheet write."
+                ),
+                "template_binding_contract": binding_resolution.to_dict(),
+                "reference_opju_integrity": {
+                    "status": "mismatch",
+                    "expected_sha256": expected_reference_hash,
+                    "actual_sha256": actual_reference_hash,
+                },
+                "template_plot_mapping": plot_mappings_result,
+            }
+        source_pairs = _processed_csv_template_source_pairs(product, headers)
+        source_binding_validation = validate_template_source_bindings(
+            binding_resolution.contract,
+            headers,
+            source_pairs,
+        )
+        if not bool(source_binding_validation.get("ok")):
+            return {
+                "ok": False,
+                "message": str(
+                    source_binding_validation.get("message")
+                    or "processed source binding contract is not ready"
+                ),
+                "template_binding_contract": binding_resolution.to_dict(),
+                "template_source_binding": source_binding_validation,
+                "reference_opju_integrity": {
+                    "status": "matched",
+                    "expected_sha256": expected_reference_hash,
+                    "actual_sha256": actual_reference_hash,
+                },
+                "template_plot_mapping": plot_mappings_result,
+            }
+        updates = build_template_xy_dataset_updates(
+            list(binding_resolution.plot_mappings),
+            headers,
+            rows,
+            source_pairs,
+            require_exact_series_count=True,
+            require_explicit_source_bindings=True,
+        )
+        if updates.status != "ready":
+            return {
+                "ok": False,
+                "message": "; ".join(updates.warnings)
+                or "explicit template X/Y dataset update plan is blocked",
+                "template_dataset_updates": updates.to_dict(),
+                "template_binding_contract": binding_resolution.to_dict(),
+                "template_source_binding": source_binding_validation,
+                "template_plot_mapping": plot_mappings_result,
+            }
+        replace_explicit = getattr(operations, "replace_template_worksheet_ranges", None)
+        if not callable(replace_explicit):
+            return {
+                "ok": False,
+                "message": "Origin operations do not support explicit worksheet/sheet-index/row-range replacement.",
+                "template_dataset_updates": updates.to_dict(),
+                "template_binding_contract": binding_resolution.to_dict(),
+                "template_source_binding": source_binding_validation,
+            }
+        replaced = replace_explicit(updates.worksheet_ranges)
+        layers_read = list(plot_mappings_result["layers_read"])
+        mapping_method = "origin_plotdata_explicit_xy_binding_contract"
+    else:
+        plot_names_result = _read_template_plot_dataset_names(operations, graph_name)
+        if not plot_names_result["ok"]:
+            return {
+                "ok": False,
+                "message": str(plot_names_result.get("message") or "plot dataset read failed"),
+            }
+        plot_dataset_names = list(plot_names_result["plot_dataset_names"])
+        updates = build_template_dataset_updates(
+            plot_dataset_names,
+            headers,
+            rows,
+            allow_partial=True,
+            paired_xy_columns=product.product_key == "XRD"
+            and _xrd_standard_card_keeps_line_sample_legend(product),
+        )
+        if updates.status not in {"ready", "partial"}:
+            return {
+                "ok": False,
+                "message": "; ".join(updates.warnings)
+                or "template dataset update plan is blocked",
+                "template_dataset_updates": updates.to_dict(),
+            }
+        replaced = operations.replace_template_workbook_columns(updates.workbook_columns)
+        layers_read = list(plot_names_result["layers_read"])
+        mapping_method = "legacy_y_dataset_order"
     if not getattr(replaced, "ok", False):
         return {
             "ok": False,
@@ -187,7 +307,21 @@ def apply_template_base_data_replacement(operations: object, product: ProductCon
         "replace_result": getattr(replaced, "payload", {}),
         "processed_headers": headers,
         "processed_column_mapping": column_mapping,
-        "template_plot_layers_read": plot_names_result["layers_read"],
+        "template_plot_layers_read": layers_read,
+        "template_mapping_method": mapping_method,
+        **(
+            {
+                "template_binding_contract": binding_resolution.to_dict(),
+                "template_source_binding": source_binding_validation,
+                "reference_opju_integrity": {
+                    "status": "matched",
+                    "expected_sha256": expected_reference_hash,
+                    "actual_sha256": actual_reference_hash,
+                },
+            }
+            if require_complete_mapping
+            else {}
+        ),
     }
 
 
@@ -219,6 +353,23 @@ def _template_base_ordered_processed_table(
     }
 
 
+def _processed_csv_template_source_pairs(
+    product: ProductContext,
+    headers: list[str],
+) -> list[tuple[int, int]]:
+    pairs = [
+        (origin_x - 1, origin_y - 1)
+        for origin_x, origin_y in _processed_csv_plot_pairs(product, headers)
+    ]
+    if product.product_key == "XPS_in_situ":
+        pairs = [
+            (x_index, y_index)
+            for x_index, y_index in pairs
+            if not str(headers[y_index]).strip().casefold().endswith("_fill_baseline")
+        ]
+    return pairs
+
+
 def _read_template_plot_dataset_names(operations: object, graph_name: str, *, max_layers: int = 12) -> dict[str, object]:
     names: list[str] = []
     layers_read: list[int] = []
@@ -240,6 +391,80 @@ def _read_template_plot_dataset_names(operations: object, graph_name: str, *, ma
     if not names:
         return {"ok": False, "message": first_failure or "No plot datasets were found in template graph.", "plot_dataset_names": [], "layers_read": []}
     return {"ok": True, "plot_dataset_names": names, "layers_read": layers_read}
+
+
+def _read_template_plot_dataset_mappings(
+    operations: object,
+    graph_name: str,
+    *,
+    max_layers: int = 12,
+) -> dict[str, object]:
+    reader = getattr(operations, "get_graph_plot_dataset_mappings", None)
+    if not callable(reader):
+        return {
+            "ok": False,
+            "message": "Origin plotdata X/Y mapping readback is unavailable.",
+            "plot_mappings": [],
+            "layers_read": [],
+        }
+    mappings: list[dict[str, object]] = []
+    layers_read: list[int] = []
+    failures: list[str] = []
+    first_failure = ""
+    for layer_index in range(1, max_layers + 1):
+        result = reader(graph_name, layer_index=layer_index)
+        if not getattr(result, "ok", False):
+            if layer_index == 1:
+                first_failure = str(getattr(result, "message", "plot mapping read failed"))
+            continue
+        payload = dict(getattr(result, "payload", {}) or {})
+        raw_rows = payload.get("plot_mappings")
+        if not isinstance(raw_rows, (list, tuple)):
+            failures.append(f"Layer {layer_index} returned no plot_mappings list.")
+            continue
+        layer_rows: list[dict[str, object]] = []
+        for raw in raw_rows:
+            if not isinstance(raw, dict):
+                failures.append(f"Layer {layer_index} returned a non-object plot mapping.")
+                continue
+            row = dict(raw)
+            row["layer_index"] = layer_index
+            if not str(row.get("x_dataset") or "").strip() or not str(
+                row.get("y_dataset") or ""
+            ).strip():
+                failures.append(
+                    f"Layer {layer_index} plot {row.get('plot_index', '?')} has no explicit X/Y dataset."
+                )
+            layer_rows.append(row)
+        if layer_rows:
+            layers_read.append(layer_index)
+            mappings.extend(layer_rows)
+        if int(payload.get("mapping_failure_count", 0) or 0):
+            failures.append(
+                f"Layer {layer_index} reported {int(payload.get('mapping_failure_count', 0) or 0)} mapping failures."
+            )
+    if not mappings:
+        return {
+            "ok": False,
+            "message": first_failure or "No explicit X/Y plot mappings were found in the template graph.",
+            "plot_mappings": [],
+            "layers_read": [],
+            "failures": failures,
+        }
+    if failures:
+        return {
+            "ok": False,
+            "message": "; ".join(failures),
+            "plot_mappings": mappings,
+            "layers_read": layers_read,
+            "failures": failures,
+        }
+    return {
+        "ok": True,
+        "plot_mappings": mappings,
+        "layers_read": layers_read,
+        "mapping_source": "Origin range -wx/-wy plus nameof(range)$",
+    }
 
 
 class _OriginLifecycleFailure(RuntimeError):
@@ -309,7 +534,13 @@ def _export_template_base_product_with_origin_impl(
                 external_reference_graph="",
                 external_reference_source="",
             )
-        style_asset = resolve_origin_style_asset(project_root, product.product_key) if project_root is not None and prefer_project_style_asset else None
+        style_asset = (
+            resolve_origin_runtime_style_asset(project_root, product.product_key)
+            if project_root is not None
+            and prefer_project_style_asset
+            and not preserve_exemplar_style
+            else None
+        )
         neutral_root = _neutral_origin_runtime_root()
         with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root, ignore_cleanup_errors=True) as runtime_text:
             runtime = Path(runtime_text)
@@ -333,6 +564,19 @@ def _export_template_base_product_with_origin_impl(
             runtime_template_debug = runtime_debug / "template_preview.png"
             runtime_generated_debug = runtime_debug / "generated_preview.png"
             operations = connect_origin(entrypoint="Origin.Application", isolated=True, visible=False)
+            if (
+                style_asset is not None
+                and style_asset.runtime_asset_kind == "otpu"
+                and style_asset.runtime_asset_path is not None
+            ):
+                return _export_verified_graph_template_product_with_origin(
+                    operations,
+                    product,
+                    style,
+                    style_asset,
+                    runtime_dir=runtime,
+                    require_project_reference=asset_only,
+                )
             embedded_snapshot = embedded_template_snapshot(product.product_key)
             embedded_available = embedded_snapshot is not None
 
@@ -408,10 +652,29 @@ def _export_template_base_product_with_origin_impl(
             exemplar_snapshot = extract_style_snapshot(operations, runtime_reference)
             exemplar_style = exemplar_snapshot.to_dict()
             graph_name = str(exemplar_snapshot.graph_page or graph_name)
+            reference_data_snapshot = (
+                read_graph_data_snapshot(
+                    operations,
+                    graph_name,
+                    source_label=runtime_reference.name,
+                )
+                if preserve_exemplar_style
+                else {}
+            )
             try:
-                replacement = apply_template_base_data_replacement(operations, product, graph_name)
+                replacement = apply_template_base_data_replacement(
+                    operations,
+                    product,
+                    graph_name,
+                    require_complete_mapping=preserve_exemplar_style,
+                    reference_opju_sha256=(
+                        file_sha256(reference_source)
+                        if preserve_exemplar_style
+                        else ""
+                    ),
+                )
             except Exception as exc:
-                if _can_use_template_snapshot_fallback(product):
+                if not preserve_exemplar_style and _can_use_template_snapshot_fallback(product):
                     replacement_failure = {
                         "ok": False,
                         "message": scrub_output_text(str(exc), output_root=product.type_root.parent),
@@ -434,7 +697,7 @@ def _export_template_base_product_with_origin_impl(
                     )
                 raise
             if not replacement.get("ok"):
-                if _can_use_template_snapshot_fallback(product):
+                if not preserve_exemplar_style and _can_use_template_snapshot_fallback(product):
                     return _export_template_snapshot_fallback_product_with_origin(
                         operations,
                         product,
@@ -467,44 +730,73 @@ def _export_template_base_product_with_origin_impl(
                     template_axis_titles=exemplar_snapshot.audit_string_values,
                 )
                 apply_resolved_style_overrides(operations, graph_name, style)
-            legend_entries = _plain_text_legend_entries(product, exemplar_snapshot)
-            xrd_keep_line_legend = _xrd_standard_card_keeps_line_sample_legend(product)
-            if xrd_keep_line_legend:
-                preserved_legend_policy = _format_preserved_line_sample_legend(operations, graph_name, style)
-                xrd_card_label_policy = _apply_xrd_standard_card_legend_and_label(
-                    operations,
-                    graph_name,
-                    product,
-                    legend_entries,
-                    style,
-                )
-                legend_anchor_policy = {
+            if preserve_exemplar_style:
+                legend_policy: dict[str, object] = {
+                    "mode": "template_legend_object_preserved",
                     "applied": False,
-                    "reason": "xrd_standard_card_keeps_template_line_sample_legend",
-                }
-                xrd_plain_label_policy = {
-                    "applied": False,
-                    "reason": "xrd_standard_card_keeps_template_line_sample_legend",
+                    "style_mutation_blocked": True,
+                    "reason": "Strict exemplar mode preserves the template legend and graph objects unchanged.",
                 }
             else:
-                legend_anchor_policy = _apply_nonoverlap_plain_legend_anchor(operations, graph_name, product, legend_entries)
-                if product.product_key == "XRD":
-                    xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(
+                legend_entries = _plain_text_legend_entries(product, exemplar_snapshot)
+                xrd_keep_line_legend = _xrd_standard_card_keeps_line_sample_legend(product)
+                if xrd_keep_line_legend:
+                    preserved_legend_policy = _format_preserved_line_sample_legend(operations, graph_name, style)
+                    xrd_card_label_policy = _apply_xrd_standard_card_legend_and_label(
                         operations,
                         graph_name,
                         product,
                         legend_entries,
                         style,
                     )
+                    legend_anchor_policy = {
+                        "applied": False,
+                        "reason": "xrd_standard_card_keeps_template_line_sample_legend",
+                    }
+                    xrd_plain_label_policy = {
+                        "applied": False,
+                        "reason": "xrd_standard_card_keeps_template_line_sample_legend",
+                    }
                 else:
-                    _replace_legend_with_plain_text_labels(
+                    legend_anchor_policy = _apply_nonoverlap_plain_legend_anchor(
                         operations,
                         graph_name,
+                        product,
                         legend_entries,
-                        style,
-                        prefer_existing_text=preserve_exemplar_style,
                     )
-                    xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(operations, graph_name, product, legend_entries, style)
+                    if product.product_key == "XRD":
+                        xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(
+                            operations,
+                            graph_name,
+                            product,
+                            legend_entries,
+                            style,
+                        )
+                    else:
+                        _replace_legend_with_plain_text_labels(
+                            operations,
+                            graph_name,
+                            legend_entries,
+                            style,
+                            prefer_existing_text=False,
+                        )
+                        xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(
+                            operations,
+                            graph_name,
+                            product,
+                            legend_entries,
+                            style,
+                        )
+                legend_policy = _plain_text_legend_policy(
+                    product,
+                    entries=legend_entries,
+                    anchor_policy=legend_anchor_policy,
+                    xrd_plain_label_policy=xrd_plain_label_policy,
+                    line_samples_removed=not xrd_keep_line_legend,
+                    preserved_line_sample_policy=preserved_legend_policy if xrd_keep_line_legend else None,
+                    xrd_card_label_policy=xrd_card_label_policy if xrd_keep_line_legend else None,
+                    xrd_standard_card_reference_sticks_present=xrd_keep_line_legend,
+                )
             saved = operations.save_project(runtime_origin)
             if not getattr(saved, "ok", False):
                 return {"ok": False, "message": getattr(saved, "message", "project save failed"), "exemplar_style": exemplar_style}
@@ -517,7 +809,36 @@ def _export_template_base_product_with_origin_impl(
             graph_pages = [str(item["name"]) for item in pages if item.get("type") == "graph"]
             reopened_graph = graph_name if graph_name in graph_pages else (graph_pages[0] if graph_pages else graph_name)
             product_snapshot = read_graph_style_snapshot(operations, reopened_graph, source_label=product.origin_file.name, graph_pages=graph_pages)
-            conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
+            product_data_snapshot = (
+                read_graph_data_snapshot(
+                    operations,
+                    reopened_graph,
+                    source_label=runtime_origin.name,
+                )
+                if preserve_exemplar_style
+                else {}
+            )
+            same_data_comparison = (
+                compare_graph_data_snapshots(
+                    reference_data_snapshot,
+                    product_data_snapshot,
+                    require_explicit_plotdata_mapping=True,
+                )
+                if preserve_exemplar_style
+                else {
+                    "status": "not_evaluated",
+                    "same_data": False,
+                    "reasons": [
+                        "Same-data exact comparison is reserved for explicit exemplar diagnostics."
+                    ],
+                }
+            )
+            conformance = compare_style_snapshots(
+                exemplar_snapshot,
+                product_snapshot,
+                required_line_width_pt=None if preserve_exemplar_style else style.line_width_pt,
+                require_axis_title_bold=not preserve_exemplar_style,
+            )
             strict_readback = _strict_style_readback(product_snapshot.to_dict())
             png = operations.export_graph(reopened_graph, runtime_preview_png, "png", dpi=style.export_dpi)
             tif = _export_native_tif_with_physical_validation(
@@ -579,6 +900,9 @@ def _export_template_base_product_with_origin_impl(
             "product_style": product_snapshot.to_dict(),
             "conformance": conformance.to_dict(),
             "strict_style_readback": strict_readback,
+            "same_data_comparison": same_data_comparison,
+            "reference_graph_data": _compact_graph_data_snapshot(reference_data_snapshot),
+            "product_graph_data": _compact_graph_data_snapshot(product_data_snapshot),
             "origin_processing": {
                 "required": True,
                 "applied": True,
@@ -589,22 +913,31 @@ def _export_template_base_product_with_origin_impl(
                 "raster_metadata_stripped": not metadata_warnings,
                 "metadata_warnings": metadata_warnings,
                 "tif_resolution_evidence": tif.get("evidence", {}),
-                "legend_policy": _plain_text_legend_policy(
-                    product,
-                    entries=legend_entries,
-                    anchor_policy=legend_anchor_policy,
-                    xrd_plain_label_policy=xrd_plain_label_policy,
-                    line_samples_removed=not xrd_keep_line_legend,
-                    preserved_line_sample_policy=preserved_legend_policy if xrd_keep_line_legend else None,
-                    xrd_card_label_policy=xrd_card_label_policy if xrd_keep_line_legend else None,
-                    xrd_standard_card_reference_sticks_present=xrd_keep_line_legend,
+                "legend_policy": legend_policy,
+                "style_contract": (
+                    "preserve_exemplar_exact"
+                    if preserve_exemplar_style
+                    else "apply_resolved_style_policy"
                 ),
             },
             "xps_component_fill": _template_base_xps_fill_intent(product, replacement),
             "reopened_graph": reopened_graph,
             "tif_resolution_evidence": tif.get("evidence", {}),
-            "line_width_policy_pt": style.line_width_pt,
-            "axis_title_bold_policy": style.font_bold,
+            "line_width_policy_pt": None if preserve_exemplar_style else style.line_width_pt,
+            "line_width_reference_origin_units": (
+                list(exemplar_snapshot.plot_line_widths)
+                if preserve_exemplar_style
+                else []
+            ),
+            "axis_title_bold_policy": None if preserve_exemplar_style else style.font_bold,
+            "axis_title_bold_reference": (
+                _style_snapshot_axis_title_bold_required(exemplar_snapshot.to_dict())
+                if preserve_exemplar_style
+                else None
+            ),
+            "one_to_one_pixel_comparison_eligible": bool(
+                same_data_comparison.get("same_data")
+            ),
         }
     except Exception as exc:
         return {
@@ -659,6 +992,52 @@ def _export_template_base_product_with_origin_impl(
                     ),
                 }
             raise _OriginLifecycleFailure(failure_payload)
+
+
+def _compact_graph_data_snapshot(snapshot: dict[str, object]) -> dict[str, object]:
+    if not isinstance(snapshot, dict) or not snapshot:
+        return {}
+    plots = snapshot.get("plots")
+    compact_plots = []
+    if isinstance(plots, list):
+        for raw in plots:
+            if not isinstance(raw, dict):
+                continue
+            compact_plots.append(
+                {
+                    key: raw.get(key)
+                    for key in (
+                        "status",
+                        "layer_index",
+                        "plot_index",
+                        "x_dataset",
+                        "y_dataset",
+                        "plot_row_from",
+                        "plot_row_to",
+                        "row_count",
+                        "x_mapping_source",
+                        "plot_row_range_source",
+                        "x_data_sha256",
+                        "y_data_sha256",
+                        "xy_data_sha256",
+                    )
+                }
+            )
+    return {
+        key: snapshot.get(key)
+        for key in (
+            "schema_version",
+            "status",
+            "source_opju",
+            "graph_page",
+            "layer_count_with_plots",
+            "plot_count",
+            "plot_values_sha256",
+            "plot_mapping_sha256",
+            "plot_data_sha256",
+            "mapping_failure_count",
+        )
+    } | {"plots": compact_plots}
 
 
 def _record_origin_runtime_cleanup_failure(
@@ -1027,6 +1406,523 @@ def _export_template_snapshot_fallback_product_with_origin(
         "tif_resolution_evidence": tif.get("evidence", {}),
         "line_width_policy_pt": style.line_width_pt,
         "axis_title_bold_policy": style.font_bold,
+    }
+
+
+def _export_verified_graph_template_product_with_origin(
+    operations: object,
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    style_asset: object,
+    *,
+    runtime_dir: Path,
+    require_project_reference: bool = False,
+) -> dict[str, object]:
+    template_path = Path(str(getattr(style_asset, "runtime_asset_path", "") or ""))
+    template_sha256 = str(getattr(style_asset, "runtime_asset_sha256", "") or "")
+    if (
+        product.product_key != "BET"
+        or str(getattr(style_asset, "runtime_asset_kind", "")) != "otpu"
+        or not template_path.is_file()
+        or template_path.suffix.casefold() != ".otpu"
+    ):
+        return {
+            "ok": False,
+            "message": "Verified graph-template export received an unsupported or missing runtime asset.",
+        }
+    if file_sha256(template_path) != template_sha256:
+        return {
+            "ok": False,
+            "message": "Verified graph-template asset hash changed before Origin execution.",
+        }
+    headers, rows = _read_processed_csv(product.processed_data)
+    binding = _prepare_verified_bet_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=getattr(style_asset, "binding_contract_path", None),
+    )
+    plan_payload = {
+        "data_type": product.product_key,
+        "status": "ready" if binding.get("ok") else "blocked",
+        "mode": "verified_graph_template",
+        "graph_page": binding.get("graph_page") or getattr(style_asset, "graph_page", ""),
+        "style_package_path": _product_output_path(
+            product.type_root.parent,
+            template_path,
+        ),
+        "can_execute": bool(binding.get("ok")),
+        "one_to_one_claim_allowed": False,
+        "warnings": [] if binding.get("ok") else [binding.get("message")],
+    }
+    if not binding.get("ok"):
+        return {
+            "ok": False,
+            "message": str(binding.get("message") or "BET OTPU binding is blocked."),
+            "template_format_plan": plan_payload,
+            "template_binding": binding,
+        }
+
+    runtime = Path(runtime_dir)
+    runtime_template = runtime / template_path.name
+    runtime_origin = runtime / product.origin_file.name
+    runtime_reference_png = runtime / product.reference_preview_png.name
+    runtime_png = runtime / product.preview_png.name
+    runtime_tif = runtime / product.figure_tif.name
+    shutil.copy2(template_path, runtime_template)
+    external_reference_preview = _export_external_reference_preview_if_requested(
+        operations,
+        product,
+        runtime,
+        runtime_reference_png,
+        style,
+        project_reference_opju=getattr(style_asset, "template_opju_path", None),
+        project_reference_graph=str(getattr(style_asset, "graph_page", "") or ""),
+    )
+    if not external_reference_preview.get("ok", True):
+        return {
+            "ok": False,
+            "message": str(
+                external_reference_preview.get("message")
+                or "Independent reference preview export failed."
+            ),
+            "template_format_plan": plan_payload,
+            "external_reference_preview": external_reference_preview,
+        }
+    if (
+        require_project_reference
+        and external_reference_preview.get("reference_kind")
+        != "project_local_reference_opju"
+    ):
+        return {
+            "ok": False,
+            "message": "Asset-only BET OTPU export requires the project-local reference OPJU as independent evidence.",
+            "template_format_plan": plan_payload,
+            "external_reference_preview": external_reference_preview,
+        }
+    reference_style = external_reference_preview.get("style_snapshot")
+    if not isinstance(reference_style, dict) or reference_style.get("status") != "extracted":
+        return {
+            "ok": False,
+            "message": "Verified BET OTPU export requires an extracted independent reference style snapshot.",
+            "template_format_plan": plan_payload,
+            "external_reference_preview": external_reference_preview,
+        }
+
+    reset = operations.new_project()
+    if not getattr(reset, "ok", False):
+        return {
+            "ok": False,
+            "message": getattr(reset, "message", "Could not start a fresh Origin project."),
+            "template_format_plan": plan_payload,
+        }
+    imported = operations.import_csv_to_worksheet(
+        product.processed_data,
+        book_name=str(binding["book_name"]),
+    )
+    if not getattr(imported, "ok", False):
+        return {
+            "ok": False,
+            "message": getattr(imported, "message", "Processed BET CSV import failed."),
+            "template_format_plan": plan_payload,
+        }
+    book_name = str(imported.payload.get("book_name") or "")
+    metadata_write = operations.set_worksheet_column_metadata(
+        book_name,
+        list(binding["column_metadata"]),
+    )
+    if not getattr(metadata_write, "ok", False):
+        return {
+            "ok": False,
+            "message": getattr(
+                metadata_write,
+                "message",
+                "BET worksheet metadata write failed.",
+            ),
+            "template_format_plan": plan_payload,
+        }
+    created = operations.create_graph_from_xy_pairs_template(
+        str(binding["graph_page"]),
+        runtime_template,
+        book_name,
+        list(binding["xy_ranges"]),
+        plot_type=str(binding["plot_type"]),
+        rescale=False,
+        legend=False,
+    )
+    if not getattr(created, "ok", False):
+        return {
+            "ok": False,
+            "message": getattr(created, "message", "Verified BET OTPU plot failed."),
+            "template_format_plan": plan_payload,
+        }
+    graph_name = str(created.payload.get("graph_name") or binding["graph_page"])
+    render_refresh = _refresh_graph_for_export(operations, graph_name)
+    saved = operations.save_project(runtime_origin)
+    if not getattr(saved, "ok", False) or not runtime_origin.is_file():
+        return {
+            "ok": False,
+            "message": getattr(saved, "message", "Verified BET OPJU save failed."),
+            "template_format_plan": plan_payload,
+        }
+    operations.new_project()
+    reopened = operations.load_project(runtime_origin)
+    if not getattr(reopened, "ok", False):
+        return {
+            "ok": False,
+            "message": getattr(reopened, "message", "Verified BET OPJU reopen failed."),
+            "template_format_plan": plan_payload,
+        }
+    pages_result = operations.list_worksheets()
+    pages = getattr(pages_result, "payload", {}).get("pages", [])
+    graph_pages = [
+        str(page.get("name"))
+        for page in pages
+        if isinstance(page, dict) and page.get("type") == "graph"
+    ]
+    if graph_pages.count(graph_name) != 1:
+        return {
+            "ok": False,
+            "message": f"Saved BET graph page {graph_name!r} was not uniquely present after reopen.",
+            "template_format_plan": plan_payload,
+            "available_graph_pages": graph_pages,
+        }
+    product_snapshot = read_graph_style_snapshot(
+        operations,
+        graph_name,
+        source_label=product.origin_file.name,
+        graph_pages=graph_pages,
+    )
+    product_style = product_snapshot.to_dict()
+    strict_readback = _strict_style_readback(product_style)
+    conformance = compare_style_snapshots(
+        reference_style,
+        product_snapshot,
+        required_line_width_pt=style.line_width_pt,
+        require_axis_title_bold=True,
+    ).to_dict()
+    conformance["reference_source"] = external_reference_preview.get("reference_kind")
+    current_data_snapshot = read_graph_data_snapshot(
+        operations,
+        graph_name,
+        source_label=product.origin_file.name,
+    )
+    current_data_validation = _validate_verified_bet_current_data(
+        rows,
+        list(binding["xy_ranges"]),
+        current_data_snapshot,
+    )
+    if not current_data_validation.get("ok"):
+        return {
+            "ok": False,
+            "message": str(
+                current_data_validation.get("message")
+                or "Reopened BET graph data did not match the processed CSV."
+            ),
+            "template_format_plan": plan_payload,
+            "current_data_validation": current_data_validation,
+        }
+    png = operations.export_graph(graph_name, runtime_png, "png", dpi=style.export_dpi)
+    tif = _export_native_tif_with_physical_validation(
+        operations,
+        graph_name,
+        runtime_tif,
+        dpi=style.export_dpi,
+    )
+    metadata_warning = (
+        _strip_raster_metadata(runtime_png, dpi=style.export_dpi)
+        if runtime_png.exists()
+        else ""
+    )
+    if (
+        not getattr(png, "ok", False)
+        or not bool(tif.get("ok"))
+        or any(
+            not path.is_file() or path.stat().st_size == 0
+            for path in (runtime_origin, runtime_png, runtime_tif)
+        )
+    ):
+        return {
+            "ok": False,
+            "message": "Verified BET Origin artifact export failed.",
+            "template_format_plan": plan_payload,
+            "tif_resolution_evidence": tif.get("evidence", {}),
+        }
+    if file_sha256(template_path) != template_sha256:
+        return {
+            "ok": False,
+            "message": "Verified BET OTPU source changed during Origin execution.",
+            "template_format_plan": plan_payload,
+        }
+    operations.new_project()
+    _copy_runtime_artifact(runtime_origin, product.origin_file)
+    if runtime_reference_png.is_file():
+        _copy_runtime_artifact(runtime_reference_png, product.reference_preview_png)
+    _copy_runtime_artifact(runtime_png, product.preview_png)
+    _copy_runtime_artifact(runtime_tif, product.figure_tif)
+    return {
+        "ok": True,
+        "message": "Origin verified-OTPU BET export succeeded after fresh-project save/reopen/readback.",
+        "template_format_plan": plan_payload,
+        "origin_processing": {
+            "required": True,
+            "applied": True,
+            "method": "fresh_graph_verified_otpu_explicit_xy",
+            "processing_location": "Origin fresh project with verified project-local OTPU and explicit current-data X/Y ranges",
+            "style_contract": "verified_detached_otpu",
+            "runtime_asset_kind": "otpu",
+            "runtime_asset_path": _product_output_path(
+                product.type_root.parent,
+                template_path,
+            ),
+            "runtime_asset_sha256": template_sha256,
+            "graph_page": graph_name,
+            "neutral_runtime": True,
+            "reference_opju_used_as_product_base": False,
+            "current_data_validation": current_data_validation,
+            "template_binding": binding,
+            "render_refresh": render_refresh,
+            "raster_metadata_stripped": not bool(metadata_warning),
+            "metadata_warnings": [metadata_warning] if metadata_warning else [],
+            "tif_resolution_evidence": tif.get("evidence", {}),
+        },
+        "external_reference_preview": external_reference_preview,
+        "exemplar_style": reference_style,
+        "product_style": product_style,
+        "strict_style_readback": strict_readback,
+        "conformance": conformance,
+        "current_data_snapshot": current_data_snapshot,
+        "current_data_validation": current_data_validation,
+        "reopened_graph": graph_name,
+        "tif_resolution_evidence": tif.get("evidence", {}),
+        "line_width_policy_pt": style.line_width_pt,
+        "axis_title_bold_policy": True,
+        "xps_component_fill": {"required": False, "applied": False},
+    }
+
+
+def _prepare_verified_bet_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    if product.product_key != "BET":
+        return {
+            "ok": False,
+            "message": "Verified OTPU runtime dispatch is currently enabled only for BET.",
+        }
+    contracts = load_template_binding_contracts(contract_path)
+    contract = contracts.get("bet")
+    if contract is None or not contract.ready:
+        return {
+            "ok": False,
+            "message": "The reviewed BET template binding contract is unavailable.",
+        }
+    source_pairs = _processed_csv_template_source_pairs(product, headers)
+    source_validation = validate_template_source_bindings(
+        contract,
+        headers,
+        source_pairs,
+    )
+    if not bool(source_validation.get("ok")):
+        return {
+            "ok": False,
+            "message": str(
+                source_validation.get("message")
+                or "Processed BET source binding validation failed."
+            ),
+            "source_binding": source_validation,
+            "contract": contract.to_dict(),
+        }
+    contracted_plots = sorted(
+        contract.plots,
+        key=lambda plot: (plot.layer_index, plot.plot_index),
+    )
+    if any(plot.layer_index != 1 for plot in contracted_plots):
+        return {
+            "ok": False,
+            "message": "Verified BET OTPU requires all contracted plots in layer 1.",
+            "contract": contract.to_dict(),
+        }
+
+    xy_ranges: list[dict[str, int]] = []
+    metadata_by_column: dict[int, dict[str, object]] = {}
+    legend_entries = [str(value).strip() for value in product.legend_entries]
+    source_schema = dict(contract.source_schema)
+    x_suffix = str(source_schema.get("x_header_suffix") or "")
+    for plot in contracted_plots:
+        source_index = plot.source_series_index - 1
+        x_index, y_index = source_pairs[source_index]
+        row_bounds = _paired_numeric_row_bounds(rows, x_index, y_index)
+        if row_bounds is None:
+            return {
+                "ok": False,
+                "message": (
+                    f"BET source series {plot.source_series_index} has no paired numeric X/Y rows."
+                ),
+                "source_binding": source_validation,
+                "contract": contract.to_dict(),
+            }
+        row_from, row_to = row_bounds
+        xy_ranges.append(
+            {
+                "x_col": x_index + 1,
+                "y_col": y_index + 1,
+                "row_from": row_from,
+                "row_to": row_to,
+            }
+        )
+        role_is_desorption = "desorption" in plot.semantic_role.casefold()
+        x_long_name = (
+            "Relative Pressure (P/Po)"
+            if plot.plot_index <= 2
+            else f"Relative Pressure ({'Desorption' if role_is_desorption else 'Adsorption'})"
+        )
+        metadata_by_column[x_index + 1] = {
+            "column_index": x_index + 1,
+            "long_name": x_long_name,
+            "unit": "" if plot.plot_index <= 2 else "P/P0",
+            "comment": "",
+            "type": 4,
+        }
+        if plot.plot_index == 1:
+            y_long_name = "Quantity Adsorbed"
+        elif plot.plot_index == 2:
+            y_long_name = "Quantity Desorption"
+        else:
+            fallback = str(headers[y_index])
+            if x_suffix and fallback.endswith(str(source_schema.get("y_header_suffix") or "")):
+                fallback = fallback[: -len(str(source_schema.get("y_header_suffix") or ""))]
+            label = (
+                legend_entries[source_index]
+                if source_index < len(legend_entries) and legend_entries[source_index]
+                else fallback.replace("_", " ").strip()
+            )
+            y_long_name = origin_bold_text(
+                _bet_template_legend_label(
+                    label or f"Series {plot.source_series_index}",
+                    is_desorption=role_is_desorption,
+                )
+            )
+        metadata_by_column[y_index + 1] = {
+            "column_index": y_index + 1,
+            "long_name": y_long_name,
+            "unit": "cm3/g STP",
+            "comment": "",
+            "type": 1,
+        }
+    return {
+        "ok": True,
+        "message": "Processed BET columns match the reviewed OTPU binding contract.",
+        "graph_page": contract.graph_page,
+        "book_name": "Isotherm",
+        "plot_type": "line+symbol",
+        "xy_ranges": xy_ranges,
+        "column_metadata": [
+            metadata_by_column[index] for index in sorted(metadata_by_column)
+        ],
+        "source_pairs": [list(pair) for pair in source_pairs],
+        "source_binding": source_validation,
+        "contract": contract.to_dict(),
+    }
+
+
+def _bet_template_legend_label(label: str, *, is_desorption: bool) -> str:
+    """Keep the reviewed BET legend grammar while substituting the sample name."""
+    value = str(label).strip()
+    material = re.sub(
+        r"(?:[\s_]*\(?(?:adsorption|desorption)\)?)\s*$",
+        "",
+        value,
+        flags=re.IGNORECASE,
+    ).strip(" _")
+    if not material:
+        material = value or "Series"
+    branch = "Desorption" if is_desorption else "Adsorption"
+    return f"{material} ({branch})"
+
+
+def _paired_numeric_row_bounds(
+    rows: list[list[object]],
+    x_index: int,
+    y_index: int,
+) -> tuple[int, int] | None:
+    valid_rows = [
+        row_index
+        for row_index, row in enumerate(rows, start=1)
+        if x_index < len(row)
+        and y_index < len(row)
+        and _finite_numeric_value(row[x_index]) is not None
+        and _finite_numeric_value(row[y_index]) is not None
+    ]
+    if not valid_rows:
+        return None
+    if valid_rows != list(range(valid_rows[0], valid_rows[-1] + 1)):
+        return None
+    return min(valid_rows), max(valid_rows)
+
+
+def _finite_numeric_value(value: object) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def _validate_verified_bet_current_data(
+    rows: list[list[object]],
+    xy_ranges: list[dict[str, int]],
+    graph_snapshot: dict[str, object],
+) -> dict[str, object]:
+    plots = [
+        dict(plot)
+        for plot in graph_snapshot.get("plots", [])
+        if isinstance(plot, dict)
+    ]
+    reasons: list[str] = []
+    if str(graph_snapshot.get("status") or "") != "ready":
+        reasons.append("reopened graph data snapshot is not ready")
+    if len(plots) != len(xy_ranges):
+        reasons.append(
+            f"reopened graph has {len(plots)} plots; expected {len(xy_ranges)}"
+        )
+    for index, expected in enumerate(xy_ranges):
+        if index >= len(plots):
+            break
+        plot = plots[index]
+        expected_x = [
+            float(rows[row_index - 1][expected["x_col"] - 1])
+            for row_index in range(expected["row_from"], expected["row_to"] + 1)
+        ]
+        expected_y = [
+            float(rows[row_index - 1][expected["y_col"] - 1])
+            for row_index in range(expected["row_from"], expected["row_to"] + 1)
+        ]
+        actual_x = [float(value) for value in list(plot.get("x_values") or [])]
+        actual_y = [float(value) for value in list(plot.get("y_values") or [])]
+        if actual_x != expected_x:
+            reasons.append(f"plot {index + 1} X values differ from processed CSV")
+        if actual_y != expected_y:
+            reasons.append(f"plot {index + 1} Y values differ from processed CSV")
+        if (
+            int(plot.get("plot_row_from") or 0) != expected["row_from"]
+            or int(plot.get("plot_row_to") or 0) != expected["row_to"]
+        ):
+            reasons.append(f"plot {index + 1} displayed row range differs")
+    return {
+        "ok": not reasons,
+        "status": "matched" if not reasons else "mismatch",
+        "message": (
+            "Reopened BET graph contains the exact processed CSV X/Y values and displayed row ranges."
+            if not reasons
+            else "; ".join(reasons)
+        ),
+        "expected_plot_count": len(xy_ranges),
+        "actual_plot_count": len(plots),
+        "reasons": reasons,
     }
 
 
@@ -2267,6 +3163,19 @@ def _apply_exemplar_axis_title_text(operations: object, graph_name: str, exempla
 def _processed_csv_plot_pairs(product: ProductContext, headers: list[str]) -> list[tuple[int, int]]:
     if len(headers) < 2:
         return []
+    if product.product_key == "BET":
+        paired_x_suffix = "_relative_pressure_p_p0"
+        paired_y_suffix = "_quantity_adsorbed_cm3_g_stp"
+        if len(headers) % 2 == 0 and all(
+            str(headers[index]).endswith(paired_x_suffix)
+            and str(headers[index + 1]).endswith(paired_y_suffix)
+            for index in range(0, len(headers), 2)
+        ):
+            return [
+                (column, column + 1)
+                for column in range(1, len(headers) + 1, 2)
+                if column + 1 <= len(headers)
+            ]
     if product.product_key == "EIS" and len(headers) >= 4:
         return [(column, column + 1) for column in range(1, len(headers), 2) if column + 1 <= len(headers)]
     if product.product_key == "XRD":
@@ -3415,7 +4324,11 @@ def _template_base_xps_fill_intent(product: ProductContext, replacement: dict[st
         "applied": required,
         "policy": "XPS component fill/gradient objects are preserved from the OPJU template base; only referenced workbook data are replaced.",
         "component_plot_count": updates.get("visual_plot_count", 0) if required else 0,
-        "unique_dataset_count": updates.get("unique_dataset_count", 0) if required else 0,
+        "unique_dataset_count": (
+            updates.get("unique_plot_pair_count", updates.get("unique_dataset_count", 0))
+            if required
+            else 0
+        ),
     }
 
 
@@ -3448,8 +4361,8 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
     products = result.get("products") if isinstance(result.get("products"), list) else []
     summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
     payload = {
-        "policy": "Template-format products prefer project-local saved .oth graph themes applied to clean target graphs; legacy OPJU-based execution is kept only for backwards-compatible diagnostics.",
-        "one_to_one_policy": "No product may claim one-to-one replication until the reference preview, generated preview, plot counts, style readback, and visual comparison all pass.",
+        "policy": "Template-format products default to an isolated copy of the reviewed pairing-plan OPJU and replace only its mapped worksheet data; detached .oth/.otpu assets remain quarantined unless independently validated.",
+        "one_to_one_policy": "No product may claim one-to-one replication unless reference and generated graphs use identical per-plot X/Y data and mappings, then pass save/reopen readback, native 600 dpi export, exact decoded-pixel comparison, and manual preview.",
         "summary": summary,
         "products": products,
     }
@@ -3460,11 +4373,11 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
     lines = [
         "# Template-format product executor",
         "",
-        "- Origin source path: project-local saved `.oth` graph theme applied to a clean target graph.",
-        "- Data rule: the current processed CSV is imported into the clean project; final products must not reuse workbook data from the template OPJU.",
-        "- OPJU compatibility rule: copied OPJU exemplars are used only when the saved format-theme asset is missing.",
-        "- Exactness rule: one-to-one replication is not claimed until exported previews pass comparison.",
-        "- Global policy: plotted curves are forced to 3 pt where Origin exposes plot objects; axis titles are bold.",
+        "- Default Origin source: a task-local copy of the reviewed OPJU selected by the pairing plan.",
+        "- Data rule: only explicitly mapped worksheet columns may be replaced; graph objects and style are not globally rewritten.",
+        "- Detached-asset rule: `.oth` and `.otpu` are not runtime fallbacks unless a fresh-project, same-data replay has independently passed.",
+        "- Exactness rule: compare only graphs built from identical per-plot X/Y data and mappings; one-to-one replication is not claimed until save/reopen readback, native 600 dpi export, zero decoded-pixel difference, and manual preview all pass.",
+        "- Style rule: line width, fonts, axes, layers, plot types, legend geometry, and other graph formatting are compared with the selected exemplar rather than forced to global constants.",
         "",
         f"- Run root: {render_output_path(run_root, project_root=project_root)}",
         f"- Product count: {summary.get('product_count', '')}",

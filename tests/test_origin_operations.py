@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import math
 from unittest import mock
 from pathlib import Path
 import re
@@ -121,6 +122,12 @@ class FakeOriginApp:
             if template_path:
                 Path(template_path).parent.mkdir(parents=True, exist_ok=True)
                 Path(template_path).write_bytes(b"fake graph template")
+        if "template_saveas " in script:
+            template_name = _between(script, 'template:="', '"')
+            template_folder = _between(script, 'filepath:="', '"')
+            if template_name and template_folder:
+                Path(template_folder).mkdir(parents=True, exist_ok=True)
+                (Path(template_folder) / f"{template_name}.otpu").write_bytes(b"fake graph template")
         if "run.LoadOC" in script:
             self.ltvars["__rdop_theme_load_err"] = 0.0
         if "__rdop_theme_copy_ok=0" in script:
@@ -347,9 +354,118 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertTrue(replaced.ok)
         self.assertEqual(app.worksheets["[Book1]Sheet1"], [[0.0, 10.0, 20.0], [1.0, 11.0, 21.0]])
         self.assertEqual(replaced.payload["updated_columns"][2]["book_name"], "Book1")
+        self.assertEqual(replaced.payload["updated_columns"][2]["sheet_reference"], "Sheet1")
         self.assertEqual(replaced.payload["updated_columns"][2]["column_index"], 2)
         self.assertEqual(replaced.payload["updated_columns"][2]["rows"], 2)
         self.assertEqual(replaced.payload["updated_columns"][2]["write_mode"], "single")
+
+    def test_graph_plot_dataset_mappings_read_actual_x_y_and_sheet_suffixes(self):
+        class PlotMappingOriginApp(FakeOriginApp):
+            plot_mappings = {
+                1: ("Book1_A", "Book1_B", 1, 2),
+                2: ("Book1_F@2", "Book1_G@2", 3, 4),
+            }
+
+            def FindGraphLayer(self, name: str):
+                if name in {"[Fig1]1", "[Fig1]Layer1", "[Fig1]", "Fig1"}:
+                    return FakeLayer(self, ["Book1_B", "Book1_G@2"])
+                return None
+
+            def Execute(self, script: str):
+                match = re.search(r"range\s+-wx\s+\S+=\[Fig1\]1!(\d+)", script)
+                if match:
+                    plot_index = int(match.group(1))
+                    x_dataset, y_dataset, row_from, row_to = self.plot_mappings[plot_index]
+                    self.ltstrs["__rdop_plot_x$"] = x_dataset
+                    self.ltstrs["__rdop_plot_y$"] = y_dataset
+                    self.ltvars["__rdop_plot_begin"] = float(row_from)
+                    self.ltvars["__rdop_plot_end"] = float(row_to)
+                return super().Execute(script)
+
+        app = PlotMappingOriginApp()
+        result = OriginOperations(app).get_graph_plot_dataset_mappings("Fig1")
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload["mapping_failure_count"], 0)
+        self.assertEqual(result.payload["plot_x_dataset_names"], ["Book1_A", "Book1_F@2"])
+        self.assertEqual(result.payload["plot_y_dataset_names"], ["Book1_B", "Book1_G@2"])
+        self.assertEqual(
+            result.payload["plot_mappings"][1],
+            {
+                "plot_index": 2,
+                "x_dataset": "Book1_F@2",
+                "y_dataset": "Book1_G@2",
+                "dataplot_name": "Book1_G@2",
+                "dataplot_name_matches": True,
+                "row_from": 3,
+                "row_to": 4,
+                "row_count": 2,
+                "status": "ready",
+            },
+        )
+
+    def test_template_worksheet_column_replacement_uses_explicit_sheet_creation_index(self):
+        app = FakeOriginApp()
+        replaced = OriginOperations(app).replace_template_worksheet_columns(
+            {
+                "Book1": {
+                    1: {0: [0.0, 1.0], 1: [10.0, 11.0]},
+                    2: {5: [2.0, 3.0], 6: [20.0, 21.0]},
+                }
+            }
+        )
+
+        self.assertTrue(replaced.ok)
+        self.assertEqual(app.worksheets["[Book1]1"], [[0.0, 10.0], [1.0, 11.0]])
+        self.assertEqual(app.worksheets["[Book1]2"][0][5:7], [2.0, 20.0])
+        self.assertEqual(replaced.payload["updated_columns"][2]["sheet_reference"], "2")
+
+    def test_template_worksheet_range_replacement_preserves_one_based_plot_row_offset(self):
+        app = FakeOriginApp()
+        app.worksheets["[Book1]2"] = [[-1.0, -1.0], [-2.0, -2.0]]
+
+        replaced = OriginOperations(app).replace_template_worksheet_ranges(
+            [
+                {
+                    "book_name": "Book1",
+                    "sheet_index": 2,
+                    "column_index": 1,
+                    "row_from": 3,
+                    "row_to": 4,
+                    "values": [10.0, 11.0],
+                }
+            ]
+        )
+
+        self.assertTrue(replaced.ok)
+        written = app.worksheets["[Book1]2"]
+        self.assertEqual(written[:2], [[-1.0, -1.0], [-2.0, -2.0]])
+        self.assertTrue(math.isnan(written[2][0]))
+        self.assertTrue(math.isnan(written[3][0]))
+        self.assertEqual([written[2][1], written[3][1]], [10.0, 11.0])
+        self.assertEqual(replaced.payload["updated_ranges"][0]["row_from"], 3)
+        self.assertEqual(replaced.payload["updated_ranges"][0]["row_to"], 4)
+
+    def test_template_worksheet_range_replacement_preserves_missing_cells(self):
+        app = FakeOriginApp()
+
+        replaced = OriginOperations(app).replace_template_worksheet_ranges(
+            [
+                {
+                    "book_name": "Book1",
+                    "sheet_index": 1,
+                    "column_index": 0,
+                    "row_from": 1,
+                    "row_to": 4,
+                    "values": [1.0, None, "", math.nan],
+                }
+            ]
+        )
+
+        self.assertTrue(replaced.ok)
+        values = [row[0] for row in app.worksheets["[Book1]1"]]
+        self.assertEqual(values[0], 1.0)
+        self.assertTrue(all(math.isnan(value) for value in values[1:]))
 
     def test_graph_plot_dataset_names_use_numeric_layer_references_for_multilayer_graphs(self):
         class MultiLayerOriginApp(FakeOriginApp):
@@ -629,7 +745,7 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertNotIn("dotsperinch", export_commands[2])
         self.assertNotIn("sysopts:=0", export_commands[2])
 
-    def test_save_graph_template_uses_labtalk_save_t(self):
+    def test_save_graph_template_uses_template_saveas_without_system_override(self):
         app = FakeOriginApp()
         ops = OriginOperations(app)
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -639,8 +755,72 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertTrue(result.ok)
         command_text = "\n".join(app.commands)
         self.assertIn('win -a "Graph1"', command_text)
-        self.assertIn("save -t Graph1", command_text)
-        self.assertIn("GraphStyle.otpu", command_text)
+        self.assertIn("template_saveas pg:=Graph1", command_text)
+        self.assertIn('template:="GraphStyle"', command_text)
+        self.assertIn("loadsys:=0", command_text)
+        self.assertNotIn("save -t", command_text)
+
+    def test_create_graph_from_xy_pairs_template_uses_absolute_template_and_explicit_ranges(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "GraphStyle.otpu"
+            template_path.write_bytes(b"otpu")
+            result = ops.create_graph_from_xy_pairs_template(
+                "Graph5",
+                template_path,
+                "Isotherm",
+                [
+                    {"x_col": 1, "y_col": 2, "row_from": 1, "row_to": 32},
+                    {"x_col": 3, "y_col": 4, "row_from": 1, "row_to": 33},
+                ],
+            )
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload["plot_count"], 2)
+        command_text = "\n".join(app.commands)
+        absolute_template = str(template_path.resolve()).replace("\\", "/")
+        self.assertIn(f'template:="{absolute_template}"', command_text)
+        self.assertIn("iy:=((1,2[1:32]),(3,4[1:33]))", command_text)
+        self.assertIn("plot:=202", command_text)
+        self.assertIn("size:=-1", command_text)
+        self.assertIn("rescale:=0", command_text)
+        self.assertIn("legend:=0", command_text)
+
+    def test_worksheet_column_metadata_roundtrip_commands_use_singular_origin_properties(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+
+        read = ops.get_worksheet_column_metadata("Isotherm", [1, 2])
+        written = ops.set_worksheet_column_metadata(
+            "Isotherm",
+            [
+                {
+                    "column_index": 1,
+                    "long_name": r"\b(Relative Pressure)",
+                    "unit": "P/P0",
+                    "comment": "",
+                    "type": 4,
+                },
+                {
+                    "column_index": 2,
+                    "long_name": "Quantity Adsorbed",
+                    "unit": "cm3/g STP",
+                    "comment": "",
+                    "type": 1,
+                },
+            ],
+        )
+
+        self.assertTrue(read.ok)
+        self.assertTrue(written.ok)
+        command_text = "\n".join(app.commands)
+        self.assertIn("wks.col1.unit$", command_text)
+        self.assertIn("wks.col1.comment$", command_text)
+        self.assertNotIn("wks.col1.units$", command_text)
+        self.assertNotIn("wks.col1.comments$", command_text)
+        self.assertIn(r'wks.col1.lname$="\b(Relative Pressure)"', command_text)
+        self.assertNotIn(r'wks.col1.lname$="\\b(Relative Pressure)"', command_text)
 
     def test_create_graph_from_template_uses_project_local_otpu(self):
         app = FakeOriginApp()

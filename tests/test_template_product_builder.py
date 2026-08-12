@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 from PIL import Image
 
@@ -27,6 +28,7 @@ from src.core.template_product_builder import (
     _build_pairing_template_candidates,
     _build_template_eis_table,
     _repair_exemplar_driven_pairings,
+    _require_asset_only_style_integrity,
     _prioritized_template_validation_targets,
     _build_template_xrd_multisource_table,
     _resolve_run_relative_artifact,
@@ -37,6 +39,41 @@ from src.core.template_product_builder import (
 )
 from src.core.template_product_common import TargetPairing
 from src.core.template_product_common import _resolve_pairing_path
+
+
+def _runtime_validated_style_entry(
+    product_key: str,
+    graph_page: str,
+    format_theme: str,
+    **extra: object,
+) -> dict[str, object]:
+    return {
+        "product_key": product_key,
+        "data_type": product_key,
+        "format_theme": format_theme,
+        "status": "accepted",
+        "graph_page": graph_page,
+        "runtime_validation": {
+            "status": "accepted",
+            "comparison_scope": "fresh_project_same_data",
+            "fresh_project_verified": True,
+            "style_asset_only": True,
+            "same_data_verified": True,
+            "reference_plot_values_sha256": "1" * 64,
+            "generated_plot_values_sha256": "1" * 64,
+            "reference_plot_mapping_sha256": "2" * 64,
+            "generated_plot_mapping_sha256": "2" * 64,
+            "saved_reopened": True,
+            "native_tif_600dpi_verified": True,
+            "manual_preview_passed": True,
+            "exact_pixel_match": True,
+            "same_size": True,
+            "changed_pixels": 0,
+            "rms": 0,
+            "reference_opju_self_replay": False,
+        },
+        **extra,
+    }
 
 
 def test_classify_templates_uses_f_drive_type_paths_and_separates_xps_subtypes() -> None:
@@ -99,20 +136,19 @@ def test_classify_template_project_style_asset_candidates_use_saved_format_theme
     theme = theme_dir / "BET.oth"
     theme.write_text("saved format theme", encoding="utf-8")
     (style_root / "manifest.json").write_text(
-        """{
-  "schema_version": 1,
-  "assets": [
-    {
-      "product_key": "BET",
-      "data_type": "BET",
-      "format_theme": "format_themes/BET.oth",
-      "status": "accepted",
-      "graph_page": "Graph1",
-      "source_run_root": "output/runs/source_run"
-    }
-  ]
-}
-""",
+        json.dumps(
+            {
+                "schema_version": 2,
+                "assets": [
+                    _runtime_validated_style_entry(
+                        "BET",
+                        "Graph1",
+                        "format_themes/BET.oth",
+                        source_run_root="output/runs/source_run",
+                    )
+                ],
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -128,6 +164,55 @@ def test_classify_template_project_style_asset_candidates_use_saved_format_theme
     assert candidate.metadata["style_asset"]["format_theme"] == "format_themes/BET.oth"
 
 
+def test_classify_template_project_style_asset_candidate_reports_verified_otpu_runtime_path(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    project_root = tmp_path / "project"
+    style_root = project_root / "templates" / "origin_styles"
+    runtime_template = style_root / "graph_templates" / "BET_verified.otpu"
+    legacy_theme = style_root / "format_themes" / "BET.oth"
+    runtime_template.parent.mkdir(parents=True)
+    legacy_theme.parent.mkdir(parents=True)
+    runtime_template.write_bytes(b"verified")
+    legacy_theme.write_bytes(b"legacy")
+    monkeypatch.setattr(
+        "src.core.template_product_builder.load_origin_style_manifest",
+        lambda *_args, **_kwargs: {
+            "assets": [
+                {
+                    "product_key": "BET",
+                    "data_type": "BET",
+                    "asset_kind": "otpu",
+                    "expected_layer_count": 1,
+                    "expected_plot_count": 6,
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        "src.core.template_product_builder.resolve_origin_runtime_style_asset",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            runtime_asset_path=runtime_template,
+            runtime_asset_kind="otpu",
+            format_theme_path=legacy_theme,
+            style_snapshot_path=None,
+            graph_page="Graph5",
+            to_dict=lambda _root: {
+                "runtime_asset": "graph_templates/BET_verified.otpu",
+                "runtime_asset_kind": "otpu",
+                "format_theme": "format_themes/BET.oth",
+            },
+        ),
+    )
+
+    [candidate] = classify_template_project_style_asset_candidates(project_root)
+
+    assert candidate.path == runtime_template
+    assert candidate.reason == "project-local independently validated Origin graph template"
+    assert candidate.metadata["style_asset"]["runtime_asset_kind"] == "otpu"
+
+
 def test_template_builder_uses_project_style_assets_without_default_external_scan(tmp_path: Path, monkeypatch) -> None:
     project_root = tmp_path / "project"
     project_root.mkdir()
@@ -136,13 +221,18 @@ def test_template_builder_uses_project_style_assets_without_default_external_sca
     theme_dir.mkdir(parents=True)
     (theme_dir / "BET.oth").write_bytes(b"oth")
     (style_root / "manifest.json").write_text(
-        """{
-  "schema_version": 1,
-  "assets": [
-    {"product_key":"BET","data_type":"BET","format_theme":"format_themes/BET.oth","status":"accepted","graph_page":"Graph1"}
-  ]
-}
-""",
+        json.dumps(
+            {
+                "schema_version": 2,
+                "assets": [
+                    _runtime_validated_style_entry(
+                        "BET",
+                        "Graph1",
+                        "format_themes/BET.oth",
+                    )
+                ],
+            }
+        ),
         encoding="utf-8",
     )
     roots = {"f_drive_detection": tmp_path / "raw", "workspace_xps_reference": tmp_path / "xps_reference", "workspace_group_data": tmp_path / "group"}
@@ -206,6 +296,38 @@ def test_asset_only_builder_never_scans_external_template_roots(tmp_path: Path, 
         "src.core.template_product_builder.validate_origin_style_asset_integrity",
         lambda *_args, **_kwargs: {"ok": True, "schema_version": 2, "failures": []},
     )
+    monkeypatch.setattr(
+        "src.core.template_product_builder.load_origin_style_manifest",
+        lambda *_args, **_kwargs: {
+            "schema_version": 2,
+            "assets": [
+                    {
+                        "product_key": "BET",
+                        "status": "accepted",
+                        "format_theme": "format_themes/BET.oth",
+                        "runtime_validation": {
+                        "status": "accepted",
+                        "comparison_scope": "fresh_project_same_data",
+                        "fresh_project_verified": True,
+                        "style_asset_only": True,
+                        "same_data_verified": True,
+                        "reference_plot_values_sha256": "1" * 64,
+                        "generated_plot_values_sha256": "1" * 64,
+                        "reference_plot_mapping_sha256": "2" * 64,
+                        "generated_plot_mapping_sha256": "2" * 64,
+                        "saved_reopened": True,
+                        "native_tif_600dpi_verified": True,
+                        "manual_preview_passed": True,
+                        "exact_pixel_match": True,
+                        "same_size": True,
+                        "changed_pixels": 0,
+                        "rms": 0,
+                        "reference_opju_self_replay": False,
+                    },
+                }
+            ],
+        },
+    )
 
     result = run_template_product_builder_all_types(
         project_root,
@@ -218,6 +340,7 @@ def test_asset_only_builder_never_scans_external_template_roots(tmp_path: Path, 
             f_drive_template_root=tmp_path / "external_f",
             xps_reference_template_root=tmp_path / "external_xps",
             xps_non_in_situ_template_root=tmp_path / "external_xps_non",
+            only_type="BET",
         ),
     )
 
@@ -263,6 +386,70 @@ def test_asset_only_builder_requires_hash_verified_v2_manifest(tmp_path: Path) -
         assert "schema v2 is required" in str(exc)
     else:
         raise AssertionError("asset-only generation must reject a manifest without mandatory hashes")
+
+
+def test_asset_only_builder_rejects_assets_without_independent_runtime_validation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    pairing = tmp_path / "pairing.json"
+    pairing.write_text("[]", encoding="utf-8")
+    monkeypatch.setattr(
+        "src.core.template_product_builder.validate_origin_style_asset_integrity",
+        lambda *_args, **_kwargs: {"ok": True, "schema_version": 2, "failures": []},
+    )
+    monkeypatch.setattr(
+        "src.core.template_product_builder.load_origin_style_manifest",
+        lambda *_args, **_kwargs: {
+            "schema_version": 2,
+            "assets": [
+                {
+                    "product_key": "BET",
+                    "asset_kind": "otpu",
+                    "status": "quarantined_unvalidated",
+                }
+            ],
+        },
+    )
+
+    try:
+        run_template_product_builder_all_types(
+            tmp_path,
+            TemplateProductBuilderOptions(
+                pairing_path=pairing,
+                asset_only=True,
+                only_type="BET",
+            ),
+        )
+    except ValueError as exc:
+        assert "fresh-project same-data visual validation" in str(exc)
+    else:
+        raise AssertionError("asset-only generation must reject unvalidated local assets")
+
+
+def test_asset_only_integrity_keeps_legacy_oth_compatibility_until_type_migration(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.core.template_product_builder.validate_origin_style_asset_integrity",
+        lambda *_args, **_kwargs: {"ok": True, "schema_version": 2, "failures": []},
+    )
+    monkeypatch.setattr(
+        "src.core.template_product_builder.load_origin_style_manifest",
+        lambda *_args, **_kwargs: {
+            "schema_version": 2,
+            "assets": [
+                {
+                    "product_key": "PL",
+                    "asset_kind": "oth",
+                    "status": "accepted",
+                }
+            ],
+        },
+    )
+
+    _require_asset_only_style_integrity(tmp_path, ("PL",))
 
 
 def test_blocked_product_records_report_external_template_dependency(tmp_path: Path) -> None:
@@ -541,6 +728,11 @@ def test_embedded_template_preview_high_rms_cannot_pass_structural_readback(
     assert item["preview_rms"] > 35.0
     assert item["strict_visual_match"] is False
     assert item["strict_status"] == "blocked_embedded_template_snapshot"
+    assert item["style_data_binding"]["status"] == "review_required"
+    assert item["style_data_binding"]["preview_rms_role"] == "diagnostic_only_not_exact_evidence"
+    assert item["same_data_exact"]["status"] == "not_evaluated"
+    assert item["current_product_pixel_exact"]["claim_allowed"] is False
+    assert item["one_to_one_exact_match"] is False
     assert product["visual_acceptance"] is False
     assert product["status"] == "blocked"
     assert "preview RMS" in product["notes"]

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from dataclasses import replace
 from pathlib import Path
 
 from src.cli import main
 from src.core.template_product_common import ProductContext, TargetPairing
 from src.core.template_format_executor import (
+    FINAL_TEMPLATE_STYLE_OVERRIDE,
     TEMPLATE_FORMAT_COMMAND,
     TEMPLATE_FORMAT_SCOPE,
     TemplateFormatExecutorOptions,
@@ -27,6 +29,7 @@ from src.core.template_format_executor import (
     _mott_schottky_candidate_guides,
     _plain_text_legend_policy,
     _plain_text_legend_entries,
+    _prepare_verified_bet_otpu_binding,
     _processed_csv_plot_pairs,
     _refresh_graph_for_export,
     _replace_eis_dynamic_legend_with_static_rich_text,
@@ -45,6 +48,72 @@ from src.core.template_format_executor import (
 from src.origin.operations import OperationResult
 from src.origin.style_mimic import OpjuStyleSnapshot
 from src.origin.user_style import ResolvedPlotStyle
+
+
+def _runtime_validated_style_entry(
+    product_key: str,
+    graph_page: str,
+    format_theme: str,
+    **extra: object,
+) -> dict[str, object]:
+    return {
+        "product_key": product_key,
+        "data_type": product_key,
+        "graph_page": graph_page,
+        "format_theme": format_theme,
+        "asset_kind": "oth",
+        "status": "accepted",
+        "runtime_validation": {
+            "status": "accepted",
+            "comparison_scope": "fresh_project_same_data",
+            "fresh_project_verified": True,
+            "style_asset_only": True,
+            "same_data_verified": True,
+            "reference_plot_values_sha256": "1" * 64,
+            "generated_plot_values_sha256": "1" * 64,
+            "reference_plot_mapping_sha256": "2" * 64,
+            "generated_plot_mapping_sha256": "2" * 64,
+            "saved_reopened": True,
+            "native_tif_600dpi_verified": True,
+            "manual_preview_passed": True,
+            "exact_pixel_match": True,
+            "same_size": True,
+            "changed_pixels": 0,
+            "rms": 0,
+            "reference_opju_self_replay": False,
+        },
+        **extra,
+    }
+
+
+def _write_style_manifest(style_root: Path, entry: dict[str, object]) -> None:
+    runtime_kind = str(entry.get("asset_kind") or "oth").casefold().lstrip(".")
+    runtime_field = {"oth": "format_theme", "otpu": "graph_template"}[runtime_kind]
+    runtime_relative = str(entry[runtime_field])
+    runtime_path = style_root / runtime_relative
+    runtime_sha256 = hashlib.sha256(runtime_path.read_bytes()).hexdigest()
+    entry["sha256"] = runtime_sha256
+    entry["file_integrity"] = {
+        **dict(entry.get("file_integrity") or {}),
+        runtime_field: {
+            "kind": runtime_kind,
+            "sha256": runtime_sha256,
+            "size_bytes": runtime_path.stat().st_size,
+        },
+    }
+    runtime_validation = dict(entry.get("runtime_validation") or {})
+    runtime_validation.update(
+        {
+            "asset_kind": runtime_kind,
+            "asset_path": runtime_relative.replace("\\", "/"),
+            "asset_sha256": runtime_sha256,
+        }
+    )
+    entry["runtime_validation"] = runtime_validation
+    (style_root / "manifest.json").write_text(
+        json.dumps({"schema_version": 2, "assets": [entry]}),
+        encoding="utf-8",
+    )
 
 
 class _FakeTemplateOps:
@@ -107,6 +176,17 @@ class _FakeCachedStyleOps:
         self.commands: list[str] = []
         self.font_calls: list[dict[str, object]] = []
         self.events: list[str] = []
+        self.plot_mappings: list[dict[str, object]] = [
+            {
+                "plot_index": 1,
+                "x_dataset": "Book1_A",
+                "y_dataset": "Book1_B",
+                "row_from": 1,
+                "row_to": 2,
+                "status": "ready",
+            }
+        ]
+        self.explicit_replaced: tuple[dict[str, object], ...] | None = None
 
     def new_project(self) -> OperationResult:
         self.events.append("new_project")
@@ -131,8 +211,27 @@ class _FakeCachedStyleOps:
             return OperationResult(False, "missing layer")
         return OperationResult(True, "ok", {"plot_dataset_names": ["Book1_B"]})
 
+    def get_graph_plot_dataset_mappings(self, _graph_name: str, layer_index: int = 1) -> OperationResult:
+        if layer_index != 1:
+            return OperationResult(False, "missing layer")
+        return OperationResult(
+            True,
+            "ok",
+            {
+                "plot_mappings": list(self.plot_mappings),
+                "mapping_failure_count": 0,
+            },
+        )
+
     def replace_template_workbook_columns(self, _workbook_columns: dict[str, dict[int, list[float]]]) -> OperationResult:
         return OperationResult(True, "replaced", {"updated_columns": [{"book_name": "Book1", "column_index": 2}]})
+
+    def replace_template_worksheet_ranges(
+        self,
+        worksheet_ranges: tuple[dict[str, object], ...],
+    ) -> OperationResult:
+        self.explicit_replaced = worksheet_ranges
+        return OperationResult(True, "replaced", {"updated_columns": []})
 
     def import_csv_to_worksheet(self, _path: Path, book_name: str = "", delimiter: str = ",") -> OperationResult:
         return OperationResult(True, "imported", {"book_name": book_name or "Book1"})
@@ -299,6 +398,128 @@ def test_apply_template_base_data_replacement_uses_template_plot_datasets(tmp_pa
     assert ops.replaced == {"Book1": {0: [0.0, 1.0], 1: [10.0, 11.0], 2: [20.0, 21.0]}}
 
 
+def _strict_bet_processed_csv(path: Path) -> None:
+    identities = [
+        "BOBC_adsorption",
+        "BOBC_desorption",
+        "CWO_adsorption",
+        "CWO_desorption",
+        "BiCu_adsorption",
+        "BiCu_desorption",
+    ]
+    headers = [
+        header
+        for identity in identities
+        for header in (
+            f"{identity}_relative_pressure_p_p0",
+            f"{identity}_quantity_adsorbed_cm3_g_stp",
+        )
+    ]
+    rows: list[str] = []
+    for row_index in range(33):
+        values: list[str] = []
+        for series_index in range(6):
+            if series_index < 2 and row_index == 32:
+                values.extend(("", ""))
+            else:
+                values.extend(
+                    (
+                        str((series_index + 1) * 0.01 + row_index * 0.001),
+                        str((series_index + 1) * 10 + row_index),
+                    )
+                )
+        rows.append(",".join(values))
+    path.write_text(",".join(headers) + "\n" + "\n".join(rows) + "\n", encoding="utf-8")
+
+
+class _StrictBetReplacementOps:
+    def __init__(self) -> None:
+        datasets = [
+            ("Isotherm_A", "Isotherm_B", 32),
+            ("Isotherm_C", "Isotherm_D", 32),
+            ("Isotherm_E", "Isotherm_F", 33),
+            ("Isotherm_G", "Isotherm_H", 33),
+            ("Isotherm_I", "Isotherm_J", 33),
+            ("Isotherm_K", "Isotherm_L", 33),
+        ]
+        self.mappings = [
+            {
+                "plot_index": index,
+                "x_dataset": x_dataset,
+                "y_dataset": y_dataset,
+                "row_from": 1,
+                "row_to": row_to,
+            }
+            for index, (x_dataset, y_dataset, row_to) in enumerate(datasets, start=1)
+        ]
+        self.replaced: tuple[dict[str, object], ...] | None = None
+
+    def get_graph_plot_dataset_mappings(
+        self,
+        _graph_name: str,
+        layer_index: int = 1,
+    ) -> OperationResult:
+        if layer_index != 1:
+            return OperationResult(False, "missing layer")
+        return OperationResult(
+            True,
+            "ok",
+            {"plot_mappings": list(self.mappings), "mapping_failure_count": 0},
+        )
+
+    def replace_template_worksheet_ranges(
+        self,
+        worksheet_ranges: tuple[dict[str, object], ...],
+    ) -> OperationResult:
+        self.replaced = worksheet_ranges
+        return OperationResult(True, "replaced", {"updated_ranges": []})
+
+
+def test_strict_bet_replacement_uses_reviewed_contract_and_independent_xy(tmp_path: Path) -> None:
+    processed = tmp_path / "processed.csv"
+    _strict_bet_processed_csv(processed)
+    product = replace(_product(tmp_path, processed), product_key="BET")
+    ops = _StrictBetReplacementOps()
+
+    result = apply_template_base_data_replacement(
+        ops,
+        product,
+        "Graph5",
+        require_complete_mapping=True,
+        reference_opju_sha256="90dccbf42a7addb8b4e13f425a28df988177bd29fd95864ed0f402de630c9d24",
+    )
+
+    assert result["ok"] is True
+    assert result["template_mapping_method"] == "origin_plotdata_explicit_xy_binding_contract"
+    assert result["reference_opju_integrity"]["status"] == "matched"
+    assert result["template_source_binding"]["ok"] is True
+    assert [
+        item["source_series_index"]
+        for item in result["template_dataset_updates"]["mappings"]
+    ] == [1, 2, 3, 4, 5, 6]
+    assert ops.replaced is not None
+    assert len(ops.replaced) == 12
+
+
+def test_strict_bet_replacement_blocks_reference_hash_mismatch_before_write(tmp_path: Path) -> None:
+    processed = tmp_path / "processed.csv"
+    _strict_bet_processed_csv(processed)
+    product = replace(_product(tmp_path, processed), product_key="BET")
+    ops = _StrictBetReplacementOps()
+
+    result = apply_template_base_data_replacement(
+        ops,
+        product,
+        "Graph5",
+        require_complete_mapping=True,
+        reference_opju_sha256="0" * 64,
+    )
+
+    assert result["ok"] is False
+    assert result["reference_opju_integrity"]["status"] == "mismatch"
+    assert ops.replaced is None
+
+
 def test_apply_template_base_data_replacement_reads_multiple_template_layers(tmp_path: Path) -> None:
     class MultiLayerOps(_FakeTemplateOps):
         def get_graph_plot_dataset_names(self, graph_name: str, layer_index: int = 1) -> OperationResult:
@@ -386,15 +607,70 @@ def test_template_base_global_policy_preserves_template_legend_text(tmp_path: Pa
     assert "legend -r" not in commands
 
 
+def test_verified_bet_otpu_binding_uses_six_explicit_independent_xy_pairs(
+    tmp_path: Path,
+) -> None:
+    processed = tmp_path / "processed.csv"
+    processed.write_text("unused\n", encoding="utf-8")
+    product = replace(
+        _product(tmp_path, processed),
+        legend_entries=[
+            "BOBC Adsorption",
+            "BOBC Desorption",
+            "CWO Adsorption",
+            "CWO Desorption",
+            "BiCu Adsorption",
+            "BiCu Desorption",
+        ],
+    )
+    identities = [
+        "BOBC_adsorption",
+        "BOBC_desorption",
+        "CWO_adsorption",
+        "CWO_desorption",
+        "BiCu_adsorption",
+        "BiCu_desorption",
+    ]
+    headers = [
+        value
+        for identity in identities
+        for value in (
+            f"{identity}_relative_pressure_p_p0",
+            f"{identity}_quantity_adsorbed_cm3_g_stp",
+        )
+    ]
+    rows = [
+        [float(row + column / 100) for column in range(12)]
+        for row in range(1, 5)
+    ]
+
+    result = _prepare_verified_bet_otpu_binding(product, headers, rows)
+
+    assert result["ok"] is True
+    assert result["graph_page"] == "Graph5"
+    assert result["book_name"] == "Isotherm"
+    assert result["xy_ranges"] == [
+        {"x_col": index, "y_col": index + 1, "row_from": 1, "row_to": 4}
+        for index in range(1, 12, 2)
+    ]
+    assert len(result["column_metadata"]) == 12
+    assert result["column_metadata"][0]["type"] == 4
+    assert result["column_metadata"][1]["type"] == 1
+    assert result["column_metadata"][5]["long_name"] == "\\b(CWO (Adsorption))"
+    assert result["column_metadata"][7]["long_name"] == "\\b(CWO (Desorption))"
+    assert result["column_metadata"][9]["long_name"] == "\\b(BiCu (Adsorption))"
+    assert result["column_metadata"][11]["long_name"] == "\\b(BiCu (Desorption))"
+
+
 def _saved_bet_theme_project(tmp_path: Path) -> Path:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
     theme = style_root / "format_themes" / "BET.oth"
     theme.parent.mkdir(parents=True)
     theme.write_bytes(b"oth")
-    (style_root / "manifest.json").write_text(
-        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","format_theme":"format_themes/BET.oth","status":"accepted"}]}',
-        encoding="utf-8",
+    _write_style_manifest(
+        style_root,
+        _runtime_validated_style_entry("BET", "Graph3", "format_themes/BET.oth"),
     )
     return project_root
 
@@ -405,9 +681,9 @@ def test_export_template_base_uses_project_format_theme_when_reference_opju_miss
     theme = style_root / "format_themes" / "BET.oth"
     theme.parent.mkdir(parents=True)
     theme.write_bytes(b"oth")
-    (style_root / "manifest.json").write_text(
-        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","format_theme":"format_themes/BET.oth","status":"accepted"}]}',
-        encoding="utf-8",
+    _write_style_manifest(
+        style_root,
+        _runtime_validated_style_entry("BET", "Graph3", "format_themes/BET.oth"),
     )
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
@@ -533,9 +809,9 @@ def test_export_template_base_prefers_project_format_theme_over_reference_opju(t
     theme = style_root / "format_themes" / "BET.oth"
     theme.parent.mkdir(parents=True)
     theme.write_bytes(b"oth")
-    (style_root / "manifest.json").write_text(
-        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","format_theme":"format_themes/BET.oth","status":"accepted"}]}',
-        encoding="utf-8",
+    _write_style_manifest(
+        style_root,
+        _runtime_validated_style_entry("BET", "Graph3", "format_themes/BET.oth"),
     )
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
@@ -848,7 +1124,7 @@ def test_saved_format_theme_reopened_readback_failure_blocks_export_and_copy(tmp
     assert not product.figure_tif.exists()
 
 
-def test_xrd_card_uses_saved_format_theme_even_when_project_template_opju_exists(tmp_path: Path, monkeypatch) -> None:
+def test_strict_xrd_card_fails_closed_until_independent_card_contract_exists(tmp_path: Path, monkeypatch) -> None:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
     theme = style_root / "format_themes" / "XRD.oth"
@@ -891,6 +1167,24 @@ def test_xrd_card_uses_saved_format_theme_even_when_project_template_opju_exists
     product.reference_opju_copy.write_bytes(b"external")
     fake = _FakeCachedStyleOps()
     fake.created_graphs.append("Graph4")
+    fake.plot_mappings = [
+        {
+            "plot_index": 1,
+            "x_dataset": "Book1_A",
+            "y_dataset": "Book1_B",
+            "row_from": 1,
+            "row_to": 2,
+            "status": "ready",
+        },
+        {
+            "plot_index": 2,
+            "x_dataset": "Book1_C",
+            "y_dataset": "Book1_D",
+            "row_from": 1,
+            "row_to": 2,
+            "status": "ready",
+        },
+    ]
     snapshot = OpjuStyleSnapshot(
         source_opju="XRD.opju",
         status="extracted",
@@ -905,6 +1199,10 @@ def test_xrd_card_uses_saved_format_theme_even_when_project_template_opju_exists
     )
     monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
     monkeypatch.setattr("src.core.template_format_executor.extract_style_snapshot", lambda *_args, **_kwargs: snapshot)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_data_snapshot",
+        lambda *_args, **_kwargs: {"schema_version": 3, "status": "ready", "plots": []},
+    )
     monkeypatch.setattr(
         "src.core.template_format_executor.read_graph_style_snapshot",
         lambda _operations, graph_name, **_kwargs: replace(
@@ -922,14 +1220,15 @@ def test_xrd_card_uses_saved_format_theme_even_when_project_template_opju_exists
         preserve_exemplar_style=True,
     )
 
-    assert result["ok"] is True
-    assert result["template_format_plan"]["mode"] == "saved_format_theme"
-    assert result["origin_processing"]["method"] == "saved_format_theme_apply"
-    assert fake.applied_themes and fake.applied_themes[0].name == "XRD.oth"
+    assert result["ok"] is False
+    replacement = result["template_base_replacement"]
+    assert replacement["template_binding_contract"]["status"] == "blocked_independent_reference_card_required"
+    assert "198-row card" in replacement["message"]
+    assert fake.applied_themes == []
     assert fake.closed is True
 
 
-def test_export_template_base_uses_neutral_runtime_for_opju_template(tmp_path: Path, monkeypatch) -> None:
+def test_strict_opju_template_blocks_unreviewed_graph_and_source_schema(tmp_path: Path, monkeypatch) -> None:
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
     product = _product(tmp_path, processed)
@@ -950,6 +1249,10 @@ def test_export_template_base_uses_neutral_runtime_for_opju_template(tmp_path: P
     monkeypatch.setattr("src.core.template_format_executor.connect_origin", lambda **_kwargs: fake)
     monkeypatch.setattr("src.core.template_format_executor.extract_style_snapshot", lambda *_args, **_kwargs: snapshot)
     monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_data_snapshot",
+        lambda *_args, **_kwargs: {"schema_version": 3, "status": "ready", "plots": []},
+    )
+    monkeypatch.setattr(
         "src.core.template_format_executor.read_graph_style_snapshot",
         lambda _operations, graph_name, **_kwargs: replace(
             snapshot,
@@ -965,15 +1268,18 @@ def test_export_template_base_uses_neutral_runtime_for_opju_template(tmp_path: P
         preserve_exemplar_style=True,
     )
 
-    assert result["ok"] is True
+    assert result["ok"] is False
     assert result["template_format_plan"]["mode"] == "opju_template_base"
-    assert fake.saved_paths and fake.saved_paths[0] != product.origin_file
+    assert result["template_base_replacement"]["template_binding_contract"]["status"] == "graph_page_mismatch"
+    assert fake.saved_paths == []
     assert product.origin_file not in fake.saved_paths
     assert product.figure_tif not in fake.exported_paths
     assert product.preview_png not in fake.exported_paths
-    assert product.origin_file.exists()
-    assert product.figure_tif.exists()
-    assert product.preview_png.exists()
+    assert not product.origin_file.exists()
+    assert not product.figure_tif.exists()
+    assert not product.preview_png.exists()
+    assert not any("plain_legend:" in command for command in fake.commands)
+    assert fake.font_calls == []
     assert fake.closed is True
 
 
@@ -983,9 +1289,9 @@ def test_export_template_base_uses_project_format_theme_for_exemplar_driven(tmp_
     theme = style_root / "format_themes" / "BET.oth"
     theme.parent.mkdir(parents=True)
     theme.write_bytes(b"oth")
-    (style_root / "manifest.json").write_text(
-        '{"schema_version":1,"assets":[{"product_key":"BET","data_type":"BET","graph_page":"Graph3","format_theme":"format_themes/BET.oth","status":"accepted"}]}',
-        encoding="utf-8",
+    _write_style_manifest(
+        style_root,
+        _runtime_validated_style_entry("BET", "Graph3", "format_themes/BET.oth"),
     )
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
@@ -1262,6 +1568,35 @@ def test_asset_only_builder_options_disable_external_template_inputs(tmp_path: P
     assert builder.xps_non_in_situ_template_root is None
 
 
+def test_default_builder_does_not_silently_switch_to_runtime_opju_replacement(
+    tmp_path: Path,
+) -> None:
+    options = TemplateFormatExecutorOptions(pairing_path=tmp_path / "pairing.json")
+
+    builder = build_template_product_builder_options(options)
+
+    assert builder.exemplar_driven is False
+    assert builder.prefer_project_style_assets is True
+    assert builder.external_reference_preview_comparison is True
+    assert builder.global_style_override == FINAL_TEMPLATE_STYLE_OVERRIDE
+
+
+def test_exemplar_driven_builder_is_an_explicit_runtime_opju_baseline_mode(
+    tmp_path: Path,
+) -> None:
+    options = TemplateFormatExecutorOptions(
+        pairing_path=tmp_path / "pairing.json",
+        exemplar_driven=True,
+    )
+
+    builder = build_template_product_builder_options(options)
+
+    assert builder.exemplar_driven is True
+    assert builder.prefer_project_style_assets is False
+    assert builder.external_reference_preview_comparison is False
+    assert builder.global_style_override == {}
+
+
 def test_asset_only_uses_project_reference_opju_only_as_independent_evidence(
     tmp_path: Path,
     monkeypatch,
@@ -1274,23 +1609,14 @@ def test_asset_only_uses_project_reference_opju_only_as_independent_evidence(
     project_reference.parent.mkdir(parents=True)
     theme.write_bytes(b"oth")
     project_reference.write_bytes(b"reviewed-project-reference")
-    (style_root / "manifest.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "assets": [
-                    {
-                        "product_key": "BET",
-                        "data_type": "BET",
-                        "status": "accepted",
-                        "graph_page": "Graph1",
-                        "format_theme": "format_themes/BET.oth",
-                        "template_opju": "reference_opju/BET.opju",
-                    }
-                ],
-            }
+    _write_style_manifest(
+        style_root,
+        _runtime_validated_style_entry(
+            "BET",
+            "Graph1",
+            "format_themes/BET.oth",
+            template_opju="reference_opju/BET.opju",
         ),
-        encoding="utf-8",
     )
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a\n0,1\n1,2\n", encoding="utf-8")
