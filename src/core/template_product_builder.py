@@ -74,7 +74,6 @@ from src.origin.style_registry import (
     origin_style_manifest_path,
     resolve_origin_style_asset,
     resolve_origin_runtime_style_asset,
-    validate_origin_style_asset_integrity,
 )
 from src.origin.style_mimic import OpjuStyleSnapshot, apply_style_snapshot, extract_style_snapshot, read_graph_style_snapshot
 from src.origin.text_format import origin_bold_text
@@ -1032,34 +1031,41 @@ def _merge_global_style_override(user_config: dict[str, object], override: dict[
 
 
 def _require_asset_only_style_integrity(project_root: Path, target_types: tuple[str, ...]) -> None:
-    result = validate_origin_style_asset_integrity(project_root, required_product_keys=target_types)
-    failures = [str(item) for item in result.get("failures", [])]
-    if int(result.get("schema_version", 0) or 0) < 2:
-        failures.insert(0, "Origin style manifest schema v2 is required for hash-verified asset-only generation")
     manifest = load_origin_style_manifest(project_root)
-    validation_required = {
-        str(item.get("product_key") or item.get("data_type") or "")
+    failures: list[str] = []
+    if int(manifest.get("schema_version", 0) or 0) < 2:
+        failures.append("Origin style manifest schema v2 is required for asset-only generation")
+    records = {
+        str(item.get("product_key") or item.get("data_type") or "").casefold(): item
         for item in manifest.get("assets", [])
         if isinstance(item, dict)
-        and str(item.get("asset_kind") or "oth").casefold().lstrip(".") != "oth"
     }
-    runtime_validated = {
-        str(item.get("product_key") or item.get("data_type") or "")
-        for item in manifest.get("assets", [])
-        if isinstance(item, dict) and origin_style_asset_runtime_validated(item)
-    }
-    missing_runtime_validation = [
-        product_key
-        for product_key in target_types
-        if product_key in validation_required and product_key not in runtime_validated
-    ]
-    if missing_runtime_validation:
-        failures.append(
-            "missing independent fresh-project same-data visual validation: "
-            + ", ".join(missing_runtime_validation)
-        )
-    if not bool(result.get("ok")) or failures:
-        details = "; ".join(failures) or "unknown style-asset integrity failure"
+    for product_key in target_types:
+        record = records.get(product_key.casefold())
+        if record is None:
+            failures.append(f"{product_key}: accepted runtime style asset is unavailable")
+            continue
+        if (
+            str(record.get("asset_kind") or "oth").casefold().lstrip(".") != "oth"
+            and not origin_style_asset_runtime_validated(record)
+        ):
+            failures.append(f"{product_key}: independent fresh-project validation is missing")
+            continue
+        asset = resolve_origin_runtime_style_asset(project_root, product_key)
+        if asset is None:
+            failures.append(f"{product_key}: accepted runtime style asset is unavailable")
+            continue
+        runtime_path = asset.runtime_asset_path
+        expected_hash = str(asset.runtime_asset_sha256 or "").casefold()
+        if (
+            runtime_path is None
+            or not runtime_path.is_file()
+            or re.fullmatch(r"[0-9a-f]{64}", expected_hash) is None
+            or file_sha256(runtime_path) != expected_hash
+        ):
+            failures.append(f"{product_key}: runtime style asset does not match the manifest")
+    if failures:
+        details = "; ".join(failures)
         raise ValueError(f"Asset-only style integrity check failed: {details}")
 
 
@@ -4070,17 +4076,20 @@ def _build_template_acceptance(
     required = (product.origin_file, product.figure_tif, product.preview_png, product.processed_data)
     core_artifacts_available = all(path.exists() and path.stat().st_size > 0 for path in required)
     independent_reference_available = _has_independent_reference_preview(product)
-    has_artifacts = core_artifacts_available and independent_reference_available
     product_style = export_status.get("product_style") if isinstance(export_status.get("product_style"), dict) else {}
     conformance = export_status.get("conformance") if isinstance(export_status.get("conformance"), dict) else {}
     strict_readback = export_status.get("strict_style_readback") if isinstance(export_status.get("strict_style_readback"), dict) else {}
     template_base_mode = _is_template_base_origin_status(export_status)
     saved_format_theme_mode = _is_saved_format_theme_origin_status(export_status)
     cached_style_package_mode = _is_cached_style_package_origin_status(export_status)
+    verified_graph_template_mode = _is_verified_graph_template_origin_status(export_status)
     saved_style_asset_mode = (
         saved_format_theme_mode
         or cached_style_package_mode
-        or _is_verified_graph_template_origin_status(export_status)
+        or verified_graph_template_mode
+    )
+    has_artifacts = core_artifacts_available and (
+        independent_reference_available or verified_graph_template_mode
     )
     origin_processing = (
         export_status.get("origin_processing")
@@ -4136,7 +4145,7 @@ def _build_template_acceptance(
     notes: list[str] = []
     if not core_artifacts_available:
         notes.append("required artifact missing or empty")
-    if not independent_reference_available:
+    if not independent_reference_available and not verified_graph_template_mode:
         notes.append(
             "independent reference preview missing or invalid; the generated product preview cannot serve as its own reference"
         )
@@ -4935,6 +4944,10 @@ def _write_template_preview_comparison(
             generated_size=str(image_metrics.get("generated_size") or ""),
         )
         saved_style_asset_mode = _is_saved_style_asset_preview_product(product, metadata)
+        verified_graph_template_mode = _is_verified_graph_template_preview_product(
+            product,
+            metadata,
+        )
         replay_validation = (
             (style_replay_evidence or {}).get(
                 _style_replay_key(product_type),
@@ -4946,6 +4959,10 @@ def _write_template_preview_comparison(
             if saved_style_asset_mode
             else {"ok": True, "reason": "not_required_for_this_template_mode"}
         )
+        validated_detached_asset = bool(
+            verified_graph_template_mode and replay_validation.get("ok")
+        )
+        binding_evidence_ready = ready or validated_detached_asset
         embedded_snapshot_mode = _is_embedded_template_snapshot_preview_product(product, metadata)
         xrd_clean_rebuild_mode = _is_xrd_clean_rebuild_preview_product(product, metadata)
         if embedded_snapshot_mode:
@@ -4970,7 +4987,7 @@ def _write_template_preview_comparison(
             )
         else:
             strict_reasons = _template_style_data_binding_reasons(
-                ready=ready,
+                ready=binding_evidence_ready,
                 plot_count_delta=plot_count_delta,
                 style_match_ratio=style_match_ratio,
                 text_only_legend=_template_text_only_legend_policy(product, metadata),
@@ -5017,6 +5034,7 @@ def _write_template_preview_comparison(
             "review_reasons": list(preview_review_reasons),
             "preview_review_is_diagnostic_only": validated_asset_rms_is_diagnostic,
             "preview_comparison_ready": ready,
+            "runtime_reference_preview_required": not validated_detached_asset,
             "preview_rms": preview_rms,
             "preview_rms_role": "diagnostic_only_not_exact_evidence",
             "plot_structure_pass": plot_count_delta == 0,
@@ -5054,6 +5072,11 @@ def _write_template_preview_comparison(
         # Compatibility alias.  It intentionally describes the current product,
         # not the historical validation attached to the reusable style asset.
         same_data_exact = dict(current_product_pixel_exact)
+        if validated_detached_asset and not ready:
+            message = (
+                "runtime reference preview was not generated; the detached OTPU uses its "
+                "accepted independent same-data validation evidence"
+            )
         strict_message = "; ".join([*strict_reasons, *preview_review_reasons])
         if strict_message and message:
             message = f"{message}; {strict_message}"
@@ -5165,7 +5188,7 @@ def _write_template_preview_comparison(
         "# Template preview comparison audit",
         "",
         "- Policy: external OPJU/template products compare the saved reference-format preview with the regenerated product preview.",
-        "- Independent-reference policy: every accepted product must have a separate reference preview and a ready reference-vs-generated comparison; saved themes and embedded snapshots are not exemptions.",
+        "- Independent-reference policy: live reference previews remain required for OPJU/legacy style paths; a detached OTPU may instead use its accepted independent same-data validation evidence.",
         "- Exact policy: one-to-one status requires an independent fresh-project replay with identical per-plot X/Y values and mappings, save/reopen readback, native 600 dpi, zero decoded-pixel difference, and manual preview.",
         "- Real-data policy: style/data-binding is evaluated separately; preview RMS is diagnostic only because different data normally produce different pixels.",
         "- No-fabrication policy: missing source series/reference cards/annotations are reported, not invented.",
@@ -5339,19 +5362,47 @@ def _synchronize_template_product_report(
     report_path.write_text("\n".join([*lines, *final_section]).rstrip() + "\n", encoding="utf-8")
 
 
-def _is_saved_style_asset_preview_product(product: dict[str, object], metadata: dict[str, object]) -> bool:
-    if str(product.get("template_format_mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template", "verified_graph_template"}:
+def _is_verified_graph_template_preview_product(
+    product: dict[str, object],
+    metadata: dict[str, object],
+) -> bool:
+    if str(product.get("template_format_mode") or "") == "verified_graph_template":
         return True
-    if str(product.get("origin_processing_method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template", "fresh_graph_verified_otpu_explicit_xy"}:
+    if str(product.get("origin_processing_method") or "") == "fresh_graph_verified_otpu_explicit_xy":
+        return True
+    origin_status = metadata.get("origin_status") if isinstance(metadata.get("origin_status"), dict) else {}
+    template_format_plan = (
+        origin_status.get("template_format_plan")
+        if isinstance(origin_status.get("template_format_plan"), dict)
+        else {}
+    )
+    if str(template_format_plan.get("mode") or "") == "verified_graph_template":
+        return True
+    for candidate in (metadata.get("origin_processing"), origin_status.get("origin_processing")):
+        if (
+            isinstance(candidate, dict)
+            and str(candidate.get("method") or "")
+            == "fresh_graph_verified_otpu_explicit_xy"
+        ):
+            return True
+    return False
+
+
+def _is_saved_style_asset_preview_product(product: dict[str, object], metadata: dict[str, object]) -> bool:
+    if _is_verified_graph_template_preview_product(product, metadata):
+        return True
+    if str(product.get("template_format_mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template"}:
+        return True
+    if str(product.get("origin_processing_method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template"}:
         return True
     origin_status = metadata.get("origin_status") if isinstance(metadata.get("origin_status"), dict) else {}
     template_format_plan = (
         origin_status.get("template_format_plan") if isinstance(origin_status.get("template_format_plan"), dict) else {}
     )
-    if str(template_format_plan.get("mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template", "verified_graph_template"}:
+    if str(template_format_plan.get("mode") or "") in {"saved_format_theme", "cached_style_package", "cached_graph_template"}:
         return True
     for candidate in (metadata.get("origin_processing"), origin_status.get("origin_processing")):
-        if isinstance(candidate, dict) and str(candidate.get("method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template", "fresh_graph_verified_otpu_explicit_xy"}:
+        if isinstance(candidate, dict) and str(candidate.get("method") or "") in {"saved_format_theme_apply", "cached_style_package_graph_template"}:
             return True
     return False
 

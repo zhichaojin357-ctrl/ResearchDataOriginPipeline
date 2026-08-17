@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from PIL import Image
 
 from src.core.epr_jeol import JeolEprExportSeries
+from src.core.file_utils import file_sha256
 from src.processors.eis import EisCleaningResult, EisPoint
 
 from src.core.template_product_builder import (
@@ -282,8 +283,28 @@ def test_template_builder_uses_project_style_assets_without_default_external_sca
 def test_asset_only_builder_never_scans_external_template_roots(tmp_path: Path, monkeypatch) -> None:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
-    style_root.mkdir(parents=True)
-    (style_root / "manifest.json").write_text('{"schema_version":1,"assets":[]}', encoding="utf-8")
+    theme = style_root / "format_themes" / "BET.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "assets": [
+                    {
+                        "product_key": "BET",
+                        "data_type": "BET",
+                        "graph_page": "Graph5",
+                        "format_theme": "format_themes/BET.oth",
+                        "asset_kind": "oth",
+                        "sha256": file_sha256(theme),
+                        "status": "accepted",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     pairing = tmp_path / "pairing.json"
     pairing.write_text("[]", encoding="utf-8")
 
@@ -292,43 +313,6 @@ def test_asset_only_builder_never_scans_external_template_roots(tmp_path: Path, 
 
     monkeypatch.setattr("src.core.template_product_builder.scan_template_f_drive_template_paths", fail_external_scan)
     monkeypatch.setattr("src.core.template_product_builder.scan_template_optional_template_paths", fail_external_scan)
-    monkeypatch.setattr(
-        "src.core.template_product_builder.validate_origin_style_asset_integrity",
-        lambda *_args, **_kwargs: {"ok": True, "schema_version": 2, "failures": []},
-    )
-    monkeypatch.setattr(
-        "src.core.template_product_builder.load_origin_style_manifest",
-        lambda *_args, **_kwargs: {
-            "schema_version": 2,
-            "assets": [
-                    {
-                        "product_key": "BET",
-                        "status": "accepted",
-                        "format_theme": "format_themes/BET.oth",
-                        "runtime_validation": {
-                        "status": "accepted",
-                        "comparison_scope": "fresh_project_same_data",
-                        "fresh_project_verified": True,
-                        "style_asset_only": True,
-                        "same_data_verified": True,
-                        "reference_plot_values_sha256": "1" * 64,
-                        "generated_plot_values_sha256": "1" * 64,
-                        "reference_plot_mapping_sha256": "2" * 64,
-                        "generated_plot_mapping_sha256": "2" * 64,
-                        "saved_reopened": True,
-                        "native_tif_600dpi_verified": True,
-                        "manual_preview_passed": True,
-                        "exact_pixel_match": True,
-                        "same_size": True,
-                        "changed_pixels": 0,
-                        "rms": 0,
-                        "reference_opju_self_replay": False,
-                    },
-                }
-            ],
-        },
-    )
-
     result = run_template_product_builder_all_types(
         project_root,
         TemplateProductBuilderOptions(
@@ -390,17 +374,14 @@ def test_asset_only_builder_requires_hash_verified_v2_manifest(tmp_path: Path) -
 
 def test_asset_only_builder_rejects_assets_without_independent_runtime_validation(
     tmp_path: Path,
-    monkeypatch,
 ) -> None:
     pairing = tmp_path / "pairing.json"
     pairing.write_text("[]", encoding="utf-8")
-    monkeypatch.setattr(
-        "src.core.template_product_builder.validate_origin_style_asset_integrity",
-        lambda *_args, **_kwargs: {"ok": True, "schema_version": 2, "failures": []},
-    )
-    monkeypatch.setattr(
-        "src.core.template_product_builder.load_origin_style_manifest",
-        lambda *_args, **_kwargs: {
+    style_root = tmp_path / "templates" / "origin_styles"
+    style_root.mkdir(parents=True)
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
             "schema_version": 2,
             "assets": [
                 {
@@ -409,7 +390,9 @@ def test_asset_only_builder_rejects_assets_without_independent_runtime_validatio
                     "status": "quarantined_unvalidated",
                 }
             ],
-        },
+            }
+        ),
+        encoding="utf-8",
     )
 
     try:
@@ -422,31 +405,36 @@ def test_asset_only_builder_rejects_assets_without_independent_runtime_validatio
             ),
         )
     except ValueError as exc:
-        assert "fresh-project same-data visual validation" in str(exc)
+        assert "independent fresh-project validation is missing" in str(exc)
     else:
         raise AssertionError("asset-only generation must reject unvalidated local assets")
 
 
 def test_asset_only_integrity_keeps_legacy_oth_compatibility_until_type_migration(
     tmp_path: Path,
-    monkeypatch,
 ) -> None:
-    monkeypatch.setattr(
-        "src.core.template_product_builder.validate_origin_style_asset_integrity",
-        lambda *_args, **_kwargs: {"ok": True, "schema_version": 2, "failures": []},
-    )
-    monkeypatch.setattr(
-        "src.core.template_product_builder.load_origin_style_manifest",
-        lambda *_args, **_kwargs: {
+    style_root = tmp_path / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "PL.oth"
+    theme.parent.mkdir(parents=True)
+    theme.write_bytes(b"oth")
+    (style_root / "manifest.json").write_text(
+        json.dumps(
+            {
             "schema_version": 2,
             "assets": [
                 {
                     "product_key": "PL",
+                    "data_type": "PL",
+                    "graph_page": "Graph1",
+                    "format_theme": "format_themes/PL.oth",
                     "asset_kind": "oth",
+                    "sha256": file_sha256(theme),
                     "status": "accepted",
                 }
             ],
-        },
+            }
+        ),
+        encoding="utf-8",
     )
 
     _require_asset_only_style_integrity(tmp_path, ("PL",))

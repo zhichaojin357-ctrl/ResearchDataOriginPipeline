@@ -414,14 +414,16 @@ def test_runtime_validated_bet_otpu_is_bound_to_exact_asset_not_legacy_oth(
     verified = style_root / "graph_templates" / "BET_verified.otpu"
     legacy = style_root / "graph_templates" / "BET.otpu"
     reference = style_root / "reference_opju" / "BET.opju"
-    binding = style_root / "binding_contracts.json"
+    snapshot = style_root / "snapshots" / "BET.json"
+    binding = style_root / "binding_contracts" / "BET.json"
     evidence = style_root / "validation_evidence" / "BET.json"
-    for path in (theme, verified, legacy, reference, evidence):
+    for path in (theme, verified, legacy, reference, snapshot, binding, evidence):
         path.parent.mkdir(parents=True, exist_ok=True)
     theme.write_bytes(b"legacy-theme")
     verified.write_bytes(b"verified-template")
     legacy.write_bytes(b"bad-historical-template")
     reference.write_bytes(b"reviewed-reference")
+    snapshot.write_text('{"status":"extracted"}', encoding="utf-8")
     binding.write_text("{}", encoding="utf-8")
     evidence.write_text("{}", encoding="utf-8")
     entry = {
@@ -433,8 +435,9 @@ def test_runtime_validated_bet_otpu_is_bound_to_exact_asset_not_legacy_oth(
         "sha256": file_sha256(verified),
         "format_theme": "format_themes/BET.oth",
         "graph_template": "graph_templates/BET_verified.otpu",
+        "style_snapshot": "snapshots/BET.json",
         "template_opju": "reference_opju/BET.opju",
-        "binding_contract": "binding_contracts.json",
+        "binding_contract": "binding_contracts/BET.json",
         "runtime_validation_evidence": "validation_evidence/BET.json",
         "source_opju_hash": file_sha256(reference),
         "file_integrity": {
@@ -447,6 +450,11 @@ def test_runtime_validated_bet_otpu_is_bound_to_exact_asset_not_legacy_oth(
                 "kind": "opju",
                 "sha256": file_sha256(reference),
                 "size_bytes": reference.stat().st_size,
+            },
+            "style_snapshot": {
+                "kind": "json",
+                "sha256": file_sha256(snapshot),
+                "size_bytes": snapshot.stat().st_size,
             },
             "binding_contract": {
                 "kind": "json",
@@ -501,6 +509,15 @@ def test_runtime_validated_bet_otpu_is_bound_to_exact_asset_not_legacy_oth(
     assert resolved.runtime_asset_path == verified
     assert resolved.format_theme_path == theme
     assert resolved.runtime_asset_path != legacy
+
+    reference.unlink()
+    resolved_without_reference = resolve_origin_style_asset(
+        project,
+        "BET",
+        require_runtime_validation=True,
+    )
+    assert resolved_without_reference is not None
+    assert resolved_without_reference.template_opju_path is None
 
     entry["runtime_validation"]["asset_path"] = "format_themes/BET.oth"
     (style_root / "manifest.json").write_text(

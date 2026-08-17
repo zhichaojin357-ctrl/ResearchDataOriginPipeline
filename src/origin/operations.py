@@ -601,63 +601,6 @@ class OriginOperations:
             return OperationResult(False, "No template worksheet columns were provided")
         return OperationResult(True, "Template worksheet columns replaced", {"updated_columns": updated})
 
-    def replace_template_worksheet_ranges(
-        self,
-        worksheet_ranges: Iterable[dict[str, object]],
-    ) -> OperationResult:
-        """Replace exact one-based worksheet row ranges used by template plots."""
-
-        updated: list[dict[str, object]] = []
-        for raw in worksheet_ranges:
-            book_name = str(raw.get("book_name") or "").strip()
-            sheet_reference = str(raw.get("sheet_reference") or raw.get("sheet_index") or "").strip()
-            try:
-                column_index = int(raw.get("column_index"))
-                row_from = int(raw.get("row_from"))
-            except (TypeError, ValueError):
-                return OperationResult(False, "Template worksheet range has invalid column/row indices")
-            values = raw.get("values")
-            if (
-                not book_name
-                or not sheet_reference
-                or column_index < 0
-                or row_from < 1
-                or not isinstance(values, (list, tuple))
-                or not values
-            ):
-                return OperationResult(False, "Template worksheet range is incomplete")
-            column_values = [_origin_numeric_or_missing(value) for value in values]
-            row_to = row_from + len(column_values) - 1
-            declared_row_to = raw.get("row_to")
-            if declared_row_to is not None:
-                try:
-                    expected_row_to = int(declared_row_to)
-                except (TypeError, ValueError):
-                    return OperationResult(False, "Template worksheet range has an invalid row_to")
-                if expected_row_to != row_to:
-                    return OperationResult(False, "Template worksheet range length does not match row_from/row_to")
-            target = f"[{book_name}]{sheet_reference}"
-            write_mode = self._put_template_workbook_column(
-                target,
-                column_values,
-                column_index,
-                row_start=row_from - 1,
-            )
-            updated.append(
-                {
-                    "book_name": book_name,
-                    "sheet_reference": sheet_reference,
-                    "column_index": column_index,
-                    "row_from": row_from,
-                    "row_to": row_to,
-                    "rows": len(column_values),
-                    "write_mode": write_mode,
-                }
-            )
-        if not updated:
-            return OperationResult(False, "No template worksheet ranges were provided")
-        return OperationResult(True, "Template worksheet ranges replaced", {"updated_ranges": updated})
-
     def _put_template_workbook_column(
         self,
         target: str,

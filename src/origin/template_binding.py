@@ -88,7 +88,13 @@ class TemplateBindingResolution:
 
 
 def default_template_binding_contract_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "templates" / "origin_styles" / "binding_contracts.json"
+    return (
+        Path(__file__).resolve().parents[2]
+        / "templates"
+        / "origin_styles"
+        / "binding_contracts"
+        / "BET.json"
+    )
 
 
 def load_template_binding_contracts(

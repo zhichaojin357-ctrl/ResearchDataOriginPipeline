@@ -748,6 +748,27 @@ def test_template_acceptance_requires_independent_reference_preview(tmp_path: Pa
     assert missing_reference.visual_acceptance is False
     assert any("independent reference preview" in note for note in missing_reference.notes)
 
+    verified_status = {
+        **export_status,
+        "origin_processing": {
+            **export_status["origin_processing"],
+            "method": "fresh_graph_verified_otpu_explicit_xy",
+        },
+    }
+    verified_without_runtime_reference = _build_template_acceptance(
+        product,
+        verified_status,
+        template,
+        {},
+    )
+
+    assert verified_without_runtime_reference.status == "accepted"
+    assert verified_without_runtime_reference.visual_acceptance is True
+    assert not any(
+        "independent reference preview" in note
+        for note in verified_without_runtime_reference.notes
+    )
+
     Image.new("RGB", (16, 12), "black").save(product.reference_preview_png)
     with_reference = _build_template_acceptance(product, export_status, template, {})
 
@@ -1014,6 +1035,52 @@ def test_validated_otpu_current_data_rms_is_review_signal_not_style_failure(
     assert product["status"] == "accepted"
     report = (tmp_path / "reports" / "template_preview_comparison.json").read_text(encoding="utf-8")
     assert str(tmp_path) not in report
+
+
+def test_validated_otpu_does_not_require_runtime_reference_preview(tmp_path: Path) -> None:
+    product_root = tmp_path / "products" / "BET"
+    product_root.mkdir(parents=True)
+    generated = product_root / "generated.png"
+    metadata = product_root / "metadata.json"
+    Image.new("RGB", (32, 24), "white").save(generated)
+    metadata.write_text(
+        json.dumps(
+            {
+                "template_plot_count": 1,
+                "origin_status": {
+                    "template_format_plan": {"mode": "verified_graph_template"},
+                    "origin_processing": {
+                        "method": "fresh_graph_verified_otpu_explicit_xy"
+                    },
+                    "product_style": {"plot_count": 1},
+                    "conformance": {"compared_fields": 4, "matched_fields": 4},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    product = {
+        "type": "BET",
+        "status": "accepted",
+        "visual_acceptance": True,
+        "template_format_mode": "verified_graph_template",
+        "reference_preview_png": str(product_root / "missing_reference.png"),
+        "preview_png": str(generated),
+        "metadata": str(metadata),
+    }
+
+    audit = _write_template_preview_comparison(
+        tmp_path,
+        [product],
+        style_replay_evidence={"bet": {"ok": True, "reason": "validated"}},
+    )
+
+    item = audit["items"][0]
+    assert item["strict_visual_match"] is True
+    assert item["style_data_binding"]["status"] == "matched"
+    assert item["style_data_binding"]["preview_comparison_ready"] is False
+    assert item["style_data_binding"]["runtime_reference_preview_required"] is False
+    assert product["status"] == "accepted"
 
 
 def test_template_xy_alignment_uses_adjacent_real_sources_without_fabricating_missing_series(tmp_path: Path) -> None:

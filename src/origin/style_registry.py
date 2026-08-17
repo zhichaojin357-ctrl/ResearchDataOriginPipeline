@@ -435,6 +435,14 @@ def resolve_origin_style_asset(
         if require_runtime_validation:
             validation = raw.get("runtime_validation")
             validation = validation if isinstance(validation, dict) else {}
+            integrity = raw.get("file_integrity")
+            integrity = integrity if isinstance(integrity, dict) else {}
+            snapshot_record = integrity.get("style_snapshot")
+            snapshot_sha256 = str(
+                snapshot_record.get("sha256")
+                if isinstance(snapshot_record, dict)
+                else ""
+            ).casefold()
             if (
                 runtime_asset is None
                 or not runtime_asset.is_file()
@@ -443,9 +451,8 @@ def resolve_origin_style_asset(
             if runtime_kind == "otpu" and (
                 not runtime_relative
                 or file_sha256(runtime_asset).casefold() != runtime_sha256
-                or template_opju is None
-                or file_sha256(template_opju).casefold()
-                != str(validation.get("reference_opju_sha256") or "").casefold()
+                or style_snapshot is None
+                or file_sha256(style_snapshot).casefold() != snapshot_sha256
                 or binding_contract is None
                 or file_sha256(binding_contract).casefold()
                 != str(validation.get("binding_contract_sha256") or "").casefold()

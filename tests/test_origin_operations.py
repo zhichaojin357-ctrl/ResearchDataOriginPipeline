@@ -420,53 +420,6 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertEqual(app.worksheets["[Book1]2"][0][5:7], [2.0, 20.0])
         self.assertEqual(replaced.payload["updated_columns"][2]["sheet_reference"], "2")
 
-    def test_template_worksheet_range_replacement_preserves_one_based_plot_row_offset(self):
-        app = FakeOriginApp()
-        app.worksheets["[Book1]2"] = [[-1.0, -1.0], [-2.0, -2.0]]
-
-        replaced = OriginOperations(app).replace_template_worksheet_ranges(
-            [
-                {
-                    "book_name": "Book1",
-                    "sheet_index": 2,
-                    "column_index": 1,
-                    "row_from": 3,
-                    "row_to": 4,
-                    "values": [10.0, 11.0],
-                }
-            ]
-        )
-
-        self.assertTrue(replaced.ok)
-        written = app.worksheets["[Book1]2"]
-        self.assertEqual(written[:2], [[-1.0, -1.0], [-2.0, -2.0]])
-        self.assertTrue(math.isnan(written[2][0]))
-        self.assertTrue(math.isnan(written[3][0]))
-        self.assertEqual([written[2][1], written[3][1]], [10.0, 11.0])
-        self.assertEqual(replaced.payload["updated_ranges"][0]["row_from"], 3)
-        self.assertEqual(replaced.payload["updated_ranges"][0]["row_to"], 4)
-
-    def test_template_worksheet_range_replacement_preserves_missing_cells(self):
-        app = FakeOriginApp()
-
-        replaced = OriginOperations(app).replace_template_worksheet_ranges(
-            [
-                {
-                    "book_name": "Book1",
-                    "sheet_index": 1,
-                    "column_index": 0,
-                    "row_from": 1,
-                    "row_to": 4,
-                    "values": [1.0, None, "", math.nan],
-                }
-            ]
-        )
-
-        self.assertTrue(replaced.ok)
-        values = [row[0] for row in app.worksheets["[Book1]1"]]
-        self.assertEqual(values[0], 1.0)
-        self.assertTrue(all(math.isnan(value) for value in values[1:]))
-
     def test_graph_plot_dataset_names_use_numeric_layer_references_for_multilayer_graphs(self):
         class MultiLayerOriginApp(FakeOriginApp):
             def FindGraphLayer(self, name: str):
