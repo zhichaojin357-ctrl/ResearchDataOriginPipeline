@@ -95,6 +95,19 @@ function To-OriginPath([string]$Path) {
   return ($Path -replace '\\', '/')
 }
 
+function Get-FileSha256([string]$Path) {
+  $stream = [System.IO.File]::OpenRead([System.IO.Path]::GetFullPath($Path))
+  $algorithm = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $bytes = $algorithm.ComputeHash($stream)
+    return ([System.BitConverter]::ToString($bytes)).Replace('-', '').ToLowerInvariant()
+  }
+  finally {
+    $algorithm.Dispose()
+    $stream.Dispose()
+  }
+}
+
 function Resolve-RunPath([string]$Path, [string]$BaseDir) {
   if ([System.IO.Path]::IsPathRooted($Path)) {
     return [System.IO.Path]::GetFullPath($Path)
@@ -1281,7 +1294,7 @@ if (-not [System.IO.File]::Exists($templateOpjuPath)) {
   throw ("HPLC calibration template OPJU not found: " + (Split-Path -Leaf $templateOpjuPath))
 }
 Assert-OutputSeparatedFromTemplateTree $projectOutputRoot $finalOutputDir $templateOpjuPath
-$templateHashBefore = (Get-FileHash -LiteralPath $templateOpjuPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$templateHashBefore = Get-FileSha256 $templateOpjuPath
 
 if (Test-UnderOrEqual $templateOpjuPath $finalOutputDir) {
   throw 'TemplateOpju must be outside OutputDir so no output cleanup can modify or delete the source template.'
@@ -1575,7 +1588,7 @@ if (-not $KeepIntermediate) {
   try { Remove-NeutralOriginStage $stageRoot } catch { Write-Log ('Origin stage cleanup skipped: ' + $_.Exception.Message) }
 }
 
-$templateHashAfter = (Get-FileHash -LiteralPath $templateOpjuPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$templateHashAfter = Get-FileSha256 $templateOpjuPath
 if ($templateHashAfter -ne $templateHashBefore) {
   throw 'TemplateOpju changed during the HPLC calibration run; outputs are rejected.'
 }

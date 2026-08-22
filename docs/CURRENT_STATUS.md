@@ -139,9 +139,17 @@ other positive curve count.
   created nine worksheet-bound curves and current direct labels, loaded no
   reference OPJU, saved/reopened the OPJU, passed the native 600 dpi TIFF gate,
   and passed manual PNG inspection.
-- The last full test run passed 844 tests with 3 skips. `validate` exits 0.
-  `readiness` reports 21 checks, 0 failures, 15 warnings, `ready=true`, and
-  `release_ready=false`.
+- The 2026-08-23 full regression run reported 1100 passed, 3 skipped, and 2
+  failures. The HPLC hard-link safety failure was then fixed and its isolated
+  test passed. The remaining known failure is the Origin smoke-test lifecycle
+  guard detecting the pre-existing inaccessible Origin process; no additional
+  Origin plotting was launched for the XRD data-only merge.
+- `validate` passes dependencies, registry, Origin contracts, style-asset
+  integrity, and claim policy, but exits 1 because old PPT files remain under
+  the repository-local `output/组会PPT_20260808/`. `readiness` therefore reports
+  21 checks, 1 failure, 17 warnings, `ready=false`, and
+  `release_ready=false`. Those user files were not deleted or moved, and the
+  validation rule was not weakened.
 
 Do not call the current all-types product set visually accepted or
 release-ready. Do not lower the comparison threshold merely to make it green.

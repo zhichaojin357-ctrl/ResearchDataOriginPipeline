@@ -101,6 +101,9 @@ output/review_dashboard/*.md
 *.log
 *.tmp
 *.bak
+.codex_tmp/
+tmp/
+tmp_*.py
 tmp_cli_probe/
 tmp_malformed.csv
 tmp_out.txt
