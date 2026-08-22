@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "FTIR",
+  "status": "accepted",
+  "generated_at": "2026-08-22T16:00:00+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection of the formal project replay side-by-side confirmed all three FTIR traces, offsets, colors, 3 pt line widths, bold axis titles, legend, axes, layout, and the absence of blank graph or stale template text. The detached OTPU-only replay is the minimum accepted generation package; the snapshot is retained solely for post-reopen runtime style audit and the legacy OTH is not a runtime dependency.",
+  "formal_command": "python run.py origin-style-asset-replay --template-plan templates/origin_styles/validation_plans/FTIR_verified_20260822.json --output-dir <configured-output-root>/diagnostics/20260822_FTIR_project_asset_formal_replay_02 --with-origin",
+  "formal_evidence_location": "diagnostics/20260822_FTIR_project_asset_formal_replay_02/products/FTIR/comparison.json",
+  "validation_plan": {
+    "path": "validation_plans/FTIR_verified_20260822.json",
+    "sha256": "3da30027949e356fe5aab7fe2fa9ffeef21477f232b022bd21b6d2daa539d5b3"
+  },
+  "origin": {
+    "entrypoint": "Origin.Application",
+    "version": "10.3",
+    "build": 197
+  },
+  "pipeline_git_base_commit": "2bf94bc",
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/FTIR.otpu",
+    "sha256": "9a282ab0553b231e189afd3e8abb4494cc68750d086b35aa64645af7ebf9916f",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju",
+    "minimum_generation_package": "otpu_only"
+  },
+  "supporting_style_assets": {
+    "style_snapshot": {
+      "path": "snapshots/FTIR.json",
+      "sha256": "efd1d9008f48e5bc8193002012bcba17a2559fd97bc14250944a50e110e946e8",
+      "applied_during_fresh_plot": false,
+      "runtime_role": "post_reopen_style_readback_audit"
+    }
+  },
+  "legacy_compatibility_asset": {
+    "format_theme": {
+      "path": "format_themes/FTIR.oth",
+      "sha256": "41cb5eedc0ea629a8f0293a569bbb64eedf58fb4c9bb79ed0d1a03b9af4b66bb"
+    },
+    "runtime_required": false
+  },
+  "reference": {
+    "path": "reference_opju/FTIR.opju",
+    "graph_page": "Graph3",
+    "sha256": "52b3296125248533360768fbc8a7ab7412b1703eb0f25fe5da491f2726540aff",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/FTIR.json",
+    "sha256": "277e24d89c7821ca2f2461ac1e1e245f9678c043cc6a61e874176b5a87a0ddb3",
+    "source_series_count": 3,
+    "explicit_xy_ranges": true,
+    "one_source_series_per_xy_pair": true,
+    "group_plots": false,
+    "mappings": [
+      "Book2_A->Book2_B[1:1867]",
+      "Book2_E->Book2_F[1:1867]",
+      "Book2_G->Book2_H[1:1867]"
+    ],
+    "raw_to_plotted_vertical_offsets": [
+      0.6992644978783592,
+      0.48749646393210766,
+      -0.174144271570014
+    ],
+    "last_origin_curve_translate_annotations": [
+      0.69926449787836,
+      0.48749646393211,
+      -0.62347949080622
+    ],
+    "offset_note": "The net offsets from raw source data to final plotted Y values are the authoritative product mapping. The worksheet annotations record only the final historical curve-translate operation and are retained as metadata, not substituted for or numerically added to the net offsets."
+  },
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "a199066c9fb8a8dff3e3f1bf59bb0ca6fa20d596994f763330c5a96a22c36fee",
+    "generated_plot_values_sha256": "a199066c9fb8a8dff3e3f1bf59bb0ca6fa20d596994f763330c5a96a22c36fee",
+    "reference_plot_mapping_sha256": "4fd119c9566d244bd8c83fcc488d249d66f05ec7f93da374fb093fbd75763a1b",
+    "generated_plot_mapping_sha256": "4fd119c9566d244bd8c83fcc488d249d66f05ec7f93da374fb093fbd75763a1b"
+  },
+  "style": {
+    "status": "pass",
+    "compared_fields": 59,
+    "matched_fields": 59,
+    "axis_title_hard_gate": true,
+    "axis_title_reference_match": true,
+    "axis_titles_bold": true,
+    "plot_line_width_origin_units": [1500.0, 1500.0, 1500.0]
+  },
+  "pixels": {
+    "same_size": true,
+    "exact_pixel_match": true,
+    "changed_pixels": 0,
+    "rms": 0.0
+  },
+  "save_reopen": {
+    "saved_reopened": true,
+    "graph_page": "Graph3"
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  }
+}

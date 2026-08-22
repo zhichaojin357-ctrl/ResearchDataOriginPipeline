@@ -1,6 +1,7 @@
 {
-  "schema_version": 1,
-  "source_opju": "CWO+BOBC红外.opju",
+  "schema_version": 3,
+  "status": "ready",
+  "source_opju": "FTIR.opju",
   "graph_page": "Graph3",
   "sheet_name": "Sheet1",
   "layer_count_with_plots": 1,
@@ -24,13 +25,21 @@
       "y_dataset": "Book2_B",
       "status": "ready",
       "book_name": "Book2",
-      "sheet_name": "Sheet1",
+      "sheet_name": "1",
+      "sheet_index": 1,
       "x_dataset": "Book2_A",
+      "x_book_name": "Book2",
+      "x_sheet_name": "1",
+      "x_sheet_index": 1,
+      "x_mapping_source": "graph_plot_mapping",
       "x_col_index": 0,
       "y_col_index": 1,
       "x_col_letter": "A",
       "y_col_letter": "B",
       "row_count": 1867,
+      "plot_row_from": 1,
+      "plot_row_to": 1867,
+      "plot_row_range_source": "graph_plot_mapping",
       "style": {
         "color": 33518174.0,
         "line_color": 33518174.0,
@@ -3781,7 +3790,10 @@
         1.6718344978783592,
         1.6718344978783592,
         1.6718344978783592
-      ]
+      ],
+      "x_data_sha256": "ab2ae9a61bb5538b05f7e0302ad046353bababd18330047ed01f355b56ff571b",
+      "y_data_sha256": "ea993699c328f2e5bc2999350a1c17d738a000e6510da86908c6852b93249ba3",
+      "xy_data_sha256": "a1334a35064b82385cf424232ff14942244987ae149ad82c010696fd2c911418"
     },
     {
       "graph_page": "Graph3",
@@ -3790,13 +3802,21 @@
       "y_dataset": "Book2_F",
       "status": "ready",
       "book_name": "Book2",
-      "sheet_name": "Sheet1",
+      "sheet_name": "1",
+      "sheet_index": 1,
       "x_dataset": "Book2_E",
+      "x_book_name": "Book2",
+      "x_sheet_name": "1",
+      "x_sheet_index": 1,
+      "x_mapping_source": "graph_plot_mapping",
       "x_col_index": 4,
       "y_col_index": 5,
       "x_col_letter": "E",
       "y_col_letter": "F",
       "row_count": 1867,
+      "plot_row_from": 1,
+      "plot_row_to": 1867,
+      "plot_row_range_source": "graph_plot_mapping",
       "style": {
         "color": 16814848.0,
         "line_color": 16814848.0,
@@ -7547,7 +7567,10 @@
         1.2822564639321077,
         1.2822564639321077,
         1.2822564639321077
-      ]
+      ],
+      "x_data_sha256": "ab2ae9a61bb5538b05f7e0302ad046353bababd18330047ed01f355b56ff571b",
+      "y_data_sha256": "be1f6084b2a09a3126b1edfc49dd219e6a7a7d5bdf70a8d7bf9721efb3161580",
+      "xy_data_sha256": "10de22f68da260d94649a99edca8e8f215c66946f16b2d4ecec531cc470ccfd2"
     },
     {
       "graph_page": "Graph3",
@@ -7556,13 +7579,21 @@
       "y_dataset": "Book2_H",
       "status": "ready",
       "book_name": "Book2",
-      "sheet_name": "Sheet1",
+      "sheet_name": "1",
+      "sheet_index": 1,
       "x_dataset": "Book2_G",
+      "x_book_name": "Book2",
+      "x_sheet_name": "1",
+      "x_sheet_index": 1,
+      "x_mapping_source": "graph_plot_mapping",
       "x_col_index": 6,
       "y_col_index": 7,
       "x_col_letter": "G",
       "y_col_letter": "H",
       "row_count": 1867,
+      "plot_row_from": 1,
+      "plot_row_to": 1867,
+      "plot_row_range_source": "graph_plot_mapping",
       "style": {
         "color": 18053798.0,
         "line_color": 18053798.0,
@@ -11313,8 +11344,16 @@
         0.784055728429986,
         0.784055728429986,
         0.784055728429986
-      ]
+      ],
+      "x_data_sha256": "ab2ae9a61bb5538b05f7e0302ad046353bababd18330047ed01f355b56ff571b",
+      "y_data_sha256": "96d8a70df97ddf60a399e11a3c60282d4c425f50f12f84dbaf9117062340e0d8",
+      "xy_data_sha256": "18c263ca34b1719eaabbc1701e8c4bfddb6b8e3c8d50e21393d728f3e3092972"
     }
   ],
-  "mapping_policy": "Each Origin Y dataset name Book_Col is paired with the preceding worksheet column as X, matching the reviewed XRD Graph4 paired-XY workbook layout."
+  "plot_values_sha256": "a199066c9fb8a8dff3e3f1bf59bb0ca6fa20d596994f763330c5a96a22c36fee",
+  "plot_mapping_sha256": "4fd119c9566d244bd8c83fcc488d249d66f05ec7f93da374fb093fbd75763a1b",
+  "plot_data_sha256": "dcbd974bf999326ae1882ba069992ad9e9960470bcd06900e778fae430dc1a26",
+  "mapping_failure_count": 0,
+  "mapping_policy": "Use Origin range -wx/-wy plus nameof(range)$ first, preserving @sheet creation indices and plotted row bounds; worksheet designations/findX are diagnostic fallbacks only and cannot prove same-data exact replay.",
+  "same_data_exact_requirement": "Reference and generated graphs must have identical plot_values_sha256 and plot_mapping_sha256 values from explicit Origin plotdata X/Y readback before pixel equality may be accepted as one-to-one evidence."
 }

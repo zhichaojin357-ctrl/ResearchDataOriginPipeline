@@ -1,5 +1,5 @@
 {
-  "source_opju": "2eis图20260202.opju",
+  "source_opju": "EIS.opju",
   "status": "extracted",
   "graph_page": "Graph1",
   "graph_pages": [
@@ -120,6 +120,16 @@
     26326962.0,
     32236726.0
   ],
+  "plot_line_colors": [
+    26724605.0,
+    26724605.0,
+    26724605.0,
+    26724605.0,
+    26724605.0,
+    26724605.0,
+    26724605.0,
+    26724605.0
+  ],
   "marker_shapes": [
     20.0,
     20.0,
@@ -139,6 +149,16 @@
     12.0,
     12.0,
     12.0
+  ],
+  "plot_visibility": [
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
   ],
   "graph_object_positions": {},
   "warnings": [

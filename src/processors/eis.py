@@ -38,11 +38,13 @@ class EisMeasurementResult:
     selected_columns: dict[str, str]
     warnings: list[str] = field(default_factory=list)
     column_transforms: dict[str, dict[str, object]] = field(default_factory=dict)
+    source_format: str | None = None
+    format_metadata: dict[str, object] = field(default_factory=dict)
 
     def to_metadata(self) -> dict[str, object]:
         magnitude_transform = self.column_transforms.get("impedance_magnitude_ohm", {})
         phase_transform = self.column_transforms.get("phase_deg", {})
-        return {
+        payload = {
             "measured_point_count": len(self.points),
             "selected_columns": dict(self.selected_columns),
             "column_transforms": {
@@ -65,6 +67,14 @@ class EisMeasurementResult:
             ),
             "warnings": list(self.warnings),
         }
+        if self.source_format:
+            payload["source_format"] = self.source_format
+            payload["format_provenance"] = dict(self.format_metadata)
+            payload["manual_check_required"] = True
+            payload["manual_check_items"] = [
+                "Confirm Scribner ZPlotW impedance-unit and imaginary-sign conventions against the instrument export."
+            ]
+        return payload
 
 
 @dataclass(frozen=True)
@@ -134,20 +144,35 @@ def read_eis_measurements(path: Path) -> EisMeasurementResult:
         raise ValueError(f"EIS table has no rows: {path}")
     columns = list(table.rows[0].keys())
     selected = _pick_eis_columns(columns)
-    real_scale, real_unit = _required_impedance_conversion(selected["z_real_ohm"])
-    imag_scale, imag_unit = _required_impedance_conversion(selected["minus_z_imag_ohm"])
+    scribner_contract = _scribner_zplotw_impedance_contract(table.source_format, table.format_metadata, selected)
+    if scribner_contract is None:
+        real_scale, real_unit = _required_impedance_conversion(selected["z_real_ohm"])
+        imag_scale, imag_unit = _required_impedance_conversion(selected["minus_z_imag_ohm"])
+    else:
+        real_scale, real_unit = 1.0, "ohm"
+        imag_scale, imag_unit = 1.0, "ohm"
     frequency_conversion = _frequency_conversion_to_hz(selected.get("frequency_hz", ""))
     magnitude_conversion = _impedance_conversion_to_ohm(selected.get("impedance_magnitude_ohm", ""))
     phase_conversion = _phase_conversion_to_deg(selected.get("phase_deg", ""))
-    imag_sign, imag_sign_policy, imag_sign_evidence = _imaginary_to_minus_sign(
-        selected["minus_z_imag_ohm"],
-        rows=table.rows,
-        z_real_column=selected["z_real_ohm"],
-        phase_column=selected.get("phase_deg", ""),
-        real_scale=real_scale,
-        imag_scale=imag_scale,
-        phase_conversion=phase_conversion,
-    )
+    if scribner_contract is None:
+        imag_sign, imag_sign_policy, imag_sign_evidence = _imaginary_to_minus_sign(
+            selected["minus_z_imag_ohm"],
+            rows=table.rows,
+            z_real_column=selected["z_real_ohm"],
+            phase_column=selected.get("phase_deg", ""),
+            real_scale=real_scale,
+            imag_scale=imag_scale,
+            phase_conversion=phase_conversion,
+        )
+    else:
+        imag_sign = -1.0
+        imag_sign_policy = "scribner_zplotw_raw_zdoubleprime_negated_without_absolute_value"
+        imag_sign_evidence = {
+            "method": "scribner_zplotw_vendor_signature",
+            "source_component": "Z''(b)",
+            "source_semantics": "raw_imaginary_impedance",
+            "selected_sign_multiplier": -1.0,
+        }
     points: list[EisPoint] = []
     warnings: list[str] = []
     transforms: dict[str, dict[str, object]] = {
@@ -167,6 +192,17 @@ def read_eis_measurements(path: Path) -> EisMeasurementResult:
             "status": "converted",
         },
     }
+    if scribner_contract is not None:
+        vendor_unit_provenance = {
+            "unit_evidence": "inferred_from_scribner_zplotw_vendor_signature",
+            "vendor_signature_inference": True,
+            "manual_check_required": True,
+        }
+        transforms["z_real_ohm"].update(vendor_unit_provenance)
+        transforms["minus_z_imag_ohm"].update(vendor_unit_provenance)
+        warnings.append(
+            "Scribner ZPlotW vendor signature supplied ohm units and raw Z'' sign semantics; confirm them against the instrument export."
+        )
     _record_optional_transform(
         transforms,
         warnings,
@@ -256,6 +292,8 @@ def read_eis_measurements(path: Path) -> EisMeasurementResult:
         selected_columns=selected,
         warnings=warnings,
         column_transforms=transforms,
+        source_format=table.source_format if scribner_contract is not None else None,
+        format_metadata=dict(table.format_metadata or {}) if scribner_contract is not None else {},
     )
 
 
@@ -274,6 +312,32 @@ def clean_eis_file(path: Path) -> EisCleaningResult:
         measurement.selected_columns,
         list(measurement.warnings),
     )
+
+
+def _scribner_zplotw_impedance_contract(
+    source_format: str | None,
+    format_metadata: dict[str, object] | None,
+    selected_columns: dict[str, str],
+) -> dict[str, object] | None:
+    """Accept implied units only from the complete Scribner ZPlotW parser signature."""
+    if source_format != "scribner_zplotw_impedance" or not format_metadata:
+        return None
+    if format_metadata.get("vendor") != "Scribner":
+        return None
+    if format_metadata.get("vendor_signature") != "ZPlotW Data File + Freq(Hz) + Z'(a) + Z''(b)":
+        return None
+    if list(format_metadata.get("signature_headers", [])) != ["Freq(Hz)", "Z'(a)", "Z''(b)"]:
+        return None
+    if (
+        selected_columns.get("frequency_hz") != "Freq(Hz)"
+        or selected_columns.get("z_real_ohm") != "Z'(a)"
+        or selected_columns.get("minus_z_imag_ohm") != "Z''(b)"
+    ):
+        return None
+    return {
+        "unit": "ohm",
+        "imaginary_component": "raw_imaginary_impedance",
+    }
 
 
 def select_eis_semicircle_main_branch(

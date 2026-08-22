@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "product_key": "FTIR",
+      "data_type": "FTIR",
+      "source_opju": "templates/origin_styles/reference_opju/FTIR.opju",
+      "graph_page": "Graph3",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/FTIR.otpu",
+      "binding_contract": "templates/origin_styles/binding_contracts/FTIR.json"
+    }
+  ]
+}

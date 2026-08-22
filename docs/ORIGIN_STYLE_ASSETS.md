@@ -17,24 +17,19 @@ Current runtime assets and evidence:
 - `templates/origin_styles/reference_opju/*.opju`
 - `templates/origin_styles/previews/*.png`
 
-`templates/origin_styles/graph_templates/*.otpu` are retained only as quarantined harvest records. The current batch-derived files have not passed independent visual acceptance and are not runtime assets.
+Runtime eligibility is resolved from the current manifest, binding contract,
+validation plan, validation evidence, and file-integrity records. BET, EIS,
+EPR, PL, photocurrent, XRD with a standard card, and the fixed nine-curve XRD
+no-card layout have individually regenerated, independently validated `.otpu`
+runtime assets. The XRD no-card product also has a separately validated
+adaptive `.oth`+JSON route for other curve counts. Other historical
+batch-derived `.otpu` files remain quarantined harvest records and are not
+runtime fallbacks.
 
-The manifest has one integrity-registered `.oth` format theme for each plotted
-type. Here, manifest status and hash integrity do not by themselves mean that a
-new-data product has passed independent visual acceptance:
-
-- BET
-- XPS_in_situ
-- XPS_non_in_situ
-- XRD
-- EPR
-- EIS
-- Raman
-- UV-vis DRS / Tauc
-- PL
-- photocurrent
-- FTIR
-- Mott-Schottky
+The remaining plotted types continue to use their registered `.oth` compatibility
+assets until an individual `.otpu` has passed the same fresh-project, same-data,
+save/reopen, native-600-dpi, exact-pixel, axis-title, and manual-preview gates.
+Manifest status or hash integrity alone never constitutes visual acceptance.
 
 `manifest.json` uses schema v2. Every referenced project-local file has a SHA-256 digest, byte size, and asset kind. Each product entry also records the expected layer/plot counts and harvest provenance. The reader remains compatible with schema v1, while `run.py validate` performs strict hash and structure checks for schema v2.
 
@@ -42,7 +37,18 @@ new-data product has passed independent visual acceptance:
 
 The `.oth` files are copied Origin graph formats saved from Origin's Copy Format payload. The style JSON snapshots store readback values such as plot colours so newly added data plots can be styled without reopening the source OPJU. The `data_snapshots/*.json` files store the reviewed template graph's plotted datasets, layer/plot mapping, paired X/Y worksheet columns, and per-plot style readback. This is the audit trail that proves a template-data replay used data embedded in the OPJU rather than adjacent raw text files.
 
-Runtime product generation creates a clean target graph from current processed data and applies the matching `.oth` asset. A project-local `.otpu` cannot satisfy style-asset integrity, cannot substitute for `format_theme`, and is never dispatched by the formal executor. Project-local `reference_opju/*.opju` copies are retained for harvest recovery, replay, and independent visual/style evidence. In `--asset-only` mode the declared reference OPJU is copied to an isolated temporary path and opened read-only only long enough to export its reference preview and read its graph style; it is never used as the product base, never contributes workbook data, and is never saved. The original asset hash is checked before and after this step. The external F-drive/source OPJU is therefore unnecessary after assets are harvested.
+Runtime product generation always starts from current processed data. The
+formal executor dispatches an accepted `.otpu` only when the current manifest
+and validator resolve its complete binding/evidence package; otherwise it uses
+the registered `.oth` compatibility route or blocks. EIS, EPR, and PL additionally
+apply their manifest-bound `.oth` and style snapshot after the `.otpu`, because
+their reviewed colours, visibility state, rich-text axis titles, and object
+layout require all three assets. EPR then restores the current-data X range and
+updates the three reviewed `DL1`/`DL2`/`DL3` text objects with the current sample
+labels. Project-local `reference_opju/*.opju` copies are retained for recovery
+and independent visual/style evidence, never as routine product bases or
+workbook data sources. Normal accepted `.otpu` execution does not load a
+reference OPJU.
 
 The project-local reference preview must be freshly exported from that independent OPJU copy. A generated product preview cannot be copied or reused as its own reference. Outside `--asset-only`, an explicitly selected external reference still has priority.
 
@@ -66,7 +72,7 @@ To harvest a reviewed set of OPJU templates directly:
 python run.py export-origin-style-assets --template-plan "<output-root>\runs\<run>\template_harvest_plan.json" --with-origin
 ```
 
-`run.py export-origin-style-assets` first copies each accepted product OPJU or directly supplied template OPJU to a task-owned temporary working copy, then opens that copy in Origin. This avoids locking or modifying the user's reviewed template file. It saves a sanitized project-local OPJU copy, copies the selected graph format through Origin's Copy Format mechanism, saves the copied `Origin XML Style` payload as a project-local `.oth` file, may save the selected graph page as a project-local `.otpu` harvest artifact, and writes a `data_snapshots/<type>.json` template-data snapshot. Origin-native saves are performed through ASCII temporary paths and then copied back to the project asset directory, because LabTalk `save -t` can fail on non-ASCII output paths. Whether `.otpu` export succeeds or not has no effect on runtime readiness: the project-local `reference_opju`, accepted `.oth`, style snapshot, and data snapshot remain the authoritative self-contained asset set.
+`run.py export-origin-style-assets` first copies each accepted product OPJU or directly supplied template OPJU to a task-owned temporary working copy, then opens that copy in Origin. This avoids locking or modifying the user's reviewed template file. It saves a sanitized project-local OPJU copy, copies the selected graph format through Origin's Copy Format mechanism, saves the copied `Origin XML Style` payload as a project-local `.oth` file, may save the selected graph page as a project-local `.otpu` candidate, and writes a `data_snapshots/<type>.json` template-data snapshot. Origin-native saves are performed through ASCII temporary paths and then copied back to the project asset directory, because LabTalk `save -t` can fail on non-ASCII output paths. Export alone does not make an `.otpu` runnable; promotion requires a complete binding contract and independent validation evidence recorded by the current manifest.
 
 For the reviewed XRD Graph4 template, the data snapshot must contain five plotted datasets:
 
@@ -82,16 +88,20 @@ Before claiming the asset path is self-contained, run:
 python run.py template-format-products --pairing "<pairing-plan.json>" --asset-only --compact-output --with-origin
 ```
 
-The expected metadata is:
+For an independently validated `.otpu`, the expected metadata includes:
 
 - `asset_only = true`
 - `external_template_dependency = false`
-- `template_format_plan.mode = saved_format_theme`
-- `origin_processing.method = saved_format_theme_apply`
-- `template_path = templates/origin_styles/format_themes/<type>.oth`
-- `origin_status.external_reference_preview.reference_kind = project_local_reference_opju`
-- `origin_status.external_reference_preview.read_only_runtime_copy = true`
-- `origin_status.external_reference_preview.used_as_product_base = false`
+- `template_format_plan.mode = verified_graph_template`
+- `origin_processing.method = fresh_graph_verified_otpu_explicit_xy`
+- `origin_processing.reference_opju_loaded = false`
+- `origin_processing.reference_opju_used_as_product_base = false`
+- `origin_processing.current_data_validation.status = matched`
+- `asset_same_data_exact_validation.status = verified`
+- `style_data_binding.status = matched`
+
+Legacy accepted `.oth` routes continue to report `saved_format_theme` and
+`saved_format_theme_apply`; these two modes must not be conflated.
 
 Every replay and formal product TIFF is exported natively by Origin at 600 dpi. Verification reads the final graph's dynamic `page.width` and `page.height` and checks the expected raster pixels, effective physical DPI, and TIFF DPI tags without rewriting or resampling the file.
 
@@ -103,12 +113,15 @@ TIFF. A controlled before/after comparison showed identical decoded pixels; the
 operation removes the temporary path identity without restyling or re-encoding
 the graph.
 
-For XRD with standard-card templates, expected metadata is also:
+For the dedicated XRD product paths, expected metadata is also:
 
-- `template_format_plan.mode = saved_format_theme`
-- `origin_processing.method = saved_format_theme_apply`
-- `origin_processing.legend_policy.line_samples_removed = false`
-- `origin_processing.legend_policy.entry_count = 4` for the reviewed BOBC/CuWO4 standard-card exemplar
+- `reference_opju_loaded = false`
+- standard-card products report `style_mode = fixed_otpu` and contain native
+  sample curves plus native standard-card sticks/annotations
+- no-card products report `style_mode = fixed_otpu` for exactly nine curves or
+  `style_mode = adaptive_oth_json` for another positive curve count
+- no-card direct labels are rebuilt from current labels; template placeholder
+  labels and reference OPJU content are never product data
 
 For template-asset replay verification, run:
 
@@ -123,6 +136,50 @@ each declared source OPJU and project-local reference OPJU had identical
 content. They are now reported as 12 inconclusive self-replays and zero
 independent matches. The separately generated `.oth` products remain blocked
 by the independent-reference gate.
+
+The current independent replacements supersede that historical conclusion for
+the following products:
+
+- BET: `validation_evidence/BET_verified_20260813.json`.
+- EIS: `validation_evidence/EIS_verified_20260822.json`; the formal same-data
+  replay has zero changed pixels, and a separate real-data formal product was
+  accepted after OPJU save/reopen, exact 8-by-101 X/Y readback, style
+  conformance, native 600 dpi export, and manual PNG inspection.
+- EPR: `validation_evidence/EPR_verified_20260822.json`; the formal same-data
+  replay has zero changed pixels with the reviewed shared-X 4096-by-3 mapping
+  and 59/59 style readback. A separate current-data product was accepted after
+  the existing Origin baseline/AAV7/offset transform, OPJU save/reopen, exact
+  X/Y readback, persistent current `BC`/`CWO`/`BOBC` label-object readback,
+  native 600 dpi export, and manual PNG inspection.
+- PL: `validation_evidence/PL_verified_20260822.json`; the accepted runtime
+  bundle requires `.otpu` + `.oth` + snapshot and uses `A→B` rows 1–351,
+  `A→D` rows 1–176, and `A→F` rows 1–351. The formal project replay passed
+  59/59 style checks, save/reopen, native 600 dpi export, and zero decoded-pixel
+  difference with RMS 0. The separate real-data product did not load the
+  reference OPJU; its no-label/path audit had 0 hits, and its same-data
+  4190×2806 TIF matched the reference replay TIF pixel-for-pixel.
+- Photocurrent: `validation_evidence/photocurrent_verified_20260822.json`; the
+  accepted runtime asset requires `.otpu` + style snapshot and does not require
+  `.oth`. The formal same-data replay passed 59/59 style checks, save/reopen,
+  native 600 dpi export, and zero decoded-pixel difference. Its independent
+  real-data product used `fresh_graph_verified_otpu_explicit_xy` with
+  `reference_opju_loaded=false`, paired `A→B`, `C→D`, and `E→F` mappings of
+  2600 points each, 1 pt curves, 16 pt non-bold dynamic axis titles, and native
+  600 dpi export. The real-data product is not claimed to be pixel-identical to
+  the reference data.
+- XRD with standard card: `validation_evidence/XRD_verified_20260823.json`;
+  the accepted fixed-shape OTPU uses the explicit three-layer worksheet/plot
+  binding contract and passed fresh-project same-data exact-pixel replay. The
+  dedicated runtime constructs only native Origin worksheet plots, axes,
+  legend, card sticks, and annotations, then saves/reopens before native TIFF
+  export.
+- XRD without standard card:
+  `validation_evidence/XRD_no_card_verified_20260823.json` validates the fixed
+  nine-curve OTPU, while
+  `validation_evidence/XRD_no_card_oth_json_adaptive_verified_20260823.json`
+  validates the retained adaptive OTH+JSON path. Both are fresh-project,
+  same-data, zero-difference validations and neither loads a reference OPJU as
+  a product base.
 
 Do not infer from a correct reference OPJU that it is a safe generic workbook
 base. A controlled XRD replacement trial preserved most style fields but mapped

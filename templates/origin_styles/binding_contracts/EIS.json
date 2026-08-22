@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "EIS",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "08e9669983001f8de292179aebbb52e19aae2d0d56dd70dbad55a44f0ce68499",
+      "graph_page": "Graph1",
+      "source_series_count": 8,
+      "source_schema": {
+        "status": "ready",
+        "layout": "paired_xy_columns",
+        "worksheet_layout": "one_source_series_per_sheet",
+        "x_header_suffix": "_z_real_kohm",
+        "y_header_suffix": "_minus_z_imag_kohm",
+        "transform": "processed_kohm_identity_pair; source-unit conversion must be completed upstream from explicit units",
+        "identity_rule": "Each X/Y header pair must have the same nonempty sample prefix; prefixes must be unique.",
+        "plot_type": "scatter",
+        "group_plots": false
+      },
+      "plots": [
+        {"layer_index": 1, "plot_index": 1, "x_dataset": "Book1_E", "y_dataset": "Book1_G", "row_from": 1, "row_to": 101, "source_series_index": 1, "semantic_role": "processed_series_1"},
+        {"layer_index": 1, "plot_index": 2, "x_dataset": "Book1_E@2", "y_dataset": "Book1_G@2", "row_from": 1, "row_to": 101, "source_series_index": 2, "semantic_role": "processed_series_2"},
+        {"layer_index": 1, "plot_index": 3, "x_dataset": "Book1_E@3", "y_dataset": "Book1_G@3", "row_from": 1, "row_to": 101, "source_series_index": 3, "semantic_role": "processed_series_3"},
+        {"layer_index": 1, "plot_index": 4, "x_dataset": "Book1_E@4", "y_dataset": "Book1_G@4", "row_from": 1, "row_to": 101, "source_series_index": 4, "semantic_role": "processed_series_4"},
+        {"layer_index": 1, "plot_index": 5, "x_dataset": "Book1_E@5", "y_dataset": "Book1_G@5", "row_from": 1, "row_to": 101, "source_series_index": 5, "semantic_role": "processed_series_5"},
+        {"layer_index": 1, "plot_index": 6, "x_dataset": "Book1_E@6", "y_dataset": "Book1_G@6", "row_from": 1, "row_to": 101, "source_series_index": 6, "semantic_role": "processed_series_6"},
+        {"layer_index": 1, "plot_index": 7, "x_dataset": "Book1_E@7", "y_dataset": "Book1_G@7", "row_from": 1, "row_to": 101, "source_series_index": 7, "semantic_role": "processed_series_7"},
+        {"layer_index": 1, "plot_index": 8, "x_dataset": "Book1_E@8", "y_dataset": "Book1_G@8", "row_from": 1, "row_to": 101, "source_series_index": 8, "semantic_role": "processed_series_8"}
+      ]
+    }
+  ]
+}

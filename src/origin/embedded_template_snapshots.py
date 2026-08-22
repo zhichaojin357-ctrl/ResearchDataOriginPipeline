@@ -1755,8 +1755,10 @@ def embedded_template_snapshot(product_key: str) -> OpjuStyleSnapshot | None:
         plot_count=int(payload.get("plot_count") or 0),
         plot_line_widths=[float(value) for value in payload.get("plot_line_widths") or []],
         plot_colors=[float(value) for value in payload.get("plot_colors") or []],
+        plot_line_colors=[float(value) for value in payload.get("plot_line_colors") or []],
         marker_shapes=[float(value) for value in payload.get("marker_shapes") or []],
         marker_sizes=[float(value) for value in payload.get("marker_sizes") or []],
+        plot_visibility=[float(value) for value in payload.get("plot_visibility") or []],
         graph_object_positions={
             str(name): {str(key): float(value) for key, value in values.items()}
             for name, values in (payload.get("graph_object_positions") or {}).items()

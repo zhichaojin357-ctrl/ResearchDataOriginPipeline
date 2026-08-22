@@ -40,6 +40,16 @@ STYLE_ASSET_FILE_FIELDS = (
     "template_preview_comparison_png",
 )
 RUNTIME_VALIDATION_SCOPE = "fresh_project_same_data"
+ADAPTIVE_RUNTIME_FORMAT_THEME_ROLES = frozenset(
+    {"adaptive_runtime", "legacy_compatibility_runtime"}
+)
+ADAPTIVE_CANDIDATE_FORMAT_THEME_ROLES = frozenset(
+    {
+        "adaptive_runtime_candidate",
+        "legacy_compatibility_nonruntime",
+        "quarantined_nonruntime",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -61,6 +71,8 @@ class OriginStyleAsset:
     runtime_asset_sha256: str = ""
     binding_contract_path: Path | None = None
     runtime_validation_evidence_path: Path | None = None
+    format_theme_role: str = ""
+    expected_plot_count: int = 0
 
     def to_dict(self, project_root: Path) -> dict[str, object]:
         return {
@@ -104,6 +116,8 @@ class OriginStyleAsset:
             )
             if self.runtime_validation_evidence_path
             else "",
+            "format_theme_role": self.format_theme_role,
+            "expected_plot_count": self.expected_plot_count,
         }
 
 
@@ -443,6 +457,15 @@ def resolve_origin_style_asset(
                 if isinstance(snapshot_record, dict)
                 else ""
             ).casefold()
+            theme_record = integrity.get("format_theme")
+            theme_sha256 = str(
+                theme_record.get("sha256")
+                if isinstance(theme_record, dict)
+                else ""
+            ).casefold()
+            required_theme_sha256 = str(
+                validation.get("supporting_format_theme_sha256") or ""
+            ).casefold()
             if (
                 runtime_asset is None
                 or not runtime_asset.is_file()
@@ -453,6 +476,15 @@ def resolve_origin_style_asset(
                 or file_sha256(runtime_asset).casefold() != runtime_sha256
                 or style_snapshot is None
                 or file_sha256(style_snapshot).casefold() != snapshot_sha256
+                or (
+                    required_theme_sha256
+                    and (
+                        format_theme is None
+                        or file_sha256(format_theme).casefold()
+                        != required_theme_sha256
+                        or required_theme_sha256 != theme_sha256
+                    )
+                )
                 or binding_contract is None
                 or file_sha256(binding_contract).casefold()
                 != str(validation.get("binding_contract_sha256") or "").casefold()
@@ -479,6 +511,8 @@ def resolve_origin_style_asset(
             runtime_asset_sha256=runtime_sha256,
             binding_contract_path=binding_contract,
             runtime_validation_evidence_path=validation_evidence,
+            format_theme_role=str(raw.get("format_theme_role") or ""),
+            expected_plot_count=_positive_int_or_zero(raw.get("expected_plot_count")),
         )
     return None
 
@@ -513,6 +547,194 @@ def resolve_origin_runtime_style_asset(
     )
 
 
+def resolve_origin_adaptive_style_asset(
+    project_root: Path,
+    product_key: str,
+    manifest_path: Path | None = None,
+    *,
+    allow_candidate: bool = False,
+) -> OriginStyleAsset | None:
+    """Resolve an independently selected OTH + JSON adaptive style bundle.
+
+    This does not reinterpret the manifest's primary ``asset_kind``.  In
+    particular, a verified OTPU entry remains an OTPU entry; this resolver
+    returns its separately recorded format theme and JSON snapshots only when
+    that complete secondary bundle is eligible and passes schema-v2 integrity
+    checks.  Candidate roles are visible only to explicit validation callers.
+    """
+
+    manifest_file = origin_style_manifest_path(project_root, manifest_path)
+    manifest = load_origin_style_manifest(project_root, manifest_file)
+    if int(manifest.get("schema_version", 1)) != 2:
+        return None
+
+    allowed_roles = set(ADAPTIVE_RUNTIME_FORMAT_THEME_ROLES)
+    if allow_candidate:
+        allowed_roles.update(ADAPTIVE_CANDIDATE_FORMAT_THEME_ROLES)
+
+    base = manifest_file.parent.resolve()
+    requested = _style_key(product_key)
+    for raw in manifest.get("assets", []):
+        if not isinstance(raw, dict):
+            continue
+        keys = {str(raw.get("product_key", "")), str(raw.get("data_type", ""))}
+        if requested not in {_style_key(key) for key in keys}:
+            continue
+        if str(raw.get("status") or "").casefold() != "accepted":
+            continue
+        format_theme_role = str(raw.get("format_theme_role") or "").casefold()
+        if format_theme_role not in allowed_roles:
+            continue
+
+        paths = {
+            field: _resolve_local_manifest_path(base, raw.get(field))
+            for field in ("format_theme", "style_snapshot", "data_snapshot")
+        }
+        expected_suffixes = {
+            "format_theme": ".oth",
+            "style_snapshot": ".json",
+            "data_snapshot": ".json",
+        }
+        if any(
+            path is None
+            or not path.is_file()
+            or path.suffix.casefold() != expected_suffixes[field]
+            for field, path in paths.items()
+        ):
+            continue
+
+        integrity = raw.get("file_integrity")
+        if not isinstance(integrity, dict) or any(
+            not _adaptive_integrity_record_matches(
+                base,
+                raw,
+                integrity,
+                field,
+                paths[field],
+            )
+            for field in paths
+        ):
+            continue
+
+        payloads: dict[str, dict[str, object]] = {}
+        invalid_json = False
+        for field in ("style_snapshot", "data_snapshot"):
+            try:
+                payload = json.loads(paths[field].read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                invalid_json = True
+                break
+            if not isinstance(payload, dict):
+                invalid_json = True
+                break
+            payloads[field] = payload
+        if invalid_json:
+            continue
+
+        expected_plot_count = _positive_int_or_zero(raw.get("expected_plot_count"))
+        if expected_plot_count <= 0:
+            continue
+        if any(
+            payload.get("plot_count") is not None
+            and _positive_int_or_zero(payload.get("plot_count"))
+            != expected_plot_count
+            for payload in payloads.values()
+        ):
+            continue
+
+        theme_record = integrity["format_theme"]
+        graph_template = _resolve_local_manifest_path(base, raw.get("graph_template"))
+        if graph_template is not None and not graph_template.is_file():
+            graph_template = None
+        template_opju = _resolve_local_manifest_path(
+            base,
+            raw.get("template_opju") or raw.get("source_opju"),
+        )
+        if template_opju is not None and not template_opju.is_file():
+            template_opju = None
+        return OriginStyleAsset(
+            product_key=str(raw.get("product_key") or product_key),
+            data_type=str(raw.get("data_type") or product_key),
+            format_theme_path=paths["format_theme"],
+            graph_template_path=graph_template,
+            style_snapshot_path=paths["style_snapshot"],
+            data_snapshot_path=paths["data_snapshot"],
+            template_opju_path=template_opju,
+            status=str(raw.get("status") or ""),
+            graph_page=str(raw.get("graph_page") or ""),
+            source_run_root=str(
+                raw.get("source_run_root") or manifest.get("source_run_root") or ""
+            ),
+            preview_png=_resolve_local_manifest_path(base, raw.get("preview_png")),
+            reference_preview_png=_resolve_local_manifest_path(
+                base,
+                raw.get("reference_preview_png"),
+            ),
+            runtime_asset_kind="oth_json",
+            runtime_asset_path=paths["format_theme"],
+            runtime_asset_sha256=str(theme_record.get("sha256") or "").casefold(),
+            binding_contract_path=_existing_local_manifest_path(
+                base,
+                raw.get("binding_contract"),
+            ),
+            runtime_validation_evidence_path=_existing_local_manifest_path(
+                base,
+                raw.get("runtime_validation_evidence"),
+            ),
+            format_theme_role=format_theme_role,
+            expected_plot_count=expected_plot_count,
+        )
+    return None
+
+
+def _adaptive_integrity_record_matches(
+    base: Path,
+    raw: dict[str, object],
+    integrity: dict[str, object],
+    field: str,
+    path: Path | None,
+) -> bool:
+    if path is None:
+        return False
+    record = integrity.get(field)
+    if not isinstance(record, dict):
+        return False
+    expected_kind = path.suffix.casefold().lstrip(".")
+    if str(record.get("kind") or "").casefold().lstrip(".") != expected_kind:
+        return False
+    recorded_path = str(
+        record.get("path") or record.get("relative_path") or ""
+    ).strip()
+    if recorded_path:
+        resolved_recorded_path = _resolve_local_manifest_path(base, recorded_path)
+        if resolved_recorded_path is None or resolved_recorded_path.resolve() != path.resolve():
+            return False
+    manifest_path = _resolve_local_manifest_path(base, raw.get(field))
+    if manifest_path is None or manifest_path.resolve() != path.resolve():
+        return False
+    digest = str(record.get("sha256") or "").strip().casefold()
+    if re.fullmatch(r"[0-9a-f]{64}", digest) is None or file_sha256(path) != digest:
+        return False
+    try:
+        size = int(record.get("size_bytes"))
+    except (TypeError, ValueError):
+        return False
+    return size == path.stat().st_size
+
+
+def _existing_local_manifest_path(base: Path, value: object) -> Path | None:
+    path = _resolve_local_manifest_path(base, value)
+    return path if path is not None and path.is_file() else None
+
+
+def _positive_int_or_zero(value: object) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return parsed if parsed > 0 else 0
+
+
 def origin_style_asset_runtime_validated(raw: dict[str, object]) -> bool:
     """Return whether an asset passed an independent fresh-project replay.
 
@@ -529,11 +751,10 @@ def origin_style_asset_runtime_validated(raw: dict[str, object]) -> bool:
     )
     if runtime_kind not in {"oth", "otpu"} or not runtime_field:
         return False
-    # Existing graph templates remain quarantined by default.  OTPU runtime
-    # activation is deliberately narrow until each data type has its own
-    # fresh-project same-data replay and visual acceptance.
-    if runtime_kind == "otpu" and _style_key(str(raw.get("product_key") or "")) != "bet":
-        return False
+    # OTPU activation is evidence-driven.  Historical templates remain
+    # quarantined because they lack the exact asset/reference/binding/evidence
+    # contract below; a product-name allowlist would have to be edited for
+    # every independently validated data type and can drift from the manifest.
     integrity = raw.get("file_integrity")
     runtime_record = integrity.get(runtime_field) if isinstance(integrity, dict) else None
     reference_record = integrity.get("template_opju") if isinstance(integrity, dict) else None
@@ -555,6 +776,9 @@ def origin_style_asset_runtime_validated(raw: dict[str, object]) -> bool:
     validation_evidence_sha256 = str(
         validation.get("evidence_sha256") or ""
     ).casefold()
+    validation_theme_sha256 = str(
+        validation.get("supporting_format_theme_sha256") or ""
+    ).casefold()
     strict_otpu_binding = runtime_kind == "otpu"
     recorded_runtime_sha256 = str(
         runtime_record.get("sha256") if isinstance(runtime_record, dict) else ""
@@ -567,6 +791,10 @@ def origin_style_asset_runtime_validated(raw: dict[str, object]) -> bool:
     ).casefold()
     recorded_evidence_sha256 = str(
         evidence_record.get("sha256") if isinstance(evidence_record, dict) else ""
+    ).casefold()
+    theme_record = integrity.get("format_theme") if isinstance(integrity, dict) else None
+    recorded_theme_sha256 = str(
+        theme_record.get("sha256") if isinstance(theme_record, dict) else ""
     ).casefold()
     reference_values_hash = str(validation.get("reference_plot_values_sha256") or "").casefold()
     generated_values_hash = str(validation.get("generated_plot_values_sha256") or "").casefold()
@@ -595,6 +823,15 @@ def origin_style_asset_runtime_validated(raw: dict[str, object]) -> bool:
                 and re.fullmatch(r"[0-9a-f]{64}", validation_evidence_sha256)
                 is not None
                 and validation_evidence_sha256 == recorded_evidence_sha256
+                and (
+                    not validation_theme_sha256
+                    or (
+                        re.fullmatch(r"[0-9a-f]{64}", validation_theme_sha256)
+                        is not None
+                        and validation_theme_sha256 == recorded_theme_sha256
+                    )
+                )
+                and validation.get("axis_title_hard_gate") is True
             )
         )
         and str(validation.get("comparison_scope") or "").casefold()

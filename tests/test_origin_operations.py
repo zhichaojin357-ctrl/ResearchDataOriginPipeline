@@ -74,6 +74,7 @@ class FakeOriginApp:
         self.loaded: list[str] = []
         self.closed = False
         self.pages = ["Book1|workbook", "Fig1|graph"]
+        self.graph_layer_plot_names: dict[str, list[str]] = {}
         self.worksheets: dict[str, list[list[float]]] = {}
         self.ltvars: dict[str, float] = {}
         self.ltstrs: dict[str, str] = {}
@@ -174,7 +175,7 @@ class FakeOriginApp:
         return 42.0
 
     def FindGraphLayer(self, name: str):
-        return FakeLayer(self)
+        return FakeLayer(self, self.graph_layer_plot_names.get(name))
 
 
 def _between(value: str, left: str, right: str) -> str:
@@ -739,6 +740,344 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertIn("size:=-1", command_text)
         self.assertIn("rescale:=0", command_text)
         self.assertIn("legend:=0", command_text)
+
+    def test_create_graph_from_xy_pairs_template_supports_explicit_worksheet_indices(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "EIS.otpu"
+            template_path.write_bytes(b"otpu")
+            result = ops.create_graph_from_xy_pairs_template(
+                "Graph1",
+                template_path,
+                "Book1",
+                [
+                    {
+                        "sheet_index": 1,
+                        "x_col": 5,
+                        "y_col": 7,
+                        "row_from": 1,
+                        "row_to": 101,
+                    },
+                    {
+                        "sheet_index": 2,
+                        "x_col": 5,
+                        "y_col": 7,
+                        "row_from": 1,
+                        "row_to": 101,
+                    },
+                ],
+                plot_type="scatter",
+                group_plots=True,
+            )
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload["xy_ranges"][1]["sheet_index"], 2)
+        command_text = "\n".join(app.commands)
+        self.assertIn(
+            "iy:=([Book1]1!(5[1:101],7[1:101]),[Book1]2!(5[1:101],7[1:101]))",
+            command_text,
+        )
+        self.assertIn("plot:=201", command_text)
+        self.assertIn('win -a "Graph1"; layer -s 1; layer -g;', command_text)
+
+    def test_create_graph_from_xy_pairs_template_supports_multiple_named_workbooks(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "XRD.otpu"
+            template_path.write_bytes(b"otpu")
+            result = ops.create_graph_from_xy_pairs_template(
+                "Graph4",
+                template_path,
+                "PrimaryBook",
+                [
+                    {
+                        "book_name": "SampleA",
+                        "sheet_index": 2,
+                        "x_col": 1,
+                        "y_col": 2,
+                        "row_from": 1,
+                        "row_to": 501,
+                    },
+                    {
+                        "book_name": "SampleB",
+                        "x_col": 1,
+                        "y_col": 2,
+                        "row_from": 1,
+                        "row_to": 501,
+                    },
+                ],
+            )
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload["xy_ranges"][0]["book_name"], "SampleA")
+        self.assertEqual(result.payload["xy_ranges"][0]["sheet_index"], 2)
+        self.assertEqual(result.payload["xy_ranges"][1]["book_name"], "SampleB")
+        self.assertEqual(result.payload["xy_ranges"][1]["sheet_index"], 1)
+        command_text = "\n".join(app.commands)
+        self.assertIn(
+            "iy:=([SampleA]2!(1[1:501],2[1:501]),[SampleB]1!(1[1:501],2[1:501]))",
+            command_text,
+        )
+
+    def test_create_graph_from_xy_pairs_template_rejects_unsafe_range_workbook_name(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "XRD.otpu"
+            template_path.write_bytes(b"otpu")
+            result = ops.create_graph_from_xy_pairs_template(
+                "Graph4",
+                template_path,
+                "PrimaryBook",
+                [
+                    {
+                        "book_name": "SampleA;doc -s",
+                        "x_col": 1,
+                        "y_col": 2,
+                        "row_from": 1,
+                        "row_to": 501,
+                    },
+                ],
+            )
+
+        self.assertFalse(result.ok)
+        self.assertIn("unsafe workbook", result.message)
+        self.assertFalse(any("plotxy" in command for command in app.commands))
+
+    def test_create_graph_from_xy_pairs_template_routes_ranges_to_explicit_graph_layers(self):
+        app = FakeOriginApp()
+        app.graph_layer_plot_names["[Graph4]1"] = ["SampleA_B"]
+        app.graph_layer_plot_names["[Graph4]2"] = ["SampleB_B"]
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "XRD.otpu"
+            template_path.write_bytes(b"otpu")
+            result = ops.create_graph_from_xy_pairs_template(
+                "Graph4",
+                template_path,
+                "SampleA",
+                [
+                    {
+                        "book_name": "SampleA",
+                        "x_col": 1,
+                        "y_col": 2,
+                        "row_from": 1,
+                        "row_to": 501,
+                    },
+                    {
+                        "book_name": "SampleB",
+                        "x_col": 1,
+                        "y_col": 2,
+                        "row_from": 1,
+                        "row_to": 501,
+                        "layer_index": 2,
+                    },
+                ],
+            )
+
+        self.assertTrue(result.ok)
+        self.assertEqual([item["layer_index"] for item in result.payload["xy_ranges"]], [1, 2])
+        command_text = "\n".join(app.commands)
+        self.assertIn(
+            f"CreatePage:3:Graph4:{template_path.resolve()}",
+            command_text,
+        )
+        self.assertIn(
+            "plotxy iy:=[SampleA]1!(1[1:501],2[1:501]) plot:=202 size:=-1 rescale:=0 legend:=0 ogl:=[Graph4]1;",
+            command_text,
+        )
+        self.assertIn(
+            "plotxy iy:=[SampleB]1!(1[1:501],2[1:501]) plot:=202 size:=-1 rescale:=0 legend:=0 ogl:=[Graph4]2;",
+            command_text,
+        )
+        self.assertNotIn("<new template:", command_text)
+
+    def test_create_graph_from_xy_pairs_template_applies_native_formats_and_stack_without_forced_grouping(self):
+        class StackAwareOriginApp(FakeOriginApp):
+            def __init__(self):
+                super().__init__()
+                self.stack_values: dict[tuple[str, str], float] = {}
+                self.plot_values: dict[tuple[str, str], float] = {}
+
+            def Execute(self, script: str):
+                result = super().Execute(script)
+                for plot_name, option, value in re.findall(
+                    r"set\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(sx|sy|sxs|sys)\s+([-+0-9.eE]+);",
+                    script,
+                ):
+                    self.stack_values[(plot_name, option)] = float(value)
+                for plot_name, option, value in re.findall(
+                    r"set\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(c|cl|w|d|l|lv|lvc|lvs|lvw)\s+([-+0-9.eE]+);",
+                    script,
+                ):
+                    self.plot_values[(plot_name, option)] = float(value)
+                match = re.fullmatch(
+                    r"get\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(sx|sy|sxs|sys)\s+([A-Za-z_][A-Za-z0-9_]*);",
+                    script,
+                )
+                if match:
+                    plot_name, option, variable = match.groups()
+                    self.ltvars[variable] = self.stack_values.get(
+                        (plot_name, option),
+                        1.0 if option in {"sxs", "sys"} else 0.0,
+                    )
+                plot_match = re.fullmatch(
+                    r"get\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(c|cl|w|d|l|lv|lvc|lvs|lvw)\s+([A-Za-z_][A-Za-z0-9_]*);",
+                    script,
+                )
+                if plot_match:
+                    plot_name, option, variable = plot_match.groups()
+                    self.ltvars[variable] = self.plot_values[(plot_name, option)]
+                return result
+
+        app = StackAwareOriginApp()
+        app.graph_layer_plot_names["[Graph4]1"] = [
+            "Book2_B",
+            "Book2_D",
+            "Book2_F",
+        ]
+        app.graph_layer_plot_names["[Graph4]2"] = ["Book2_H"]
+        app.graph_layer_plot_names["[Graph4]3"] = ["Book3_F"]
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "XRD.otpu"
+            template_path.write_bytes(b"otpu")
+            result = ops.create_graph_from_xy_pairs_template(
+                "Graph4",
+                template_path,
+                "Book2",
+                [
+                    {"book_name": "Book2", "x_col": 1, "y_col": 2, "row_from": 1, "row_to": 3855, "layer_index": 1},
+                    {"book_name": "Book2", "x_col": 3, "y_col": 4, "row_from": 1, "row_to": 3855, "layer_index": 1},
+                    {"book_name": "Book2", "x_col": 5, "y_col": 6, "row_from": 1, "row_to": 3855, "layer_index": 1},
+                    {"book_name": "Book2", "x_col": 7, "y_col": 8, "row_from": 1, "row_to": 198, "layer_index": 2},
+                    {"book_name": "Book3", "x_col": 5, "y_col": 6, "row_from": 1, "row_to": 3855, "layer_index": 3},
+                ],
+                plot_type="line",
+                group_plots=False,
+                individual_stack_offsets=[
+                    {"layer_index": 1, "plot_index": 1, "y_offset": 0.0},
+                    {"layer_index": 1, "plot_index": 2, "y_offset": 560.2891913966785},
+                    {"layer_index": 1, "plot_index": 3, "y_offset": -2808.5009666953847},
+                ],
+                plot_format_contracts=[
+                    {"layer_index": 1, "plot_index": 2, "color": 33518174, "line_width": 1500},
+                    {"layer_index": 2, "plot_index": 1, "connect": 0, "vertical_drop_lines": 1, "vertical_drop_line_color": 17585584, "vertical_drop_line_width": 3},
+                ],
+            )
+
+        self.assertTrue(result.ok, result.message)
+        self.assertEqual(result.payload["group_layer_indices"], [])
+        self.assertEqual(len(result.payload["individual_stack_readback"]), 3)
+        self.assertEqual(len(result.payload["plot_format_readback"]), 2)
+        command_text = "\n".join(app.commands)
+        self.assertNotIn("layer -g;", command_text)
+        self.assertIn("layer -b s 4 0 1;", command_text)
+        self.assertNotIn("set Book2_D -sx", command_text)
+        self.assertNotIn("set Book2_D -sxs", command_text)
+        self.assertAlmostEqual(app.stack_values[("Book2_D", "sy")], 560.2891913966785)
+        self.assertAlmostEqual(app.stack_values[("Book2_F", "sy")], -2808.5009666953847)
+        self.assertEqual(app.plot_values[("Book2_D", "c")], 33518174.0)
+        self.assertEqual(app.plot_values[("Book2_H", "l")], 0.0)
+        self.assertEqual(app.plot_values[("Book2_H", "lv")], 1.0)
+
+    def test_create_graph_from_xy_pairs_template_keeps_template_cd_best_effort_for_layers(self):
+        class CdFailingOriginApp(FakeOriginApp):
+            def Execute(self, script: str):
+                if script.startswith('cd '):
+                    self.commands.append(script)
+                    return False
+                return super().Execute(script)
+
+        app = CdFailingOriginApp()
+        app.graph_layer_plot_names["[Graph4]1"] = ["SampleA_B"]
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "XRD.otpu"
+            template_path.write_bytes(b"otpu")
+            result = ops.create_graph_from_xy_pairs_template(
+                "Graph4",
+                template_path,
+                "SampleA",
+                [
+                    {
+                        "x_col": 1,
+                        "y_col": 2,
+                        "row_from": 1,
+                        "row_to": 501,
+                        "layer_index": 1,
+                    },
+                ],
+            )
+
+        self.assertTrue(result.ok)
+        command_text = "\n".join(app.commands)
+        self.assertIn(
+            f"CreatePage:3:Graph4:{template_path.resolve()}",
+            command_text,
+        )
+        self.assertIn("ogl:=[Graph4]1;", command_text)
+
+    def test_create_graph_from_xy_pairs_template_rejects_invalid_graph_layer_index(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "XRD.otpu"
+            template_path.write_bytes(b"otpu")
+            result = ops.create_graph_from_xy_pairs_template(
+                "Graph4",
+                template_path,
+                "SampleA",
+                [
+                    {
+                        "x_col": 1,
+                        "y_col": 2,
+                        "row_from": 1,
+                        "row_to": 501,
+                        "layer_index": 1.5,
+                    },
+                ],
+            )
+
+        self.assertFalse(result.ok)
+        self.assertIn("layer index", result.message)
+        self.assertFalse(any("plotxy" in command or "CreatePage" in command for command in app.commands))
+
+    def test_add_worksheet_and_metadata_operations_target_requested_sheet(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+
+        added = ops.add_worksheet("Book1", "Sheet2")
+        read = ops.get_worksheet_column_metadata("Book1", [5, 7], sheet_index=2)
+        written = ops.set_worksheet_column_metadata(
+            "Book1",
+            [
+                {
+                    "column_index": 5,
+                    "long_name": "Z real",
+                    "unit": "ohm",
+                    "comment": "",
+                    "type": 4,
+                },
+                {
+                    "column_index": 7,
+                    "long_name": "minus Z imaginary",
+                    "unit": "ohm",
+                    "comment": "",
+                    "type": 1,
+                },
+            ],
+            sheet_index=2,
+        )
+
+        self.assertTrue(added.ok)
+        self.assertTrue(read.ok)
+        self.assertTrue(written.ok)
+        command_text = "\n".join(app.commands)
+        self.assertIn('newsheet name:="Sheet2" active:=1', command_text)
+        self.assertGreaterEqual(command_text.count("layer -s 2"), 2)
 
     def test_worksheet_column_metadata_roundtrip_commands_use_singular_origin_properties(self):
         app = FakeOriginApp()

@@ -162,6 +162,17 @@ class ProcessorProfilesTest(unittest.TestCase):
                 self.assertTrue(profile["forbidden_claims"])
                 self.assertTrue(profile["plot_type_hints"])
 
+    def test_xrd_claim_policy_allows_traceable_local_phase_search(self):
+        policy = json.loads((ROOT / "config" / "claim_policy.yaml").read_text(encoding="utf-8"))
+        xrd = policy["type_specific"]["XRD"]
+
+        self.assertNotIn("do not assign phase automatically", xrd["forbidden"])
+        self.assertTrue(
+            any("local Jade/PDF" in item and "card identifiers" in item for item in xrd["allowed"])
+        )
+        self.assertIn("do not label crystal planes automatically", xrd["forbidden"])
+        self.assertIn("do not claim impurity-free automatically", xrd["forbidden"])
+
 
 if __name__ == "__main__":
     unittest.main()

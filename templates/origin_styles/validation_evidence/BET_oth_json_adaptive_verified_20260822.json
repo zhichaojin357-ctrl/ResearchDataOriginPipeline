@@ -1,0 +1,118 @@
+{
+  "schema_version": 2,
+  "evidence_kind": "origin_detached_adaptive_oth_json_validation",
+  "product_key": "BET",
+  "status": "accepted",
+  "generated_at": "2026-08-22T23:15:00+08:00",
+  "runtime_role": "adaptive_runtime",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed that the final two-curve BOBC product preserves the reviewed page and layer geometry, bold 36 pt scientific axis titles, bold current-sample legend, 3 pt line and symbol styling, contains both current adsorption/desorption traces, and has no stale template labels or title overlap.",
+  "asset": {
+    "kind": "oth_json",
+    "format_theme": "format_themes/BET.oth",
+    "style_snapshot": "snapshots/BET.json",
+    "data_snapshot": "data_snapshots/BET.json",
+    "source_mode": "reviewed_theme_plus_explicit_style_and_curve_snapshot_replay"
+  },
+  "generation_boundary": {
+    "entrypoint": "Origin.Application",
+    "fresh_project": true,
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "one_to_one_exact_match_claim_allowed_for_different_data": false
+  },
+  "same_data_asset_replay": {
+    "status": "accepted",
+    "evidence_location": "diagnostics/20260813_BET_project_asset_formal_replay_03/products/BET/comparison.json",
+    "comparison_scope": "fresh_project_same_data",
+    "same_data_verified": true,
+    "style_conformance": "62/62",
+    "axis_title_hard_gate": true,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "exact_pixel_match": true,
+    "changed_pixels": 0,
+    "rms": 0.0,
+    "reference_opju_self_replay": false
+  },
+  "fixed_cardinality_runtime": {
+    "status": "accepted",
+    "style_execution_mode": "exact_contract_otpu",
+    "asset_path": "graph_templates/BET_verified_20260813.otpu",
+    "current_series_count": 6,
+    "contract_series_count": 6,
+    "current_xy_values_match_reopened_graph": true,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true
+  },
+  "variable_cardinality_generalization": {
+    "status": "accepted",
+    "evidence_location": "diagnostics/20260822_BET_adaptive_2curve_candidate_06/runs/20260822_225500_template_format_products/products/BET/metadata.json",
+    "origin_style_mode_requested": "oth-json",
+    "style_execution_mode": "variable_structure_oth_json",
+    "style_execution_reason_code": "explicit_adaptive_oth_json",
+    "current_series_count": 2,
+    "contract_series_count": 6,
+    "reopened_plot_count": 2,
+    "series_cardinality_relaxed": true,
+    "current_labels": [
+      "BOBC (Adsorption)",
+      "BOBC (Desorption)"
+    ],
+    "real_source_file_count": 1,
+    "current_xy_values_match_reopened_graph": true,
+    "stale_template_labels_present": false,
+    "interpolation": "not_applied",
+    "smoothing": "not_applied",
+    "normalization": "not_applied",
+    "axis_range_policy": {
+      "decision": "adaptive_y",
+      "x_from": 0.0,
+      "x_to": 1.0,
+      "y_from": -0.08349957988781229,
+      "y_to": 1.7882703545196856,
+      "all_current_values_visible": true
+    },
+    "style_conformance": {
+      "status": "pass",
+      "matched_fields": 49,
+      "compared_fields": 50,
+      "only_relaxed_difference": "current curve cardinality and per-curve arrays",
+      "plot_line_width_origin_units": [
+        1500.0,
+        1500.0
+      ],
+      "axis_titles_bold": true,
+      "axis_title_no_overlap": true
+    },
+    "adaptive_y_axis_title": {
+      "object_name": "RDOPBETYL",
+      "text": "/b(Quantity Adsorbed (cm3/g STP))",
+      "visible": true,
+      "rotation_degrees": 90,
+      "font_size": 36,
+      "page_attached": true,
+      "special_y_title_hidden": true,
+      "saved_reopened": true
+    },
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  },
+  "acceptance_note": "The reviewed OTPU remains the exact fixed six-series route. OTH+JSON is the adaptive variable-cardinality route. Both routes use current data only, never load the reference OPJU as the product base, preserve the reviewed BET visual style, and fail unless save/reopen readback confirms the current plotted X/Y values."
+}

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
+import pytest
 from openpyxl import Workbook
 from PIL import Image
 
@@ -13,6 +15,7 @@ from src.core.template_product_builder import (
     _apply_template_xps_y_axis_title_overlay,
     _build_template_acceptance,
     _build_template_epr_table,
+    _build_template_bet_multisource_table,
     _build_template_xrd_multisource_table,
     _build_template_xy_multisource_table,
     _select_template_bet_candidate_cohort,
@@ -28,9 +31,11 @@ from src.core.template_product_builder import (
     _force_template_axis_titles_visible,
     _infer_template_epr_reference_dir,
     _load_independent_style_replay_evidence,
+    _load_manifest_bound_otpu_replay_evidence,
     _position_template_axis_titles_outside_plot,
     _preferred_template_xps_graph_name,
     _relevant_strict_readback_values,
+    _require_asset_only_style_integrity,
     _select_template_xps_template_for_product,
     _strict_style_readback,
     _template_conformance_acceptance_reasons,
@@ -41,6 +46,8 @@ from src.core.template_product_builder import (
     _template_epr_origin_processing_script,
     _write_template_per_type_report,
     _write_template_identity_origin_processing_plan,
+    _write_template_origin_processing_plan,
+    _write_template_no_label_audit,
     _xps_peak_annotations_from_processed_data,
     build_template_candidate_pool,
     classify_template_project_style_asset_candidates,
@@ -50,6 +57,7 @@ from src.core.template_product_builder import (
     template_plot_type_for_header,
     _write_template_preview_comparison,
     template_xps_component_fill_pairs,
+    prepare_template_product,
 )
 from src.core.template_product_common import ProductContext, TargetPairing
 from src.core.xps_heterojunction import XpsFitRecord
@@ -89,6 +97,61 @@ def _validated_style_entry(
             "reference_opju_self_replay": False,
         },
         **extra,
+    }
+
+
+def _adaptive_oth_json_export_status(*, series_count: int = 2) -> dict[str, object]:
+    conformance = {
+        "status": "pass",
+        "compared_fields": 8,
+        "matched_fields": 8,
+        "axis_title_bold": True,
+        "issues": [],
+    }
+    validation = {
+        "ok": True,
+        "status": "accepted",
+        "current_csv_pair_count": series_count,
+        "reopened_plot_count": series_count,
+        "series_cardinality_relaxed": True,
+        "one_to_one_claim_allowed": False,
+        "saved_reopened": True,
+        "native_tif_600dpi_required": True,
+    }
+    tif = {
+        "requested_dpi": 600,
+        "width_px": 1200,
+        "height_px": 900,
+        "expected_width_px": 1200,
+        "expected_height_px": 900,
+        "pixel_tolerance_x": 6,
+        "pixel_tolerance_y": 5,
+        "tagged_dpi_x": 600.0,
+        "tagged_dpi_y": 600.0,
+        "effective_dpi_x": 600.0,
+        "effective_dpi_y": 600.0,
+        "sensitive_metadata_scan": "pass",
+    }
+    return {
+        "ok": True,
+        "product_style": {
+            "plot_count": series_count,
+            "plot_line_widths": [30.0] * series_count,
+        },
+        "strict_style_readback": {"axis_title_visible": True},
+        "conformance": conformance,
+        "adaptive_oth_json_validation": validation,
+        "tif_resolution_evidence": tif,
+        "origin_processing": {
+            "applied": True,
+            "processing_location": "Origin clean target graph with project-local OTH and JSON",
+            "method": "saved_format_theme_apply",
+            "style_execution_mode": "variable_structure_oth_json",
+            "adaptive_oth_json_validation": validation,
+            "tif_resolution_evidence": tif,
+            "reference_opju_loaded": False,
+            "reference_opju_used_as_product_base": False,
+        },
     }
 
 
@@ -156,6 +219,86 @@ def test_checked_in_bet_otpu_evidence_is_manifest_bound_and_tamper_detected(
     assert rejected["bet"]["ok"] is False
     assert "changed-pixel count is not zero" in rejected["bet"]["reason"]
     assert "validation evidence does not match" in rejected["bet"]["reason"]
+
+
+def test_asset_only_autoloads_current_manifest_bound_otpu_evidence() -> None:
+    project = Path(__file__).resolve().parents[1]
+
+    loaded = _require_asset_only_style_integrity(project, ("BET", "EIS"))
+
+    assert set(loaded) == {"bet", "eis"}
+    assert all(item["ok"] is True for item in loaded.values())
+    assert loaded["eis"]["asset_generation_mode"] == "new_graph_plus_verified_otpu"
+
+
+def test_manifest_autoload_fails_closed_when_bound_otpu_evidence_is_tampered(
+    tmp_path: Path,
+) -> None:
+    project = Path(__file__).resolve().parents[1]
+    copied_styles = tmp_path / "templates" / "origin_styles"
+    shutil.copytree(project / "templates" / "origin_styles", copied_styles)
+    evidence = copied_styles / "validation_evidence" / "EIS_verified_20260822.json"
+    payload = json.loads(evidence.read_text(encoding="utf-8"))
+    payload["pixels"]["changed_pixels"] = 1
+    evidence.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = _load_manifest_bound_otpu_replay_evidence(tmp_path, ("EIS",))
+
+    assert loaded["eis"]["ok"] is False
+    assert "unavailable" in str(loaded["eis"]["reason"])
+    try:
+        _require_asset_only_style_integrity(tmp_path, ("EIS",))
+    except ValueError as exc:
+        assert "runtime style asset" in str(exc)
+    else:
+        raise AssertionError("asset-only mode must reject a tampered manifest-bound OTPU evidence file")
+
+
+def test_no_label_audit_excludes_internal_run_manifest_paths_only(tmp_path: Path) -> None:
+    (tmp_path / "run_manifest.json").write_text(
+        json.dumps({"input_paths": [".codex_tmp/Codex_pairing.json"]}),
+        encoding="utf-8",
+    )
+    visible_text = tmp_path / "products" / "EIS" / "visible_graph_label.txt"
+    visible_text.parent.mkdir(parents=True)
+    visible_text.write_text("Generated by Codex", encoding="utf-8")
+
+    audit = _write_template_no_label_audit(tmp_path)
+
+    assert audit["hit_count"] == 2
+    assert audit["path_only_hit_count"] == 0
+    assert {item["label"] for item in audit["hits"]} == {"Codex", "Generated by"}
+    assert all(item["path"] != "run_manifest.json" for item in audit["hits"])
+
+
+def test_no_label_audit_ignores_origin_dataset_provenance_but_checks_visible_labels(
+    tmp_path: Path,
+) -> None:
+    metadata = tmp_path / "products" / "EPR" / "metadata.json"
+    metadata.parent.mkdir(parents=True)
+    payload = {
+        "template_binding": {
+            "plots": [
+                {
+                    "x_dataset": "CodexProjectR_A",
+                    "y_dataset": "CodexProjectR_B",
+                }
+            ]
+        },
+        "label_policy": {"objects": {"DL1": "BC"}},
+    }
+    metadata.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    provenance_only = _write_template_no_label_audit(tmp_path)
+
+    assert provenance_only["pass"] is True
+    payload["label_policy"] = {"objects": {"DL1": "Codex"}}
+    metadata.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    visible_label = _write_template_no_label_audit(tmp_path)
+
+    assert visible_label["pass"] is False
+    assert any(item["path"] == "products/EPR/metadata.json" for item in visible_label["hits"])
 
 
 def test_template_candidate_pool_excludes_f_drive_xps_templates(tmp_path: Path) -> None:
@@ -776,6 +919,103 @@ def test_template_acceptance_requires_independent_reference_preview(tmp_path: Pa
     assert with_reference.visual_acceptance is True
 
 
+def test_adaptive_oth_json_acceptance_uses_detached_current_product_evidence_without_reference_preview(
+    tmp_path: Path,
+) -> None:
+    type_root = tmp_path / "FTIR"
+    type_root.mkdir()
+    product = ProductContext(
+        product_key="FTIR",
+        slug="FTIR_product",
+        pairing=TargetPairing("FTIR", "FTIR", "", "", [], "", tmp_path / "template.opju"),
+        type_root=type_root,
+        processed_data=type_root / "processed.csv",
+        input_copies=[],
+        reference_opju_copy=type_root / "template.opju",
+        reference_preview_png=type_root / "missing_reference.png",
+        origin_file=type_root / "product.opju",
+        figure_tif=type_root / "product.tif",
+        preview_png=type_root / "product.png",
+        x_label="Wavenumber",
+        y_label="Transmittance",
+        graph_title="FTIR",
+        plot_type="line",
+        x_descending=True,
+    )
+    for path in (product.processed_data, product.reference_opju_copy, product.origin_file, product.figure_tif):
+        path.write_bytes(b"artifact")
+    Image.new("RGB", (16, 12), "white").save(product.preview_png)
+    template = TemplateCandidate(
+        "FTIR",
+        product.reference_opju_copy,
+        "unit",
+        status="valid",
+        graph_page="Graph3",
+        layer_count=1,
+        plot_count=3,
+    )
+    export_status = _adaptive_oth_json_export_status(series_count=2)
+
+    accepted = _build_template_acceptance(product, export_status, template, {})
+
+    assert accepted.status == "accepted"
+    assert accepted.visual_acceptance is True
+    assert not any("independent reference preview" in note for note in accepted.notes)
+
+    missing_tif_evidence = dict(export_status)
+    missing_tif_evidence["tif_resolution_evidence"] = {}
+    missing_tif_evidence["origin_processing"] = {
+        **export_status["origin_processing"],
+        "tif_resolution_evidence": {},
+    }
+    blocked = _build_template_acceptance(product, missing_tif_evidence, template, {})
+
+    assert blocked.status == "blocked"
+    assert any("native 600 dpi TIFF evidence" in note for note in blocked.notes)
+
+
+def test_adaptive_oth_json_preview_gate_allows_template_plot_delta_but_never_one_to_one(
+    tmp_path: Path,
+) -> None:
+    product_root = tmp_path / "FTIR"
+    product_root.mkdir()
+    generated = product_root / "product.png"
+    Image.new("RGB", (16, 12), "white").save(generated)
+    origin_status = _adaptive_oth_json_export_status(series_count=2)
+    metadata = product_root / "metadata.json"
+    metadata.write_text(
+        json.dumps(
+            {
+                "extra": {"template": {"plot_count": 3}},
+                "origin_status": origin_status,
+                "source_files": ["BOBC.dpt", "BC.dpt"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    product = {
+        "type": "FTIR",
+        "status": "accepted",
+        "visual_acceptance": True,
+        "metadata": str(metadata),
+        "reference_preview_png": str(product_root / "missing_reference.png"),
+        "preview_png": str(generated),
+        "conformance": origin_status["conformance"],
+    }
+
+    audit = _write_template_preview_comparison(tmp_path, [product])
+
+    item = audit["items"][0]
+    assert item["plot_count_delta"] == -1
+    assert item["strict_visual_match"] is True
+    assert item["strict_status"] == "adaptive_oth_json_style_match"
+    assert item["style_data_binding"]["runtime_reference_preview_required"] is False
+    assert item["style_data_binding"]["plot_structure_pass"] is True
+    assert item["one_to_one_exact_match"] is False
+    assert product["one_to_one_exact_match"] is False
+    assert product["status"] == "accepted"
+
+
 def test_eis_formal_acceptance_requires_all_measured_points_and_no_fit_outputs(tmp_path: Path) -> None:
     type_root = tmp_path / "EIS"
     type_root.mkdir()
@@ -1367,9 +1607,14 @@ def test_template_photocurrent_uses_sample_directory_labels(tmp_path: Path) -> N
         root / "CWO" / "2-(OCP).txt",
         root / "bicu" / "1-(OCP)-bicu.txt",
     ]
-    for path in paths:
+    rows_by_path = {
+        paths[0]: "0 1\n1 2\n2 3\n",
+        paths[1]: "10 4\n11 5\n",
+        paths[2]: "0 6\n0 7\n2 8\n",
+    }
+    for path, content in rows_by_path.items():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("0 1\n1 2\n", encoding="utf-8")
+        path.write_text(content, encoding="utf-8")
     pairing = TargetPairing("photocurrent", "photocurrent", "", "root", [paths[0]], "root", tmp_path / "pc.opju")
     template = TemplateCandidate("photocurrent", tmp_path / "pc.opju", "unit", graph_page="Graph1", plot_count=3)
 
@@ -1378,8 +1623,448 @@ def test_template_photocurrent_uses_sample_directory_labels(tmp_path: Path) -> N
 
     assert [_template_xy_series_label("photocurrent", path) for path in selected] == ["BOBC", "CWO", "BiCu-10"]
     assert built is not None
-    assert built["headers"] == ["time_s", "BOBC_current_a", "CWO_current_a", "BiCu-10_current_a"]
+    assert built["headers"] == [
+        "BOBC_time_s",
+        "BOBC_current_a",
+        "CWO_time_s",
+        "CWO_current_a",
+        "BiCu-10_time_s",
+        "BiCu-10_current_a",
+    ]
+    assert built["rows"] == [
+        [0.0, 1.0, 10.0, 4.0, 0.0, 6.0],
+        [1.0, 2.0, 11.0, 5.0, 0.0, 7.0],
+        [2.0, 3.0, None, None, 2.0, 8.0],
+    ]
+    assert built["labels"]["legend_entries"] == ["BOBC", "CWO", "BiCu-10"]
+    assert built["alignment"]["product_series_count"] == 3
+    assert built["alignment"]["missing_template_series_count"] == 0
     assert len(set(built["headers"])) == len(built["headers"])
+
+
+def test_template_photocurrent_preserves_independent_xy_order_duplicate_x_and_tail_padding(tmp_path: Path) -> None:
+    root = tmp_path / "photocurrent" / "bobc+cwo+bicu-10"
+    paths = [
+        root / "BOBC" / "1-(OCP).txt",
+        root / "CWO" / "2-(OCP).txt",
+        root / "bicu" / "3-(OCP).txt",
+    ]
+    contents = [
+        "2 20\n1 10\n1 11\n",
+        "100 30\n101 31\n",
+        "5 40\n6 41\n7 42\n8 43\n",
+    ]
+    for path, content in zip(paths, contents):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    template_path = tmp_path / "photocurrent.opju"
+    template_path.write_bytes(b"opju placeholder")
+    pairing = TargetPairing("photocurrent", "photocurrent", "", "root", [paths[0]], "root", template_path)
+    template = TemplateCandidate("photocurrent", template_path, "unit", graph_page="Graph1", plot_count=3)
+
+    built = _build_template_xy_multisource_table(pairing, template)
+
+    assert built is not None
+    assert built["headers"] == [
+        "BOBC_time_s", "BOBC_current_a",
+        "CWO_time_s", "CWO_current_a",
+        "BiCu-10_time_s", "BiCu-10_current_a",
+    ]
+    assert built["rows"] == [
+        [2.0, 20.0, 100.0, 30.0, 5.0, 40.0],
+        [1.0, 10.0, 101.0, 31.0, 6.0, 41.0],
+        [1.0, 11.0, None, None, 7.0, 42.0],
+        [None, None, None, None, 8.0, 43.0],
+    ]
+    assert built["alignment"]["product_series_count"] == 3
+
+
+def test_template_photocurrent_same_directory_uses_unique_filename_material_labels(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "photocurrent" / "第一次CWO BOBC BC数据"
+    paths = [
+        root / "4-BOBC-(OCP).txt",
+        root / "5-CWO-(OCP) .txt",
+        root / "6-BC-11-(OCP).txt",
+    ]
+    for index, path in enumerate(paths, start=1):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"0 {index}\n1 {index + 1}\n", encoding="utf-8")
+    pairing = TargetPairing(
+        "photocurrent",
+        "photocurrent",
+        "",
+        "root",
+        paths,
+        "root",
+        tmp_path / "pc.opju",
+    )
+    template = TemplateCandidate(
+        "photocurrent",
+        tmp_path / "pc.opju",
+        "unit",
+        graph_page="Graph2",
+        plot_count=3,
+    )
+
+    built = _build_template_xy_multisource_table(
+        pairing,
+        template,
+        origin_style_mode="auto",
+    )
+
+    assert built is not None
+    assert built["labels"]["legend_entries"] == ["BOBC", "CWO", "BC-11"]
+    assert built["headers"] == [
+        "BOBC_time_s",
+        "BOBC_current_a",
+        "CWO_time_s",
+        "CWO_current_a",
+        "BC-11_time_s",
+        "BC-11_current_a",
+    ]
+    assert len(set(built["headers"])) == len(built["headers"])
+
+
+def test_template_ftir_uses_explicit_three_dpt_files_independent_grids_and_net_offsets(tmp_path: Path) -> None:
+    root = tmp_path / "FTIR" / "BOBC+CWO+BiCu-10"
+    paths = [
+        root / "BC.0.dpt",
+        root / "CWO.0.dpt",
+        root / "BOBC.0.dpt",
+    ]
+    contents = [
+        "9 30\n9 31\n8 32\n7 33\n",
+        "100 20\n101 21\n",
+        "3 10\n2 11\n2 12\n",
+    ]
+    for path, content in zip(paths, contents, strict=True):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    unrelated = root / "unrelated-neighbour.dpt"
+    unrelated.write_text("1 999\n2 999\n", encoding="utf-8")
+    pairing = TargetPairing("FTIR", "FTIR", "", "root", paths, "root", tmp_path / "FTIR.opju")
+    template = TemplateCandidate("FTIR", tmp_path / "FTIR.opju", "unit", graph_page="Graph3", plot_count=3)
+
+    built = _build_template_xy_multisource_table(pairing, template, origin_style_mode="auto")
+
+    assert built is not None
+    assert built["headers"] == [
+        "BiOBr0.5Cl0.5_wavenumber_cm-1", "BiOBr0.5Cl0.5_transmittance",
+        "CuWO4_wavenumber_cm-1", "CuWO4_transmittance",
+        "BiCu-10_wavenumber_cm-1", "BiCu-10_transmittance",
+    ]
+    raw_to_plotted = [0.6992644978783592, 0.48749646393210766, -0.174144271570014]
+    assert built["rows"] == [
+        [3.0, 10.0 + raw_to_plotted[0], 100.0, 20.0 + raw_to_plotted[1], 9.0, 30.0 + raw_to_plotted[2]],
+        [2.0, 11.0 + raw_to_plotted[0], 101.0, 21.0 + raw_to_plotted[1], 9.0, 31.0 + raw_to_plotted[2]],
+        [2.0, 12.0 + raw_to_plotted[0], None, None, 8.0, 32.0 + raw_to_plotted[2]],
+        [None, None, None, None, 7.0, 33.0 + raw_to_plotted[2]],
+    ]
+    alignment = built["alignment"]
+    assert alignment["used_files"] == [str(paths[2]), str(paths[1]), str(paths[0])]
+    assert alignment["raw_to_plotted_vertical_offsets"] == raw_to_plotted
+    assert alignment["last_origin_curve_translate_annotations"] == [
+        0.69926449787836,
+        0.48749646393211,
+        -0.62347949080622,
+    ]
+    assert alignment["interpolation"] == "not_applied"
+    assert alignment["smoothing"] == "not_applied"
+    assert alignment["normalization"] == "not_applied"
+    assert alignment["style_execution_mode_requested"] == "auto"
+    assert alignment["style_execution_mode_selected"] == "otpu"
+    assert alignment["current_series_count"] == 3
+    assert alignment["fixed_contract_series_count"] == 3
+    assert alignment["fixed_contract_exact_shape"] is True
+    assert 999.0 not in [value for row in built["rows"] for value in row if value is not None]
+
+    plan = _write_template_origin_processing_plan(
+        pairing,
+        tmp_path / "product",
+        "FTIR_product",
+        built["headers"],
+        built["rows"],
+    )
+    assert plan["raw_to_plotted_vertical_offsets"] == raw_to_plotted
+    assert plan["last_origin_curve_translate_annotations"][-1] == -0.62347949080622
+    assert plan["offset_application"] == "pointwise_y_plus_raw_to_plotted_offset_before_Origin_import"
+    assert plan["interpolation"] == "not_applied"
+
+
+def test_template_ftir_rejects_missing_reviewed_binding_contract(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = tmp_path / "FTIR"
+    paths = [root / "BOBC.0.dpt", root / "CWO.0.dpt", root / "BC.0.dpt"]
+    for path in paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("1 10\n2 11\n", encoding="utf-8")
+    pairing = TargetPairing("FTIR", "FTIR", "", "root", paths, "root", tmp_path / "FTIR.opju")
+    template = TemplateCandidate("FTIR", tmp_path / "FTIR.opju", "unit", graph_page="Graph3", plot_count=3)
+    monkeypatch.setattr(
+        "src.core.template_product_builder.origin_style_manifest_path",
+        lambda _project_root: tmp_path / "styles" / "manifest.json",
+    )
+
+    with pytest.raises(ValueError, match="binding contract is unavailable"):
+        _build_template_xy_multisource_table(pairing, template)
+
+
+def test_template_ftir_auto_two_series_uses_explicit_subset_contract_order_and_no_neighbour(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "FTIR" / "cohort"
+    bicu = root / "BC.0.dpt"
+    bobc = root / "BOBC.0.dpt"
+    neighbour = root / "CWO.0.dpt"
+    for path, content in (
+        (bicu, "9 30\n8 31\n"),
+        (bobc, "3 10\n2 11\n2 12\n"),
+        (neighbour, "100 999\n101 999\n"),
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    pairing = TargetPairing("FTIR", "FTIR", "", "root", [bicu, bobc], "root", tmp_path / "FTIR.opju")
+    template = TemplateCandidate("FTIR", tmp_path / "FTIR.opju", "unit", graph_page="Graph3", plot_count=3)
+
+    built = _build_template_xy_multisource_table(pairing, template, origin_style_mode="auto")
+
+    assert built is not None
+    assert built["headers"] == [
+        "BiOBr0.5Cl0.5_wavenumber_cm-1",
+        "BiOBr0.5Cl0.5_transmittance",
+        "BiCu-10_wavenumber_cm-1",
+        "BiCu-10_transmittance",
+    ]
+    bobc_offset = 0.6992644978783592
+    bicu_offset = -0.174144271570014
+    assert built["rows"] == [
+        [3.0, 10.0 + bobc_offset, 9.0, 30.0 + bicu_offset],
+        [2.0, 11.0 + bobc_offset, 8.0, 31.0 + bicu_offset],
+        [2.0, 12.0 + bobc_offset, None, None],
+    ]
+    alignment = built["alignment"]
+    assert alignment["used_files"] == [str(bobc), str(bicu)]
+    assert str(neighbour) not in alignment["used_files"]
+    assert alignment["raw_to_plotted_vertical_offsets"] == [bobc_offset, bicu_offset]
+    assert alignment["style_execution_mode_requested"] == "auto"
+    assert alignment["style_execution_mode_selected"] == "oth-json"
+    assert alignment["current_series_count"] == 2
+    assert alignment["fixed_contract_series_count"] == 3
+    assert alignment["fixed_contract_exact_shape"] is False
+    assert alignment["interpolation"] == "not_applied"
+    assert alignment["smoothing"] == "not_applied"
+    assert alignment["normalization"] == "not_applied"
+
+    plan = _write_template_origin_processing_plan(
+        pairing,
+        tmp_path / "product",
+        "FTIR_product",
+        built["headers"],
+        built["rows"],
+        origin_style_mode="auto",
+        alignment=alignment,
+    )
+    assert plan["style_execution_mode_selected"] == "oth-json"
+    assert plan["current_series_count"] == 2
+    assert plan["raw_to_plotted_vertical_offsets"] == [bobc_offset, bicu_offset]
+    assert plan["last_origin_curve_translate_annotations"] == [0.69926449787836, -0.62347949080622]
+
+
+@pytest.mark.parametrize("series_count", [2, 4])
+def test_template_photocurrent_oth_json_preserves_explicit_series_count_and_does_not_scan_neighbours(
+    tmp_path: Path,
+    series_count: int,
+) -> None:
+    root = tmp_path / "photocurrent"
+    paths = [
+        root / "CWO" / "2-(OCP).txt",
+        root / "BOBC" / "1-(OCP).txt",
+        root / "BiCu-10" / "3-(OCP).txt",
+        root / "sample-4" / "4-(OCP).txt",
+    ]
+    for index, path in enumerate(paths):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"{index + 2} {index + 20}\n1 {index + 10}\n1 {index + 11}\n", encoding="utf-8")
+    neighbour = root / "not-selected" / "99-(OCP).txt"
+    neighbour.parent.mkdir(parents=True)
+    neighbour.write_text("0 999\n1 999\n", encoding="utf-8")
+    explicit = paths[:series_count]
+    pairing = TargetPairing("photocurrent", "photocurrent", "", "root", explicit, "root", tmp_path / "pc.opju")
+    template = TemplateCandidate("photocurrent", tmp_path / "pc.opju", "unit", graph_page="Graph1", plot_count=3)
+
+    built = _build_template_xy_multisource_table(pairing, template, origin_style_mode="oth-json")
+
+    assert built is not None
+    alignment = built["alignment"]
+    assert alignment["used_files"] == [str(path) for path in explicit]
+    assert str(neighbour) not in alignment["used_files"]
+    assert alignment["current_series_count"] == series_count
+    assert alignment["fixed_contract_series_count"] == 3
+    assert alignment["fixed_contract_exact_shape"] is (series_count == 3)
+    assert alignment["style_execution_mode_requested"] == "oth-json"
+    assert alignment["style_execution_mode_selected"] == "oth-json"
+    assert len(built["headers"]) == series_count * 2
+    assert built["rows"][0][:4] == [2.0, 20.0, 3.0, 21.0]
+    assert built["rows"][1][:4] == [1.0, 10.0, 1.0, 11.0]
+    assert built["rows"][2][:4] == [1.0, 11.0, 1.0, 12.0]
+
+
+def test_template_photocurrent_otpu_mode_keeps_verified_fixed_contract_discovery(tmp_path: Path) -> None:
+    root = tmp_path / "photocurrent" / "cohort"
+    paths = [
+        root / "BOBC" / "1-(OCP).txt",
+        root / "CWO" / "2-(OCP).txt",
+        root / "BiCu-10" / "3-(OCP).txt",
+    ]
+    for index, path in enumerate(paths):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"0 {index + 1}\n1 {index + 2}\n", encoding="utf-8")
+    pairing = TargetPairing("photocurrent", "photocurrent", "", "root", [paths[0]], "root", tmp_path / "pc.opju")
+    template = TemplateCandidate("photocurrent", tmp_path / "pc.opju", "unit", graph_page="Graph1", plot_count=3)
+
+    built = _build_template_xy_multisource_table(pairing, template, origin_style_mode="otpu")
+
+    assert built is not None
+    assert built["alignment"]["used_files"] == [str(path) for path in paths]
+    assert built["alignment"]["style_execution_mode_selected"] == "otpu"
+    assert built["alignment"]["fixed_contract_exact_shape"] is True
+
+
+def _write_bet_isotherm(path: Path, rows: list[tuple[float, float, float | None]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(["Relative Pressure (P/P0)", "Quantity Adsorbed", "Desorption"])
+    for row in rows:
+        sheet.append(list(row))
+    workbook.save(path)
+
+
+def test_template_bet_auto_exact_six_curves_uses_explicit_cohort_contract_order_and_tail_padding(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "BET" / "same-cohort"
+    cwo = root / "CWO-BET.xlsx"
+    bicu = root / "BiCu-BET.xlsx"
+    bobc = root / "BOBC-BET.xlsx"
+    _write_bet_isotherm(cwo, [(0.1, 1.0, 10.0), (0.2, 2.0, 11.0), (0.3, 3.0, None)])
+    _write_bet_isotherm(bicu, [(0.4, 4.0, 14.0), (0.5, 5.0, 15.0)])
+    _write_bet_isotherm(bobc, [(0.6, 6.0, 16.0), (0.7, 7.0, 17.0), (0.8, 8.0, 18.0), (0.9, 9.0, None)])
+    pairing = TargetPairing("BET", "BET", "", "root", [bobc, cwo, bicu], "root", tmp_path / "BET.opju")
+    template = TemplateCandidate("BET", tmp_path / "BET.opju", "unit", graph_page="Graph5", plot_count=6)
+
+    built = _build_template_bet_multisource_table(pairing, template, origin_style_mode="auto")
+
+    assert built is not None
+    assert built["headers"] == [
+        "BOBC_adsorption_relative_pressure_p_p0", "BOBC_adsorption_quantity_adsorbed_cm3_g_stp",
+        "BOBC_desorption_relative_pressure_p_p0", "BOBC_desorption_quantity_adsorbed_cm3_g_stp",
+        "CWO_adsorption_relative_pressure_p_p0", "CWO_adsorption_quantity_adsorbed_cm3_g_stp",
+        "CWO_desorption_relative_pressure_p_p0", "CWO_desorption_quantity_adsorbed_cm3_g_stp",
+        "BiCu_adsorption_relative_pressure_p_p0", "BiCu_adsorption_quantity_adsorbed_cm3_g_stp",
+        "BiCu_desorption_relative_pressure_p_p0", "BiCu_desorption_quantity_adsorbed_cm3_g_stp",
+    ]
+    assert built["labels"]["legend_entries"] == [
+        "BOBC adsorption", "BOBC desorption", "CWO adsorption", "CWO desorption", "BiCu adsorption", "BiCu desorption",
+    ]
+    assert built["rows"] == [
+        [0.6, 6.0, 0.6, 16.0, 0.1, 1.0, 0.1, 10.0, 0.4, 4.0, 0.4, 14.0],
+        [0.7, 7.0, 0.7, 17.0, 0.2, 2.0, 0.2, 11.0, 0.5, 5.0, 0.5, 15.0],
+        [0.8, 8.0, 0.8, 18.0, 0.3, 3.0, None, None, None, None, None, None],
+        [0.9, 9.0, None, None, None, None, None, None, None, None, None, None],
+    ]
+    alignment = built["alignment"]
+    assert alignment["used_files"] == [str(bobc), str(cwo), str(bicu)]
+    assert alignment["style_execution_mode_selected"] == "otpu"
+    assert alignment["current_series_count"] == 6
+    assert alignment["fixed_contract_series_count"] == 6
+    assert alignment["fixed_contract_exact_shape"] is True
+    assert alignment["interpolation"] == alignment["smoothing"] == alignment["normalization"] == "not_applied"
+
+
+def test_template_bet_auto_one_explicit_file_uses_oth_json_and_never_scans_neighbour(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "BET" / "cohort"
+    selected = root / "BOBC-BET.xlsx"
+    neighbour = root / "CWO-BET.xlsx"
+    _write_bet_isotherm(selected, [(0.1, 1.0, 2.0), (0.2, 3.0, 4.0), (0.3, 5.0, None)])
+    _write_bet_isotherm(neighbour, [(0.1, 999.0, 999.0), (0.2, 999.0, 999.0)])
+    pairing = TargetPairing("BET", "BET", "", "root", [selected], "root", tmp_path / "BET.opju")
+    template = TemplateCandidate("BET", tmp_path / "BET.opju", "unit", graph_page="Graph5", plot_count=6)
+
+    built = _build_template_bet_multisource_table(pairing, template, origin_style_mode="auto")
+
+    assert built is not None
+    assert built["headers"] == [
+        "BOBC_adsorption_relative_pressure_p_p0", "BOBC_adsorption_quantity_adsorbed_cm3_g_stp",
+        "BOBC_desorption_relative_pressure_p_p0", "BOBC_desorption_quantity_adsorbed_cm3_g_stp",
+    ]
+    assert built["alignment"]["used_files"] == [str(selected)]
+    assert str(neighbour) not in built["alignment"]["used_files"]
+    assert built["alignment"]["style_execution_mode_selected"] == "oth-json"
+    assert built["alignment"]["current_series_count"] == 2
+    assert built["alignment"]["fixed_contract_series_count"] == 6
+    assert all(value != 999.0 for row in built["rows"] for value in row if value is not None)
+
+    explicit_oth = _build_template_bet_multisource_table(pairing, template, origin_style_mode="oth-json")
+    assert explicit_oth is not None
+    assert explicit_oth["alignment"]["used_files"] == [str(selected)]
+    assert explicit_oth["alignment"]["style_execution_mode_selected"] == "oth-json"
+
+    _product, extra = prepare_template_product(
+        tmp_path / "product",
+        pairing,
+        template,
+        compact_output=True,
+        origin_style_mode="auto",
+    )
+    assert extra["template_data_alignment"]["style_execution_mode_selected"] == "oth-json"
+    assert extra["origin_processing"]["current_series_count"] == 2
+
+
+def test_template_bet_explicit_otpu_missing_contract_curves_does_not_fill_from_neighbour(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "BET" / "cohort"
+    selected = root / "BOBC-BET.xlsx"
+    neighbour = root / "CWO-BET.xlsx"
+    _write_bet_isotherm(selected, [(0.1, 1.0, 2.0), (0.2, 3.0, 4.0)])
+    _write_bet_isotherm(neighbour, [(0.1, 999.0, 999.0), (0.2, 999.0, 999.0)])
+    pairing = TargetPairing("BET", "BET", "", "root", [selected], "root", tmp_path / "BET.opju")
+    template = TemplateCandidate("BET", tmp_path / "BET.opju", "unit", graph_page="Graph5", plot_count=6)
+
+    built = _build_template_bet_multisource_table(pairing, template, origin_style_mode="otpu")
+
+    assert built is not None
+    assert built["alignment"]["used_files"] == [str(selected)]
+    assert built["alignment"]["current_series_count"] == 2
+    assert built["alignment"]["fixed_contract_exact_shape"] is False
+    assert all(value != 999.0 for row in built["rows"] for value in row if value is not None)
+
+
+def test_template_bet_explicit_paths_strictly_reject_duplicates_missing_and_non_isotherms(tmp_path: Path) -> None:
+    valid = tmp_path / "BET" / "BOBC-BET.xlsx"
+    _write_bet_isotherm(valid, [(0.1, 1.0, 2.0), (0.2, 3.0, 4.0)])
+    template = TemplateCandidate("BET", tmp_path / "BET.opju", "unit", graph_page="Graph5", plot_count=6)
+
+    duplicate = TargetPairing("BET", "BET", "", "root", [valid, valid], "root", tmp_path / "BET.opju")
+    with pytest.raises(ValueError, match="duplicate"):
+        _build_template_bet_multisource_table(duplicate, template, origin_style_mode="oth-json")
+
+    missing = TargetPairing("BET", "BET", "", "root", [tmp_path / "missing.xlsx"], "root", tmp_path / "BET.opju")
+    with pytest.raises(ValueError, match="missing"):
+        _build_template_bet_multisource_table(missing, template, origin_style_mode="oth-json")
+
+    summary = tmp_path / "BET" / "summary.xlsx"
+    workbook = Workbook()
+    workbook.active.append(["BET Surface Area", "Pore Volume"])
+    workbook.active.append([100.0, 0.2])
+    workbook.save(summary)
+    non_isotherm = TargetPairing("BET", "BET", "", "root", [summary], "root", tmp_path / "BET.opju")
+    with pytest.raises(ValueError, match="non-isotherm"):
+        _build_template_bet_multisource_table(non_isotherm, template, origin_style_mode="oth-json")
 
 
 def test_template_epr_origin_processing_script_uses_origin_median_and_smooth() -> None:

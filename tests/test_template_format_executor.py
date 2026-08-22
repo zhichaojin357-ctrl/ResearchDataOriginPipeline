@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import json
 import hashlib
+import math
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 from src.cli import main
 from src.core.template_product_common import ProductContext, TargetPairing
@@ -12,9 +16,16 @@ from src.core.template_format_executor import (
     TEMPLATE_FORMAT_COMMAND,
     TEMPLATE_FORMAT_SCOPE,
     TemplateFormatExecutorOptions,
+    _adaptive_series_count_conformance,
+    _adaptive_oth_json_readback_validation,
+    _adaptive_photocurrent_validation_ranges,
     _apply_embedded_snapshot_data_axis_range,
+    _apply_adaptive_bet_oth_json_text_policy,
+    _apply_adaptive_dynamic_legend_policy,
+    _apply_adaptive_photocurrent_oth_json_text_policy,
     _apply_cached_style_rich_text_policies,
     _apply_external_reference_plot_sequence,
+    _export_verified_graph_template_product_with_origin,
     _export_external_reference_preview_if_requested,
     _apply_nonoverlap_plain_legend_anchor,
     _apply_reviewed_template_plot_policy,
@@ -30,13 +41,34 @@ from src.core.template_format_executor import (
     _plain_text_legend_policy,
     _plain_text_legend_entries,
     _prepare_verified_bet_otpu_binding,
+    _prepare_verified_eis_otpu_binding,
+    _prepare_verified_epr_otpu_binding,
+    _prepare_verified_ftir_otpu_binding,
+    _prepare_verified_pl_otpu_binding,
+    _prepare_verified_photocurrent_otpu_binding,
+    _prepare_verified_otpu_binding,
+    _populate_verified_otpu_workbook,
+    _apply_verified_otpu_post_plot_style,
     _processed_csv_plot_pairs,
     _refresh_graph_for_export,
     _replace_eis_dynamic_legend_with_static_rich_text,
+    _resolve_origin_style_execution_route,
     _select_plain_legend_anchor,
+    _saved_theme_reference_policy,
     _set_origin_graph_object_text,
     _strip_raster_metadata,
     _with_default_xps_non_in_situ_template_root,
+    _verified_otpu_conformance_reference,
+    _validate_verified_current_data,
+    _validate_photocurrent_axis_titles,
+    _validate_bet_axis_titles,
+    _update_verified_epr_label_objects,
+    _update_verified_ftir_legend,
+    _update_verified_pl_legend,
+    _update_verified_photocurrent_legend,
+    _verified_otpu_axis_title_bold_policy,
+    _verified_otpu_required_line_width_pt,
+    _verified_otpu_style_contract,
     _xrd_direct_label_positions,
     _xrd_plain_label_text,
     _xrd_standard_card_keeps_line_sample_legend,
@@ -530,6 +562,2654 @@ def test_verified_bet_otpu_binding_uses_six_explicit_independent_xy_pairs(
     assert result["column_metadata"][7]["long_name"] == "\\b(CWO (Desorption))"
     assert result["column_metadata"][9]["long_name"] == "\\b(BiCu (Adsorption))"
     assert result["column_metadata"][11]["long_name"] == "\\b(BiCu (Desorption))"
+
+
+def _verified_eis_product_and_table(
+    tmp_path: Path,
+) -> tuple[ProductContext, list[str], list[list[object]], Path]:
+    processed = tmp_path / "eis_processed.csv"
+    identities = [f"sample_{index}" for index in range(1, 9)]
+    headers = [
+        value
+        for identity in identities
+        for value in (
+            f"{identity}_z_real_kohm",
+            f"{identity}_minus_z_imag_kohm",
+        )
+    ]
+    rows = [
+        [float(row_index * 100 + column_index) for column_index in range(16)]
+        for row_index in range(1, 4)
+    ]
+    processed.write_text(
+        ",".join(headers)
+        + "\n"
+        + "\n".join(",".join(str(value) for value in row) for row in rows)
+        + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="EIS",
+        legend_entries=["Current sample 3", "Current sample 4", "Current sample 5"],
+    )
+    contract_path = (
+        Path(__file__).parents[1]
+        / "templates"
+        / "origin_styles"
+        / "binding_contracts"
+        / "EIS.json"
+    )
+    return product, headers, rows, contract_path
+
+
+def test_verified_eis_otpu_binding_uses_eight_sheets_e_g_and_ungrouped_plots(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_eis_product_and_table(tmp_path)
+
+    result = _prepare_verified_eis_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+
+    assert result["ok"] is True
+    assert result["graph_page"] == "Graph1"
+    assert result["book_name"] == "Book1"
+    assert result["plot_type"] == "scatter"
+    assert result["group_plots"] is False
+    assert result["visible_plot_indices"] == [3, 4, 5]
+    assert result["visible_legend_entries"] == [
+        "Current sample 3",
+        "Current sample 4",
+        "Current sample 5",
+    ]
+    assert len(result["sheets"]) == 8
+    assert result["xy_ranges"] == [
+        {
+            "x_col": 5,
+            "y_col": 7,
+            "row_from": 1,
+            "row_to": 3,
+            "sheet_index": index,
+            "source_x_index": (index - 1) * 2,
+            "source_y_index": (index - 1) * 2 + 1,
+            "source_row_from": 1,
+            "source_row_to": 3,
+        }
+        for index in range(1, 9)
+    ]
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["seven_pairs", "duplicate_prefix", "missing_value", "ambiguous_legend"],
+)
+def test_verified_eis_otpu_binding_rejects_ambiguous_or_incomplete_sources(
+    tmp_path: Path,
+    case: str,
+) -> None:
+    product, headers, rows, contract_path = _verified_eis_product_and_table(tmp_path)
+    if case == "seven_pairs":
+        headers = headers[:-2]
+        rows = [row[:-2] for row in rows]
+    elif case == "duplicate_prefix":
+        headers[2:4] = headers[0:2]
+    elif case == "missing_value":
+        rows[1][0] = math.nan
+        rows[1][1] = math.nan
+    else:
+        product = replace(product, legend_entries=["one", "two", "three", "four"])
+
+    result = _prepare_verified_eis_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+
+    assert result["ok"] is False
+
+
+def test_verified_eis_workbook_writes_eight_seven_column_sheets_with_e_g_data(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_eis_product_and_table(tmp_path)
+    binding = _prepare_verified_eis_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+
+    class WorkbookOps:
+        def __init__(self) -> None:
+            self.data_writes: list[tuple[str, str, list[list[float]]]] = []
+            self.metadata_sheets: list[int] = []
+
+        def create_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "created", {"book_name": book_name, "sheet_name": sheet_name})
+
+        def add_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "added", {"book_name": book_name, "sheet_name": sheet_name})
+
+        def set_worksheet_data(
+            self,
+            book_name: str,
+            sheet_name: str,
+            columns: list[list[float]],
+            column_names: list[str] | None = None,
+        ) -> OperationResult:
+            self.data_writes.append((book_name, sheet_name, columns))
+            return OperationResult(True, "written")
+
+        def set_worksheet_column_metadata(
+            self,
+            _book_name: str,
+            columns: list[dict[str, object]],
+            *,
+            sheet_index: int = 1,
+        ) -> OperationResult:
+            assert [column["column_index"] for column in columns] == [5, 7]
+            self.metadata_sheets.append(sheet_index)
+            return OperationResult(True, "metadata")
+
+    operations = WorkbookOps()
+
+    result = _populate_verified_otpu_workbook(
+        operations,
+        product,
+        headers,
+        rows,
+        binding,
+    )
+
+    assert result["ok"] is True
+    assert result["sheet_count"] == 8
+    assert len(operations.data_writes) == 8
+    assert operations.metadata_sheets == list(range(1, 9))
+    for sheet_index, (_book, _sheet, columns) in enumerate(operations.data_writes, start=1):
+        assert len(columns) == 7
+        assert columns[4] == [row[(sheet_index - 1) * 2] for row in rows]
+        assert columns[6] == [row[(sheet_index - 1) * 2 + 1] for row in rows]
+        assert all(math.isnan(value) for value in columns[0])
+
+
+def test_verified_eis_post_plot_order_preserves_snapshot_style_then_fits_current_data(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    product, _headers, _rows, _contract_path = _verified_eis_product_and_table(tmp_path)
+    theme = tmp_path / "EIS.oth"
+    theme.write_bytes(b"oth")
+    events: list[str] = []
+
+    class StyleOps:
+        def apply_graph_theme(self, graph_name: str, theme_path: Path) -> OperationResult:
+            assert graph_name == "Graph1"
+            assert theme_path == theme
+            events.append("oth")
+            return OperationResult(True, "theme")
+
+        def run_labtalk(self, command: str) -> OperationResult:
+            assert "legend.x = layer.x.from + 0.8" in command
+            assert "legend.y = layer.y.from + 0.8" in command
+            events.append("template_legend_anchor")
+            return OperationResult(True, "legend anchor")
+
+    def snapshot_apply(*_args: object, **kwargs: object) -> bool:
+        assert kwargs == {"apply_default_font": False, "apply_axis_titles": True}
+        events.append("snapshot")
+        return True
+
+    def axis_apply(*_args: object, **_kwargs: object) -> dict[str, object]:
+        events.append("current_data_axis")
+        return {"applied": True, "x_min": 0.0, "x_max": 10.0, "y_min": 0.0, "y_max": 5.0}
+
+    def refresh(*_args: object, **_kwargs: object) -> dict[str, object]:
+        events.append("refresh")
+        return {"applied": True}
+
+    def legend(*args: object, **_kwargs: object) -> dict[str, object]:
+        assert [str(value) for value in args[2].legend_entries] == [
+            "Current sample 3",
+            "Current sample 4",
+            "Current sample 5",
+        ]
+        events.append("current_legend_3_5")
+        return {"applied": True, "visible_plot_indices": [3, 4, 5]}
+
+    monkeypatch.setattr("src.core.template_format_executor.apply_style_snapshot", snapshot_apply)
+    monkeypatch.setattr("src.core.template_format_executor._apply_embedded_snapshot_data_axis_range", axis_apply)
+    monkeypatch.setattr("src.core.template_format_executor._refresh_graph_for_export", refresh)
+    monkeypatch.setattr("src.core.template_format_executor._finalize_reviewed_template_legend", legend)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.apply_resolved_style_overrides",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("3 pt override must not run")),
+    )
+
+    result = _apply_verified_otpu_post_plot_style(
+        StyleOps(),
+        product,
+        "Graph1",
+        {
+            "status": "extracted",
+            "audit_numeric_values": {"legend.show": 1},
+            "layout_values": {
+                "page.width": 6432,
+                "layer.x.from": 0,
+                "layer.x.to": 10,
+                "layer.y.from": 0,
+                "layer.y.to": 5,
+                "legend.x": 8,
+                "legend.y": 4,
+            },
+        },
+        ResolvedPlotStyle(line_width_pt=3.0),
+        runtime_theme=theme,
+    )
+
+    assert result["ok"] is True
+    assert result["apply_default_font"] is False
+    assert events == [
+        "oth",
+        "snapshot",
+        "current_data_axis",
+        "template_legend_anchor",
+        "refresh",
+        "current_legend_3_5",
+    ]
+
+
+def test_verified_eis_conformance_allows_only_data_dependent_axis_and_legend_values() -> None:
+    reference = {
+        "layout_values": {
+            "layer.x.from": 0,
+            "legend.x": 5,
+            "xb.y": -100,
+            "yl.x": -200,
+            "page.width": 6432,
+        },
+        "audit_numeric_values": {"legend.show": 1, "xb.bold": 1},
+        "plot_line_widths": [0.5] * 8,
+    }
+    product = {
+        "layout_values": {
+            "layer.x.from": 2,
+            "legend.x": 8,
+            "xb.y": -120,
+            "yl.x": -230,
+            "page.width": 9999,
+        },
+        "audit_numeric_values": {"legend.show": 0, "xb.bold": 0},
+        "plot_line_widths": [3.0] * 8,
+    }
+
+    adjusted = _verified_otpu_conformance_reference("EIS", reference, product)
+
+    assert adjusted["layout_values"] == {
+        "layer.x.from": 2,
+        "legend.x": 8,
+        "xb.y": -120,
+        "yl.x": -230,
+        "page.width": 6432,
+    }
+    assert adjusted["audit_numeric_values"] == {"legend.show": 0, "xb.bold": 1}
+    assert adjusted["plot_line_widths"] == [0.5] * 8
+    assert reference["layout_values"]["layer.x.from"] == 0
+
+
+def _write_verified_epr_contract(path: Path, *, layout: str = "shared_x_y_columns") -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "contract_kind": "reference_opju_explicit_plot_binding",
+                "contracts": [
+                    {
+                        "product_key": "EPR",
+                        "status": "mapping_readback_complete",
+                        "reference_opju_sha256": "0" * 64,
+                        "graph_page": "EPR0601FULL",
+                        "source_series_count": 3,
+                        "source_schema": {
+                            "status": "ready",
+                            "layout": layout,
+                            "source_csv_indices": [0, 1, 2, 3],
+                            "group_plots": False,
+                            "plot_type": "line",
+                        },
+                        "plots": [
+                            {
+                                "layer_index": 1,
+                                "plot_index": index,
+                                "x_dataset": "EPR_A",
+                                "y_dataset": f"EPR_{chr(65 + index)}",
+                                "row_from": 1,
+                                "row_to": 3,
+                                "source_series_index": index,
+                                "semantic_role": f"trace_{index}",
+                            }
+                            for index in range(1, 4)
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _verified_epr_product_and_table(
+    tmp_path: Path,
+) -> tuple[ProductContext, list[str], list[list[object]], Path]:
+    processed = tmp_path / "epr_processed.csv"
+    headers = ["magnetic_field", "BC", "CWO", "BOBC"]
+    rows = [
+        [324.0, 1.0, 2.0, 3.0],
+        [324.1, 4.0, 5.0, 6.0],
+        [324.2, 7.0, 8.0, 9.0],
+    ]
+    processed.write_text(
+        ",".join(headers) + "\n" + "\n".join(",".join(str(value) for value in row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="EPR",
+        legend_entries=["BC", "CWO", "BOBC"],
+    )
+    contract_path = tmp_path / "EPR.json"
+    _write_verified_epr_contract(contract_path)
+    return product, headers, rows, contract_path
+
+
+def test_verified_epr_otpu_binding_uses_one_shared_x_sheet_and_columns_k_to_m(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_epr_product_and_table(tmp_path)
+
+    result = _prepare_verified_epr_otpu_binding(
+        product, headers, rows, contract_path=contract_path
+    )
+
+    assert result["ok"] is True
+    assert result["graph_page"] == "EPR0601FULL"
+    assert result["book_name"] == "EPR"
+    assert result["group_plots"] is False
+    assert result["xy_ranges"] == [
+        {
+            "x_col": 1,
+            "y_col": 10 + index,
+            "row_from": 1,
+            "row_to": 3,
+            "source_x_index": 0,
+            "source_y_index": index,
+            "source_row_from": 1,
+            "source_row_to": 3,
+        }
+        for index in range(1, 4)
+    ]
+
+
+@pytest.mark.parametrize("case", ["extra_column", "missing_values", "wrong_contract_layout"])
+def test_verified_epr_otpu_binding_rejects_noncontracted_shared_x_structure(
+    tmp_path: Path,
+    case: str,
+) -> None:
+    product, headers, rows, contract_path = _verified_epr_product_and_table(tmp_path)
+    if case == "extra_column":
+        headers.append("unexpected")
+        rows = [row + [1.0] for row in rows]
+    elif case == "missing_values":
+        rows[1][2] = math.nan
+    else:
+        _write_verified_epr_contract(contract_path, layout="paired_xy_columns")
+
+    result = _prepare_verified_epr_otpu_binding(
+        product, headers, rows, contract_path=contract_path
+    )
+
+    assert result["ok"] is False
+
+
+def test_verified_epr_workbook_adapter_reuses_shared_origin_transform(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    product, headers, rows, contract_path = _verified_epr_product_and_table(tmp_path)
+    binding = _prepare_verified_epr_otpu_binding(
+        product, headers, rows, contract_path=contract_path
+    )
+    calls: list[object] = []
+
+    def transform(operations: object, transformed_product: ProductContext) -> dict[str, object]:
+        calls.extend([operations, transformed_product])
+        return {
+            "ok": True,
+            "book_name": "EPR_raw",
+            "headers": ["magnetic_field", "BC", "CWO", "BOBC"],
+            "origin_processing": {"required": True, "applied": True},
+        }
+
+    monkeypatch.setattr(
+        "src.core.template_format_executor._prepare_template_epr_origin_processed_workbook",
+        transform,
+    )
+    operations = object()
+    result = _populate_verified_otpu_workbook(operations, product, headers, rows, binding)
+
+    assert result["ok"] is True
+    assert result["method"] == "shared_epr_origin_baseline_aav7_offset_transform"
+    assert result["book_name"] == "EPR_raw"
+    assert calls == [operations, product]
+
+
+def test_verified_epr_export_validates_the_csv_reread_after_origin_transform(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    product, _headers, _rows, contract_path = _verified_epr_product_and_table(tmp_path)
+    template = tmp_path / "EPR.otpu"
+    theme = tmp_path / "EPR.oth"
+    snapshot = tmp_path / "EPR_snapshot.json"
+    template.write_bytes(b"otpu")
+    theme.write_bytes(b"oth")
+    snapshot.write_text(json.dumps({"status": "extracted"}), encoding="utf-8")
+    asset = SimpleNamespace(
+        runtime_asset_path=template,
+        runtime_asset_sha256=hashlib.sha256(template.read_bytes()).hexdigest(),
+        runtime_asset_kind="otpu",
+        binding_contract_path=contract_path,
+        graph_page="EPR0601FULL",
+        style_snapshot_path=snapshot,
+        format_theme_path=theme,
+    )
+    transformed_rows = [[324.0, 101.0, 102.0, 103.0], [324.1, 104.0, 105.0, 106.0], [324.2, 107.0, 108.0, 109.0]]
+    captured: dict[str, object] = {}
+
+    class Ops:
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "new")
+
+        def create_graph_from_xy_pairs_template(self, graph_name: str, *_args: object, **_kwargs: object) -> OperationResult:
+            return OperationResult(True, "created", {"graph_name": graph_name})
+
+        def save_project(self, path: Path) -> OperationResult:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"opju")
+            return OperationResult(True, "saved")
+
+        def load_project(self, _path: Path) -> OperationResult:
+            return OperationResult(True, "loaded")
+
+        def list_worksheets(self) -> OperationResult:
+            return OperationResult(True, "pages", {"pages": [{"name": "EPR0601FULL", "type": "graph"}]})
+
+        def export_graph(self, _graph_name: str, path: Path, _format: str, **_kwargs: object) -> OperationResult:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"png")
+            return OperationResult(True, "exported")
+
+    def populate(*_args: object, **_kwargs: object) -> dict[str, object]:
+        product.processed_data.write_text(
+            "magnetic_field,BC,CWO,BOBC\n"
+            + "\n".join(",".join(str(value) for value in row) for row in transformed_rows)
+            + "\n",
+            encoding="utf-8",
+        )
+        return {"ok": True, "book_name": "EPR_raw"}
+
+    def validate(_key: str, rows: list[list[object]], *_args: object) -> dict[str, object]:
+        captured["rows"] = rows
+        return {"ok": True, "status": "matched"}
+
+    def native_tif(_ops: object, _graph_name: str, path: Path, **_kwargs: object) -> dict[str, object]:
+        path.write_bytes(b"tif")
+        return {"ok": True, "evidence": {}}
+
+    monkeypatch.setattr("src.core.template_format_executor._populate_verified_otpu_workbook", populate)
+    monkeypatch.setattr("src.core.template_format_executor._apply_verified_otpu_post_plot_style", lambda *_args, **_kwargs: {"ok": True})
+    monkeypatch.setattr("src.core.template_format_executor._refresh_graph_for_export", lambda *_args, **_kwargs: {"applied": True})
+    monkeypatch.setattr("src.core.template_format_executor.read_graph_style_snapshot", lambda *_args, **_kwargs: OpjuStyleSnapshot("product", "extracted", graph_page="EPR0601FULL"))
+    monkeypatch.setattr("src.core.template_format_executor.compare_style_snapshots", lambda *_args, **_kwargs: SimpleNamespace(to_dict=lambda: {"status": "pass"}))
+    monkeypatch.setattr("src.core.template_format_executor.read_graph_data_snapshot", lambda *_args, **_kwargs: {"status": "ready", "plots": []})
+    monkeypatch.setattr("src.core.template_format_executor._validate_verified_current_data", validate)
+    monkeypatch.setattr("src.core.template_format_executor._export_native_tif_with_physical_validation", native_tif)
+    monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
+
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    result = _export_verified_graph_template_product_with_origin(
+        Ops(), product, ResolvedPlotStyle(line_width_pt=3.0), asset, runtime_dir=runtime
+    )
+
+    assert result["ok"] is True
+    assert captured["rows"] == transformed_rows
+
+
+def test_verified_epr_dl_labels_are_current_bold_rich_text_and_fail_closed() -> None:
+    class GraphObject:
+        def __init__(self, name: str, text: str) -> None:
+            self.Name = name
+            self.Text = text
+            self.Left = 100
+            self.Top = 100
+            self.Color = 1
+
+    class GraphObjects:
+        def __init__(self, objects: list[GraphObject]) -> None:
+            self._objects = objects
+            self.Count = len(objects)
+
+        def __getitem__(self, name: str) -> GraphObject:
+            for graph_object in self._objects:
+                if graph_object.Name == name:
+                    return graph_object
+            raise KeyError(name)
+
+        def Item(self, index: int) -> GraphObject:
+            return self._objects[index]
+
+    class Layer:
+        def __init__(self, objects: list[GraphObject]) -> None:
+            self.GraphObjects = GraphObjects(objects)
+
+    class App:
+        def __init__(self, layer: Layer) -> None:
+            self._layer = layer
+
+        def FindGraphLayer(self, _name: str) -> Layer:
+            return self._layer
+
+    class Ops:
+        def __init__(self, layer: Layer) -> None:
+            self.app = App(layer)
+
+    objects = [
+        GraphObject("DL1", "CuWO4"),
+        GraphObject("DL2", "BiOBr"),
+        GraphObject("DL3", "BiCu-10"),
+    ]
+    result = _update_verified_epr_label_objects(Ops(Layer(objects)), "EPR0601FULL", ["BC", "CWO", "BOBC"])
+
+    assert result["applied"] is True
+    assert [item.Text for item in objects] == ["\\b(BC)", "\\b(CWO)", "\\b(BOBC)"]
+    assert [item.Left for item in objects] == [100, 100, 100]
+    duplicate = _update_verified_epr_label_objects(
+        Ops(Layer(objects + [GraphObject("DL1", "duplicate")])),
+        "EPR0601FULL",
+        ["BC", "CWO", "BOBC"],
+    )
+    assert duplicate == {
+        "applied": False,
+        "reason": "required_epr_label_missing_or_not_unique",
+        "object_name": "DL1",
+    }
+
+
+def test_verified_epr_post_plot_order_is_otpu_then_oth_snapshot_axis_and_dl_labels(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    product, _headers, _rows, _contract_path = _verified_epr_product_and_table(tmp_path)
+    theme = tmp_path / "EPR.oth"
+    theme.write_bytes(b"oth")
+    events: list[str] = []
+
+    class StyleOps:
+        def apply_graph_theme(self, graph_name: str, theme_path: Path) -> OperationResult:
+            assert graph_name == "EPR0601FULL"
+            assert theme_path == theme
+            events.append("oth")
+            return OperationResult(True, "theme")
+
+    def snapshot_apply(*_args: object, **kwargs: object) -> bool:
+        assert kwargs == {"apply_default_font": False, "apply_axis_titles": True}
+        events.append("snapshot")
+        return True
+
+    def axis_apply(*_args: object, **_kwargs: object) -> dict[str, object]:
+        events.append("current_data_axis")
+        return {"applied": True, "x_min": 324.0, "x_max": 324.6}
+
+    def labels(*args: object, **_kwargs: object) -> dict[str, object]:
+        assert list(args[2]) == ["BC", "CWO", "BOBC"]
+        events.append("dl_labels")
+        return {"applied": True}
+
+    monkeypatch.setattr("src.core.template_format_executor.apply_style_snapshot", snapshot_apply)
+    monkeypatch.setattr("src.core.template_format_executor._apply_embedded_snapshot_data_axis_range", axis_apply)
+    monkeypatch.setattr("src.core.template_format_executor._update_verified_epr_label_objects", labels)
+
+    result = _apply_verified_otpu_post_plot_style(
+        StyleOps(),
+        product,
+        "EPR0601FULL",
+        {"status": "extracted"},
+        ResolvedPlotStyle(line_width_pt=3.0),
+        runtime_theme=theme,
+    )
+
+    assert result["ok"] is True
+    assert events == ["oth", "snapshot", "current_data_axis", "dl_labels"]
+
+
+def test_verified_epr_conformance_allows_only_current_x_range_and_x_title_position() -> None:
+    reference = {
+        "layout_values": {"layer.x.from": 324.0, "layer.x.to": 324.6, "xb.x": 324.3, "xb.y": -805.0, "layer.y.to": 1300.0},
+        "audit_numeric_values": {"xb.bold": 1},
+    }
+    product = {
+        "layout_values": {"layer.x.from": 325.0, "layer.x.to": 326.0, "xb.x": 325.5, "xb.y": -820.0, "layer.y.to": 1301.0},
+        "audit_numeric_values": {"xb.bold": 1},
+    }
+
+    adjusted = _verified_otpu_conformance_reference("EPR", reference, product)
+
+    assert adjusted["layout_values"] == {
+        "layer.x.from": 325.0,
+        "layer.x.to": 326.0,
+        "xb.x": 325.5,
+        "xb.y": -820.0,
+        "layer.y.to": 1300.0,
+    }
+
+
+def _write_verified_pl_contract(
+    path: Path,
+    *,
+    layout: str = "shared_x_y_columns",
+    destinations: tuple[str, str, str] = ("B", "D", "F"),
+) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "contract_kind": "reference_opju_explicit_plot_binding",
+                "contracts": [
+                    {
+                        "product_key": "PL",
+                        "status": "mapping_readback_complete",
+                        "reference_opju_sha256": "0" * 64,
+                        "graph_page": "EXJF",
+                        "source_series_count": 3,
+                        "source_schema": {
+                            "status": "ready",
+                            "layout": layout,
+                            "source_csv_indices": [0, 1, 2, 3],
+                            "group_plots": False,
+                            "plot_type": "line",
+                        },
+                        "plots": [
+                            {
+                                "layer_index": 1,
+                                "plot_index": index,
+                                "x_dataset": "Book1_A",
+                                "y_dataset": f"Book1_{destination}",
+                                "row_from": 1,
+                                "row_to": 351 if index != 2 else 176,
+                                "source_series_index": index,
+                                "semantic_role": f"trace_{index}",
+                            }
+                            for index, destination in enumerate(destinations, start=1)
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _verified_pl_product_and_table(
+    tmp_path: Path,
+) -> tuple[ProductContext, list[str], list[list[object]], Path]:
+    processed = tmp_path / "pl_processed.csv"
+    headers = ["wavelength_nm", "BOBC_counts", "CWO_counts", "BC_counts"]
+    rows = [
+        [
+            float(249 + index),
+            float(index),
+            float(index * 10) if index <= 176 else math.nan,
+            float(index * 100),
+        ]
+        for index in range(1, 352)
+    ]
+    processed.write_text(
+        ",".join(headers)
+        + "\n"
+        + "\n".join(",".join(str(value) for value in row) for row in rows)
+        + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="PL",
+        legend_entries=["BOBC", "CWO", "BC"],
+    )
+    contract_path = tmp_path / "PL.json"
+    _write_verified_pl_contract(contract_path)
+    return product, headers, rows, contract_path
+
+
+def test_verified_pl_otpu_binding_accepts_distinct_contiguous_bounds_and_maps_a_b_d_f(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_pl_product_and_table(tmp_path)
+
+    result = _prepare_verified_pl_otpu_binding(
+        product, headers, rows, contract_path=contract_path
+    )
+
+    assert result["ok"] is True
+    assert result["graph_page"] == "EXJF"
+    assert result["book_name"] == "PL"
+    assert result["group_plots"] is False
+    assert result["xy_ranges"] == [
+        {
+            "x_col": 1,
+            "y_col": 2,
+            "expected_x_col_letter": "A",
+            "expected_y_col_letter": "B",
+            "row_from": 1,
+            "row_to": 351,
+            "source_x_index": 0,
+            "source_y_index": 1,
+            "source_row_from": 1,
+            "source_row_to": 351,
+        },
+        {
+            "x_col": 1,
+            "y_col": 4,
+            "expected_x_col_letter": "A",
+            "expected_y_col_letter": "D",
+            "row_from": 1,
+            "row_to": 176,
+            "source_x_index": 0,
+            "source_y_index": 2,
+            "source_row_from": 1,
+            "source_row_to": 176,
+        },
+        {
+            "x_col": 1,
+            "y_col": 6,
+            "expected_x_col_letter": "A",
+            "expected_y_col_letter": "F",
+            "row_from": 1,
+            "row_to": 351,
+            "source_x_index": 0,
+            "source_y_index": 3,
+            "source_row_from": 1,
+            "source_row_to": 351,
+        },
+    ]
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["wrong_layout", "wrong_destination", "header_mismatch", "legend_mismatch", "internal_gap"],
+)
+def test_verified_pl_otpu_binding_rejects_noncontracted_or_gapped_input(
+    tmp_path: Path,
+    case: str,
+) -> None:
+    product, headers, rows, contract_path = _verified_pl_product_and_table(tmp_path)
+    if case == "wrong_layout":
+        _write_verified_pl_contract(contract_path, layout="paired_xy_columns")
+    elif case == "wrong_destination":
+        _write_verified_pl_contract(contract_path, destinations=("B", "C", "F"))
+    elif case == "header_mismatch":
+        headers[2] = "wrong_counts"
+    elif case == "legend_mismatch":
+        product = replace(product, legend_entries=["BOBC", "CWO", "CWO"])
+    else:
+        rows[87][2] = math.nan
+
+    result = _prepare_verified_pl_otpu_binding(
+        product, headers, rows, contract_path=contract_path
+    )
+
+    assert result["ok"] is False
+
+
+def test_verified_pl_workbook_writes_six_columns_and_a_b_d_f_metadata(tmp_path: Path) -> None:
+    product, headers, rows, contract_path = _verified_pl_product_and_table(tmp_path)
+    binding = _prepare_verified_pl_otpu_binding(
+        product, headers, rows, contract_path=contract_path
+    )
+
+    class WorkbookOps:
+        def __init__(self) -> None:
+            self.data_write: tuple[str, str, list[list[float]]] | None = None
+            self.metadata: list[dict[str, object]] | None = None
+
+        def create_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "created", {"book_name": book_name, "sheet_name": sheet_name})
+
+        def set_worksheet_data(
+            self,
+            book_name: str,
+            sheet_name: str,
+            columns: list[list[float]],
+            column_names: list[str] | None = None,
+        ) -> OperationResult:
+            self.data_write = (book_name, sheet_name, columns)
+            return OperationResult(True, "written")
+
+        def set_worksheet_column_metadata(
+            self,
+            _book_name: str,
+            columns: list[dict[str, object]],
+            **_kwargs: object,
+        ) -> OperationResult:
+            self.metadata = columns
+            return OperationResult(True, "metadata")
+
+    operations = WorkbookOps()
+    result = _populate_verified_otpu_workbook(operations, product, headers, rows, binding)
+
+    assert result == {
+        "ok": True,
+        "method": "pl_shared_x_explicit_a_b_d_f_copy",
+        "book_name": "PL",
+        "sheet_count": 1,
+    }
+    assert operations.data_write is not None
+    book_name, sheet_name, columns = operations.data_write
+    assert (book_name, sheet_name) == ("PL", "Sheet1")
+    assert len(columns) == 6
+    assert columns[0] == [row[0] for row in rows]
+    assert columns[1] == [row[1] for row in rows]
+    assert all(math.isnan(value) for value in columns[2])
+    assert columns[3] == [row[2] for row in rows]
+    assert all(math.isnan(value) for value in columns[4])
+    assert columns[5] == [row[3] for row in rows]
+    assert operations.metadata is not None
+    assert [column["column_index"] for column in operations.metadata] == [1, 2, 4, 6]
+    assert [column["long_name"] for column in operations.metadata] == headers
+    assert [column["type"] for column in operations.metadata] == [4, 1, 1, 1]
+
+
+def test_verified_pl_post_plot_order_and_legend_helper_fail_closed(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    product, _headers, _rows, _contract_path = _verified_pl_product_and_table(tmp_path)
+    theme = tmp_path / "PL.oth"
+    theme.write_bytes(b"oth")
+    events: list[str] = []
+
+    class StyleOps:
+        def apply_graph_theme(self, graph_name: str, theme_path: Path) -> OperationResult:
+            assert graph_name == "EXJF"
+            assert theme_path == theme
+            events.append("oth")
+            return OperationResult(True, "theme")
+
+    def snapshot_apply(*_args: object, **kwargs: object) -> bool:
+        assert kwargs == {"apply_default_font": False, "apply_axis_titles": True}
+        events.append("snapshot")
+        return True
+
+    def legend(operations: object, graph_name: str, entries: list[str]) -> dict[str, object]:
+        assert isinstance(operations, StyleOps)
+        assert graph_name == "EXJF"
+        assert entries == ["BOBC", "CWO", "BC"]
+        events.append("current_legend")
+        return {"applied": True, "entries": entries}
+
+    monkeypatch.setattr("src.core.template_format_executor.apply_style_snapshot", snapshot_apply)
+    monkeypatch.setattr("src.core.template_format_executor._update_verified_pl_legend", legend)
+
+    result = _apply_verified_otpu_post_plot_style(
+        StyleOps(),
+        product,
+        "EXJF",
+        {"status": "extracted"},
+        ResolvedPlotStyle(line_width_pt=3.0),
+        runtime_theme=theme,
+    )
+
+    assert result["ok"] is True
+    assert result["method"] == "otpu_then_oth_then_snapshot_then_current_legend"
+    assert events == ["oth", "snapshot", "current_legend"]
+    assert _update_verified_pl_legend(object(), "EXJF", ["BOBC", "CWO", "BC"]) == {
+        "applied": False,
+        "reason": "pl_legend_com_text_write_failed",
+    }
+    assert _update_verified_pl_legend(object(), "EXJF", ["BOBC", "CWO", "CWO"]) == {
+        "applied": False,
+        "reason": "pl_legend_requires_three_nonempty_unique_values",
+    }
+
+
+def test_verified_pl_legend_preserves_template_line_sample_spacing(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def write_text(
+        operations: object,
+        graph_name: str,
+        object_name: str,
+        text: str,
+    ) -> bool:
+        captured.update(
+            operations=operations,
+            graph_name=graph_name,
+            object_name=object_name,
+            text=text,
+        )
+        return True
+
+    monkeypatch.setattr(
+        "src.core.template_format_executor._set_origin_graph_object_text",
+        write_text,
+    )
+    operations = object()
+
+    result = _update_verified_pl_legend(
+        operations,
+        "EXJF",
+        ["BOBC", "CWO", "BC"],
+    )
+
+    assert result["applied"] is True
+    assert captured == {
+        "operations": operations,
+        "graph_name": "EXJF",
+        "object_name": "Legend",
+        "text": "\\l(1)\\b( BOBC)\r\n\\l(2)\\b( CWO)\r\n\\l(3)\\b( BC)",
+    }
+
+
+def test_verified_pl_conformance_allows_only_current_legend_text() -> None:
+    reference = {
+        "layout_values": {"page.width": 6983, "legend.x": 3954, "legend.y": 251},
+        "audit_numeric_values": {"xb.bold": 1, "yl.bold": 1},
+        "audit_string_values": {"legend.text$": r"\\l(1)\\b(BOBC)"},
+    }
+    product = {
+        "layout_values": {"page.width": 9999, "legend.x": 3954, "legend.y": 251},
+        "audit_numeric_values": {"xb.bold": 1, "yl.bold": 1},
+        "audit_string_values": {"legend.text$": r"\\l(1)\\b(Current BOBC)"},
+    }
+
+    adjusted = _verified_otpu_conformance_reference("PL", reference, product)
+
+    assert adjusted["layout_values"] == reference["layout_values"]
+    assert adjusted["audit_numeric_values"] == reference["audit_numeric_values"]
+    assert adjusted["audit_string_values"] == {
+        "legend.text$": r"\\l(1)\\b(Current BOBC)",
+    }
+    assert reference["audit_string_values"]["legend.text$"] == r"\\l(1)\\b(BOBC)"
+
+
+def _write_verified_photocurrent_contract(
+    path: Path,
+    *,
+    layout: str = "paired_xy_columns",
+    worksheet_layout: str = "one_sheet_three_independent_xy_pairs_at_i_j_m_n_q_r",
+    source_indices: list[int] | None = None,
+    group_plots: bool = False,
+    destinations: tuple[tuple[str, str], ...] = (
+        ("Book1_I", "Book1_J"),
+        ("Book1_M", "Book1_N"),
+        ("Book1_Q", "Book1_R"),
+    ),
+) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "contract_kind": "reference_opju_explicit_plot_binding",
+                "contracts": [
+                    {
+                        "product_key": "photocurrent",
+                        "status": "mapping_readback_complete",
+                        "reference_opju_sha256": "0" * 64,
+                        "graph_page": "Graph2",
+                        "source_series_count": 3,
+                        "source_schema": {
+                            "status": "ready",
+                            "layout": layout,
+                            "worksheet_layout": worksheet_layout,
+                            "source_csv_indices": (
+                                [0, 1, 2, 3, 4, 5]
+                                if source_indices is None
+                                else source_indices
+                            ),
+                            "x_header_suffix": "_time_s",
+                            "y_header_suffix": "_current_a",
+                            "transform": "independent_photocurrent_xy_pairs_without_interpolation_smoothing_or_normalization",
+                            "plot_type": "line",
+                            "group_plots": group_plots,
+                        },
+                        "plots": [
+                            {
+                                "layer_index": 1,
+                                "plot_index": index,
+                                "x_dataset": x_dataset,
+                                "y_dataset": y_dataset,
+                                "row_from": 1,
+                                "row_to": 5,
+                                "source_series_index": index,
+                                "semantic_role": f"material_{index}_photocurrent",
+                            }
+                            for index, (x_dataset, y_dataset) in enumerate(
+                                destinations,
+                                start=1,
+                            )
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _verified_photocurrent_product_and_table(
+    tmp_path: Path,
+) -> tuple[ProductContext, list[str], list[list[object]], Path]:
+    labels = ["Sample Alpha", "Control-2", "Catalyst/Z"]
+    headers = [
+        "Sample_Alpha_time_s",
+        "Sample_Alpha_current_a",
+        "Control-2_time_s",
+        "Control-2_current_a",
+        "Catalyst_Z_time_s",
+        "Catalyst_Z_current_a",
+    ]
+    rows = [
+        [
+            float(index),
+            float(index) * 1e-7,
+            float(index) if index <= 4 else math.nan,
+            float(index) * 2e-7 if index <= 4 else math.nan,
+            float(index) if index <= 3 else math.nan,
+            float(index) * 3e-7 if index <= 3 else math.nan,
+        ]
+        for index in range(1, 6)
+    ]
+    processed = tmp_path / "photocurrent_processed.csv"
+    processed.write_text(
+        ",".join(headers)
+        + "\n"
+        + "\n".join(
+            ",".join("" if not math.isfinite(float(value)) else str(value) for value in row)
+            for row in rows
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="photocurrent",
+        legend_entries=labels,
+    )
+    contract_path = tmp_path / "photocurrent.json"
+    _write_verified_photocurrent_contract(contract_path)
+    return product, headers, rows, contract_path
+
+
+def _photocurrent_reference_data_snapshot(
+    rows: list[list[object]],
+    *,
+    series_count: int = 3,
+) -> dict[str, object]:
+    """Build the small structured reference snapshot used by axis-policy tests."""
+    plots: list[dict[str, object]] = []
+    for series_index in range(series_count):
+        x_index = series_index * 2
+        y_index = x_index + 1
+        values = [
+            (row[x_index], row[y_index])
+            for row in rows
+            if x_index < len(row)
+            and y_index < len(row)
+            and math.isfinite(float(row[x_index]))
+            and math.isfinite(float(row[y_index]))
+        ]
+        plots.append(
+            {
+                "x_values": [float(x) for x, _y in values],
+                "y_values": [float(y) for _x, y in values],
+            }
+        )
+    return {"status": "ready", "plots": plots}
+
+
+def _photocurrent_reference_style_snapshot() -> dict[str, object]:
+    return {
+        "status": "extracted",
+        "layout_values": {
+            "layer.x.from": 20.0,
+            "layer.x.to": 250.0,
+            "layer.y.from": -1e-8,
+            "layer.y.to": 2e-7,
+            "legend.x": 190.5859553123575,
+            "legend.y": 1.6692024886877828e-7,
+        },
+        "audit_numeric_values": {"legend.show": 1.0},
+    }
+
+
+def _write_photocurrent_rows(
+    path: Path,
+    headers: list[str],
+    rows: list[list[object]],
+) -> None:
+    path.write_text(
+        ",".join(headers)
+        + "\n"
+        + "\n".join(
+            ",".join(
+                "" if not math.isfinite(float(value)) else str(value)
+                for value in row
+            )
+            for row in rows
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def test_verified_photocurrent_binding_maps_independent_pairs_with_distinct_bounds(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_photocurrent_product_and_table(tmp_path)
+
+    result = _prepare_verified_photocurrent_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+
+    assert result["ok"] is True
+    assert result["graph_page"] == "Graph2"
+    assert result["book_name"] == "Book1"
+    assert result["group_plots"] is False
+    assert result["xy_ranges"] == [
+        {
+            "x_col": 9,
+            "y_col": 10,
+            "expected_x_col_letter": "I",
+            "expected_y_col_letter": "J",
+            "row_from": 1,
+            "row_to": 5,
+            "source_x_index": 0,
+            "source_y_index": 1,
+            "source_row_from": 1,
+            "source_row_to": 5,
+        },
+        {
+            "x_col": 13,
+            "y_col": 14,
+            "expected_x_col_letter": "M",
+            "expected_y_col_letter": "N",
+            "row_from": 1,
+            "row_to": 4,
+            "source_x_index": 2,
+            "source_y_index": 3,
+            "source_row_from": 1,
+            "source_row_to": 4,
+        },
+        {
+            "x_col": 17,
+            "y_col": 18,
+            "expected_x_col_letter": "Q",
+            "expected_y_col_letter": "R",
+            "row_from": 1,
+            "row_to": 3,
+            "source_x_index": 4,
+            "source_y_index": 5,
+            "source_row_from": 1,
+            "source_row_to": 3,
+        },
+    ]
+
+
+def test_photocurrent_axis_policy_preserves_template_for_reference_arrays(
+    tmp_path: Path,
+) -> None:
+    product, _headers, rows, _contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    operations = _FakeAxisOps()
+
+    result = _apply_embedded_snapshot_data_axis_range(
+        operations,
+        "Graph2",
+        product,
+        reference_style_snapshot=_photocurrent_reference_style_snapshot(),
+        reference_data_snapshot=_photocurrent_reference_data_snapshot(rows),
+    )
+
+    assert result["applied"] is True
+    assert result["decision"] == "template_preserved"
+    assert result["range_changed"] is False
+    assert result["x_data_matches_reference"] is True
+    assert result["y_data_matches_reference"] is True
+    assert operations.axis_calls == []
+    assert operations.commands == []
+
+
+def test_photocurrent_axis_policy_changes_only_y_for_same_x_data(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, _contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    reference_data = _photocurrent_reference_data_snapshot(rows)
+    changed_rows = [list(row) for row in rows]
+    for row in changed_rows:
+        for column in (1, 3, 5):
+            if math.isfinite(float(row[column])):
+                row[column] = float(row[column]) + 1e-5
+    _write_photocurrent_rows(product.processed_data, headers, changed_rows)
+    operations = _FakeAxisOps()
+
+    result = _apply_embedded_snapshot_data_axis_range(
+        operations,
+        "Graph2",
+        product,
+        reference_style_snapshot=_photocurrent_reference_style_snapshot(),
+        reference_data_snapshot=reference_data,
+    )
+
+    assert result["applied"] is True
+    assert result["decision"] == "adaptive_y"
+    assert result["x_data_matches_reference"] is True
+    assert result["y_data_matches_reference"] is False
+    assert operations.axis_calls == [
+        {
+            "x_min": None,
+            "x_max": None,
+            "y_min": pytest.approx(result["y_min"]),
+            "y_max": pytest.approx(result["y_max"]),
+        }
+    ]
+    assert operations.commands
+    assert "yl.y=(layer.y.from+layer.y.to)/2;" in operations.commands[-1]
+    assert "xb.x=(layer.x.from+layer.x.to)/2;" not in operations.commands[-1]
+    assert result["y_min"] == pytest.approx(1.0036e-5)
+    assert result["y_max"] == pytest.approx(1.0964e-5)
+
+
+def test_photocurrent_axis_policy_adapts_both_axes_with_eight_percent_padding(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, _contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    reference_data = _photocurrent_reference_data_snapshot(rows)
+    changed_rows = [list(row) for row in rows]
+    for row in changed_rows:
+        for column in (0, 2, 4):
+            if math.isfinite(float(row[column])):
+                row[column] = float(row[column]) * 2.0
+        for column in (1, 3, 5):
+            if math.isfinite(float(row[column])):
+                row[column] = float(row[column]) + 1e-5
+    _write_photocurrent_rows(product.processed_data, headers, changed_rows)
+    operations = _FakeAxisOps()
+
+    result = _apply_embedded_snapshot_data_axis_range(
+        operations,
+        "Graph2",
+        product,
+        reference_style_snapshot=_photocurrent_reference_style_snapshot(),
+        reference_data_snapshot=reference_data,
+    )
+
+    assert result["applied"] is True
+    assert result["decision"] == "adaptive_xy"
+    assert result["x_data_matches_reference"] is False
+    assert result["y_data_matches_reference"] is False
+    assert operations.axis_calls == [
+        {
+            "x_min": pytest.approx(0.0),
+            "x_max": pytest.approx(10.64),
+            "y_min": pytest.approx(1.0036e-5),
+            "y_max": pytest.approx(1.0964e-5),
+        }
+    ]
+    assert operations.commands
+    assert "xb.x=(layer.x.from+layer.x.to)/2;" in operations.commands[-1]
+    assert "yl.y=(layer.y.from+layer.y.to)/2;" in operations.commands[-1]
+
+
+def test_photocurrent_axis_policy_adapts_when_curve_count_changes(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, _contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    reference_data = _photocurrent_reference_data_snapshot(rows)
+    current_headers = headers[:4]
+    current_rows = [list(row[:4]) for row in rows]
+    _write_photocurrent_rows(product.processed_data, current_headers, current_rows)
+    current_product = replace(product, legend_entries=["Sample Alpha", "Control-2"])
+    operations = _FakeAxisOps()
+
+    result = _apply_embedded_snapshot_data_axis_range(
+        operations,
+        "Graph2",
+        current_product,
+        reference_style_snapshot=_photocurrent_reference_style_snapshot(),
+        reference_data_snapshot=reference_data,
+    )
+
+    assert result["applied"] is True
+    assert result["decision"] == "adaptive_xy"
+    assert result["series_count"] == 2
+    assert operations.axis_calls[0]["x_min"] == pytest.approx(0.0)
+    assert operations.axis_calls[0]["x_max"] == pytest.approx(5.32)
+    assert operations.commands
+    assert "xb.x=(layer.x.from+layer.x.to)/2;" in operations.commands[-1]
+    assert "yl.y=(layer.y.from+layer.y.to)/2;" in operations.commands[-1]
+
+
+def test_bet_axis_policy_preserves_scientific_x_range_and_adapts_current_y(
+    tmp_path: Path,
+) -> None:
+    processed = tmp_path / "bet_adaptive.csv"
+    processed.write_text(
+        "BOBC_adsorption_relative_pressure_p_p0,"
+        "BOBC_adsorption_quantity_adsorbed_cm3_g_stp,"
+        "BOBC_desorption_relative_pressure_p_p0,"
+        "BOBC_desorption_quantity_adsorbed_cm3_g_stp\n"
+        "0.01,0.1,0.95,2.0\n"
+        "0.50,1.0,0.50,1.2\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        legend_entries=["BOBC adsorption", "BOBC desorption"],
+    )
+    reference_style = {
+        "layout_values": {
+            "layer.x.from": 0.0,
+            "layer.x.to": 1.0,
+            "layer.y.from": -2.5,
+            "layer.y.to": 32.5,
+        }
+    }
+    reference_data = {
+        "plots": [
+            {"x_values": [0.1, 0.9], "y_values": [10.0, 20.0]}
+            for _index in range(6)
+        ]
+    }
+    operations = _FakeAxisOps()
+
+    result = _apply_embedded_snapshot_data_axis_range(
+        operations,
+        "Graph5",
+        product,
+        reference_style_snapshot=reference_style,
+        reference_data_snapshot=reference_data,
+    )
+
+    assert result["applied"] is True
+    assert result["decision"] == "adaptive_y"
+    assert result["reference_x_range_contains_current"] is True
+    assert operations.axis_calls == [
+        {
+            "x_min": None,
+            "x_max": None,
+            "y_min": pytest.approx(-0.052),
+            "y_max": pytest.approx(2.152),
+        }
+    ]
+    assert "yl.y=(layer.y.from+layer.y.to)/2;" in operations.commands[-1]
+    assert "xb.x=(layer.x.from+layer.x.to)/2;" not in operations.commands[-1]
+
+
+def test_adaptive_bet_text_policy_restores_reviewed_titles_legend_size_and_current_labels(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    processed = tmp_path / "bet.csv"
+    processed.write_text("x,y\n0,1\n", encoding="utf-8")
+    product = replace(
+        _product(tmp_path, processed),
+        legend_entries=["BOBC adsorption", "BOBC desorption"],
+    )
+    written: dict[str, str] = {}
+
+    def write_text(_operations, _graph, name, value):
+        written[name] = value
+        return True
+
+    monkeypatch.setattr(
+        "src.core.template_format_executor._set_origin_graph_object_text",
+        write_text,
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor._format_preserved_line_sample_legend",
+        lambda *_args, **kwargs: {
+            "applied": True,
+            "font_size": kwargs["font_size"],
+        },
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor._style_graph_object",
+        lambda *_args, **_kwargs: True,
+    )
+
+    result = _apply_adaptive_bet_oth_json_text_policy(
+        _FakeAxisOps(),
+        "Graph5",
+        product,
+        ResolvedPlotStyle(),
+        {"layout_values": {"legend.fsize": 36.0}},
+    )
+
+    assert result["applied"] is True
+    assert result["axis_title_objects_styled"] is True
+    assert result["y_title_rotation_restored"] is True
+    assert result["font_size"] == 36
+    assert written["XB"] == r"\b(Relative Pressure (P/Po))"
+    assert written["YL"] == r"\b(Quantity Adsorbed (cm3/g STP))"
+    assert r"\l(1)\b( BOBC (Adsorption))" in written["Legend"]
+    assert r"\l(2)\b( BOBC (Desorption))" in written["Legend"]
+
+
+def test_bet_axis_title_hard_gate_rejects_internal_csv_headers() -> None:
+    headers = [
+        "BOBC_adsorption_relative_pressure_p_p0",
+        "BOBC_adsorption_quantity_adsorbed_cm3_g_stp",
+    ]
+    accepted = _validate_bet_axis_titles(
+        {
+            "audit_string_values": {
+                "xb.text$": r"\b(Relative Pressure (P/Po))",
+                "yl.text$": r"\b(Quantity Adsorbed (cm3/g STP))",
+            }
+        },
+        headers,
+    )
+    rejected = _validate_bet_axis_titles(
+        {
+            "audit_string_values": {
+                "xb.text$": r"\b(BOBC_adsorption_relative_pressure_p_p0)",
+                "yl.text$": r"\b(BOBC_adsorption_quantity_adsorbed_cm3_g_stp)",
+            }
+        },
+        headers,
+    )
+
+    assert accepted["ok"] is True
+    assert rejected["ok"] is False
+    assert rejected["internal_header_rejected"] is False
+
+
+def test_verified_photocurrent_reopen_validation_requires_explicit_i_j_m_n_q_r_mapping(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    binding = _prepare_verified_photocurrent_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+    plots = []
+    for xy_range in binding["xy_ranges"]:
+        source_from = int(xy_range["source_row_from"])
+        source_to = int(xy_range["source_row_to"])
+        source_x = int(xy_range["source_x_index"])
+        source_y = int(xy_range["source_y_index"])
+        selected = rows[source_from - 1 : source_to]
+        plots.append(
+            {
+                "x_values": [row[source_x] for row in selected],
+                "y_values": [row[source_y] for row in selected],
+                "plot_row_from": int(xy_range["row_from"]),
+                "plot_row_to": int(xy_range["row_to"]),
+                "x_col_letter": xy_range["expected_x_col_letter"],
+                "y_col_letter": xy_range["expected_y_col_letter"],
+                "x_mapping_source": "graph_plot_mapping",
+            }
+        )
+
+    matched = _validate_verified_current_data(
+        "photocurrent",
+        rows,
+        binding["xy_ranges"],
+        {"status": "ready", "plots": plots},
+    )
+    assert matched["ok"] is True
+
+    plots[1]["x_col_letter"] = "I"
+    plots[2]["x_mapping_source"] = "worksheet_designation_fallback"
+    rejected = _validate_verified_current_data(
+        "photocurrent",
+        rows,
+        binding["xy_ranges"],
+        {"status": "ready", "plots": plots},
+    )
+    assert rejected["ok"] is False
+    assert "plot 2 X dataset column differs" in rejected["reasons"]
+    assert "plot 3 lacks explicit graph X mapping readback" in rejected["reasons"]
+
+
+def test_photocurrent_axis_title_hard_gate_accepts_only_reviewed_scientific_titles() -> None:
+    headers = [
+        "Sample_Alpha_time_s",
+        "Sample_Alpha_current_a",
+        "Control-2_time_s",
+        "Control-2_current_a",
+    ]
+    accepted = _validate_photocurrent_axis_titles(
+        {
+            "audit_string_values": {
+                "xb.text$": r"\b(Time (s))",
+                "yl.text$": r"\b(Photocurrent \(40))\f:g(\b(\f:Arial(μ)))\b(A\(41))",
+            }
+        },
+        headers,
+    )
+    assert accepted["ok"] is True
+
+    for x_title, y_title in (
+        ("A", "B"),
+        ("%(?X)", "%(?Y)"),
+        ("Sample_Alpha_time_s", "Sample_Alpha_current_a"),
+        ("Time (s)", "Current (A)"),
+    ):
+        rejected = _validate_photocurrent_axis_titles(
+            {"audit_string_values": {"xb.text$": x_title, "yl.text$": y_title}},
+            headers,
+        )
+        assert rejected["ok"] is False
+
+
+def test_verified_photocurrent_legend_uses_only_current_sample_labels(
+    monkeypatch,
+) -> None:
+    captured: dict[str, str] = {}
+
+    def set_text(_ops, _graph, _name, value):
+        captured["text"] = value
+        return True
+
+    monkeypatch.setattr(
+        "src.core.template_format_executor._set_origin_graph_object_text",
+        set_text,
+    )
+    labels = ["New Sample 1", "Control-X", "Catalyst/Z"]
+    result = _update_verified_photocurrent_legend(
+        object(),
+        "Graph2",
+        labels,
+    )
+
+    assert result["applied"] is True
+    assert result["entries"] == labels
+    assert all(label in captured["text"] for label in labels)
+    assert "BOBr" not in captured["text"]
+    assert "CuWO" not in captured["text"]
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "wrong_layout",
+        "wrong_worksheet_layout",
+        "wrong_source_indices",
+        "grouped",
+        "wrong_destination",
+        "extra_header",
+        "header_mismatch",
+        "duplicate_label",
+        "internal_gap",
+        "unpaired_value",
+        "leading_blank",
+        "extra_row_column",
+    ],
+)
+def test_verified_photocurrent_binding_rejects_noncontracted_or_gapped_input(
+    tmp_path: Path,
+    case: str,
+) -> None:
+    product, headers, rows, contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    if case == "wrong_layout":
+        _write_verified_photocurrent_contract(contract_path, layout="shared_x_y_columns")
+    elif case == "wrong_worksheet_layout":
+        _write_verified_photocurrent_contract(contract_path, worksheet_layout="three_sheets")
+    elif case == "wrong_source_indices":
+        _write_verified_photocurrent_contract(contract_path, source_indices=[0, 1, 2, 3])
+    elif case == "grouped":
+        _write_verified_photocurrent_contract(contract_path, group_plots=True)
+    elif case == "wrong_destination":
+        _write_verified_photocurrent_contract(
+            contract_path,
+            destinations=(("Book1_I", "Book1_J"), ("Book1_I", "Book1_N"), ("Book1_Q", "Book1_R")),
+        )
+    elif case == "extra_header":
+        headers.append("extra")
+    elif case == "header_mismatch":
+        headers[3] = "wrong_current_a"
+    elif case == "duplicate_label":
+        product = replace(product, legend_entries=["BOBC", "CWO", "CWO"])
+    elif case == "internal_gap":
+        rows[1][2] = math.nan
+        rows[1][3] = math.nan
+    elif case == "unpaired_value":
+        rows[1][3] = math.nan
+    elif case == "leading_blank":
+        rows[0][4] = math.nan
+        rows[0][5] = math.nan
+    else:
+        rows[0].append(99.0)
+
+    result = _prepare_verified_photocurrent_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+
+    assert result["ok"] is False
+
+
+def test_verified_photocurrent_workbook_writes_current_pairs_to_i_j_m_n_q_r(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    binding = _prepare_verified_photocurrent_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+
+    class WorkbookOps:
+        def __init__(self) -> None:
+            self.data_write: tuple[str, str, list[list[float]]] | None = None
+            self.metadata: list[dict[str, object]] | None = None
+
+        def create_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(
+                True,
+                "created",
+                {"book_name": book_name, "sheet_name": sheet_name},
+            )
+
+        def set_worksheet_data(
+            self,
+            book_name: str,
+            sheet_name: str,
+            columns: list[list[float]],
+        ) -> OperationResult:
+            self.data_write = (book_name, sheet_name, columns)
+            return OperationResult(True, "written")
+
+        def set_worksheet_column_metadata(
+            self,
+            _book_name: str,
+            columns: list[dict[str, object]],
+        ) -> OperationResult:
+            self.metadata = columns
+            return OperationResult(True, "metadata")
+
+    operations = WorkbookOps()
+    result = _populate_verified_otpu_workbook(
+        operations,
+        product,
+        headers,
+        rows,
+        binding,
+    )
+
+    assert result == {
+        "ok": True,
+        "method": "photocurrent_independent_i_j_m_n_q_r_copy",
+        "book_name": "Book1",
+        "sheet_count": 1,
+        "destination_pairs": [
+            {"x_col": 9, "y_col": 10},
+            {"x_col": 13, "y_col": 14},
+            {"x_col": 17, "y_col": 18},
+        ],
+    }
+    assert operations.data_write is not None
+    book_name, sheet_name, columns = operations.data_write
+    assert (book_name, sheet_name) == ("Book1", "Sheet1")
+    assert len(columns) == 18
+    destination_by_source = {0: 8, 1: 9, 2: 12, 3: 13, 4: 16, 5: 17}
+    for source_index, destination_index in destination_by_source.items():
+        expected = [float(row[source_index]) for row in rows]
+        assert len(columns[destination_index]) == len(expected)
+        for actual, wanted in zip(columns[destination_index], expected):
+            assert (math.isnan(actual) and math.isnan(wanted)) or actual == wanted
+    for reserved_index in set(range(18)) - set(destination_by_source.values()):
+        assert all(math.isnan(value) for value in columns[reserved_index])
+    assert operations.metadata == [
+        {"column_index": 9, "long_name": "", "unit": "", "comment": "", "type": 4},
+        {"column_index": 10, "long_name": "", "unit": "", "comment": "Sample Alpha", "type": 1},
+        {"column_index": 13, "long_name": "", "unit": "", "comment": "", "type": 4},
+        {"column_index": 14, "long_name": "", "unit": "", "comment": "Control-2", "type": 1},
+        {"column_index": 17, "long_name": "", "unit": "", "comment": "", "type": 4},
+        {"column_index": 18, "long_name": "", "unit": "", "comment": "Catalyst/Z", "type": 1},
+    ]
+
+
+def test_verified_photocurrent_style_uses_reviewed_oth_and_snapshot_and_preserves_reference_weight(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    product, _headers, rows, _contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    calls: list[dict[str, object]] = []
+
+    def snapshot_apply(*args: object, **kwargs: object) -> bool:
+        calls.append({"args": args, "kwargs": kwargs})
+        return True
+
+    monkeypatch.setattr(
+        "src.core.template_format_executor.apply_style_snapshot",
+        snapshot_apply,
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor._update_verified_photocurrent_legend",
+        lambda *_args, **_kwargs: {
+            "applied": True,
+            "entries": list(product.legend_entries),
+        },
+    )
+    reference = _photocurrent_reference_style_snapshot()
+    reference["audit_numeric_values"] = {
+        "xb.bold": 0.0,
+        "yl.bold": 0.0,
+        "legend.show": 1.0,
+    }
+    reference["audit_string_values"] = {
+        "xb.text$": r"\b(Time (s))",
+        "yl.text$": r"\b(Photocurrent (μA))",
+    }
+    reference["plot_line_widths"] = [1500.0, 1500.0, 1500.0]
+
+    theme = tmp_path / "photocurrent.oth"
+    theme.write_bytes(b"oth")
+
+    class ThemeOps:
+        def apply_graph_theme(self, graph_name: str, theme_path: Path) -> OperationResult:
+            assert graph_name == "Graph2"
+            assert theme_path == theme
+            return OperationResult(True, "theme applied")
+
+        def set_axis_range(self, *_args: object, **_kwargs: object) -> OperationResult:
+            pytest.fail("reference-equivalent data must preserve the template axes")
+
+        def run_labtalk(self, _command: str) -> OperationResult:
+            return OperationResult(True, "legend anchored")
+
+    result = _apply_verified_otpu_post_plot_style(
+        ThemeOps(),
+        product,
+        "Graph2",
+        reference,
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        runtime_theme=theme,
+        reference_data=_photocurrent_reference_data_snapshot(rows),
+    )
+
+    assert result["ok"] is True
+    assert result["method"] == "otpu_then_oth_then_snapshot_then_current_legend"
+    assert result["format_theme_applied"] is True
+    assert result["style_snapshot_applied"] is True
+    assert result["apply_default_font"] is False
+    assert result["apply_axis_titles"] is True
+    assert result["axis_range_policy"]["decision"] == "template_preserved"
+    assert result["legend_policy"] == {
+        "applied": True,
+        "entries": list(product.legend_entries),
+    }
+    assert calls[0]["kwargs"] == {
+        "apply_default_font": False,
+        "apply_axis_titles": True,
+    }
+    assert _apply_verified_otpu_post_plot_style(
+        ThemeOps(),
+        product,
+        "Graph2",
+        reference,
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        runtime_theme=None,
+    )["ok"] is False
+
+
+def test_verified_photocurrent_dispatch_requires_snapshot_and_oth(
+    tmp_path: Path,
+) -> None:
+    product, _headers, _rows, contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    template = tmp_path / "photocurrent.otpu"
+    template.write_bytes(b"photocurrent-template")
+    missing_snapshot = tmp_path / "missing_snapshot.json"
+    asset = SimpleNamespace(
+        runtime_asset_path=template,
+        runtime_asset_sha256=hashlib.sha256(template.read_bytes()).hexdigest(),
+        runtime_asset_kind="otpu",
+        binding_contract_path=contract_path,
+        graph_page="Graph2",
+        style_snapshot_path=missing_snapshot,
+        format_theme_path=tmp_path / "missing.oth",
+    )
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+
+    missing = _export_verified_graph_template_product_with_origin(
+        object(),
+        product,
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        asset,
+        runtime_dir=runtime,
+    )
+    assert missing["ok"] is False
+    assert "saved style snapshot" in missing["message"]
+
+    snapshot = tmp_path / "snapshot.json"
+    snapshot.write_text(
+        json.dumps(
+            {
+                "status": "extracted",
+                "audit_numeric_values": {"xb.bold": 0.0, "yl.bold": 0.0},
+                "audit_string_values": {
+                    "xb.text$": r"\b(Time (s))",
+                    "yl.text$": r"\b(Photocurrent (μA))",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    asset.style_snapshot_path = snapshot
+    data_snapshot = tmp_path / "data_snapshot.json"
+    data_snapshot.write_text(
+        json.dumps({"status": "ready", "plots": []}),
+        encoding="utf-8",
+    )
+    asset.data_snapshot_path = data_snapshot
+
+    missing_theme = _export_verified_graph_template_product_with_origin(
+        object(),
+        product,
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        asset,
+        runtime_dir=runtime,
+    )
+    assert missing_theme["ok"] is False
+    assert "reviewed OTH asset" in missing_theme["message"]
+
+    theme = tmp_path / "photocurrent.oth"
+    theme.write_bytes(b"oth")
+    asset.format_theme_path = theme
+
+    class StopAfterAssetChecks:
+        def __init__(self) -> None:
+            self.new_project_called = False
+
+        def new_project(self) -> OperationResult:
+            self.new_project_called = True
+            return OperationResult(False, "intentional stop")
+
+    operations = StopAfterAssetChecks()
+    ready_assets = _export_verified_graph_template_product_with_origin(
+        operations,
+        product,
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        asset,
+        runtime_dir=runtime,
+    )
+    assert ready_assets["ok"] is False
+    assert ready_assets["message"] == "intentional stop"
+    assert operations.new_project_called is True
+
+
+def test_verified_photocurrent_export_reports_reference_line_and_bold_policies(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    product, _headers, _rows, contract_path = _verified_photocurrent_product_and_table(tmp_path)
+    template = tmp_path / "photocurrent.otpu"
+    template.write_bytes(b"photocurrent-template")
+    snapshot = tmp_path / "snapshot.json"
+    snapshot.write_text(
+        json.dumps(
+            {
+                "status": "extracted",
+                "audit_numeric_values": {"xb.bold": 0.0, "yl.bold": 0.0},
+                "audit_string_values": {
+                    "xb.text$": r"\b(Time (s))",
+                    "yl.text$": r"\b(Photocurrent (μA))",
+                },
+                "plot_line_widths": [1500.0, 1500.0, 1500.0],
+            }
+        ),
+        encoding="utf-8",
+    )
+    asset = SimpleNamespace(
+        runtime_asset_path=template,
+        runtime_asset_sha256=hashlib.sha256(template.read_bytes()).hexdigest(),
+        runtime_asset_kind="otpu",
+        binding_contract_path=contract_path,
+        graph_page="Graph2",
+        style_snapshot_path=snapshot,
+        format_theme_path=(tmp_path / "photocurrent.oth"),
+    )
+    asset.format_theme_path.write_bytes(b"oth")
+    data_snapshot = tmp_path / "data_snapshot.json"
+    data_snapshot.write_text(
+        json.dumps({"status": "ready", "plots": []}),
+        encoding="utf-8",
+    )
+    asset.data_snapshot_path = data_snapshot
+
+    class Ops:
+        def new_project(self) -> OperationResult:
+            return OperationResult(True, "new")
+
+        def create_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(
+                True,
+                "created",
+                {"book_name": book_name, "sheet_name": sheet_name},
+            )
+
+        def set_worksheet_data(self, *_args: object, **_kwargs: object) -> OperationResult:
+            return OperationResult(True, "written")
+
+        def set_worksheet_column_metadata(self, *_args: object, **_kwargs: object) -> OperationResult:
+            return OperationResult(True, "metadata")
+
+        def create_graph_from_xy_pairs_template(
+            self,
+            graph_name: str,
+            *_args: object,
+            **_kwargs: object,
+        ) -> OperationResult:
+            return OperationResult(True, "created", {"graph_name": graph_name})
+
+        def apply_graph_theme(self, _graph_name: str, theme_path: Path) -> OperationResult:
+            assert theme_path.is_file()
+            return OperationResult(True, "theme applied")
+
+        def save_project(self, path: Path) -> OperationResult:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"opju")
+            return OperationResult(True, "saved")
+
+        def load_project(self, _path: Path) -> OperationResult:
+            return OperationResult(True, "loaded")
+
+        def list_worksheets(self) -> OperationResult:
+            return OperationResult(
+                True,
+                "pages",
+                {"pages": [{"name": "Graph2", "type": "graph"}]},
+            )
+
+        def export_graph(
+            self,
+            _graph_name: str,
+            path: Path,
+            _format: str,
+            **_kwargs: object,
+        ) -> OperationResult:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"png")
+            return OperationResult(True, "exported")
+
+    captured: dict[str, object] = {}
+
+    def compare(*_args: object, **kwargs: object) -> SimpleNamespace:
+        captured.update(kwargs)
+        return SimpleNamespace(to_dict=lambda: {"status": "pass"})
+
+    def native_tif(
+        _operations: object,
+        _graph_name: str,
+        path: Path,
+        **_kwargs: object,
+    ) -> dict[str, object]:
+        path.write_bytes(b"tif")
+        return {"ok": True, "evidence": {}}
+
+    monkeypatch.setattr("src.core.template_format_executor.apply_style_snapshot", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(
+        "src.core.template_format_executor._apply_embedded_snapshot_data_axis_range",
+        lambda *_args, **_kwargs: {
+            "applied": True,
+            "decision": "template_preserved",
+            "range_changed": False,
+        },
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor._apply_saved_template_legend_anchor",
+        lambda *_args, **_kwargs: {"applied": True},
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor._update_verified_photocurrent_legend",
+        lambda *_args, **_kwargs: {"applied": True},
+    )
+    monkeypatch.setattr("src.core.template_format_executor._refresh_graph_for_export", lambda *_args, **_kwargs: {"applied": True})
+    monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_style_snapshot",
+        lambda *_args, **_kwargs: OpjuStyleSnapshot(
+            "product",
+            "extracted",
+            graph_page="Graph2",
+            audit_numeric_values={"xb.bold": 0.0, "yl.bold": 0.0},
+            audit_string_values={
+                "xb.text$": r"\b(Time (s))",
+                "yl.text$": r"\b(Photocurrent (μA))",
+                "legend.text$": r"\l(1)\b(Sample Alpha)",
+            },
+            plot_line_widths=[1500.0, 1500.0, 1500.0],
+        ),
+    )
+    monkeypatch.setattr("src.core.template_format_executor.compare_style_snapshots", compare)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.read_graph_data_snapshot",
+        lambda *_args, **_kwargs: {"status": "ready", "plots": []},
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor._validate_verified_current_data",
+        lambda *_args, **_kwargs: {"ok": True, "status": "matched"},
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor._export_native_tif_with_physical_validation",
+        native_tif,
+    )
+    monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
+
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    result = _export_verified_graph_template_product_with_origin(
+        Ops(),
+        product,
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        asset,
+        runtime_dir=runtime,
+    )
+
+    assert result["ok"] is True
+    assert result["origin_processing"]["style_contract"] == "preserve_exemplar_exact"
+    assert result["origin_processing"]["post_plot_style"]["format_theme_applied"] is True
+    assert result["line_width_policy_pt"] == 3.0
+    assert result["axis_title_bold_policy"] is True
+    assert captured == {
+        "required_line_width_pt": 3.0,
+        "require_axis_title_bold": True,
+    }
+
+
+def test_verified_photocurrent_conformance_allows_only_current_legend_text() -> None:
+    reference = {
+        "layout_values": {
+            "page.width": 6432.0,
+            "page.height": 4923.0,
+            "layer.left": 17.89,
+            "layer.top": 11.6,
+            "layer.width": 68.19,
+            "layer.height": 71.83,
+            "layer.x.from": 20.0,
+            "layer.x.to": 250.0,
+            "layer.y.from": -1e-8,
+            "layer.y.to": 2e-7,
+            "legend.x": 247.5,
+            "legend.y": 1.5e-7,
+            "xb.x": 135.0,
+            "yl.y": 9e-8,
+        },
+        "audit_numeric_values": {"xb.bold": 0.0, "yl.bold": 0.0},
+        "audit_string_values": {
+            "xb.text$": r"\b(Time (s))",
+            "yl.text$": r"\b(Photocurrent (μA))",
+            "legend.text$": r"\l(1)\b(Old sample)",
+            "title.text$": "fixed",
+        },
+    }
+    product = {
+        "layout_values": {
+            "page.width": 9999.0,
+            "page.height": 7000.0,
+            "layer.left": 99.0,
+            "layer.top": 88.0,
+            "layer.width": 77.0,
+            "layer.height": 66.0,
+            "layer.x.from": 0.0,
+            "layer.x.to": 600.0,
+            "layer.y.from": -2e-7,
+            "layer.y.to": 8e-7,
+            "legend.x": 999.0,
+            "legend.y": 8e-7,
+            "xb.x": 300.0,
+            "yl.y": 3e-7,
+        },
+        "audit_numeric_values": {"xb.bold": 1.0, "yl.bold": 1.0},
+        "audit_string_values": {
+            "xb.text$": r"\b(Time (s))",
+            "yl.text$": r"\b(Photocurrent (μA))",
+            "legend.text$": r"\l(1)\b(Current sample)",
+            "title.text$": "changed",
+        },
+    }
+
+    adjusted = _verified_otpu_conformance_reference(
+        "photocurrent",
+        reference,
+        product,
+    )
+
+    adjusted_layout = adjusted["layout_values"]
+    for field in (
+        "page.width",
+        "page.height",
+        "layer.left",
+        "layer.top",
+        "layer.width",
+        "layer.height",
+    ):
+        assert adjusted_layout[field] == reference["layout_values"][field]
+    for field in (
+        "layer.x.from",
+        "layer.x.to",
+        "layer.y.from",
+        "layer.y.to",
+        "xb.x",
+        "yl.y",
+        "legend.x",
+        "legend.y",
+    ):
+        assert adjusted_layout[field] == product["layout_values"][field]
+    assert adjusted["audit_numeric_values"] == reference["audit_numeric_values"]
+    assert adjusted["audit_string_values"] == {
+        "xb.text$": r"\b(Time (s))",
+        "yl.text$": r"\b(Photocurrent (μA))",
+        "legend.text$": r"\l(1)\b(Current sample)",
+        "title.text$": "fixed",
+    }
+
+
+def _write_verified_ftir_contract(
+    path: Path,
+    *,
+    schema_updates: dict[str, object] | None = None,
+    graph_page: str = "Graph3",
+    destinations: tuple[tuple[str, str], ...] = (
+        ("Book2_A", "Book2_B"),
+        ("Book2_E", "Book2_F"),
+        ("Book2_G", "Book2_H"),
+    ),
+) -> None:
+    source_schema: dict[str, object] = {
+        "status": "ready",
+        "layout": "paired_xy_columns",
+        "worksheet_layout": "one_sheet_three_independent_xy_pairs_with_reserved_cd",
+        "source_csv_indices": [0, 1, 2, 3, 4, 5],
+        "x_header_suffix": "_wavenumber_cm-1",
+        "y_header_suffix": "_transmittance",
+        "transform": "independent_ftir_xy_pairs_with_explicit_reference_vertical_offsets_without_interpolation_smoothing_or_normalization",
+        "raw_to_plotted_vertical_offsets": [
+            0.6992644978783592,
+            0.48749646393210766,
+            -0.174144271570014,
+        ],
+        "last_origin_curve_translate_annotations": [
+            0.69926449787836,
+            0.48749646393211,
+            -0.62347949080622,
+        ],
+        "source_series_labels": ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"],
+        "plot_type": "line",
+        "group_plots": False,
+    }
+    source_schema.update(schema_updates or {})
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "contract_kind": "reference_opju_explicit_plot_binding",
+                "contracts": [
+                    {
+                        "product_key": "FTIR",
+                        "status": "mapping_readback_complete",
+                        "reference_opju_sha256": "0" * 64,
+                        "graph_page": graph_page,
+                        "source_series_count": 3,
+                        "source_schema": source_schema,
+                        "plots": [
+                            {
+                                "layer_index": 1,
+                                "plot_index": index,
+                                "x_dataset": x_dataset,
+                                "y_dataset": y_dataset,
+                                "row_from": 1,
+                                "row_to": 5,
+                                "source_series_index": index,
+                                "semantic_role": f"ftir_series_{index}",
+                            }
+                            for index, (x_dataset, y_dataset) in enumerate(
+                                destinations,
+                                start=1,
+                            )
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _verified_ftir_product_and_table(
+    tmp_path: Path,
+) -> tuple[ProductContext, list[str], list[list[object]], Path]:
+    labels = ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"]
+    headers = [
+        "BiOBr0.5Cl0.5_wavenumber_cm-1",
+        "BiOBr0.5Cl0.5_transmittance",
+        "CuWO4_wavenumber_cm-1",
+        "CuWO4_transmittance",
+        "BiCu-10_wavenumber_cm-1",
+        "BiCu-10_transmittance",
+    ]
+    rows = [
+        [
+            1000.0 - index,
+            1.0 + index * 0.01,
+            1000.0 - index if index <= 4 else math.nan,
+            1.2 + index * 0.01 if index <= 4 else math.nan,
+            1000.0 - index if index <= 3 else math.nan,
+            1.4 + index * 0.01 if index <= 3 else math.nan,
+        ]
+        for index in range(1, 6)
+    ]
+    processed = tmp_path / "FTIR_processed.csv"
+    processed.write_text(
+        ",".join(headers)
+        + "\n"
+        + "\n".join(
+            ",".join(
+                "" if not math.isfinite(float(value)) else str(value)
+                for value in row
+            )
+            for row in rows
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="FTIR",
+        legend_entries=labels,
+    )
+    contract_path = tmp_path / "FTIR.json"
+    _write_verified_ftir_contract(contract_path)
+    return product, headers, rows, contract_path
+
+
+def test_verified_ftir_binding_maps_final_xy_to_a_b_e_f_g_h_without_transform(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_ftir_product_and_table(tmp_path)
+
+    result = _prepare_verified_ftir_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+
+    assert result["ok"] is True
+    assert result["graph_page"] == "Graph3"
+    assert result["book_name"] == "Book2"
+    assert result["reserved_columns"] == [3, 4]
+    assert result["raw_to_plotted_vertical_offsets"] == [
+        0.6992644978783592,
+        0.48749646393210766,
+        -0.174144271570014,
+    ]
+    assert [
+        (
+            value["x_col"],
+            value["y_col"],
+            value["expected_x_col_letter"],
+            value["expected_y_col_letter"],
+            value["row_to"],
+            value["source_x_index"],
+            value["source_y_index"],
+        )
+        for value in result["xy_ranges"]
+    ] == [
+        (1, 2, "A", "B", 5, 0, 1),
+        (5, 6, "E", "F", 4, 2, 3),
+        (7, 8, "G", "H", 3, 4, 5),
+    ]
+    assert _prepare_verified_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )["ok"] is True
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "wrong_net_offsets",
+        "wrong_annotation_offsets",
+        "wrong_contract_labels",
+        "wrong_destination",
+        "wrong_graph",
+        "wrong_header",
+        "wrong_current_labels",
+        "internal_gap",
+        "unpaired_value",
+        "leading_blank",
+    ],
+)
+def test_verified_ftir_binding_rejects_noncontracted_data(
+    tmp_path: Path,
+    case: str,
+) -> None:
+    product, headers, rows, contract_path = _verified_ftir_product_and_table(tmp_path)
+    if case == "wrong_net_offsets":
+        _write_verified_ftir_contract(
+            contract_path,
+            schema_updates={"raw_to_plotted_vertical_offsets": [0.0, 0.0, 0.0]},
+        )
+    elif case == "wrong_annotation_offsets":
+        _write_verified_ftir_contract(
+            contract_path,
+            schema_updates={"last_origin_curve_translate_annotations": [0.0, 0.0, 0.0]},
+        )
+    elif case == "wrong_contract_labels":
+        _write_verified_ftir_contract(
+            contract_path,
+            schema_updates={"source_series_labels": ["A", "B", "C"]},
+        )
+    elif case == "wrong_destination":
+        _write_verified_ftir_contract(
+            contract_path,
+            destinations=(("Book2_A", "Book2_B"), ("Book2_C", "Book2_D"), ("Book2_G", "Book2_H")),
+        )
+    elif case == "wrong_graph":
+        _write_verified_ftir_contract(contract_path, graph_page="Graph2")
+    elif case == "wrong_header":
+        headers[3] = "wrong_transmittance"
+    elif case == "wrong_current_labels":
+        product = replace(product, legend_entries=["CuWO4", "BiOBr0.5Cl0.5", "BiCu-10"])
+    elif case == "internal_gap":
+        rows[1][2] = math.nan
+        rows[1][3] = math.nan
+    elif case == "unpaired_value":
+        rows[1][3] = math.nan
+    else:
+        rows[0][4] = math.nan
+        rows[0][5] = math.nan
+
+    assert _prepare_verified_ftir_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )["ok"] is False
+
+
+def test_verified_ftir_workbook_preserves_reserved_columns_and_annotation_only_offsets(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_ftir_product_and_table(tmp_path)
+    binding = _prepare_verified_ftir_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+
+    class WorkbookOps:
+        def __init__(self) -> None:
+            self.data_write: tuple[str, str, list[list[float]]] | None = None
+            self.metadata: list[dict[str, object]] | None = None
+
+        def create_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "created", {"book_name": book_name, "sheet_name": sheet_name})
+
+        def set_worksheet_data(
+            self,
+            book_name: str,
+            sheet_name: str,
+            columns: list[list[float]],
+        ) -> OperationResult:
+            self.data_write = (book_name, sheet_name, columns)
+            return OperationResult(True, "written")
+
+        def set_worksheet_column_metadata(
+            self,
+            _book_name: str,
+            columns: list[dict[str, object]],
+        ) -> OperationResult:
+            self.metadata = columns
+            return OperationResult(True, "metadata")
+
+    operations = WorkbookOps()
+    result = _populate_verified_otpu_workbook(
+        operations,
+        product,
+        headers,
+        rows,
+        binding,
+    )
+
+    assert result["ok"] is True
+    assert result["method"] == "ftir_independent_a_b_e_f_g_h_copy_with_reserved_c_d"
+    assert result["raw_to_plotted_vertical_offsets"] == binding["raw_to_plotted_vertical_offsets"]
+    assert operations.data_write is not None
+    book_name, sheet_name, columns = operations.data_write
+    assert (book_name, sheet_name) == ("Book2", "Sheet1")
+    assert len(columns) == 8
+    assert all(math.isnan(value) for value in columns[2])
+    assert all(math.isnan(value) for value in columns[3])
+    for source_index, destination_index in zip(range(6), (0, 1, 4, 5, 6, 7)):
+        expected = [float(row[source_index]) for row in rows]
+        for actual, wanted in zip(columns[destination_index], expected):
+            assert (math.isnan(actual) and math.isnan(wanted)) or actual == wanted
+    assert operations.metadata is not None
+    assert [item["column_index"] for item in operations.metadata] == [1, 2, 5, 6, 7, 8]
+    assert [item["type"] for item in operations.metadata] == [4, 1, 4, 1, 4, 1]
+    assert [item["long_name"] for item in operations.metadata] == [""] * 6
+    assert [item["unit"] for item in operations.metadata] == [""] * 6
+    comments = {item["column_index"]: item["comment"] for item in operations.metadata}
+    assert [comments[index] for index in (2, 6, 8)] == [
+        "curve translate:\r\nB is moved vertically by 0.69926449787836",
+        "curve translate:\r\nF is moved vertically by 0.48749646393211",
+        "curve translate:\r\nH is moved vertically by -0.62347949080622",
+    ]
+
+
+def test_verified_ftir_reopen_validation_requires_a_b_e_f_g_h_mapping(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_ftir_product_and_table(tmp_path)
+    binding = _prepare_verified_ftir_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+    plots = []
+    for xy_range in binding["xy_ranges"]:
+        selected = rows[
+            int(xy_range["source_row_from"]) - 1 : int(xy_range["source_row_to"])
+        ]
+        plots.append(
+            {
+                "x_values": [row[int(xy_range["source_x_index"])] for row in selected],
+                "y_values": [row[int(xy_range["source_y_index"])] for row in selected],
+                "plot_row_from": xy_range["row_from"],
+                "plot_row_to": xy_range["row_to"],
+                "x_col_letter": xy_range["expected_x_col_letter"],
+                "y_col_letter": xy_range["expected_y_col_letter"],
+                "x_mapping_source": "graph_plot_mapping",
+            }
+        )
+    assert _validate_verified_current_data(
+        "FTIR",
+        rows,
+        binding["xy_ranges"],
+        {"status": "ready", "plots": plots},
+    )["ok"] is True
+    plots[1]["y_col_letter"] = "D"
+    plots[2]["x_mapping_source"] = "worksheet_designation_fallback"
+    rejected = _validate_verified_current_data(
+        "FTIR",
+        rows,
+        binding["xy_ranges"],
+        {"status": "ready", "plots": plots},
+    )
+    assert rejected["ok"] is False
+    assert "plot 2 Y dataset column differs" in rejected["reasons"]
+    assert "plot 3 lacks explicit graph X mapping readback" in rejected["reasons"]
+
+
+def test_verified_ftir_style_uses_otpu_only_and_exact_reference_legend(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    product, _headers, _rows, _contract_path = _verified_ftir_product_and_table(tmp_path)
+    captured: dict[str, str] = {}
+
+    def set_text(
+        _operations: object,
+        graph_name: str,
+        object_name: str,
+        text: str,
+    ) -> bool:
+        captured.update(graph_name=graph_name, object_name=object_name, text=text)
+        return True
+
+    monkeypatch.setattr(
+        "src.core.template_format_executor._set_origin_graph_object_text",
+        set_text,
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor.apply_style_snapshot",
+        lambda *_args, **_kwargs: pytest.fail("FTIR must not apply its audit-only snapshot"),
+    )
+    result = _apply_verified_otpu_post_plot_style(
+        object(),
+        product,
+        "Graph3",
+        {"status": "extracted"},
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        runtime_theme=None,
+    )
+
+    assert result["ok"] is True
+    assert result["method"] == "otpu_native_style_then_exact_reference_legend"
+    assert result["format_theme_applied"] is False
+    assert result["style_snapshot_applied"] is False
+    assert result["legend_policy"]["line_samples_preserved"] is True
+    assert captured == {
+        "graph_name": "Graph3",
+        "object_name": "Legend",
+        "text": (
+            "\\l(1)\\b(\\i( )\\c1(BiOBr)\\-(\\c1(0.5))\\c1(Cl)\\-(\\c1(0.5)))\r\n"
+            "\\l(2)\\b(\\i( )CuWO\\-(4))\r\n"
+            "\\l(3)\\b(\\i( )BiCu-10)"
+        ),
+    }
+    theme = tmp_path / "FTIR.oth"
+    theme.write_bytes(b"not-runtime")
+    assert _apply_verified_otpu_post_plot_style(
+        object(),
+        product,
+        "Graph3",
+        {"status": "extracted"},
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        runtime_theme=theme,
+    )["ok"] is False
+
+
+def test_verified_ftir_dispatch_uses_snapshot_for_audit_but_does_not_require_oth(
+    tmp_path: Path,
+) -> None:
+    product, _headers, _rows, contract_path = _verified_ftir_product_and_table(tmp_path)
+    template = tmp_path / "FTIR.otpu"
+    template.write_bytes(b"FTIR-template")
+    snapshot = tmp_path / "FTIR_snapshot.json"
+    asset = SimpleNamespace(
+        runtime_asset_path=template,
+        runtime_asset_sha256=hashlib.sha256(template.read_bytes()).hexdigest(),
+        runtime_asset_kind="otpu",
+        binding_contract_path=contract_path,
+        graph_page="Graph3",
+        style_snapshot_path=snapshot,
+    )
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    missing = _export_verified_graph_template_product_with_origin(
+        object(),
+        product,
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        asset,
+        runtime_dir=runtime,
+    )
+    assert missing["ok"] is False
+    assert "saved style snapshot" in missing["message"]
+
+    snapshot.write_text(
+        json.dumps(
+            {
+                "status": "extracted",
+                "audit_numeric_values": {"xb.bold": 0.0, "yl.bold": 0.0},
+                "audit_string_values": {
+                    "xb.text$": "\\b(Wavenumber)",
+                    "yl.text$": "\\b(Transmittance (a.u.))",
+                },
+                "plot_line_widths": [1500.0, 1500.0, 1500.0],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class StopAfterAssetChecks:
+        def __init__(self) -> None:
+            self.new_project_called = False
+
+        def new_project(self) -> OperationResult:
+            self.new_project_called = True
+            return OperationResult(False, "intentional stop")
+
+    operations = StopAfterAssetChecks()
+    no_oth = _export_verified_graph_template_product_with_origin(
+        operations,
+        product,
+        ResolvedPlotStyle(line_width_pt=3.0, font_bold=True),
+        asset,
+        runtime_dir=runtime,
+    )
+    assert no_oth["ok"] is False
+    assert no_oth["message"] == "intentional stop"
+    assert operations.new_project_called is True
+
+
+def test_verified_ftir_exact_style_policy_keeps_three_point_and_rich_text_bold() -> None:
+    reference = {
+        "audit_numeric_values": {"xb.bold": 0.0, "yl.bold": 0.0},
+        "audit_string_values": {
+            "xb.text$": "\\b(Wavenumber)",
+            "yl.text$": "\\b(Transmittance (a.u.))",
+        },
+    }
+    style = ResolvedPlotStyle(line_width_pt=3.0, font_bold=True)
+
+    assert _verified_otpu_style_contract("FTIR") == "preserve_exemplar_exact"
+    assert _verified_otpu_required_line_width_pt("FTIR", style) == 3.0
+    assert _verified_otpu_axis_title_bold_policy("FTIR", reference) is True
+    assert _update_verified_ftir_legend(
+        object(),
+        "Graph3",
+        ["CuWO4", "BiOBr0.5Cl0.5", "BiCu-10"],
+    )["applied"] is False
 
 
 def _saved_bet_theme_project(tmp_path: Path) -> Path:
@@ -1208,6 +3888,8 @@ def test_cli_template_format_products_passes_options(tmp_path: Path, monkeypatch
             "--compact-output",
             "--only-type",
             "XRD",
+            "--origin-style-mode",
+            "oth-json",
         ]
     )
 
@@ -1225,6 +3907,7 @@ def test_cli_template_format_products_passes_options(tmp_path: Path, monkeypatch
     assert options.exemplar_driven is True
     assert options.compact_output is True
     assert options.only_type == "XRD"
+    assert options.origin_style_mode == "oth-json"
 
 
 def test_cli_template_format_products_passes_asset_only(tmp_path: Path, monkeypatch) -> None:
@@ -1420,7 +4103,7 @@ def test_embedded_snapshot_eis_axis_range_uses_processed_csv_bounds(tmp_path: Pa
     assert axis["y_min"] == 0.0
     assert 105 < float(axis["x_max"]) < 106
     assert 34 < float(axis["y_max"]) < 35
-    assert any("legend.x = layer.x.from" in command for command in ops.commands)
+    assert ops.commands == []
 
 
 def test_xrd_direct_label_positions_follow_curve_offsets(tmp_path: Path) -> None:
@@ -2278,3 +4961,511 @@ def _product(tmp_path: Path, processed: Path) -> ProductContext:
         graph_title="BET",
         plot_type="line",
     )
+
+
+def _dual_mode_ftir_product(tmp_path: Path, processed: Path, labels: list[str]) -> ProductContext:
+    pairing = TargetPairing(
+        product_key="FTIR",
+        data_type="FTIR",
+        xps_subtype="",
+        data_root_label="test",
+        data_paths=[],
+        opju_root_label="test",
+        reference_opju=tmp_path / "reference.opju",
+    )
+    return replace(
+        _product(tmp_path, processed),
+        product_key="FTIR",
+        pairing=pairing,
+        legend_entries=labels,
+        x_label="Wavenumber (cm-1)",
+        y_label="Transmittance",
+    )
+
+
+def _dual_mode_assets(tmp_path: Path) -> tuple[SimpleNamespace, SimpleNamespace]:
+    theme = tmp_path / "FTIR.oth"
+    style_snapshot = tmp_path / "FTIR-style.json"
+    data_snapshot = tmp_path / "FTIR-data.json"
+    template = tmp_path / "FTIR.otpu"
+    theme.write_bytes(b"oth")
+    template.write_bytes(b"otpu")
+    style_snapshot.write_text('{"status":"extracted","plot_count":3}', encoding="utf-8")
+    data_snapshot.write_text('{"status":"ready","plot_count":3,"plots":[]}', encoding="utf-8")
+    contract = Path(__file__).parents[1] / "templates" / "origin_styles" / "binding_contracts" / "FTIR.json"
+    exact = SimpleNamespace(
+        runtime_asset_kind="otpu",
+        runtime_asset_path=template,
+        format_theme_path=theme,
+        style_snapshot_path=style_snapshot,
+        data_snapshot_path=data_snapshot,
+        binding_contract_path=contract,
+    )
+    adaptive = SimpleNamespace(
+        runtime_asset_kind="oth_json",
+        runtime_asset_path=theme,
+        format_theme_path=theme,
+        style_snapshot_path=style_snapshot,
+        data_snapshot_path=data_snapshot,
+        binding_contract_path=contract,
+    )
+    return exact, adaptive
+
+
+def test_processed_csv_plot_pairs_strictly_recognizes_variable_independent_xy(tmp_path: Path) -> None:
+    processed = tmp_path / "ftir.csv"
+    processed.write_text("x,y\n1,2\n", encoding="utf-8")
+    product = _dual_mode_ftir_product(tmp_path, processed, ["A", "B"])
+    headers = [
+        "A_wavenumber_cm-1",
+        "A_transmittance",
+        "B_wavenumber_cm-1",
+        "B_transmittance",
+    ]
+
+    assert _processed_csv_plot_pairs(product, headers) == [(1, 2), (3, 4)]
+    assert _processed_csv_plot_pairs(
+        product,
+        ["A_wavenumber_cm-1", "A_wavenumber_cm-1"],
+    ) == []
+
+
+def test_auto_style_route_uses_otpu_for_exact_fixed_binding(tmp_path: Path, monkeypatch) -> None:
+    processed = tmp_path / "ftir.csv"
+    processed.write_text(
+        "BiOBr0.5Cl0.5_wavenumber_cm-1,BiOBr0.5Cl0.5_transmittance,"
+        "CuWO4_wavenumber_cm-1,CuWO4_transmittance,"
+        "BiCu-10_wavenumber_cm-1,BiCu-10_transmittance\n"
+        "1000,1,1000,2,1000,3\n900,1.1,900,2.1,900,3.1\n",
+        encoding="utf-8",
+    )
+    product = _dual_mode_ftir_product(
+        tmp_path,
+        processed,
+        ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"],
+    )
+    exact, adaptive = _dual_mode_assets(tmp_path)
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_runtime_style_asset", lambda *_a, **_k: exact)
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_adaptive_style_asset", lambda *_a, **_k: adaptive)
+
+    decision, selected = _resolve_origin_style_execution_route(tmp_path, product, requested_mode="auto")
+
+    assert selected is exact
+    assert decision["selected_mode"] == "otpu"
+    assert decision["otpu_one_to_one_allowed"] is True
+    assert decision["automatic_error_fallback"] is False
+
+
+def test_auto_style_route_uses_oth_json_only_for_cardinality_mismatch(tmp_path: Path, monkeypatch) -> None:
+    processed = tmp_path / "ftir.csv"
+    processed.write_text(
+        "A_wavenumber_cm-1,A_transmittance,B_wavenumber_cm-1,B_transmittance\n"
+        "1000,1,1000,2\n900,1.1,900,2.1\n",
+        encoding="utf-8",
+    )
+    product = _dual_mode_ftir_product(tmp_path, processed, ["A", "B"])
+    exact, adaptive = _dual_mode_assets(tmp_path)
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_runtime_style_asset", lambda *_a, **_k: exact)
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_adaptive_style_asset", lambda *_a, **_k: adaptive)
+
+    decision, selected = _resolve_origin_style_execution_route(tmp_path, product, requested_mode="auto")
+
+    assert selected is adaptive
+    assert decision["selected_mode"] == "oth-json"
+    assert decision["reason_code"] == "auto_series_cardinality_mismatch_only"
+    assert decision["current_series_count"] == 2
+    assert decision["contract_series_count"] == 3
+    assert decision["otpu_one_to_one_allowed"] is False
+
+
+def test_explicit_otpu_never_falls_back_to_oth_json(tmp_path: Path, monkeypatch) -> None:
+    processed = tmp_path / "ftir.csv"
+    processed.write_text(
+        "A_wavenumber_cm-1,A_transmittance,B_wavenumber_cm-1,B_transmittance\n"
+        "1000,1,1000,2\n",
+        encoding="utf-8",
+    )
+    product = _dual_mode_ftir_product(tmp_path, processed, ["A", "B"])
+    exact, adaptive = _dual_mode_assets(tmp_path)
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_runtime_style_asset", lambda *_a, **_k: exact)
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_adaptive_style_asset", lambda *_a, **_k: adaptive)
+
+    decision, selected = _resolve_origin_style_execution_route(tmp_path, product, requested_mode="otpu")
+
+    assert selected is None
+    assert decision["ok"] is False
+    assert decision["reason_code"] == "verified_otpu_binding_mismatch"
+    assert decision["automatic_error_fallback"] is False
+
+
+def test_explicit_oth_json_allows_candidate_resolution(tmp_path: Path, monkeypatch) -> None:
+    processed = tmp_path / "ftir.csv"
+    processed.write_text(
+        "A_wavenumber_cm-1,A_transmittance\n1000,1\n",
+        encoding="utf-8",
+    )
+    product = _dual_mode_ftir_product(tmp_path, processed, ["A"])
+    _exact, adaptive = _dual_mode_assets(tmp_path)
+    captured: dict[str, object] = {}
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_runtime_style_asset", lambda *_a, **_k: None)
+
+    def resolve_adaptive(*_args, **kwargs):
+        captured.update(kwargs)
+        return adaptive
+
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_adaptive_style_asset", resolve_adaptive)
+
+    decision, selected = _resolve_origin_style_execution_route(tmp_path, product, requested_mode="oth-json")
+
+    assert selected is adaptive
+    assert captured["allow_candidate"] is True
+    assert decision["candidate_assets_allowed"] is True
+    assert decision["selected_mode"] == "oth-json"
+
+
+def test_explicit_oth_json_blocks_unpaired_numeric_source(tmp_path: Path, monkeypatch) -> None:
+    processed = tmp_path / "ftir.csv"
+    processed.write_text(
+        "A_wavenumber_cm-1,A_transmittance\n1000,\n900,1\n",
+        encoding="utf-8",
+    )
+    product = _dual_mode_ftir_product(tmp_path, processed, ["A"])
+    _exact, adaptive = _dual_mode_assets(tmp_path)
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_runtime_style_asset", lambda *_a, **_k: None)
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_adaptive_style_asset", lambda *_a, **_k: adaptive)
+
+    decision, selected = _resolve_origin_style_execution_route(tmp_path, product, requested_mode="oth-json")
+
+    assert selected is None
+    assert decision["ok"] is False
+    assert decision["reason_code"] == "adaptive_source_binding_invalid"
+    assert decision["automatic_error_fallback"] is False
+
+
+def test_adaptive_eis_legend_uses_all_current_series_not_fixed_visible_slots(tmp_path: Path, monkeypatch) -> None:
+    processed = tmp_path / "eis.csv"
+    processed.write_text("x,y\n0,1\n", encoding="utf-8")
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="EIS",
+        legend_entries=["A", "B", "C", "D"],
+    )
+    ops = _FakeAxisOps()
+    captured: dict[str, object] = {}
+
+    def set_text(_ops, _graph, _name, text):
+        captured["text"] = text
+        return True
+
+    monkeypatch.setattr("src.core.template_format_executor._set_origin_graph_object_text", set_text)
+    monkeypatch.setattr(
+        "src.core.template_format_executor._format_preserved_line_sample_legend",
+        lambda *_a, **_k: {"applied": True},
+    )
+
+    policy = _apply_adaptive_dynamic_legend_policy(
+        ops,
+        "Graph1",
+        product,
+        ResolvedPlotStyle(),
+        {},
+    )
+
+    assert policy["visible_plot_indices"] == [1, 2, 3, 4]
+    assert policy["entries"] == ["A", "B", "C", "D"]
+    assert "\\l(4)" in str(captured["text"])
+    assert policy["line_samples_preserved"] is True
+
+
+def test_adaptive_photocurrent_legend_restores_snapshot_format_and_current_entries(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    processed = tmp_path / "photocurrent.csv"
+    processed.write_text("x,y\n0,1\n", encoding="utf-8")
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="photocurrent",
+        legend_entries=["BOBC", "CWO"],
+    )
+    ops = _FakeAxisOps()
+    captured: dict[str, object] = {}
+
+    def set_text(_ops, _graph, _name, value):
+        captured["text"] = value
+        return True
+
+    def style_object(*_args, **kwargs):
+        captured["style"] = kwargs
+        return True
+
+    monkeypatch.setattr(
+        "src.core.template_format_executor._set_origin_graph_object_text",
+        set_text,
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor._style_graph_object",
+        style_object,
+    )
+    snapshot = {
+        "audit_string_values": {
+            "xb.text$": r"\b(Time (s))",
+            "yl.text$": r"\b(Photocurrent (μA))",
+        },
+        "layout_values": {
+            "layer.x.from": 20.0,
+            "layer.x.to": 250.0,
+            "layer.y.from": -1e-8,
+            "layer.y.to": 2e-7,
+            "legend.x": 247.5,
+            "legend.y": 1.75e-6,
+            "legend.fsize": 14,
+            "legend.bold": 0,
+            "legend.background": 1,
+            "legend.border": 0,
+            "legend.frame": 0,
+            "legend.fill": 0,
+            "legend.fillColor": -4,
+            "legend.borderColor": 1,
+            "legend.lineWidth": 1,
+        },
+    }
+
+    policy = _apply_adaptive_photocurrent_oth_json_text_policy(
+        ops,
+        "Graph1",
+        product,
+        ResolvedPlotStyle(),
+        snapshot,
+    )
+
+    assert policy["applied"] is True
+    assert policy["entries"] == ["BOBC", "CWO"]
+    assert "\\l(1)\\b( BOBC)" in str(captured["text"])
+    assert "\\l(2)\\b( CWO)" in str(captured["text"])
+    assert policy["font_size"] == 14
+    assert policy["bold"] == 0
+    assert policy["background"] == 1
+    assert captured["style"]["bold"] == 0
+    assert captured["style"]["fill_color"] == -4
+    assert any("legend.show=1" in command for command in ops.commands)
+    assert any("legend.fsize=14" in command for command in ops.commands)
+
+
+def test_adaptive_photocurrent_supports_arbitrary_current_series_count_and_labels(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    labels = ["Current A", "Current B", "Current C", "Current D"]
+    headers = [
+        header
+        for label in labels
+        for header in (
+            f"{label.replace(' ', '_')}_time_s",
+            f"{label.replace(' ', '_')}_current_a",
+        )
+    ]
+    processed = tmp_path / "photocurrent_four_series.csv"
+    processed.write_text(
+        ",".join(headers) + "\n" + ",".join(str(index) for index in range(8)) + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="photocurrent",
+        legend_entries=labels,
+    )
+    pairs = _processed_csv_plot_pairs(product, headers)
+    assert pairs == [(1, 2), (3, 4), (5, 6), (7, 8)]
+
+    captured: dict[str, str] = {}
+    monkeypatch.setattr(
+        "src.core.template_format_executor._set_origin_graph_object_text",
+        lambda _ops, _graph, _name, value: captured.setdefault("text", value) == value,
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor._style_graph_object",
+        lambda *_args, **_kwargs: True,
+    )
+    result = _apply_adaptive_photocurrent_oth_json_text_policy(
+        _FakeAxisOps(),
+        "Graph2",
+        product,
+        ResolvedPlotStyle(),
+            {
+                "audit_string_values": {
+                    "xb.text$": r"\b(Time (s))",
+                    "yl.text$": r"\b(Photocurrent (μA))",
+                },
+                "layout_values": {
+                    "layer.x.from": 20.0,
+                    "layer.x.to": 250.0,
+                    "layer.y.from": -1e-8,
+                    "layer.y.to": 2e-7,
+                    "legend.x": 190.0,
+                    "legend.y": 1.5e-7,
+                },
+            },
+    )
+
+    assert result["applied"] is True
+    assert result["entries"] == labels
+    assert "\\l(4)" in captured["text"]
+    assert all(label in captured["text"] for label in labels)
+
+
+def test_oth_json_asset_only_never_loads_reference_opju() -> None:
+    asset = SimpleNamespace(
+        template_opju_path=Path("reference.opju"),
+        graph_page="Graph3",
+    )
+
+    source, graph, required = _saved_theme_reference_policy(
+        asset,
+        {"selected_mode": "oth-json"},
+        asset_only=True,
+    )
+
+    assert source is None
+    assert graph == ""
+    assert required is False
+
+
+def test_adaptive_series_count_conformance_relaxes_only_per_plot_array_lengths() -> None:
+    cardinality_fields = {
+        "plot_count",
+        "plot_colors",
+        "plot_line_colors",
+        "plot_line_widths",
+        "marker_shapes",
+        "marker_sizes",
+        "plot_visibility",
+    }
+    conformance = {
+        "status": "fail",
+        "issues": [
+            {
+                "field": field,
+                "severity": "fail",
+                "message": "reference has three values; product has two",
+            }
+            for field in sorted(cardinality_fields)
+        ],
+    }
+
+    relaxed = _adaptive_series_count_conformance(
+        conformance,
+        {
+            "current_csv_pair_count": 2,
+            "reopened_plot_count": 2,
+            "contract_series_count": 3,
+        },
+    )
+
+    assert relaxed["status"] == "pass"
+    assert relaxed["issues"] == []
+    assert relaxed["adaptive_series_cardinality_relaxed"] is True
+
+    conformance["issues"].append(
+        {
+            "field": "layer.height",
+            "severity": "fail",
+            "message": "geometry differs",
+        }
+    )
+    not_relaxed = _adaptive_series_count_conformance(
+        conformance,
+        {"current_csv_pair_count": 2, "reopened_plot_count": 2},
+    )
+    assert not_relaxed["status"] == "fail"
+    assert [issue["field"] for issue in not_relaxed["issues"]] == ["layer.height"]
+
+
+def test_adaptive_photocurrent_readback_requires_current_xy_values_match() -> None:
+    product = SimpleNamespace(product_key="photocurrent")
+    decision = {"selected_mode": "oth-json", "contract_series_count": 3}
+    matched = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (3, 4)],
+        {"plot_count": 2},
+        decision,
+        {"status": "fail"},
+        current_data_validation={"ok": True, "status": "matched"},
+    )
+    assert matched["ok"] is True
+    assert matched["current_plot_values_match_csv"] is True
+
+    mismatch = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (3, 4)],
+        {"plot_count": 2},
+        decision,
+        {"status": "fail"},
+        current_data_validation={"ok": False, "status": "mismatch"},
+    )
+    assert mismatch["ok"] is False
+    assert mismatch["current_plot_values_match_csv"] is False
+    assert "X/Y values" in mismatch["message"]
+
+
+def test_adaptive_photocurrent_validation_ranges_keep_per_pair_row_counts() -> None:
+    rows = [
+        [0.0, 1.0, 0.0, 2.0],
+        [1.0, 1.5, 1.0, 2.5],
+        [2.0, 1.25, math.nan, math.nan],
+    ]
+
+
+    assert _adaptive_photocurrent_validation_ranges(
+        rows,
+        [(1, 2), (3, 4)],
+    ) == [
+        {
+            "x_col": 1,
+            "y_col": 2,
+            "row_from": 1,
+            "row_to": 3,
+            "source_x_index": 0,
+            "source_y_index": 1,
+            "source_row_from": 1,
+            "source_row_to": 3,
+        },
+        {
+            "x_col": 3,
+            "y_col": 4,
+            "row_from": 1,
+            "row_to": 2,
+            "source_x_index": 2,
+            "source_y_index": 3,
+            "source_row_from": 1,
+            "source_row_to": 2,
+        },
+    ]
+
+
+def test_adaptive_bet_readback_requires_current_xy_values_match() -> None:
+    product = SimpleNamespace(product_key="BET")
+    decision = {"selected_mode": "oth-json", "contract_series_count": 6}
+
+    matched = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (3, 4)],
+        {"plot_count": 2},
+        decision,
+        {"status": "fail"},
+        current_data_validation={"ok": True, "status": "matched"},
+    )
+    assert matched["ok"] is True
+    assert matched["current_plot_values_match_csv"] is True
+
+    mismatch = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (3, 4)],
+        {"plot_count": 2},
+        decision,
+        {"status": "fail"},
+        current_data_validation={"ok": False, "status": "mismatch"},
+    )
+    assert mismatch["ok"] is False
+    assert mismatch["current_plot_values_match_csv"] is False
+    assert "X/Y values" in mismatch["message"]

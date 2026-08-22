@@ -13,6 +13,10 @@ class TableReadResult:
     sheet_name: str | None = None
     header_row_index: int | None = None
     sheet_scores: dict[str, dict[str, float | int | str | None]] | None = None
+    # Optional parser provenance.  Keep these defaults empty so existing callers
+    # that only consume tabular rows remain fully backward compatible.
+    source_format: str | None = None
+    format_metadata: dict[str, object] | None = None
 
 
 X_COLUMN_NEEDLES = [
@@ -385,6 +389,10 @@ def _text_header_scan_limit(text: str) -> int:
 def _zplotw_table_result(text: str) -> TableReadResult | None:
     lines = text.splitlines()
     first_block = "\n".join(lines[:20]).casefold()
+    has_zplotw_banner = any(
+        re.search(r"\bzplotw\s+data\s+file\s*:", line, flags=re.IGNORECASE)
+        for line in lines[:20]
+    )
     if (
         "zplotw data file" not in first_block
         and "z60w data file" not in first_block
@@ -423,6 +431,15 @@ def _zplotw_table_result(text: str) -> TableReadResult | None:
         for header in headers
         if any(_to_float(row.get(header, "")) is not None for row in rows)
     )
+    source_format = None
+    format_metadata = None
+    if has_zplotw_banner and len(rows) >= 2 and _has_scribner_zplotw_impedance_headers(headers):
+        source_format = "scribner_zplotw_impedance"
+        format_metadata = {
+            "vendor": "Scribner",
+            "vendor_signature": "ZPlotW Data File + Freq(Hz) + Z'(a) + Z''(b)",
+            "signature_headers": ["Freq(Hz)", "Z'(a)", "Z''(b)"],
+        }
     return TableReadResult(
         rows,
         sheet_name="ZPlotW",
@@ -436,11 +453,23 @@ def _zplotw_table_result(text: str) -> TableReadResult | None:
                 "header_row_index": header_index,
             }
         },
+        source_format=source_format,
+        format_metadata=format_metadata,
     )
 
 
 def _has_frequency_hz_header(line: str) -> bool:
     return re.search(r"\bfreq\s*\(\s*hz\s*\)", line.casefold()) is not None
+
+
+def _has_scribner_zplotw_impedance_headers(headers: list[str]) -> bool:
+    """Return true only for the documented ZPlotW complex-impedance columns."""
+    normalized = "\n".join(str(header) for header in headers)
+    return bool(
+        _has_frequency_hz_header(normalized)
+        and re.search(r"z'\s*\(\s*a\s*\)", normalized, flags=re.IGNORECASE)
+        and re.search(r"z''\s*\(\s*b\s*\)", normalized, flags=re.IGNORECASE)
+    )
 
 
 def _bracketed_data_table_result(text: str) -> TableReadResult | None:

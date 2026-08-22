@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "photocurrent",
+  "status": "accepted",
+  "generated_at": "2026-08-22T21:24:54+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed that the user-approved Graph2 reference export and the detached fresh-project replay contain the same three traces, bold Time (s) and Photocurrent (μA) titles, bold current legend, reviewed blue/green/olive colors, 3 pt lines, axis box, hidden Y numeric labels, and no stale or blank template content. The decoded PNGs are the same size and differ by zero pixels.",
+  "formal_command": "python run.py origin-style-asset-replay --template-plan templates/origin_styles/validation_plans/photocurrent_verified_20260822.json --output-dir <configured-output-root>/diagnostics/20260822_photocurrent_project_asset_correct_formal_replay_02 --with-origin",
+  "formal_evidence_location": "diagnostics/20260822_photocurrent_project_asset_correct_formal_replay_02/products/photocurrent/comparison.json",
+  "validation_plan": {
+    "path": "validation_plans/photocurrent_verified_20260822.json",
+    "sha256": "9ede8ba8223a1135dd0f2636a73cc519c22da3298d7eea8b63cd320f36c9402a"
+  },
+  "origin": {
+    "entrypoint": "Origin.Application",
+    "version": "10.3",
+    "build": 197
+  },
+  "pipeline_git_base_commit": "2bf94bc",
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/photocurrent.otpu",
+    "sha256": "c278a8621074b9ec9286b0ca94c345aaac33e62e6252af182b9ac0f9f89daff1",
+    "source_mode": "individually_regenerated_from_user_confirmed_reference_opju"
+  },
+  "supporting_style_assets": {
+    "format_theme": {
+      "path": "format_themes/photocurrent.oth",
+      "sha256": "e285ed43b6eecc3f1cf03063f11e9cad142d4c834ba2cfb52d27144bb95f95b5",
+      "runtime_required": true
+    },
+    "style_snapshot": {
+      "path": "snapshots/photocurrent.json",
+      "sha256": "c82ccde132aceb69f006535993d6073f90f3ed176b0db09d3ae3f6c09ac20bc0",
+      "runtime_required": true
+    }
+  },
+  "reference": {
+    "path": "reference_opju/photocurrent.opju",
+    "source_name": "I-T BOBC+CWO 4.22.opju",
+    "graph_page": "Graph2",
+    "sha256": "e9e03b61545298447d7fdbbaceeec34867a6a37a9f2ee7cf9fea034c866dc044",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/photocurrent.json",
+    "sha256": "ef54798690409ef0ba917017fce5667142b7885734545d1e7756a597106c0d0f",
+    "source_series_count": 3,
+    "explicit_xy_ranges": true,
+    "one_source_series_per_xy_pair": true,
+    "group_plots": false,
+    "mappings": [
+      "Book1_I->Book1_J[1:2600]",
+      "Book1_M->Book1_N[1:2600]",
+      "Book1_Q->Book1_R[1:2599]"
+    ],
+    "transform": "independent_photocurrent_xy_pairs_without_interpolation_smoothing_or_normalization"
+  },
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "140d216c167eb65942d8b83c72fa8fd346d3b009926f013cb3d1fe43e16d922b",
+    "generated_plot_values_sha256": "140d216c167eb65942d8b83c72fa8fd346d3b009926f013cb3d1fe43e16d922b",
+    "reference_plot_mapping_sha256": "56489f72a2aee1ff5c46518fe52553f9129b295f84470d080a62db452a394a08",
+    "generated_plot_mapping_sha256": "56489f72a2aee1ff5c46518fe52553f9129b295f84470d080a62db452a394a08"
+  },
+  "style": {
+    "status": "pass",
+    "compared_fields": 59,
+    "matched_fields": 59,
+    "axis_title_hard_gate": true,
+    "axis_title_reference_match": true,
+    "x_axis_title": "\\b(Time (s))",
+    "y_axis_title": "\\b(Photocurrent \\(40))\\f:g(\\b(\\f:Arial(μ)))\\b(A\\(41))",
+    "axis_titles_bold": true,
+    "axis_title_no_overlap_check": "pass",
+    "plot_line_width_origin_units": [1500.0, 1500.0, 1500.0]
+  },
+  "pixels": {
+    "same_size": true,
+    "exact_pixel_match": true,
+    "changed_pixels": 0,
+    "rms": 0.0
+  },
+  "save_reopen": {
+    "saved_reopened": true,
+    "graph_page": "Graph2"
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  },
+  "reference_opju_self_replay": false
+}

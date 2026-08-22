@@ -3,21 +3,15 @@ from __future__ import annotations
 import csv
 import json
 import math
-import subprocess
-import shutil
-import tempfile
-import time
-from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 
 from src.core.metadata import file_hash
 from src.core.file_utils import ensure_safe_output_file_target
+from src.core.image_artifacts import expected_raster_pixels, validate_tif_physical_resolution
 from src.core.template_product_common import extract_xrd_raw_data_rows
 from src.core.output_sanitizer import render_output_path, scrub_output_text
-from src.core.origin_runtime import copy_runtime_artifact as _copy_runtime_artifact
-from src.core.origin_runtime import neutral_origin_runtime_root as _neutral_origin_runtime_root
 from src.core.plot_labels import XRD_X_AXIS_TITLE, XRD_Y_AXIS_TITLE
 from src.core.project import ensure_output_path_separate_from_inputs
 from src.core.runtime_paths import create_run_output_layout, resolve_output_root
@@ -26,13 +20,12 @@ from src.core.xrd_helpers import relative_path as _relative
 from src.core.xrd_helpers import to_finite_float as _to_float
 from src.origin.adapter import (
     check_origin_available,
-    reexport_tif_from_reopened_opju,
     write_origin_error,
     write_origin_success,
 )
-from src.origin.operations import quote_labtalk
-from src.origin.plot_policy import GRAPH4_FIXED_STYLE
+from src.origin.operations import OriginOperations, connect_origin, origin_process_ids, quote_labtalk
 from src.origin.text_format import origin_bold_text
+from src.origin.xrd_annotations import apply_xrd_standard_card_annotations
 
 
 BICU_LABEL = "BiCu-10"
@@ -49,6 +42,34 @@ XRD_SAMPLE_LEGEND_FONT = 67
 XRD_SAMPLE_LEGEND_FONT_SIZE = 26
 XRD_SAMPLE_LEGEND_COLOR = 1
 DEFAULT_XRD_REFERENCE_OPJU = Path("templates") / "origin_styles" / "reference_opju" / "XRD.opju"
+DEFAULT_XRD_GRAPH_TEMPLATE = Path("templates") / "origin_styles" / "graph_templates" / "XRD.otpu"
+
+# This is the reviewed native-XRD binding for the current three-sample CLI.
+# It deliberately contains no source OPJU ranges: a fresh project owns two
+# real worksheets and all graphs are plotted from the table generated here.
+XRD_FRESH_PLOT_FORMAT_CONTRACTS = (
+    {"layer_index": 1, "plot_index": 1, "color": 16814848, "line_color": 16814848, "line_width": 1500, "line_style": 0, "connect": 1, "vertical_drop_lines": 0},
+    {"layer_index": 1, "plot_index": 2, "color": 33518174, "line_color": 33518174, "line_width": 1500, "line_style": 0, "connect": 1, "vertical_drop_lines": 0},
+    {"layer_index": 2, "plot_index": 1, "color": 22106449, "line_color": 22106449, "line_width": 250, "line_style": 0, "connect": 0, "vertical_drop_lines": 1, "vertical_drop_line_color": 17585584, "vertical_drop_line_style": 0, "vertical_drop_line_width": 3},
+    {"layer_index": 3, "plot_index": 1, "color": 23709421, "line_color": 23709421, "line_width": 1500, "line_style": 0, "connect": 1, "vertical_drop_lines": 0},
+)
+
+XRD_FRESH_ANNOTATION_CONTRACT = {
+    "hide_layer_legends": [2, 3],
+    "top_series": {
+        "semantic_role": "BiCu-10_sample_pattern",
+        "display_text": "BiCu-10",
+        "layer_index": 1,
+        "line": {"name": "RDOPXRDTopLine", "x1": 54.64294981426266, "y1": 4.28, "x2": 46.15937072503422, "y2": 4.28, "color": 23709421, "line_width": 3, "line_type": 1},
+        "text": {"name": "RDOPXRDTopText", "left": 4111, "top": 587, "width": 823, "height": 251, "font": 1, "font_size": 26, "color": 1, "rich_text": "\\b(BiCu-10)"},
+    },
+    "reference_card": {
+        "semantic_role": "CuWO4_JCPDS_04-009-6293_reference_sticks",
+        "display_text": "CuWO4 JCPDS card No.04-009-6293",
+        "layer_index": 2,
+        "text": {"name": "RDOPXRDCardText", "left": 2680, "top": 3345, "width": 2819, "height": 226, "font": 71, "font_size": 20, "color": 1, "rich_text": "\\b(\\c17585584(CuWO)\\-(\\c17585584(4))\\c17585584( JCPDS card No.04-009-6293))"},
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -158,7 +179,9 @@ def run_xrd_overlay(project_root: Path, options: XrdOverlayOptions) -> dict[str,
         options.cwo_source,
         options.cwo_card,
     ]
-    if options.with_origin or options.reference_opju.is_file():
+    # ``reference_opju`` remains an audit/compatibility parameter.  It is
+    # never opened, copied, or used as a graph/product base by this path.
+    if options.reference_opju.is_file():
         input_paths.append(options.reference_opju)
     ensure_output_path_separate_from_inputs(project_root, output_root, input_paths)
     table = build_xrd_overlay_table(
@@ -181,6 +204,12 @@ def run_xrd_overlay(project_root: Path, options: XrdOverlayOptions) -> dict[str,
         planned_artifacts.report,
     ]
     if options.with_origin:
+        graph_template = _resolve_xrd_graph_template(project_root)
+        if not graph_template.is_file():
+            raise FileNotFoundError(
+                "The project-local fresh XRD graph template is missing: "
+                f"{graph_template}"
+            )
         planned_output_files.extend(
             (
                 planned_artifacts.origin_file,
@@ -199,7 +228,7 @@ def run_xrd_overlay(project_root: Path, options: XrdOverlayOptions) -> dict[str,
                 "Origin is unavailable before XRD output preflight: "
                 + origin_message
             )
-        pre_existing_pids = _xrd_origin_process_ids() if origin_ok else set()
+        pre_existing_pids = origin_process_ids() if origin_ok else set()
         if pre_existing_pids:
             rendered = ", ".join(
                 str(pid) for pid in sorted(pre_existing_pids)
@@ -261,11 +290,31 @@ def _export_xrd_overlay_with_origin(
         write_origin_error(project_root, f"xrd-overlay: {message}", output_root=artifacts.origin_file.parents[1])
         return {"ok": False, "message": f"Origin unavailable: {message}"}
     _remove_stale_outputs(artifacts, force=options.force)
+    operations: OriginOperations | None = None
     try:
-        tif_status = _replace_graph4_template_data_with_originpro(options, artifacts)
+        # ``connect_origin`` is deliberately fail-closed when an Origin
+        # process already exists.  The normal production path therefore never
+        # attaches to a possibly user-owned session.
+        operations = connect_origin(entrypoint="Origin.Application", visible=False, isolated=True)
+        export_status = _build_fresh_xrd_overlay_with_operations(
+            project_root,
+            table,
+            artifacts,
+            operations,
+        )
     except Exception as exc:
         write_origin_error(project_root, f"xrd-overlay: {exc}", output_root=artifacts.origin_file.parents[1])
         return {"ok": False, "message": str(exc)}
+    finally:
+        if operations is not None:
+            closed = operations.close()
+            if not closed.ok:
+                write_origin_error(
+                    project_root,
+                    f"xrd-overlay: task-owned Origin close failed: {closed.message}",
+                    output_root=artifacts.origin_file.parents[1],
+                )
+                return {"ok": False, "message": closed.message}
     missing = [
         name
         for name, path in (("origin_file", artifacts.origin_file), ("figure_tif", artifacts.figure_tif), ("preview_png", artifacts.preview_png))
@@ -274,260 +323,344 @@ def _export_xrd_overlay_with_origin(
     if missing:
         message = "Origin export missing required artifacts: " + ", ".join(missing)
         write_origin_error(project_root, f"xrd-overlay: {message}", output_root=artifacts.origin_file.parents[1])
-        return {"ok": False, "message": message, "tif_status": tif_status}
+        return {"ok": False, "message": message, "export_status": export_status}
     write_origin_success(project_root, output_root=artifacts.origin_file.parents[1])
     return {
         "ok": True,
-        "message": "Origin export succeeded by replacing current data into the Graph4 reference OPJU.",
-        "tif_status": tif_status,
+        "message": "Origin export succeeded from a fresh project with the project-local XRD OTPU.",
+        **export_status,
     }
 
 
-def _replace_graph4_template_data_with_originpro(options: XrdOverlayOptions, artifacts: XrdOverlayArtifacts) -> dict[str, object]:
+def _build_fresh_xrd_overlay_with_operations(
+    project_root: Path,
+    table: XrdOverlayTable,
+    artifacts: XrdOverlayArtifacts,
+    operations: OriginOperations,
+) -> dict[str, object]:
+    """Build the current XRD overlay in a new Origin project.
+
+    The worksheet data are the same normalized/offset values recorded in the
+    processed CSV.  No reference OPJU is loaded and no visual raster or
+    synthetic curve is inserted.  The OTPU contributes only the native Origin
+    graph/page/layer formatting; every plotted X/Y range is made explicit.
+    """
     artifacts.origin_file.parent.mkdir(parents=True, exist_ok=True)
     artifacts.preview_png.parent.mkdir(parents=True, exist_ok=True)
     artifacts.figure_tif.parent.mkdir(parents=True, exist_ok=True)
-    neutral_root = _neutral_origin_runtime_root()
-    with tempfile.TemporaryDirectory(prefix="rdop_xrd_", dir=neutral_root) as runtime_text:
-        runtime = Path(runtime_text)
-        runtime_origin = runtime / artifacts.origin_file.name
-        runtime_png = runtime / artifacts.preview_png.name
-        shutil.copy2(options.reference_opju, runtime_origin)
+    template_path = _resolve_xrd_graph_template(project_root)
+    if not template_path.is_file():
+        raise FileNotFoundError(f"XRD graph template is missing: {template_path}")
 
-        with _isolated_xrd_originpro_session() as op:
-            op.set_show(False)
-            if not op.open(str(runtime_origin), readonly=False, asksave=False):
-                raise RuntimeError("failed to open copied Graph4 reference OPJU")
-            graph = op.find_graph("Graph4")
-            if graph is None:
-                raise RuntimeError("Graph4 was not found in the copied reference OPJU")
-            if len(graph) < 3:
-                raise RuntimeError("Graph4 does not contain the expected sample, card, and top-curve layers")
-
-            book2 = op.find_book("w", "Book2")
-            book3 = op.find_book("w", "Book3")
-            if book2 is None or book3 is None:
-                raise RuntimeError("Graph4 source workbooks Book2 and Book3 were not found")
-            sheet2 = book2[0]
-            sheet3 = book3[0]
-
-            cwo_points = _numeric_xy_points(extract_xrd_raw_data_rows(options.cwo_source))
-            bobc_points = _numeric_xy_points(extract_xrd_raw_data_rows(options.bobc_source))
-            bicu_points = _numeric_xy_points(extract_xrd_raw_data_rows(options.bicu_source))
-            if not cwo_points or not bobc_points or not bicu_points:
-                raise RuntimeError("one or more XRD sources contain no numeric two-theta/intensity rows")
-
-            _write_scaled_xy_to_template_columns(sheet2, 0, 1, cwo_points, CWO_LABEL, "CuWO4")
-            _write_scaled_xy_to_template_columns(sheet2, 2, 3, bobc_points, BOBC_LABEL, "BiOBr0.5Cl0.5")
-            _write_scaled_xy_to_template_columns(sheet3, 4, 5, bicu_points, BICU_LABEL, "BiCu-10", y_shift=-2500.0)
-            _write_card_to_template_columns(sheet2, 6, 7, parse_xrd_reference_card_peaks(options.cwo_card))
-
-            _remove_template_bicu30_plot(graph)
-            _set_template_text_objects(graph)
-            op.lt_exec(_xrd_axis_title_labtalk("Graph4"))
-            _enforce_template_plot_colors(graph)
-
-            graph.save_fig(str(runtime_png), type="png", replace=True, width=GRAPH4_FIXED_STYLE.page_width)
-            op.save(str(runtime_origin))
-
-        if not runtime_png.exists():
-            raise RuntimeError("Origin did not export the PNG preview")
-        if not runtime_origin.exists():
-            raise RuntimeError("Origin did not save the OPJU project")
-        runtime_tif = runtime / artifacts.figure_tif.name
-        resolution = reexport_tif_from_reopened_opju(
-            runtime_origin,
-            "Graph4",
-            runtime_tif,
-            dpi=600,
+    created = operations.new_project()
+    if not created.ok:
+        raise RuntimeError(created.message)
+    book2, book3 = _write_xrd_overlay_worksheets(operations, table)
+    plotted = operations.create_graph_from_xy_pairs_template(
+        "Graph4",
+        template_path.resolve(),
+        book2,
+        _fresh_xrd_xy_ranges(book2, book3, len(table.rows)),
+        plot_type="line",
+        rescale=False,
+        legend=False,
+        group_plots=False,
+        plot_format_contracts=XRD_FRESH_PLOT_FORMAT_CONTRACTS,
+    )
+    if not plotted.ok:
+        raise RuntimeError(f"fresh XRD OTPU plotting failed: {plotted.message}")
+    _verify_xrd_native_bindings(operations, "Graph4", book2, book3, len(table.rows))
+    _apply_xrd_native_text_and_axes(operations, "Graph4")
+    annotations = apply_xrd_standard_card_annotations(
+        operations,
+        "Graph4",
+        XRD_FRESH_ANNOTATION_CONTRACT,
+    )
+    if not annotations.get("applied"):
+        raise RuntimeError(
+            "fresh XRD OTPU annotations failed: "
+            + str(annotations.get("reason") or annotations)
         )
-        _copy_runtime_artifact(runtime_origin, artifacts.origin_file)
-        _copy_runtime_artifact(runtime_png, artifacts.preview_png)
-        _copy_runtime_artifact(runtime_tif, artifacts.figure_tif)
+
+    saved = operations.save_project(artifacts.origin_file)
+    if not saved.ok or not artifacts.origin_file.is_file():
+        raise RuntimeError(f"Origin did not save fresh XRD OPJU: {saved.message}")
+    reopened = operations.load_project(artifacts.origin_file)
+    if not reopened.ok:
+        raise RuntimeError(f"Origin did not reopen fresh XRD OPJU: {reopened.message}")
+    _verify_xrd_native_bindings(operations, "Graph4", book2, book3, len(table.rows))
+    png = operations.export_graph("Graph4", artifacts.preview_png, "png", dpi=600)
+    tif = _export_native_xrd_tif_with_physical_validation(
+        operations,
+        "Graph4",
+        artifacts.figure_tif,
+        dpi=600,
+    )
+    if not png.ok or not tif.get("ok"):
+        raise RuntimeError(
+            "Origin native XRD export failed: "
+            f"PNG={png.message}; TIF={tif.get('message', 'unknown failure')}"
+        )
     return {
-        "ok": True,
-        "message": "Graph4 template data replaced and TIF natively exported at validated 600 dpi.",
-        "neutral_runtime": True,
-        "tif_resolution": {
-            key: value
-            for key, value in resolution.as_dict().items()
-            if key != "path"
-        },
+        "fresh_project": True,
+        "graph_template": _output_display_path(project_root, artifacts.origin_file.parent, template_path),
+        "reference_opju_loaded": False,
+        "native_object_kinds": ["worksheet", "line_plot", "axes", "legend", "vertical_drop_lines", "text"],
+        "reopened_before_export": True,
+        "png_export": png.payload,
+        "tif_export": tif,
+        "annotation_status": annotations,
     }
 
 
-@contextmanager
-def _isolated_xrd_originpro_session():
-    """Yield originpro only when no user Origin session is already running."""
-
-    pre_existing_pids = _xrd_origin_process_ids()
-    if pre_existing_pids:
-        rendered = ", ".join(str(pid) for pid in sorted(pre_existing_pids))
-        raise RuntimeError(
-            "Origin is already running before XRD overlay export; refusing to "
-            f"attach to or close an existing session (PIDs: {rendered})."
-        )
-    try:
-        import originpro as op
-    except Exception as exc:
-        raise RuntimeError(
-            f"originpro unavailable for OPJU template replacement: {exc}"
-        ) from exc
-
-    try:
-        yield op
-    finally:
-        exit_error = ""
-        try:
-            op.exit()
-        except Exception as exc:
-            exit_error = f"{type(exc).__name__}: {exc}"
-        try:
-            remaining_pids = _wait_for_xrd_origin_exit(
-                pre_existing_pids,
-                timeout_seconds=30.0,
-            )
-        except Exception as exc:
-            raise RuntimeError(
-                "Origin lifecycle verification failed after XRD overlay export: "
-                f"{type(exc).__name__}: {exc}"
-            ) from exc
-        if exit_error or remaining_pids:
-            details: list[str] = []
-            if exit_error:
-                details.append(f"originpro exit raised {exit_error}")
-            if remaining_pids:
-                details.append(
-                    "new Origin process remained after the bounded exit wait "
-                    f"(PIDs: {', '.join(str(pid) for pid in sorted(remaining_pids))})"
-                )
-            raise RuntimeError(
-                "Origin lifecycle finalization failed after XRD overlay export; "
-                "the product must not be accepted: "
-                + "; ".join(details)
-            )
-
-
-def _xrd_origin_process_ids() -> set[int]:
-    completed = subprocess.run(
-        [
-            "powershell",
-            "-NoProfile",
-            "-Command",
-            "Get-Process -Name Origin* -ErrorAction SilentlyContinue | "
-            "Select-Object -ExpandProperty Id",
-        ],
-        text=True,
-        capture_output=True,
-        timeout=10,
-    )
-    if completed.returncode:
-        raise RuntimeError(
-            "Could not inspect existing Origin processes safely: "
-            + (completed.stderr or completed.stdout or "PowerShell query failed").strip()
-        )
-    pids: set[int] = set()
-    for line in completed.stdout.splitlines():
-        try:
-            pids.add(int(line.strip()))
-        except ValueError:
-            continue
-    return pids
-
-
-def _wait_for_xrd_origin_exit(
-    pre_existing_pids: set[int],
+def _export_native_xrd_tif_with_physical_validation(
+    operations: OriginOperations,
+    graph_name: str,
+    target: Path,
     *,
-    timeout_seconds: float,
-) -> set[int]:
-    deadline = time.time() + max(0.0, timeout_seconds)
-    while True:
-        remaining = _xrd_origin_process_ids() - pre_existing_pids
-        if not remaining:
-            return set()
-        if time.time() >= deadline:
-            return remaining
-        time.sleep(0.5)
+    dpi: int,
+) -> dict[str, object]:
+    activated = operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    if not activated.ok:
+        return {"ok": False, "message": f"Could not activate reopened graph {graph_name!r} before TIFF export."}
+    dimensions: dict[str, float] = {}
+    for name in ("page.width", "page.height"):
+        read = operations.get_labtalk_variable(name)
+        try:
+            value = float(read.payload.get("value"))
+        except (TypeError, ValueError, OverflowError):
+            return {"ok": False, "message": f"Reopened XRD graph returned an invalid {name}."}
+        if not math.isfinite(value) or value <= 0:
+            return {"ok": False, "message": f"Reopened XRD graph returned a non-positive {name}."}
+        dimensions[name] = value
+    expected_width, _expected_height = expected_raster_pixels(
+        dimensions["page.width"],
+        dimensions["page.height"],
+        dpi=dpi,
+    )
+    identity = operations.reset_project_identity_for_export()
+    if not identity.ok:
+        return {"ok": False, "message": "Origin project identity reset failed before native XRD TIFF export."}
+    reactivated = operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
+    if not reactivated.ok:
+        return {"ok": False, "message": "Could not reactivate reopened XRD graph before native TIFF export."}
+    exported = operations.export_graph(
+        graph_name,
+        target,
+        "tif",
+        dpi=dpi,
+        pixel_width=expected_width,
+    )
+    if not exported.ok:
+        return {"ok": False, "message": exported.message}
+    try:
+        evidence = validate_tif_physical_resolution(
+            target,
+            page_width_origin_units=dimensions["page.width"],
+            page_height_origin_units=dimensions["page.height"],
+            dpi=dpi,
+        ).as_dict()
+    except Exception as exc:
+        return {"ok": False, "message": scrub_output_text(str(exc))}
+    evidence["path"] = target.name
+    return {
+        "ok": True,
+        "message": "Origin native XRD TIFF export passed physical-resolution validation.",
+        "evidence": evidence,
+    }
 
 
-def _write_scaled_xy_to_template_columns(
-    sheet: object,
-    x_col: int,
-    y_col: int,
-    points: list[tuple[float, float]],
-    rich_label: str,
-    plain_label: str,
-    y_shift: float = 0.0,
+def _write_xrd_overlay_worksheets(
+    operations: OriginOperations,
+    table: XrdOverlayTable,
+) -> tuple[str, str]:
+    """Write the exact processed-table values into the fresh Origin project."""
+
+    if not table.rows:
+        raise RuntimeError("fresh XRD plotting requires processed table rows")
+    columns = list(zip(*table.rows))
+    if len(columns) != 5:
+        raise RuntimeError("fresh XRD processed table must contain X + three samples + card")
+    x, bicu, bobc, cwo, card = (_origin_numeric_column(column) for column in columns)
+    fillers = [math.nan] * len(x)
+
+    created_book2 = operations.create_worksheet("Book2", "Sheet1")
+    if not created_book2.ok:
+        raise RuntimeError(created_book2.message)
+    book2 = str(created_book2.payload.get("book_name") or "")
+    written_book2 = operations.set_worksheet_data(
+        book2,
+        "Sheet1",
+        [x, cwo, x, bobc, fillers, fillers, x, card],
+        ["two_theta_deg", CWO_LABEL, "two_theta_deg", BOBC_LABEL, "unused", "unused", "two_theta_deg", CWO_CARD_LABEL],
+    )
+    if not written_book2.ok:
+        raise RuntimeError(written_book2.message)
+
+    created_book3 = operations.create_worksheet("Book3", "Sheet1")
+    if not created_book3.ok:
+        raise RuntimeError(created_book3.message)
+    book3 = str(created_book3.payload.get("book_name") or "")
+    written_book3 = operations.set_worksheet_data(
+        book3,
+        "Sheet1",
+        [fillers, fillers, fillers, fillers, x, bicu],
+        ["unused", "unused", "unused", "unused", "two_theta_deg", BICU_LABEL],
+    )
+    if not written_book3.ok:
+        raise RuntimeError(written_book3.message)
+    _verify_xrd_worksheet_roundtrip(operations, book2, book3, x, bicu, bobc, cwo, card)
+    return book2, book3
+
+
+def _origin_numeric_column(values: object) -> list[float]:
+    column: list[float] = []
+    for value in values if isinstance(values, tuple) else list(values):
+        if value is None:
+            column.append(math.nan)
+            continue
+        number = float(value)
+        column.append(number if math.isfinite(number) else math.nan)
+    return column
+
+
+def _verify_xrd_worksheet_roundtrip(
+    operations: OriginOperations,
+    book2: str,
+    book3: str,
+    x: list[float],
+    bicu: list[float],
+    bobc: list[float],
+    cwo: list[float],
+    card: list[float],
 ) -> None:
-    old_y = [_to_float(value) for value in sheet.to_list(y_col)]
-    scaled = [value + y_shift for value in _scale_to_template_y_range([y for _x, y in points], [value for value in old_y if value is not None])]
-    sheet.from_list(x_col, [x for x, _y in points], comments=plain_label, axis="X")
-    sheet.from_list(y_col, scaled, comments=plain_label, axis="Y")
-    sheet.set_label(x_col, "Angle", "L")
-    sheet.set_label(y_col, "PSD", "L")
-    sheet.set_label(x_col, plain_label, "C")
-    sheet.set_label(y_col, rich_label, "C")
+    actual2 = operations.get_worksheet_data(book2, "Sheet1")
+    actual3 = operations.get_worksheet_data(book3, "Sheet1")
+    if not actual2.ok or not actual3.ok:
+        raise RuntimeError("fresh XRD worksheet readback failed")
+    columns2 = actual2.payload.get("columns")
+    columns3 = actual3.payload.get("columns")
+    if not isinstance(columns2, list) or not isinstance(columns3, list) or len(columns2) < 8 or len(columns3) < 6:
+        raise RuntimeError("fresh XRD worksheet readback has the wrong column shape")
+    expected = ((columns2[0], x), (columns2[1], cwo), (columns2[2], x), (columns2[3], bobc), (columns2[6], x), (columns2[7], card), (columns3[4], x), (columns3[5], bicu))
+    if any(not _numeric_columns_match(actual, intended) for actual, intended in expected):
+        raise RuntimeError("fresh XRD worksheet readback differs from the processed table")
 
 
-def _write_card_to_template_columns(sheet: object, x_col: int, y_col: int, peaks: list[tuple[float, float]]) -> None:
-    if not peaks:
-        raise RuntimeError("CuWO4 reference card contains no numeric peak rows")
-    old_y = [_to_float(value) for value in sheet.to_list(y_col)]
-    target_max = max((value for value in old_y if value is not None), default=500.0)
-    max_intensity = max(intensity for _x, intensity in peaks)
-    sheet.from_list(x_col, [two_theta for two_theta, _intensity in peaks], comments="CuWO4 JCPDS card No.04-009-6293", axis="X")
-    sheet.from_list(y_col, [target_max * intensity / max_intensity for _two_theta, intensity in peaks], comments=CWO_CARD_LABEL, axis="Y")
-    sheet.set_label(x_col, "2theta", "L")
-    sheet.set_label(y_col, "Intensity", "L")
+def _numeric_columns_match(actual: object, expected: list[float]) -> bool:
+    if not isinstance(actual, list) or len(actual) != len(expected):
+        return False
+    for got, wanted in zip(actual, expected):
+        try:
+            got_number = float(got)
+        except (TypeError, ValueError):
+            return False
+        if math.isnan(wanted):
+            if not math.isnan(got_number):
+                return False
+        elif not math.isclose(got_number, wanted, rel_tol=1e-12, abs_tol=1e-12):
+            return False
+    return True
 
 
-def _scale_to_template_y_range(values: list[float], template_values: list[float]) -> list[float]:
-    if not values:
-        return []
-    source_min = min(values)
-    source_max = max(values)
-    target_min = min(template_values) if template_values else 0.0
-    target_max = max(template_values) if template_values else 1.0
-    if source_max == source_min:
-        midpoint = (target_min + target_max) / 2.0
-        return [midpoint for _value in values]
-    scale = (target_max - target_min) / (source_max - source_min)
-    return [target_min + (value - source_min) * scale for value in values]
+def _fresh_xrd_xy_ranges(book2: str, book3: str, row_count: int) -> tuple[dict[str, object], ...]:
+    if row_count < 2:
+        raise ValueError("fresh XRD graph requires at least two processed rows")
+    return (
+        {"book_name": book2, "sheet_index": 1, "x_col": 1, "y_col": 2, "row_from": 1, "row_to": row_count, "layer_index": 1},
+        {"book_name": book2, "sheet_index": 1, "x_col": 3, "y_col": 4, "row_from": 1, "row_to": row_count, "layer_index": 1},
+        {"book_name": book2, "sheet_index": 1, "x_col": 7, "y_col": 8, "row_from": 1, "row_to": row_count, "layer_index": 2},
+        {"book_name": book3, "sheet_index": 1, "x_col": 5, "y_col": 6, "row_from": 1, "row_to": row_count, "layer_index": 3},
+    )
 
 
-def _remove_template_bicu30_plot(graph: object) -> None:
-    layer = graph[0]
-    plots = layer.plot_list()
-    while len(plots) > 2:
-        plots[-1].remove()
-        plots = layer.plot_list()
+def _verify_xrd_native_bindings(
+    operations: OriginOperations,
+    graph_name: str,
+    book2: str,
+    book3: str,
+    row_count: int,
+) -> None:
+    expected = {
+        1: [(book2, 1, 2), (book2, 3, 4)],
+        2: [(book2, 7, 8)],
+        3: [(book3, 5, 6)],
+    }
+    for layer_index, ranges in expected.items():
+        mappings = operations.get_graph_plot_dataset_mappings(graph_name, layer_index)
+        if not mappings.ok:
+            raise RuntimeError(f"fresh XRD graph mapping readback failed for layer {layer_index}: {mappings.message}")
+        items = mappings.payload.get("plot_mappings")
+        if not isinstance(items, list) or len(items) != len(ranges):
+            raise RuntimeError(f"fresh XRD graph has incorrect native plot count in layer {layer_index}")
+        for item, (book, x_col, y_col) in zip(items, ranges):
+            if not isinstance(item, dict) or item.get("status") != "ready" or int(item.get("row_from", 0)) != 1 or int(item.get("row_to", -1)) != row_count:
+                raise RuntimeError(f"fresh XRD graph native range mapping failed in layer {layer_index}")
+            x_name = str(item.get("x_dataset") or "")
+            y_name = str(item.get("y_dataset") or "")
+            if not (x_name.startswith(f"{book}_") and y_name.startswith(f"{book}_")):
+                raise RuntimeError(f"fresh XRD graph uses a non-fresh worksheet range in layer {layer_index}")
+            if not (x_name.endswith(_origin_column_letter(x_col)) and y_name.endswith(_origin_column_letter(y_col))):
+                raise RuntimeError(f"fresh XRD graph worksheet columns do not match the binding contract in layer {layer_index}")
 
 
-def _set_template_text_objects(graph: object) -> None:
-    layer1_objects = graph[0].obj.GraphObjects
-    legend = layer1_objects["Legend"]
-    if legend is not None:
+def _origin_column_letter(index: int) -> str:
+    if index < 1 or index > 26:
+        raise ValueError("XRD worksheet column index must be in A-Z")
+    return chr(ord("A") + index - 1)
+
+
+def _apply_xrd_native_text_and_axes(operations: OriginOperations, graph_name: str) -> None:
+    """Apply reviewed titles and legend as editable, native Origin objects."""
+
+    graph = quote_labtalk(graph_name)
+    configured = operations.run_labtalk(
+        f'win -a "{graph}"; '
+        'layer -s 1; layer.x.from=5; layer.x.to=80; layer.y.from=0; layer.y.to=4.6; '
+        'layer -s 2; layer.x.from=5; layer.x.to=80; layer.y.from=0; layer.y.to=4.6; '
+        'layer -s 3; layer.x.from=5; layer.x.to=80; layer.y.from=0; layer.y.to=4.6; '
+        'layer -s 1;'
+    )
+    if not configured.ok:
+        raise RuntimeError("fresh XRD OTPU axis setup failed")
+    layer = operations._graph_layer(graph_name, 1)
+    if layer is None:
+        raise RuntimeError("fresh XRD OTPU Layer1 is unavailable for the native legend")
+    try:
+        legend = layer.GraphObjects["Legend"]
+    except Exception:
+        legend = None
+    if legend is None:
+        raise RuntimeError("fresh XRD OTPU does not contain its native Layer1 legend holder")
+    try:
         legend.Text = "\\l(2)\\b( BiOBr\\-(0.5)Cl\\-(0.5))\r\n\\l(1)\\b( CuWO\\-(4))"
         legend.Left = XRD_SAMPLE_LEGEND_LEFT
         legend.Top = XRD_SAMPLE_LEGEND_TOP + XRD_SAMPLE_LEGEND_ROW_STEP
         legend.Width = XRD_SAMPLE_LEGEND_WIDTH
         legend.Height = XRD_SAMPLE_LEGEND_ROW_STEP * 2
-        _set_graph_object_format(legend)
-        legend.SetNumProp("border", 0)
-        legend.SetNumProp("frame", 0)
-        legend.SetNumProp("fill", 0)
-        legend.SetNumProp("fillarea", 0)
-    top_text = layer1_objects["Text"]
-    if top_text is not None:
-        top_text.Text = "\\b(BiCu-10)"
-        top_text.Left = XRD_SAMPLE_LEGEND_TEXT_LEFT
-        top_text.Top = XRD_SAMPLE_LEGEND_TOP
-        top_text.Width = XRD_SAMPLE_LEGEND_WIDTH
-        top_text.Height = XRD_SAMPLE_LEGEND_ROW_STEP
-        _set_graph_object_format(top_text)
-    card_text = graph[1].obj.GraphObjects["Text"]
-    if card_text is not None:
-        card_text.Text = "\\b(\\c17585584(CuWO)\\-(\\c17585584(4))\\c17585584( JCPDS card No.04-009-6293))"
+        legend.Show = 1
+    except Exception as exc:
+        raise RuntimeError(f"fresh XRD OTPU native legend setup failed: {exc}") from exc
+    _set_graph_object_format(legend)
+    for prop in ("border", "frame", "fill", "fillarea"):
+        try:
+            legend.SetNumProp(prop, 0)
+        except Exception:
+            pass
+    # The verified OTPU already owns the native XB/YL title objects.  Reusing
+    # ``label -s -xb/-yl`` here would create a second pair on some Origin
+    # builds, producing visibly overlapping titles.  Preserve the template
+    # objects and read their actual properties instead.
+    checked = operations.run_labtalk(
+        f'win -a "{graph}"; layer -s 1; '
+        'string __rdop_xrd_x_title$=xb.text$; string __rdop_xrd_y_title$=yl.text$;'
+    )
+    if not checked.ok:
+        raise RuntimeError("fresh XRD OTPU axis-title readback failed")
+    x_title = str(operations.get_labtalk_variable("__rdop_xrd_x_title$").payload.get("value") or "")
+    y_title = str(operations.get_labtalk_variable("__rdop_xrd_y_title$").payload.get("value") or "")
+    if "θ" not in x_title or "Intensity" not in y_title:
+        raise RuntimeError("fresh XRD OTPU native axis titles do not match the XRD contract")
 
 
 def _xrd_axis_title_labtalk(graph_name: str) -> str:
@@ -553,23 +686,6 @@ def _set_graph_object_format(
             graph_object.SetNumProp(prop, value)
         except Exception:
             pass
-
-
-def _enforce_template_plot_colors(graph: object) -> None:
-    layer1_plots = graph[0].plot_list()
-    if len(layer1_plots) >= 1:
-        layer1_plots[0].set_int("color", 16814848)
-        layer1_plots[0].set_int("line.width", 3)
-    if len(layer1_plots) >= 2:
-        layer1_plots[1].set_int("color", 33518174)
-        layer1_plots[1].set_int("line.width", 3)
-    card_plots = graph[1].plot_list()
-    if card_plots:
-        card_plots[0].set_int("color", 22106449)
-    top_plots = graph[2].plot_list()
-    if top_plots:
-        top_plots[0].set_int("color", 23709421)
-        top_plots[0].set_int("line.width", 3)
 
 
 def _write_metadata(
@@ -603,6 +719,8 @@ def _write_metadata(
         "figure_tif": _relative(run_root, artifacts.figure_tif) if artifacts.figure_tif.exists() else None,
         "preview_png": _relative(run_root, artifacts.preview_png) if artifacts.preview_png.exists() else None,
         "origin_reference_opju": _output_display_path(project_root, run_root, options.reference_opju),
+        "origin_reference_opju_role": "audit_compatibility_only_not_loaded_for_fresh_plot",
+        "origin_graph_template": _output_display_path(project_root, run_root, _resolve_xrd_graph_template(project_root)),
         "origin_status": _sanitize_output_value(run_root, export_status),
         "plot_type": "normalized offset XRD overlay with CuWO4 reference-card sticks",
         "manual_check_required": True,
@@ -612,7 +730,6 @@ def _write_metadata(
             "inspect PNG preview for Graph4 style, full chemical formula subscripts, requested order, and no template residue",
         ],
         "forbidden_claims": [
-            "do not assign phase automatically",
             "do not label crystal planes automatically",
             "do not claim impurity-free automatically",
             "do not infer heterojunction type or electron transfer direction from this plot",
@@ -641,7 +758,8 @@ def _write_report(
         f"- Origin OPJU: `{_relative(run_root, artifacts.origin_file) if artifacts.origin_file.exists() else 'not exported'}`",
         f"- TIF: `{_relative(run_root, artifacts.figure_tif) if artifacts.figure_tif.exists() else 'not exported'}`",
         f"- PNG preview: `{_relative(run_root, artifacts.preview_png) if artifacts.preview_png.exists() else 'not exported'}`",
-        f"- Reference OPJU: `{_output_display_path(project_root, run_root, options.reference_opju)}`",
+        f"- Reference OPJU (audit compatibility only; not loaded): `{_output_display_path(project_root, run_root, options.reference_opju)}`",
+        f"- Fresh Origin graph template: `{_output_display_path(project_root, run_root, _resolve_xrd_graph_template(project_root))}`",
         f"- CWO reference card: `{_output_display_path(project_root, run_root, options.cwo_card)}`",
         "",
         "## Series",
@@ -655,7 +773,7 @@ def _write_report(
     lines.extend(
         [
             "",
-            "No phase assignment, crystal-plane assignment, mechanism conclusion, or impurity conclusion is made by this output.",
+            "Reference-card data are retained as traceable phase-comparison evidence. No crystal-plane, mechanism, or impurity-free conclusion is made by this output.",
         ]
     )
     artifacts.report.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -680,12 +798,14 @@ def _validate_inputs(options: XrdOverlayOptions) -> None:
     ):
         if not path.exists() or not path.is_file():
             raise FileNotFoundError(f"{label} does not exist or is not a file: {path}")
-    if options.with_origin and (not options.reference_opju.exists() or not options.reference_opju.is_file()):
-        raise FileNotFoundError(f"reference_opju does not exist or is not a file: {options.reference_opju}")
 
 
 def _resolve_reference_opju(project_root: Path, reference_opju: Path) -> Path:
     return reference_opju if reference_opju.is_absolute() else (project_root / reference_opju).resolve()
+
+
+def _resolve_xrd_graph_template(project_root: Path) -> Path:
+    return (project_root / DEFAULT_XRD_GRAPH_TEMPLATE).resolve()
 
 
 def _numeric_xy_points(rows: list[list[float]]) -> list[tuple[float, float]]:

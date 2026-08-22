@@ -101,7 +101,8 @@ def test_xrd_policy_defaults_to_raw_pattern_line_not_reference_card_sticks() -> 
     assert policy.origin_plot_code == "200"
     assert "reference-card stick layer" in policy.plot_policy_reason
     assert "explicit current standard-card data" in policy.plot_policy_reason
-    assert "no automatic phase assignment" in policy.forbidden_claims
+    assert "no automatic phase assignment" not in policy.forbidden_claims
+    assert "local Jade/PDF phase matches are allowed" in policy.plot_policy_reason
     assert "no automatic crystal-plane assignment" in policy.forbidden_claims
 
 

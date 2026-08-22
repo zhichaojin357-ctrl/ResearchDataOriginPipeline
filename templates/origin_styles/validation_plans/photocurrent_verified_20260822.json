@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "product_key": "photocurrent",
+      "data_type": "photocurrent",
+      "source_opju": "templates/origin_styles/reference_opju/photocurrent.opju",
+      "graph_page": "Graph2",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/photocurrent.otpu",
+      "style_source_theme": "templates/origin_styles/format_themes/photocurrent.oth",
+      "style_snapshot": "templates/origin_styles/snapshots/photocurrent.json",
+      "binding_contract": "templates/origin_styles/binding_contracts/photocurrent.json"
+    }
+  ]
+}

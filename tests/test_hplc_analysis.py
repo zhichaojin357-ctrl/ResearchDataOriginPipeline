@@ -201,6 +201,28 @@ def test_july_17_is_light_screening_only_for_explicit_screening_folder(config: d
     )
 
 
+def test_pre_screening_data_can_be_labeled_without_being_excluded(config: dict):
+    config = deepcopy(config)
+    config["date_rules"]["exclude_before_light_screening_date"] = False
+    early = _injection(
+        "early",
+        "365 BOB 6H",
+        folder="20260701 BOB BOC 365 395 6H",
+        acquired="2026-07-01T10:00:00+08:00",
+    )
+
+    result = analysis.analyze_hplc_openlab_dataset(_analysis_dataset(early), config)
+
+    assert [row["sample_name"] for row in result["sample_results"]] == ["365 BOB 6H"]
+    assert result["sample_results"][0]["light_source"] == config["date_rules"][
+        "before_screening_label"
+    ]
+    assert not any(
+        row["reason"] == "光源筛选前数据暂不处理"
+        for row in result["excluded_data"]
+    )
+
+
 def test_wash_injection_is_excluded_from_main_analysis(config: dict):
     wash = _injection("wash", "\u51b2\u67f1\u5b50")
 
@@ -256,6 +278,53 @@ def test_target_peak_matching_selects_nearest_peak_and_preserves_ordinals(config
     assert sulfoxide["selected_peak_ordinal"] == 3
     assert matched["thioanisole"]["candidate_peak_ordinals"] == [12]
     assert matched["sulfone"]["area"] == 0.0
+
+
+def test_target_peak_matching_uses_method_specific_substrate_window(config: dict):
+    matched = analysis.match_target_peaks(
+        [{"peak_ordinal": 1, "retention_time_min": 17.2447, "area": 8416.9}],
+        config,
+        missing_can_be_zero=True,
+        method_name="乙腈水磷酸50：20：30 254NM 梯度",
+    )
+
+    substrate = matched["thioanisole"]
+    assert substrate["retention_time_min"] == pytest.approx(17.2447)
+    assert substrate["area"] == pytest.approx(8416.9)
+    assert substrate["nominal_rt_min"] == pytest.approx(17.244)
+    assert "SM反应前峰" in substrate["rt_mapping_source"]
+
+
+def test_yield_is_conversion_times_selectivity(config: dict):
+    pre_reaction = _injection("c0", "SM反应前", sequence_order=1)
+    sample = _injection("sample", "Catalyst 2H", sequence_order=2)
+    dataset = _analysis_dataset(pre_reaction, sample)
+    dataset["peaks"] = [
+        {"injection_id": "c0", "peak_ordinal": 1, "retention_time_min": 16.52, "area": 1000.0},
+        {"injection_id": "sample", "peak_ordinal": 1, "retention_time_min": 5.50, "area": 500.0},
+        {"injection_id": "sample", "peak_ordinal": 2, "retention_time_min": 7.34, "area": 100.0},
+        {"injection_id": "sample", "peak_ordinal": 3, "retention_time_min": 16.52, "area": 400.0},
+    ]
+
+    result = analysis.analyze_hplc_openlab_dataset(dataset, config)
+    row = next(item for item in result["sample_results"] if item["sample_name"] == "Catalyst 2H")
+
+    assert row["sulfoxide_yield_fraction"] == pytest.approx(
+        row["conversion_fraction"] * row["sulfoxide_selectivity_fraction"]
+    )
+
+
+def test_parameter_rows_record_method_rt_override_and_formula(config: dict):
+    rows = analysis._parameter_rows(config, "2026-08-20T00:00:00+08:00")
+
+    assert any(
+        row["category"] == "方法专用目标峰" and "50：20：30" in row["parameter"]
+        for row in rows
+    )
+    assert any(
+        row["parameter"] == "茴香亚砜产率" and row["value"] == "转化率×茴香亚砜选择性"
+        for row in rows
+    )
 
 
 def test_manual_repeat_override_cannot_cross_batch_or_condition_boundary(config: dict):

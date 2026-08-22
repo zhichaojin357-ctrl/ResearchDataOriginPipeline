@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -133,8 +134,10 @@ class OpjuStyleSnapshot:
     plot_count: int = 0
     plot_line_widths: list[float] = field(default_factory=list)
     plot_colors: list[float] = field(default_factory=list)
+    plot_line_colors: list[float] = field(default_factory=list)
     marker_shapes: list[float] = field(default_factory=list)
     marker_sizes: list[float] = field(default_factory=list)
+    plot_visibility: list[float] = field(default_factory=list)
     graph_object_positions: dict[str, dict[str, float]] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
     copied_visible_text: bool = False
@@ -152,8 +155,10 @@ class OpjuStyleSnapshot:
             "plot_count": self.plot_count,
             "plot_line_widths": list(self.plot_line_widths),
             "plot_colors": list(self.plot_colors),
+            "plot_line_colors": list(self.plot_line_colors),
             "marker_shapes": list(self.marker_shapes),
             "marker_sizes": list(self.marker_sizes),
+            "plot_visibility": list(self.plot_visibility),
             "graph_object_positions": {
                 name: dict(values) for name, values in self.graph_object_positions.items()
             },
@@ -212,8 +217,10 @@ def read_graph_style_snapshot(
     plot_names = _plot_names(operations, graph_page)
     plot_line_widths = _read_plot_properties(operations, plot_names, "-w")
     plot_colors = _read_plot_properties(operations, plot_names, "-c")
+    plot_line_colors = _read_plot_properties(operations, plot_names, "-cl")
     marker_shapes = _read_plot_properties(operations, plot_names, "-k")
     marker_sizes = _read_plot_properties(operations, plot_names, "-z")
+    plot_visibility = _read_plot_properties(operations, plot_names, "-s")
     return OpjuStyleSnapshot(
         source_opju=source_label,
         status="extracted",
@@ -226,8 +233,10 @@ def read_graph_style_snapshot(
         plot_count=len(plot_names),
         plot_line_widths=plot_line_widths,
         plot_colors=plot_colors,
+        plot_line_colors=plot_line_colors,
         marker_shapes=marker_shapes,
         marker_sizes=marker_sizes,
+        plot_visibility=plot_visibility,
         graph_object_positions=_read_graph_object_positions(operations),
         warnings=[
             "Visible scientific annotations are not copied from the exemplar.",
@@ -242,6 +251,7 @@ def apply_style_snapshot(
     snapshot: OpjuStyleSnapshot | dict[str, Any],
     *,
     apply_default_font: bool = True,
+    apply_axis_titles: bool = False,
 ) -> bool:
     layout_values = snapshot.layout_values if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("layout_values", {})
     audit_numeric = snapshot.audit_numeric_values if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("audit_numeric_values", {})
@@ -263,10 +273,54 @@ def apply_style_snapshot(
         return False
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
     operations.run_labtalk("page.kar=0; page.customwidth=1; page.customheight=1; " + " ".join(commands))
+    if apply_axis_titles:
+        audit_strings = (
+            snapshot.audit_string_values
+            if isinstance(snapshot, OpjuStyleSnapshot)
+            else snapshot.get("audit_string_values", {})
+        )
+        if isinstance(audit_strings, dict):
+            axis_commands: list[str] = []
+            x_title = _origin_rich_text_for_labtalk(audit_strings.get("xb.text$"))
+            y_title = _origin_rich_text_for_labtalk(audit_strings.get("yl.text$"))
+            if x_title:
+                axis_commands.append(f"label -s -xb {x_title};")
+            if y_title:
+                axis_commands.append(f"label -s -yl {y_title};")
+            if axis_commands:
+                operations.run_labtalk(
+                    f'win -a "{quote_labtalk(graph_name)}"; '
+                    + " ".join(axis_commands)
+                )
+                # Origin can re-anchor an axis-title object by a sub-pixel
+                # amount when ``label -s`` replaces its rich text.  Reapply
+                # the reviewed object coordinates after the text update so a
+                # detached replay keeps the exact saved/exported placement.
+                position_commands: list[str] = []
+                for key in ("xb.x", "xb.y", "yl.x", "yl.y"):
+                    number = _to_float(layout_values.get(key))
+                    if number is not None and math.isfinite(number):
+                        position_commands.append(f"{key}={number};")
+                if position_commands:
+                    operations.run_labtalk(
+                        f'win -a "{quote_labtalk(graph_name)}"; '
+                        + " ".join(position_commands)
+                    )
     _apply_plot_style_snapshot(operations, graph_name, snapshot)
     if apply_default_font and hasattr(operations, "set_graph_font"):
         operations.set_graph_font(graph_name)
     return True
+
+
+def _origin_rich_text_for_labtalk(value: object) -> str:
+    text = (
+        str(value or "")
+        .replace("/", "\\")
+        .replace("\r", " ")
+        .replace("\n", " ")
+        .strip()
+    )
+    return re.sub(r"\\+$", "", text).strip()
 
 
 def _apply_plot_style_snapshot(
@@ -279,8 +333,10 @@ def _apply_plot_style_snapshot(
         return
     widths = snapshot.plot_line_widths if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("plot_line_widths", [])
     colors = snapshot.plot_colors if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("plot_colors", [])
+    line_colors = snapshot.plot_line_colors if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("plot_line_colors", [])
     shapes = snapshot.marker_shapes if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("marker_shapes", [])
     sizes = snapshot.marker_sizes if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("marker_sizes", [])
+    visibility = snapshot.plot_visibility if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("plot_visibility", [])
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}";')
     for index, plot_name in enumerate(plot_names):
         commands: list[str] = []
@@ -292,6 +348,10 @@ def _apply_plot_style_snapshot(
             color = _to_float(colors[index])
             if color is not None and math.isfinite(color):
                 commands.append(f"set {plot_name} -c {int(round(color))};")
+        if index < len(line_colors):
+            line_color = _to_float(line_colors[index])
+            if line_color is not None and math.isfinite(line_color):
+                commands.append(f"set {plot_name} -cl {int(round(line_color))};")
         if index < len(shapes):
             shape = _to_float(shapes[index])
             if shape is not None and math.isfinite(shape):
@@ -300,6 +360,10 @@ def _apply_plot_style_snapshot(
             size = _to_float(sizes[index])
             if size is not None and math.isfinite(size):
                 commands.append(f"set {plot_name} -z {int(round(size))};")
+        if index < len(visibility):
+            shown = _to_float(visibility[index])
+            if shown is not None and math.isfinite(shown):
+                commands.append(f"set {plot_name} -s {int(round(shown))};")
         if commands:
             operations.run_labtalk(" ".join(commands))
 

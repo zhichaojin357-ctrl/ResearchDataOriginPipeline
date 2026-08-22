@@ -221,6 +221,18 @@ class TemplateProductBuilderOptions:
     compact_output: bool = False
     only_type: str | None = None
     style_replay_report: Path | None = None
+    origin_style_mode: str = "auto"
+
+
+ORIGIN_STYLE_MODES = frozenset({"auto", "otpu", "oth-json"})
+
+
+def _normalized_origin_style_mode(value: str) -> str:
+    normalized = str(value or "auto").strip().casefold()
+    if normalized not in ORIGIN_STYLE_MODES:
+        allowed = ", ".join(sorted(ORIGIN_STYLE_MODES))
+        raise ValueError(f"origin_style_mode must be one of: {allowed}")
+    return normalized
 
 
 def classify_template_candidates(paths: list[Path], *, f_drive_root: Path) -> list[TemplateCandidate]:
@@ -741,17 +753,26 @@ def run_template_product_builder_all_types(
 ) -> dict[str, object]:
     if options.asset_only and options.exemplar_driven:
         raise ValueError("asset_only and exemplar_driven are mutually exclusive")
+    origin_style_mode = _normalized_origin_style_mode(options.origin_style_mode)
     project_root = project_root.resolve()
-    style_replay_evidence = _load_independent_style_replay_evidence(
-        project_root,
-        options.style_replay_report,
-    )
     roots = root_map or build_default_root_map(project_root)
     output_root = resolve_output_root(project_root, explicit=options.output_root)
     timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
     target_types = _template_target_types(options)
+    style_replay_evidence = _load_independent_style_replay_evidence(
+        project_root,
+        options.style_replay_report,
+    )
     if options.asset_only:
-        _require_asset_only_style_integrity(project_root, target_types)
+        # A promoted OTPU is self-describing: the manifest binds the runtime
+        # asset to its exact same-data replay evidence.  Do not make normal
+        # asset-only product generation depend on a separately supplied
+        # diagnostics report, which could be stale or point at another asset.
+        # Explicit reports remain supported as additional diagnostics, but the
+        # manifest-bound record is authoritative for an active OTPU.
+        style_replay_evidence.update(
+            _require_asset_only_style_integrity(project_root, target_types)
+        )
     first_pairings = {item.product_key: item for item in load_target_pairings(options.pairing_path, roots)}
     remaining_pairings = {item.product_key: item for item in load_remaining_pairings(options.pairing_path, roots)}
     remaining_pairings = _repair_mott_pairings(remaining_pairings, roots)
@@ -915,6 +936,7 @@ def run_template_product_builder_all_types(
                 eis_strict_semicircle_branch=options.eis_strict_semicircle_branch,
                 xps_smooth_gradient_fill=options.xps_smooth_gradient_fill,
                 compact_output=options.compact_output,
+                origin_style_mode=origin_style_mode,
             )
             active_template = _select_template_xps_template_for_product(product, selection)
             if active_template.path != selection.selected.path:
@@ -1030,7 +1052,10 @@ def _merge_global_style_override(user_config: dict[str, object], override: dict[
     return merged
 
 
-def _require_asset_only_style_integrity(project_root: Path, target_types: tuple[str, ...]) -> None:
+def _require_asset_only_style_integrity(
+    project_root: Path,
+    target_types: tuple[str, ...],
+) -> dict[str, dict[str, object]]:
     manifest = load_origin_style_manifest(project_root)
     failures: list[str] = []
     if int(manifest.get("schema_version", 0) or 0) < 2:
@@ -1064,9 +1089,20 @@ def _require_asset_only_style_integrity(project_root: Path, target_types: tuple[
             or file_sha256(runtime_path) != expected_hash
         ):
             failures.append(f"{product_key}: runtime style asset does not match the manifest")
+    manifest_evidence = _load_manifest_bound_otpu_replay_evidence(
+        project_root,
+        target_types,
+    )
+    for product_key, validation in manifest_evidence.items():
+        if not bool(validation.get("ok")):
+            failures.append(
+                f"{product_key}: manifest-bound fresh-project replay evidence is invalid: "
+                f"{validation.get('reason', 'unknown reason')}"
+            )
     if failures:
         details = "; ".join(failures)
         raise ValueError(f"Asset-only style integrity check failed: {details}")
+    return manifest_evidence
 
 
 def _template_target_types(options: TemplateProductBuilderOptions) -> tuple[str, ...]:
@@ -1360,7 +1396,9 @@ def prepare_template_product(
     eis_strict_semicircle_branch: bool = False,
     xps_smooth_gradient_fill: bool = False,
     compact_output: bool = False,
+    origin_style_mode: str = "auto",
 ) -> tuple[ProductContext, dict[str, object]]:
+    origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
     product_key = pairing.product_key
     type_root = _template_type_root(run_root, product_key, compact=compact_output)
     _ensure_template_type_dirs(type_root, compact=compact_output)
@@ -1373,7 +1411,10 @@ def prepare_template_product(
     else:
         reference_dir = "reference_opju" if template.path.suffix.casefold() in {".opju", ".opj"} else "format_assets"
         reference_copy = _copy_reference(template.path, type_root / reference_dir)
-    extra: dict[str, object] = {"template": _candidate_to_dict(template)}
+    extra: dict[str, object] = {
+        "template": _candidate_to_dict(template),
+        "origin_style_mode_requested": origin_style_mode,
+    }
     product_pairing = pairing
     if product_key == "EIS":
         headers, rows, labels, eis_extra = _build_template_eis_table(
@@ -1408,11 +1449,16 @@ def prepare_template_product(
             pairing,
             template,
             xps_component_fill_mode="template_line_fill" if xps_smooth_gradient_fill else "plain",
+            origin_style_mode=origin_style_mode,
         )
         headers, rows, labels = enriched["headers"], enriched["rows"], enriched["labels"]
         extra["template_data_alignment"] = enriched["alignment"]
     else:
-        enriched = _build_template_aligned_remaining_table(pairing, template)
+        enriched = _build_template_aligned_remaining_table(
+            pairing,
+            template,
+            origin_style_mode=origin_style_mode,
+        )
         headers, rows, labels = enriched["headers"], enriched["rows"], enriched["labels"]
         extra["template_data_alignment"] = enriched["alignment"]
     if product_key not in {"EIS", "EPR"}:
@@ -1424,6 +1470,8 @@ def prepare_template_product(
             rows,
             xps_component_fill_mode="template_line_fill" if xps_smooth_gradient_fill else "plain",
             compact_output=compact_output,
+            origin_style_mode=origin_style_mode,
+            alignment=extra.get("template_data_alignment") if isinstance(extra.get("template_data_alignment"), dict) else None,
         )
     processed_data = type_root / f"{slug}.csv" if compact_output else type_root / "processed_data" / f"{slug}.csv"
     _write_csv(processed_data, headers, rows)
@@ -1457,9 +1505,14 @@ def _build_template_aligned_first_batch_table(
     template: TemplateCandidate,
     *,
     xps_component_fill_mode: str,
+    origin_style_mode: str = "auto",
 ) -> dict[str, object]:
     if pairing.product_key == "BET":
-        aligned = _build_template_bet_multisource_table(pairing, template)
+        aligned = _build_template_bet_multisource_table(
+            pairing,
+            template,
+            origin_style_mode=origin_style_mode,
+        )
         if aligned is not None:
             return aligned
     if pairing.product_key == "XRD":
@@ -1478,9 +1531,18 @@ def _build_template_aligned_first_batch_table(
     }
 
 
-def _build_template_aligned_remaining_table(pairing: TargetPairing, template: TemplateCandidate) -> dict[str, object]:
+def _build_template_aligned_remaining_table(
+    pairing: TargetPairing,
+    template: TemplateCandidate,
+    *,
+    origin_style_mode: str = "otpu",
+) -> dict[str, object]:
     if pairing.product_key in {"Raman", "UV-vis DRS / Tauc", "PL", "photocurrent", "FTIR", "Mott-Schottky"}:
-        aligned = _build_template_xy_multisource_table(pairing, template)
+        aligned = _build_template_xy_multisource_table(
+            pairing,
+            template,
+            origin_style_mode=origin_style_mode,
+        )
         if aligned is not None:
             return aligned
     headers, rows, labels = _build_remaining_processed_plot_table(pairing)
@@ -1492,68 +1554,177 @@ def _build_template_aligned_remaining_table(pairing: TargetPairing, template: Te
     }
 
 
-def _build_template_bet_multisource_table(pairing: TargetPairing, template: TemplateCandidate) -> dict[str, object] | None:
-    target_series = max(int(template.plot_count or 0), 2)
-    target_files = max(1, math.ceil(target_series / 2))
-    candidates = _template_candidate_files(
-        pairing,
-        template,
-        suffixes=(".xls", ".xlsx"),
-        exclude_name_tokens=("micdir",),
-        prefer_template_parent=True,
-        limit=max(target_files * 8, 32),
-    )
-    candidates, cohort = _select_template_bet_candidate_cohort(candidates, target_files)
+def _build_template_bet_multisource_table(
+    pairing: TargetPairing,
+    template: TemplateCandidate,
+    *,
+    origin_style_mode: str = "auto",
+) -> dict[str, object] | None:
+    """Build BET pairs from the explicitly paired real exports only.
+
+    The reviewed six-plot OTPU contract has three material-local adsorption /
+    desorption pairs.  It is safe to use only when the explicitly paired input
+    itself supplies that shape; selecting a nearby export to fill a missing
+    branch would silently change the submitted data cohort.
+    """
+
+    origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
+    candidates = _template_explicit_bet_files(pairing)
     series: list[tuple[str, list[list[float | str | None]]]] = []
     used_files: list[Path] = []
+    parsed: list[tuple[Path, str, list[list[float | str | None]], list[list[float | str | None]]]] = []
     for path in candidates:
         try:
-            headers, rows = bet_processed_table(read_table(path))
-        except Exception:
-            continue
-        if len(headers) < 2 or len(rows) < 2:
-            continue
+            source_rows = read_table(path)
+            headers, rows = bet_processed_table(source_rows)
+            if headers[:2] != ["relative_pressure_p_p0", "adsorbed_volume"]:
+                rows = _template_bet_generic_isotherm_rows(source_rows)
+                headers = ["relative_pressure_p_p0", "adsorbed_volume", "desorption_volume_optional"] if rows else headers
+        except Exception as exc:
+            raise ValueError(f"BET explicit pairing contains an unreadable source file: {path}") from exc
+        if headers[:2] != ["relative_pressure_p_p0", "adsorbed_volume"] or len(rows) < 2:
+            raise ValueError(f"BET explicit pairing contains a non-isotherm or unreadable source file: {path}")
         label = _template_bet_series_label_from_path(path)
-        # Keep adsorption and optional desorption branches as separate plots.
-        series.append((f"{label}_adsorption", [[row[0], row[1]] for row in rows if len(row) >= 2]))
-        if len(headers) >= 3:
-            desorption = [[row[0], row[2]] for row in rows if len(row) >= 3 and row[2] not in {"", None}]
-            if len(desorption) >= 2:
-                series.append((f"{label}_desorption", desorption))
+        adsorption = [[row[0], row[1]] for row in rows if len(row) >= 2 and row[0] not in {"", None} and row[1] not in {"", None}]
+        if len(adsorption) < 2:
+            raise ValueError(f"BET explicit pairing contains fewer than two adsorption points: {path}")
+        desorption = [[row[0], row[2]] for row in rows if len(row) >= 3 and row[0] not in {"", None} and row[2] not in {"", None}]
+        parsed.append((path, label, adsorption, desorption))
+
+    fixed_contract_series_count = int(template.plot_count or 0)
+    # For the verified six-curve contract, make the material order deterministic
+    # while retaining each material's adsorption/desorption adjacency.  Smaller
+    # adaptive products retain the user's explicit pairing order.
+    if len(parsed) == 3 and sum(1 + int(bool(desorption)) for _path, _label, _adsorption, desorption in parsed) == 6:
+        parsed.sort(key=lambda item: _template_bet_contract_sort_key(item[1], item[0]))
+
+    for path, label, adsorption, desorption in parsed:
+        series.append((f"{label}_adsorption", adsorption))
+        if len(desorption) >= 2:
+            series.append((f"{label}_desorption", desorption))
         used_files.append(path)
-        if len(series) >= target_series:
-            break
     if len(series) < 2:
-        return None
-    selected_series = series[:target_series]
+        raise ValueError("BET explicit pairing must provide at least two valid adsorption/desorption curves.")
     headers, rows = _template_independent_xy_table(
         "relative_pressure_p_p0",
         "quantity_adsorbed_cm3_g_stp",
-        selected_series,
+        series,
     )
     labels = {
         "x_label": "Relative Pressure (P/P_0)",
         "y_label": "Quantity Adsorbed (cm3/g STP)",
         "title": "BET isotherm exemplar",
         "plot_type": "line+symbol",
-        "legend_entries": [label.replace("_", " ") for label, _values in selected_series],
-        "notes": "Multiple real BET source exports were used to match the OPJU exemplar curve structure; no BET model conclusion is generated.",
+        "legend_entries": [label.replace("_", " ") for label, _values in series],
+        "notes": "Only explicitly paired real BET source exports are used; no BET model conclusion is generated.",
     }
     alignment = _template_alignment_payload(
         pairing,
         template,
         used_files,
-        len(selected_series),
-        "template_aligned_bet_independent_xy_coherent_material_cohort",
+        len(series),
+        "template_aligned_bet_independent_xy_explicit_material_branches",
     )
     alignment["selected_materials"] = [_template_bet_series_label_from_path(path) for path in used_files]
-    alignment["cohort_directory"] = str(cohort) if cohort is not None else ""
+    alignment.update(
+        _template_style_shape_payload(
+            requested_mode=origin_style_mode,
+            current_series_count=len(series),
+            fixed_contract_series_count=fixed_contract_series_count,
+        )
+    )
+    alignment.update(
+        {
+            "interpolation": "not_applied",
+            "smoothing": "not_applied",
+            "normalization": "not_applied",
+        }
+    )
     return {
         "headers": headers,
         "rows": rows,
         "labels": labels,
         "alignment": alignment,
     }
+
+
+def _template_explicit_bet_files(pairing: TargetPairing) -> list[Path]:
+    """Validate and return exactly the BET files authorized by the pairing."""
+
+    paths = list(pairing.data_paths)
+    if not paths:
+        raise ValueError("BET adaptive style mode requires at least one explicitly paired source file.")
+    seen: set[str] = set()
+    for path in paths:
+        if not path.is_file():
+            raise ValueError(f"BET explicit pairing contains a missing source file: {path}")
+        key = str(path.resolve()).casefold()
+        if key in seen:
+            raise ValueError(f"BET explicit pairing contains a duplicate source file: {path}")
+        seen.add(key)
+    return paths
+
+
+def _template_bet_generic_isotherm_rows(rows: list[dict[str, str]]) -> list[list[float | None]]:
+    """Accept conventional exported BET headers that the broad parser misses.
+
+    This is deliberately a narrow header alias reader, not a generic XY
+    fallback: a source remains invalid unless it explicitly identifies relative
+    pressure and quantity adsorbed columns.
+    """
+
+    if not rows:
+        return []
+    columns = list(rows[0])
+
+    def normalized(value: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "", str(value).casefold())
+
+    normalized_columns = {normalized(column): column for column in columns}
+    pressure_key = next(
+        (
+            original
+            for key, original in normalized_columns.items()
+            if key in {"relativepressurepp0", "relativepressure", "pp0", "poversep0"}
+        ),
+        None,
+    )
+    adsorption_key = next(
+        (
+            original
+            for key, original in normalized_columns.items()
+            if key in {"quantityadsorbed", "adsorbedvolume", "adsorptionvolume", "adsorbed"}
+        ),
+        None,
+    )
+    desorption_key = next(
+        (original for key, original in normalized_columns.items() if "desorption" in key),
+        None,
+    )
+    if pressure_key is None or adsorption_key is None:
+        return []
+    extracted: list[list[float | None]] = []
+    for row in rows:
+        pressure = _to_float(row.get(pressure_key))
+        adsorption = _to_float(row.get(adsorption_key))
+        desorption = _to_float(row.get(desorption_key)) if desorption_key is not None else None
+        if pressure is not None and adsorption is not None:
+            extracted.append([pressure, adsorption, desorption])
+    return extracted if len(extracted) >= 2 else []
+
+
+def _template_bet_contract_sort_key(label: str, path: Path) -> tuple[int, str]:
+    """Order the reviewed BOBC/CWO/BiCu six-curve cohort by Graph5 binding."""
+
+    normalized = str(label).casefold().replace("-", "")
+    rank = 3
+    if normalized == "bobc":
+        rank = 0
+    elif normalized == "cwo":
+        rank = 1
+    elif normalized == "bicu":
+        rank = 2
+    return rank, str(path).casefold()
 
 
 def _template_bet_series_label_from_path(path: Path) -> str:
@@ -1663,7 +1834,7 @@ def _build_template_xrd_multisource_table(pairing: TargetPairing, template: Temp
         "plot_type": "line",
         "y_tick_values": "false",
         "legend_entries": legend_entries,
-        "notes": "Multiple real XRD source exports were used where available; PDF/JCPDS reference sticks are plotted for manual review without phase assignment.",
+        "notes": "Multiple real XRD source exports were used where available; PDF/JCPDS reference sticks are plotted with card traceability, while automated local-database phase matches may be recorded separately with confidence.",
     }
     alignment = _template_alignment_payload(pairing, template, used_files, len(headers) - 1, "template_aligned_xrd_stacked_patterns_with_reference_sticks")
     alignment["visual_template_plot_count"] = max(visual_plot_count, int(template.plot_count or 0))
@@ -1817,7 +1988,24 @@ def _xrd_legend_label(label: str) -> str:
     return cleaned[:42] or "XRD"
 
 
-def _build_template_xy_multisource_table(pairing: TargetPairing, template: TemplateCandidate) -> dict[str, object] | None:
+def _build_template_xy_multisource_table(
+    pairing: TargetPairing,
+    template: TemplateCandidate,
+    *,
+    origin_style_mode: str = "otpu",
+) -> dict[str, object] | None:
+    origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
+    if pairing.product_key == "FTIR":
+        # FTIR is not a shared-X overlay.  Its reviewed reference binds three
+        # independent pairs to non-adjacent Origin columns and includes
+        # reference-derived vertical offsets.  Keep this route separate so the
+        # generic candidate scanner can never silently substitute a nearby DPT
+        # file or interpolate the three source grids.
+        return _build_template_ftir_multisource_table(
+            pairing,
+            template,
+            origin_style_mode=origin_style_mode,
+        )
     target_series = max(int(template.plot_count or 0), 1)
     suffixes = _template_xy_suffixes(pairing.product_key)
     prefer_template_parent = pairing.product_key in {"FTIR", "Mott-Schottky"} or bool(pairing.raw.get("exemplar_driven_repair"))
@@ -1829,7 +2017,12 @@ def _build_template_xy_multisource_table(pairing: TargetPairing, template: Templ
         limit=max(target_series * 4, 12),
     )
     if pairing.product_key == "photocurrent":
-        candidates = _template_photocurrent_candidate_files(pairing, template, target_series)
+        if origin_style_mode == "otpu":
+            candidates = _template_photocurrent_candidate_files(pairing, template, target_series)
+        else:
+            candidates = _template_explicit_photocurrent_files(pairing)
+            if origin_style_mode == "auto" and len(candidates) == target_series:
+                candidates.sort(key=_template_photocurrent_series_sort_key)
     if pairing.product_key == "PL":
         candidates = _template_pl_candidate_files(pairing, template, target_series)
     if pairing.product_key == "Mott-Schottky":
@@ -1845,29 +2038,288 @@ def _build_template_xy_multisource_table(pairing: TargetPairing, template: Templ
             else:
                 rows = _coerced_xy_rows(path)
         except Exception:
+            if pairing.product_key == "photocurrent" and origin_style_mode != "otpu":
+                raise
             continue
         if len(rows) < 2:
             continue
         series.append((_template_xy_series_label(pairing.product_key, path), rows))
         used_files.append(path)
-        if len(series) >= target_series:
+        if (pairing.product_key != "photocurrent" or origin_style_mode == "otpu") and len(series) >= target_series:
             break
     if not series:
         return None
     x_header, y_suffix, labels = _template_xy_labels(pairing.product_key)
     labels = dict(labels)
+    if pairing.product_key == "PL":
+        labels["legend_entries"] = [
+            str(label).strip()
+            for label, _values in series
+        ]
     if pairing.product_key == "Mott-Schottky":
         labels["legend_entries"] = [
             f"{label}Hz BiOBr0.5Cl0.5"
             for label, _values in series[:3]
         ]
-    headers, rows = _template_same_x_overlay_table(x_header, [(f"{label}_{y_suffix}", values) for label, values in series])
+    if pairing.product_key == "photocurrent":
+        # The reference photocurrent workbook contains three independent X/Y
+        # pairs (A/B, C/D, E/F), rather than one shared time column.  Keep
+        # each source's row order, repeated X values, and original sampling
+        # grid; only pad shorter sources after their final supplied row.
+        labels["legend_entries"] = [str(label).strip() for label, _values in series]
+        headers, rows = _template_independent_xy_table(x_header, y_suffix, series)
+        product_series_count = len(series)
+    else:
+        headers, rows = _template_same_x_overlay_table(x_header, [(f"{label}_{y_suffix}", values) for label, values in series])
+        product_series_count = len(headers) - 1
+    alignment = _template_alignment_payload(
+        pairing,
+        template,
+        used_files,
+        product_series_count,
+        f"template_aligned_{safe_name(pairing.product_key)}_adjacent_sources",
+    )
+    alignment.update(
+        _template_style_shape_payload(
+            requested_mode=origin_style_mode,
+            current_series_count=product_series_count,
+            fixed_contract_series_count=int(template.plot_count or 0),
+        )
+    )
+    if pairing.product_key == "photocurrent":
+        alignment.update(
+            {
+                "interpolation": "not_applied",
+                "smoothing": "not_applied",
+                "normalization": "not_applied",
+            }
+        )
     return {
         "headers": headers,
         "rows": rows,
         "labels": labels,
-        "alignment": _template_alignment_payload(pairing, template, used_files, len(headers) - 1, f"template_aligned_{safe_name(pairing.product_key)}_adjacent_sources"),
+        "alignment": alignment,
     }
+
+
+def _project_ftir_binding_contract_path() -> Path:
+    project_root = Path(__file__).resolve().parents[2]
+    return origin_style_manifest_path(project_root).parent / "binding_contracts" / "FTIR.json"
+
+
+def _load_ftir_verified_binding_contract() -> dict[str, object]:
+    """Load and validate the reviewed FTIR source-to-plot contract.
+
+    The vertical shifts are measurements of the reviewed reference's plotted
+    values.  They are deliberately not duplicated in code: a missing, stale,
+    or structurally incompatible contract must prevent FTIR construction.
+    """
+
+    contract_path = _project_ftir_binding_contract_path()
+    try:
+        raw = json.loads(contract_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(f"Reviewed FTIR binding contract is unavailable: {contract_path}") from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Reviewed FTIR binding contract is unreadable: {contract_path}") from exc
+    contracts = raw.get("contracts") if isinstance(raw, dict) else None
+    matching = [item for item in contracts or [] if isinstance(item, dict) and item.get("product_key") == "FTIR"]
+    if len(matching) != 1:
+        raise ValueError("Reviewed FTIR binding contract must contain exactly one FTIR entry.")
+    contract = matching[0]
+    source_schema = contract.get("source_schema")
+    if not isinstance(source_schema, dict):
+        raise ValueError("Reviewed FTIR binding contract has no source_schema.")
+
+    required_labels = ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"]
+    required_plot_bindings = [
+        (1, 1, "Book2_A", "Book2_B", 1),
+        (1, 2, "Book2_E", "Book2_F", 2),
+        (1, 3, "Book2_G", "Book2_H", 3),
+    ]
+    expected_schema = {
+        "status": "ready",
+        "layout": "paired_xy_columns",
+        "worksheet_layout": "one_sheet_three_independent_xy_pairs_with_reserved_cd",
+        "source_csv_indices": [0, 1, 2, 3, 4, 5],
+        "x_header_suffix": "_wavenumber_cm-1",
+        "y_header_suffix": "_transmittance",
+        "source_series_labels": required_labels,
+        "plot_type": "line",
+        "group_plots": False,
+    }
+    for key, expected in expected_schema.items():
+        if source_schema.get(key) != expected:
+            raise ValueError(f"Reviewed FTIR binding contract has incompatible {key!r}.")
+    if int(contract.get("source_series_count") or 0) != len(required_labels):
+        raise ValueError("Reviewed FTIR binding contract must bind exactly three source series.")
+    transform = str(source_schema.get("transform") or "").casefold()
+    if not all(token in transform for token in ("independent", "without_interpolation", "smoothing", "normalization")):
+        raise ValueError("Reviewed FTIR binding contract does not prohibit grid-altering transforms.")
+
+    raw_to_plotted = source_schema.get("raw_to_plotted_vertical_offsets")
+    annotations = source_schema.get("last_origin_curve_translate_annotations")
+    if not isinstance(raw_to_plotted, list) or not isinstance(annotations, list) or len(raw_to_plotted) != 3 or len(annotations) != 3:
+        raise ValueError("Reviewed FTIR binding contract has incomplete vertical-offset evidence.")
+    try:
+        raw_offsets = [float(value) for value in raw_to_plotted]
+        translate_annotations = [float(value) for value in annotations]
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Reviewed FTIR binding contract contains nonnumeric vertical offsets.") from exc
+    if not all(math.isfinite(value) for value in [*raw_offsets, *translate_annotations]):
+        raise ValueError("Reviewed FTIR binding contract contains nonfinite vertical offsets.")
+
+    plots = contract.get("plots")
+    if not isinstance(plots, list):
+        raise ValueError("Reviewed FTIR binding contract has no plot bindings.")
+    actual_plot_bindings = sorted(
+        (
+            int(item.get("layer_index") or 0),
+            int(item.get("plot_index") or 0),
+            str(item.get("x_dataset") or ""),
+            str(item.get("y_dataset") or ""),
+            int(item.get("source_series_index") or 0),
+        )
+        for item in plots
+        if isinstance(item, dict)
+    )
+    if actual_plot_bindings != required_plot_bindings:
+        raise ValueError("Reviewed FTIR binding contract has incompatible Book2 X/Y plot bindings.")
+    return {
+        "source_schema": source_schema,
+        "raw_to_plotted_vertical_offsets": raw_offsets,
+        "last_origin_curve_translate_annotations": translate_annotations,
+    }
+
+
+def _template_ftir_series_label(path: Path) -> str:
+    """Map only the reviewed FTIR cohort's material aliases to stable labels."""
+
+    # Deliberately inspect the filename first, then only its direct material
+    # directory.  A cohort directory may contain all three aliases (for
+    # example ``BOBC+CWO+BiCu-10``) and must not decide every source's label.
+    for value in (path.stem, path.parent.name):
+        text = value.casefold()
+        compact = re.sub(r"[^a-z0-9]+", "", text)
+        if "bobc" in compact:
+            return "BiOBr0.5Cl0.5"
+        if "cwo" in compact or "cuwo4" in compact:
+            return "CuWO4"
+        if "bicu" in compact or re.search(r"(?:^|[^a-z0-9])bc(?:[._-]|$)", text):
+            return "BiCu-10"
+    raise ValueError(f"FTIR explicit pairing path cannot be assigned to a reviewed material: {path}")
+
+
+def _template_ftir_candidate_files(
+    pairing: TargetPairing,
+    *,
+    require_full_contract: bool = True,
+) -> list[Path]:
+    """Use only explicitly paired FTIR sources, ordered by the reviewed contract."""
+
+    contract = _load_ftir_verified_binding_contract()
+    labels = list(contract["source_schema"]["source_series_labels"])
+    explicit_paths = list(pairing.data_paths)
+    if require_full_contract and len(explicit_paths) != len(labels):
+        raise ValueError(f"FTIR requires exactly {len(labels)} explicitly paired .dpt files; got {len(explicit_paths)}.")
+    if not explicit_paths:
+        raise ValueError("FTIR requires at least one explicitly paired .dpt file.")
+    if len(explicit_paths) > len(labels):
+        raise ValueError(f"FTIR supports only the {len(labels)} reviewed material labels; got {len(explicit_paths)} files.")
+    labelled: dict[str, Path] = {}
+    for path in explicit_paths:
+        if not path.is_file() or path.suffix.casefold() != ".dpt":
+            raise ValueError(f"FTIR explicit pairing must contain an existing .dpt file: {path}")
+        label = _template_ftir_series_label(path)
+        if label in labelled:
+            raise ValueError(f"FTIR explicit pairing contains more than one {label} source.")
+        labelled[label] = path
+    missing = [label for label in labels if label not in labelled]
+    if require_full_contract and missing:
+        raise ValueError(f"FTIR explicit pairing is missing reviewed materials: {', '.join(missing)}.")
+    return [labelled[label] for label in labels if label in labelled]
+
+
+def _build_template_ftir_multisource_table(
+    pairing: TargetPairing,
+    template: TemplateCandidate,
+    *,
+    origin_style_mode: str = "otpu",
+) -> dict[str, object]:
+    origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
+    contract = _load_ftir_verified_binding_contract()
+    source_schema = dict(contract["source_schema"])
+    labels_in_contract = list(source_schema["source_series_labels"])
+    fixed_contract_count = len(labels_in_contract)
+    if int(template.plot_count or fixed_contract_count) != fixed_contract_count:
+        raise ValueError("FTIR template plot count is incompatible with the reviewed three-series binding contract.")
+    files = _template_ftir_candidate_files(
+        pairing,
+        require_full_contract=origin_style_mode == "otpu",
+    )
+    active_labels = [_template_ftir_series_label(path) for path in files]
+    offsets = list(contract["raw_to_plotted_vertical_offsets"])
+    offsets_by_label = dict(zip(labels_in_contract, offsets, strict=True))
+    annotations_by_label = dict(
+        zip(labels_in_contract, list(contract["last_origin_curve_translate_annotations"]), strict=True)
+    )
+    series: list[tuple[str, list[list[float | str | None]]]] = []
+    for label, path in zip(active_labels, files, strict=True):
+        offset = offsets_by_label[label]
+        source_rows = _coerced_xy_rows(path)
+        plotted_rows: list[list[float | str | None]] = []
+        for row in source_rows:
+            y_value = _to_float(row[1]) if len(row) >= 2 else None
+            if y_value is None:
+                raise ValueError(f"FTIR source row is not a numeric X/Y pair: {path}")
+            # Apply the reviewed raw-to-final-plot offset pointwise.  X values,
+            # order, duplicate positions, and independent sampling grids stay
+            # exactly as supplied by this source file.
+            plotted_rows.append([row[0], y_value + offset])
+        series.append((str(label), plotted_rows))
+    headers, rows = _template_independent_xy_table(
+        str(source_schema["x_header_suffix"])[1:],
+        str(source_schema["y_header_suffix"])[1:],
+        series,
+    )
+    expected_headers = [
+        f"{label}{source_schema['x_header_suffix']}"
+        for label in active_labels
+    ]
+    expected_headers = [item for pair in zip(expected_headers, [f"{label}{source_schema['y_header_suffix']}" for label in active_labels], strict=True) for item in pair]
+    if headers != expected_headers:
+        raise ValueError("FTIR processed CSV headers are incompatible with the reviewed binding contract.")
+    _x_header, _y_suffix, labels = _template_xy_labels("FTIR")
+    labels = dict(labels)
+    labels["legend_entries"] = [str(label) for label in active_labels]
+    alignment = _template_alignment_payload(
+        pairing,
+        template,
+        files,
+        len(series),
+        "template_aligned_ftir_explicit_independent_xy_with_reviewed_raw_to_plotted_offsets",
+    )
+    alignment.update(
+        {
+            "binding_contract": "templates/origin_styles/binding_contracts/FTIR.json",
+            "source_schema_layout": source_schema["layout"],
+            "source_column_indices": list(range(len(active_labels) * 2)),
+            "raw_to_plotted_vertical_offsets": [offsets_by_label[label] for label in active_labels],
+            "last_origin_curve_translate_annotations": [annotations_by_label[label] for label in active_labels],
+            "offset_application": "pointwise_y_plus_raw_to_plotted_offset",
+            "interpolation": "not_applied",
+            "smoothing": "not_applied",
+            "normalization": "not_applied",
+        }
+    )
+    alignment.update(
+        _template_style_shape_payload(
+            requested_mode=origin_style_mode,
+            current_series_count=len(series),
+            fixed_contract_series_count=fixed_contract_count,
+        )
+    )
+    return {"headers": headers, "rows": rows, "labels": labels, "alignment": alignment}
 
 
 def _template_same_x_overlay_table(
@@ -2085,6 +2537,18 @@ def _template_photocurrent_candidate_files(pairing: TargetPairing, template: Tem
     return candidates[:target_series]
 
 
+def _template_explicit_photocurrent_files(pairing: TargetPairing) -> list[Path]:
+    """Return exactly explicitly paired photocurrent sources; never scan neighbours."""
+
+    paths = _template_unique_paths(list(pairing.data_paths))
+    if not paths:
+        raise ValueError("Photocurrent adaptive style mode requires at least one explicitly paired source file.")
+    for path in paths:
+        if not path.is_file() or path.suffix.casefold() not in {".txt", ".csv"}:
+            raise ValueError(f"Photocurrent explicit pairing contains an invalid source file: {path}")
+    return paths
+
+
 def _template_numbered_series_sort_key(path: Path) -> tuple[int, str]:
     match = re.match(r"^\s*(\d+)", path.stem)
     return (int(match.group(1)) if match else 10_000, path.name.casefold())
@@ -2109,12 +2573,34 @@ def _template_photocurrent_series_sort_key(path: Path) -> tuple[int, str]:
 
 def _template_photocurrent_series_label(path: Path) -> str:
     parent_label = _canonical_material_label(path.parent.name)
-    if parent_label.casefold() == "bicu":
+    parent_key = parent_label.casefold()
+    if parent_key == "bicu":
         for parent in path.parents:
             match = re.search(r"bicu\s*[-_]?\s*(\d+(?:\.\d+)?)", parent.name, re.IGNORECASE)
             if match:
                 return f"BiCu-{match.group(1)}"
-    return parent_label or _template_series_label_from_path(path)
+    if parent_key in {"bobc", "cwo", "bc", "bicu"} or re.fullmatch(
+        r"bicu-\d+(?:\.\d+)?",
+        parent_key,
+    ):
+        return parent_label
+
+    # A valid photocurrent batch can store several explicitly selected samples
+    # in one cohort directory.  Such a directory name often lists all materials
+    # and therefore cannot identify an individual trace.  Prefer the material
+    # token in each file name after removing the acquisition index and OCP tag;
+    # fall back to the full file stem so the resulting CSV headers remain
+    # current-sample-specific and unique instead of duplicating the parent name.
+    stem_without_ocp = re.sub(
+        r"(?i)(?:[-_\s]*\(?\s*ocp\s*\)?)+",
+        "",
+        path.stem,
+    ).strip(" -_()")
+    without_index = re.sub(r"^\s*\d+\s*[-_]\s*", "", stem_without_ocp).strip(
+        " -_()"
+    )
+    filename_label = _canonical_material_label(without_index or stem_without_ocp)
+    return filename_label or _template_series_label_from_path(path)
 
 
 def _canonical_material_label(value: str) -> str:
@@ -2239,6 +2725,28 @@ def _template_alignment_payload(
     }
 
 
+def _template_style_shape_payload(
+    *,
+    requested_mode: str,
+    current_series_count: int,
+    fixed_contract_series_count: int,
+) -> dict[str, object]:
+    requested_mode = _normalized_origin_style_mode(requested_mode)
+    exact_shape = int(current_series_count) == int(fixed_contract_series_count)
+    selected_mode = (
+        "otpu"
+        if requested_mode == "otpu" or (requested_mode == "auto" and exact_shape)
+        else "oth-json"
+    )
+    return {
+        "style_execution_mode_requested": requested_mode,
+        "style_execution_mode_selected": selected_mode,
+        "current_series_count": int(current_series_count),
+        "fixed_contract_series_count": int(fixed_contract_series_count),
+        "fixed_contract_exact_shape": exact_shape,
+    }
+
+
 def _write_template_origin_processing_plan(
     pairing: TargetPairing,
     type_root: Path,
@@ -2248,12 +2756,51 @@ def _write_template_origin_processing_plan(
     *,
     xps_component_fill_mode: str = "plain",
     compact_output: bool = False,
+    origin_style_mode: str = "auto",
+    alignment: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
     if pairing.product_key.startswith("XPS"):
-        return _write_template_xps_origin_processing_plan(pairing, type_root, slug, xps_component_fill_mode=xps_component_fill_mode, compact_output=compact_output)
-    if pairing.product_key == "XRD":
-        return _write_template_xrd_origin_processing_plan(type_root, slug, headers, rows, compact_output=compact_output)
-    return _write_template_identity_origin_processing_plan(pairing.product_key, type_root, slug, headers, rows, compact_output=compact_output)
+        plan = _write_template_xps_origin_processing_plan(pairing, type_root, slug, xps_component_fill_mode=xps_component_fill_mode, compact_output=compact_output)
+    elif pairing.product_key == "XRD":
+        plan = _write_template_xrd_origin_processing_plan(type_root, slug, headers, rows, compact_output=compact_output)
+    elif pairing.product_key == "FTIR":
+        plan = _write_template_ftir_origin_processing_plan(type_root, slug, headers, rows, compact_output=compact_output)
+    else:
+        plan = _write_template_identity_origin_processing_plan(pairing.product_key, type_root, slug, headers, rows, compact_output=compact_output)
+    shape = dict(alignment or {})
+    current_series_count = int(
+        shape.get("current_series_count")
+        or (len(headers) // 2 if pairing.product_key in {"FTIR", "photocurrent"} else max(len(headers) - 1, 0))
+    )
+    fixed_contract_series_count = int(shape.get("fixed_contract_series_count") or current_series_count)
+    plan.update(
+        _template_style_shape_payload(
+            requested_mode=origin_style_mode,
+            current_series_count=current_series_count,
+            fixed_contract_series_count=fixed_contract_series_count,
+        )
+    )
+    plan.update(
+        {
+            "interpolation": str(shape.get("interpolation") or plan.get("interpolation") or "not_applied"),
+            "smoothing": str(shape.get("smoothing") or plan.get("smoothing") or "not_applied"),
+            "normalization": str(shape.get("normalization") or plan.get("normalization") or "not_applied"),
+        }
+    )
+    if pairing.product_key == "FTIR":
+        for key in (
+            "raw_to_plotted_vertical_offsets",
+            "last_origin_curve_translate_annotations",
+            "offset_application",
+        ):
+            if key in shape:
+                plan[key] = shape[key]
+    if not compact_output:
+        plan_path = type_root / "metadata" / "origin_processing_plan.json"
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+    return plan
 
 
 def _write_template_identity_origin_processing_plan(
@@ -2289,6 +2836,53 @@ def _write_template_identity_origin_processing_plan(
     }
     if not compact_output:
         plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+    return plan
+
+
+def _write_template_ftir_origin_processing_plan(
+    type_root: Path,
+    slug: str,
+    headers: list[str],
+    rows: list[list[float | str | None]],
+    *,
+    compact_output: bool = False,
+) -> dict[str, object]:
+    """Record the already-applied FTIR reference offsets in product metadata.
+
+    The Origin plan remains an identity copy: the source-to-final plotted-Y
+    transformation was deliberately performed while constructing the explicit
+    independent XY table, before the executor binds Book2 A/B, E/F and G/H.
+    """
+
+    contract = _load_ftir_verified_binding_contract()
+    plan = _write_template_identity_origin_processing_plan(
+        "FTIR",
+        type_root,
+        slug,
+        headers,
+        rows,
+        compact_output=compact_output,
+    )
+    plan.update(
+        {
+            "processing_kind": "ftir_explicit_independent_xy_preapplied_reviewed_offsets",
+            "vertical_offset_source": "templates/origin_styles/binding_contracts/FTIR.json",
+            "raw_to_plotted_vertical_offsets": list(contract["raw_to_plotted_vertical_offsets"]),
+            "last_origin_curve_translate_annotations": list(contract["last_origin_curve_translate_annotations"]),
+            "offset_application": "pointwise_y_plus_raw_to_plotted_offset_before_Origin_import",
+            "interpolation": "not_applied",
+            "smoothing": "not_applied",
+            "normalization": "not_applied",
+            "review_policy": (
+                "Each FTIR source keeps its original independent X/Y row sequence; "
+                "only the reviewed raw-to-plotted vertical offset is applied. "
+                "Origin translate annotations are audit evidence and are not reapplied."
+            ),
+        }
+    )
+    if not compact_output:
+        plan_path = type_root / "metadata" / "origin_processing_plan.json"
         plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     return plan
 
@@ -2923,6 +3517,36 @@ def _template_origin_processing_script(book_name: str, raw_column_count: int, tr
 
 
 def _create_template_epr_origin_processed_graph(operations: object, product: ProductContext) -> dict[str, object]:
+    processed = _prepare_template_epr_origin_processed_workbook(operations, product)
+    if not processed.get("ok"):
+        return processed
+    book_name = str(processed["book_name"])
+    final_headers = [str(value) for value in processed["headers"]]
+    graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
+    created = operations.create_graph(graph_name, book_name, "Sheet1", 1, 11, plot_type=product.plot_type)
+    if not getattr(created, "ok", False):
+        return {"ok": False, "message": getattr(created, "message", "EPR Origin graph creation failed")}
+    graph_name = str(created.payload["graph_name"])
+    for column_index in (12, 13):
+        added = operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
+        if not getattr(added, "ok", False):
+            return {"ok": False, "message": getattr(added, "message", f"EPR plot add failed for column {column_index}")}
+    return {
+        "ok": True,
+        "headers": final_headers,
+        "book_name": book_name,
+        "graph_name": graph_name,
+        "origin_processing": dict(processed["origin_processing"]),
+    }
+
+
+def _prepare_template_epr_origin_processed_workbook(operations: object, product: ProductContext) -> dict[str, object]:
+    """Run the single approved EPR Origin transform and retain its workbook.
+
+    Both the legacy graph path and the detached verified-OTPU path use this
+    helper, so baseline correction, seven-point AAV smoothing and offsets stay
+    byte-for-byte in the one LabTalk implementation below.
+    """
     plan_path = _template_epr_origin_processing_plan_path(product)
     if not plan_path.is_file():
         return {"ok": False, "message": f"EPR Origin processing plan not found: {plan_path}"}
@@ -2984,20 +3608,10 @@ def _create_template_epr_origin_processed_graph(operations: object, product: Pro
             columns[12],
         ],
     )
-    graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
-    created = operations.create_graph(graph_name, book_name, "Sheet1", 1, 11, plot_type=product.plot_type)
-    if not getattr(created, "ok", False):
-        return {"ok": False, "message": getattr(created, "message", "EPR Origin graph creation failed")}
-    graph_name = str(created.payload["graph_name"])
-    for column_index in (12, 13):
-        added = operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
-        if not getattr(added, "ok", False):
-            return {"ok": False, "message": getattr(added, "message", f"EPR plot add failed for column {column_index}")}
     return {
         "ok": True,
         "headers": final_headers,
         "book_name": book_name,
-        "graph_name": graph_name,
         "origin_processing": {
             "required": True,
             "applied": True,
@@ -3331,7 +3945,7 @@ def _build_template_eis_overlay_table(
         "y_label": "-Z'' (kOhm)",
         "title": "EIS measured overlay",
         "plot_type": "line+symbol",
-        "legend_entries": ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"],
+        "legend_entries": legend_entries[2:5],
         "notes": "Measured multi-source Nyquist overlay; equivalent-circuit interpretation requires manual review.",
     }
     overlay = {
@@ -3339,6 +3953,8 @@ def _build_template_eis_overlay_table(
         "expected_plot_count": expected_plot_count,
         "plotted_source_count": len(source_files),
         "series_labels": legend_entries,
+        "visible_plot_indices": [3, 4, 5],
+        "visible_series_labels": legend_entries[2:5],
         "selection_policy": "Select one reviewed real EIS source family with exactly the template plot count; never duplicate or synthesize curves.",
     }
     return headers, rows, labels, {"eis_cleaning": eis_metadata, "eis_overlay": overlay}
@@ -3475,7 +4091,10 @@ def _build_template_epr_table(
         "review_policy": "processed in Origin for visualization/manual review only; no radical assignment or mechanism conclusion",
     }
     plan_path.parent.mkdir(parents=True, exist_ok=True)
-    plan_path.write_text(json.dumps(processing_plan, ensure_ascii=False, indent=2), encoding="utf-8")
+    plan_path.write_text(
+        json.dumps(_safe_metadata_payload(processing_plan), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     headers = ["magnetic_field", *[str(trace["label"]) for trace in traces]]
     rows = [[row[0], *row[1:]] for row in raw_rows]
     labels = {
@@ -4067,6 +4686,132 @@ def _to_float(value: object) -> float | None:
     return number if math.isfinite(number) else None
 
 
+def _adaptive_oth_json_detached_acceptance(
+    export_status: dict[str, object],
+) -> dict[str, object]:
+    """Validate current-product evidence for detached variable-cardinality OTH+JSON."""
+
+    processing = (
+        export_status.get("origin_processing")
+        if isinstance(export_status.get("origin_processing"), dict)
+        else {}
+    )
+    mode = str(
+        processing.get("style_execution_mode")
+        or export_status.get("style_execution_mode")
+        or ""
+    )
+    if mode != "variable_structure_oth_json":
+        return {"ok": False, "applicable": False, "reasons": []}
+    validation = (
+        export_status.get("adaptive_oth_json_validation")
+        if isinstance(export_status.get("adaptive_oth_json_validation"), dict)
+        else processing.get("adaptive_oth_json_validation")
+        if isinstance(processing.get("adaptive_oth_json_validation"), dict)
+        else {}
+    )
+    tif = (
+        export_status.get("tif_resolution_evidence")
+        if isinstance(export_status.get("tif_resolution_evidence"), dict)
+        else processing.get("tif_resolution_evidence")
+        if isinstance(processing.get("tif_resolution_evidence"), dict)
+        else {}
+    )
+    conformance = export_status.get("conformance") if isinstance(export_status.get("conformance"), dict) else {}
+    product_style = export_status.get("product_style") if isinstance(export_status.get("product_style"), dict) else {}
+    strict_readback = export_status.get("strict_style_readback") if isinstance(export_status.get("strict_style_readback"), dict) else {}
+    reasons: list[str] = []
+    if export_status.get("ok") is not True:
+        reasons.append("adaptive OTH+JSON Origin export status is not ok")
+    if validation.get("ok") is not True:
+        reasons.append("adaptive OTH+JSON validation is not ok")
+    current_count = _to_float(validation.get("current_csv_pair_count"))
+    reopened_count = _to_float(validation.get("reopened_plot_count"))
+    if current_count is None or current_count <= 0 or current_count != reopened_count:
+        reasons.append("current CSV pair count does not match reopened plot count")
+    if (
+        validation.get("current_plot_values_match_csv") is not None
+        and validation.get("current_plot_values_match_csv") is not True
+    ):
+        reasons.append("reopened plot X/Y values were not proven equal to the current CSV")
+    if validation.get("saved_reopened") is not True:
+        reasons.append("adaptive OTH+JSON OPJU was not saved and reopened")
+    if validation.get("one_to_one_claim_allowed") is not False:
+        reasons.append("adaptive OTH+JSON validation did not explicitly forbid one-to-one claims")
+    if processing.get("reference_opju_loaded") is not False:
+        reasons.append("reference OPJU was not explicitly excluded from the detached run")
+    if processing.get("reference_opju_used_as_product_base") is not False:
+        reasons.append("reference OPJU was not explicitly excluded as the product base")
+    if not _native_600dpi_evidence_passes(tif):
+        reasons.append("native 600 dpi TIFF evidence is missing or invalid")
+    conformance_reasons = _template_conformance_acceptance_reasons(conformance)
+    if str(conformance.get("status") or "").casefold() != "pass" or conformance_reasons:
+        reasons.append("adaptive OTH+JSON style conformance did not pass")
+    relevant_readback = _relevant_strict_readback_values(
+        strict_readback,
+        template_base_mode=False,
+        saved_style_asset_mode=True,
+        preserve_exemplar_exact=False,
+        axis_title_bold_required=_export_exemplar_axis_title_bold_required(export_status),
+        exemplar_style=export_status.get("exemplar_style"),
+        product_style=product_style,
+    )
+    if not product_style or not relevant_readback or not all(bool(value) for value in relevant_readback.values()):
+        reasons.append("adaptive OTH+JSON strict style readback did not pass")
+    return {
+        "ok": not reasons,
+        "applicable": True,
+        "reasons": reasons,
+        "current_csv_pair_count": int(current_count) if current_count is not None else 0,
+        "reopened_plot_count": int(reopened_count) if reopened_count is not None else 0,
+    }
+
+
+def _native_600dpi_evidence_passes(evidence: dict[str, object]) -> bool:
+    requested = _to_float(evidence.get("requested_dpi"))
+    width = _to_float(evidence.get("width_px"))
+    height = _to_float(evidence.get("height_px"))
+    expected_width = _to_float(evidence.get("expected_width_px"))
+    expected_height = _to_float(evidence.get("expected_height_px"))
+    tolerance_x = _to_float(evidence.get("pixel_tolerance_x"))
+    tolerance_y = _to_float(evidence.get("pixel_tolerance_y"))
+    tagged_x = _to_float(evidence.get("tagged_dpi_x"))
+    tagged_y = _to_float(evidence.get("tagged_dpi_y"))
+    effective_x = _to_float(evidence.get("effective_dpi_x"))
+    effective_y = _to_float(evidence.get("effective_dpi_y"))
+    required = (
+        requested,
+        width,
+        height,
+        expected_width,
+        expected_height,
+        tolerance_x,
+        tolerance_y,
+        tagged_x,
+        tagged_y,
+        effective_x,
+        effective_y,
+    )
+    if any(value is None for value in required) or requested != 600:
+        return False
+    assert all(value is not None for value in required)
+    return bool(
+        width > 0
+        and height > 0
+        and expected_width > 0
+        and expected_height > 0
+        and tolerance_x >= 0
+        and tolerance_y >= 0
+        and abs(width - expected_width) <= tolerance_x
+        and abs(height - expected_height) <= tolerance_y
+        and abs(tagged_x - 600) <= 1.0
+        and abs(tagged_y - 600) <= 1.0
+        and abs(effective_x - 600) <= 2.0
+        and abs(effective_y - 600) <= 2.0
+        and str(evidence.get("sensitive_metadata_scan") or "") == "pass"
+    )
+
+
 def _build_template_acceptance(
     product: ProductContext,
     export_status: dict[str, object],
@@ -4083,13 +4828,17 @@ def _build_template_acceptance(
     saved_format_theme_mode = _is_saved_format_theme_origin_status(export_status)
     cached_style_package_mode = _is_cached_style_package_origin_status(export_status)
     verified_graph_template_mode = _is_verified_graph_template_origin_status(export_status)
+    adaptive_oth_json_validation = _adaptive_oth_json_detached_acceptance(export_status)
+    adaptive_oth_json_mode = bool(adaptive_oth_json_validation.get("ok"))
     saved_style_asset_mode = (
         saved_format_theme_mode
         or cached_style_package_mode
         or verified_graph_template_mode
     )
     has_artifacts = core_artifacts_available and (
-        independent_reference_available or verified_graph_template_mode
+        independent_reference_available
+        or verified_graph_template_mode
+        or adaptive_oth_json_mode
     )
     origin_processing = (
         export_status.get("origin_processing")
@@ -4145,10 +4894,16 @@ def _build_template_acceptance(
     notes: list[str] = []
     if not core_artifacts_available:
         notes.append("required artifact missing or empty")
-    if not independent_reference_available and not verified_graph_template_mode:
+    if (
+        not independent_reference_available
+        and not verified_graph_template_mode
+        and not adaptive_oth_json_mode
+    ):
         notes.append(
             "independent reference preview missing or invalid; the generated product preview cannot serve as its own reference"
         )
+        if str(origin_processing.get("style_execution_mode") or "") == "variable_structure_oth_json":
+            notes.extend(str(value) for value in adaptive_oth_json_validation.get("reasons", []))
     if not line_width_ok:
         notes.append(
             "line width readback did not match the exemplar"
@@ -4652,8 +5407,8 @@ def _write_template_per_type_report(
         f"- Conformance status: {conformance.get('status', 'not_read_back')}",
         f"- Strict style readback: {strict_readback}",
         f"- XPS component fill: {xps_fill}",
-        f"- Origin-side processing: {origin_processing}",
-        f"- EPR Origin processing: {epr_processing}",
+        f"- Origin-side processing: {_template_origin_processing_report_summary(origin_processing)}",
+        f"- EPR Origin processing: {_template_origin_processing_report_summary(epr_processing)}",
         f"- Visual acceptance: {acceptance.visual_acceptance}",
         f"- Line width acceptance: {acceptance.line_width_acceptance}",
         f"- Axis title acceptance: {acceptance.axis_title_acceptance}",
@@ -4736,6 +5491,32 @@ def _write_template_per_type_report(
     )
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return path
+
+
+def _template_origin_processing_report_summary(value: dict[str, object]) -> dict[str, object]:
+    """Keep the human report concise without copying internal bindings or paths."""
+    summary = {
+        key: value[key]
+        for key in (
+            "required",
+            "applied",
+            "method",
+            "runtime_asset_kind",
+            "runtime_asset_path",
+            "neutral_runtime",
+            "reference_opju_used_as_product_base",
+            "reference_opju_loaded",
+        )
+        if key in value
+    }
+    current_data = value.get("current_data_validation")
+    if isinstance(current_data, dict):
+        summary["current_data_validation"] = {
+            key: current_data[key]
+            for key in ("ok", "status", "message", "expected_plot_count", "actual_plot_count")
+            if key in current_data
+        }
+    return _safe_metadata_payload(summary)
 
 
 def _template_product_summary(
@@ -4912,6 +5693,9 @@ def _write_template_preview_comparison(
         generated = _resolve_run_relative_artifact(run_root, product.get("preview_png"))
         side_by_side = comparisons / f"{safe_name(product_type)}_template_vs_generated.png"
         metadata = _read_template_product_metadata(product, run_root)
+        origin_status = metadata.get("origin_status") if isinstance(metadata.get("origin_status"), dict) else {}
+        adaptive_detached_validation = _adaptive_oth_json_detached_acceptance(origin_status)
+        adaptive_detached_asset = bool(adaptive_detached_validation.get("ok"))
         reference_ok = _independent_preview_path_available(reference, generated)
         generated_ok = generated.exists() and generated.stat().st_size > 0
         ready = False
@@ -4959,9 +5743,10 @@ def _write_template_preview_comparison(
             if saved_style_asset_mode
             else {"ok": True, "reason": "not_required_for_this_template_mode"}
         )
-        validated_detached_asset = bool(
+        validated_graph_template_asset = bool(
             verified_graph_template_mode and replay_validation.get("ok")
         )
+        validated_detached_asset = validated_graph_template_asset or adaptive_detached_asset
         binding_evidence_ready = ready or validated_detached_asset
         embedded_snapshot_mode = _is_embedded_template_snapshot_preview_product(product, metadata)
         xrd_clean_rebuild_mode = _is_xrd_clean_rebuild_preview_product(product, metadata)
@@ -4988,27 +5773,37 @@ def _write_template_preview_comparison(
         else:
             strict_reasons = _template_style_data_binding_reasons(
                 ready=binding_evidence_ready,
-                plot_count_delta=plot_count_delta,
+                plot_count_delta=0 if adaptive_detached_asset else plot_count_delta,
                 style_match_ratio=style_match_ratio,
                 text_only_legend=_template_text_only_legend_policy(product, metadata),
             )
         for reason in _template_conformance_acceptance_reasons(conformance):
             if reason not in strict_reasons:
                 strict_reasons.append(reason)
-        if saved_style_asset_mode and not bool(replay_validation.get("ok")):
+        if saved_style_asset_mode and not bool(replay_validation.get("ok")) and not adaptive_detached_asset:
             strict_reasons.append(
                 "saved style asset lacks valid independent theme-application "
                 f"replay evidence: {replay_validation.get('reason', 'unknown reason')}"
             )
         plot_count_reason = f"plot count differs from template by {plot_count_delta}"
-        if plot_count_delta != 0 and plot_count_reason not in strict_reasons:
+        if plot_count_delta != 0 and not adaptive_detached_asset and plot_count_reason not in strict_reasons:
             strict_reasons.append(plot_count_reason)
+        if (
+            bool(adaptive_detached_validation.get("applicable"))
+            and not adaptive_detached_asset
+        ):
+            strict_reasons.extend(
+                reason
+                for reason in adaptive_detached_validation.get("reasons", [])
+                if reason not in strict_reasons
+            )
         # Different current data normally produce different pixels.  Once a
         # detached style asset has independent same-data exact validation,
         # reference/current preview RMS remains a manual-review signal and
         # must not be reinterpreted as a style/data-binding failure.
         validated_asset_rms_is_diagnostic = bool(
-            saved_style_asset_mode and replay_validation.get("ok")
+            (saved_style_asset_mode and replay_validation.get("ok"))
+            or adaptive_detached_asset
         )
         style_data_binding_status = (
             "blocked"
@@ -5025,6 +5820,8 @@ def _write_template_preview_comparison(
             strict_status = "embedded_template_snapshot_match" if strict_visual_match else "blocked_embedded_template_snapshot"
         elif xrd_clean_rebuild_mode:
             strict_status = "xrd_clean_graph_rebuild_match" if strict_visual_match else "blocked_xrd_clean_graph_rebuild"
+        elif adaptive_detached_asset:
+            strict_status = "adaptive_oth_json_style_match" if strict_visual_match else "blocked_adaptive_oth_json"
         else:
             strict_status = "strict_visual_match" if strict_visual_match else "blocked_not_one_to_one"
         style_data_binding = {
@@ -5037,7 +5834,8 @@ def _write_template_preview_comparison(
             "runtime_reference_preview_required": not validated_detached_asset,
             "preview_rms": preview_rms,
             "preview_rms_role": "diagnostic_only_not_exact_evidence",
-            "plot_structure_pass": plot_count_delta == 0,
+            "plot_structure_pass": adaptive_detached_asset or plot_count_delta == 0,
+            "adaptive_oth_json_validation": adaptive_detached_validation,
             "style_conformance_pass": not _template_conformance_acceptance_reasons(conformance),
         }
         asset_same_data_exact_validation = {
@@ -5072,7 +5870,12 @@ def _write_template_preview_comparison(
         # Compatibility alias.  It intentionally describes the current product,
         # not the historical validation attached to the reusable style asset.
         same_data_exact = dict(current_product_pixel_exact)
-        if validated_detached_asset and not ready:
+        if adaptive_detached_asset and not ready:
+            message = (
+                "runtime reference preview was not generated; detached variable-structure "
+                "OTH+JSON passed current CSV/save-reopen/native-600dpi/style readback validation"
+            )
+        elif validated_detached_asset and not ready:
             message = (
                 "runtime reference preview was not generated; the detached OTPU uses its "
                 "accepted independent same-data validation evidence"
@@ -5147,6 +5950,7 @@ def _write_template_preview_comparison(
                 "independent_style_replay": replay_validation,
                 "embedded_template_snapshot_mode": embedded_snapshot_mode,
                 "xrd_clean_graph_rebuild_mode": xrd_clean_rebuild_mode,
+                "adaptive_oth_json_mode": adaptive_detached_asset,
                 "message": message,
             }
         )
@@ -5451,6 +6255,57 @@ def _load_independent_style_replay_evidence(
             product_key,
             raw,
         )
+    return validations
+
+
+def _load_manifest_bound_otpu_replay_evidence(
+    project_root: Path,
+    target_types: tuple[str, ...],
+) -> dict[str, dict[str, object]]:
+    """Load the accepted replay evidence bound to active runtime OTPUs.
+
+    This is deliberately narrower than the optional diagnostics-report loader:
+    legacy OTH assets retain their compatibility path, while every requested
+    OTPU must be resolved through the current manifest and validate the exact
+    evidence file that the manifest binds to that runtime asset.
+    """
+    manifest = load_origin_style_manifest(project_root)
+    records = {
+        _style_replay_key(str(item.get("product_key") or item.get("data_type") or "")): item
+        for item in manifest.get("assets", [])
+        if isinstance(item, dict)
+    }
+    validations: dict[str, dict[str, object]] = {}
+    for product_key in target_types:
+        key = _style_replay_key(product_key)
+        record = records.get(key)
+        if not isinstance(record, dict):
+            continue
+        if str(record.get("asset_kind") or "oth").casefold().lstrip(".") != "otpu":
+            continue
+        asset = resolve_origin_runtime_style_asset(project_root, product_key)
+        if asset is None or asset.runtime_asset_kind != "otpu":
+            validations[key] = {
+                "ok": False,
+                "reason": "manifest runtime OTPU is unavailable or failed integrity validation",
+            }
+            continue
+        evidence_path = asset.runtime_validation_evidence_path
+        if evidence_path is None or not evidence_path.is_file():
+            validations[key] = {
+                "ok": False,
+                "reason": "manifest-bound runtime OTPU validation evidence is unavailable",
+            }
+            continue
+        loaded = _load_independent_style_replay_evidence(project_root, evidence_path)
+        validation = loaded.get(key)
+        if validation is None:
+            validations[key] = {
+                "ok": False,
+                "reason": "manifest-bound validation evidence does not contain the requested product key",
+            }
+            continue
+        validations[key] = validation
     return validations
 
 
@@ -6356,16 +7211,33 @@ def _write_template_discovery_doc(
 def _write_template_no_label_audit(run_root: Path) -> dict[str, object]:
     hits: list[dict[str, object]] = []
     path_only_hits: list[dict[str, object]] = []
+    # This audit guards user-visible graph/report text.  The run manifest is
+    # internal provenance and necessarily records pairing paths; scanning its
+    # path strings turns an implementation directory name into a false product
+    # label failure.  Its filename is still scanned below, and every actual
+    # product/report file remains subject to the normal strict text scan.
+    internal_provenance_content_paths = {(run_root / "run_manifest.json").resolve()}
     for path in run_root.rglob("*"):
         if not path.is_file():
             continue
         for label in FORBIDDEN_LABELS:
             if label.casefold() in path.name.casefold():
                 hits.append({"path": _relative_to_run(run_root, path), "location": "filename", "label": label})
+        if path.resolve() in internal_provenance_content_paths:
+            continue
         if path.suffix.casefold() not in {".md", ".csv", ".txt", ".json"}:
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
         for line_number, line in enumerate(text.splitlines(), start=1):
+            # Origin dataset names in these two structured JSON fields are
+            # binding provenance, not graph/workbook/report-visible labels.
+            # The surrounding file is still scanned so label_policy and every
+            # other user-visible text field remain under the strict audit.
+            if path.suffix.casefold() == ".json" and re.fullmatch(
+                r'\s*"(?:x_dataset|y_dataset)"\s*:\s*"[^"]*"\s*,?\s*',
+                line,
+            ):
+                continue
             for label in FORBIDDEN_LABELS:
                 if label.casefold() not in line.casefold():
                     continue
@@ -6380,6 +7252,7 @@ def _write_template_no_label_audit(run_root: Path) -> dict[str, object]:
                 else:
                     hits.append(record)
     audit = {
+        "policy": "forbidden visible product labels checked; internal provenance paths excluded from content scan",
         "hit_count": len(hits),
         "hits": hits,
         "path_only_hits": path_only_hits,

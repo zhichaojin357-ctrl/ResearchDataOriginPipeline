@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "PL",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "6fdd6b512f1f812595bc6fe8fdaae7a420fbd7fa14ef8011237674a8a2b6f2bd",
+      "graph_page": "EXJF",
+      "source_series_count": 3,
+      "source_schema": {
+        "status": "ready",
+        "layout": "shared_x_y_columns",
+        "worksheet_layout": "one_sheet_shared_x_three_y_with_template_column_gaps",
+        "source_csv_indices": [0, 1, 2, 3],
+        "x_header": "wavelength_nm",
+        "y_header_suffix": "_counts",
+        "transform": "existing_PL_shared_grid_projection_without_smoothing_or_normalization",
+        "plot_type": "line",
+        "group_plots": false
+      },
+      "plots": [
+        {
+          "layer_index": 1,
+          "plot_index": 1,
+          "x_dataset": "Book1_A",
+          "y_dataset": "Book1_B",
+          "row_from": 1,
+          "row_to": 351,
+          "source_series_index": 1,
+          "semantic_role": "material_1_excitation"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 2,
+          "x_dataset": "Book1_A",
+          "y_dataset": "Book1_D",
+          "row_from": 1,
+          "row_to": 176,
+          "source_series_index": 2,
+          "semantic_role": "material_2_excitation"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 3,
+          "x_dataset": "Book1_A",
+          "y_dataset": "Book1_F",
+          "row_from": 1,
+          "row_to": 351,
+          "source_series_index": 3,
+          "semantic_role": "material_3_excitation"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "EIS",
+  "status": "accepted",
+  "generated_at": "2026-08-22T13:57:41.3485361+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed exact matching curves, custom colors, marker styling, legend, bold axis titles, axes, layout, and no stale template labels or blank graph.",
+  "formal_command": "python run.py origin-style-asset-replay --template-plan templates/origin_styles/validation_plans/EIS_verified_20260822.json --output-dir <configured-output-root>/diagnostics/20260822_EIS_project_asset_formal_replay_02 --with-origin",
+  "formal_evidence_location": "diagnostics/20260822_EIS_project_asset_formal_replay_02/products/EIS/comparison.json",
+  "validation_plan": {
+    "path": "validation_plans/EIS_verified_20260822.json",
+    "sha256": "e3b397038d72f8c2d97ec2b50e8e1c45165c1c1f21963707d4166357fb722093"
+  },
+  "origin": {
+    "entrypoint": "Origin.Application",
+    "version": "10.3",
+    "build": 197
+  },
+  "pipeline_git_base_commit": "2bf94bc",
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/EIS.otpu",
+    "sha256": "25df00a2d717a3ac6311ba8dc21648c36e05df3efa56fb0614fe513790ceddf6",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju"
+  },
+  "supporting_style_assets": {
+    "format_theme": {
+      "path": "format_themes/EIS.oth",
+      "sha256": "c9d69b4d3150b3a2d2bfac27624aacea1468843827c8eb1c6f14a9dcefc06507"
+    },
+    "style_snapshot": {
+      "path": "snapshots/EIS.json",
+      "sha256": "06c9228769fb4de28a091b4f4dc23ed42344b18feb131452c32ad20fd9cdd146"
+    }
+  },
+  "reference": {
+    "path": "reference_opju/EIS.opju",
+    "graph_page": "Graph1",
+    "sha256": "08e9669983001f8de292179aebbb52e19aae2d0d56dd70dbad55a44f0ce68499",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/EIS.json",
+    "sha256": "06ca097d6d850608d72cfe64651d694acf830a74ec207821ecf1e367cf6d4714",
+    "source_series_count": 8,
+    "explicit_xy_ranges": true,
+    "one_source_series_per_sheet": true,
+    "group_plots": false
+  },
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "534dd99c048bcf30a8c564ef844cd1123bc1ff6ff44b8804f451601f7af1e24d",
+    "generated_plot_values_sha256": "534dd99c048bcf30a8c564ef844cd1123bc1ff6ff44b8804f451601f7af1e24d",
+    "reference_plot_mapping_sha256": "53bcad043d665d41faeeb62645df7bbaf9f15e6f0c454511eef1fbe6d09eb272",
+    "generated_plot_mapping_sha256": "53bcad043d665d41faeeb62645df7bbaf9f15e6f0c454511eef1fbe6d09eb272"
+  },
+  "style": {
+    "status": "pass",
+    "compared_fields": 84,
+    "matched_fields": 84,
+    "axis_title_hard_gate": true,
+    "x_axis_title": "\\b(Z' \\(40)k)\\f:g(\\b(Ω))\\b(\\(41))",
+    "y_axis_title": "\\b(-Z'' \\(40)k\\f:g(Ω)\\(41))"
+  },
+  "pixels": {
+    "same_size": true,
+    "exact_pixel_match": true,
+    "changed_pixels": 0,
+    "rms": 0.0
+  },
+  "save_reopen": {
+    "saved_reopened": true,
+    "graph_page": "Graph1"
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  }
+}

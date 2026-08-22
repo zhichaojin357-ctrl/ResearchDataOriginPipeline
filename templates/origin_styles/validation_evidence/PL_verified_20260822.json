@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "PL",
+  "status": "accepted",
+  "generated_at": "2026-08-22T15:41:44+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection of the project-local formal replay confirmed the three PL traces, exact curve colors and widths, reviewed legend, hidden Y tick labels, bold axis titles, page and layer geometry, and absence of blank or clipped plots. OTPU-only, OTPU+OTH, and OTPU+snapshot replays each failed at least one automated style or pixel gate and are not accepted combinations.",
+  "formal_command": "python run.py origin-style-asset-replay --template-plan templates/origin_styles/validation_plans/PL_verified_20260822.json --output-dir <configured-output-root>/diagnostics/20260822_PL_project_asset_formal_replay_01 --with-origin",
+  "formal_evidence_location": "diagnostics/20260822_PL_project_asset_formal_replay_01/products/PL/comparison.json",
+  "validation_plan": {
+    "path": "validation_plans/PL_verified_20260822.json",
+    "sha256": "2f55a74bfa37b3620ed9f8bbfd20542903b908740d7eee8094b4837554e89601"
+  },
+  "origin": {
+    "entrypoint": "Origin.Application",
+    "version": "10.3",
+    "build": 197
+  },
+  "pipeline_git_base_commit": "2bf94bc",
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/PL.otpu",
+    "sha256": "8e1021a99ec076addac1603404749dcbc6c384b2b6cd0afe7dcccffb3aa7a033",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju"
+  },
+  "supporting_style_assets": {
+    "format_theme": {
+      "path": "format_themes/PL.oth",
+      "sha256": "aa1f7dd176d618c147bbb66ae3c94030698800f33d2cc3fea137118d410be748"
+    },
+    "style_snapshot": {
+      "path": "snapshots/PL.json",
+      "sha256": "070e1184bff79b99cf69b2ee882ead374ac7306b0faa6588c79ee6c2060ff203"
+    }
+  },
+  "reference": {
+    "path": "reference_opju/PL.opju",
+    "graph_page": "EXJF",
+    "sha256": "6fdd6b512f1f812595bc6fe8fdaae7a420fbd7fa14ef8011237674a8a2b6f2bd",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/PL.json",
+    "sha256": "2b4f4e90f0a2f826c314ebb5c9277d9a5822495eb0f7d2bfe584409b8ef2cd1f",
+    "source_series_count": 3,
+    "explicit_xy_ranges": true,
+    "shared_x_column": true,
+    "group_plots": false
+  },
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "6a5d6a8be89ccb8a8859d4494b4200a8181a9de57a94eeca76ef01ee42cdaf7b",
+    "generated_plot_values_sha256": "6a5d6a8be89ccb8a8859d4494b4200a8181a9de57a94eeca76ef01ee42cdaf7b",
+    "reference_plot_mapping_sha256": "4664c311bd67f6cd37c9bb3dc4a711730f662cde34ae524d79f6b47b0890d750",
+    "generated_plot_mapping_sha256": "4664c311bd67f6cd37c9bb3dc4a711730f662cde34ae524d79f6b47b0890d750"
+  },
+  "style": {
+    "status": "pass",
+    "compared_fields": 59,
+    "matched_fields": 59,
+    "axis_title_hard_gate": true,
+    "x_axis_title": "\\b(Wavelength (nm))",
+    "y_axis_title": "\\b(Intensity)",
+    "plot_line_width_origin_units": [1500.0, 1500.0, 1500.0]
+  },
+  "pixels": {
+    "same_size": true,
+    "exact_pixel_match": true,
+    "changed_pixels": 0,
+    "rms": 0.0
+  },
+  "save_reopen": {
+    "saved_reopened": true,
+    "graph_page": "EXJF"
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6983.0,
+    "page_height_origin_units": 4678.0,
+    "width_px": 4190,
+    "height_px": 2806,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 600.0286409852499,
+    "effective_dpi_y": 599.8289867464729,
+    "sensitive_metadata_scan": "pass"
+  }
+}

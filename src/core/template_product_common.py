@@ -676,7 +676,7 @@ def _manual_items(product_key: str) -> list[str]:
         ],
         "XRD": [
             "Confirm whether reference-card lines from the exemplar should be copied before any final figure.",
-            "Do not assign phase or crystal plane automatically.",
+            "Confirm local Jade/PDF phase-match card identifiers and confidence; crystal-plane and phase-purity claims require separate evidence.",
         ],
         "EPR": [
             "Confirm condition grouping and radical assignment manually.",
@@ -693,7 +693,7 @@ def _forbidden_claims(product_key: str) -> list[str]:
         "BET": ["no automatic BET model validation", "no pore structure conclusion"],
         "XPS_in_situ": ["no automatic valence assignment", "no mechanism conclusion"],
         "XPS_non_in_situ": ["no automatic valence assignment", "no electron-transfer or S-scheme mechanism conclusion"],
-        "XRD": ["no automatic phase assignment", "no automatic crystal-plane assignment"],
+        "XRD": ["no automatic crystal-plane assignment", "no automatic phase-purity claim"],
         "EPR": ["no automatic radical species assignment"],
     }.get(product_key, ["no scientific interpretation without manual review"])
 

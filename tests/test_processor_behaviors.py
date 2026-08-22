@@ -139,6 +139,98 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertIn("Z'(a)", result.rows[0])
             self.assertIn("Z''(b)", result.rows[0])
             self.assertEqual(coerce_numeric_rows(result.rows), [(1000000.0, 61.32), (812830.5, 61.321)])
+            self.assertEqual(result.source_format, "scribner_zplotw_impedance")
+            self.assertEqual(result.format_metadata["vendor"], "Scribner")
+
+    def test_eis_processes_complete_scribner_zplotw_signature_with_vendor_unit_provenance(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "scribner-zplotw.txt"
+            source.write_text(
+                "\n".join(
+                    [
+                        '"ZPlotW Data File: Version 2.70"',
+                        '"Modified Data"',
+                        '"Sweep Frequency: Control Voltage"',
+                        '"Date: 2-2-2026     Time: 10:57:9"',
+                        '""',
+                        '"Frequency"',
+                        "0,2,0,1,0.001,1000000",
+                        "101",
+                        '"  Freq(Hz)    Ampl     Bias   Time(Sec)   Z\'(a)    Z\'\'(b)    GD   Err   Range"',
+                        "1.000000E+06, 0, 0, 1, 6.1320E+01, -2.7362E-03, 0, 0, 0",
+                        "8.128305E+05, 0, 0, 2, 6.1321E+01, -3.2932E-03, 0, 0, 0",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            metadata = process_table_dataset(root, classification("EIS", "eis_processor"), source)
+            rows = self._processed_rows(root, metadata)
+            measurement = metadata["key_results"]["eis_measurement"]
+            transform = measurement["column_transforms"]["minus_z_imag_ohm"]
+
+            self.assertEqual(rows[0]["frequency_hz"], "1000000.0")
+            self.assertEqual(rows[0]["real_impedance_ohm"], "61.32")
+            self.assertAlmostEqual(float(rows[0]["neg_imag_impedance_ohm"]), 0.0027362)
+            self.assertEqual(measurement["source_format"], "scribner_zplotw_impedance")
+            self.assertTrue(transform["vendor_signature_inference"])
+            self.assertEqual(transform["source_unit"], "ohm")
+            self.assertEqual(
+                transform["imaginary_sign_convention"],
+                "scribner_zplotw_raw_zdoubleprime_negated_without_absolute_value",
+            )
+            self.assertTrue(measurement["manual_check_required"])
+            self.assertIn("confirm", measurement["manual_check_items"][0].casefold())
+
+    def test_eis_scribner_zplotw_signature_negates_positive_z_double_prime_without_absolute_value(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "scribner-zplotw-inductive.txt"
+            source.write_text(
+                "\n".join(
+                    [
+                        '"ZPlotW Data File: Version 2.70"',
+                        '"  Freq(Hz)    Ampl     Bias   Time(Sec)   Z\'(a)    Z\'\'(b)    GD   Err   Range"',
+                        "1000,0,0,1,3,4,0,0,0",
+                        "100,0,0,2,5,12,0,0,0",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            metadata = process_table_dataset(root, classification("EIS", "eis_processor"), source)
+            rows = self._processed_rows(root, metadata)
+
+            self.assertEqual(rows[0]["neg_imag_impedance_ohm"], "-4.0")
+            self.assertEqual(rows[1]["neg_imag_impedance_ohm"], "-12.0")
+            transform = metadata["key_results"]["eis_measurement"]["column_transforms"]["minus_z_imag_ohm"]
+            self.assertEqual(transform["sign_evidence"]["selected_sign_multiplier"], -1.0)
+
+    def test_eis_zplotw_like_unbannered_or_z60w_exports_remain_fail_closed_for_implicit_units(self):
+        cases = {
+            "unbannered.txt": [
+                '"  Freq(Hz)    Ampl     Bias   Time(Sec)   Z\'(a)    Z\'\'(b)    GD   Err   Range"',
+                "1000,0,0,1,3,-4,0,0,0",
+                "100,0,0,2,5,-12,0,0,0",
+            ],
+            "z60w.txt": [
+                '"Z60W Data File: Version 1.1"',
+                '"  Freq (Hz)    Ampl     Bias   Time(Sec)   Z\'(a)    Z\'\'(b)    GD   Err   Range"',
+                "1000,0,0,1,3,-4,0,0,0",
+                "100,0,0,2,5,-12,0,0,0",
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for name, lines in cases.items():
+                source = root / name
+                source.write_text("\n".join(lines), encoding="utf-8")
+
+                result = read_table_with_metadata(source)
+                self.assertIsNone(result.source_format)
+                with self.assertRaisesRegex(ValueError, "impedance unit must be explicit"):
+                    process_table_dataset(root, classification("EIS", "eis_processor"), source)
 
     def test_text_reader_accepts_z60w_eis_export_with_spaced_frequency_header(self):
         with tempfile.TemporaryDirectory() as tmpdir:

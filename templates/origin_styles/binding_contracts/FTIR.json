@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "FTIR",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "52b3296125248533360768fbc8a7ab7412b1703eb0f25fe5da491f2726540aff",
+      "graph_page": "Graph3",
+      "source_series_count": 3,
+      "source_schema": {
+        "status": "ready",
+        "layout": "paired_xy_columns",
+        "worksheet_layout": "one_sheet_three_independent_xy_pairs_with_reserved_cd",
+        "source_csv_indices": [0, 1, 2, 3, 4, 5],
+        "x_header_suffix": "_wavenumber_cm-1",
+        "y_header_suffix": "_transmittance",
+        "transform": "independent_ftir_xy_pairs_with_explicit_reference_vertical_offsets_without_interpolation_smoothing_or_normalization",
+        "raw_to_plotted_vertical_offsets": [0.6992644978783592, 0.48749646393210766, -0.174144271570014],
+        "last_origin_curve_translate_annotations": [0.69926449787836, 0.48749646393211, -0.62347949080622],
+        "source_series_labels": ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"],
+        "plot_type": "line",
+        "group_plots": false
+      },
+      "plots": [
+        {
+          "layer_index": 1,
+          "plot_index": 1,
+          "x_dataset": "Book2_A",
+          "y_dataset": "Book2_B",
+          "row_from": 1,
+          "row_to": 1867,
+          "source_series_index": 1,
+          "semantic_role": "BiOBr0.5Cl0.5_ftir_offset_overlay"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 2,
+          "x_dataset": "Book2_E",
+          "y_dataset": "Book2_F",
+          "row_from": 1,
+          "row_to": 1867,
+          "source_series_index": 2,
+          "semantic_role": "CuWO4_ftir_offset_overlay"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 3,
+          "x_dataset": "Book2_G",
+          "y_dataset": "Book2_H",
+          "row_from": 1,
+          "row_to": 1867,
+          "source_series_index": 3,
+          "semantic_role": "BiCu-10_ftir_offset_overlay"
+        }
+      ]
+    }
+  ]
+}

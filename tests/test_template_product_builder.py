@@ -239,7 +239,7 @@ def test_template_builder_uses_project_style_assets_without_default_external_sca
     roots = {"f_drive_detection": tmp_path / "raw", "workspace_xps_reference": tmp_path / "xps_reference", "workspace_group_data": tmp_path / "group"}
     data = roots["f_drive_detection"] / "BET" / "bet.csv"
     data.parent.mkdir(parents=True)
-    data.write_text("relative_pressure_p_p0,quantity_adsorbed\n0.1,1\n0.5,2\n", encoding="utf-8")
+    data.write_text("relative_pressure_p_p0,quantity_adsorbed,desorption\n0.1,1,1.2\n0.5,2,2.2\n", encoding="utf-8")
     reference = roots["f_drive_detection"] / "BET" / "reference.opju"
     reference.write_bytes(b"opju")
     pairing = tmp_path / "pairing.json"
@@ -1075,7 +1075,7 @@ def test_exemplar_driven_repairs_epr_to_group_meeting_origin_package(tmp_path: P
 def test_prepare_template_product_compact_output_uses_flat_type_product_dir(tmp_path: Path) -> None:
     data = tmp_path / "BET" / "bet.csv"
     data.parent.mkdir()
-    data.write_text("relative_pressure_p_p0,quantity_adsorbed\n0.1,1\n0.5,2\n", encoding="utf-8")
+    data.write_text("relative_pressure_p_p0,quantity_adsorbed,desorption\n0.1,1,1.2\n0.5,2,2.2\n", encoding="utf-8")
     reference = tmp_path / "BET" / "reference.opju"
     reference.write_bytes(b"opju")
     pairing = TargetPairing(
@@ -1112,7 +1112,7 @@ def test_prepare_template_product_compact_output_uses_flat_type_product_dir(tmp_
 def test_prepare_template_product_compact_keeps_original_reference_source(tmp_path: Path) -> None:
     data = tmp_path / "BET" / "bet.csv"
     data.parent.mkdir()
-    data.write_text("relative_pressure_p_p0,quantity_adsorbed\n0.1,1\n0.5,2\n", encoding="utf-8")
+    data.write_text("relative_pressure_p_p0,quantity_adsorbed,desorption\n0.1,1,1.2\n0.5,2,2.2\n", encoding="utf-8")
     reference = tmp_path / "BET" / "reference.opju"
     reference.write_bytes(b"opju")
     scan_copy = tmp_path / "scan" / "001_reference.opju"
@@ -1271,10 +1271,12 @@ def test_template_eis_overlay_selects_exact_real_source_family_for_template_coun
 
     assert len(headers) == 16
     assert len(rows) == 10
-    assert labels["legend_entries"] == ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"]
+    assert labels["legend_entries"] == ["b3", "b7", "b9-2z"]
     assert [Path(path).name for path in extra["eis_overlay"]["source_files"]] == [f"{name}.txt" for name in names]
     assert extra["eis_cleaning"]["mode"] == "reviewed_template_multi_source_overlay"
     assert extra["eis_cleaning"]["plotted_source_count"] == 8
+    assert extra["eis_overlay"]["visible_plot_indices"] == [3, 4, 5]
+    assert extra["eis_overlay"]["visible_series_labels"] == ["b3", "b7", "b9-2z"]
     assert (tmp_path / "run" / "EIS" / "debug" / "eis_cleaning_and_fit_metadata.json").is_file()
 
 

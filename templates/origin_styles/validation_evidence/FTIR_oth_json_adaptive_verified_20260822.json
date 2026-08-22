@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_detached_adaptive_oth_json_validation",
+  "product_key": "FTIR",
+  "status": "accepted",
+  "generated_at": "2026-08-22T17:30:00+08:00",
+  "runtime_role": "adaptive_runtime",
+  "asset": {
+    "kind": "oth_json",
+    "format_theme": "format_themes/FTIR.oth",
+    "style_snapshot": "snapshots/FTIR.json",
+    "data_snapshot": "data_snapshots/FTIR.json",
+    "source_mode": "legacy_compatible_theme_with_explicit_style_and_curve_snapshot_replay"
+  },
+  "generation_boundary": {
+    "entrypoint": "Origin.Application",
+    "fresh_project": true,
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "one_to_one_exact_match_claim_allowed": false
+  },
+  "fixed_cardinality_validation": {
+    "status": "accepted",
+    "origin_style_mode_requested": "oth-json",
+    "style_execution_mode": "variable_structure_oth_json",
+    "evidence_location": "diagnostics/20260822_FTIR_adaptive_oth_json_3curve_03/runs/20260822_172234_template_format_products/products/FTIR/metadata.json",
+    "current_series_count": 3,
+    "contract_series_count": 3,
+    "reopened_plot_count": 3,
+    "style_conformance": {
+      "status": "pass",
+      "matched_fields": 59,
+      "compared_fields": 59
+    },
+    "legend_entries": [
+      "BiOBr0.5Cl0.5",
+      "CuWO4",
+      "BiCu-10"
+    ],
+    "same_processed_data_as_otpu_validation": true,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true,
+    "pixel_comparison": {
+      "role": "diagnostic_only_not_an_acceptance_gate",
+      "same_size": true,
+      "width_px": 6432,
+      "height_px": 4923,
+      "changed_pixels": 20136,
+      "rms": 6.37756,
+      "difference_scope": "legend_rendering_region_only",
+      "one_to_one_exact_match": false
+    }
+  },
+  "variable_cardinality_validation": {
+    "status": "accepted",
+    "origin_style_mode_requested": "oth-json",
+    "style_execution_mode": "variable_structure_oth_json",
+    "evidence_location": "diagnostics/20260822_FTIR_adaptive_oth_json_2curve_02/runs/20260822_172516_template_format_products/products/FTIR/metadata.json",
+    "current_series_count": 2,
+    "contract_series_count": 3,
+    "reopened_plot_count": 2,
+    "series_cardinality_relaxed": true,
+    "relaxed_style_fields": [
+      "plot_count",
+      "plot_colors",
+      "plot_line_colors",
+      "plot_line_widths",
+      "plot_line_styles",
+      "plot_symbol_shapes",
+      "plot_symbol_sizes",
+      "marker_shapes",
+      "marker_sizes",
+      "plot_visibility"
+    ],
+    "non_cardinality_style_differences": 0,
+    "legend_entries": [
+      "BiOBr0.5Cl0.5",
+      "CuWO4"
+    ],
+    "stale_template_labels_present": false,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true
+  },
+  "formal_auto_routing_validation": {
+    "status": "accepted",
+    "origin_style_mode_requested": "auto",
+    "style_execution_mode": "variable_structure_oth_json",
+    "style_execution_reason_code": "auto_series_cardinality_mismatch_only",
+    "evidence_location": "diagnostics/20260822_FTIR_auto_2curve_01/runs/20260822_173521_template_format_products/products/FTIR/metadata.json",
+    "current_series_count": 2,
+    "contract_series_count": 3,
+    "reopened_plot_count": 2,
+    "selected_style_asset_kind": "oth_json",
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  },
+  "acceptance_note": "FTIR OTH+JSON is accepted as the adaptive variable-structure path. It preserves the reviewed graph geometry and style while allowing current curve cardinality; it is deliberately not presented as the zero-pixel one-to-one path. FTIR OTPU remains the exact fixed-structure path."
+}

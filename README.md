@@ -12,7 +12,7 @@ Formal entrypoints are `run.py` and `src/cli.py`. Helper scripts under `scripts/
 - Output labels and Origin-facing workbook metadata must not contain Codex names, full local paths, or comments copied from source files.
 - SEM, TEM, NMR, MS, and kinetics/reference folders are scan-only unless an explicit processor is added and tested.
 - No PPT or kinetics processor is part of this project.
-- High-risk scientific claims require manual review; the code must not infer mechanisms, valence, radical identity, phase assignment, or charge-transfer direction automatically.
+- High-risk scientific claims require manual review; the code must not infer mechanisms, valence, radical identity, or charge-transfer direction automatically. XRD may search the configured local Jade/PDF card database and emit phase matches with card IDs, matched peaks, alternatives, and confidence.
 
 ## Main Commands
 

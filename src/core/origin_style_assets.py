@@ -20,10 +20,11 @@ from src.core.image_artifacts import (
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.origin.conformance import compare_style_snapshots
 from src.origin.operations import connect_origin, quote_labtalk, safe_origin_name
-from src.origin.style_mimic import read_graph_style_snapshot
+from src.origin.style_mimic import apply_style_snapshot, read_graph_style_snapshot
 from src.origin.style_registry import load_origin_style_manifest, resolve_origin_style_asset
 from src.origin.template_binding import resolve_template_binding_contract
 from src.origin.template_format import parse_origin_dataset_reference
+from src.origin.xrd_annotations import apply_xrd_standard_card_annotations
 
 
 DEFAULT_STYLE_ASSET_ROOT = Path("templates") / "origin_styles"
@@ -160,6 +161,7 @@ class OriginStyleAssetReplayItem:
     graph_page: str
     comparison_mode: str = "reference_opju_comparison"
     graph_template_path: Path | None = None
+    style_snapshot_path: Path | None = None
     binding_contract_path: Path | None = None
     style_source_product_key: str = ""
     style_source_theme_path: Path | None = None
@@ -685,6 +687,12 @@ def build_origin_style_asset_replay_plan(
             raise ValueError(
                 "fresh_project_graph_template_same_data replay requires graph_template"
             )
+        style_snapshot_path: Path | None = None
+        style_snapshot_text = str(raw.get("style_snapshot") or "").strip()
+        if style_snapshot_text:
+            style_snapshot_path = Path(style_snapshot_text)
+            if not style_snapshot_path.is_absolute():
+                style_snapshot_path = project_root / style_snapshot_path
         binding_contract_path: Path | None = None
         binding_contract_text = str(raw.get("binding_contract") or "").strip()
         if binding_contract_text:
@@ -701,6 +709,7 @@ def build_origin_style_asset_replay_plan(
                 graph_page=graph_page,
                 comparison_mode=comparison_mode,
                 graph_template_path=graph_template_path,
+                style_snapshot_path=style_snapshot_path,
                 binding_contract_path=binding_contract_path,
                 style_source_product_key=style_source_product_key,
                 style_source_theme_path=style_source_theme_path,
@@ -825,8 +834,9 @@ def _replay_fresh_graph_template_same_data(
     The reference OPJU is copied and opened only to read the reviewed graph,
     its explicit X/Y mappings, column metadata, and reference pixels.  The
     candidate project is then created from scratch and receives only those
-    values plus the detached graph template.  The reference OPJU is never a
-    product base and is not loaded while the candidate graph is constructed.
+    values plus the detached graph template and its optional detached style
+    snapshot.  The reference OPJU is never a product base and is not loaded
+    while the candidate graph is constructed.
     """
 
     template_path = item.graph_template_path
@@ -838,6 +848,18 @@ def _replay_fresh_graph_template_same_data(
         "source_opju": render_output_path(item.source_opju, project_root=project_root),
         "graph_template": render_output_path(template_path, project_root=project_root)
         if template_path is not None
+        else "",
+        "style_snapshot": render_output_path(
+            item.style_snapshot_path,
+            project_root=project_root,
+        )
+        if item.style_snapshot_path is not None
+        else "",
+        "format_theme": render_output_path(
+            item.style_source_theme_path,
+            project_root=project_root,
+        )
+        if item.style_source_theme_path is not None
         else "",
         "graph_page": item.graph_page,
         "reference_opju_used_as_product_base": False,
@@ -864,6 +886,17 @@ def _replay_fresh_graph_template_same_data(
 
     source_hash_before = file_sha256(item.source_opju)
     template_hash_before = file_sha256(template_path)
+    style_snapshot_hash_before = (
+        file_sha256(item.style_snapshot_path)
+        if item.style_snapshot_path is not None and item.style_snapshot_path.is_file()
+        else ""
+    )
+    format_theme_hash_before = (
+        file_sha256(item.style_source_theme_path)
+        if item.style_source_theme_path is not None
+        and item.style_source_theme_path.is_file()
+        else ""
+    )
     runtime_dir = Path(
         tempfile.mkdtemp(
             prefix=f"rdop_fresh_replay_{safe_origin_name(item.product_key, 'Style')}_"
@@ -871,6 +904,7 @@ def _replay_fresh_graph_template_same_data(
     )
     runtime_reference = runtime_dir / f"reference{item.source_opju.suffix.casefold()}"
     runtime_template = runtime_dir / f"candidate{template_path.suffix.casefold()}"
+    runtime_theme = runtime_dir / "candidate.oth"
     runtime_candidate_opju = runtime_dir / "candidate.opju"
     runtime_reference_png = runtime_dir / "reference_same_data.png"
     runtime_candidate_png = runtime_dir / "candidate_same_data.png"
@@ -883,6 +917,10 @@ def _replay_fresh_graph_template_same_data(
     try:
         shutil.copy2(item.source_opju, runtime_reference)
         shutil.copy2(template_path, runtime_template)
+        if item.style_source_theme_path is not None:
+            if not item.style_source_theme_path.is_file():
+                raise RuntimeError("Detached candidate Origin format theme is missing.")
+            shutil.copy2(item.style_source_theme_path, runtime_theme)
         operations.new_project()
         loaded = operations.load_project(runtime_reference)
         if not getattr(loaded, "ok", False):
@@ -923,33 +961,38 @@ def _replay_fresh_graph_template_same_data(
             raise RuntimeError(
                 "Reference OPJU hash does not match the reviewed binding contract."
             )
-        if any(int(plot.get("layer_index") or 0) != 1 for plot in plot_records):
+        if any(int(plot.get("layer_index") or 0) < 1 for plot in plot_records):
             raise RuntimeError(
-                "Fresh graph-template replay currently requires all contracted plots in layer 1."
+                "Fresh graph-template replay requires positive graph-layer indices."
             )
 
-        books = {
-            str(plot.get("book_name") or "").strip() for plot in plot_records
-        } | {
-            str(plot.get("x_book_name") or "").strip() for plot in plot_records
-        }
-        books.discard("")
-        sheet_indices = {
-            int(plot.get("sheet_index") or 0) for plot in plot_records
-        } | {
-            int(plot.get("x_sheet_index") or 0) for plot in plot_records
-        }
-        if len(books) != 1 or sheet_indices != {1}:
-            raise RuntimeError(
-                "Fresh graph-template replay requires one source workbook and worksheet index 1."
-            )
-        reference_book = next(iter(books))
-
-        column_values: dict[int, list[float]] = {}
-        xy_ranges: list[dict[str, int]] = []
+        # A reviewed graph can legitimately bind plots from multiple source
+        # workbooks and layers (XRD Graph4 is one example).  Recreate the same
+        # workbook/sheet/column topology in the fresh project so both the
+        # plotted values and Origin's explicit X/Y mapping remain comparable.
+        book_sheet_indices: dict[str, set[int]] = {}
+        book_sheet_column_records: dict[
+            str, dict[int, dict[int, dict[str, object]]]
+        ] = {}
+        xy_ranges: list[dict[str, object]] = []
         for plot in plot_records:
+            x_book = str(plot.get("x_book_name") or "").strip()
+            y_book = str(plot.get("book_name") or "").strip()
+            if not x_book or x_book != y_book:
+                raise RuntimeError(
+                    "Fresh graph-template replay requires each plot's X/Y datasets in the same named workbook."
+                )
+            x_sheet_index = int(plot.get("x_sheet_index") or 0)
+            y_sheet_index = int(plot.get("sheet_index") or 0)
+            if x_sheet_index < 1 or x_sheet_index != y_sheet_index:
+                raise RuntimeError(
+                    "Fresh graph-template replay requires each plot's X/Y datasets on the same worksheet."
+                )
+            book_sheet_indices.setdefault(y_book, set()).add(y_sheet_index)
             x_col = int(plot.get("x_col_index")) + 1
             y_col = int(plot.get("y_col_index")) + 1
+            row_from = int(plot.get("plot_row_from"))
+            row_to = int(plot.get("plot_row_to"))
             x_values = [
                 math.nan if value is None else float(value)
                 for value in list(plot.get("x_values") or [])
@@ -958,35 +1001,132 @@ def _replay_fresh_graph_template_same_data(
                 math.nan if value is None else float(value)
                 for value in list(plot.get("y_values") or [])
             ]
+            expected_value_count = row_to - row_from + 1
+            if (
+                row_from < 1
+                or row_to < row_from
+                or len(x_values) != expected_value_count
+                or len(y_values) != expected_value_count
+            ):
+                raise RuntimeError(
+                    f"Reference plot {plot.get('plot_index')} has inconsistent row bounds or value counts."
+                )
+            column_records = book_sheet_column_records.setdefault(y_book, {}).setdefault(
+                y_sheet_index, {}
+            )
             for index, values in ((x_col, x_values), (y_col, y_values)):
-                existing = column_values.get(index)
-                if existing is not None and existing != values:
-                    raise RuntimeError(
-                        f"Reference plots disagree on worksheet column {index}."
-                    )
-                column_values[index] = values
+                record = {
+                    "row_from": row_from,
+                    "row_to": row_to,
+                    "values": values,
+                }
+                existing = column_records.get(index)
+                column_records[index] = _merge_replay_worksheet_column_record(
+                    existing,
+                    record,
+                    sheet_index=y_sheet_index,
+                    column_index=index,
+                )
             xy_ranges.append(
                 {
+                    "book_name": y_book,
+                    "sheet_index": y_sheet_index,
+                    "layer_index": int(plot.get("layer_index")),
                     "x_col": x_col,
                     "y_col": y_col,
-                    "row_from": int(plot.get("plot_row_from")),
-                    "row_to": int(plot.get("plot_row_to")),
+                    "row_from": row_from,
+                    "row_to": row_to,
                 }
             )
-        ordered_indices = sorted(column_values)
-        if ordered_indices != list(range(1, max(ordered_indices, default=0) + 1)):
+        if not book_sheet_indices:
+            raise RuntimeError("Fresh graph-template replay found no source workbooks.")
+        for book_name, sheet_indices in book_sheet_indices.items():
+            expected_sheet_indices = set(range(1, max(sheet_indices) + 1))
+            if sheet_indices != expected_sheet_indices:
+                raise RuntimeError(
+                    "Fresh graph-template replay requires contiguous worksheet creation "
+                    f"indices starting at 1 for workbook {book_name}."
+                )
+        sheet_payloads: list[dict[str, object]] = []
+        for book_name, sheet_indices in book_sheet_indices.items():
+            for sheet_index in sorted(sheet_indices):
+                records = book_sheet_column_records.get(book_name, {}).get(
+                    sheet_index, {}
+                )
+                if not records:
+                    raise RuntimeError(
+                        f"Reference worksheet [{book_name}]{sheet_index} has no contracted plot columns."
+                    )
+                max_column = max(records)
+                max_row = max(int(record["row_to"]) for record in records.values())
+                columns: list[list[float]] = []
+                for column_index in range(1, max_column + 1):
+                    values = [math.nan] * max_row
+                    record = records.get(column_index)
+                    if record is not None:
+                        start = int(record["row_from"]) - 1
+                        plotted_values = [float(value) for value in list(record["values"])]
+                        values[start : start + len(plotted_values)] = plotted_values
+                    columns.append(values)
+                metadata_read = operations.get_worksheet_column_metadata(
+                    book_name,
+                    range(1, max_column + 1),
+                    sheet_index=sheet_index,
+                )
+                if not getattr(metadata_read, "ok", False):
+                    raise RuntimeError(
+                        getattr(
+                            metadata_read,
+                            "message",
+                            "Reference column metadata read failed.",
+                        )
+                    )
+                sheet_payloads.append(
+                    {
+                        "book_name": book_name,
+                        "sheet_index": sheet_index,
+                        "columns": columns,
+                        "column_metadata": list(
+                            metadata_read.payload.get("columns", [])
+                        ),
+                    }
+                )
+        source_schema = dict(binding.contract.source_schema)
+        plot_type = str(source_schema.get("plot_type") or "line+symbol").strip()
+        group_plots = bool(source_schema.get("group_plots", False))
+        raw_group_layers = source_schema.get("group_layer_indices") or []
+        if not isinstance(raw_group_layers, list):
             raise RuntimeError(
-                "Fresh graph-template replay requires contiguous source worksheet columns."
+                "Binding source_schema.group_layer_indices must be an array."
             )
-        metadata_read = operations.get_worksheet_column_metadata(
-            reference_book,
-            ordered_indices,
+        group_layer_indices = list(raw_group_layers)
+        raw_stack_offsets = source_schema.get("individual_stack_offsets") or []
+        if not isinstance(raw_stack_offsets, list) or any(
+            not isinstance(item, dict) for item in raw_stack_offsets
+        ):
+            raise RuntimeError(
+                "Binding source_schema.individual_stack_offsets must be an array of objects."
+            )
+        individual_stack_offsets = [dict(item) for item in raw_stack_offsets]
+        raw_plot_formats = source_schema.get("plot_format_contracts") or []
+        if not isinstance(raw_plot_formats, list) or any(
+            not isinstance(item, dict) for item in raw_plot_formats
+        ):
+            raise RuntimeError(
+                "Binding source_schema.plot_format_contracts must be an array of objects."
+            )
+        plot_format_contracts = [dict(item) for item in raw_plot_formats]
+        activated_layer = operations.run_labtalk(
+            f'win -a "{quote_labtalk(item.graph_page)}"; layer -s 1;'
         )
-        if not getattr(metadata_read, "ok", False):
+        if not getattr(activated_layer, "ok", False):
             raise RuntimeError(
-                getattr(metadata_read, "message", "Reference column metadata read failed.")
+                getattr(
+                    activated_layer,
+                    "message",
+                    "Could not activate reference graph layer 1 for style readback.",
+                )
             )
-        column_metadata = list(metadata_read.payload.get("columns", []))
         reference_style = read_graph_style_snapshot(
             operations,
             item.graph_page,
@@ -1009,42 +1149,134 @@ def _replay_fresh_graph_template_same_data(
             )
 
         operations.new_project()
-        created = operations.create_worksheet(reference_book, "Sheet1")
-        if not getattr(created, "ok", False):
-            raise RuntimeError(
-                getattr(created, "message", "Fresh worksheet creation failed.")
+        actual_books: dict[str, str] = {}
+        actual_sheet_names: dict[tuple[str, int], str] = {}
+        for reference_book, sheet_indices in book_sheet_indices.items():
+            created = operations.create_worksheet(reference_book, "Sheet1")
+            if not getattr(created, "ok", False):
+                raise RuntimeError(
+                    getattr(created, "message", "Fresh worksheet creation failed.")
+                )
+            actual_book = str(created.payload.get("book_name") or "")
+            if not actual_book:
+                raise RuntimeError(
+                    f"Fresh workbook creation returned no name for {reference_book}."
+                )
+            actual_books[reference_book] = actual_book
+            actual_sheet_names[(reference_book, 1)] = str(
+                created.payload.get("sheet_name") or "Sheet1"
             )
-        actual_book = str(created.payload.get("book_name") or "")
-        written = operations.set_worksheet_data(
-            actual_book,
-            "Sheet1",
-            [column_values[index] for index in ordered_indices],
-        )
-        if not getattr(written, "ok", False):
-            raise RuntimeError(
-                getattr(written, "message", "Fresh worksheet data write failed.")
+            for sheet_index in range(2, max(sheet_indices) + 1):
+                added = operations.add_worksheet(
+                    actual_book, f"Sheet{sheet_index}"
+                )
+                if not getattr(added, "ok", False):
+                    raise RuntimeError(
+                        getattr(added, "message", "Fresh worksheet append failed.")
+                    )
+                actual_sheet_names[(reference_book, sheet_index)] = str(
+                    added.payload.get("sheet_name") or f"Sheet{sheet_index}"
+                )
+        for payload in sheet_payloads:
+            reference_book = str(payload["book_name"])
+            actual_book = actual_books[reference_book]
+            sheet_index = int(payload["sheet_index"])
+            written = operations.set_worksheet_data(
+                actual_book,
+                actual_sheet_names[(reference_book, sheet_index)],
+                list(payload["columns"]),
             )
-        metadata_write = operations.set_worksheet_column_metadata(
-            actual_book,
-            column_metadata,
-        )
-        if not getattr(metadata_write, "ok", False):
-            raise RuntimeError(
-                getattr(metadata_write, "message", "Fresh worksheet metadata write failed.")
+            if not getattr(written, "ok", False):
+                raise RuntimeError(
+                    getattr(written, "message", "Fresh worksheet data write failed.")
+                )
+            metadata_write = operations.set_worksheet_column_metadata(
+                actual_book,
+                list(payload["column_metadata"]),
+                sheet_index=sheet_index,
             )
+            if not getattr(metadata_write, "ok", False):
+                raise RuntimeError(
+                    getattr(metadata_write, "message", "Fresh worksheet metadata write failed.")
+                )
+        fresh_xy_ranges = [
+            {
+                **xy_range,
+                "book_name": actual_books[str(xy_range["book_name"])],
+            }
+            for xy_range in xy_ranges
+        ]
+        default_book = actual_books[next(iter(book_sheet_indices))]
         plotted = operations.create_graph_from_xy_pairs_template(
             item.graph_page,
             runtime_template,
-            actual_book,
-            xy_ranges,
-            plot_type="line+symbol",
+            default_book,
+            fresh_xy_ranges,
+            plot_type=plot_type,
             rescale=False,
             legend=False,
+            group_plots=group_plots,
+            group_layer_indices=group_layer_indices,
+            individual_stack_offsets=individual_stack_offsets,
+            plot_format_contracts=plot_format_contracts,
         )
         if not getattr(plotted, "ok", False):
             raise RuntimeError(
                 getattr(plotted, "message", "Fresh graph-template plot failed.")
             )
+        # Multi-layer templates leave the final populated layer active.  The
+        # reviewed detached theme/snapshot for the graph is anchored to layer
+        # 1, so make that target explicit before applying any style.  Without
+        # this, Origin applies the layer-1 style to the last populated overlay
+        # (for example XRD's top sample layer), duplicating axes and retaining
+        # placeholder legend text even though all data mappings are correct.
+        activated_candidate_layer = operations.run_labtalk(
+            f'win -a "{quote_labtalk(item.graph_page)}"; layer -s 1;'
+        )
+        if not getattr(activated_candidate_layer, "ok", False):
+            raise RuntimeError(
+                getattr(
+                    activated_candidate_layer,
+                    "message",
+                    "Could not activate candidate graph layer 1 before style apply.",
+                )
+            )
+        if item.style_source_theme_path is not None:
+            themed = operations.apply_graph_theme(item.graph_page, runtime_theme)
+            if not getattr(themed, "ok", False):
+                raise RuntimeError(
+                    getattr(themed, "message", "Detached Origin format theme apply failed.")
+                )
+        if item.style_snapshot_path is not None:
+            if not item.style_snapshot_path.is_file():
+                raise RuntimeError("Detached candidate style snapshot is missing.")
+            style_payload = json.loads(
+                item.style_snapshot_path.read_text(encoding="utf-8")
+            )
+            if not isinstance(style_payload, dict) or not apply_style_snapshot(
+                operations,
+                item.graph_page,
+                style_payload,
+                apply_default_font=False,
+                apply_axis_titles=True,
+            ):
+                raise RuntimeError("Detached candidate style snapshot could not be applied.")
+        annotation_contract = source_schema.get("xrd_standard_card_annotations")
+        annotation_policy: dict[str, object] = {
+            "applied": True,
+            "status": "not_required",
+        }
+        if annotation_contract is not None:
+            annotation_policy = apply_xrd_standard_card_annotations(
+                operations,
+                item.graph_page,
+                annotation_contract,
+            )
+            if not annotation_policy.get("applied"):
+                raise RuntimeError(
+                    "Detached candidate XRD annotation contract could not be applied: "
+                    + json.dumps(annotation_policy, ensure_ascii=False, sort_keys=True)
+                )
         saved = operations.save_project(runtime_candidate_opju)
         if not getattr(saved, "ok", False) or not runtime_candidate_opju.is_file():
             raise RuntimeError(
@@ -1062,6 +1294,20 @@ def _replay_fresh_graph_template_same_data(
             item.graph_page,
             source_label="fresh_graph_template_candidate.opju",
         )
+        # Data snapshot traversal intentionally visits every graph layer and
+        # therefore leaves the final layer active.  Restore layer 1 so style
+        # readback and export inspect the same graph context as the reference.
+        reactivated_candidate_layer = operations.run_labtalk(
+            f'win -a "{quote_labtalk(item.graph_page)}"; layer -s 1;'
+        )
+        if not getattr(reactivated_candidate_layer, "ok", False):
+            raise RuntimeError(
+                getattr(
+                    reactivated_candidate_layer,
+                    "message",
+                    "Could not reactivate candidate graph layer 1 for final readback.",
+                )
+            )
         candidate_style = read_graph_style_snapshot(
             operations,
             item.graph_page,
@@ -1089,7 +1335,13 @@ def _replay_fresh_graph_template_same_data(
         style_conformance = compare_style_snapshots(
             reference_style,
             candidate_style,
-            required_line_width_pt=3.0,
+            required_line_width_pt=None,
+            # A detached asset must reproduce the reference template, not a
+            # global bold-axis policy.  Some valid Origin templates use
+            # dynamic axis-title expressions and non-bold titles.
+            require_axis_title_bold=_fresh_template_reference_axis_titles_bold(
+                reference_style
+            ),
         ).to_dict()
         pixels = _compare_replay_pngs(
             runtime_reference_png,
@@ -1099,6 +1351,18 @@ def _replay_fresh_graph_template_same_data(
         axis_gate = _fresh_template_axis_title_gate(reference_style, candidate_style)
         source_hash_after = file_sha256(item.source_opju)
         template_hash_after = file_sha256(template_path)
+        style_snapshot_hash_after = (
+            file_sha256(item.style_snapshot_path)
+            if item.style_snapshot_path is not None
+            and item.style_snapshot_path.is_file()
+            else ""
+        )
+        format_theme_hash_after = (
+            file_sha256(item.style_source_theme_path)
+            if item.style_source_theme_path is not None
+            and item.style_source_theme_path.is_file()
+            else ""
+        )
         automated_pass = bool(
             same_data.get("same_data")
             and style_conformance.get("status") == "pass"
@@ -1107,6 +1371,8 @@ def _replay_fresh_graph_template_same_data(
             and tif_evidence.get("ok")
             and source_hash_before == source_hash_after
             and template_hash_before == template_hash_after
+            and style_snapshot_hash_before == style_snapshot_hash_after
+            and format_theme_hash_before == format_theme_hash_after
         )
         for source, target in (
             (runtime_reference_png, final_reference_png),
@@ -1132,10 +1398,45 @@ def _replay_fresh_graph_template_same_data(
                 "candidate_graph_template_sha256": template_hash_before,
                 "candidate_graph_template_unchanged": template_hash_before
                 == template_hash_after,
+                "candidate_style_snapshot_sha256": style_snapshot_hash_before,
+                "candidate_style_snapshot_unchanged": style_snapshot_hash_before
+                == style_snapshot_hash_after,
+                "candidate_format_theme_sha256": format_theme_hash_before,
+                "candidate_format_theme_unchanged": format_theme_hash_before
+                == format_theme_hash_after,
                 "source_opju_sha256": source_hash_before,
                 "source_opju_unchanged": source_hash_before == source_hash_after,
                 "binding_contract": binding.to_dict(),
-                "reference_column_metadata": column_metadata,
+                "annotation_policy": annotation_policy,
+                "reference_column_metadata": (
+                    list(sheet_payloads[0]["column_metadata"])
+                    if len(sheet_payloads) == 1
+                    else []
+                ),
+                "reference_column_metadata_by_sheet": [
+                    {
+                        "sheet_index": int(payload["sheet_index"]),
+                        "columns": list(payload["column_metadata"]),
+                    }
+                    for payload in sheet_payloads
+                ],
+                "plot_type": plot_type,
+                "group_plots": group_plots,
+                "group_layer_indices": group_layer_indices,
+                "individual_stack_offsets": individual_stack_offsets,
+                "individual_stack_readback": list(
+                    plotted.payload.get("individual_stack_readback", [])
+                ),
+                "plot_format_contracts": plot_format_contracts,
+                "plot_format_readback": list(
+                    plotted.payload.get("plot_format_readback", [])
+                ),
+                "template_axis_scales": dict(
+                    plotted.payload.get("template_axis_scales", {})
+                ),
+                "axis_scale_readback": dict(
+                    plotted.payload.get("axis_scale_readback", {})
+                ),
                 "reference_data": reference_data,
                 "candidate_data": candidate_data,
                 "same_data_comparison": same_data,
@@ -1194,6 +1495,76 @@ def _replay_fresh_graph_template_same_data(
     return result
 
 
+def _merge_replay_worksheet_column_record(
+    existing: dict[str, object] | None,
+    incoming: dict[str, object],
+    *,
+    sheet_index: int,
+    column_index: int,
+) -> dict[str, object]:
+    """Merge plotted ranges that share a worksheet column without losing gaps.
+
+    A reference graph can legitimately use a long source column for one plot and
+    a shorter overlapping prefix (or another subrange) for a second plot.  The
+    fresh replay needs one worksheet column containing the union of those
+    ranges.  Values are checked exactly where the ranges overlap; rows between
+    non-adjacent ranges remain missing values in the constructed worksheet.
+    """
+    incoming_from = int(incoming["row_from"])
+    incoming_to = int(incoming["row_to"])
+    incoming_values = [float(value) for value in list(incoming["values"])]
+    if incoming_to - incoming_from + 1 != len(incoming_values):
+        raise RuntimeError(
+            f"Reference worksheet {sheet_index} column {column_index} has an invalid incoming row range."
+        )
+    if existing is None:
+        return {
+            "row_from": incoming_from,
+            "row_to": incoming_to,
+            "values": incoming_values,
+            "_covered_rows": frozenset(range(incoming_from, incoming_to + 1)),
+        }
+
+    existing_from = int(existing["row_from"])
+    existing_to = int(existing["row_to"])
+    existing_values = [float(value) for value in list(existing["values"])]
+    if existing_to - existing_from + 1 != len(existing_values):
+        raise RuntimeError(
+            f"Reference worksheet {sheet_index} column {column_index} has an invalid existing row range."
+        )
+    covered_rows = set(existing.get("_covered_rows", range(existing_from, existing_to + 1)))
+    merged_from = min(existing_from, incoming_from)
+    merged_to = max(existing_to, incoming_to)
+    merged_values = [math.nan] * (merged_to - merged_from + 1)
+
+    for row in covered_rows:
+        if existing_from <= row <= existing_to:
+            merged_values[row - merged_from] = existing_values[row - existing_from]
+    for offset, incoming_value in enumerate(incoming_values):
+        row = incoming_from + offset
+        slot = row - merged_from
+        if row in covered_rows:
+            existing_value = merged_values[slot]
+            if not _replay_column_values_equal(existing_value, incoming_value):
+                raise RuntimeError(
+                    f"Reference plots disagree on worksheet {sheet_index} column {column_index} "
+                    f"at row {row}: {existing_value!r} != {incoming_value!r}."
+                )
+        else:
+            merged_values[slot] = incoming_value
+            covered_rows.add(row)
+    return {
+        "row_from": merged_from,
+        "row_to": merged_to,
+        "values": merged_values,
+        "_covered_rows": frozenset(covered_rows),
+    }
+
+
+def _replay_column_values_equal(left: float, right: float) -> bool:
+    return math.isnan(left) and math.isnan(right) or left == right
+
+
 def _fresh_template_axis_title_gate(
     reference_style: object,
     candidate_style: object,
@@ -1208,17 +1579,59 @@ def _fresh_template_axis_title_gate(
         **dict(getattr(candidate_style, "layout_values", {}) or {}),
         **dict(getattr(candidate_style, "audit_numeric_values", {}) or {}),
     }
+    reference_x_text = str(reference_strings.get("xb.text$", ""))
+    candidate_x_text = str(candidate_strings.get("xb.text$", ""))
+    reference_y_text = str(reference_strings.get("yl.text$", ""))
+    candidate_y_text = str(candidate_strings.get("yl.text$", ""))
+    reference_x_normalized = reference_x_text.strip()
+    candidate_x_normalized = candidate_x_text.strip()
+    reference_y_normalized = reference_y_text.strip()
+    candidate_y_normalized = candidate_y_text.strip()
+
+    def _title_text_matches(
+        reference_text: str,
+        candidate_text: str,
+        *,
+        dynamic_expression: str,
+    ) -> bool:
+        # Origin expands %(?X)/%(?Y) when a template is saved and reopened.
+        # The expansion is valid only for that exact reference expression;
+        # static title text remains an exact (outer-whitespace-normalized)
+        # contract.
+        if reference_text == dynamic_expression:
+            return bool(candidate_text)
+        return candidate_text == reference_text
+
+    def _title_rich_text_bold(text: str) -> bool:
+        return "\\b(" in text
+
     gate: dict[str, object] = {
-        "reference_x_text": reference_strings.get("xb.text$"),
-        "candidate_x_text": candidate_strings.get("xb.text$"),
-        "reference_y_text": reference_strings.get("yl.text$"),
-        "candidate_y_text": candidate_strings.get("yl.text$"),
-        "x_visual_bold_matches": "\\b("
-        in str(candidate_strings.get("xb.text$", ""))
-        and candidate_strings.get("xb.text$") == reference_strings.get("xb.text$"),
-        "y_visual_bold_matches": "\\b("
-        in str(candidate_strings.get("yl.text$", ""))
-        and candidate_strings.get("yl.text$") == reference_strings.get("yl.text$"),
+        "reference_x_text": reference_x_text,
+        "candidate_x_text": candidate_x_text,
+        "reference_y_text": reference_y_text,
+        "candidate_y_text": candidate_y_text,
+        "x_text_matches": _title_text_matches(
+            reference_x_normalized,
+            candidate_x_normalized,
+            dynamic_expression="%(?X)",
+        ),
+        "y_text_matches": _title_text_matches(
+            reference_y_normalized,
+            candidate_y_normalized,
+            dynamic_expression="%(?Y)",
+        ),
+        "x_title_numeric_bold_matches": candidate_numeric.get("xb.bold")
+        == reference_numeric.get("xb.bold"),
+        "y_title_numeric_bold_matches": candidate_numeric.get("yl.bold")
+        == reference_numeric.get("yl.bold"),
+        "x_title_rich_text_bold_matches": _title_rich_text_bold(
+            candidate_x_normalized
+        )
+        == _title_rich_text_bold(reference_x_normalized),
+        "y_title_rich_text_bold_matches": _title_rich_text_bold(
+            candidate_y_normalized
+        )
+        == _title_rich_text_bold(reference_y_normalized),
         "x_size_matches": candidate_numeric.get("xb.fsize")
         == reference_numeric.get("xb.fsize"),
         "y_size_matches": candidate_numeric.get("yl.fsize")
@@ -1232,6 +1645,26 @@ def _fresh_template_axis_title_gate(
         value is True for key, value in gate.items() if key.endswith("_matches")
     )
     return gate
+
+
+def _fresh_template_reference_axis_titles_bold(reference_style: object) -> bool:
+    """Return whether the reference itself requires the bold-title policy.
+
+    The generic conformance helper only knows how to require bold titles.  A
+    fresh template replay must enable that requirement only when both
+    reference titles are bold; equality of per-axis bold state is enforced by
+    :func:`_fresh_template_axis_title_gate` for every reference template.
+    """
+    reference_strings = dict(getattr(reference_style, "audit_string_values", {}) or {})
+    reference_numeric = {
+        **dict(getattr(reference_style, "layout_values", {}) or {}),
+        **dict(getattr(reference_style, "audit_numeric_values", {}) or {}),
+    }
+    return all(
+        reference_numeric.get(numeric_field) == 1.0
+        or "\\b(" in str(reference_strings.get(text_field, "")).strip()
+        for numeric_field, text_field in (("xb.bold", "xb.text$"), ("yl.bold", "yl.text$"))
+    )
 
 
 def _write_fresh_template_replay_failure(

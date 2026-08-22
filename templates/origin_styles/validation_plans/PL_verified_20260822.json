@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "product_key": "PL",
+      "data_type": "PL",
+      "source_opju": "templates/origin_styles/reference_opju/PL.opju",
+      "graph_page": "EXJF",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/PL.otpu",
+      "style_source_theme": "templates/origin_styles/format_themes/PL.oth",
+      "style_snapshot": "templates/origin_styles/snapshots/PL.json",
+      "binding_contract": "templates/origin_styles/binding_contracts/PL.json"
+    }
+  ]
+}

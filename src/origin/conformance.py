@@ -226,8 +226,10 @@ def compare_style_snapshots(
 
     for field_name, tolerance_kind in (
         ("plot_colors", "exact"),
+        ("plot_line_colors", "exact"),
         ("marker_shapes", "exact"),
         ("marker_sizes", "relative"),
+        ("plot_visibility", "exact"),
     ):
         expected_values = _series_style_values(exemplar, field_name)
         if not expected_values:

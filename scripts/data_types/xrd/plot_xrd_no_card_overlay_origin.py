@@ -5,10 +5,8 @@ import json
 import math
 import os
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -18,7 +16,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import pandas as pd
 import win32com.client
-from PIL import Image
 
 from src.core.file_utils import (  # noqa: E402
     ensure_safe_output_file_target,
@@ -28,12 +25,8 @@ from src.core.file_utils import (  # noqa: E402
     prepare_safe_output_file_targets,
 )
 from src.core.runtime_paths import resolve_output_root  # noqa: E402
-from src.core.origin_runtime import (  # noqa: E402
-    cleanup_origin_runtime_directory,
-    copy_runtime_artifact,
-    neutral_origin_runtime_root,
-)
 from src.origin.adapter import reexport_tif_from_reopened_opju  # noqa: E402
+from src.origin.operations import OriginOperations  # noqa: E402
 
 PAGE_NAME = "XRD_no_card_overlay"
 PALETTE = [
@@ -48,6 +41,10 @@ PALETTE = [
     "color(0,114,178)",
 ]
 LABEL_X = 65.6
+FIXED_CURVE_COUNT = 9
+STYLE_ROOT = PROJECT_ROOT / "templates" / "origin_styles"
+FIXED_TEMPLATE = STYLE_ROOT / "graph_templates" / "XRD_no_card.otpu"
+ADAPTIVE_THEME = STYLE_ROOT / "format_themes" / "XRD_no_card.oth"
 
 
 def quote(value: object) -> str:
@@ -196,59 +193,16 @@ def preflight_output_targets(
         )
 
 
-def inspect_reference_style(app: object, reference_opju: Path | None, graph_name: str) -> dict[str, float]:
-    style = {
-        "page_width": 6432.0,
-        "page_height": 4923.0,
-        "layer_left": 17.89,
-        "layer_top": 11.6,
-        "layer_width": 68.19,
-        "layer_height": 71.81,
-        "axis_thickness": 3.0,
-    }
-    if not reference_opju or not reference_opju.exists():
-        return style
-    runtime_dir = Path(
-        tempfile.mkdtemp(
-            prefix="rdop_origin_xrd_reference_",
-            dir=neutral_origin_runtime_root(),
-        )
-    )
-    ref_copy = runtime_dir / f"reference{reference_opju.suffix}"
-    try:
-        copy_runtime_artifact(reference_opju, ref_copy)
-        if not bool(app.Load(str(ref_copy))):
-            raise RuntimeError(f"failed to load copied reference OPJU: {reference_opju}")
-        labtalk(app, f'win -a "{quote(graph_name)}"; layer -s 1;')
-        style.update(
-            {
-                "page_width": float(app.Evaluate("page.width")),
-                "page_height": float(app.Evaluate("page.height")),
-                "layer_left": float(app.Evaluate("layer.left")),
-                "layer_top": float(app.Evaluate("layer.top")),
-                "layer_width": float(app.Evaluate("layer.width")),
-                "layer_height": float(app.Evaluate("layer.height")),
-                "axis_thickness": float(app.Evaluate("layer.x.thickness")),
-            }
-        )
-    finally:
-        reset_error = ""
-        try:
-            app.NewProject()
-        except Exception as exc:
-            reset_error = f"{type(exc).__name__}: {exc}"
-        cleanup = cleanup_origin_runtime_directory(runtime_dir)
-        if not bool(cleanup.get("ok")):
-            raise RuntimeError(
-                "failed to clean isolated XRD reference runtime: "
-                + str(cleanup.get("status") or "unknown")
-            )
-        if reset_error:
-            raise RuntimeError(
-                "failed to release isolated XRD reference project: "
-                + reset_error
-            )
-    return style
+def style_mode_for_curve_count(curve_count: int) -> tuple[str, Path]:
+    """Choose the detached project asset without consulting a reference OPJU."""
+
+    if int(curve_count) == FIXED_CURVE_COUNT:
+        if not FIXED_TEMPLATE.is_file():
+            raise FileNotFoundError(f"verified fixed XRD no-card OTPU is missing: {FIXED_TEMPLATE}")
+        return "fixed_otpu", FIXED_TEMPLATE
+    if not ADAPTIVE_THEME.is_file():
+        raise FileNotFoundError(f"adaptive XRD no-card OTH is missing: {ADAPTIVE_THEME}")
+    return "adaptive_oth_json", ADAPTIVE_THEME
 
 
 def write_workbook(app: object, data: pd.DataFrame) -> str:
@@ -288,34 +242,84 @@ def remove_legend(layer: object) -> None:
             pass
 
 
-def apply_style(
-    app: object,
-    graph_name: str,
-    data: pd.DataFrame,
-    style: dict[str, float],
-    font_code: int,
-    labels: list[str],
-) -> None:
+ADAPTIVE_STYLE = {
+    "page_width": 6432.0,
+    "page_height": 4923.0,
+    "layer_left": 17.89,
+    "layer_top": 11.6,
+    "layer_width": 68.19,
+    "layer_height": 71.81,
+    "axis_thickness": 3.0,
+}
+
+
+def _y_axis_limits(data: pd.DataFrame) -> tuple[float, float]:
     y_columns = list(data.columns[1:])
     y_min = min(float(data[col].min()) for col in y_columns)
     y_max = max(float(data[col].max()) for col in y_columns)
     y_padding = max(0.25, (y_max - y_min) * 0.04)
-    y_from = math.floor((y_min - y_padding) * 10) / 10
-    y_to = math.ceil((y_max + y_padding) * 10) / 10
+    return (
+        math.floor((y_min - y_padding) * 10) / 10,
+        math.ceil((y_max + y_padding) * 10) / 10,
+    )
+
+
+def rebuild_direct_labels(
+    app: object,
+    graph_name: str,
+    data: pd.DataFrame,
+    font_code: int,
+    labels: list[str],
+) -> None:
+    """Replace all template DL labels with labels for the current worksheet data."""
+
+    y_columns = list(data.columns[1:])
+    labtalk(app, f'win -a "{quote(graph_name)}"; layer -s 1;')
+    # The fixed template contains DL1..DL9.  Delete that full contract first,
+    # and delete any stale higher-index labels left by an earlier product.
+    for index in range(1, max(FIXED_CURVE_COUNT, len(labels)) + 1):
+        labtalk(app, f"label -r DL{index};", required=False)
+    label_y_positions = []
+    for column in y_columns:
+        y_low = float(data[column].min())
+        y_high = float(data[column].max())
+        label_y_positions.append(y_low + (y_high - y_low) * 0.45)
+    max_label_len = max((len(label) for label in labels), default=0)
+    label_x = max(52.0, LABEL_X - max(0, max_label_len - 6) * 1.8)
+    for index, (label, y_value) in enumerate(zip(labels, label_y_positions), start=1):
+        name = f"DL{index}"
+        labtalk(app, f'label -n {name} "\\b({quote(label)})";')
+        labtalk(
+            app,
+            f"{name}.x={label_x}; {name}.y={y_value}; {name}.font={font_code}; "
+            f"{name}.fsize=26; {name}.bold=1; {name}.color=1;",
+            required=False,
+        )
+
+
+def apply_adaptive_style(
+    app: object,
+    graph_name: str,
+    data: pd.DataFrame,
+    font_code: int,
+    labels: list[str],
+) -> None:
+    y_columns = list(data.columns[1:])
+    y_from, y_to = _y_axis_limits(data)
 
     labtalk(app, f'win -a "{quote(graph_name)}"; layer -s 1;')
     labtalk(
         app,
         "page.kar=0; page.customwidth=1; page.customheight=1; "
-        f"page.width={style['page_width']}; page.height={style['page_height']};",
+        f"page.width={ADAPTIVE_STYLE['page_width']}; page.height={ADAPTIVE_STYLE['page_height']};",
     )
     labtalk(
         app,
-        f"layer.left={style['layer_left']}; layer.top={style['layer_top']}; "
-        f"layer.width={style['layer_width']}; layer.height={style['layer_height']};",
+        f"layer.left={ADAPTIVE_STYLE['layer_left']}; layer.top={ADAPTIVE_STYLE['layer_top']}; "
+        f"layer.width={ADAPTIVE_STYLE['layer_width']}; layer.height={ADAPTIVE_STYLE['layer_height']};",
     )
     labtalk(app, f"layer.x.from=5; layer.x.to=80; layer.x.inc=10; layer.y.from={y_from}; layer.y.to={y_to};")
-    labtalk(app, f"layer.x.thickness={style['axis_thickness']}; layer.y.thickness={style['axis_thickness']};")
+    labtalk(app, f"layer.x.thickness={ADAPTIVE_STYLE['axis_thickness']}; layer.y.thickness={ADAPTIVE_STYLE['axis_thickness']};")
     labtalk(
         app,
         f"layer.x.label.font={font_code}; layer.y.label.font={font_code}; "
@@ -358,27 +362,61 @@ def apply_style(
         except Exception:
             pass
 
-    label_y_positions = []
-    for column in y_columns:
-        y_low = float(data[column].min())
-        y_high = float(data[column].max())
-        label_y_positions.append(y_low + (y_high - y_low) * 0.45)
-    max_label_len = max((len(label) for label in labels), default=0)
-    label_x = max(52.0, LABEL_X - max(0, max_label_len - 6) * 1.8)
-    for index, (label, y_value) in enumerate(zip(labels, label_y_positions), start=1):
-        name = f"DL{index}"
-        labtalk(app, f"label -r {name};", required=False)
-        labtalk(app, f'label -n {name} "\\b({quote(label)})";')
-        labtalk(
-            app,
-            f"{name}.x={label_x}; {name}.y={y_value}; {name}.font={font_code}; "
-            f"{name}.fsize=26; {name}.bold=1; {name}.color=1;",
-            required=False,
-        )
+    rebuild_direct_labels(app, graph_name, data, font_code, labels)
 
 
-def create_graph(app: object, book_name: str, data: pd.DataFrame, page_name: str) -> str:
-    graph_name = app.CreatePage(3, page_name, "origin")
+def apply_fixed_template_bindings(
+    app: object,
+    graph_name: str,
+    data: pd.DataFrame,
+    font_code: int,
+    labels: list[str],
+) -> None:
+    """Keep OTPU-owned formatting, replacing only data-dependent values."""
+
+    y_from, y_to = _y_axis_limits(data)
+    labtalk(app, f'win -a "{quote(graph_name)}"; layer -s 1;')
+    labtalk(app, f"layer.x.from=5; layer.x.to=80; layer.x.inc=10; layer.y.from={y_from}; layer.y.to={y_to};")
+    remove_legend(app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(graph_name))
+    rebuild_direct_labels(app, graph_name, data, font_code, labels)
+
+
+def _clear_template_plot_bindings(app: object, graph_name: str) -> None:
+    """Remove only inherited plot bindings; template axes and text remain native."""
+
+    layer = app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(graph_name)
+    if layer is None:
+        raise RuntimeError(f"graph layer not found: {graph_name}")
+    # COM plot collections can be 0- or 1-based depending on Origin build.
+    # Destroy by object until none remain, never replacing the graph page.
+    while int(layer.DataPlots.Count) > 0:
+        destroyed = False
+        for index in (int(layer.DataPlots.Count) - 1, int(layer.DataPlots.Count)):
+            try:
+                layer.DataPlots.Item(index).Destroy()
+                destroyed = True
+                break
+            except Exception:
+                continue
+        if not destroyed:
+            raise RuntimeError("could not remove inherited XRD no-card template plot bindings")
+
+
+def create_graph(
+    app: object,
+    book_name: str,
+    data: pd.DataFrame,
+    page_name: str,
+    *,
+    fixed_template: Path | None = None,
+) -> str:
+    graph_name = app.CreatePage(
+        3,
+        page_name,
+        str(fixed_template.resolve()) if fixed_template is not None else "origin",
+    )
+    if fixed_template is not None:
+        _clear_template_plot_bindings(app, graph_name)
     for y_col in range(2, len(data.columns) + 1):
         labtalk(app, f"plotxy iy:=[{book_name}]Sheet1!(1,{y_col}) plot:=200 ogl:=[{graph_name}]Layer1;")
     return graph_name
@@ -450,8 +488,13 @@ def main() -> None:
     parser.add_argument("--input-csv", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--output-root", type=Path, default=None)
-    parser.add_argument("--reference-opju", type=Path, default=None)
-    parser.add_argument("--reference-graph", default="Graph4")
+    parser.add_argument(
+        "--reference-opju",
+        type=Path,
+        default=None,
+        help="audit-only compatibility parameter; never loaded for product generation",
+    )
+    parser.add_argument("--reference-graph", default="Graph4", help="audit-only compatibility parameter")
     parser.add_argument("--output-stem", default="XRD_26.7.2_no_card_final")
     parser.add_argument("--page-name", default=PAGE_NAME)
     parser.add_argument("--labels", nargs="*", help="direct labels for each Y column; defaults to CSV Y-column headers")
@@ -481,6 +524,7 @@ def main() -> None:
     labels = list(args.labels or [str(column) for column in data.columns[1:]])
     if len(labels) != len(data.columns) - 1:
         raise ValueError(f"expected {len(data.columns) - 1} labels for Y columns, got {len(labels)} labels")
+    style_mode, style_asset = style_mode_for_curve_count(len(labels))
     args.output_dir = ensure_output_dir_allowed(args.output_dir, args.output_root)
     args.output_stem = validate_output_stem(args.output_stem)
     opju = args.output_dir / f"{args.output_stem}.opju"
@@ -508,7 +552,6 @@ def main() -> None:
         context="XRD no-card",
     )
     input_hash_before = file_sha256(args.input_csv)
-    reference_hash_before = file_sha256(args.reference_opju) if args.reference_opju is not None else None
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     app = None
@@ -518,11 +561,25 @@ def main() -> None:
             app.Visible = 0
         except Exception:
             pass
+        # Make the fresh-project boundary explicit.  No reference OPJU is
+        # opened in either style mode.
+        app.NewProject()
         font_code = int(app.Evaluate("font(Arial)")) or 71
-        style = inspect_reference_style(app, args.reference_opju, args.reference_graph)
         book_name = write_workbook(app, data)
-        graph_name = create_graph(app, book_name, data, args.page_name)
-        apply_style(app, graph_name, data, style, font_code, labels)
+        graph_name = create_graph(
+            app,
+            book_name,
+            data,
+            args.page_name,
+            fixed_template=style_asset if style_mode == "fixed_otpu" else None,
+        )
+        if style_mode == "fixed_otpu":
+            apply_fixed_template_bindings(app, graph_name, data, font_code, labels)
+        else:
+            applied = OriginOperations(app).apply_graph_theme(graph_name, style_asset)
+            if not applied.ok:
+                raise RuntimeError(applied.message)
+            apply_adaptive_style(app, graph_name, data, font_code, labels)
         checks = verify_output(app, graph_name, len(data.columns) - 1, font_code)
         app.Save(str(opju))
         wait_for_file(opju)
@@ -536,21 +593,16 @@ def main() -> None:
             tif,
             dpi=600,
         )
-        with Image.open(tif) as image:
-            tif_dpi = image.info.get("dpi", (0, 0))
-            tif_info = {
-                "pixels": [int(value) for value in image.size],
-                "dpi": [float(value) for value in tif_dpi],
-                "resolution_evidence": {
-                    key: value
-                    for key, value in resolution.as_dict().items()
-                    if key != "path"
-                },
-            }
+        tif_info = {
+            "resolution_evidence": {
+                key: value
+                for key, value in resolution.as_dict().items()
+                if key != "path"
+            },
+        }
         input_hash_after = file_sha256(args.input_csv)
-        reference_hash_after = file_sha256(args.reference_opju) if args.reference_opju is not None else None
-        if input_hash_after != input_hash_before or reference_hash_after != reference_hash_before:
-            raise RuntimeError("An input CSV or reference OPJU changed during the Origin run; outputs are rejected.")
+        if input_hash_after != input_hash_before:
+            raise RuntimeError("The input CSV changed during the Origin run; outputs are rejected.")
         payload = {
             "dataset_id": args.output_stem,
             "data_type": "XRD",
@@ -561,16 +613,17 @@ def main() -> None:
                 "sha256_before": input_hash_before,
                 "sha256_after": input_hash_after,
             },
-            "reference_opju": (
+            "reference_opju_audit": (
                 {
                     "filename": args.reference_opju.name,
-                    "sha256_before": reference_hash_before,
-                    "sha256_after": reference_hash_after,
-                    "used_read_only_via_working_copy": True,
+                    "requested": True,
                 }
                 if args.reference_opju is not None
                 else None
             ),
+            "reference_opju_loaded": False,
+            "style_mode": style_mode,
+            "style_asset": str(style_asset.relative_to(PROJECT_ROOT)).replace("\\", "/"),
             "origin_file": opju.name,
             "preview_png": png.name,
             "figure_tif": tif.name,
@@ -601,6 +654,8 @@ def main() -> None:
                     "- Font: Arial for axis titles, tick labels, and direct labels",
                     "- Standard card: not added",
                     "- Legend colored line samples: not used",
+                    f"- Style mode: {style_mode}",
+                    "- Reference OPJU: not loaded (audit parameter only)",
                     f"- Curves: {len(labels)}, single graph page",
                     "",
                     "No phase, crystal-plane, mechanism, heterojunction, or purity claim is generated.",

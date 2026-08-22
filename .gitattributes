@@ -1,0 +1,3 @@
+templates/origin_styles/*.json text eol=lf
+templates/origin_styles/**/*.json text eol=lf
+templates/origin_styles/format_themes/*.oth binary

@@ -32,6 +32,8 @@ def test_extract_style_snapshot_reads_layout_and_plot_style_without_visible_text
     assert snapshot.plot_count == 2
     assert snapshot.plot_line_widths == [15.0, 20.0]
     assert snapshot.plot_colors == [2.0, 4.0]
+    assert snapshot.plot_line_colors == [2.0, 2.0]
+    assert snapshot.plot_visibility == [1.0, 0.0]
     assert snapshot.copied_visible_text is False
     assert "phase labels" in FORBIDDEN_EXEMPLAR_TEXT_CATEGORIES
 
@@ -86,6 +88,53 @@ def test_apply_style_snapshot_returns_false_without_numeric_layout() -> None:
 
     assert applied is False
     assert fake.font_calls == []
+
+
+def test_apply_style_snapshot_restores_per_plot_visibility() -> None:
+    fake = _FakeStyleOps()
+    snapshot = OpjuStyleSnapshot(
+        source_opju="copied.opju",
+        status="extracted",
+        graph_page="Graph1",
+        layout_values={
+            "page.width": 720.0,
+            "xb.x": 50.0,
+            "xb.y": -4.25,
+            "yl.x": 0.5,
+            "yl.y": 9.43,
+        },
+        plot_visibility=[1.0, 0.0],
+        plot_colors=[2.0, 4.0],
+        plot_line_colors=[2.0, 2.0],
+        audit_string_values={
+            "xb.text$": r"\b(Z' \(40)k)\f:g(\b(Ω))\b(\(41))",
+            "yl.text$": r"\b(-Z'' \(40)k\f:g(Ω)\(41))",
+        },
+    )
+
+    assert apply_style_snapshot(
+        fake,
+        "Graph1",
+        snapshot,
+        apply_default_font=False,
+        apply_axis_titles=True,
+    )
+    command_text = "\n".join(fake.labtalk_scripts)
+    assert "set Plot1 -s 1;" in command_text
+    assert "set Plot2 -s 0;" in command_text
+    assert "set Plot1 -c 2; set Plot1 -cl 2;" in command_text
+    assert "set Plot2 -c 4; set Plot2 -cl 2;" in command_text
+    assert r"label -s -xb \b(Z' \(40)k)\f:g(\b(Ω))\b(\(41));" in command_text
+    assert r"label -s -yl \b(-Z'' \(40)k\f:g(Ω)\(41));" in command_text
+    title_command_index = next(
+        index for index, script in enumerate(fake.labtalk_scripts) if "label -s -xb" in script
+    )
+    position_command_index = next(
+        index
+        for index, script in enumerate(fake.labtalk_scripts)
+        if "xb.x=50.0;" in script and "yl.y=9.43;" in script and index > title_command_index
+    )
+    assert position_command_index > title_command_index
 
 
 class _FakeResult:
@@ -152,10 +201,14 @@ class _FakeStyleOps:
             "__style_mimic_w_2": 20.0,
             "__style_mimic_c_1": 2.0,
             "__style_mimic_c_2": 4.0,
+            "__style_mimic_cl_1": 2.0,
+            "__style_mimic_cl_2": 2.0,
             "__style_mimic_k_1": 1.0,
             "__style_mimic_k_2": 2.0,
             "__style_mimic_z_1": 8.0,
             "__style_mimic_z_2": 9.0,
+            "__style_mimic_s_1": 1.0,
+            "__style_mimic_s_2": 0.0,
         }
 
     def load_project(self, _path: Path) -> _FakeResult:

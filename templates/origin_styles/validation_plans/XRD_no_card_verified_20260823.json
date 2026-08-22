@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "product_key": "XRD_no_card",
+  "graph_page": "XRD_26_7_2_no_card_final",
+  "reference_opju": "templates/origin_styles/reference_opju/XRD_no_card.opju",
+  "graph_template": "templates/origin_styles/graph_templates/XRD_no_card.otpu",
+  "format_theme": "templates/origin_styles/format_themes/XRD_no_card.oth",
+  "style_snapshot": "templates/origin_styles/snapshots/XRD_no_card.json",
+  "binding_contract": "templates/origin_styles/binding_contracts/XRD_no_card.json",
+  "comparison_mode": "fresh_project_same_data",
+  "requirements": [
+    "fixed OTPU used only for exactly nine current sample curves",
+    "adaptive OTH+JSON used for every other positive curve count",
+    "all direct labels replaced from current labels",
+    "reference OPJU is not loaded during product generation",
+    "save and reopen generated OPJU before native export",
+    "exact decoded-pixel match and native 600 dpi TIFF"
+  ]
+}

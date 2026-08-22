@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "product_key": "EIS",
+      "data_type": "EIS",
+      "source_opju": "templates/origin_styles/reference_opju/EIS.opju",
+      "graph_page": "Graph1",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/EIS.otpu",
+      "style_source_theme": "templates/origin_styles/format_themes/EIS.oth",
+      "style_snapshot": "templates/origin_styles/snapshots/EIS.json",
+      "binding_contract": "templates/origin_styles/binding_contracts/EIS.json"
+    }
+  ]
+}

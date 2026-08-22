@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "XRD",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "54d6485d6f28e20c6b0ec41b1872c48c49b5653f05363c391c317c7404e04ed9",
+      "graph_page": "Graph4",
+      "source_series_count": 5,
+      "source_schema": {
+        "status": "ready",
+        "layout": "multi_book_xy_pairs",
+        "transform": "identity_numeric_copy_of_reviewed_plotted_values",
+        "plot_type": "line",
+        "group_plots": false,
+        "group_layer_indices": [1],
+        "individual_stack_offsets": [
+          {"layer_index": 1, "plot_index": 1, "x_offset": 0.0, "y_offset": 0.0, "x_multiplier": 1.0, "y_multiplier": 1.0},
+          {"layer_index": 1, "plot_index": 2, "x_offset": 0.0, "y_offset": 560.2891913966785, "x_multiplier": 1.0, "y_multiplier": 1.0},
+          {"layer_index": 1, "plot_index": 3, "x_offset": 0.0, "y_offset": -2808.5009666953847, "x_multiplier": 1.0, "y_multiplier": 1.0}
+        ],
+        "plot_format_contracts": [
+          {"layer_index": 1, "plot_index": 1, "color": 16814848, "line_color": 16814848, "line_width": 1500, "line_style": 0, "connect": 1, "vertical_drop_lines": 0},
+          {"layer_index": 1, "plot_index": 2, "color": 33518174, "line_color": 33518174, "line_width": 1500, "line_style": 0, "connect": 1, "vertical_drop_lines": 0},
+          {"layer_index": 1, "plot_index": 3, "color": 18128807, "line_color": 18128807, "line_width": 1500, "line_style": 0, "connect": 1, "vertical_drop_lines": 0},
+          {"layer_index": 2, "plot_index": 1, "color": 22106449, "line_color": 22106449, "line_width": 250, "line_style": 0, "connect": 0, "vertical_drop_lines": 1, "vertical_drop_line_color": 17585584, "vertical_drop_line_style": 0, "vertical_drop_line_width": 3},
+          {"layer_index": 3, "plot_index": 1, "color": 23709421, "line_color": 23709421, "line_width": 1500, "line_style": 0, "connect": 1, "vertical_drop_lines": 0}
+        ],
+        "series_roles": "four reviewed sample patterns plus one reviewed CuWO4 reference-card stick series",
+        "xrd_standard_card_annotations": {
+          "hide_layer_legends": [2, 3],
+          "top_series": {
+            "semantic_role": "top_sample_pattern",
+            "display_text": "BiCu-10",
+            "layer_index": 1,
+            "line": {
+              "name": "Line",
+              "left": 3558,
+              "top": 676,
+              "width": 496,
+              "height": 82,
+              "x1": 54.64294981426266,
+              "y1": 17969.448373408773,
+              "x2": 46.15937072503422,
+              "y2": 17969.448373408773,
+              "color": 23709421,
+              "line_width": 3,
+              "line_type": 1
+            },
+            "text": {
+              "name": "Text",
+              "left": 4111,
+              "top": 587,
+              "width": 823,
+              "height": 251,
+              "font": 1,
+              "font_size": 26,
+              "color": 1,
+              "rich_text": "\\b(BiCu-10)"
+            }
+          },
+          "reference_card": {
+            "semantic_role": "CuWO4_JCPDS_04-009-6293_reference_sticks",
+            "display_text": "CuWO4 JCPDS card No.04-009-6293",
+            "layer_index": 2,
+            "text": {
+              "name": "Text",
+              "left": 2680,
+              "top": 3345,
+              "width": 2819,
+              "height": 226,
+              "font": 71,
+              "font_size": 20,
+              "color": 1,
+              "rich_text": "\\b(\\c17585584(CuWO)\\-(\\c17585584(4))\\c17585584( JCPDS card No.04-009-6293))"
+            }
+          }
+        }
+      },
+      "plots": [
+        {"layer_index": 1, "plot_index": 1, "x_dataset": "Book2_A", "y_dataset": "Book2_B", "row_from": 1, "row_to": 3855, "source_series_index": 1, "semantic_role": "lower_sample_pattern_1"},
+        {"layer_index": 1, "plot_index": 2, "x_dataset": "Book2_C", "y_dataset": "Book2_D", "row_from": 1, "row_to": 3855, "source_series_index": 2, "semantic_role": "lower_sample_pattern_2"},
+        {"layer_index": 1, "plot_index": 3, "x_dataset": "Book2_E", "y_dataset": "Book2_F", "row_from": 1, "row_to": 3855, "source_series_index": 3, "semantic_role": "lower_sample_pattern_3"},
+        {"layer_index": 2, "plot_index": 1, "x_dataset": "Book2_G", "y_dataset": "Book2_H", "row_from": 1, "row_to": 198, "source_series_index": 4, "semantic_role": "reference_card_sticks"},
+        {"layer_index": 3, "plot_index": 1, "x_dataset": "Book3_E", "y_dataset": "Book3_F", "row_from": 1, "row_to": 3855, "source_series_index": 5, "semantic_role": "top_sample_pattern"}
+      ]
+    }
+  ]
+}

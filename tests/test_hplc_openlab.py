@@ -312,6 +312,26 @@ def test_result_set_injection_time_is_converted_to_dx_local_offset():
     assert source == "result_set_acaml.InjectionMetaData.InjectionAcqDateTime"
 
 
+def test_result_set_injection_time_accepts_seven_digit_fractional_seconds():
+    acquisition, source = _resolve_acquisition_datetime(
+        raw_metadata={"date": "2026-07-30T23:25:15.9864529+08:00"},
+        raw_file_info={"InjectionAcqDateTime": "2026-07-30T15:26:01.1234567Z"},
+    )
+
+    assert acquisition.isoformat(timespec="microseconds") == "2026-07-30T23:26:01.123456+08:00"
+    assert source == "result_set_acaml.InjectionMetaData.InjectionAcqDateTime"
+
+
+def test_result_set_injection_time_pads_short_fractional_seconds():
+    acquisition, source = _resolve_acquisition_datetime(
+        raw_metadata={"date": "2026-08-06T19:47:06+08:00"},
+        raw_file_info={"InjectionAcqDateTime": "2026-08-06T11:47:41.97Z"},
+    )
+
+    assert acquisition.isoformat(timespec="microseconds") == "2026-08-06T19:47:41.970000+08:00"
+    assert source == "result_set_acaml.InjectionMetaData.InjectionAcqDateTime"
+
+
 def test_openlab_dataset_uses_project_native_dx_decoder(tmp_path: Path):
     result_set = tmp_path / "batch" / "synthetic.rslt"
     result_set.mkdir(parents=True)

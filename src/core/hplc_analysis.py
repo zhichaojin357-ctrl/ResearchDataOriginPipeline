@@ -418,13 +418,23 @@ def match_target_peaks(
     config: dict[str, Any],
     *,
     missing_can_be_zero: bool,
+    method_name: str = "",
 ) -> dict[str, dict[str, Any]]:
     """Match only the three user-specified RT windows to vendor peak rows."""
     peak_rows = [item for item in peaks if item.get("retention_time_min") is not None]
     result: dict[str, dict[str, Any]] = {}
     ambiguity_margin = float(config["quality_thresholds"]["ambiguous_rt_distance_margin_min"])
     for target_key in TARGET_ORDER:
-        target = config["targets"][target_key]
+        target = dict(config["targets"][target_key])
+        rt_mapping_source = "default_target_window"
+        for override in config.get("method_target_overrides", []):
+            method_fragment = str(override.get("acquisition_method_contains") or "").strip()
+            if not method_fragment or method_fragment.casefold() not in method_name.casefold():
+                continue
+            target_override = (override.get("targets") or {}).get(target_key)
+            if isinstance(target_override, dict):
+                target.update(target_override)
+                rt_mapping_source = str(override.get("source") or "method_target_override")
         nominal = float(target["nominal_rt_min"])
         tolerance = float(target["rt_tolerance_min"])
         candidates = [
@@ -459,6 +469,7 @@ def match_target_peaks(
                 "baseline_start": None,
                 "baseline_end": None,
                 "baseline_model": None,
+                "rt_mapping_source": rt_mapping_source,
             }
             continue
         selected = candidates[0]
@@ -495,6 +506,7 @@ def match_target_peaks(
             "baseline_start": selected.get("baseline_start"),
             "baseline_end": selected.get("baseline_end"),
             "baseline_model": selected.get("baseline_model"),
+            "rt_mapping_source": rt_mapping_source,
         }
     return result
 
@@ -1175,6 +1187,22 @@ def _parameter_rows(config: dict[str, Any], generated_at: str) -> list[dict[str,
                 },
             ]
         )
+    for override in config.get("method_target_overrides", []):
+        method_fragment = str(override.get("acquisition_method_contains") or "")
+        for target_key, target_override in (override.get("targets") or {}).items():
+            target_name = config["targets"][target_key]["display_name"]
+            rows.append(
+                {
+                    "category": "方法专用目标峰",
+                    "parameter": f"{target_name} RT窗口（方法含 {method_fragment}）",
+                    "value": (
+                        f"{target_override['nominal_rt_min']} ± "
+                        f"{target_override['rt_tolerance_min']}"
+                    ),
+                    "unit": "min",
+                    "source": str(override.get("source") or "项目配置"),
+                }
+            )
     rows.append(
         {
             "category": "稀释",
@@ -1226,6 +1254,10 @@ def _parameter_rows(config: dict[str, Any], generated_at: str) -> list[dict[str,
         )
     rows.extend(
         [
+            {"category": "计算公式", "parameter": "转化率", "value": "(C₀-C_茴香硫醚)/C₀", "unit": "fraction", "source": "用户确认"},
+            {"category": "计算公式", "parameter": "茴香亚砜选择性", "value": "C_茴香亚砜/(C_茴香亚砜+C_茴香砜)", "unit": "fraction", "source": "用户确认"},
+            {"category": "计算公式", "parameter": "茴香亚砜产率", "value": "转化率×茴香亚砜选择性", "unit": "fraction", "source": "用户确认"},
+            {"category": "计算公式", "parameter": "物料回收率", "value": "(C_茴香硫醚+C_茴香亚砜+C_茴香砜)/C₀", "unit": "fraction", "source": "用户确认"},
             {"category": "程序", "parameter": "分析版本", "value": config["analysis_version"], "unit": "", "source": "项目配置"},
             {"category": "程序", "parameter": "数据处理时间", "value": generated_at, "unit": "", "source": "运行时"},
             {"category": "科学边界", "parameter": "结果状态", "value": "用户提供RT映射和标曲的候选定量；所有转化率/选择性/产率仍需人工复核", "unit": "", "source": "claim policy"},
@@ -1281,7 +1313,10 @@ def analyze_hplc_openlab_dataset(
             folder_name=batch_folder,
         )
         screening_date = date.fromisoformat(config["date_rules"]["light_screening_date"])
-        is_before_screening = experiment_date < screening_date
+        exclude_before_screening = bool(
+            config["date_rules"].get("exclude_before_light_screening_date", True)
+        )
+        is_before_screening = experiment_date < screening_date and exclude_before_screening
         is_light_boundary_uncertain = light_source == "光源日期边界待确认"
         analysis_eligible = not wash and not is_before_screening and not is_light_boundary_uncertain
         signal_column = signal_by_injection.get(injection_id)
@@ -1297,10 +1332,12 @@ def analyze_hplc_openlab_dataset(
             injection_vendor_peaks,
             config,
         )
+        method_name = str(injection.get("acquisition_method") or injection.get("processing_method") or "")
         vendor_targets = match_target_peaks(
             injection_vendor_peaks if vendor_available else [],
             config,
             missing_can_be_zero=vendor_available,
+            method_name=method_name,
         )
         if analysis_eligible and not vendor_available:
             quantifiable = False
@@ -1323,7 +1360,6 @@ def analyze_hplc_openlab_dataset(
         if any(item["ambiguous"] for item in targets.values()) and quality == "正常":
             quality = "待人工复核"
             quality_reasons.append("至少一个目标峰存在近距离多候选歧义")
-        method_name = str(injection.get("acquisition_method") or injection.get("processing_method") or "")
         record = {
             "injection_id": injection_id,
             "result_set_id": str(injection.get("result_set_id") or ""),
@@ -1410,13 +1446,14 @@ def analyze_hplc_openlab_dataset(
                 )
             )
         if record["is_before_screening"]:
+            screening_date_text = str(config["date_rules"]["light_screening_date"])
             excluded_data.append(
                 {
                     "experiment_date": experiment_date.isoformat(),
                     "sample_name": sample_name,
                     "injection_id": record["injection_id"],
                     "reason": "光源筛选前数据暂不处理",
-                    "details": "日期文件夹早于用户指定的 2026-07-17 光源筛选边界",
+                    "details": f"日期文件夹早于配置的 {screening_date_text} 光源筛选边界",
                     "acquisition_time": record["acquisition_local"],
                     "sequence_name": sequence_name,
                     "result_name": result_name,
@@ -1912,7 +1949,13 @@ def analyze_hplc_openlab_dataset(
         ):
             c0 = float(row["c0_mM"])
             row["conversion_fraction"] = (c0 - float(substrate)) / c0
-            row["sulfoxide_yield_fraction"] = float(sulfoxide) / c0
+            if row["sulfoxide_selectivity_fraction"] is not None:
+                row["sulfoxide_yield_fraction"] = (
+                    row["conversion_fraction"]
+                    * float(row["sulfoxide_selectivity_fraction"])
+                )
+            elif float(sulfoxide) == 0.0:
+                row["sulfoxide_yield_fraction"] = 0.0
             row["material_recovery_fraction"] = (
                 float(substrate) + float(sulfoxide) + float(sulfone)
             ) / c0

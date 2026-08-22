@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "XRD_no_card",
+  "status": "accepted",
+  "generated_at": "2026-08-23T13:20:00+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed nine solid native Origin XRD curves, bold visible X/Y titles, nine current direct labels, the reviewed single-layer layout, no standard-card content, no stale template labels, and no raster/background surrogate.",
+  "validation_invocation": "Direct same-data replay with a task-owned isolated Origin.Application DispatchEx instance; the unrelated inaccessible Origin orphan was neither reused nor closed.",
+  "formal_evidence_location": "diagnostics/20260823_XRD_no_card_otpu_validation_02/comparison.json",
+  "origin": {"entrypoint": "Origin.Application", "version": "10.3", "build": 197, "task_owned_isolated_instance": true},
+  "pipeline_git_base_commit": "2bf94bc",
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/XRD_no_card.otpu",
+    "sha256": "650b8908087735236b2012d5e4f5d41995617749eff94df2cc63be41f05e345e",
+    "source_mode": "individually_regenerated_from_reviewed_no_card_reference_opju",
+    "template_direct_label_content": "neutral Series 1..9 placeholders replaced at runtime"
+  },
+  "supporting_style_assets": {
+    "format_theme": {"path": "format_themes/XRD_no_card.oth", "sha256": "85ed8a7312a312a0668a562770b9994952f03a5e4a9404e754eee24aff5cbb1d"},
+    "style_snapshot": {"path": "snapshots/XRD_no_card.json"}
+  },
+  "reference": {
+    "path": "reference_opju/XRD_no_card.opju",
+    "graph_page": "XRD_26_7_2_no_card_final",
+    "sha256": "3647c25a19a29ffe3c6db8c9e743e6b2e02238cb39a1616e35243a9a5ee551ad",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/XRD_no_card.json",
+    "source_series_count": 9,
+    "explicit_xy_ranges": true,
+    "shared_x_column": true,
+    "group_plots": false,
+    "direct_labels_replaced_from_current_labels": true
+  },
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "4d31c6e6ed4c8ca5b956ecc779244ea566b0adebc328e5a5cc5b2dab28eb2c36",
+    "generated_plot_values_sha256": "4d31c6e6ed4c8ca5b956ecc779244ea566b0adebc328e5a5cc5b2dab28eb2c36",
+    "reference_plot_mapping_sha256": "cd7563c459bb3dc85b91907a6c92a96684a108bb4121cf5669c3bb102fc5b25d",
+    "generated_plot_mapping_sha256": "cd7563c459bb3dc85b91907a6c92a96684a108bb4121cf5669c3bb102fc5b25d"
+  },
+  "style": {
+    "status": "pass",
+    "axis_title_hard_gate": true,
+    "x_axis_title": "\\b(2\\g(q) (degree))",
+    "y_axis_title": "\\b(Intensity (a.u.))",
+    "plot_line_width_origin_units": [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500],
+    "plot_line_style_write_value": 0
+  },
+  "native_origin_objects": {
+    "worksheet_data": true,
+    "sample_curves": true,
+    "axis_titles": true,
+    "direct_labels": true,
+    "raster_or_background_surrogate": false,
+    "external_plotting_library_used_for_product": false
+  },
+  "pixels": {"same_size": true, "exact_pixel_match": true, "changed_pixels": 0, "rms": 0.0},
+  "save_reopen": {"saved_reopened": true, "graph_page": "XRD_26_7_2_no_card_final"},
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  },
+  "reference_opju_self_replay": false
+}

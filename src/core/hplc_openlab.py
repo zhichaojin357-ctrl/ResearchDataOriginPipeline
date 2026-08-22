@@ -2017,6 +2017,15 @@ def _parse_acquisition_datetime(value: object) -> datetime:
     text = str(value or "").strip()
     if not text:
         raise ValueError("OpenLab manifest does not contain an acquisition date")
+    # OpenLab serializes .NET DateTime values with variable fractional-second
+    # precision.  The bundled runtime requires exactly six digits when a
+    # fraction is present, so pad short values and truncate excess precision
+    # while retaining the original UTC offset.
+    text = re.sub(
+        r"\.(\d+)(?=(?:Z|[+-]\d{2}:\d{2})?$)",
+        lambda match: f".{match.group(1)[:6].ljust(6, '0')}",
+        text,
+    )
     normalized = text[:-1] + "+00:00" if text.endswith("Z") else text
     return datetime.fromisoformat(normalized)
 

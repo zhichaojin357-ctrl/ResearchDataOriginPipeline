@@ -101,6 +101,16 @@ def build_parser() -> argparse.ArgumentParser:
     template_format.add_argument("--compact-output", action="store_true", help="write deliverables under products/<type> with minimal top-level output folders")
     template_format.add_argument("--only-type", help="run template-format generation for one product type first, for example XRD")
     template_format.add_argument(
+        "--origin-style-mode",
+        choices=("auto", "otpu", "oth-json"),
+        default="auto",
+        help=(
+            "Origin style execution route: auto selects exact verified OTPU for a fixed "
+            "binding and accepted OTH+JSON only for adaptive series cardinality; explicit "
+            "modes never silently fall back"
+        ),
+    )
+    template_format.add_argument(
         "--style-replay-report",
         type=Path,
         help=(
@@ -217,7 +227,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--reference-opju",
         type=Path,
         default=DEFAULT_XRD_REFERENCE_OPJU,
-        help="Origin OPJU reference whose Graph4 style is used; defaults to the project-local XRD template asset",
+        help="optional XRD reference retained for audit compatibility only; the fresh product uses the verified project-local OTPU",
     )
     xrd_overlay.add_argument("--output-root", type=Path, help="optional output root; defaults to configured output root")
     xrd_origin = xrd_overlay.add_mutually_exclusive_group()
@@ -239,8 +249,16 @@ def build_parser() -> argparse.ArgumentParser:
     xrd_no_card.add_argument("--labels", nargs="*", help="direct labels for sources; defaults to source stems")
     xrd_no_card.add_argument("--output-root", type=Path, help="optional output root; defaults to configured output root")
     xrd_no_card.add_argument("--output-stem", default="XRD_BOBXC1_X_no_card_overlay")
-    xrd_no_card.add_argument("--reference-opju", type=Path, help="optional Origin OPJU reference whose Graph4 style is inspected")
-    xrd_no_card.add_argument("--reference-graph", default="Graph4")
+    xrd_no_card.add_argument(
+        "--reference-opju",
+        type=Path,
+        help="optional audit-only reference path; it is never loaded for product generation",
+    )
+    xrd_no_card.add_argument(
+        "--reference-graph",
+        default="Graph4",
+        help="audit-only compatibility value",
+    )
     xrd_no_card_origin = xrd_no_card.add_mutually_exclusive_group()
     xrd_no_card_origin.add_argument("--dry-run", action="store_true", help="write processed table, metadata, and report without launching Origin")
     xrd_no_card_origin.add_argument("--with-origin", action="store_true", help="explicitly launch Origin COM and export OPJU/TIF/PNG")
@@ -452,6 +470,7 @@ def main(argv: list[str] | None = None) -> int:
                 compact_output=bool(args.compact_output),
                 only_type=args.only_type,
                 style_replay_report=args.style_replay_report,
+                origin_style_mode=args.origin_style_mode,
             ),
         )
         print(f"run_root={result['run_root']}")

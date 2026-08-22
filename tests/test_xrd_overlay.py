@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
-import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -15,17 +13,20 @@ from src.core.xrd_overlay import (
     build_xrd_overlay_table,
     parse_xrd_reference_card_peaks,
     run_xrd_overlay,
-    _replace_graph4_template_data_with_originpro,
-    _isolated_xrd_originpro_session,
-    _set_template_text_objects,
+    _apply_xrd_native_text_and_axes,
+    _build_fresh_xrd_overlay_with_operations,
+    _fresh_xrd_xy_ranges,
+    _write_xrd_overlay_worksheets,
     _xrd_axis_title_labtalk,
 )
+from src.origin.operations import OperationResult
 from src.core.xrd_no_card_overlay import (
     XrdNoCardOverlayArtifacts,
     XrdNoCardOverlayOptions,
     XrdNoCardOverlayTable,
     _export_with_existing_script,
     _preflight_run_outputs,
+    _xrd_no_card_style_mode,
     build_xrd_no_card_overlay_table,
     run_xrd_no_card_overlay,
     _origin_process_ids,
@@ -277,6 +278,9 @@ def test_xrd_origin_failure_has_matching_fail_status_in_metadata_and_report(
     card.write_text("5.0 x 100\n6.0 x 50\n", encoding="utf-8")
     reference = tmp_path / "reference.opju"
     reference.write_bytes(b"opju")
+    graph_template = project_root / "templates" / "origin_styles" / "graph_templates" / "XRD.otpu"
+    graph_template.parent.mkdir(parents=True)
+    graph_template.write_bytes(b"otpu")
     monkeypatch.setattr(
         "src.core.xrd_overlay._export_xrd_overlay_with_origin",
         lambda *_args, **_kwargs: {"ok": False, "message": "synthetic Origin failure"},
@@ -407,26 +411,34 @@ def test_xrd_overlay_cli_passes_force_to_options(
     assert captured["force"] is True
 
 
-def test_xrd_overlay_template_text_uses_uniform_legend_format() -> None:
-    layer1 = _FakeLayer({"Legend": _FakeGraphObject(), "Text": _FakeGraphObject()})
-    layer2 = _FakeLayer({"Text": _FakeGraphObject()})
-    graph = _FakeGraph([layer1, layer2])
+def test_xrd_overlay_fresh_worksheet_layout_uses_processed_data_exactly(tmp_path: Path) -> None:
+    bicu = _write_raw4(tmp_path / "bicu.txt", [(5.0, 10.0), (6.0, 20.0)])
+    bobc = _write_raw4(tmp_path / "bobc.txt", [(5.0, 6.0), (6.0, 12.0)])
+    cwo = _write_raw4(tmp_path / "cwo.txt", [(5.0, 4.0), (6.0, 8.0)])
+    card = tmp_path / "card.txt"
+    card.write_text("5.0 x 100\n6.0 x 50\n", encoding="utf-8")
+    table = build_xrd_overlay_table(bicu, bobc, cwo, card)
+    operations = _FakeFreshXrdOperations()
 
-    _set_template_text_objects(graph)
+    book2, book3 = _write_xrd_overlay_worksheets(operations, table)
 
-    legend = layer1.obj.GraphObjects["Legend"]
-    top_text = layer1.obj.GraphObjects["Text"]
-    card_text = layer2.obj.GraphObjects["Text"]
-    assert legend.Text == "\\l(2)\\b( BiOBr\\-(0.5)Cl\\-(0.5))\r\n\\l(1)\\b( CuWO\\-(4))"
-    assert top_text.Text == "\\b(BiCu-10)"
-    assert legend.props["fsize"] == top_text.props["fsize"] == 26
-    assert legend.props["font"] == top_text.props["font"] == 67
-    assert legend.props["bold"] == top_text.props["bold"] == 1
-    assert legend.props["frame"] == legend.props["fill"] == legend.props["fillarea"] == 0
-    assert top_text.Left == 4110
-    assert legend.Left == 3569
-    assert legend.Top > top_text.Top
-    assert "fsize" not in card_text.props
+    assert (book2, book3) == ("Book2", "Book3")
+    assert operations.columns[("Book2", "Sheet1")][1] == [row[3] for row in table.rows]
+    assert operations.columns[("Book2", "Sheet1")][3] == [row[2] for row in table.rows]
+    assert operations.columns[("Book2", "Sheet1")][7] == [row[4] for row in table.rows]
+    assert operations.columns[("Book3", "Sheet1")][5] == [row[1] for row in table.rows]
+
+
+def test_xrd_overlay_fresh_graph_ranges_use_only_new_worksheets() -> None:
+    ranges = _fresh_xrd_xy_ranges("Book2", "Book3", 42)
+
+    assert [(item["layer_index"], item["book_name"], item["x_col"], item["y_col"]) for item in ranges] == [
+        (1, "Book2", 1, 2),
+        (1, "Book2", 3, 4),
+        (2, "Book2", 7, 8),
+        (3, "Book3", 5, 6),
+    ]
+    assert {item["row_to"] for item in ranges} == {42}
 
 
 def test_xrd_overlay_direct_origin_path_sets_greek_theta_axis_title() -> None:
@@ -437,63 +449,24 @@ def test_xrd_overlay_direct_origin_path_sets_greek_theta_axis_title() -> None:
     assert "2theta (degree)" not in labtalk
 
 
-def test_xrd_overlay_reopens_saved_runtime_opju_for_native_tif() -> None:
-    source = inspect.getsource(_replace_graph4_template_data_with_originpro)
+def test_xrd_overlay_fresh_builder_never_loads_or_copies_reference_opju() -> None:
+    source = inspect.getsource(_build_fresh_xrd_overlay_with_operations)
 
-    assert source.index("with _isolated_xrd_originpro_session()") < source.index(
-        "reexport_tif_from_reopened_opju("
-    )
-    assert "op.exit()" in inspect.getsource(_isolated_xrd_originpro_session)
-    assert "graph.save_fig(str(runtime_tif)" not in source
-    assert "_ensure_tif_600_dpi" not in source
-
-
-def test_xrd_overlay_refuses_preexisting_origin_before_import(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "src.core.xrd_overlay._xrd_origin_process_ids",
-        lambda: {24740},
-    )
-    monkeypatch.delitem(sys.modules, "originpro", raising=False)
-
-    with pytest.raises(RuntimeError, match="already running.*24740"):
-        with _isolated_xrd_originpro_session():
-            raise AssertionError("session must not be yielded")
+    assert "load_project(options.reference_opju)" not in source
+    assert "copy2(options.reference_opju" not in source
+    assert "load_project(artifacts.origin_file)" in source
+    assert "create_graph_from_xy_pairs_template" in source
+    assert "export_graph(\"Graph4\", artifacts.preview_png, \"png\", dpi=600)" in source
+    assert "_export_native_xrd_tif_with_physical_validation" in source
+    assert "originpro" not in source
 
 
-def test_xrd_overlay_origin_exit_exception_blocks_success(monkeypatch) -> None:
-    fake_originpro = SimpleNamespace(
-        exit=lambda: (_ for _ in ()).throw(RuntimeError("synthetic exit failure"))
-    )
-    monkeypatch.setitem(sys.modules, "originpro", fake_originpro)
-    monkeypatch.setattr(
-        "src.core.xrd_overlay._xrd_origin_process_ids",
-        lambda: set(),
-    )
-    monkeypatch.setattr(
-        "src.core.xrd_overlay._wait_for_xrd_origin_exit",
-        lambda *_args, **_kwargs: set(),
-    )
+def test_xrd_overlay_preserves_otpu_axis_title_objects_without_recreating_them() -> None:
+    source = inspect.getsource(_apply_xrd_native_text_and_axes)
 
-    with pytest.raises(RuntimeError, match="exit raised RuntimeError: synthetic exit failure"):
-        with _isolated_xrd_originpro_session() as yielded:
-            assert yielded is fake_originpro
-
-
-def test_xrd_overlay_remaining_new_origin_pid_blocks_success(monkeypatch) -> None:
-    fake_originpro = SimpleNamespace(exit=lambda: None)
-    monkeypatch.setitem(sys.modules, "originpro", fake_originpro)
-    monkeypatch.setattr(
-        "src.core.xrd_overlay._xrd_origin_process_ids",
-        lambda: set(),
-    )
-    monkeypatch.setattr(
-        "src.core.xrd_overlay._wait_for_xrd_origin_exit",
-        lambda *_args, **_kwargs: {13579},
-    )
-
-    with pytest.raises(RuntimeError, match="remained.*13579"):
-        with _isolated_xrd_originpro_session():
-            pass
+    assert "_xrd_axis_title_labtalk" not in source
+    assert "__rdop_xrd_x_title$=xb.text$" in source
+    assert "__rdop_xrd_y_title$=yl.text$" in source
 
 
 def test_xrd_no_card_overlay_accepts_mixed_xrd_text_formats(tmp_path: Path) -> None:
@@ -529,6 +502,8 @@ def test_run_xrd_no_card_overlay_dry_run_writes_metadata_without_origin(tmp_path
     assert metadata["processing_status"] == "processed_no_origin"
     assert metadata["standard_card_added"] is False
     assert metadata["origin_file"] is None
+    assert metadata["style_mode"] == "adaptive_oth_json"
+    assert metadata["reference_opju_loaded"] is False
     assert "no standard-card sticks" in " ".join(metadata["manual_check_items"])
 
 
@@ -574,6 +549,40 @@ def test_xrd_no_card_overlay_rejects_missing_explicit_reference(tmp_path: Path) 
         assert "Explicit XRD no-card reference OPJU does not exist" in str(exc)
     else:
         raise AssertionError("missing explicit reference OPJU should fail")
+
+
+def test_xrd_no_card_style_dispatches_fixed_only_for_nine_curves() -> None:
+    assert _xrd_no_card_style_mode(9) == "fixed_otpu"
+    assert _xrd_no_card_style_mode(8) == "adaptive_oth_json"
+    assert _xrd_no_card_style_mode(10) == "adaptive_oth_json"
+
+
+def test_xrd_no_card_origin_script_uses_detached_assets_and_never_loads_reference() -> None:
+    script_text = XRD_NO_CARD_ORIGIN_SCRIPT.read_text(encoding="utf-8")
+    wrapper_text = XRD_NO_CARD_WRAPPER.read_text(encoding="utf-8")
+
+    assert 'FIXED_TEMPLATE = STYLE_ROOT / "graph_templates" / "XRD_no_card.otpu"' in script_text
+    assert 'ADAPTIVE_THEME = STYLE_ROOT / "format_themes" / "XRD_no_card.oth"' in script_text
+    assert 'return "fixed_otpu", FIXED_TEMPLATE' in script_text
+    assert 'return "adaptive_oth_json", ADAPTIVE_THEME' in script_text
+    assert "OriginOperations(app).apply_graph_theme(graph_name, style_asset)" in script_text
+    assert "fixed_template=style_asset if style_mode == \"fixed_otpu\" else None" in script_text
+    assert "inspect_reference_style" not in script_text
+    assert "resolve_origin_reference_pattern" not in wrapper_text
+    assert "reference_opju_loaded\": False" in script_text
+    assert "reference_opju_loaded\": False" in wrapper_text
+
+
+def test_xrd_no_card_origin_script_is_native_origin_only_and_rebuilds_template_labels() -> None:
+    script_text = XRD_NO_CARD_ORIGIN_SCRIPT.read_text(encoding="utf-8")
+
+    assert "win32com.client.DispatchEx(\"Origin.Application\")" in script_text
+    assert "app.NewProject()" in script_text
+    assert "matplotlib" not in script_text.casefold()
+    assert "from PIL" not in script_text
+    assert "InsertImage" not in script_text
+    assert "label -r DL{index}" in script_text
+    assert "max(FIXED_CURVE_COUNT, len(labels))" in script_text
 
 
 def test_xrd_no_card_origin_script_restricts_output_dir_to_output_root() -> None:
@@ -743,32 +752,24 @@ def _write_simple_xrd_export(path: Path, rows: list[tuple[float, float]]) -> Pat
     return path
 
 
-class _FakeGraphObject:
+class _FakeFreshXrdOperations:
     def __init__(self) -> None:
-        self.Text = ""
-        self.Left = 0
-        self.Top = 0
-        self.Width = 0
-        self.Height = 0
-        self.props: dict[str, object] = {}
+        self.columns: dict[tuple[str, str], list[list[float]]] = {}
 
-    def SetNumProp(self, prop: str, value: object) -> None:
-        self.props[prop] = value
+    def create_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+        self.columns[(book_name, sheet_name)] = []
+        return OperationResult(True, "created", {"book_name": book_name, "sheet_name": sheet_name})
 
+    def set_worksheet_data(
+        self,
+        book_name: str,
+        sheet_name: str,
+        columns,
+        column_names=None,
+    ) -> OperationResult:
+        values = [list(column) for column in columns]
+        self.columns[(book_name, sheet_name)] = values
+        return OperationResult(True, "written", {"columns": len(values), "rows": len(values[0])})
 
-class _FakeLayerObject:
-    def __init__(self, objects: dict[str, _FakeGraphObject]) -> None:
-        self.GraphObjects = objects
-
-
-class _FakeLayer:
-    def __init__(self, objects: dict[str, _FakeGraphObject]) -> None:
-        self.obj = _FakeLayerObject(objects)
-
-
-class _FakeGraph:
-    def __init__(self, layers: list[_FakeLayer]) -> None:
-        self._layers = layers
-
-    def __getitem__(self, index: int) -> _FakeLayer:
-        return self._layers[index]
+    def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
+        return OperationResult(True, "read", {"columns": self.columns[(book_name, sheet_name)]})

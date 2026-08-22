@@ -16,7 +16,7 @@ from src.core.origin_runtime import copy_runtime_artifact
 from src.core.template_product_common import extract_xrd_raw_data_rows
 from src.core.output_sanitizer import render_output_path, scrub_output_text
 from src.core.project import ensure_output_path_separate_from_inputs
-from src.core.runtime_paths import create_run_output_layout, resolve_origin_reference_pattern, resolve_output_root
+from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
 from src.core.xrd_helpers import interpolated_y as _interpolated_y
 from src.core.xrd_helpers import relative_path as _relative
@@ -158,15 +158,12 @@ def run_xrd_no_card_overlay(project_root: Path, options: XrdNoCardOverlayOptions
         apply_force=False,
     )
 
-    # Read and hash every protected input before a force-enabled preflight is
+    # Read and hash every protected data input before a force-enabled preflight is
     # allowed to remove an old product. Output/input overlap is rejected above;
     # the hashes additionally make the ordering explicit and fail closed if an
     # input changes during the overwrite transaction.
     table = build_xrd_no_card_overlay_table(options.sources, options.labels)
-    protected_input_hashes = tuple(
-        (path, file_hash(path))
-        for path in (*options.sources, *((reference_opju,) if reference_opju is not None else ()))
-    )
+    protected_input_hashes = tuple((path, file_hash(path)) for path in options.sources)
     if options.force:
         _preflight_run_outputs(
             planned_artifacts,
@@ -331,7 +328,9 @@ def _export_with_existing_script(
         "ok": True,
         "message": "Origin export succeeded using the project XRD no-card overlay script.",
         "origin_script": render_output_path(script, project_root=project_root, output_root=artifacts.origin_file.parents[1]),
-        "reference_opju": _display_path(artifacts.origin_file.parents[1], reference_opju) if reference_opju else None,
+        "reference_opju_audit": _display_path(artifacts.origin_file.parents[1], reference_opju) if reference_opju else None,
+        "reference_opju_loaded": False,
+        "style_mode": _xrd_no_card_style_mode(len(table.labels)),
         "pre_existing_origin_pids": sorted(pre_existing_origin_pids),
         "stdout": scrub_output_text(completed.stdout, project_root=project_root, output_root=artifacts.origin_file.parents[1]).strip(),
     }
@@ -357,7 +356,9 @@ def _write_metadata(
         "origin_file": _relative(run_root, artifacts.origin_file) if artifacts.origin_file.exists() else None,
         "figure_tif": _relative(run_root, artifacts.figure_tif) if artifacts.figure_tif.exists() else None,
         "preview_png": _relative(run_root, artifacts.preview_png) if artifacts.preview_png.exists() else None,
-        "origin_reference_opju": _display_path(run_root, reference_opju) if reference_opju else None,
+        "origin_reference_opju_audit": _display_path(run_root, reference_opju) if reference_opju else None,
+        "reference_opju_loaded": False,
+        "style_mode": str(export_status.get("style_mode") or _xrd_no_card_style_mode(len(table.labels))),
         "origin_status": _sanitize_output_value(run_root, export_status),
         "plot_type": "single-page normalized offset XRD overlay without standard-card lines",
         "standard_card_added": False,
@@ -368,7 +369,6 @@ def _write_metadata(
             "inspect PNG preview for Graph4 style, single graph page, and no template residue",
         ],
         "forbidden_claims": [
-            "do not assign phase automatically",
             "do not label crystal planes automatically",
             "do not claim impurity-free automatically",
             "do not infer heterojunction type or electron transfer direction from this plot",
@@ -396,7 +396,8 @@ def _write_report(
         f"- Origin OPJU: `{_relative(run_root, artifacts.origin_file) if artifacts.origin_file.exists() else 'not exported'}`",
         f"- TIF: `{_relative(run_root, artifacts.figure_tif) if artifacts.figure_tif.exists() else 'not exported'}`",
         f"- PNG preview: `{_relative(run_root, artifacts.preview_png) if artifacts.preview_png.exists() else 'not exported'}`",
-        f"- Reference OPJU: `{_display_path(run_root, reference_opju) if reference_opju else 'cached Graph4 constants only'}`",
+        f"- Style mode: `{export_status.get('style_mode') or _xrd_no_card_style_mode(len(table.labels))}`",
+        f"- Reference OPJU audit parameter: `{_display_path(run_root, reference_opju) if reference_opju else 'not supplied'}` (never loaded)",
         "- Standard card: not added",
         "",
         "## Series",
@@ -409,7 +410,7 @@ def _write_report(
     lines.extend(
         [
             "",
-            "No phase assignment, crystal-plane assignment, mechanism conclusion, or impurity conclusion is made by this output.",
+            "This overlay command did not run a phase-card database search. It makes no crystal-plane, mechanism, or impurity-free conclusion.",
         ]
     )
     artifacts.report.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -430,17 +431,14 @@ def _resolve_reference_opju(project_root: Path, reference_opju: Path | None) -> 
         if not path.exists():
             raise FileNotFoundError(f"Explicit XRD no-card reference OPJU does not exist: {reference_opju}")
         return path.resolve()
-    pattern = resolve_origin_reference_pattern(project_root)
-    path = Path(pattern)
-    if not path.is_absolute():
-        path = project_root / path
-    if "*" not in pattern and "?" not in pattern:
-        return path.resolve() if path.exists() else None
-    parent = path.parent
-    if not parent.exists():
-        return None
-    candidates = sorted(parent.glob(path.name), key=lambda item: item.stat().st_mtime, reverse=True)
-    return candidates[0].resolve() if candidates else None
+    # This is intentionally an audit-only compatibility argument.  Product
+    # creation always starts from a fresh Origin project and project-local
+    # style assets; it must never search for, load, or copy a reference OPJU.
+    return None
+
+
+def _xrd_no_card_style_mode(curve_count: int) -> str:
+    return "fixed_otpu" if int(curve_count) == 9 else "adaptive_oth_json"
 
 
 def _numeric_xy_points(rows: list[list[float]]) -> list[tuple[float, float]]:

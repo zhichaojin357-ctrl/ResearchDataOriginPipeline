@@ -1,0 +1,115 @@
+{
+  "schema_version": 2,
+  "evidence_kind": "origin_detached_adaptive_oth_json_validation",
+  "product_key": "photocurrent",
+  "status": "accepted",
+  "generated_at": "2026-08-22T21:55:52+08:00",
+  "runtime_role": "adaptive_runtime",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed that the final three-curve OTPU product and two-curve OTH+JSON product preserve the reviewed 6432 by 4923 page, layer box, bold Time (s) and Photocurrent (μA) titles, hidden Y numeric labels, 3 pt traces, blue/green/olive style cycle, bold current-sample legend, and contain every current trace without clipping or stale template labels.",
+  "asset": {
+    "kind": "oth_json",
+    "format_theme": "format_themes/photocurrent.oth",
+    "style_snapshot": "snapshots/photocurrent.json",
+    "data_snapshot": "data_snapshots/photocurrent.json",
+    "source_mode": "reviewed_theme_plus_explicit_style_and_curve_snapshot_replay"
+  },
+  "generation_boundary": {
+    "entrypoint": "Origin.Application",
+    "fresh_project": true,
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "one_to_one_exact_match_claim_allowed_for_different_data": false
+  },
+  "same_data_asset_replay": {
+    "status": "accepted",
+    "evidence_location": "diagnostics/20260822_photocurrent_project_asset_correct_formal_replay_03/products/photocurrent/comparison.json",
+    "comparison_scope": "fresh_project_same_data",
+    "same_data_verified": true,
+    "style_conformance": "59/59",
+    "axis_title_hard_gate": true,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "exact_pixel_match": true,
+    "changed_pixels": 0,
+    "rms": 0.0,
+    "reference_opju_self_replay": false
+  },
+  "fixed_cardinality_generalization": {
+    "status": "accepted",
+    "evidence_location": "diagnostics/20260822_photocurrent_generalization_3curve_exact_04/runs/20260822_214457_template_format_products/products/photocurrent/metadata.json",
+    "origin_style_mode_requested": "auto",
+    "style_execution_mode": "exact_contract_otpu",
+    "style_execution_reason_code": "auto_exact_fixed_binding_match",
+    "current_series_count": 3,
+    "contract_series_count": 3,
+    "current_labels": ["BOBC", "CWO", "BC-11"],
+    "current_xy_values_match_reopened_graph": true,
+    "axis_range_policy": {
+      "decision": "adaptive_xy",
+      "x_from": 0.0,
+      "x_to": 280.792,
+      "y_from": -1.43364e-6,
+      "y_to": 1.99764e-6,
+      "all_current_values_visible": true
+    },
+    "style_conformance": {
+      "status": "pass",
+      "matched_fields": 59,
+      "compared_fields": 59,
+      "plot_line_width_origin_units": [1500.0, 1500.0, 1500.0],
+      "axis_titles_bold": true
+    },
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true
+  },
+  "variable_cardinality_generalization": {
+    "status": "accepted",
+    "evidence_location": "diagnostics/20260822_photocurrent_generalization_2curve_adaptive_04/runs/20260822_215200_template_format_products/products/photocurrent/metadata.json",
+    "origin_style_mode_requested": "auto",
+    "style_execution_mode": "variable_structure_oth_json",
+    "style_execution_reason_code": "auto_series_cardinality_mismatch_only",
+    "current_series_count": 2,
+    "contract_series_count": 3,
+    "reopened_plot_count": 2,
+    "series_cardinality_relaxed": true,
+    "current_labels": ["BOBC", "BC-11"],
+    "current_xy_values_match_reopened_graph": true,
+    "stale_template_labels_present": false,
+    "axis_range_policy": {
+      "decision": "adaptive_xy",
+      "x_from": 0.0,
+      "x_to": 280.792,
+      "y_from": -1.43364e-6,
+      "y_to": 1.99764e-6,
+      "all_current_values_visible": true
+    },
+    "style_conformance": {
+      "status": "pass",
+      "matched_fields": 53,
+      "compared_fields": 54,
+      "only_relaxed_difference": "current curve cardinality and per-curve arrays",
+      "plot_line_width_origin_units": [1500.0, 1500.0],
+      "axis_titles_bold": true
+    },
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  },
+  "acceptance_note": "The reviewed OTPU is the fixed three-series path. OTH+JSON remains the adaptive variable-cardinality path. Both paths use current data only, never load the reference OPJU as the product base, preserve the reviewed Photocurrent visual style, restore bold current legends, adapt only data-dependent axes and object coordinates when current data differ, and fail unless save/reopen readback confirms the current plotted X/Y values."
+}

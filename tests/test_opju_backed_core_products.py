@@ -21,5 +21,6 @@ def test_type_mimic_specs_use_required_neutral_product_names() -> None:
 def test_type_mimic_specs_keep_scientific_claims_manual() -> None:
     assert "no S-scheme mechanism conclusion" in TYPE_MIMIC_SPECS["XPS_in_situ"].forbidden_claims_avoided
     assert "no S-scheme mechanism conclusion" in TYPE_MIMIC_SPECS["XPS_non_in_situ"].forbidden_claims_avoided
-    assert "no phase assignment" in TYPE_MIMIC_SPECS["XRD"].forbidden_claims_avoided
+    assert "no phase assignment" not in TYPE_MIMIC_SPECS["XRD"].forbidden_claims_avoided
+    assert "no automatic phase-purity claim" in TYPE_MIMIC_SPECS["XRD"].forbidden_claims_avoided
     assert "no radical species assignment" in TYPE_MIMIC_SPECS["EPR"].forbidden_claims_avoided

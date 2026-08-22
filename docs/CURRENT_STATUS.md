@@ -56,8 +56,12 @@ SEM, TEM, NMR, MS, and kinetics/reference folders remain scan-only.
 
 Project-local `reference_opju` files may be opened only from isolated copies as
 independent visual/style evidence. They are not product bases or data sources.
-The batch-derived `.otpu` files are quarantined harvest records and are not
-runtime fallbacks.
+Historical batch-derived `.otpu` files are quarantined and are not runtime
+fallbacks. Runtime `.otpu` dispatch is manifest-driven. The current individually
+regenerated and independently validated products are BET, EIS, EPR, PL,
+photocurrent, XRD with a standard card, and the fixed nine-curve XRD no-card
+layout. The XRD no-card product retains an adaptive OTH+JSON route for every
+other positive curve count.
 
 ## Latest Origin Audit
 
@@ -69,9 +73,32 @@ runtime fallbacks.
 - The latest all-types Origin run produced all required OPJU/TIFF/PNG/data/
   metadata/report artifacts, and every TIFF passed native physical 600 dpi and
   metadata-path checks.
-- All 12 products remain `blocked` by the strengthened independent-reference
-  visual gate. The current `.oth` products and the reference OPJUs contain
-  different data and labels and are not one-to-one pixel matches.
+- BET, EIS, and EPR now have accepted detached `.otpu` runtime packages with
+  explicit X/Y binding contracts and fresh-project same-data exact-pixel
+  evidence. EIS
+  also passed a separate real-data formal run on 2026-08-22: 8 plots, 101 points
+  per plot, current labels, OPJU save/reopen, style conformance, native 600 dpi
+  TIFF, and manual PNG inspection, without loading a reference OPJU.
+- PL now has an accepted detached runtime bundle requiring the manifest-bound
+  `.otpu`, `.oth`, and style snapshot together. Its reviewed mapping is
+  `A→B` rows 1–351, `A→D` rows 1–176, and `A→F` rows 1–351. The project formal
+  replay passed 59/59 style checks, save/reopen, native 600 dpi export, and
+  same-data TIFF comparison with zero decoded-pixel difference (RMS 0). The
+  separate real-data product did not load a reference OPJU; its no-label/path
+  audit had 0 hits, and its 4190×2806 TIF matched the reference replay TIF with
+  zero decoded-pixel difference.
+- Photocurrent now has an accepted detached runtime asset requiring the
+  manifest-bound `.otpu` and style snapshot (no `.oth`). The formal same-data
+  replay passed 59/59 style checks, save/reopen, native 600 dpi export, and
+  zero decoded-pixel difference. Its separate real-data product used fresh
+  graph creation with `reference_opju_loaded=false`, independent `A→B`,
+  `C→D`, and `E→F` mappings (2600 points per curve), 1 pt curves, 16 pt
+  non-bold dynamic axis titles, and native 600 dpi export; this run is not
+  claimed to be pixel-identical to the reference data.
+- The other historical `.otpu` files remain quarantined. Their `.oth` products
+  have not inherited BET/EIS/EPR/PL/photocurrent acceptance and must be validated
+  one type at a time; do not describe the complete all-types set as visually
+  accepted.
 - A controlled XRD trial using the OPJU directly as the product base was
   rejected: workbook-column mismatch produced flat curves and overlapping
   labels despite a higher style-field match ratio.
@@ -80,11 +107,28 @@ runtime fallbacks.
   OPJU hash remained unchanged. The transaction-safe first run and explicit
   force rerun also decoded to zero changed pixels and left no Origin process.
   This evidence is scoped only to that controlled calibration helper.
-- The final EPR transaction path was exercised separately after the all-types
-  run. Official `jeol-epr-decode` regenerated 24 XLSX/metadata pairs without
-  changing the raw-tree hash. The OH overlay then produced OPJU/TIFF/PNG under
-  an isolated output root, with hash-matched `mT` evidence and a native
-  3859 x 2953 TIFF at approximately 600 physical dpi. Its PNG was inspected.
+- EPR passed both independent asset and current-data runtime gates on
+  2026-08-22. The fresh-project replay used the exact reference 4096-by-3 data
+  and shared-X mapping, matched 59/59 style fields, and changed zero decoded
+  pixels. A separate verified-JEOL OH run generated a new OPJU from the accepted
+  OTPU/OTH/snapshot package without loading the reference OPJU; save/reopen X/Y
+  readback matched, current bold `BC`/`CWO`/`BOBC` labels persisted at the
+  reviewed positions, the native 3859 x 2953 TIFF was approximately 600
+  physical dpi, and the PNG was inspected with no old template labels.
+- XRD with a standard card now starts from a fresh Origin project and the
+  accepted `XRD.otpu`, binds current sample/card worksheets as native Origin
+  plots, replaces current annotations, saves/reopens the OPJU, and exports a
+  native 600 dpi TIFF without loading the reference OPJU. Its same-data formal
+  replay changed zero decoded pixels, and the separate real-data PNG was
+  inspected with one bold X title, one bold Y title, three current sample
+  curves, and the current standard card.
+- XRD without a standard card now has two detached native-Origin paths:
+  exactly nine curves use `XRD_no_card.otpu`; every other positive count uses
+  `XRD_no_card.oth` plus the explicit style/label contract. Both same-data
+  validations changed zero decoded pixels. A separate nine-file real-data run
+  created nine worksheet-bound curves and current direct labels, loaded no
+  reference OPJU, saved/reopened the OPJU, passed the native 600 dpi TIFF gate,
+  and passed manual PNG inspection.
 - The last full test run passed 844 tests with 3 skips. `validate` exits 0.
   `readiness` reports 21 checks, 0 failures, 15 warnings, `ready=true`, and
   `release_ready=false`.

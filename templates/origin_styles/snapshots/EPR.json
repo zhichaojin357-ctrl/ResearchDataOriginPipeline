@@ -1,5 +1,5 @@
 {
-  "source_opju": "epr_20260601_2_CuWO4_BiOBrCl_BiCu-10_light_overlay.opju",
+  "source_opju": "EPR.opju",
   "status": "extracted",
   "graph_page": "EPR0601FULL",
   "graph_pages": [
@@ -109,6 +109,11 @@
     30846571.0,
     22776757.0
   ],
+  "plot_line_colors": [
+    27640422.0,
+    30846571.0,
+    22776757.0
+  ],
   "marker_shapes": [
     0.0,
     0.0,
@@ -118,6 +123,11 @@
     9.0,
     9.0,
     9.0
+  ],
+  "plot_visibility": [
+    1.0,
+    1.0,
+    1.0
   ],
   "graph_object_positions": {},
   "warnings": [

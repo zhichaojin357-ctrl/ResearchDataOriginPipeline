@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "analysis_version": "hplc-openlab-analysis-1.3.0",
+  "analysis_version": "hplc-openlab-analysis-1.4.3",
   "peak_selection": {
     "primary_source": "vendor_rx_only",
     "missing_result_action": "require_vendor_reprocess",
@@ -15,6 +15,7 @@
   "date_rules": {
     "folder_date_pattern": "^(?P<date>\\d{8})",
     "light_screening_date": "2026-07-17",
+    "exclude_before_light_screening_date": false,
     "ordinary_306_start": "2026-07-18",
     "ordinary_306_end": "2026-07-25",
     "ordinary_301_start": "2026-07-26",
@@ -49,6 +50,18 @@
       "calibration_r_squared": 0.999602
     }
   },
+  "method_target_overrides": [
+    {
+      "acquisition_method_contains": "50：20：30",
+      "targets": {
+        "thioanisole": {
+          "nominal_rt_min": 17.244,
+          "rt_tolerance_min": 0.50
+        }
+      },
+      "source": "同一采集方法的SM反应前峰（2026-08-17/18）；按用户确认的0.5 min同物质判定范围"
+    }
+  ],
   "unknown_peak": {
     "nominal_rt_min": 23.5,
     "participates_in_calculation": false

@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "photocurrent",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "e9e03b61545298447d7fdbbaceeec34867a6a37a9f2ee7cf9fea034c866dc044",
+      "graph_page": "Graph2",
+      "source_series_count": 3,
+      "source_schema": {
+        "status": "ready",
+        "layout": "paired_xy_columns",
+        "worksheet_layout": "one_sheet_three_independent_xy_pairs_at_i_j_m_n_q_r",
+        "source_csv_indices": [0, 1, 2, 3, 4, 5],
+        "x_header_suffix": "_time_s",
+        "y_header_suffix": "_current_a",
+        "transform": "independent_photocurrent_xy_pairs_without_interpolation_smoothing_or_normalization",
+        "plot_type": "line",
+        "group_plots": false
+      },
+      "plots": [
+        {
+          "layer_index": 1,
+          "plot_index": 1,
+          "x_dataset": "Book1_I",
+          "y_dataset": "Book1_J",
+          "row_from": 1,
+          "row_to": 2600,
+          "source_series_index": 1,
+          "semantic_role": "material_1_photocurrent"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 2,
+          "x_dataset": "Book1_M",
+          "y_dataset": "Book1_N",
+          "row_from": 1,
+          "row_to": 2600,
+          "source_series_index": 2,
+          "semantic_role": "material_2_photocurrent"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 3,
+          "x_dataset": "Book1_Q",
+          "y_dataset": "Book1_R",
+          "row_from": 1,
+          "row_to": 2599,
+          "source_series_index": 3,
+          "semantic_role": "material_3_photocurrent"
+        }
+      ]
+    }
+  ]
+}

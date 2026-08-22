@@ -114,8 +114,8 @@ _POLICIES: dict[str, PlotPolicy] = {
         True,
         False,
         "reference-card sticks only when current standard-card data are supplied",
-        ("no automatic phase assignment", "no automatic crystal-plane assignment"),
-        "arbitrary-unit XRD exemplars use raw-pattern line overlays by default; hide Y-axis tick marks and numeric values to match the XRD Graph4 template; no reference-card stick layer is drawn unless explicit current standard-card data are supplied",
+        ("no automatic crystal-plane assignment", "no automatic phase-purity claim"),
+        "arbitrary-unit XRD exemplars use raw-pattern line overlays by default; hide Y-axis tick marks and numeric values to match the XRD Graph4 template; local Jade/PDF phase matches are allowed when card identifiers and match evidence are recorded; no reference-card stick layer is drawn unless explicit current standard-card data are supplied",
     ),
     "Raman": PlotPolicy(
         "Raman",

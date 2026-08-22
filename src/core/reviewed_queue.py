@@ -488,7 +488,7 @@ def _forbidden_claims(data_type: str) -> list[str]:
     claims = {
         "XPS": "do not automatically assign valence states",
         "EPR": "do not automatically assign radical identity",
-        "XRD": "do not automatically assign phase or facets",
+        "XRD": "do not automatically label facets or claim phase purity; local Jade/PDF phase matching with card provenance is allowed",
         "Mott-Schottky": "do not equate flat-band potential with CB/VB",
         "photocurrent": "do not infer carrier separation efficiency automatically",
         "PL": "do not infer recombination suppression automatically",

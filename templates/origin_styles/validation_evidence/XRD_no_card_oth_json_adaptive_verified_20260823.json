@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_adaptive_oth_json_validation",
+  "product_key": "XRD_no_card",
+  "status": "accepted",
+  "generated_at": "2026-08-23T13:30:00+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed the adaptive OTH+JSON replay matches the reviewed nine-curve no-card XRD graph and contains only native Origin objects.",
+  "formal_evidence_location": "diagnostics/20260823_XRD_no_card_oth_json_validation_01/comparison.json",
+  "asset": {"kind": "oth", "path": "format_themes/XRD_no_card.oth", "sha256": "85ed8a7312a312a0668a562770b9994952f03a5e4a9404e754eee24aff5cbb1d"},
+  "style_snapshot": {"path": "snapshots/XRD_no_card.json"},
+  "reference": {"path": "reference_opju/XRD_no_card.opju", "used_as_product_base": false, "loaded_during_fresh_plot": false},
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "4d31c6e6ed4c8ca5b956ecc779244ea566b0adebc328e5a5cc5b2dab28eb2c36",
+    "generated_plot_values_sha256": "4d31c6e6ed4c8ca5b956ecc779244ea566b0adebc328e5a5cc5b2dab28eb2c36",
+    "reference_plot_mapping_sha256": "cd7563c459bb3dc85b91907a6c92a96684a108bb4121cf5669c3bb102fc5b25d",
+    "generated_plot_mapping_sha256": "cd7563c459bb3dc85b91907a6c92a96684a108bb4121cf5669c3bb102fc5b25d"
+  },
+  "pixels": {"same_size": true, "exact_pixel_match": true, "changed_pixels": 0, "rms": 0.0},
+  "saved_reopened": true,
+  "native_tif_600dpi_verified": true,
+  "reference_opju_self_replay": false,
+  "runtime_scope": "all positive series counts other than the fixed nine-curve OTPU contract"
+}

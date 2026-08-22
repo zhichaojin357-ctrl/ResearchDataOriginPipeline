@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,9 +14,73 @@ from src.origin.template_format import build_template_format_plan
 from src.origin.style_registry import (
     load_origin_style_manifest,
     origin_style_manifest_path,
+    resolve_origin_adaptive_style_asset,
+    resolve_origin_runtime_style_asset,
     resolve_origin_style_asset,
     validate_origin_style_asset_integrity,
 )
+
+
+def _write_adaptive_style_bundle(
+    tmp_path: Path,
+    *,
+    role: str,
+    status: str = "accepted",
+) -> tuple[Path, dict[str, object], dict[str, Path], Path]:
+    project = tmp_path / "project"
+    style_root = project / "templates" / "origin_styles"
+    files = {
+        "format_theme": style_root / "format_themes" / "FTIR.oth",
+        "graph_template": style_root / "graph_templates" / "FTIR.otpu",
+        "style_snapshot": style_root / "snapshots" / "FTIR.json",
+        "data_snapshot": style_root / "data_snapshots" / "FTIR.json",
+    }
+    for path in files.values():
+        path.parent.mkdir(parents=True, exist_ok=True)
+    files["format_theme"].write_bytes(b"adaptive-oth")
+    files["graph_template"].write_bytes(b"verified-primary-otpu")
+    files["style_snapshot"].write_text(
+        '{"layer_count":1,"plot_count":3}',
+        encoding="utf-8",
+    )
+    files["data_snapshot"].write_text(
+        '{"schema_version":1,"plot_count":3,"plots":[]}',
+        encoding="utf-8",
+    )
+    relative_paths = {
+        field: str(path.relative_to(style_root)).replace("\\", "/")
+        for field, path in files.items()
+    }
+    entry: dict[str, object] = {
+        "product_key": "FTIR",
+        "data_type": "FTIR",
+        "status": status,
+        "graph_page": "Graph3",
+        "asset_kind": "otpu",
+        "sha256": file_sha256(files["graph_template"]),
+        "file_size_bytes": files["graph_template"].stat().st_size,
+        "expected_layer_count": 1,
+        "expected_plot_count": 3,
+        "harvested_at": "2026-08-22T00:00:00",
+        "source_mode": "test",
+        "format_theme_role": role,
+        **relative_paths,
+        "file_integrity": {
+            field: {
+                "path": relative_paths[field],
+                "kind": path.suffix.lstrip("."),
+                "sha256": file_sha256(path),
+                "size_bytes": path.stat().st_size,
+            }
+            for field, path in files.items()
+        },
+    }
+    manifest = style_root / "manifest.json"
+    manifest.write_text(
+        json.dumps({"schema_version": 2, "assets": [entry]}),
+        encoding="utf-8",
+    )
+    return project, entry, files, manifest
 
 
 def test_origin_format_theme_assets_do_not_embed_workspace_or_assistant_markers() -> None:
@@ -43,6 +108,108 @@ def test_origin_format_theme_assets_do_not_embed_workspace_or_assistant_markers(
                 hits.append(f"{asset.name}: {pattern.decode('utf-8', 'ignore')}")
 
     assert hits == []
+
+
+@pytest.mark.parametrize(
+    "role",
+    ["adaptive_runtime", "legacy_compatibility_runtime"],
+)
+def test_adaptive_style_resolver_accepts_complete_runtime_bundle(
+    tmp_path: Path,
+    role: str,
+) -> None:
+    project, entry, files, _manifest = _write_adaptive_style_bundle(
+        tmp_path,
+        role=role,
+    )
+
+    resolved = resolve_origin_adaptive_style_asset(project, "FTIR")
+
+    assert resolved is not None
+    assert resolved.runtime_asset_kind == "oth_json"
+    assert resolved.runtime_asset_path == files["format_theme"]
+    assert resolved.runtime_asset_sha256 == file_sha256(files["format_theme"])
+    assert resolved.runtime_asset_sha256 != entry["sha256"]
+    assert resolved.format_theme_path == files["format_theme"]
+    assert resolved.style_snapshot_path == files["style_snapshot"]
+    assert resolved.data_snapshot_path == files["data_snapshot"]
+    assert resolved.graph_template_path == files["graph_template"]
+    assert resolved.format_theme_role == role
+    assert resolved.expected_plot_count == 3
+
+
+@pytest.mark.parametrize(
+    "role",
+    [
+        "adaptive_runtime_candidate",
+        "legacy_compatibility_nonruntime",
+        "quarantined_nonruntime",
+    ],
+)
+def test_adaptive_style_resolver_exposes_candidate_only_when_explicitly_allowed(
+    tmp_path: Path,
+    role: str,
+) -> None:
+    project, _entry, _files, _manifest = _write_adaptive_style_bundle(
+        tmp_path,
+        role=role,
+    )
+
+    assert resolve_origin_adaptive_style_asset(project, "FTIR") is None
+    candidate = resolve_origin_adaptive_style_asset(
+        project,
+        "FTIR",
+        allow_candidate=True,
+    )
+    assert candidate is not None
+    assert candidate.format_theme_role == role
+    assert candidate.runtime_asset_kind == "oth_json"
+
+
+@pytest.mark.parametrize(
+    ("field", "mutation"),
+    [
+        ("format_theme", "missing"),
+        ("style_snapshot", "missing"),
+        ("data_snapshot", "missing"),
+        ("format_theme", "tampered"),
+        ("style_snapshot", "tampered"),
+        ("data_snapshot", "tampered"),
+    ],
+)
+def test_adaptive_style_resolver_fails_closed_for_missing_or_tampered_bundle_file(
+    tmp_path: Path,
+    field: str,
+    mutation: str,
+) -> None:
+    project, _entry, files, _manifest = _write_adaptive_style_bundle(
+        tmp_path,
+        role="adaptive_runtime",
+    )
+    target = files[field]
+    if mutation == "missing":
+        target.unlink()
+    else:
+        target.write_bytes(target.read_bytes() + b"-tampered")
+
+    assert resolve_origin_adaptive_style_asset(project, "FTIR") is None
+
+
+def test_adaptive_style_resolver_requires_accepted_main_entry(tmp_path: Path) -> None:
+    project, _entry, _files, _manifest = _write_adaptive_style_bundle(
+        tmp_path,
+        role="adaptive_runtime_candidate",
+        status="quarantined_unvalidated",
+    )
+
+    assert (
+        resolve_origin_adaptive_style_asset(
+            project,
+            "FTIR",
+            allow_candidate=True,
+        )
+        is None
+    )
 
 
 def test_origin_style_manifest_v1_remains_compatible(tmp_path: Path) -> None:
@@ -441,6 +608,11 @@ def test_runtime_validated_bet_otpu_is_bound_to_exact_asset_not_legacy_oth(
         "runtime_validation_evidence": "validation_evidence/BET.json",
         "source_opju_hash": file_sha256(reference),
         "file_integrity": {
+            "format_theme": {
+                "kind": "oth",
+                "sha256": file_sha256(theme),
+                "size_bytes": theme.stat().st_size,
+            },
             "graph_template": {
                 "kind": "otpu",
                 "sha256": file_sha256(verified),
@@ -486,6 +658,7 @@ def test_runtime_validated_bet_otpu_is_bound_to_exact_asset_not_legacy_oth(
             "saved_reopened": True,
             "native_tif_600dpi_verified": True,
             "manual_preview_passed": True,
+            "axis_title_hard_gate": True,
             "exact_pixel_match": True,
             "same_size": True,
             "changed_pixels": 0,
@@ -509,6 +682,28 @@ def test_runtime_validated_bet_otpu_is_bound_to_exact_asset_not_legacy_oth(
     assert resolved.runtime_asset_path == verified
     assert resolved.format_theme_path == theme
     assert resolved.runtime_asset_path != legacy
+    runtime_resolved = resolve_origin_runtime_style_asset(project, "BET")
+    assert runtime_resolved is not None
+    assert runtime_resolved.runtime_asset_kind == "otpu"
+    assert runtime_resolved.runtime_asset_path == verified
+
+    entry["runtime_validation"]["supporting_format_theme_sha256"] = file_sha256(theme)
+    (style_root / "manifest.json").write_text(
+        json.dumps({"schema_version": 2, "assets": [entry]}),
+        encoding="utf-8",
+    )
+    assert resolve_origin_style_asset(
+        project,
+        "BET",
+        require_runtime_validation=True,
+    ) is not None
+    theme.write_bytes(b"tampered-theme")
+    assert resolve_origin_style_asset(
+        project,
+        "BET",
+        require_runtime_validation=True,
+    ) is None
+    theme.write_bytes(b"legacy-theme")
 
     reference.unlink()
     resolved_without_reference = resolve_origin_style_asset(
@@ -529,6 +724,47 @@ def test_runtime_validated_bet_otpu_is_bound_to_exact_asset_not_legacy_oth(
         "BET",
         require_runtime_validation=True,
     ) is None
+
+
+def test_project_eis_otpu_is_enabled_by_validation_evidence_not_product_allowlist() -> None:
+    project = Path(__file__).resolve().parents[1]
+
+    resolved = resolve_origin_style_asset(
+        project,
+        "EIS",
+        require_runtime_validation=True,
+    )
+
+    assert resolved is not None
+    assert resolved.runtime_asset_kind == "otpu"
+    assert resolved.runtime_asset_path == (
+        project / "templates" / "origin_styles" / "graph_templates" / "EIS.otpu"
+    )
+
+
+def test_project_pl_otpu_requires_accepted_detached_asset_bundle() -> None:
+    project = Path(__file__).resolve().parents[1]
+
+    resolved = resolve_origin_style_asset(
+        project,
+        "PL",
+        require_runtime_validation=True,
+    )
+
+    assert resolved is not None
+    assert resolved.runtime_asset_kind == "otpu"
+    assert resolved.runtime_asset_path == (
+        project / "templates" / "origin_styles" / "graph_templates" / "PL.otpu"
+    )
+    assert resolved.format_theme_path == (
+        project / "templates" / "origin_styles" / "format_themes" / "PL.oth"
+    )
+    assert resolved.style_snapshot_path == (
+        project / "templates" / "origin_styles" / "snapshots" / "PL.json"
+    )
+    assert resolved.binding_contract_path == (
+        project / "templates" / "origin_styles" / "binding_contracts" / "PL.json"
+    )
 
 
 def test_schema_v1_style_asset_cannot_bypass_runtime_validation_gate(tmp_path: Path) -> None:
@@ -769,11 +1005,15 @@ def test_replay_plan_parses_explicit_fresh_project_graph_template_mode(
     project = tmp_path / "project"
     source = project / "templates" / "origin_styles" / "reference_opju" / "BET.opju"
     template = tmp_path / "candidate.otpu"
+    format_theme = tmp_path / "candidate.oth"
+    style_snapshot = tmp_path / "candidate_style.json"
     binding_contract = project / "templates" / "origin_styles" / "binding_contracts" / "BET.json"
     source.parent.mkdir(parents=True)
     binding_contract.parent.mkdir(parents=True)
     source.write_bytes(b"opju")
     template.write_bytes(b"otpu")
+    format_theme.write_bytes(b"oth")
+    style_snapshot.write_text('{"layout_values":{"page.width":6400}}', encoding="utf-8")
     binding_contract.write_text("{}", encoding="utf-8")
     plan_json = tmp_path / "plan.json"
     plan_json.write_text(
@@ -787,6 +1027,8 @@ def test_replay_plan_parses_explicit_fresh_project_graph_template_mode(
                         "graph_page": "Graph5",
                         "comparison_mode": "fresh_project_graph_template_same_data",
                         "graph_template": str(template),
+                        "style_source_theme": str(format_theme),
+                        "style_snapshot": str(style_snapshot),
                         "binding_contract": "templates/origin_styles/binding_contracts/BET.json",
                     }
                 ]
@@ -801,6 +1043,8 @@ def test_replay_plan_parses_explicit_fresh_project_graph_template_mode(
 
     assert plan.items[0].comparison_mode == "fresh_project_graph_template_same_data"
     assert plan.items[0].graph_template_path == template
+    assert plan.items[0].style_source_theme_path == format_theme
+    assert plan.items[0].style_snapshot_path == style_snapshot
     assert plan.items[0].binding_contract_path == binding_contract
 
 
@@ -1355,6 +1599,109 @@ def test_graph_data_snapshot_comparison_requires_same_values_and_explicit_mappin
     assert any("lack explicit Origin plotdata" in reason for reason in inferred_mapping["reasons"])
 
 
+def test_replay_column_merge_accepts_short_prefix_and_longer_range() -> None:
+    from src.core.origin_style_assets import _merge_replay_worksheet_column_record
+
+    short = {"row_from": 1, "row_to": 2, "values": [10.0, 20.0]}
+    long = {"row_from": 1, "row_to": 4, "values": [10.0, 20.0, 30.0, 40.0]}
+
+    merged = _merge_replay_worksheet_column_record(
+        _merge_replay_worksheet_column_record(
+            None, short, sheet_index=1, column_index=1
+        ),
+        long,
+        sheet_index=1,
+        column_index=1,
+    )
+
+    assert merged["row_from"] == 1
+    assert merged["row_to"] == 4
+    assert merged["values"] == [10.0, 20.0, 30.0, 40.0]
+
+
+def test_replay_column_merge_accepts_shifted_partial_overlap() -> None:
+    from src.core.origin_style_assets import _merge_replay_worksheet_column_record
+
+    first = {"row_from": 2, "row_to": 4, "values": [20.0, 30.0, 40.0]}
+    second = {"row_from": 4, "row_to": 6, "values": [40.0, 50.0, 60.0]}
+
+    merged = _merge_replay_worksheet_column_record(
+        _merge_replay_worksheet_column_record(
+            None, first, sheet_index=1, column_index=2
+        ),
+        second,
+        sheet_index=1,
+        column_index=2,
+    )
+
+    assert merged["row_from"] == 2
+    assert merged["row_to"] == 6
+    assert merged["values"] == [20.0, 30.0, 40.0, 50.0, 60.0]
+
+
+def test_replay_column_merge_keeps_nonadjacent_gap_as_nan() -> None:
+    from src.core.origin_style_assets import _merge_replay_worksheet_column_record
+
+    merged = _merge_replay_worksheet_column_record(
+        _merge_replay_worksheet_column_record(
+            None,
+            {"row_from": 1, "row_to": 2, "values": [10.0, 20.0]},
+            sheet_index=1,
+            column_index=3,
+        ),
+        {"row_from": 5, "row_to": 6, "values": [50.0, 60.0]},
+        sheet_index=1,
+        column_index=3,
+    )
+
+    assert merged["row_from"] == 1
+    assert merged["row_to"] == 6
+    assert merged["values"][:2] == [10.0, 20.0]
+    assert all(math.isnan(value) for value in merged["values"][2:4])
+    assert merged["values"][4:] == [50.0, 60.0]
+
+
+def test_replay_column_merge_rejects_different_overlapping_values() -> None:
+    from src.core.origin_style_assets import _merge_replay_worksheet_column_record
+
+    existing = _merge_replay_worksheet_column_record(
+        None,
+        {"row_from": 1, "row_to": 3, "values": [10.0, 20.0, 30.0]},
+        sheet_index=2,
+        column_index=4,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"worksheet 2 column 4 at row 3: 30\.0 != 99\.0",
+    ):
+        _merge_replay_worksheet_column_record(
+            existing,
+            {"row_from": 3, "row_to": 4, "values": [99.0, 40.0]},
+            sheet_index=2,
+            column_index=4,
+        )
+
+
+def test_replay_column_merge_treats_overlapping_nans_as_equal() -> None:
+    from src.core.origin_style_assets import _merge_replay_worksheet_column_record
+
+    merged = _merge_replay_worksheet_column_record(
+        _merge_replay_worksheet_column_record(
+            None,
+            {"row_from": 1, "row_to": 2, "values": [math.nan, 2.0]},
+            sheet_index=1,
+            column_index=5,
+        ),
+        {"row_from": 1, "row_to": 3, "values": [math.nan, 2.0, 3.0]},
+        sheet_index=1,
+        column_index=5,
+    )
+
+    assert math.isnan(merged["values"][0])
+    assert merged["values"][1:] == [2.0, 3.0]
+
+
 def test_graph_data_snapshot_scans_past_empty_middle_layer() -> None:
     from src.core.origin_style_assets import read_graph_data_snapshot
     from src.origin.operations import OperationResult
@@ -1842,6 +2189,117 @@ def test_replay_dispatches_fresh_graph_template_mode_without_resolving_legacy_as
 
     assert result["status"] == "fresh_project_same_data_match"
     assert captured["item"] is item
+
+
+def test_fresh_template_axis_title_gate_ignores_only_outer_whitespace() -> None:
+    from src.core.origin_style_assets import (
+        _fresh_template_axis_title_gate,
+        _fresh_template_reference_axis_titles_bold,
+    )
+
+    reference = SimpleNamespace(
+        audit_string_values={
+            "xb.text$": "\\b(X title)\r\n",
+            "yl.text$": "\\b(Y title)",
+        },
+        layout_values={"xb.fsize": 36.0, "yl.fsize": 36.0},
+        audit_numeric_values={
+            "layer.x.label.bold": 1.0,
+            "layer.y.label.bold": 1.0,
+        },
+    )
+    candidate = SimpleNamespace(
+        audit_string_values={
+            "xb.text$": "\\b(X title)",
+            "yl.text$": "\\b(Y title)",
+        },
+        layout_values={"xb.fsize": 36.0, "yl.fsize": 36.0},
+        audit_numeric_values={
+            "layer.x.label.bold": 1.0,
+            "layer.y.label.bold": 1.0,
+        },
+    )
+
+    assert _fresh_template_axis_title_gate(reference, candidate)["pass"] is True
+    assert _fresh_template_reference_axis_titles_bold(reference) is True
+    candidate.audit_string_values["xb.text$"] = "\\b(X changed)"
+    assert _fresh_template_axis_title_gate(reference, candidate)["pass"] is False
+
+
+def test_fresh_template_axis_title_gate_accepts_nonbold_dynamic_title_expansion() -> None:
+    from src.core.origin_style_assets import (
+        _fresh_template_axis_title_gate,
+        _fresh_template_reference_axis_titles_bold,
+    )
+
+    reference = SimpleNamespace(
+        audit_string_values={"xb.text$": "%(?X)", "yl.text$": "%(?Y)"},
+        layout_values={"xb.fsize": 24.0, "yl.fsize": 24.0, "xb.bold": 0.0, "yl.bold": 0.0},
+        audit_numeric_values={"layer.x.label.bold": 0.0, "layer.y.label.bold": 0.0},
+    )
+    candidate = SimpleNamespace(
+        audit_string_values={"xb.text$": "A", "yl.text$": "B"},
+        layout_values={"xb.fsize": 24.0, "yl.fsize": 24.0, "xb.bold": 0.0, "yl.bold": 0.0},
+        audit_numeric_values={"layer.x.label.bold": 0.0, "layer.y.label.bold": 0.0},
+    )
+
+    assert _fresh_template_reference_axis_titles_bold(reference) is False
+    assert _fresh_template_axis_title_gate(reference, candidate)["pass"] is True
+
+
+def test_fresh_template_axis_title_gate_rejects_empty_dynamic_title_expansion() -> None:
+    from src.core.origin_style_assets import _fresh_template_axis_title_gate
+
+    reference = SimpleNamespace(
+        audit_string_values={"xb.text$": "%(?X)", "yl.text$": "%(?Y)"},
+        layout_values={"xb.fsize": 24.0, "yl.fsize": 24.0, "xb.bold": 0.0, "yl.bold": 0.0},
+        audit_numeric_values={"layer.x.label.bold": 0.0, "layer.y.label.bold": 0.0},
+    )
+    candidate = SimpleNamespace(
+        audit_string_values={"xb.text$": "", "yl.text$": "B"},
+        layout_values={"xb.fsize": 24.0, "yl.fsize": 24.0, "xb.bold": 0.0, "yl.bold": 0.0},
+        audit_numeric_values={"layer.x.label.bold": 0.0, "layer.y.label.bold": 0.0},
+    )
+
+    assert _fresh_template_axis_title_gate(reference, candidate)["pass"] is False
+
+
+def test_fresh_template_axis_title_gate_rejects_candidate_added_bold() -> None:
+    from src.core.origin_style_assets import _fresh_template_axis_title_gate
+
+    reference = SimpleNamespace(
+        audit_string_values={"xb.text$": "%(?X)", "yl.text$": "%(?Y)"},
+        layout_values={"xb.fsize": 24.0, "yl.fsize": 24.0, "xb.bold": 0.0, "yl.bold": 0.0},
+        audit_numeric_values={"layer.x.label.bold": 0.0, "layer.y.label.bold": 0.0},
+    )
+    candidate = SimpleNamespace(
+        audit_string_values={"xb.text$": "\\b(A)", "yl.text$": "B"},
+        layout_values={"xb.fsize": 24.0, "yl.fsize": 24.0, "xb.bold": 0.0, "yl.bold": 0.0},
+        audit_numeric_values={"layer.x.label.bold": 0.0, "layer.y.label.bold": 0.0},
+    )
+
+    gate = _fresh_template_axis_title_gate(reference, candidate)
+    assert gate["x_title_rich_text_bold_matches"] is False
+    assert gate["pass"] is False
+
+
+def test_fresh_template_axis_title_gate_rejects_static_text_change() -> None:
+    from src.core.origin_style_assets import _fresh_template_axis_title_gate
+
+    reference = SimpleNamespace(
+        audit_string_values={"xb.text$": "Wavelength", "yl.text$": "Intensity"},
+        layout_values={"xb.fsize": 24.0, "yl.fsize": 24.0, "xb.bold": 0.0, "yl.bold": 0.0},
+        audit_numeric_values={"layer.x.label.bold": 0.0, "layer.y.label.bold": 0.0},
+    )
+    candidate = SimpleNamespace(
+        audit_string_values={"xb.text$": "Wavelength", "yl.text$": "Counts"},
+        layout_values={"xb.fsize": 24.0, "yl.fsize": 24.0, "xb.bold": 0.0, "yl.bold": 0.0},
+        audit_numeric_values={"layer.x.label.bold": 0.0, "layer.y.label.bold": 0.0},
+    )
+
+    gate = _fresh_template_axis_title_gate(reference, candidate)
+    assert gate["y_text_matches"] is False
+    assert gate["pass"] is False
 
 
 def test_replay_summary_excludes_self_replay_from_compared_count(

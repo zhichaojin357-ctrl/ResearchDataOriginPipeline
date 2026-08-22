@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "EPR",
+  "status": "accepted",
+  "generated_at": "2026-08-22T14:51:00+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed the three stacked EPR traces, reviewed curve colors, 3 pt lines, hidden Y tick labels, bold axis titles, direct-label positions, page and layer geometry, and absence of blank or clipped plots. The source-reference labels are intentionally present only in this same-data asset validation; formal current-data runtime must replace DL1/DL2/DL3 with current labels.",
+  "formal_command": "python run.py origin-style-asset-replay --template-plan templates/origin_styles/validation_plans/EPR_verified_20260822.json --output-dir <configured-output-root>/diagnostics/20260822_EPR_project_asset_formal_replay_01 --with-origin",
+  "formal_evidence_location": "diagnostics/20260822_EPR_project_asset_formal_replay_01/products/EPR/comparison.json",
+  "validation_plan": {
+    "path": "validation_plans/EPR_verified_20260822.json",
+    "sha256": "7307a7e159ba7362d36e76ad9fb5b0b5e110d59a1407a0df0a36c49b2aee747e"
+  },
+  "origin": {
+    "entrypoint": "Origin.Application",
+    "version": "10.3",
+    "build": 197
+  },
+  "pipeline_git_base_commit": "2bf94bc",
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/EPR.otpu",
+    "sha256": "edeaede082686ca09c5d5194d5df00ca96a0ff2eeefd89b26dd5cb7c5fcf2003",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju"
+  },
+  "supporting_style_assets": {
+    "format_theme": {
+      "path": "format_themes/EPR.oth",
+      "sha256": "87289738bca4e20cbbd8f5898b8a8613dda7619c0786549aa59a5f57405aa4a5"
+    },
+    "style_snapshot": {
+      "path": "snapshots/EPR.json",
+      "sha256": "1d8d903ed215a020a51e0b7583b20ecf14b18d2d27021eed479e1b58bf6c9a35"
+    }
+  },
+  "reference": {
+    "path": "reference_opju/EPR.opju",
+    "graph_page": "EPR0601FULL",
+    "sha256": "9ce74e1ad00105deaff83a5d55303df37256f80b9caf29015b013210b338a3dc",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/EPR.json",
+    "sha256": "dc24148f051ec188fc8133a927974531f9d291b745d29ffdd1d7437d61fda2ba",
+    "source_series_count": 3,
+    "explicit_xy_ranges": true,
+    "shared_x_column": true,
+    "group_plots": false
+  },
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "6c00ae1082a5415e3c3627c119295bdad75ab00f9526034dc349aab8520d4850",
+    "generated_plot_values_sha256": "6c00ae1082a5415e3c3627c119295bdad75ab00f9526034dc349aab8520d4850",
+    "reference_plot_mapping_sha256": "6b685360f100c26975ac91870c8a94f543cc8219f5f76eaa5503e70688b11cda",
+    "generated_plot_mapping_sha256": "6b685360f100c26975ac91870c8a94f543cc8219f5f76eaa5503e70688b11cda"
+  },
+  "style": {
+    "status": "pass",
+    "compared_fields": 59,
+    "matched_fields": 59,
+    "axis_title_hard_gate": true,
+    "x_axis_title": "\\b(Magnetic Field (mT))",
+    "y_axis_title": "\\b(Intensity (a.u.))",
+    "plot_line_width_origin_units": [1500.0, 1500.0, 1500.0]
+  },
+  "pixels": {
+    "same_size": true,
+    "exact_pixel_match": true,
+    "changed_pixels": 0,
+    "rms": 0.0
+  },
+  "save_reopen": {
+    "saved_reopened": true,
+    "graph_page": "EPR0601FULL"
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  }
+}

@@ -27,6 +27,7 @@ from src.core.template_product_builder import (
     TemplateProductBuilderOptions,
     _csv_bounds_for_columns,
     _export_native_tif_with_physical_validation,
+    _prepare_template_epr_origin_processed_workbook,
     _style_snapshot_axis_title_bold_required,
     _strict_style_readback,
     is_template_xrd_reference_stick_header,
@@ -36,7 +37,10 @@ from src.core.template_product_builder import (
 from src.origin.conformance import compare_style_snapshots
 from src.origin.embedded_template_snapshots import embedded_template_snapshot
 from src.origin.operations import connect_origin, quote_labtalk
-from src.origin.style_registry import resolve_origin_runtime_style_asset
+from src.origin.style_registry import (
+    resolve_origin_adaptive_style_asset,
+    resolve_origin_runtime_style_asset,
+)
 from src.origin.style_mimic import apply_style_snapshot, extract_style_snapshot, read_graph_style_snapshot
 from src.origin.template_binding import (
     load_template_binding_contracts,
@@ -66,6 +70,30 @@ REVIEWED_TEMPLATE_VISIBLE_PLOTS = {
     "EIS": (3, 4, 5),
     "Mott-Schottky": (1, 2, 3),
 }
+VERIFIED_GRAPH_TEMPLATE_PRODUCTS = {"BET", "EIS", "EPR", "PL", "photocurrent", "FTIR"}
+
+VERIFIED_FTIR_SERIES_LABELS = ("BiOBr0.5Cl0.5", "CuWO4", "BiCu-10")
+VERIFIED_FTIR_RAW_TO_PLOTTED_OFFSETS = (
+    0.6992644978783592,
+    0.48749646393210766,
+    -0.174144271570014,
+)
+VERIFIED_FTIR_LAST_CURVE_TRANSLATE_ANNOTATIONS = (
+    0.69926449787836,
+    0.48749646393211,
+    -0.62347949080622,
+)
+VERIFIED_PHOTOCURRENT_DESTINATION_PAIRS = ((9, 10), (13, 14), (17, 18))
+VERIFIED_PHOTOCURRENT_X_TITLE = "Time (s)"
+VERIFIED_BET_X_TITLE = "Relative Pressure (P/Po)"
+VERIFIED_BET_Y_TITLE = "Quantity Adsorbed (cm3/g STP)"
+BET_ADAPTIVE_Y_TITLE_OBJECT = "RDOPBETYL"
+# The reviewed Graph5 Y title starts at 391/78. Adaptive numeric tick labels
+# are wider than the reference integer labels, so the stable text replacement
+# is shifted left just enough to preserve a visible gap without moving the
+# page, layer, axes, or changing any font size.
+BET_ADAPTIVE_Y_TITLE_LEFT = 300
+BET_ADAPTIVE_Y_TITLE_TOP = 78
 
 
 @dataclass(frozen=True)
@@ -83,6 +111,7 @@ class TemplateFormatExecutorOptions:
     compact_output: bool = False
     only_type: str | None = None
     style_replay_report: Path | None = None
+    origin_style_mode: str = "auto"
 
 
 def build_template_product_builder_options(options: TemplateFormatExecutorOptions) -> TemplateProductBuilderOptions:
@@ -112,12 +141,14 @@ def build_template_product_builder_options(options: TemplateFormatExecutorOption
         compact_output=options.compact_output,
         only_type=options.only_type,
         style_replay_report=options.style_replay_report,
+        origin_style_mode=options.origin_style_mode,
     )
 
 
 def run_template_format_executor(project_root: Path, options: TemplateFormatExecutorOptions) -> dict[str, object]:
     if options.asset_only and options.exemplar_driven:
         raise ValueError("--asset-only and --exemplar-driven are mutually exclusive")
+    _normalize_origin_style_mode(options.origin_style_mode)
     options = _with_default_xps_non_in_situ_template_root(project_root, options)
     result = run_template_product_builder_all_types(
         project_root,
@@ -129,6 +160,7 @@ def run_template_format_executor(project_root: Path, options: TemplateFormatExec
             prefer_project_style_asset=not options.exemplar_driven,
             preserve_exemplar_style=options.exemplar_driven,
             asset_only=options.asset_only,
+            origin_style_mode=options.origin_style_mode,
         ),
     )
     _write_template_format_docs(project_root, Path(str(result["run_root"])), result)
@@ -159,6 +191,677 @@ def _with_default_xps_non_in_situ_template_root(
     if default_root.exists():
         return replace(options, xps_non_in_situ_template_root=default_root)
     return options
+
+
+def _normalize_origin_style_mode(value: object) -> str:
+    mode = str(value or "auto").strip().casefold()
+    if mode not in {"auto", "otpu", "oth-json"}:
+        raise ValueError(
+            "origin_style_mode must be one of: auto, otpu, oth-json"
+        )
+    return mode
+
+
+def _style_asset_display_path(product: ProductContext, path: object) -> str:
+    if path is None:
+        return ""
+    text = str(path).strip()
+    if not text:
+        return ""
+    return _product_output_path(product.type_root.parent, Path(text))
+
+
+def _style_execution_decision(
+    product: ProductContext,
+    *,
+    requested_mode: str,
+    selected_mode: str,
+    reason_code: str,
+    message: str,
+    current_series_count: int,
+    contract_series_count: int,
+    asset: object | None,
+    ok: bool = True,
+    fixed_binding_match: bool = False,
+    candidate_assets_allowed: bool = False,
+) -> dict[str, object]:
+    runtime_kind = str(getattr(asset, "runtime_asset_kind", "") or "")
+    selected_path = (
+        getattr(asset, "runtime_asset_path", None)
+        if runtime_kind == "otpu"
+        else getattr(asset, "format_theme_path", None)
+    )
+    return {
+        "ok": ok,
+        "requested_mode": requested_mode,
+        "selected_mode": selected_mode,
+        "style_execution_mode": (
+            "exact_contract_otpu"
+            if selected_mode == "otpu"
+            else (
+                "variable_structure_oth_json"
+                if selected_mode == "oth-json"
+                else "existing_template_resolution"
+            )
+        ),
+        "reason_code": reason_code,
+        "message": message,
+        "current_series_count": current_series_count,
+        "contract_series_count": contract_series_count,
+        "series_count_matches_contract": (
+            contract_series_count > 0
+            and current_series_count == contract_series_count
+        ),
+        "selected_asset_kind": runtime_kind,
+        "selected_asset_path": _style_asset_display_path(product, selected_path),
+        "selected_style_snapshot_path": _style_asset_display_path(
+            product,
+            getattr(asset, "style_snapshot_path", None),
+        ),
+        "selected_data_snapshot_path": _style_asset_display_path(
+            product,
+            getattr(asset, "data_snapshot_path", None),
+        ),
+        "automatic_error_fallback": False,
+        "otpu_one_to_one_allowed": bool(
+            selected_mode == "otpu" and fixed_binding_match
+        ),
+        "fixed_binding_match": bool(fixed_binding_match),
+        "candidate_assets_allowed": bool(candidate_assets_allowed),
+        "adaptive_series_cardinality": bool(
+            selected_mode == "oth-json"
+            and contract_series_count > 0
+            and current_series_count != contract_series_count
+        ),
+    }
+
+
+def _style_execution_metadata(decision: dict[str, object] | None) -> dict[str, object]:
+    if not isinstance(decision, dict):
+        return {}
+    return {
+        "style_execution_mode": decision.get("style_execution_mode", ""),
+        "style_execution_reason_code": decision.get("reason_code", ""),
+        "origin_style_mode_requested": decision.get("requested_mode", "auto"),
+        "current_series_count": decision.get("current_series_count", 0),
+        "contract_series_count": decision.get("contract_series_count", 0),
+        "selected_style_asset_kind": decision.get("selected_asset_kind", ""),
+        "selected_style_asset_path": decision.get("selected_asset_path", ""),
+        "selected_style_snapshot_path": decision.get(
+            "selected_style_snapshot_path", ""
+        ),
+        "selected_data_snapshot_path": decision.get(
+            "selected_data_snapshot_path", ""
+        ),
+        "automatic_error_fallback": False,
+        "otpu_one_to_one_allowed": bool(
+            decision.get("otpu_one_to_one_allowed")
+        ),
+        "adaptive_series_cardinality": bool(
+            decision.get("adaptive_series_cardinality")
+        ),
+    }
+
+
+def _attach_style_execution_decision(
+    result: dict[str, object],
+    decision: dict[str, object] | None,
+) -> dict[str, object]:
+    if not isinstance(decision, dict):
+        return result
+    payload = dict(result)
+    payload["origin_style_decision"] = dict(decision)
+    processing = (
+        dict(payload.get("origin_processing", {}))
+        if isinstance(payload.get("origin_processing"), dict)
+        else {}
+    )
+    processing.update(_style_execution_metadata(decision))
+    payload["origin_processing"] = processing
+    return payload
+
+
+def _saved_theme_reference_policy(
+    style_asset: object | None,
+    decision: dict[str, object] | None,
+    *,
+    asset_only: bool,
+) -> tuple[Path | None, str, bool]:
+    if str((decision or {}).get("selected_mode") or "") == "oth-json":
+        return None, "", False
+    return (
+        getattr(style_asset, "template_opju_path", None),
+        str(getattr(style_asset, "graph_page", "") or ""),
+        bool(asset_only),
+    )
+
+
+def _binding_contract_for_asset(
+    product_key: str,
+    asset: object | None,
+) -> tuple[object | None, str]:
+    contract_path = getattr(asset, "binding_contract_path", None)
+    if contract_path is None:
+        return None, "binding contract path is missing"
+    try:
+        contracts = load_template_binding_contracts(contract_path)
+    except (OSError, ValueError) as exc:
+        return None, str(exc)
+    key = (
+        str(product_key)
+        .strip()
+        .casefold()
+        .replace("-", "_")
+        .replace(" ", "_")
+        .replace("/", "_")
+    )
+    contract = contracts.get(key)
+    if contract is None:
+        return None, f"binding contract does not contain {product_key}"
+    if not bool(getattr(contract, "ready", False)):
+        return None, str(getattr(contract, "reason", "") or "binding contract is not ready")
+    return contract, ""
+
+
+def _adaptive_asset_complete(asset: object | None) -> tuple[bool, str]:
+    if asset is None:
+        return False, "adaptive OTH+JSON asset is unavailable"
+    if str(getattr(asset, "runtime_asset_kind", "") or "") != "oth_json":
+        return False, "adaptive style resolver did not return runtime_asset_kind=oth_json"
+    required = {
+        "format_theme": getattr(asset, "format_theme_path", None),
+        "style_snapshot": getattr(asset, "style_snapshot_path", None),
+        "data_snapshot": getattr(asset, "data_snapshot_path", None),
+    }
+    missing = [
+        name
+        for name, value in required.items()
+        if value is None or not Path(value).is_file()
+    ]
+    if missing:
+        return False, "adaptive OTH+JSON asset is incomplete: " + ", ".join(missing)
+    return True, ""
+
+
+def _strict_adaptive_source_validation(
+    contract: object,
+    headers: list[str],
+    rows: list[list[object]],
+    source_pairs: list[tuple[int, int]],
+) -> dict[str, object]:
+    schema = dict(getattr(contract, "source_schema", {}) or {})
+    layout = str(schema.get("layout") or "")
+    failures: list[str] = []
+    if not source_pairs:
+        failures.append("processed CSV has no strictly recognized plot pairs")
+    if layout == "paired_xy_columns":
+        x_suffix = str(schema.get("x_header_suffix") or "")
+        y_suffix = str(schema.get("y_header_suffix") or "")
+        if not x_suffix or not y_suffix:
+            failures.append("paired-X/Y contract lacks semantic header suffixes")
+        identities: list[str] = []
+        for series_index, (x_index, y_index) in enumerate(source_pairs, start=1):
+            if min(x_index, y_index) < 0 or max(x_index, y_index) >= len(headers):
+                failures.append(f"series {series_index} references unavailable columns")
+                continue
+            x_header = str(headers[x_index]).strip()
+            y_header = str(headers[y_index]).strip()
+            x_identity = (
+                x_header[: -len(x_suffix)] if x_suffix and x_header.endswith(x_suffix) else ""
+            )
+            y_identity = (
+                y_header[: -len(y_suffix)] if y_suffix and y_header.endswith(y_suffix) else ""
+            )
+            if not x_identity or x_identity != y_identity:
+                failures.append(
+                    f"series {series_index} X/Y headers do not match the contracted suffixes and identity"
+                )
+            identities.append(x_identity.casefold())
+        nonempty = [value for value in identities if value]
+        if len(nonempty) != len(set(nonempty)):
+            failures.append("processed source series identities are not unique")
+    elif layout == "shared_x_y_columns":
+        expected_x = str(schema.get("x_header") or "")
+        if expected_x and (not headers or str(headers[0]).strip() != expected_x):
+            failures.append(f"shared X header must be {expected_x!r}")
+        y_suffix = str(schema.get("y_header_suffix") or "")
+        y_headers = [str(headers[y_index]).strip() for _x_index, y_index in source_pairs]
+        if y_suffix and any(not value.endswith(y_suffix) for value in y_headers):
+            failures.append(f"shared-X Y headers must end with {y_suffix!r}")
+        if any(not value for value in y_headers) or len(
+            {value.casefold() for value in y_headers}
+        ) != len(y_headers):
+            failures.append("shared-X Y headers must be nonempty and unique")
+    else:
+        failures.append(f"adaptive source layout is unsupported: {layout!r}")
+
+    for series_index, (x_index, y_index) in enumerate(source_pairs, start=1):
+        states: list[bool] = []
+        for row in rows:
+            x_value = _finite_numeric_value(row[x_index]) if x_index < len(row) else None
+            y_value = _finite_numeric_value(row[y_index]) if y_index < len(row) else None
+            if (x_value is None) != (y_value is None):
+                failures.append(f"series {series_index} contains an unpaired X or Y value")
+                break
+            states.append(x_value is not None)
+        bounds = _paired_numeric_row_bounds(rows, x_index, y_index)
+        if bounds is None:
+            failures.append(f"series {series_index} has no contiguous finite X/Y run")
+        elif any(states[bounds[1] :]):
+            failures.append(f"series {series_index} contains data after a blank tail")
+    return {
+        "ok": not failures,
+        "status": "ready" if not failures else "invalid",
+        "layout": layout,
+        "source_series_count": len(source_pairs),
+        "failures": failures,
+        "message": (
+            "Current CSV is semantically valid; only series cardinality differs from the fixed contract."
+            if not failures
+            else "; ".join(failures)
+        ),
+    }
+
+
+def _resolve_origin_style_execution_route(
+    project_root: Path,
+    product: ProductContext,
+    *,
+    requested_mode: str,
+    asset_only: bool = False,
+) -> tuple[dict[str, object], object | None]:
+    mode = _normalize_origin_style_mode(requested_mode)
+    try:
+        headers, rows = _read_processed_csv(product.processed_data)
+    except (OSError, ValueError) as exc:
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="blocked",
+                reason_code="processed_csv_invalid",
+                message=str(exc),
+                current_series_count=0,
+                contract_series_count=0,
+                asset=None,
+                ok=False,
+            ),
+            None,
+        )
+    plot_pairs = _processed_csv_plot_pairs(product, headers)
+    current_count = len(plot_pairs)
+    if current_count <= 0:
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="blocked",
+                reason_code="processed_csv_binding_invalid",
+                message="Processed CSV headers do not form valid plot pairs.",
+                current_series_count=0,
+                contract_series_count=0,
+                asset=None,
+                ok=False,
+            ),
+            None,
+        )
+
+    try:
+        exact_asset = resolve_origin_runtime_style_asset(
+            project_root,
+            product.product_key,
+        )
+    except (OSError, ValueError) as exc:
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="blocked",
+                reason_code="runtime_asset_registry_invalid",
+                message=str(exc),
+                current_series_count=current_count,
+                contract_series_count=0,
+                asset=None,
+                ok=False,
+            ),
+            None,
+        )
+    legacy_oth_asset = None
+    if exact_asset is not None and str(
+        getattr(exact_asset, "runtime_asset_kind", "") or ""
+    ) != "otpu":
+        if str(getattr(exact_asset, "runtime_asset_kind", "") or "") == "oth":
+            legacy_oth_asset = exact_asset
+        exact_asset = None
+
+    try:
+        adaptive_asset = resolve_origin_adaptive_style_asset(
+            project_root,
+            product.product_key,
+            allow_candidate=mode == "oth-json",
+        )
+    except (OSError, ValueError) as exc:
+        if mode == "oth-json":
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="blocked",
+                    reason_code="adaptive_asset_registry_invalid",
+                    message=str(exc),
+                    current_series_count=current_count,
+                    contract_series_count=0,
+                    asset=None,
+                    ok=False,
+                    candidate_assets_allowed=True,
+                ),
+                None,
+            )
+        adaptive_asset = None
+
+    contract_asset = exact_asset or adaptive_asset
+    contract, contract_error = _binding_contract_for_asset(
+        product.product_key,
+        contract_asset,
+    )
+    contract_count = int(getattr(contract, "source_series_count", 0) or 0)
+
+    if mode == "otpu":
+        if exact_asset is None:
+            decision = _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="blocked",
+                reason_code="verified_otpu_unavailable",
+                message="A verified OTPU runtime asset is not available.",
+                current_series_count=current_count,
+                contract_series_count=contract_count,
+                asset=None,
+                ok=False,
+            )
+            return decision, None
+        try:
+            binding = _prepare_verified_otpu_binding(
+                product,
+                headers,
+                rows,
+                contract_path=getattr(exact_asset, "binding_contract_path", None),
+            )
+        except (OSError, ValueError) as exc:
+            binding = {"ok": False, "message": str(exc)}
+        if not bool(binding.get("ok")):
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="blocked",
+                    reason_code="verified_otpu_binding_mismatch",
+                    message=str(binding.get("message") or "OTPU binding failed."),
+                    current_series_count=current_count,
+                    contract_series_count=contract_count,
+                    asset=exact_asset,
+                    ok=False,
+                ),
+                None,
+            )
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="otpu",
+                reason_code="explicit_verified_otpu",
+                message="Explicit OTPU mode selected the exact fixed binding.",
+                current_series_count=current_count,
+                contract_series_count=contract_count,
+                asset=exact_asset,
+                fixed_binding_match=True,
+            ),
+            exact_asset,
+        )
+
+    if mode == "oth-json":
+        complete, message = _adaptive_asset_complete(adaptive_asset)
+        if not complete:
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="blocked",
+                    reason_code="adaptive_oth_json_unavailable",
+                    message=message,
+                    current_series_count=current_count,
+                    contract_series_count=contract_count,
+                    asset=adaptive_asset,
+                    ok=False,
+                    candidate_assets_allowed=True,
+                ),
+                None,
+            )
+        if contract is None:
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="blocked",
+                    reason_code="adaptive_binding_contract_invalid",
+                    message=contract_error,
+                    current_series_count=current_count,
+                    contract_series_count=0,
+                    asset=adaptive_asset,
+                    ok=False,
+                    candidate_assets_allowed=True,
+                ),
+                None,
+            )
+        explicit_source_validation = _strict_adaptive_source_validation(
+            contract,
+            headers,
+            rows,
+            [(x_col - 1, y_col - 1) for x_col, y_col in plot_pairs],
+        )
+        if not bool(explicit_source_validation.get("ok")):
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="blocked",
+                    reason_code="adaptive_source_binding_invalid",
+                    message=str(
+                        explicit_source_validation.get("message")
+                        or "Adaptive CSV binding is invalid."
+                    ),
+                    current_series_count=current_count,
+                    contract_series_count=contract_count,
+                    asset=adaptive_asset,
+                    ok=False,
+                    candidate_assets_allowed=True,
+                ),
+                None,
+            )
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="oth-json",
+                reason_code="explicit_adaptive_oth_json",
+                message="Explicit OTH+JSON mode selected the adaptive style path.",
+                current_series_count=current_count,
+                contract_series_count=contract_count,
+                asset=adaptive_asset,
+                candidate_assets_allowed=True,
+            ),
+            adaptive_asset,
+        )
+
+    if exact_asset is None:
+        complete, _message = _adaptive_asset_complete(adaptive_asset)
+        if complete:
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="oth-json",
+                    reason_code="accepted_adaptive_asset_without_fixed_otpu",
+                    message="No fixed OTPU runtime exists; accepted adaptive OTH+JSON was selected.",
+                    current_series_count=current_count,
+                    contract_series_count=contract_count,
+                    asset=adaptive_asset,
+                ),
+                adaptive_asset,
+            )
+        if legacy_oth_asset is not None:
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="legacy-oth",
+                    reason_code="accepted_legacy_oth_runtime",
+                    message="Accepted legacy OTH runtime behavior was preserved.",
+                    current_series_count=current_count,
+                    contract_series_count=0,
+                    asset=legacy_oth_asset,
+                ),
+                legacy_oth_asset,
+            )
+        if not asset_only:
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="existing-template",
+                    reason_code="no_project_runtime_asset",
+                    message="No project runtime asset was selected; existing template resolution remains active.",
+                    current_series_count=current_count,
+                    contract_series_count=0,
+                    asset=None,
+                ),
+                None,
+            )
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="blocked",
+                reason_code="asset_only_runtime_asset_unavailable",
+                message="Asset-only mode requires a verified OTPU or accepted adaptive OTH+JSON asset.",
+                current_series_count=current_count,
+                contract_series_count=0,
+                asset=None,
+                ok=False,
+            ),
+            None,
+        )
+    if contract is None:
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="blocked",
+                reason_code="fixed_binding_contract_invalid",
+                message=contract_error,
+                current_series_count=current_count,
+                contract_series_count=0,
+                asset=exact_asset,
+                ok=False,
+            ),
+            None,
+        )
+    if current_count == contract_count:
+        try:
+            binding = _prepare_verified_otpu_binding(
+                product,
+                headers,
+                rows,
+                contract_path=getattr(exact_asset, "binding_contract_path", None),
+            )
+        except (OSError, ValueError) as exc:
+            binding = {"ok": False, "message": str(exc)}
+        if not bool(binding.get("ok")):
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="blocked",
+                    reason_code="fixed_cardinality_semantic_binding_mismatch",
+                    message=str(binding.get("message") or "OTPU binding failed."),
+                    current_series_count=current_count,
+                    contract_series_count=contract_count,
+                    asset=exact_asset,
+                    ok=False,
+                ),
+                None,
+            )
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="otpu",
+                reason_code="auto_exact_fixed_binding_match",
+                message="Current CSV exactly matches the fixed OTPU binding contract.",
+                current_series_count=current_count,
+                contract_series_count=contract_count,
+                asset=exact_asset,
+                fixed_binding_match=True,
+            ),
+            exact_asset,
+        )
+
+    source_pairs = [
+        (x_col - 1, y_col - 1) for x_col, y_col in plot_pairs
+    ]
+    source_validation = _strict_adaptive_source_validation(
+        contract,
+        headers,
+        rows,
+        source_pairs,
+    )
+    if not bool(source_validation.get("ok")):
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="blocked",
+                reason_code="cardinality_and_semantic_binding_mismatch",
+                message=str(source_validation.get("message") or "CSV binding is invalid."),
+                current_series_count=current_count,
+                contract_series_count=contract_count,
+                asset=exact_asset,
+                ok=False,
+            ),
+            None,
+        )
+    complete, adaptive_error = _adaptive_asset_complete(adaptive_asset)
+    if not complete:
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="blocked",
+                reason_code="cardinality_mismatch_without_accepted_adaptive_asset",
+                message=adaptive_error,
+                current_series_count=current_count,
+                contract_series_count=contract_count,
+                asset=exact_asset,
+                ok=False,
+            ),
+            None,
+        )
+    return (
+        _style_execution_decision(
+            product,
+            requested_mode=mode,
+            selected_mode="oth-json",
+            reason_code="auto_series_cardinality_mismatch_only",
+            message=(
+                "The current CSV is semantically valid and differs from the fixed OTPU "
+                "contract only in series cardinality; accepted adaptive OTH+JSON was selected."
+            ),
+            current_series_count=current_count,
+            contract_series_count=contract_count,
+            asset=adaptive_asset,
+        ),
+        adaptive_asset,
+    )
 
 
 def apply_template_base_data_replacement(operations: object, product: ProductContext, graph_name: str) -> dict[str, object]:
@@ -295,6 +998,7 @@ def export_template_base_product_with_origin(
     prefer_project_style_asset: bool = True,
     preserve_exemplar_style: bool = False,
     asset_only: bool = False,
+    origin_style_mode: str = "auto",
 ) -> dict[str, object]:
     try:
         return _export_template_base_product_with_origin_impl(
@@ -304,6 +1008,7 @@ def export_template_base_product_with_origin(
             prefer_project_style_asset=prefer_project_style_asset,
             preserve_exemplar_style=preserve_exemplar_style,
             asset_only=asset_only,
+            origin_style_mode=origin_style_mode,
         )
     except _OriginLifecycleFailure as exc:
         return {
@@ -321,6 +1026,7 @@ def _export_template_base_product_with_origin_impl(
     prefer_project_style_asset: bool = True,
     preserve_exemplar_style: bool = False,
     asset_only: bool = False,
+    origin_style_mode: str = "auto",
 ) -> dict[str, object]:
     operations = None
     runtime_cleanup_path: Path | None = None
@@ -334,13 +1040,30 @@ def _export_template_base_product_with_origin_impl(
                 external_reference_graph="",
                 external_reference_source="",
             )
-        style_asset = (
-            resolve_origin_runtime_style_asset(project_root, product.product_key)
-            if project_root is not None
+        style_decision: dict[str, object] | None = None
+        if (
+            project_root is not None
             and prefer_project_style_asset
             and not preserve_exemplar_style
-            else None
-        )
+        ):
+            style_decision, style_asset = _resolve_origin_style_execution_route(
+                project_root,
+                product,
+                requested_mode=origin_style_mode,
+                asset_only=asset_only,
+            )
+            if not bool(style_decision.get("ok")):
+                return {
+                    "ok": False,
+                    "message": str(
+                        style_decision.get("message")
+                        or "Origin style execution route is blocked."
+                    ),
+                    "origin_style_decision": style_decision,
+                    "origin_processing": _style_execution_metadata(style_decision),
+                }
+        else:
+            style_asset = None
         neutral_root = _neutral_origin_runtime_root()
         with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root, ignore_cleanup_errors=True) as runtime_text:
             runtime = Path(runtime_text)
@@ -369,13 +1092,14 @@ def _export_template_base_product_with_origin_impl(
                 and style_asset.runtime_asset_kind == "otpu"
                 and style_asset.runtime_asset_path is not None
             ):
-                return _export_verified_graph_template_product_with_origin(
+                result = _export_verified_graph_template_product_with_origin(
                     operations,
                     product,
                     style,
                     style_asset,
                     runtime_dir=runtime,
                 )
+                return _attach_style_execution_decision(result, style_decision)
             embedded_snapshot = embedded_template_snapshot(product.product_key)
             embedded_available = embedded_snapshot is not None
 
@@ -393,16 +1117,27 @@ def _export_template_base_product_with_origin_impl(
             if not plan.can_execute:
                 return {"ok": False, "message": "; ".join(plan.warnings), "template_format_plan": plan.to_dict()}
             if plan.mode == "saved_format_theme":
-                return _export_saved_format_theme_product_with_origin(
+                project_reference_opju, project_reference_graph, require_project_reference = (
+                    _saved_theme_reference_policy(
+                        style_asset,
+                        style_decision,
+                        asset_only=asset_only,
+                    )
+                )
+                result = _export_saved_format_theme_product_with_origin(
                     operations,
                     product,
                     style,
                     plan,
-                    project_reference_opju=getattr(style_asset, "template_opju_path", None),
-                    project_reference_graph=str(getattr(style_asset, "graph_page", "") or ""),
-                    require_project_reference=asset_only,
+                    project_reference_opju=project_reference_opju,
+                    project_reference_graph=project_reference_graph,
+                    require_project_reference=require_project_reference,
                     runtime_dir=runtime,
+                    style_snapshot_path=getattr(style_asset, "style_snapshot_path", None),
+                    data_snapshot_path=getattr(style_asset, "data_snapshot_path", None),
+                    style_execution_decision=style_decision,
                 )
+                return _attach_style_execution_decision(result, style_decision)
             if plan.mode == "embedded_template_snapshot" and embedded_snapshot is not None:
                 return _export_template_snapshot_fallback_product_with_origin(
                     operations,
@@ -920,7 +1655,7 @@ def _export_template_snapshot_fallback_product_with_origin(
                 "generated_preview_reuse_blocked": True,
             },
         }
-    headers, _rows = _read_processed_csv(product.processed_data)
+    headers, rows = _read_processed_csv(product.processed_data)
     if len(headers) < 2:
         return {
             "ok": False,
@@ -1213,7 +1948,7 @@ def _export_verified_graph_template_product_with_origin(
     template_path = Path(str(getattr(style_asset, "runtime_asset_path", "") or ""))
     template_sha256 = str(getattr(style_asset, "runtime_asset_sha256", "") or "")
     if (
-        product.product_key != "BET"
+        product.product_key not in VERIFIED_GRAPH_TEMPLATE_PRODUCTS
         or str(getattr(style_asset, "runtime_asset_kind", "")) != "otpu"
         or not template_path.is_file()
         or template_path.suffix.casefold() != ".otpu"
@@ -1228,7 +1963,7 @@ def _export_verified_graph_template_product_with_origin(
             "message": "Verified graph-template asset hash changed before Origin execution.",
         }
     headers, rows = _read_processed_csv(product.processed_data)
-    binding = _prepare_verified_bet_otpu_binding(
+    binding = _prepare_verified_otpu_binding(
         product,
         headers,
         rows,
@@ -1250,7 +1985,10 @@ def _export_verified_graph_template_product_with_origin(
     if not binding.get("ok"):
         return {
             "ok": False,
-            "message": str(binding.get("message") or "BET OTPU binding is blocked."),
+            "message": str(
+                binding.get("message")
+                or f"{product.product_key} OTPU binding is blocked."
+            ),
             "template_format_plan": plan_payload,
             "template_binding": binding,
         }
@@ -1266,9 +2004,46 @@ def _export_verified_graph_template_product_with_origin(
     if not isinstance(reference_style, dict) or reference_style.get("status") != "extracted":
         return {
             "ok": False,
-            "message": "Verified BET OTPU export requires its saved style snapshot.",
+            "message": (
+                f"Verified {product.product_key} OTPU export requires its saved style snapshot."
+            ),
             "template_format_plan": plan_payload,
         }
+    reference_data_path = getattr(style_asset, "data_snapshot_path", None)
+    reference_data = _load_json_object(reference_data_path)
+    if product.product_key == "photocurrent" and (
+        not isinstance(reference_data, dict)
+        or str(reference_data.get("status") or "") != "ready"
+    ):
+        return {
+            "ok": False,
+            "message": "Verified photocurrent OTPU export requires its saved data snapshot.",
+            "template_format_plan": plan_payload,
+        }
+    reference_axis_titles: dict[str, object] | None = None
+    if product.product_key == "photocurrent":
+        reference_axis_titles = _validate_photocurrent_axis_titles(
+            reference_style,
+            headers,
+        )
+        if not reference_axis_titles.get("ok"):
+            return {
+                "ok": False,
+                "message": str(reference_axis_titles["message"]),
+                "template_format_plan": plan_payload,
+                "photocurrent_axis_titles": reference_axis_titles,
+            }
+    runtime_theme: Path | None = None
+    if product.product_key in {"EIS", "EPR", "PL", "photocurrent"}:
+        theme_path = Path(str(getattr(style_asset, "format_theme_path", "") or ""))
+        if not theme_path.is_file() or theme_path.suffix.casefold() != ".oth":
+            return {
+                "ok": False,
+                "message": f"Verified {product.product_key} OTPU export requires its reviewed OTH asset.",
+                "template_format_plan": plan_payload,
+            }
+        runtime_theme = runtime / theme_path.name
+        shutil.copy2(theme_path, runtime_theme)
     runtime_reference = {
         "ok": True,
         "reference_kind": "validated_project_style_snapshot",
@@ -1287,31 +2062,28 @@ def _export_verified_graph_template_product_with_origin(
             "message": getattr(reset, "message", "Could not start a fresh Origin project."),
             "template_format_plan": plan_payload,
         }
-    imported = operations.import_csv_to_worksheet(
-        product.processed_data,
-        book_name=str(binding["book_name"]),
+    workbook = _populate_verified_otpu_workbook(
+        operations,
+        product,
+        headers,
+        rows,
+        binding,
     )
-    if not getattr(imported, "ok", False):
+    if not workbook.get("ok"):
         return {
             "ok": False,
-            "message": getattr(imported, "message", "Processed BET CSV import failed."),
-            "template_format_plan": plan_payload,
-        }
-    book_name = str(imported.payload.get("book_name") or "")
-    metadata_write = operations.set_worksheet_column_metadata(
-        book_name,
-        list(binding["column_metadata"]),
-    )
-    if not getattr(metadata_write, "ok", False):
-        return {
-            "ok": False,
-            "message": getattr(
-                metadata_write,
-                "message",
-                "BET worksheet metadata write failed.",
+            "message": str(
+                workbook.get("message")
+                or f"Processed {product.product_key} workbook preparation failed."
             ),
             "template_format_plan": plan_payload,
+            "template_binding": binding,
         }
+    # EPR starts from raw data and intentionally overwrites processed_data only
+    # after its approved Origin transform.  All later validation must therefore
+    # read the transformed CSV rather than retain the pre-transform rows.
+    _validation_headers, validation_rows = _read_processed_csv(product.processed_data)
+    book_name = str(workbook["book_name"])
     created = operations.create_graph_from_xy_pairs_template(
         str(binding["graph_page"]),
         runtime_template,
@@ -1320,20 +2092,49 @@ def _export_verified_graph_template_product_with_origin(
         plot_type=str(binding["plot_type"]),
         rescale=False,
         legend=False,
+        group_plots=bool(binding.get("group_plots", False)),
     )
     if not getattr(created, "ok", False):
         return {
             "ok": False,
-            "message": getattr(created, "message", "Verified BET OTPU plot failed."),
+            "message": getattr(
+                created,
+                "message",
+                f"Verified {product.product_key} OTPU plot failed.",
+            ),
             "template_format_plan": plan_payload,
         }
     graph_name = str(created.payload.get("graph_name") or binding["graph_page"])
+    post_plot_style = _apply_verified_otpu_post_plot_style(
+        operations,
+        product,
+        graph_name,
+        reference_style,
+        style,
+        runtime_theme=runtime_theme,
+        reference_data=reference_data,
+    )
+    if not post_plot_style.get("ok"):
+        return {
+            "ok": False,
+            "message": str(
+                post_plot_style.get("message")
+                or f"Verified {product.product_key} detached style replay failed."
+            ),
+            "template_format_plan": plan_payload,
+            "template_binding": binding,
+            "post_plot_style": post_plot_style,
+        }
     render_refresh = _refresh_graph_for_export(operations, graph_name)
     saved = operations.save_project(runtime_origin)
     if not getattr(saved, "ok", False) or not runtime_origin.is_file():
         return {
             "ok": False,
-            "message": getattr(saved, "message", "Verified BET OPJU save failed."),
+            "message": getattr(
+                saved,
+                "message",
+                f"Verified {product.product_key} OPJU save failed.",
+            ),
             "template_format_plan": plan_payload,
         }
     operations.new_project()
@@ -1341,7 +2142,11 @@ def _export_verified_graph_template_product_with_origin(
     if not getattr(reopened, "ok", False):
         return {
             "ok": False,
-            "message": getattr(reopened, "message", "Verified BET OPJU reopen failed."),
+            "message": getattr(
+                reopened,
+                "message",
+                f"Verified {product.product_key} OPJU reopen failed.",
+            ),
             "template_format_plan": plan_payload,
         }
     pages_result = operations.list_worksheets()
@@ -1354,7 +2159,10 @@ def _export_verified_graph_template_product_with_origin(
     if graph_pages.count(graph_name) != 1:
         return {
             "ok": False,
-            "message": f"Saved BET graph page {graph_name!r} was not uniquely present after reopen.",
+            "message": (
+                f"Saved {product.product_key} graph page {graph_name!r} was not uniquely "
+                "present after reopen."
+            ),
             "template_format_plan": plan_payload,
             "available_graph_pages": graph_pages,
         }
@@ -1365,12 +2173,31 @@ def _export_verified_graph_template_product_with_origin(
         graph_pages=graph_pages,
     )
     product_style = product_snapshot.to_dict()
+    product_axis_titles: dict[str, object] | None = None
+    if product.product_key == "photocurrent":
+        product_axis_titles = _validate_photocurrent_axis_titles(
+            product_style,
+            headers,
+        )
+        if not product_axis_titles.get("ok"):
+            return {
+                "ok": False,
+                "message": str(product_axis_titles["message"]),
+                "template_format_plan": plan_payload,
+                "photocurrent_axis_titles": product_axis_titles,
+            }
     strict_readback = _strict_style_readback(product_style)
     conformance = compare_style_snapshots(
-        reference_style,
+        _verified_otpu_conformance_reference(product.product_key, reference_style, product_style),
         product_snapshot,
-        required_line_width_pt=style.line_width_pt,
-        require_axis_title_bold=True,
+        required_line_width_pt=_verified_otpu_required_line_width_pt(
+            product.product_key,
+            style,
+        ),
+        require_axis_title_bold=_verified_otpu_axis_title_bold_policy(
+            product.product_key,
+            reference_style,
+        ),
     ).to_dict()
     conformance["reference_source"] = runtime_reference["reference_kind"]
     current_data_snapshot = read_graph_data_snapshot(
@@ -1378,8 +2205,9 @@ def _export_verified_graph_template_product_with_origin(
         graph_name,
         source_label=product.origin_file.name,
     )
-    current_data_validation = _validate_verified_bet_current_data(
-        rows,
+    current_data_validation = _validate_verified_current_data(
+        product.product_key,
+        validation_rows,
         list(binding["xy_ranges"]),
         current_data_snapshot,
     )
@@ -1388,7 +2216,7 @@ def _export_verified_graph_template_product_with_origin(
             "ok": False,
             "message": str(
                 current_data_validation.get("message")
-                or "Reopened BET graph data did not match the processed CSV."
+                or f"Reopened {product.product_key} graph data did not match the processed CSV."
             ),
             "template_format_plan": plan_payload,
             "current_data_validation": current_data_validation,
@@ -1415,14 +2243,16 @@ def _export_verified_graph_template_product_with_origin(
     ):
         return {
             "ok": False,
-            "message": "Verified BET Origin artifact export failed.",
+            "message": f"Verified {product.product_key} Origin artifact export failed.",
             "template_format_plan": plan_payload,
             "tif_resolution_evidence": tif.get("evidence", {}),
         }
     if file_sha256(template_path) != template_sha256:
         return {
             "ok": False,
-            "message": "Verified BET OTPU source changed during Origin execution.",
+            "message": (
+                f"Verified {product.product_key} OTPU source changed during Origin execution."
+            ),
             "template_format_plan": plan_payload,
         }
     operations.new_project()
@@ -1431,14 +2261,17 @@ def _export_verified_graph_template_product_with_origin(
     _copy_runtime_artifact(runtime_tif, product.figure_tif)
     return {
         "ok": True,
-        "message": "Origin verified-OTPU BET export succeeded without loading a reference OPJU.",
+        "message": (
+            f"Origin verified-OTPU {product.product_key} export succeeded without loading "
+            "a reference OPJU."
+        ),
         "template_format_plan": plan_payload,
         "origin_processing": {
             "required": True,
             "applied": True,
             "method": "fresh_graph_verified_otpu_explicit_xy",
             "processing_location": "Origin fresh project with verified project-local OTPU and explicit current-data X/Y ranges",
-            "style_contract": "verified_detached_otpu",
+            "style_contract": _verified_otpu_style_contract(product.product_key),
             "runtime_asset_kind": "otpu",
             "runtime_asset_path": _product_output_path(
                 product.type_root.parent,
@@ -1451,6 +2284,9 @@ def _export_verified_graph_template_product_with_origin(
             "reference_opju_loaded": False,
             "current_data_validation": current_data_validation,
             "template_binding": binding,
+            "workbook_preparation": workbook,
+            "post_plot_style": post_plot_style,
+            "photocurrent_axis_titles": product_axis_titles,
             "render_refresh": render_refresh,
             "raster_metadata_stripped": not bool(metadata_warning),
             "metadata_warnings": [metadata_warning] if metadata_warning else [],
@@ -1465,10 +2301,145 @@ def _export_verified_graph_template_product_with_origin(
         "current_data_validation": current_data_validation,
         "reopened_graph": graph_name,
         "tif_resolution_evidence": tif.get("evidence", {}),
-        "line_width_policy_pt": style.line_width_pt,
-        "axis_title_bold_policy": True,
+        "line_width_policy_pt": _verified_otpu_required_line_width_pt(
+            product.product_key,
+            style,
+        ),
+        "axis_title_bold_policy": _verified_otpu_axis_title_bold_policy(
+            product.product_key,
+            reference_style,
+        ),
+        "photocurrent_axis_titles": product_axis_titles,
         "xps_component_fill": {"required": False, "applied": False},
     }
+
+
+def _prepare_verified_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    preparers = {
+        "BET": _prepare_verified_bet_otpu_binding,
+        "EIS": _prepare_verified_eis_otpu_binding,
+        "EPR": _prepare_verified_epr_otpu_binding,
+        "PL": _prepare_verified_pl_otpu_binding,
+        "photocurrent": _prepare_verified_photocurrent_otpu_binding,
+        "FTIR": _prepare_verified_ftir_otpu_binding,
+    }
+    prepare = preparers.get(product.product_key)
+    if prepare is None:
+        return {
+            "ok": False,
+            "message": (
+                f"Verified OTPU runtime dispatch is not implemented for {product.product_key}."
+            ),
+        }
+    return prepare(
+        product,
+        headers,
+        rows,
+        contract_path=contract_path,
+    )
+
+
+def _verified_otpu_conformance_reference(
+    product_key: str,
+    reference_style: dict[str, object],
+    product_style: dict[str, object],
+) -> dict[str, object]:
+    if product_key in {"BET", "photocurrent"}:
+        adjusted = dict(reference_style)
+        data_dependent_fields = {
+            "layer.x.from",
+            "layer.x.to",
+            "layer.y.from",
+            "layer.y.to",
+            "xb.x",
+            "xb.y",
+            "yl.x",
+            "yl.y",
+            "legend.x",
+            "legend.y",
+        }
+        for section in ("layout_values", "audit_numeric_values"):
+            expected = dict(reference_style.get(section) or {})
+            actual = dict(product_style.get(section) or {})
+            expected.update(
+                {
+                    field: actual[field]
+                    for field in data_dependent_fields
+                    if field in actual
+                }
+            )
+            adjusted[section] = expected
+        expected_strings = dict(reference_style.get("audit_string_values") or {})
+        actual_strings = dict(product_style.get("audit_string_values") or {})
+        # Axis titles remain fixed reviewed content.  Axis ranges/coordinates
+        # and the legend text are current-data dependent for adaptive products.
+        if "legend.text$" in actual_strings:
+            expected_strings["legend.text$"] = actual_strings["legend.text$"]
+        adjusted["audit_string_values"] = expected_strings
+        return adjusted
+    if product_key == "PL":
+        adjusted = dict(reference_style)
+        expected_strings = dict(reference_style.get("audit_string_values") or {})
+        actual_strings = dict(product_style.get("audit_string_values") or {})
+        if "legend.text$" in actual_strings:
+            expected_strings["legend.text$"] = actual_strings["legend.text$"]
+        adjusted["audit_string_values"] = expected_strings
+        return adjusted
+    if product_key not in {"EIS", "EPR"}:
+        return reference_style
+    adjusted = dict(reference_style)
+    if product_key == "EIS":
+        fields = {
+            "layer.x.from", "layer.x.to", "layer.y.from", "layer.y.to",
+            "legend.x", "legend.y", "legend.show",
+            # Origin automatically moves titles away from tick-label extents when
+            # current data require a different numeric tick format.  Preserve the
+            # centered/template text styling, then audit visibility and overlap
+            # separately instead of treating these perpendicular offsets as fixed.
+            "xb.y", "yl.x",
+        }
+    else:
+        # EPR only permits the current magnetic-field range and the resulting
+        # horizontal-axis title coordinate to differ from its exact template.
+        fields = {"layer.x.from", "layer.x.to", "xb.x", "xb.y"}
+    for section in ("layout_values", "audit_numeric_values"):
+        expected = dict(reference_style.get(section) or {})
+        actual = dict(product_style.get(section) or {})
+        expected.update({field: actual[field] for field in fields if field in actual})
+        adjusted[section] = expected
+    return adjusted
+
+
+def _verified_otpu_style_contract(product_key: str) -> str:
+    return (
+        "preserve_exemplar_exact"
+        if product_key in {"EIS", "photocurrent", "FTIR"}
+        else "verified_detached_otpu"
+    )
+
+
+def _verified_otpu_required_line_width_pt(
+    product_key: str,
+    style: ResolvedPlotStyle,
+) -> float | None:
+    # EIS preserves a template-specific width. The reviewed photocurrent Graph2
+    # and FTIR assets are explicitly audited at the current 3 pt product policy.
+    return None if product_key == "EIS" else style.line_width_pt
+
+
+def _verified_otpu_axis_title_bold_policy(
+    product_key: str,
+    reference_style: dict[str, object],
+) -> bool:
+    if product_key in {"photocurrent", "FTIR"}:
+        return _style_snapshot_axis_title_bold_required(reference_style)
+    return True
 
 
 def _prepare_verified_bet_otpu_binding(
@@ -1589,6 +2560,7 @@ def _prepare_verified_bet_otpu_binding(
         "graph_page": contract.graph_page,
         "book_name": "Isotherm",
         "plot_type": "line+symbol",
+        "group_plots": False,
         "xy_ranges": xy_ranges,
         "column_metadata": [
             metadata_by_column[index] for index in sorted(metadata_by_column)
@@ -1596,6 +2568,1373 @@ def _prepare_verified_bet_otpu_binding(
         "source_pairs": [list(pair) for pair in source_pairs],
         "source_binding": source_validation,
         "contract": contract.to_dict(),
+    }
+
+
+def _prepare_verified_eis_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    if product.product_key != "EIS":
+        return {"ok": False, "message": "Verified EIS binding received a non-EIS product."}
+    contracts = load_template_binding_contracts(contract_path)
+    contract = contracts.get("eis")
+    if contract is None or not contract.ready:
+        return {"ok": False, "message": "The reviewed EIS binding contract is unavailable."}
+    source_pairs = _processed_csv_template_source_pairs(product, headers)
+    source_validation = validate_template_source_bindings(
+        contract,
+        headers,
+        source_pairs,
+    )
+    if not bool(source_validation.get("ok")):
+        return {
+            "ok": False,
+            "message": str(
+                source_validation.get("message")
+                or "Processed EIS source binding validation failed."
+            ),
+            "source_binding": source_validation,
+        }
+    contracted_plots = sorted(
+        contract.plots,
+        key=lambda plot: (plot.layer_index, plot.plot_index),
+    )
+    if (
+        len(contracted_plots) != 8
+        or any(plot.layer_index != 1 for plot in contracted_plots)
+        or [plot.plot_index for plot in contracted_plots] != list(range(1, 9))
+        or [plot.source_series_index for plot in contracted_plots] != list(range(1, 9))
+    ):
+        return {"ok": False, "message": "EIS contract must contain eight ordered layer-1 plots."}
+    source_schema = dict(contract.source_schema)
+    if (
+        str(source_schema.get("worksheet_layout") or "")
+        != "one_source_series_per_sheet"
+        or bool(source_schema.get("group_plots", True))
+    ):
+        return {"ok": False, "message": "EIS contract must use eight ungrouped worksheets."}
+
+    legend_entries = [str(value).strip() for value in product.legend_entries]
+    visible_indices = REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]
+    if len(legend_entries) == len(visible_indices):
+        visible_legend_entries = legend_entries
+    elif len(legend_entries) >= max(visible_indices):
+        visible_legend_entries = [legend_entries[index - 1] for index in visible_indices]
+    else:
+        return {"ok": False, "message": "EIS requires current legend labels for slots 3-5."}
+    if (
+        any(not value for value in visible_legend_entries)
+        or len({value.casefold() for value in visible_legend_entries})
+        != len(visible_legend_entries)
+    ):
+        return {"ok": False, "message": "EIS slot-3-to-5 legend labels must be nonempty and unique."}
+
+    xy_ranges: list[dict[str, int]] = []
+    sheets: list[dict[str, object]] = []
+    for plot in contracted_plots:
+        source_index = plot.source_series_index - 1
+        x_index, y_index = source_pairs[source_index]
+        source_bounds = _paired_numeric_row_bounds(rows, x_index, y_index)
+        if source_bounds is None:
+            return {
+                "ok": False,
+                "message": (
+                    f"EIS source series {plot.source_series_index} must contain one "
+                    "contiguous run of finite X/Y rows."
+                ),
+            }
+        source_row_from, source_row_to = source_bounds
+        row_count = source_row_to - source_row_from + 1
+        xy_ranges.append(
+            {
+                "x_col": 5,
+                "y_col": 7,
+                "row_from": 1,
+                "row_to": row_count,
+                "sheet_index": plot.source_series_index,
+                "source_x_index": x_index,
+                "source_y_index": y_index,
+                "source_row_from": source_row_from,
+                "source_row_to": source_row_to,
+            }
+        )
+        sheets.append({
+            "sheet_index": plot.source_series_index,
+            "source_x_index": x_index,
+            "source_y_index": y_index,
+            "source_row_from": source_row_from,
+            "source_row_to": source_row_to,
+        })
+    return {
+        "ok": True,
+        "message": "Processed EIS columns match the reviewed OTPU binding contract.",
+        "graph_page": contract.graph_page,
+        "book_name": "Book1",
+        "plot_type": str(source_schema.get("plot_type") or "scatter"),
+        "group_plots": False,
+        "xy_ranges": xy_ranges,
+        "sheets": sheets,
+        "visible_plot_indices": list(visible_indices),
+        "visible_legend_entries": visible_legend_entries,
+        "source_pairs": [list(pair) for pair in source_pairs],
+        "source_binding": source_validation,
+        "contract": contract.to_dict(),
+    }
+
+
+def _prepare_verified_epr_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    if product.product_key != "EPR":
+        return {"ok": False, "message": "Verified EPR binding received a non-EPR product."}
+    contracts = load_template_binding_contracts(contract_path)
+    contract = contracts.get("epr")
+    if contract is None or not contract.ready:
+        return {"ok": False, "message": "The reviewed EPR template binding contract is unavailable."}
+    source_schema = dict(contract.source_schema)
+    if (
+        str(source_schema.get("layout") or "") != "shared_x_y_columns"
+        or bool(source_schema.get("group_plots", True))
+    ):
+        return {
+            "ok": False,
+            "message": "EPR contract must use one shared-X worksheet with ungrouped plots.",
+        }
+    expected_indices = [0, 1, 2, 3]
+    contract_indices = source_schema.get("source_csv_indices", expected_indices)
+    if not isinstance(contract_indices, list) or contract_indices != expected_indices:
+        return {
+            "ok": False,
+            "message": "EPR contract must bind processed CSV columns 0/1,2,3.",
+        }
+    contracted_plots = sorted(
+        contract.plots,
+        key=lambda plot: (plot.layer_index, plot.plot_index),
+    )
+    if (
+        len(contracted_plots) != 3
+        or contract.source_series_count != 3
+        or any(plot.layer_index != 1 for plot in contracted_plots)
+        or [plot.plot_index for plot in contracted_plots] != [1, 2, 3]
+        or [plot.source_series_index for plot in contracted_plots] != [1, 2, 3]
+    ):
+        return {"ok": False, "message": "EPR contract must contain three ordered layer-1 plots."}
+    if len(headers) != 4 or any(not str(value).strip() for value in headers):
+        return {
+            "ok": False,
+            "message": "EPR processed CSV must contain exactly one X column and three Y columns.",
+        }
+    if str(headers[0]).strip().casefold() != "magnetic_field":
+        return {"ok": False, "message": "EPR shared X column must be magnetic_field."}
+    legend_entries = [str(value).strip() for value in product.legend_entries]
+    if (
+        len(legend_entries) != 3
+        or any(not value for value in legend_entries)
+        or len({value.casefold() for value in legend_entries}) != 3
+    ):
+        return {"ok": False, "message": "EPR requires three nonempty unique current labels."}
+
+    xy_ranges: list[dict[str, int]] = []
+    source_bindings: list[dict[str, object]] = []
+    expected_bounds: tuple[int, int] | None = None
+    for plot in contracted_plots:
+        source_y_index = plot.source_series_index
+        bounds = _paired_numeric_row_bounds(rows, 0, source_y_index)
+        if bounds is None:
+            return {
+                "ok": False,
+                "message": f"EPR source trace {plot.source_series_index} must contain one contiguous finite X/Y run.",
+            }
+        if expected_bounds is None:
+            expected_bounds = bounds
+        elif bounds != expected_bounds:
+            return {"ok": False, "message": "EPR shared-X traces must have identical finite row bounds."}
+        row_from, row_to = bounds
+        xy_ranges.append(
+            {
+                "x_col": 1,
+                "y_col": 10 + plot.source_series_index,
+                "row_from": row_from,
+                "row_to": row_to,
+                "source_x_index": 0,
+                "source_y_index": source_y_index,
+                "source_row_from": row_from,
+                "source_row_to": row_to,
+            }
+        )
+        source_bindings.append(
+            {
+                "source_series_index": plot.source_series_index,
+                "source_x_column_index": 0,
+                "source_y_column_index": source_y_index,
+                "source_x_header": str(headers[0]),
+                "source_y_header": str(headers[source_y_index]),
+            }
+        )
+    return {
+        "ok": True,
+        "message": "Processed EPR shared-X columns match the reviewed OTPU binding contract.",
+        "graph_page": contract.graph_page,
+        "book_name": "EPR",
+        "plot_type": str(source_schema.get("plot_type") or "line"),
+        "group_plots": False,
+        "xy_ranges": xy_ranges,
+        "source_binding": {
+            "ok": True,
+            "status": "ready",
+            "layout": "shared_x_y_columns",
+            "source_bindings": source_bindings,
+        },
+        "contract": contract.to_dict(),
+    }
+
+
+def _prepare_verified_pl_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    if product.product_key != "PL":
+        return {"ok": False, "message": "Verified PL binding received a non-PL product."}
+    contracts = load_template_binding_contracts(contract_path)
+    contract = contracts.get("pl")
+    if contract is None or not contract.ready:
+        return {"ok": False, "message": "The reviewed PL template binding contract is unavailable."}
+    source_schema = dict(contract.source_schema)
+    if (
+        str(source_schema.get("layout") or "") != "shared_x_y_columns"
+        or bool(source_schema.get("group_plots", True))
+        or source_schema.get("source_csv_indices", [0, 1, 2, 3]) != [0, 1, 2, 3]
+    ):
+        return {
+            "ok": False,
+            "message": "PL contract must use CSV columns 0/1,2,3 on one ungrouped shared-X worksheet.",
+        }
+    contracted_plots = sorted(
+        contract.plots,
+        key=lambda plot: (plot.layer_index, plot.plot_index),
+    )
+    expected_datasets = [("A", "B"), ("A", "D"), ("A", "F")]
+    actual_datasets = [
+        (
+            str(plot.x_dataset).rsplit("_", 1)[-1].upper(),
+            str(plot.y_dataset).rsplit("_", 1)[-1].upper(),
+        )
+        for plot in contracted_plots
+    ]
+    if (
+        len(contracted_plots) != 3
+        or contract.source_series_count != 3
+        or any(plot.layer_index != 1 for plot in contracted_plots)
+        or [plot.plot_index for plot in contracted_plots] != [1, 2, 3]
+        or [plot.source_series_index for plot in contracted_plots] != [1, 2, 3]
+        or actual_datasets != expected_datasets
+    ):
+        return {
+            "ok": False,
+            "message": "PL contract must contain ordered A-B, A-D, and A-F layer-1 plots.",
+        }
+    if (
+        len(headers) != 4
+        or str(headers[0]).strip().casefold() != "wavelength_nm"
+        or not rows
+    ):
+        return {
+            "ok": False,
+            "message": "PL processed CSV must contain wavelength_nm and exactly three Y columns.",
+        }
+    legend_entries = [str(value).strip() for value in product.legend_entries]
+    if (
+        len(legend_entries) != 3
+        or any(not value for value in legend_entries)
+        or len({value.casefold() for value in legend_entries}) != 3
+    ):
+        return {"ok": False, "message": "PL requires three nonempty unique current labels."}
+    expected_y_headers = [
+        f"{safe_name(label)}_counts".casefold()
+        for label in legend_entries
+    ]
+    if [str(value).strip().casefold() for value in headers[1:]] != expected_y_headers:
+        return {
+            "ok": False,
+            "message": "PL Y headers must match the three current labels with the _counts suffix.",
+        }
+
+    destination_y_columns = (2, 4, 6)
+    xy_ranges: list[dict[str, int]] = []
+    for plot, y_col in zip(contracted_plots, destination_y_columns):
+        source_y_index = plot.source_series_index
+        bounds = _paired_numeric_row_bounds(rows, 0, source_y_index)
+        if bounds is None:
+            return {
+                "ok": False,
+                "message": f"PL source trace {source_y_index} must contain one contiguous finite X/Y run.",
+            }
+        row_from, row_to = bounds
+        xy_ranges.append(
+            {
+                "x_col": 1,
+                "y_col": y_col,
+                "expected_x_col_letter": "A",
+                "expected_y_col_letter": chr(64 + y_col),
+                "row_from": row_from,
+                "row_to": row_to,
+                "source_x_index": 0,
+                "source_y_index": source_y_index,
+                "source_row_from": row_from,
+                "source_row_to": row_to,
+            }
+        )
+    return {
+        "ok": True,
+        "message": "Processed PL shared-X columns match the reviewed OTPU binding contract.",
+        "graph_page": contract.graph_page,
+        "book_name": "PL",
+        "plot_type": str(source_schema.get("plot_type") or "line"),
+        "group_plots": False,
+        "xy_ranges": xy_ranges,
+        "contract": contract.to_dict(),
+    }
+
+
+def _validate_bet_axis_titles(
+    snapshot: dict[str, object],
+    headers: list[str],
+) -> dict[str, object]:
+    """Reject dynamic or worksheet-internal BET titles after save/reopen."""
+
+    audit_strings = snapshot.get("audit_string_values")
+    if not isinstance(audit_strings, dict):
+        return {
+            "ok": False,
+            "message": "BET style readback does not contain axis-title text.",
+            "x_title": "",
+            "y_title": "",
+        }
+    x_title = str(audit_strings.get("xb.text$") or "").strip()
+    y_title = str(audit_strings.get("yl.text$") or "").strip()
+    folded_headers = {
+        str(value).strip().casefold()
+        for value in headers
+        if str(value).strip()
+    }
+    internal_title = (
+        x_title.casefold() in folded_headers
+        or y_title.casefold() in folded_headers
+        or any(
+            fragment in value.casefold()
+            for value in (x_title, y_title)
+            for fragment in (
+                "_relative_pressure_p_p0",
+                "_quantity_adsorbed_cm3_g_stp",
+            )
+        )
+    )
+    dynamic_title = any("%(" in value or "%[" in value for value in (x_title, y_title))
+    x_title_ok = VERIFIED_BET_X_TITLE.casefold() in x_title.casefold()
+    y_title_ok = VERIFIED_BET_Y_TITLE.casefold() in y_title.casefold()
+    reasons: list[str] = []
+    if internal_title:
+        reasons.append("an internal processed-data header was used as an axis title")
+    if dynamic_title:
+        reasons.append("a dynamic worksheet-title placeholder remains")
+    if not x_title_ok:
+        reasons.append(f"X title is not {VERIFIED_BET_X_TITLE!r}")
+    if not y_title_ok:
+        reasons.append(f"Y title is not {VERIFIED_BET_Y_TITLE!r}")
+    return {
+        "ok": not reasons,
+        "message": (
+            "BET axis titles match the reviewed Graph5 scientific titles."
+            if not reasons
+            else "BET axis-title hard gate failed: " + "; ".join(reasons)
+        ),
+        "x_title": x_title,
+        "y_title": y_title,
+        "internal_header_rejected": not internal_title,
+        "dynamic_placeholder_rejected": not dynamic_title,
+    }
+
+
+def _validate_photocurrent_axis_titles(
+    snapshot: dict[str, object],
+    headers: list[str],
+) -> dict[str, object]:
+    """Require the reviewed scientific titles, never worksheet-derived text."""
+    audit_strings = snapshot.get("audit_string_values")
+    if not isinstance(audit_strings, dict):
+        return {
+            "ok": False,
+            "message": "Photocurrent style readback does not contain axis-title text.",
+            "x_title": "",
+            "y_title": "",
+        }
+    x_title = str(audit_strings.get("xb.text$") or "").strip()
+    y_title = str(audit_strings.get("yl.text$") or "").strip()
+    normalized_headers = {
+        str(value).strip().casefold()
+        for value in headers
+        if str(value).strip()
+    }
+    title_values = {x_title.casefold(), y_title.casefold()}
+    internal_title = bool(title_values & normalized_headers) or any(
+        fragment in value.casefold()
+        for value in (x_title, y_title)
+        for fragment in ("_time_s", "_current_a")
+    )
+    dynamic_title = any("%(" in value or "%[" in value for value in (x_title, y_title))
+    placeholder_title = x_title.casefold() in {"a", "b"} or y_title.casefold() in {
+        "a",
+        "b",
+    }
+    x_title_ok = VERIFIED_PHOTOCURRENT_X_TITLE.casefold() in x_title.casefold()
+    y_folded = y_title.casefold()
+    y_unit_ok = any(
+        marker in y_folded
+        for marker in ("μa", "μ a", "a\\(41)", "microampere", "microamp")
+    )
+    y_title_ok = (
+        "photocurrent" in y_folded
+        and ("μ" in y_title or "micro" in y_folded)
+        and y_unit_ok
+    )
+    reasons: list[str] = []
+    if internal_title:
+        reasons.append("an internal processed-data header was used as an axis title")
+    if dynamic_title:
+        reasons.append("a dynamic worksheet-title placeholder remains")
+    if placeholder_title:
+        reasons.append("the placeholder title A or B remains")
+    if not x_title_ok:
+        reasons.append(f"X title is not {VERIFIED_PHOTOCURRENT_X_TITLE!r}")
+    if not y_title_ok:
+        reasons.append("Y title is not the reviewed Photocurrent (μA) title")
+    return {
+        "ok": not reasons,
+        "message": (
+            "Photocurrent axis titles match the reviewed scientific title snapshot."
+            if not reasons
+            else "Photocurrent axis-title hard gate failed: " + "; ".join(reasons)
+        ),
+        "x_title": x_title,
+        "y_title": y_title,
+        "internal_header_rejected": not internal_title,
+        "dynamic_placeholder_rejected": not dynamic_title,
+        "a_b_placeholder_rejected": not placeholder_title,
+    }
+
+
+def _prepare_verified_photocurrent_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    if product.product_key != "photocurrent":
+        return {
+            "ok": False,
+            "message": "Verified photocurrent binding received a non-photocurrent product.",
+        }
+    contracts = load_template_binding_contracts(contract_path)
+    contract = contracts.get("photocurrent")
+    if contract is None or not contract.ready:
+        return {
+            "ok": False,
+            "message": "The reviewed photocurrent template binding contract is unavailable.",
+        }
+    source_schema = dict(contract.source_schema)
+    if (
+        str(source_schema.get("status") or "") != "ready"
+        or str(source_schema.get("layout") or "") != "paired_xy_columns"
+        or str(source_schema.get("worksheet_layout") or "")
+        != "one_sheet_three_independent_xy_pairs_at_i_j_m_n_q_r"
+        or source_schema.get("source_csv_indices") != [0, 1, 2, 3, 4, 5]
+        or str(source_schema.get("x_header_suffix") or "") != "_time_s"
+        or str(source_schema.get("y_header_suffix") or "") != "_current_a"
+        or str(source_schema.get("transform") or "")
+        != "independent_photocurrent_xy_pairs_without_interpolation_smoothing_or_normalization"
+        or str(source_schema.get("plot_type") or "") != "line"
+        or bool(source_schema.get("group_plots", True))
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "Photocurrent contract must use six adjacent independent X/Y columns "
+                "as three ungrouped plots sourced from I/J, M/N, and Q/R."
+            ),
+        }
+
+    contracted_plots = sorted(
+        contract.plots,
+        key=lambda plot: (plot.layer_index, plot.plot_index),
+    )
+    expected_datasets = [
+        ("Book1_I", "Book1_J"),
+        ("Book1_M", "Book1_N"),
+        ("Book1_Q", "Book1_R"),
+    ]
+    actual_datasets = [
+        (str(plot.x_dataset), str(plot.y_dataset))
+        for plot in contracted_plots
+    ]
+    if (
+        len(contracted_plots) != 3
+        or contract.source_series_count != 3
+        or any(plot.layer_index != 1 for plot in contracted_plots)
+        or [plot.plot_index for plot in contracted_plots] != [1, 2, 3]
+        or [plot.source_series_index for plot in contracted_plots] != [1, 2, 3]
+        or actual_datasets != expected_datasets
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "Photocurrent contract must contain ordered Book1 I/J, M/N, and Q/R "
+                "layer-1 plots."
+            ),
+        }
+
+    legend_entries = [str(value).strip() for value in product.legend_entries]
+    if (
+        len(legend_entries) != 3
+        or any(not value for value in legend_entries)
+        or len({value.casefold() for value in legend_entries}) != 3
+    ):
+        return {
+            "ok": False,
+            "message": "Photocurrent requires three nonempty unique current labels.",
+        }
+    safe_labels = [safe_name(label) for label in legend_entries]
+    if any(not value for value in safe_labels) or len(
+        {value.casefold() for value in safe_labels}
+    ) != 3:
+        return {
+            "ok": False,
+            "message": (
+                "Photocurrent current labels must remain unique after safe CSV header "
+                "normalization."
+            ),
+        }
+    expected_headers = [
+        header
+        for label in safe_labels
+        for header in (
+            f"{label}_time_s",
+            f"{label}_current_a",
+        )
+    ]
+    if (
+        len(headers) != 6
+        or [str(value).strip() for value in headers] != expected_headers
+        or not rows
+        or any(len(row) != 6 for row in rows)
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "Photocurrent processed CSV must contain exactly the six contracted "
+                "current-label X/Y columns."
+            ),
+        }
+
+    xy_ranges: list[dict[str, int]] = []
+    for pair_index, (x_index, y_index) in enumerate(((0, 1), (2, 3), (4, 5))):
+        paired_states: list[bool] = []
+        for row in rows:
+            x_value = _finite_numeric_value(row[x_index])
+            y_value = _finite_numeric_value(row[y_index])
+            if (x_value is None) != (y_value is None):
+                return {
+                    "ok": False,
+                    "message": (
+                        f"Photocurrent source pair {pair_index + 1} contains an "
+                        "unpaired X or Y value."
+                    ),
+                }
+            paired_states.append(x_value is not None)
+        bounds = _paired_numeric_row_bounds(rows, x_index, y_index)
+        if bounds is None or bounds[0] != 1:
+            return {
+                "ok": False,
+                "message": (
+                    f"Photocurrent source pair {pair_index + 1} must contain one "
+                    "contiguous finite run followed only by blank tail rows."
+                ),
+            }
+        row_from, row_to = bounds
+        if any(paired_states[row_to:]):
+            return {
+                "ok": False,
+                "message": (
+                    f"Photocurrent source pair {pair_index + 1} contains finite data "
+                    "after its blank tail begins."
+                ),
+            }
+        x_col, y_col = VERIFIED_PHOTOCURRENT_DESTINATION_PAIRS[pair_index]
+        xy_ranges.append(
+            {
+                "x_col": x_col,
+                "y_col": y_col,
+                "expected_x_col_letter": chr(64 + x_col),
+                "expected_y_col_letter": chr(64 + y_col),
+                "row_from": row_from,
+                "row_to": row_to,
+                "source_x_index": x_index,
+                "source_y_index": y_index,
+                "source_row_from": row_from,
+                "source_row_to": row_to,
+            }
+        )
+    return {
+        "ok": True,
+        "message": (
+            "Processed photocurrent independent X/Y pairs match the reviewed OTPU "
+            "I/J, M/N, and Q/R binding contract with current per-pair row bounds."
+        ),
+        "graph_page": contract.graph_page,
+        "book_name": "Book1",
+        "plot_type": str(source_schema.get("plot_type") or "line"),
+        "group_plots": False,
+        "xy_ranges": xy_ranges,
+        "contract": contract.to_dict(),
+    }
+
+
+def _prepare_verified_ftir_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    if product.product_key != "FTIR":
+        return {"ok": False, "message": "Verified FTIR binding received a non-FTIR product."}
+    contracts = load_template_binding_contracts(contract_path)
+    contract = contracts.get("ftir")
+    if contract is None or not contract.ready:
+        return {
+            "ok": False,
+            "message": "The reviewed FTIR template binding contract is unavailable.",
+        }
+    source_schema = dict(contract.source_schema)
+    raw_offsets = source_schema.get("raw_to_plotted_vertical_offsets")
+    annotation_offsets = source_schema.get("last_origin_curve_translate_annotations")
+    contract_labels = source_schema.get("source_series_labels")
+    raw_offsets_match = (
+        isinstance(raw_offsets, list)
+        and tuple(raw_offsets) == VERIFIED_FTIR_RAW_TO_PLOTTED_OFFSETS
+    )
+    if (
+        str(source_schema.get("status") or "") != "ready"
+        or str(source_schema.get("layout") or "") != "paired_xy_columns"
+        or str(source_schema.get("worksheet_layout") or "")
+        != "one_sheet_three_independent_xy_pairs_with_reserved_cd"
+        or source_schema.get("source_csv_indices") != [0, 1, 2, 3, 4, 5]
+        or str(source_schema.get("x_header_suffix") or "") != "_wavenumber_cm-1"
+        or str(source_schema.get("y_header_suffix") or "") != "_transmittance"
+        or str(source_schema.get("transform") or "")
+        != "independent_ftir_xy_pairs_with_explicit_reference_vertical_offsets_without_interpolation_smoothing_or_normalization"
+        or not raw_offsets_match
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "FTIR contract must define the reviewed independent paired-XY layout "
+                "and exact raw-to-plotted net offsets."
+            ),
+        }
+    if (
+        not isinstance(annotation_offsets, list)
+        or tuple(annotation_offsets) != VERIFIED_FTIR_LAST_CURVE_TRANSLATE_ANNOTATIONS
+        or not isinstance(contract_labels, list)
+        or tuple(str(value) for value in contract_labels) != VERIFIED_FTIR_SERIES_LABELS
+        or str(source_schema.get("plot_type") or "") != "line"
+        or bool(source_schema.get("group_plots", True))
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "FTIR contract must preserve the reviewed curve-translate annotations, "
+                "fixed series labels, and ungrouped line policy."
+            ),
+        }
+
+    contracted_plots = sorted(
+        contract.plots,
+        key=lambda plot: (plot.layer_index, plot.plot_index),
+    )
+    expected_datasets = [
+        ("Book2_A", "Book2_B"),
+        ("Book2_E", "Book2_F"),
+        ("Book2_G", "Book2_H"),
+    ]
+    actual_datasets = [
+        (str(plot.x_dataset), str(plot.y_dataset))
+        for plot in contracted_plots
+    ]
+    if (
+        len(contracted_plots) != 3
+        or contract.source_series_count != 3
+        or contract.graph_page != "Graph3"
+        or any(plot.layer_index != 1 for plot in contracted_plots)
+        or [plot.plot_index for plot in contracted_plots] != [1, 2, 3]
+        or [plot.source_series_index for plot in contracted_plots] != [1, 2, 3]
+        or actual_datasets != expected_datasets
+    ):
+        return {
+            "ok": False,
+            "message": "FTIR contract must contain ordered Book2 A/B, E/F, and G/H Graph3 plots.",
+        }
+
+    labels = tuple(str(value).strip() for value in product.legend_entries)
+    if labels != VERIFIED_FTIR_SERIES_LABELS:
+        return {
+            "ok": False,
+            "message": "FTIR current labels must exactly match the reviewed three-series order.",
+        }
+    expected_headers = [
+        header
+        for label in labels
+        for header in (
+            f"{safe_name(label)}_wavenumber_cm-1",
+            f"{safe_name(label)}_transmittance",
+        )
+    ]
+    if (
+        len(headers) != 6
+        or [str(value).strip() for value in headers] != expected_headers
+        or not rows
+        or any(len(row) != 6 for row in rows)
+    ):
+        return {
+            "ok": False,
+            "message": "FTIR processed CSV must contain exactly the six contracted final plotted X/Y columns.",
+        }
+
+    destination_pairs = ((1, 2), (5, 6), (7, 8))
+    xy_ranges: list[dict[str, int]] = []
+    for pair_index, ((source_x, source_y), (x_col, y_col)) in enumerate(
+        zip(((0, 1), (2, 3), (4, 5)), destination_pairs),
+        start=1,
+    ):
+        paired_states: list[bool] = []
+        for row in rows:
+            x_value = _finite_numeric_value(row[source_x])
+            y_value = _finite_numeric_value(row[source_y])
+            if (x_value is None) != (y_value is None):
+                return {
+                    "ok": False,
+                    "message": f"FTIR source pair {pair_index} contains an unpaired X or Y value.",
+                }
+            paired_states.append(x_value is not None)
+        bounds = _paired_numeric_row_bounds(rows, source_x, source_y)
+        if bounds is None or bounds[0] != 1:
+            return {
+                "ok": False,
+                "message": (
+                    f"FTIR source pair {pair_index} must contain one contiguous finite run "
+                    "followed only by blank tail rows."
+                ),
+            }
+        row_from, row_to = bounds
+        if any(paired_states[row_to:]):
+            return {
+                "ok": False,
+                "message": f"FTIR source pair {pair_index} contains data after its blank tail begins.",
+            }
+        xy_ranges.append(
+            {
+                "x_col": x_col,
+                "y_col": y_col,
+                "expected_x_col_letter": chr(64 + x_col),
+                "expected_y_col_letter": chr(64 + y_col),
+                "row_from": row_from,
+                "row_to": row_to,
+                "source_x_index": source_x,
+                "source_y_index": source_y,
+                "source_row_from": row_from,
+                "source_row_to": row_to,
+            }
+        )
+    return {
+        "ok": True,
+        "message": "Processed FTIR final plotted X/Y pairs match the reviewed OTPU binding contract.",
+        "graph_page": "Graph3",
+        "book_name": "Book2",
+        "plot_type": "line",
+        "group_plots": False,
+        "xy_ranges": xy_ranges,
+        "raw_to_plotted_vertical_offsets": list(VERIFIED_FTIR_RAW_TO_PLOTTED_OFFSETS),
+        "last_origin_curve_translate_annotations": list(
+            VERIFIED_FTIR_LAST_CURVE_TRANSLATE_ANNOTATIONS
+        ),
+        "reserved_columns": [3, 4],
+        "contract": contract.to_dict(),
+    }
+
+
+def _populate_verified_otpu_workbook(
+    operations: object,
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    binding: dict[str, object],
+) -> dict[str, object]:
+    if product.product_key == "BET":
+        imported = operations.import_csv_to_worksheet(
+            product.processed_data,
+            book_name=str(binding["book_name"]),
+        )
+        if not getattr(imported, "ok", False):
+            return _verified_otpu_failure(imported, "Processed BET CSV import failed.")
+        book_name = str(getattr(imported, "payload", {}).get("book_name") or "")
+        metadata_write = operations.set_worksheet_column_metadata(
+            book_name,
+            list(binding["column_metadata"]),
+        )
+        if not getattr(metadata_write, "ok", False):
+            return _verified_otpu_failure(metadata_write, "BET worksheet metadata write failed.")
+        return {
+            "ok": True,
+            "method": "processed_csv_single_sheet_import",
+            "book_name": book_name,
+            "sheet_count": 1,
+        }
+
+    if product.product_key == "EPR":
+        processed = _prepare_template_epr_origin_processed_workbook(operations, product)
+        if not processed.get("ok"):
+            return {
+                "ok": False,
+                "message": str(processed.get("message") or "EPR Origin processing failed."),
+            }
+        processed_headers = [str(value) for value in processed.get("headers", [])]
+        if processed_headers != ["magnetic_field", *[str(value).strip() for value in product.legend_entries]]:
+            return {
+                "ok": False,
+                "message": "EPR Origin processing did not produce the contracted current-label CSV.",
+            }
+        return {
+            "ok": True,
+            "method": "shared_epr_origin_baseline_aav7_offset_transform",
+            "book_name": str(processed["book_name"]),
+            "sheet_count": 1,
+            "origin_processing": dict(processed["origin_processing"]),
+        }
+
+    if product.product_key == "PL":
+        created = operations.create_worksheet(str(binding["book_name"]), "Sheet1")
+        if not getattr(created, "ok", False):
+            return _verified_otpu_failure(created, "PL workbook creation failed.")
+        book_name = str(getattr(created, "payload", {}).get("book_name") or "")
+        sheet_name = str(getattr(created, "payload", {}).get("sheet_name") or "Sheet1")
+        if not book_name:
+            return {"ok": False, "message": "Origin did not return the PL workbook name."}
+        columns = [[math.nan] * len(rows) for _index in range(6)]
+        columns[0] = [
+            float(value) if (value := _finite_numeric_value(row[0])) is not None else math.nan
+            for row in rows
+        ]
+        for source_index, destination_index in zip((1, 2, 3), (1, 3, 5)):
+            columns[destination_index] = [
+                float(value)
+                if source_index < len(row)
+                and (value := _finite_numeric_value(row[source_index])) is not None
+                else math.nan
+                for row in rows
+            ]
+        written = operations.set_worksheet_data(book_name, sheet_name, columns)
+        if not getattr(written, "ok", False):
+            return _verified_otpu_failure(written, "PL worksheet data write failed.")
+        metadata_write = operations.set_worksheet_column_metadata(
+            book_name,
+            [
+                {"column_index": 1, "long_name": headers[0], "unit": "nm", "comment": "", "type": 4},
+                {"column_index": 2, "long_name": headers[1], "unit": "counts", "comment": "", "type": 1},
+                {"column_index": 4, "long_name": headers[2], "unit": "counts", "comment": "", "type": 1},
+                {"column_index": 6, "long_name": headers[3], "unit": "counts", "comment": "", "type": 1},
+            ],
+        )
+        if not getattr(metadata_write, "ok", False):
+            return _verified_otpu_failure(metadata_write, "PL worksheet metadata write failed.")
+        return {
+            "ok": True,
+            "method": "pl_shared_x_explicit_a_b_d_f_copy",
+            "book_name": book_name,
+            "sheet_count": 1,
+        }
+
+    if product.product_key == "FTIR":
+        created = operations.create_worksheet(str(binding["book_name"]), "Sheet1")
+        if not getattr(created, "ok", False):
+            return _verified_otpu_failure(created, "FTIR workbook creation failed.")
+        book_name = str(getattr(created, "payload", {}).get("book_name") or "")
+        sheet_name = str(getattr(created, "payload", {}).get("sheet_name") or "Sheet1")
+        if not book_name:
+            return {"ok": False, "message": "Origin did not return the FTIR workbook name."}
+        columns = [[math.nan] * len(rows) for _index in range(8)]
+        for source_index, destination_index in zip(
+            range(6),
+            (0, 1, 4, 5, 6, 7),
+        ):
+            columns[destination_index] = [
+                float(value)
+                if source_index < len(row)
+                and (value := _finite_numeric_value(row[source_index])) is not None
+                else math.nan
+                for row in rows
+            ]
+        written = operations.set_worksheet_data(book_name, sheet_name, columns)
+        if not getattr(written, "ok", False):
+            return _verified_otpu_failure(written, "FTIR worksheet data write failed.")
+        annotation_offsets = list(binding["last_origin_curve_translate_annotations"])
+        comments = {
+            column_index: (
+                f"curve translate:\r\n{column_letter} is moved vertically by {offset}"
+            )
+            for column_index, column_letter, offset in zip(
+                (2, 6, 8),
+                ("B", "F", "H"),
+                annotation_offsets,
+            )
+        }
+        metadata = []
+        for column_index in (1, 2, 5, 6, 7, 8):
+            column_type = 4 if column_index in {1, 5, 7} else 1
+            metadata.append(
+                {
+                    "column_index": column_index,
+                    "long_name": "",
+                    "unit": "",
+                    "comment": comments.get(column_index, ""),
+                    "type": column_type,
+                }
+            )
+        metadata_write = operations.set_worksheet_column_metadata(book_name, metadata)
+        if not getattr(metadata_write, "ok", False):
+            return _verified_otpu_failure(metadata_write, "FTIR worksheet metadata write failed.")
+        return {
+            "ok": True,
+            "method": "ftir_independent_a_b_e_f_g_h_copy_with_reserved_c_d",
+            "book_name": book_name,
+            "sheet_count": 1,
+            "reserved_columns": [3, 4],
+            "raw_to_plotted_vertical_offsets": list(
+                binding["raw_to_plotted_vertical_offsets"]
+            ),
+            "last_origin_curve_translate_annotations": annotation_offsets,
+        }
+
+    if product.product_key == "photocurrent":
+        created = operations.create_worksheet(str(binding["book_name"]), "Sheet1")
+        if not getattr(created, "ok", False):
+            return _verified_otpu_failure(created, "Photocurrent workbook creation failed.")
+        book_name = str(getattr(created, "payload", {}).get("book_name") or "")
+        sheet_name = str(getattr(created, "payload", {}).get("sheet_name") or "Sheet1")
+        if not book_name:
+            return {
+                "ok": False,
+                "message": "Origin did not return the photocurrent workbook name.",
+            }
+        # The reviewed Graph2 OTPU binds the three plots to Book1 I/J, M/N,
+        # and Q/R.  Keep the intervening columns blank and copy each current
+        # source pair verbatim; plot row ranges come from the per-pair binding,
+        # so different positive row counts are preserved without padding data.
+        columns = [[math.nan] * len(rows) for _index in range(18)]
+        for (source_x, source_y), (destination_x, destination_y) in zip(
+            ((0, 1), (2, 3), (4, 5)),
+            VERIFIED_PHOTOCURRENT_DESTINATION_PAIRS,
+        ):
+            for source_index, destination_column in (
+                (source_x, destination_x),
+                (source_y, destination_y),
+            ):
+                columns[destination_column - 1] = [
+                    float(value)
+                    if source_index < len(row)
+                    and (value := _finite_numeric_value(row[source_index])) is not None
+                    else math.nan
+                    for row in rows
+                ]
+        written = operations.set_worksheet_data(
+            book_name,
+            sheet_name,
+            columns,
+        )
+        if not getattr(written, "ok", False):
+            return _verified_otpu_failure(
+                written,
+                "Photocurrent worksheet data write failed.",
+            )
+        metadata = []
+        for label, (x_col, y_col) in zip(
+            product.legend_entries,
+            VERIFIED_PHOTOCURRENT_DESTINATION_PAIRS,
+        ):
+            metadata.extend(
+                (
+                    {
+                        "column_index": x_col,
+                        "long_name": "",
+                        "unit": "",
+                        "comment": "",
+                        "type": 4,
+                    },
+                    {
+                        "column_index": y_col,
+                        "long_name": "",
+                        "unit": "",
+                        "comment": str(label).strip(),
+                        "type": 1,
+                    },
+                )
+            )
+        metadata_write = operations.set_worksheet_column_metadata(
+            book_name,
+            metadata,
+        )
+        if not getattr(metadata_write, "ok", False):
+            return _verified_otpu_failure(
+                metadata_write,
+                "Photocurrent worksheet metadata write failed.",
+            )
+        return {
+            "ok": True,
+            "method": "photocurrent_independent_i_j_m_n_q_r_copy",
+            "book_name": book_name,
+            "sheet_count": 1,
+            "destination_pairs": [
+                {"x_col": x_col, "y_col": y_col}
+                for x_col, y_col in VERIFIED_PHOTOCURRENT_DESTINATION_PAIRS
+            ],
+        }
+
+    if product.product_key != "EIS":
+        return {"ok": False, "message": f"No OTPU workbook adapter for {product.product_key}."}
+    sheets = binding.get("sheets")
+    if not isinstance(sheets, list) or len(sheets) != 8:
+        return {"ok": False, "message": "EIS workbook requires exactly eight sheets."}
+    created = operations.create_worksheet(str(binding["book_name"]), "Sheet1")
+    if not getattr(created, "ok", False):
+        return _verified_otpu_failure(created, "EIS workbook creation failed.")
+    book_name = str(getattr(created, "payload", {}).get("book_name") or "")
+    if not book_name:
+        return {"ok": False, "message": "Origin did not return the EIS workbook name."}
+
+    for sheet_offset, raw_sheet in enumerate(sheets):
+        sheet = dict(raw_sheet)
+        sheet_index = int(sheet["sheet_index"])
+        requested_sheet_name = f"Sheet{sheet_index}"
+        if sheet_offset == 0:
+            sheet_name = str(
+                getattr(created, "payload", {}).get("sheet_name")
+                or requested_sheet_name
+            )
+        else:
+            added = operations.add_worksheet(book_name, requested_sheet_name)
+            if not getattr(added, "ok", False):
+                return _verified_otpu_failure(added, f"EIS sheet {sheet_index} creation failed.")
+            sheet_name = str(
+                getattr(added, "payload", {}).get("sheet_name")
+                or requested_sheet_name
+            )
+        x_index = int(sheet["source_x_index"])
+        y_index = int(sheet["source_y_index"])
+        source_row_from = int(sheet["source_row_from"])
+        source_row_to = int(sheet["source_row_to"])
+        selected = rows[source_row_from - 1 : source_row_to]
+        x_values = [float(row[x_index]) for row in selected]
+        y_values = [float(row[y_index]) for row in selected]
+        blank = [math.nan] * len(x_values)
+        columns = [list(blank) for _index in range(7)]
+        columns[4] = x_values
+        columns[6] = y_values
+        written = operations.set_worksheet_data(
+            book_name,
+            sheet_name,
+            columns,
+        )
+        if not getattr(written, "ok", False):
+            return _verified_otpu_failure(written, f"EIS sheet {sheet_index} data write failed.")
+        metadata_write = operations.set_worksheet_column_metadata(
+            book_name,
+            [
+                {"column_index": 5, "long_name": headers[x_index], "unit": "kOhm", "comment": "", "type": 4},
+                {"column_index": 7, "long_name": headers[y_index], "unit": "kOhm", "comment": "", "type": 1},
+            ],
+            sheet_index=sheet_index,
+        )
+        if not getattr(metadata_write, "ok", False):
+            return _verified_otpu_failure(metadata_write, f"EIS sheet {sheet_index} metadata failed.")
+    return {
+        "ok": True,
+        "method": "eis_eight_sheet_explicit_e_g_copy",
+        "book_name": book_name,
+        "sheet_count": 8,
+    }
+
+
+def _verified_otpu_failure(result: object, fallback: str) -> dict[str, object]:
+    return {"ok": False, "message": getattr(result, "message", fallback)}
+
+
+def _apply_verified_otpu_post_plot_style(
+    operations: object,
+    product: ProductContext,
+    graph_name: str,
+    reference_style: dict[str, object],
+    style: ResolvedPlotStyle,
+    *,
+    runtime_theme: Path | None,
+    reference_data: dict[str, object] | None = None,
+) -> dict[str, object]:
+    if product.product_key == "BET":
+        return {"ok": True, "method": "otpu_native_style_only"}
+    if product.product_key == "FTIR":
+        if runtime_theme is not None:
+            return {
+                "ok": False,
+                "message": "Verified FTIR runtime must not apply an OTH asset.",
+            }
+        legend_policy = _update_verified_ftir_legend(
+            operations,
+            graph_name,
+            product.legend_entries,
+        )
+        if not legend_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified FTIR exact reference legend replacement failed.",
+                "legend_policy": legend_policy,
+            }
+        return {
+            "ok": True,
+            "method": "otpu_native_style_then_exact_reference_legend",
+            "format_theme_applied": False,
+            "style_snapshot_applied": False,
+            "legend_policy": legend_policy,
+        }
+    if product.product_key == "photocurrent":
+        if runtime_theme is None or not runtime_theme.is_file():
+            return {
+                "ok": False,
+                "message": "Verified photocurrent runtime requires its reviewed OTH asset.",
+            }
+        theme = operations.apply_graph_theme(graph_name, runtime_theme)
+        if not getattr(theme, "ok", False):
+            return _verified_otpu_failure(
+                theme,
+                "Verified photocurrent OTH application failed.",
+            )
+        snapshot_applied = apply_style_snapshot(
+            operations,
+            graph_name,
+            reference_style,
+            apply_default_font=False,
+            apply_axis_titles=True,
+        )
+        if not snapshot_applied:
+            return {
+                "ok": False,
+                "message": "Verified photocurrent style snapshot application failed.",
+            }
+        axis_range_policy = _apply_embedded_snapshot_data_axis_range(
+            operations,
+            graph_name,
+            product,
+            reference_style_snapshot=reference_style,
+            reference_data_snapshot=reference_data,
+        )
+        if not axis_range_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified photocurrent current-data axis range application failed.",
+                "axis_range_policy": axis_range_policy,
+            }
+        legend_anchor_policy = _apply_saved_template_legend_anchor(
+            operations,
+            graph_name,
+            reference_style,
+        )
+        if not legend_anchor_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified photocurrent proportional legend anchoring failed.",
+                "legend_anchor_policy": legend_anchor_policy,
+            }
+        legend_policy = _update_verified_photocurrent_legend(
+            operations,
+            graph_name,
+            product.legend_entries,
+        )
+        if not legend_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified photocurrent current-sample legend replacement failed.",
+                "legend_policy": legend_policy,
+            }
+        return {
+            "ok": True,
+            "method": "otpu_then_oth_then_snapshot_then_current_legend",
+            "format_theme_applied": True,
+            "style_snapshot_applied": True,
+            "apply_default_font": False,
+            "apply_axis_titles": True,
+            "axis_range_policy": axis_range_policy,
+            "legend_anchor_policy": legend_anchor_policy,
+            "legend_policy": legend_policy,
+        }
+    if product.product_key in {"EPR", "PL"}:
+        if runtime_theme is None or not runtime_theme.is_file():
+            return {
+                "ok": False,
+                "message": f"Verified {product.product_key} OTH runtime copy is unavailable.",
+            }
+        theme = operations.apply_graph_theme(graph_name, runtime_theme)
+        if not getattr(theme, "ok", False):
+            return _verified_otpu_failure(
+                theme,
+                f"Verified {product.product_key} OTH application failed.",
+            )
+        snapshot_applied = apply_style_snapshot(
+            operations,
+            graph_name,
+            reference_style,
+            apply_default_font=False,
+            apply_axis_titles=True,
+        )
+        if not snapshot_applied:
+            return {
+                "ok": False,
+                "message": f"Verified {product.product_key} snapshot failed after OTH.",
+            }
+        if product.product_key == "PL":
+            legend_policy = _update_verified_pl_legend(
+                operations,
+                graph_name,
+                product.legend_entries,
+            )
+            if not legend_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Verified PL current legend replacement failed.",
+                    "legend_policy": legend_policy,
+                }
+            return {
+                "ok": True,
+                "method": "otpu_then_oth_then_snapshot_then_current_legend",
+                "format_theme_applied": True,
+                "style_snapshot_applied": True,
+                "apply_default_font": False,
+                "apply_axis_titles": True,
+                "legend_policy": legend_policy,
+            }
+        axis_range_policy = _apply_embedded_snapshot_data_axis_range(
+            operations,
+            graph_name,
+            product,
+        )
+        if not axis_range_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified EPR current magnetic-field range could not be applied.",
+                "axis_range_policy": axis_range_policy,
+            }
+        label_policy = _update_verified_epr_label_objects(
+            operations,
+            graph_name,
+            product.legend_entries,
+        )
+        if not label_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified EPR current DL1/DL2/DL3 labels failed.",
+                "label_policy": label_policy,
+            }
+        return {
+            "ok": True,
+            "method": "otpu_then_oth_then_snapshot_then_current_data_axis_and_dl_labels",
+            "format_theme_applied": True,
+            "style_snapshot_applied": True,
+            "apply_default_font": False,
+            "apply_axis_titles": True,
+            "axis_range_policy": axis_range_policy,
+            "label_policy": label_policy,
+        }
+    if product.product_key != "EIS":
+        return {"ok": False, "message": f"No OTPU style adapter for {product.product_key}."}
+    if runtime_theme is None or not runtime_theme.is_file():
+        return {"ok": False, "message": "Verified EIS OTH runtime copy is unavailable."}
+
+    theme = operations.apply_graph_theme(graph_name, runtime_theme)
+    if not getattr(theme, "ok", False):
+        return _verified_otpu_failure(theme, "Verified EIS OTH application failed.")
+    snapshot_applied = apply_style_snapshot(
+        operations,
+        graph_name,
+        reference_style,
+        apply_default_font=False,
+        apply_axis_titles=True,
+    )
+    if not snapshot_applied:
+        return {"ok": False, "message": "Verified EIS snapshot failed after OTH."}
+    axis_range_policy = _apply_embedded_snapshot_data_axis_range(
+        operations,
+        graph_name,
+        product,
+    )
+    if not axis_range_policy.get("applied"):
+        return {
+            "ok": False,
+            "message": "Verified EIS current-data axis range could not be applied.",
+            "axis_range_policy": axis_range_policy,
+        }
+    legend_anchor_policy = _apply_saved_template_legend_anchor(
+        operations,
+        graph_name,
+        reference_style,
+    )
+    if not legend_anchor_policy.get("applied"):
+        return {
+            "ok": False,
+            "message": "Verified EIS template legend anchor could not be restored.",
+            "legend_anchor_policy": legend_anchor_policy,
+        }
+    anchor_refresh = _refresh_graph_for_export(operations, graph_name)
+    legend_policy = _finalize_reviewed_template_legend(
+        operations,
+        graph_name,
+        product,
+        reference_style,
+        style,
+    )
+    if not legend_policy.get("applied"):
+        return {
+            "ok": False,
+            "message": "Verified EIS current legend for slots 3-5 failed.",
+            "legend_policy": legend_policy,
+        }
+    return {
+        "ok": True,
+        "method": "otpu_then_oth_then_snapshot_then_current_data_axis_and_legend",
+        "format_theme_applied": True,
+        "style_snapshot_applied": True,
+        "apply_default_font": False,
+        "apply_axis_titles": True,
+        "axis_range_policy": axis_range_policy,
+        "legend_anchor_policy": legend_anchor_policy,
+        "legend_anchor_refresh": anchor_refresh,
+        "legend_policy": legend_policy,
     }
 
 
@@ -1642,7 +3981,8 @@ def _finite_numeric_value(value: object) -> float | None:
     return number if math.isfinite(number) else None
 
 
-def _validate_verified_bet_current_data(
+def _validate_verified_current_data(
+    product_key: str,
     rows: list[list[object]],
     xy_ranges: list[dict[str, int]],
     graph_snapshot: dict[str, object],
@@ -1663,13 +4003,17 @@ def _validate_verified_bet_current_data(
         if index >= len(plots):
             break
         plot = plots[index]
+        source_x_index = int(expected.get("source_x_index", expected["x_col"] - 1))
+        source_y_index = int(expected.get("source_y_index", expected["y_col"] - 1))
+        source_row_from = int(expected.get("source_row_from", expected["row_from"]))
+        source_row_to = int(expected.get("source_row_to", expected["row_to"]))
         expected_x = [
-            float(rows[row_index - 1][expected["x_col"] - 1])
-            for row_index in range(expected["row_from"], expected["row_to"] + 1)
+            float(rows[row_index - 1][source_x_index])
+            for row_index in range(source_row_from, source_row_to + 1)
         ]
         expected_y = [
-            float(rows[row_index - 1][expected["y_col"] - 1])
-            for row_index in range(expected["row_from"], expected["row_to"] + 1)
+            float(rows[row_index - 1][source_y_index])
+            for row_index in range(source_row_from, source_row_to + 1)
         ]
         actual_x = [float(value) for value in list(plot.get("x_values") or [])]
         actual_y = [float(value) for value in list(plot.get("y_values") or [])]
@@ -1682,11 +4026,20 @@ def _validate_verified_bet_current_data(
             or int(plot.get("plot_row_to") or 0) != expected["row_to"]
         ):
             reasons.append(f"plot {index + 1} displayed row range differs")
+        expected_x_letter = str(expected.get("expected_x_col_letter") or "")
+        expected_y_letter = str(expected.get("expected_y_col_letter") or "")
+        if expected_x_letter and str(plot.get("x_col_letter") or "").upper() != expected_x_letter:
+            reasons.append(f"plot {index + 1} X dataset column differs")
+        if expected_y_letter and str(plot.get("y_col_letter") or "").upper() != expected_y_letter:
+            reasons.append(f"plot {index + 1} Y dataset column differs")
+        if expected_x_letter and str(plot.get("x_mapping_source") or "") != "graph_plot_mapping":
+            reasons.append(f"plot {index + 1} lacks explicit graph X mapping readback")
     return {
         "ok": not reasons,
         "status": "matched" if not reasons else "mismatch",
         "message": (
-            "Reopened BET graph contains the exact processed CSV X/Y values and displayed row ranges."
+            f"Reopened {product_key} graph contains the exact processed CSV X/Y values "
+            "and displayed row ranges."
             if not reasons
             else "; ".join(reasons)
         ),
@@ -1694,6 +4047,14 @@ def _validate_verified_bet_current_data(
         "actual_plot_count": len(plots),
         "reasons": reasons,
     }
+
+
+def _validate_verified_bet_current_data(
+    rows: list[list[object]],
+    xy_ranges: list[dict[str, int]],
+    graph_snapshot: dict[str, object],
+) -> dict[str, object]:
+    return _validate_verified_current_data("BET", rows, xy_ranges, graph_snapshot)
 
 
 def _export_saved_format_theme_product_with_origin(
@@ -1706,11 +4067,14 @@ def _export_saved_format_theme_product_with_origin(
     project_reference_graph: str = "",
     require_project_reference: bool = False,
     runtime_dir: Path | None = None,
+    style_snapshot_path: str | Path | None = None,
+    data_snapshot_path: str | Path | None = None,
+    style_execution_decision: dict[str, object] | None = None,
 ) -> dict[str, object]:
     theme_path = Path(str(getattr(plan, "style_package_path", "") or ""))
     if not theme_path.is_file():
         return {"ok": False, "message": f"Saved Origin format theme not found: {theme_path}", "template_format_plan": plan.to_dict()}
-    headers, _rows = _read_processed_csv(product.processed_data)
+    headers, rows = _read_processed_csv(product.processed_data)
     if len(headers) < 2:
         return {"ok": False, "message": "processed CSV must contain at least one X column and one Y column", "template_format_plan": plan.to_dict()}
     runtime_context = (
@@ -1794,9 +4158,49 @@ def _export_saved_format_theme_product_with_origin(
             return {"ok": False, "message": getattr(applied, "message", "format theme apply failed"), "template_format_plan": plan.to_dict()}
         operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
         _apply_template_base_global_policies(operations, graph_name, product, style)
-        data_axis_policy = _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
-        saved_style_snapshot = _load_saved_style_snapshot(theme_path)
-        saved_data_snapshot = _load_saved_data_snapshot(theme_path)
+        data_axis_policy = (
+            {"applied": False, "reason": "deferred_until_photocurrent_snapshots_loaded"}
+            if product.product_key == "photocurrent"
+            else _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
+        )
+        saved_style_snapshot = _load_saved_style_snapshot(
+            theme_path,
+            explicit_path=style_snapshot_path,
+        )
+        saved_data_snapshot = _load_saved_data_snapshot(
+            theme_path,
+            explicit_path=data_snapshot_path,
+        )
+        selected_oth_json = str(
+            (style_execution_decision or {}).get("selected_mode") or ""
+        ) == "oth-json"
+        photocurrent_source_axis_titles: dict[str, object] | None = None
+        if selected_oth_json and product.product_key == "photocurrent":
+            photocurrent_source_axis_titles = _validate_photocurrent_axis_titles(
+                saved_style_snapshot,
+                headers,
+            )
+            if not photocurrent_source_axis_titles.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(photocurrent_source_axis_titles["message"]),
+                    "template_format_plan": plan.to_dict(),
+                    "photocurrent_axis_titles": photocurrent_source_axis_titles,
+                }
+        adaptive_cardinality = bool(
+            (style_execution_decision or {}).get("adaptive_series_cardinality")
+        )
+        adaptive_snapshot_style_applied = bool(
+            selected_oth_json
+            and saved_style_snapshot
+            and apply_style_snapshot(
+                operations,
+                graph_name,
+                saved_style_snapshot,
+                apply_default_font=False,
+                apply_axis_titles=True,
+            )
+        )
         plot_sequence = _apply_external_reference_plot_sequence(
             operations,
             graph_name,
@@ -1804,28 +4208,134 @@ def _export_saved_format_theme_product_with_origin(
             or (external_reference_preview.get("style_snapshot") if isinstance(external_reference_preview, dict) else {}),
             product=product,
         )
-        reviewed_plot_policy = _apply_reviewed_template_plot_policy(
-            operations,
-            graph_name,
-            product,
-            saved_style_snapshot,
-            style,
-            data_snapshot=saved_data_snapshot,
+        adaptive_plot_style_policy = (
+            _apply_adaptive_oth_json_plot_styles(
+                operations,
+                graph_name,
+                saved_data_snapshot,
+                cycle_styles=adaptive_cardinality,
+            )
+            if selected_oth_json
+            else {"applied": False, "reason": "not_oth_json_mode"}
         )
-        legend_policy = _apply_cached_style_rich_text_policies(
-            operations,
-            graph_name,
-            product,
-            style,
-            snapshot=saved_style_snapshot,
+        reviewed_plot_policy = (
+            {"applied": False, "reason": "adaptive_cardinality_uses_all_current_plots"}
+            if adaptive_cardinality
+            else _apply_reviewed_template_plot_policy(
+                operations,
+                graph_name,
+                product,
+                saved_style_snapshot,
+                style,
+                data_snapshot=saved_data_snapshot,
+            )
         )
+        if product.product_key == "FTIR" and selected_oth_json:
+            legend_policy = _apply_adaptive_ftir_oth_json_text_policy(
+                operations,
+                graph_name,
+                product,
+                style,
+                saved_style_snapshot,
+            )
+        elif product.product_key == "BET" and selected_oth_json:
+            data_axis_policy = _apply_embedded_snapshot_data_axis_range(
+                operations,
+                graph_name,
+                product,
+                reference_style_snapshot=saved_style_snapshot,
+                reference_data_snapshot=saved_data_snapshot,
+            )
+            if not data_axis_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive BET current-data axis range application failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_range_policy": data_axis_policy,
+                }
+            legend_policy = _apply_adaptive_bet_oth_json_text_policy(
+                operations,
+                graph_name,
+                product,
+                style,
+                saved_style_snapshot,
+                axis_range_changed=bool(data_axis_policy.get("range_changed")),
+            )
+            if not legend_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive BET final axis-title/legend policy failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "legend_policy": legend_policy,
+                }
+        elif product.product_key == "photocurrent" and selected_oth_json:
+            data_axis_policy = _apply_embedded_snapshot_data_axis_range(
+                operations,
+                graph_name,
+                product,
+                reference_style_snapshot=saved_style_snapshot,
+                reference_data_snapshot=saved_data_snapshot,
+            )
+            if not data_axis_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive photocurrent current-data axis range application failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_range_policy": data_axis_policy,
+                }
+            legend_policy = _apply_adaptive_photocurrent_oth_json_text_policy(
+                operations,
+                graph_name,
+                product,
+                style,
+                saved_style_snapshot,
+            )
+            if not legend_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive photocurrent final axis-title/legend policy failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "legend_policy": legend_policy,
+                }
+        elif adaptive_cardinality:
+            legend_policy = _apply_adaptive_dynamic_legend_policy(
+                operations,
+                graph_name,
+                product,
+                style,
+                saved_style_snapshot,
+            )
+        else:
+            legend_policy = _apply_cached_style_rich_text_policies(
+                operations,
+                graph_name,
+                product,
+                style,
+                snapshot=saved_style_snapshot,
+            )
+        legend_policy["adaptive_plot_style"] = adaptive_plot_style_policy
+        legend_policy["adaptive_style_snapshot"] = {
+            "loaded": bool(saved_style_snapshot),
+            "applied": adaptive_snapshot_style_applied,
+            "apply_default_font": False,
+            "apply_axis_titles": True,
+        }
         legend_policy["reviewed_template_plot_policy"] = reviewed_plot_policy
-        legend_policy["final_reviewed_legend"] = _finalize_reviewed_template_legend(
-            operations,
-            graph_name,
-            product,
-            saved_style_snapshot,
-            style,
+        legend_policy["final_reviewed_legend"] = (
+            {
+                "applied": False,
+                "reason": "adaptive_oth_json_legend_already_finalized",
+            }
+            if selected_oth_json and product.product_key in {"BET", "FTIR", "photocurrent"}
+            else {"applied": False, "reason": "adaptive_cardinality_uses_dynamic_current_legend"}
+            if adaptive_cardinality
+            else _finalize_reviewed_template_legend(
+                operations,
+                graph_name,
+                product,
+                saved_style_snapshot,
+                style,
+            )
         )
         render_refresh = _refresh_graph_for_export(operations, graph_name)
         saved = operations.save_project(runtime_origin)
@@ -1904,6 +4414,107 @@ def _export_saved_format_theme_product_with_origin(
                 "available_graph_pages": graph_pages,
                 "product_style": product_style,
             }
+        current_data_snapshot: dict[str, object] = {}
+        current_data_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        if selected_oth_json and product.product_key in {"BET", "photocurrent"}:
+            current_data_snapshot = read_graph_data_snapshot(
+                operations,
+                reopened_graph,
+                source_label=product.origin_file.name,
+            )
+            validation_ranges = _adaptive_photocurrent_validation_ranges(
+                rows,
+                plot_pairs,
+            )
+            if len(validation_ranges) != len(plot_pairs):
+                return {
+                    "ok": False,
+                    "message": (
+                        f"Adaptive {product.product_key} processed CSV does not contain strict "
+                        "contiguous finite X/Y runs for every plotted pair."
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "current_data_snapshot": current_data_snapshot,
+                }
+            current_data_validation = _validate_verified_current_data(
+                product.product_key,
+                rows,
+                validation_ranges,
+                current_data_snapshot,
+            )
+            if not current_data_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(
+                        current_data_validation.get("message")
+                        or f"Adaptive {product.product_key} reopened graph data did not match the current CSV."
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "current_data_snapshot": current_data_snapshot,
+                    "current_data_validation": current_data_validation,
+                }
+        bet_product_axis_titles: dict[str, object] | None = None
+        if selected_oth_json and product.product_key == "BET":
+            bet_y_title_overlay = _read_adaptive_bet_y_title_overlay(
+                operations,
+                reopened_graph,
+            )
+            if data_axis_policy.get("range_changed"):
+                if not bet_y_title_overlay.get("ok"):
+                    return {
+                        "ok": False,
+                        "message": str(
+                            bet_y_title_overlay.get("message")
+                            or "Adaptive BET Y-axis title overlay validation failed after reopen."
+                        ),
+                        "template_format_plan": plan.to_dict(),
+                        "product_style": product_style,
+                        "bet_y_title_overlay": bet_y_title_overlay,
+                    }
+                product_style = _effective_bet_style_with_y_title_overlay(
+                    product_style,
+                    bet_y_title_overlay,
+                )
+                snapshot = replace(
+                    snapshot,
+                    layout_values=dict(product_style.get("layout_values") or {}),
+                    audit_numeric_values=dict(
+                        product_style.get("audit_numeric_values") or {}
+                    ),
+                    audit_string_values=dict(
+                        product_style.get("audit_string_values") or {}
+                    ),
+                )
+            bet_product_axis_titles = _validate_bet_axis_titles(
+                product_style,
+                headers,
+            )
+            bet_product_axis_titles["y_title_overlay"] = bet_y_title_overlay
+            if not bet_product_axis_titles.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(bet_product_axis_titles["message"]),
+                    "template_format_plan": plan.to_dict(),
+                    "product_style": product_style,
+                    "bet_axis_titles": bet_product_axis_titles,
+                }
+        photocurrent_product_axis_titles: dict[str, object] | None = None
+        if selected_oth_json and product.product_key == "photocurrent":
+            photocurrent_product_axis_titles = _validate_photocurrent_axis_titles(
+                product_style,
+                headers,
+            )
+            if not photocurrent_product_axis_titles.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(photocurrent_product_axis_titles["message"]),
+                    "template_format_plan": plan.to_dict(),
+                    "product_style": product_style,
+                    "photocurrent_axis_titles": photocurrent_product_axis_titles,
+                }
         strict_readback = _strict_style_readback(product_style)
         independent_style_snapshot = (
             external_reference_preview.get("style_snapshot")
@@ -1915,14 +4526,51 @@ def _export_saved_format_theme_product_with_origin(
             if str(independent_style_snapshot.get("status") or "") == "extracted"
             else saved_style_snapshot
         )
+        conformance_reference = (
+            _verified_otpu_conformance_reference(
+                product.product_key,
+                reference_style_snapshot,
+                product_style,
+            )
+            if product.product_key in {"BET", "photocurrent"}
+            else reference_style_snapshot
+        )
         conformance = compare_style_snapshots(
-            reference_style_snapshot,
+            conformance_reference,
             snapshot,
-            required_line_width_pt=style.line_width_pt,
+            required_line_width_pt=_verified_otpu_required_line_width_pt(
+                product.product_key,
+                style,
+            ),
             require_axis_title_bold=_style_snapshot_axis_title_bold_required(
                 reference_style_snapshot
             ),
         ).to_dict()
+        adaptive_validation = _adaptive_oth_json_readback_validation(
+            product,
+            plot_pairs,
+            product_style,
+            style_execution_decision,
+            conformance,
+            current_data_validation=current_data_validation,
+        )
+        if not adaptive_validation.get("ok"):
+            return {
+                "ok": False,
+                "message": str(
+                    adaptive_validation.get("message")
+                    or "Adaptive OTH+JSON readback validation failed."
+                ),
+                "template_format_plan": plan.to_dict(),
+                "product_style": product_style,
+                "conformance": conformance,
+                "adaptive_oth_json_validation": adaptive_validation,
+            }
+        if adaptive_validation.get("series_cardinality_relaxed"):
+            conformance = _adaptive_series_count_conformance(
+                conformance,
+                adaptive_validation,
+            )
         conformance["reference_source"] = (
             external_reference_preview.get("reference_kind")
             if reference_style_snapshot is independent_style_snapshot
@@ -1989,6 +4637,20 @@ def _export_saved_format_theme_product_with_origin(
             "axis_range_policy": data_axis_policy,
             "legend_policy": legend_policy,
             "render_refresh": render_refresh,
+            "adaptive_oth_json_validation": adaptive_validation,
+            "bet_axis_titles": bet_product_axis_titles,
+            "photocurrent_axis_titles": photocurrent_product_axis_titles,
+            "current_data_validation": current_data_validation,
+            "adaptive_json_assets": {
+                "style_snapshot_loaded": bool(saved_style_snapshot),
+                "style_snapshot_applied": adaptive_snapshot_style_applied,
+                "data_snapshot_loaded": bool(saved_data_snapshot),
+                "data_snapshot_applied": bool(
+                    selected_oth_json and adaptive_plot_style_policy.get("applied")
+                ),
+            },
+            "reference_opju_loaded": False if selected_oth_json else None,
+            "reference_opju_used_as_product_base": False,
         },
         "external_reference_preview": external_reference_preview,
         "external_reference_plot_sequence": plot_sequence,
@@ -1997,10 +4659,18 @@ def _export_saved_format_theme_product_with_origin(
         "product_style": product_style,
         "strict_style_readback": strict_readback,
         "conformance": conformance,
+        "adaptive_oth_json_validation": adaptive_validation,
+        "bet_axis_titles": bet_product_axis_titles,
+        "photocurrent_axis_titles": photocurrent_product_axis_titles,
+        "current_data_snapshot": current_data_snapshot,
+        "current_data_validation": current_data_validation,
         "xps_component_fill": _saved_format_theme_xps_fill_intent(product),
         "reopened_graph": reopened_graph,
         "tif_resolution_evidence": tif.get("evidence", {}),
-        "line_width_policy_pt": style.line_width_pt,
+        "line_width_policy_pt": _verified_otpu_required_line_width_pt(
+            product.product_key,
+            style,
+        ),
         "axis_title_bold_policy": style.font_bold,
     }
 
@@ -2205,13 +4875,147 @@ def _xrd_standard_card_sample_color_sequence(colors: list[int]) -> tuple[int, ..
     return tuple(sequence)
 
 
-def _load_saved_style_snapshot(style_package_path: Path) -> dict[str, object]:
-    snapshot_path = style_package_path.parent.parent / "snapshots" / f"{style_package_path.stem}.json"
+def _adaptive_oth_json_readback_validation(
+    product: ProductContext,
+    plot_pairs: list[tuple[int, int]],
+    product_style: dict[str, object],
+    decision: dict[str, object] | None,
+    conformance: dict[str, object],
+    *,
+    current_data_validation: dict[str, object] | None = None,
+) -> dict[str, object]:
+    if str((decision or {}).get("selected_mode") or "") != "oth-json":
+        return {"ok": True, "status": "not_required", "series_cardinality_relaxed": False}
+    expected = len(plot_pairs)
+    try:
+        actual = int(product_style.get("plot_count") or 0)
+    except (TypeError, ValueError):
+        actual = 0
+    contract_count = int((decision or {}).get("contract_series_count") or 0)
+    relaxed = contract_count > 0 and expected != contract_count
+    failures: list[str] = []
+    if actual != expected:
+        failures.append(
+            f"reopened graph has {actual} curves; current CSV requires {expected}"
+        )
+    if not relaxed and str(conformance.get("status") or "").casefold() == "fail":
+        failures.append("fixed-cardinality OTH+JSON style conformance failed")
+    requires_current_data_match = product.product_key in {"BET", "photocurrent"}
+    current_data_match = bool(
+        isinstance(current_data_validation, dict)
+        and current_data_validation.get("ok") is True
+        and current_data_validation.get("status") == "matched"
+    )
+    if requires_current_data_match and not current_data_match:
+        failures.append("reopened graph X/Y values do not match the current processed CSV")
+    return {
+        "ok": not failures,
+        "status": "accepted" if not failures else "blocked",
+        "message": (
+            "Adaptive OTH+JSON graph curve count matches the current CSV after save/reopen."
+            if not failures
+            else "; ".join(failures)
+        ),
+        "current_csv_pair_count": expected,
+        "reopened_plot_count": actual,
+        "contract_series_count": contract_count,
+        "series_cardinality_relaxed": relaxed,
+        "one_to_one_claim_allowed": False,
+        "saved_reopened": True,
+        "native_tif_600dpi_required": True,
+        "current_plot_values_match_csv": (
+            current_data_match if requires_current_data_match else None
+        ),
+        "current_data_validation": dict(current_data_validation or {}),
+    }
+
+
+def _adaptive_photocurrent_validation_ranges(
+    rows: list[list[object]],
+    plot_pairs: list[tuple[int, int]],
+) -> list[dict[str, int]]:
+    series = _photocurrent_xy_series(rows, plot_pairs)
+    if len(series) != len(plot_pairs):
+        return []
+    return [
+        {
+            "x_col": x_column,
+            "y_col": y_column,
+            "row_from": 1,
+            "row_to": len(x_values),
+            "source_x_index": x_column - 1,
+            "source_y_index": y_column - 1,
+            "source_row_from": 1,
+            "source_row_to": len(x_values),
+        }
+        for (x_column, y_column), (x_values, _y_values) in zip(plot_pairs, series)
+    ]
+
+
+def _adaptive_series_count_conformance(
+    conformance: dict[str, object],
+    validation: dict[str, object],
+) -> dict[str, object]:
+    payload = dict(conformance)
+    raw_issues = conformance.get("issues")
+    issues = [dict(value) for value in raw_issues if isinstance(value, dict)] if isinstance(raw_issues, list) else []
+    cardinality_fields = {
+        "plot_count",
+        "plot_colors",
+        "plot_line_colors",
+        "plot_line_widths",
+        "plot_line_styles",
+        "plot_symbol_shapes",
+        "plot_symbol_sizes",
+        "marker_shapes",
+        "marker_sizes",
+        "plot_visibility",
+    }
+    retained = [
+        issue
+        for issue in issues
+        if str(issue.get("field") or "") not in cardinality_fields
+    ]
+    payload["original_status"] = conformance.get("status", "")
+    payload["original_issues"] = issues
+    payload["issues"] = retained
+    payload["status"] = (
+        "fail"
+        if any(str(item.get("severity") or "").casefold() == "fail" for item in retained)
+        else "pass"
+    )
+    payload["adaptive_series_cardinality_relaxed"] = True
+    payload["adaptive_validation"] = dict(validation)
+    return payload
+
+
+def _load_saved_style_snapshot(
+    style_package_path: Path,
+    *,
+    explicit_path: str | Path | None = None,
+) -> dict[str, object]:
+    snapshot_path = (
+        Path(explicit_path)
+        if explicit_path is not None
+        else style_package_path.parent.parent
+        / "snapshots"
+        / f"{style_package_path.stem}.json"
+    )
     return _load_json_object(snapshot_path)
 
 
-def _load_saved_data_snapshot(style_package_path: Path) -> dict[str, object]:
-    snapshot_path = style_package_path.parent.parent / "data_snapshots" / f"{style_package_path.stem}.json"
+def _load_saved_data_snapshot(
+    style_package_path: Path,
+    *,
+    explicit_path: str | Path | None = None,
+) -> dict[str, object]:
+    snapshot_path = (
+        Path(explicit_path)
+        if explicit_path is not None
+        else style_package_path.parent.parent
+        / "data_snapshots"
+        / f"{style_package_path.stem}.json"
+    )
     return _load_json_object(snapshot_path)
 
 
@@ -2497,12 +5301,16 @@ def _apply_reviewed_template_plot_styles(
     operations: object,
     graph_name: str,
     data_snapshot: dict[str, object],
+    *,
+    cycle_styles: bool = False,
 ) -> dict[str, object]:
     plot_names = operations._plot_names(graph_name) if hasattr(operations, "_plot_names") else []
     records = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
     if not plot_names:
         return {"applied": False, "reason": "target_graph_has_no_readable_plots"}
-    if not isinstance(records, list) or len(records) < len(plot_names):
+    if not isinstance(records, list) or not records or (
+        not cycle_styles and len(records) < len(plot_names)
+    ):
         return {
             "applied": False,
             "reason": "saved_data_snapshot_plot_styles_unavailable",
@@ -2526,7 +5334,12 @@ def _apply_reviewed_template_plot_styles(
     )
     applied: list[dict[str, object]] = []
     graph = quote_labtalk(graph_name)
-    for plot_name, record in zip(plot_names, records):
+    target_records = (
+        [records[index % len(records)] for index in range(len(plot_names))]
+        if cycle_styles
+        else records
+    )
+    for plot_name, record in zip(plot_names, target_records):
         plot_style = record.get("style") if isinstance(record, dict) else None
         if not isinstance(plot_style, dict):
             return {
@@ -2561,7 +5374,532 @@ def _apply_reviewed_template_plot_styles(
         "applied": True,
         "method": "project_local_data_snapshot_plot_style_restore",
         "plot_count": len(applied),
+        "cycled_for_variable_series_count": cycle_styles,
         "plots": applied,
+    }
+
+
+def _apply_adaptive_oth_json_plot_styles(
+    operations: object,
+    graph_name: str,
+    data_snapshot: dict[str, object],
+    *,
+    cycle_styles: bool,
+) -> dict[str, object]:
+    return _apply_reviewed_template_plot_styles(
+        operations,
+        graph_name,
+        data_snapshot,
+        cycle_styles=cycle_styles,
+    )
+
+
+def _apply_adaptive_dynamic_legend_policy(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    snapshot: dict[str, object],
+) -> dict[str, object]:
+    _apply_exemplar_axis_title_text(operations, graph_name, snapshot)
+    entries = _plain_text_legend_entries(product)
+    rows = [
+        f"\\l({index})\\b({_reviewed_template_legend_rich_text(label)})"
+        for index, label in enumerate(entries, start=1)
+    ]
+    text = "\r\n".join(rows)
+    written = bool(rows) and _set_origin_graph_object_text(
+        operations, graph_name, "Legend", text
+    )
+    preserved = _format_preserved_line_sample_legend(
+        operations, graph_name, style
+    )
+    return {
+        "applied": written,
+        "method": "adaptive_dynamic_rich_text_legend_all_current_plots",
+        "entries": entries,
+        "visible_plot_indices": list(range(1, len(entries) + 1)),
+        "line_samples_preserved": True,
+        "preserved_line_sample_policy": preserved,
+        "axis_titles_restored_from_style_snapshot": bool(snapshot),
+    }
+
+
+def _apply_adaptive_bet_oth_json_text_policy(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    snapshot: dict[str, object],
+    *,
+    axis_range_changed: bool = False,
+) -> dict[str, object]:
+    """Restore reviewed BET titles and current adsorption/desorption labels."""
+
+    x_text = origin_bold_text(VERIFIED_BET_X_TITLE)
+    y_text = origin_bold_text(VERIFIED_BET_Y_TITLE)
+    reset_titles = operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; '
+        f'label -xb "{_quote_origin_rich_text(x_text)}"; '
+        f'label -yl "{_quote_origin_rich_text(y_text)}";'
+    )
+    # The standard label commands recalculate the automatic title anchors.
+    # Reassign through COM afterwards so Origin keeps rich-text escape codes
+    # as formatting rather than displaying a literal backslash sequence.
+    x_written = _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "XB",
+        x_text,
+    )
+    y_written = _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "YL",
+        y_text,
+    )
+    x_styled = _style_graph_object(
+        operations,
+        graph_name,
+        "XB",
+        font_name=style.font_family or "Arial",
+        font_size=36,
+        color=1,
+    )
+    y_styled = _style_graph_object(
+        operations,
+        graph_name,
+        "YL",
+        font_name=style.font_family or "Arial",
+        font_size=36,
+        color=1,
+    )
+    adaptive_y_title = (
+        _replace_adaptive_bet_y_axis_title(
+            operations,
+            graph_name,
+            y_text,
+        )
+        if axis_range_changed
+        else {"applied": True, "method": "reviewed_special_yl_preserved"}
+    )
+    orientation = operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; '
+        + (
+            "xb.show=1; xb.rotate=0; yl.show=0; yl.rotate=90;"
+            if axis_range_changed
+            else "xb.show=1; xb.rotate=0; yl.show=1; yl.rotate=90;"
+        )
+    )
+    entries = [
+        _bet_template_legend_label(
+            label,
+            is_desorption="desorption" in str(label).casefold(),
+        )
+        for label in _plain_text_legend_entries(product)
+    ]
+    rows = [
+        f"\\l({index})\\b( {_reviewed_template_legend_rich_text(label)})"
+        for index, label in enumerate(entries, start=1)
+    ]
+    text = "\r\n".join(rows)
+    legend_written = bool(rows) and _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "Legend",
+        text,
+    )
+    font_size = _reviewed_template_legend_font_size(snapshot, style)
+    preserved = _format_preserved_line_sample_legend(
+        operations,
+        graph_name,
+        style,
+        font_size=font_size,
+    )
+    applied = (
+        x_written
+        and y_written
+        and bool(getattr(reset_titles, "ok", False))
+        and x_styled
+        and y_styled
+        and bool(adaptive_y_title.get("applied"))
+        and bool(getattr(orientation, "ok", False))
+        and legend_written
+        and bool(preserved.get("applied"))
+    )
+    return {
+        "applied": applied,
+        "method": "adaptive_bet_fixed_reviewed_titles_current_pair_legend",
+        "x_title": VERIFIED_BET_X_TITLE,
+        "y_title": VERIFIED_BET_Y_TITLE,
+        "axis_titles_written": x_written and y_written,
+        "axis_titles_reset_with_origin_label_command": bool(
+            getattr(reset_titles, "ok", False)
+        ),
+        "axis_title_objects_styled": x_styled and y_styled,
+        "y_title_rotation_restored": bool(getattr(orientation, "ok", False)),
+        "adaptive_y_title": adaptive_y_title,
+        "entries": entries,
+        "rich_text": text,
+        "line_samples_preserved": True,
+        "font_size": font_size,
+        "preserved_line_sample_policy": preserved,
+    }
+
+
+def _replace_adaptive_bet_y_axis_title(
+    operations: object,
+    graph_name: str,
+    rich_text: str,
+) -> dict[str, object]:
+    """Use a stable text object when Origin's special YL moves with tick width."""
+
+    graph = quote_labtalk(graph_name)
+    operations.run_labtalk(
+        f'win -a "{graph}"; label -r {BET_ADAPTIVE_Y_TITLE_OBJECT};'
+    )
+    created = operations.run_labtalk(
+        f'win -a "{graph}"; '
+        f'label -n {BET_ADAPTIVE_Y_TITLE_OBJECT} '
+        f'"{_quote_origin_rich_text(rich_text)}";'
+    )
+    if not getattr(created, "ok", False):
+        return {"applied": False, "reason": "bet_adaptive_y_title_create_failed"}
+
+    app = getattr(operations, "app", None)
+    if app is None:
+        return {"applied": False, "reason": "origin_application_unavailable"}
+    try:
+        layer = app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(
+            graph_name
+        )
+    except Exception:
+        layer = None
+    if not layer:
+        return {"applied": False, "reason": "bet_graph_layer_unavailable"}
+    special_title = _find_origin_graph_object(layer, "YL")
+    stable_title = _find_origin_graph_object(layer, BET_ADAPTIVE_Y_TITLE_OBJECT)
+    if special_title is None or stable_title is None:
+        return {"applied": False, "reason": "bet_y_title_objects_unavailable"}
+
+    try:
+        stable_title.Text = rich_text
+        # Attachment 0 is page-relative.  It prevents the title from moving
+        # when the current data require wider or decimal Y tick labels.
+        for prop, value in (
+            ("attach", 0),
+            ("rotate", 90),
+            ("fsize", 36),
+            ("color", 1),
+            ("show", 1),
+            ("background", 0),
+            ("border", 0),
+            ("frame", 0),
+            ("fill", 0),
+        ):
+            stable_title.SetNumProp(prop, value)
+        stable_title.Left = BET_ADAPTIVE_Y_TITLE_LEFT
+        stable_title.Top = BET_ADAPTIVE_Y_TITLE_TOP
+        stable_title.Show = 1
+        special_title.Show = 0
+    except Exception as exc:
+        return {
+            "applied": False,
+            "reason": f"bet_adaptive_y_title_style_failed: {exc}",
+        }
+    return {
+        "applied": True,
+        "method": "origin_standard_page_attached_text_for_adaptive_y_title",
+        "object_name": BET_ADAPTIVE_Y_TITLE_OBJECT,
+        "special_axis_title_hidden": True,
+        "left": BET_ADAPTIVE_Y_TITLE_LEFT,
+        "top": BET_ADAPTIVE_Y_TITLE_TOP,
+        "font_size": 36,
+        "rotation": 90,
+        "text": rich_text,
+    }
+
+
+def _read_adaptive_bet_y_title_overlay(
+    operations: object,
+    graph_name: str,
+) -> dict[str, object]:
+    app = getattr(operations, "app", None)
+    if app is None:
+        return {"ok": False, "message": "Origin application is unavailable."}
+    try:
+        layer = app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(
+            graph_name
+        )
+    except Exception:
+        layer = None
+    if not layer:
+        return {"ok": False, "message": "BET graph layer is unavailable."}
+    stable_title = _find_origin_graph_object(layer, BET_ADAPTIVE_Y_TITLE_OBJECT)
+    special_title = _find_origin_graph_object(layer, "YL")
+    if stable_title is None:
+        return {
+            "ok": False,
+            "message": "Adaptive BET Y-axis title object is missing after reopen.",
+        }
+
+    def number(name: str) -> float | None:
+        try:
+            return float(stable_title.GetNumProp(name))
+        except Exception:
+            return None
+
+    text = str(getattr(stable_title, "Text", "") or "").strip()
+    show = number("show")
+    rotate = number("rotate")
+    font_size = number("fsize")
+    attach = number("attach")
+    special_show = None
+    if special_title is not None:
+        try:
+            special_show = float(special_title.GetNumProp("show"))
+        except Exception:
+            try:
+                special_show = float(special_title.Show)
+            except Exception:
+                special_show = None
+    reasons: list[str] = []
+    if VERIFIED_BET_Y_TITLE.casefold() not in text.casefold():
+        reasons.append("reviewed BET Y title text is missing")
+    if show is None or abs(show - 1.0) > 0.01:
+        reasons.append("adaptive BET Y title is not visible")
+    if rotate is None or abs(rotate - 90.0) > 0.01:
+        reasons.append("adaptive BET Y title is not rotated 90 degrees")
+    if font_size is None or abs(font_size - 36.0) > 0.01:
+        reasons.append("adaptive BET Y title is not 36 pt")
+    if attach is None or abs(attach) > 0.01:
+        reasons.append("adaptive BET Y title is not page-attached")
+    if special_show is None or abs(special_show) > 0.01:
+        reasons.append("Origin special YL object is not hidden")
+    return {
+        "ok": not reasons,
+        "message": (
+            "Adaptive BET Y-axis title survived save/reopen with stable page attachment."
+            if not reasons
+            else "Adaptive BET Y-axis title hard gate failed: " + "; ".join(reasons)
+        ),
+        "object_name": BET_ADAPTIVE_Y_TITLE_OBJECT,
+        "text": text,
+        "show": show,
+        "rotate": rotate,
+        "font_size": font_size,
+        "attach": attach,
+        "special_axis_title_show": special_show,
+        "left": getattr(stable_title, "Left", None),
+        "top": getattr(stable_title, "Top", None),
+        "width": getattr(stable_title, "Width", None),
+        "height": getattr(stable_title, "Height", None),
+    }
+
+
+def _effective_bet_style_with_y_title_overlay(
+    product_style: dict[str, object],
+    overlay: dict[str, object],
+) -> dict[str, object]:
+    """Expose the validated visible replacement through the standard YL audit keys."""
+
+    effective = dict(product_style)
+    for section in ("layout_values", "audit_numeric_values"):
+        values = dict(product_style.get(section) or {})
+        values["yl.show"] = overlay.get("show")
+        values["yl.fsize"] = overlay.get("font_size")
+        values["yl.bold"] = 0.0
+        effective[section] = values
+    strings = dict(product_style.get("audit_string_values") or {})
+    strings["yl.text$"] = overlay.get("text")
+    effective["audit_string_values"] = strings
+    effective["adaptive_bet_y_title_overlay"] = dict(overlay)
+    return effective
+
+
+def _apply_adaptive_ftir_oth_json_text_policy(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    snapshot: dict[str, object],
+) -> dict[str, object]:
+    _apply_exemplar_axis_title_text(operations, graph_name, snapshot)
+    headers, rows = _read_processed_csv(product.processed_data)
+    pairs = _processed_csv_plot_pairs(product, headers)
+    entries = [str(value).strip() for value in product.legend_entries if str(value).strip()]
+    if len(entries) != len(pairs):
+        entries = [
+            str(headers[y_col - 1])[: -len("_transmittance")]
+            for _x_col, y_col in pairs
+        ]
+    reviewed_legend_bodies = {
+        "BiOBr0.5Cl0.5": r"\b(\i( )\c1(BiOBr)\-(\c1(0.5))\c1(Cl)\-(\c1(0.5)))",
+        "CuWO4": r"\b(\i( )CuWO\-(4))",
+        "BiCu-10": r"\b(\i( )BiCu-10)",
+    }
+    rows = [
+        f"\\l({index}){reviewed_legend_bodies.get(label, f'\\b({_reviewed_template_legend_rich_text(label)})')}"
+        for index, label in enumerate(entries, start=1)
+    ]
+    text = "\r\n".join(rows)
+    written = bool(rows) and _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "Legend",
+        text,
+    )
+    legend_font_size = _reviewed_template_legend_font_size(snapshot, style)
+    preserved = _format_preserved_line_sample_legend(
+        operations,
+        graph_name,
+        style,
+        font_size=legend_font_size,
+    )
+    return {
+        "applied": written,
+        "method": "adaptive_ftir_dynamic_rich_text_legend_with_line_samples",
+        "entries": entries,
+        "rich_text": text,
+        "line_samples_preserved": True,
+        "font_size": legend_font_size,
+        "old_sample_names_removed": True,
+        "axis_titles_restored_from_style_snapshot": bool(snapshot),
+        "preserved_line_sample_policy": preserved,
+    }
+
+
+def _apply_adaptive_photocurrent_oth_json_text_policy(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    snapshot: dict[str, object],
+) -> dict[str, object]:
+    """Restore the reviewed photocurrent dynamic legend without fixed plot objects."""
+    try:
+        headers, _rows = _read_processed_csv(product.processed_data)
+    except (OSError, ValueError) as exc:
+        return {
+            "applied": False,
+            "reason": f"photocurrent_processed_data_unavailable: {exc}",
+        }
+    axis_title_validation = _validate_photocurrent_axis_titles(snapshot, headers)
+    if not axis_title_validation.get("ok"):
+        return {
+            "applied": False,
+            "reason": "photocurrent_axis_title_hard_gate_failed",
+            "axis_title_validation": axis_title_validation,
+        }
+    _apply_exemplar_axis_title_text(operations, graph_name, snapshot)
+    entries = _plain_text_legend_entries(product)
+    rows = [
+        f"\\l({index})\\b( {_reviewed_template_legend_rich_text(label)})"
+        for index, label in enumerate(entries, start=1)
+    ]
+    text = "\r\n".join(rows)
+    written = bool(rows) and _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "Legend",
+        text,
+    )
+    layout = snapshot.get("layout_values") if isinstance(snapshot, dict) else {}
+    if not isinstance(layout, dict):
+        layout = {}
+
+    def legend_value(name: str, fallback: float) -> float:
+        value = _finite_float(layout.get(f"legend.{name}"))
+        return fallback if value is None else value
+
+    font_name = style.font_family or "Arial"
+    font_size = max(1, int(round(legend_value("fsize", float(style.legend_font_size or 14)))))
+    bold = int(round(legend_value("bold", 0.0)))
+    background = int(round(legend_value("background", 1.0)))
+    border = int(round(legend_value("border", 0.0)))
+    frame = int(round(legend_value("frame", 0.0)))
+    fill = int(round(legend_value("fill", 0.0)))
+    fill_color = int(round(legend_value("fillColor", -4.0)))
+    border_color = int(round(legend_value("borderColor", 1.0)))
+    line_width = legend_value("lineWidth", 1.0)
+    legend_x = legend_value("x", 247.59324665243545)
+    legend_y = legend_value("y", 1.747362576346474e-06)
+    reference_x_from = _finite_float(layout.get("layer.x.from"))
+    reference_x_to = _finite_float(layout.get("layer.x.to"))
+    reference_y_from = _finite_float(layout.get("layer.y.from"))
+    reference_y_to = _finite_float(layout.get("layer.y.to"))
+    if (
+        reference_x_from is None
+        or reference_x_to is None
+        or reference_y_from is None
+        or reference_y_to is None
+        or abs(reference_x_to - reference_x_from) <= 1e-12
+        or abs(reference_y_to - reference_y_from) <= 1e-12
+    ):
+        return {
+            "applied": False,
+            "reason": "photocurrent_reference_legend_fraction_unavailable",
+            "axis_title_validation": axis_title_validation,
+        }
+    legend_x_fraction = min(
+        0.95,
+        max(0.05, (legend_x - reference_x_from) / (reference_x_to - reference_x_from)),
+    )
+    legend_y_fraction = min(
+        0.95,
+        max(0.05, (legend_y - reference_y_from) / (reference_y_to - reference_y_from)),
+    )
+    graph = quote_labtalk(graph_name)
+    command = (
+        f'win -a "{graph}"; legend.show=1; '
+        f'legend.font$="{quote_labtalk(font_name)}"; legend.fsize={font_size}; '
+        f"legend.bold={bold}; "
+        f"legend.x=layer.x.from+{_origin_number(legend_x_fraction)}*(layer.x.to-layer.x.from); "
+        f"legend.y=layer.y.from+{_origin_number(legend_y_fraction)}*(layer.y.to-layer.y.from); "
+        f"legend.background={background}; legend.border={border}; legend.frame={frame}; "
+        f"legend.fill={fill}; legend.fillColor={fill_color}; legend.borderColor={border_color}; "
+        f"legend.lineWidth={_origin_number(line_width)};"
+    )
+    labtalk = operations.run_labtalk(command)
+    com_style = _style_graph_object(
+        operations,
+        graph_name,
+        "Legend",
+        font_name=font_name,
+        font_size=font_size,
+        color=1,
+        bold=bold,
+        background=background,
+        border=border,
+        frame=frame,
+        fill=fill,
+        fill_color=fill_color,
+        border_color=border_color,
+        line_width=line_width,
+    )
+    return {
+        "applied": written and (bool(getattr(labtalk, "ok", False)) or com_style),
+        "method": "adaptive_photocurrent_dynamic_snapshot_legend_with_line_samples",
+        "entries": entries,
+        "rich_text": text,
+        "line_samples_preserved": True,
+        "font_name": font_name,
+        "font_size": font_size,
+        "bold": bold,
+        "background": background,
+        "border": border,
+        "frame": frame,
+        "fill": fill,
+        "fill_color": fill_color,
+        "border_color": border_color,
+        "line_width": line_width,
+        "x": legend_x,
+        "y": legend_y,
+        "x_fraction": legend_x_fraction,
+        "y_fraction": legend_y_fraction,
+        "styled_with_com": com_style,
+        "axis_titles_restored_from_style_snapshot": bool(snapshot),
+        "axis_title_validation": axis_title_validation,
     }
 
 
@@ -2934,6 +6272,24 @@ def _apply_exemplar_axis_title_text(operations: object, graph_name: str, exempla
 def _processed_csv_plot_pairs(product: ProductContext, headers: list[str]) -> list[tuple[int, int]]:
     if len(headers) < 2:
         return []
+    if product.product_key == "FTIR":
+        pairs = _adjacent_independent_xy_pairs(
+            headers,
+            x_suffix="_wavenumber_cm-1",
+            y_suffix="_transmittance",
+        )
+        if pairs:
+            return pairs
+        return _legacy_shared_x_pairs(headers, x_headers={"wavenumber_cm-1", "wavenumber"})
+    if product.product_key == "photocurrent":
+        pairs = _adjacent_independent_xy_pairs(
+            headers,
+            x_suffix="_time_s",
+            y_suffix="_current_a",
+        )
+        if pairs:
+            return pairs
+        return _legacy_shared_x_pairs(headers, x_headers={"time_s"})
     if product.product_key == "BET":
         paired_x_suffix = "_relative_pressure_p_p0"
         paired_y_suffix = "_quantity_adsorbed_cm3_g_stp"
@@ -2952,6 +6308,47 @@ def _processed_csv_plot_pairs(product: ProductContext, headers: list[str]) -> li
     if product.product_key == "XRD":
         return [(1, csv_index + 1) for csv_index, _header in _xrd_plotted_y_headers(product, headers)]
     return [(1, column) for column in range(2, len(headers) + 1)]
+
+
+def _adjacent_independent_xy_pairs(
+    headers: list[str],
+    *,
+    x_suffix: str,
+    y_suffix: str,
+) -> list[tuple[int, int]]:
+    if len(headers) < 2 or len(headers) % 2 != 0:
+        return []
+    pairs: list[tuple[int, int]] = []
+    identities: list[str] = []
+    for index in range(0, len(headers), 2):
+        x_header = str(headers[index]).strip()
+        y_header = str(headers[index + 1]).strip()
+        if not x_header.endswith(x_suffix) or not y_header.endswith(y_suffix):
+            return []
+        x_identity = x_header[: -len(x_suffix)].strip()
+        y_identity = y_header[: -len(y_suffix)].strip()
+        if not x_identity or x_identity != y_identity:
+            return []
+        identities.append(x_identity.casefold())
+        pairs.append((index + 1, index + 2))
+    if len(identities) != len(set(identities)):
+        return []
+    return pairs
+
+
+def _legacy_shared_x_pairs(
+    headers: list[str],
+    *,
+    x_headers: set[str],
+) -> list[tuple[int, int]]:
+    if len(headers) < 2 or str(headers[0]).strip().casefold() not in x_headers:
+        return []
+    y_headers = [str(value).strip() for value in headers[1:]]
+    if any(not value for value in y_headers) or len(
+        {value.casefold() for value in y_headers}
+    ) != len(y_headers):
+        return []
+    return [(1, index) for index in range(2, len(headers) + 1)]
 
 
 def _xrd_plotted_y_headers(product: ProductContext, headers: list[str]) -> list[tuple[int, str]]:
@@ -2977,7 +6374,14 @@ def _xrd_plotted_y_headers(product: ProductContext, headers: list[str]) -> list[
     return sample_records[:XRD_STANDARD_CARD_SAMPLE_LIMIT] + card_records[:1]
 
 
-def _apply_embedded_snapshot_data_axis_range(operations: object, graph_name: str, product: ProductContext) -> dict[str, object]:
+def _apply_embedded_snapshot_data_axis_range(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    *,
+    reference_style_snapshot: dict[str, object] | None = None,
+    reference_data_snapshot: dict[str, object] | None = None,
+) -> dict[str, object]:
     set_axis_range = getattr(operations, "set_axis_range", None)
     if not callable(set_axis_range):
         return {"applied": False, "reason": "set_axis_range_unavailable"}
@@ -3017,6 +6421,140 @@ def _apply_embedded_snapshot_data_axis_range(operations: object, graph_name: str
             "sample_column_count": len(y_columns),
             "reference_sticks_present": has_reference_sticks,
         }
+    if product.product_key == "BET":
+        return _apply_bet_data_axis_range(
+            operations,
+            graph_name,
+            product,
+            set_axis_range=set_axis_range,
+            reference_style_snapshot=reference_style_snapshot,
+            reference_data_snapshot=reference_data_snapshot,
+        )
+    if product.product_key == "photocurrent":
+        try:
+            headers, rows = _read_processed_csv(product.processed_data)
+        except (OSError, ValueError) as exc:
+            return {
+                "applied": False,
+                "reason": f"photocurrent_processed_data_unavailable: {exc}",
+            }
+        pairs = _processed_csv_plot_pairs(product, headers)
+        current_series = _photocurrent_xy_series(rows, pairs)
+        if not pairs or len(current_series) != len(pairs):
+            return {"applied": False, "reason": "photocurrent_xy_pairs_unavailable"}
+        reference_series = _photocurrent_reference_xy_series(reference_data_snapshot)
+        if not reference_series:
+            return {
+                "applied": False,
+                "reason": "photocurrent_reference_data_snapshot_unavailable",
+            }
+        layout = (
+            reference_style_snapshot.get("layout_values")
+            if isinstance(reference_style_snapshot, dict)
+            else None
+        )
+        template_x_from = _snapshot_axis_value(layout, "layer.x.from")
+        template_x_to = _snapshot_axis_value(layout, "layer.x.to")
+        template_y_from = _snapshot_axis_value(layout, "layer.y.from")
+        template_y_to = _snapshot_axis_value(layout, "layer.y.to")
+        if (
+            template_x_from is None
+            or template_x_to is None
+            or template_y_from is None
+            or template_y_to is None
+            or template_x_to <= template_x_from
+            or template_y_to <= template_y_from
+        ):
+            return {
+                "applied": False,
+                "reason": "photocurrent_reference_axis_range_unavailable",
+            }
+
+        same_x = _photocurrent_axis_series_match(current_series, reference_series, axis="x")
+        same_y = _photocurrent_axis_series_match(current_series, reference_series, axis="y")
+        current_x_values = [value for series in current_series for value in series[0]]
+        current_y_values = [value for series in current_series for value in series[1]]
+        x_min, x_max = min(current_x_values), max(current_x_values)
+        y_min, y_max = min(current_y_values), max(current_y_values)
+
+        if same_x and same_y:
+            return {
+                "applied": True,
+                "method": "photocurrent_reference_data_match_preserves_template_axes",
+                "decision": "template_preserved",
+                "range_changed": False,
+                "x_data_matches_reference": True,
+                "y_data_matches_reference": True,
+                "x_min": template_x_from,
+                "x_max": template_x_to,
+                "y_min": template_y_from,
+                "y_max": template_y_to,
+                "source_x_min": x_min,
+                "source_x_max": x_max,
+                "source_y_min": y_min,
+                "source_y_max": y_max,
+                "series_count": len(current_series),
+                "axis_titles_recentered": False,
+            }
+
+        x_from: float | None = None
+        x_to: float | None = None
+        y_from: float | None = None
+        y_to: float | None = None
+        if not same_x:
+            x_from, x_to = _padded_axis_bounds(x_min, x_max, zero_floor=x_min >= 0)
+        if not same_y:
+            y_from, y_to = _padded_axis_bounds(y_min, y_max)
+        result = set_axis_range(
+            graph_name,
+            x_min=x_from,
+            x_max=x_to,
+            y_min=y_from,
+            y_max=y_to,
+        )
+        if not getattr(result, "ok", False):
+            return {"applied": False, "reason": getattr(result, "message", "set_axis_range_failed")}
+        title_centered = False
+        if hasattr(operations, "run_labtalk"):
+            recenter_commands: list[str] = []
+            if not same_x:
+                recenter_commands.append("xb.x=(layer.x.from+layer.x.to)/2;")
+            if not same_y:
+                recenter_commands.append("yl.y=(layer.y.from+layer.y.to)/2;")
+            centered = operations.run_labtalk(
+                f'win -a "{quote_labtalk(graph_name)}"; '
+                + " ".join(recenter_commands)
+            )
+            title_centered = bool(getattr(centered, "ok", False))
+        if not title_centered:
+            return {
+                "applied": False,
+                "reason": "photocurrent_axis_title_recentering_failed",
+            }
+        return {
+            "applied": True,
+            "method": "photocurrent_changed_axes_use_current_data_bounds_after_reviewed_style",
+            "decision": (
+                "adaptive_xy"
+                if not same_x and not same_y
+                else "adaptive_x"
+                if not same_x
+                else "adaptive_y"
+            ),
+            "range_changed": True,
+            "x_data_matches_reference": same_x,
+            "y_data_matches_reference": same_y,
+            "x_min": template_x_from if same_x else x_from,
+            "x_max": template_x_to if same_x else x_to,
+            "y_min": template_y_from if same_y else y_from,
+            "y_max": template_y_to if same_y else y_to,
+            "source_x_min": x_min,
+            "source_x_max": x_max,
+            "source_y_min": y_min,
+            "source_y_max": y_max,
+            "series_count": len(current_series),
+            "axis_titles_recentered": True,
+        }
     if product.product_key in {"UV-vis DRS / Tauc", "EPR"}:
         x_min, x_max = _csv_bounds_for_columns(product.processed_data, (0,))
         if x_min is None or x_max is None or x_max <= x_min:
@@ -3053,12 +6591,6 @@ def _apply_embedded_snapshot_data_axis_range(operations: object, graph_name: str
     result = set_axis_range(graph_name, x_min=x_from, x_max=x_to, y_min=y_from, y_max=y_to)
     if not getattr(result, "ok", False):
         return {"applied": False, "reason": getattr(result, "message", "set_axis_range_failed")}
-    if hasattr(operations, "run_labtalk"):
-        operations.run_labtalk(
-            f'win -a "{quote_labtalk(graph_name)}"; '
-            "legend.x = layer.x.from + 0.56 * (layer.x.to - layer.x.from); "
-            "legend.y = layer.y.from + 0.78 * (layer.y.to - layer.y.from);"
-        )
     return {
         "applied": True,
         "method": "eis_all_measured_overlay_bounds_after_embedded_template_style",
@@ -3067,6 +6599,152 @@ def _apply_embedded_snapshot_data_axis_range(operations: object, graph_name: str
         "y_min": y_from,
         "y_max": y_to,
     }
+
+
+def _apply_bet_data_axis_range(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    *,
+    set_axis_range: object,
+    reference_style_snapshot: dict[str, object] | None,
+    reference_data_snapshot: dict[str, object] | None,
+) -> dict[str, object]:
+    try:
+        headers, rows = _read_processed_csv(product.processed_data)
+    except (OSError, ValueError) as exc:
+        return {
+            "applied": False,
+            "reason": f"bet_processed_data_unavailable: {exc}",
+        }
+    pairs = _processed_csv_plot_pairs(product, headers)
+    current_series = _photocurrent_xy_series(rows, pairs)
+    if not pairs or len(current_series) != len(pairs):
+        return {"applied": False, "reason": "bet_xy_pairs_unavailable"}
+    reference_series = _photocurrent_reference_xy_series(reference_data_snapshot)
+    layout = (
+        reference_style_snapshot.get("layout_values")
+        if isinstance(reference_style_snapshot, dict)
+        else None
+    )
+    template_x_from = _snapshot_axis_value(layout, "layer.x.from")
+    template_x_to = _snapshot_axis_value(layout, "layer.x.to")
+    template_y_from = _snapshot_axis_value(layout, "layer.y.from")
+    template_y_to = _snapshot_axis_value(layout, "layer.y.to")
+    if (
+        template_x_from is None
+        or template_x_to is None
+        or template_y_from is None
+        or template_y_to is None
+        or template_x_to <= template_x_from
+        or template_y_to <= template_y_from
+    ):
+        return {"applied": False, "reason": "bet_reference_axis_range_unavailable"}
+
+    same_x = bool(reference_series) and _photocurrent_axis_series_match(
+        current_series,
+        reference_series,
+        axis="x",
+    )
+    same_y = bool(reference_series) and _photocurrent_axis_series_match(
+        current_series,
+        reference_series,
+        axis="y",
+    )
+    current_x_values = [value for series in current_series for value in series[0]]
+    current_y_values = [value for series in current_series for value in series[1]]
+    x_min, x_max = min(current_x_values), max(current_x_values)
+    y_min, y_max = min(current_y_values), max(current_y_values)
+    reference_x_contains_current = (
+        x_min >= template_x_from - 1e-12
+        and x_max <= template_x_to + 1e-12
+    )
+    change_x = not (same_x or reference_x_contains_current)
+    change_y = not same_y
+    if not change_x and not change_y:
+        return {
+            "applied": True,
+            "method": "bet_reference_data_match_preserves_template_axes",
+            "decision": "template_preserved",
+            "range_changed": False,
+            "x_data_matches_reference": same_x,
+            "y_data_matches_reference": same_y,
+            "x_min": template_x_from,
+            "x_max": template_x_to,
+            "y_min": template_y_from,
+            "y_max": template_y_to,
+            "source_x_min": x_min,
+            "source_x_max": x_max,
+            "source_y_min": y_min,
+            "source_y_max": y_max,
+            "series_count": len(current_series),
+            "axis_titles_recentered": False,
+        }
+
+    x_from: float | None = None
+    x_to: float | None = None
+    y_from: float | None = None
+    y_to: float | None = None
+    if change_x:
+        x_from, x_to = _padded_axis_bounds(
+            x_min,
+            x_max,
+            zero_floor=x_min >= 0,
+        )
+    if change_y:
+        y_from, y_to = _padded_axis_bounds(y_min, y_max)
+    result = set_axis_range(
+        graph_name,
+        x_min=x_from,
+        x_max=x_to,
+        y_min=y_from,
+        y_max=y_to,
+    )
+    if not getattr(result, "ok", False):
+        return {
+            "applied": False,
+            "reason": getattr(result, "message", "set_axis_range_failed"),
+        }
+    recenter_commands: list[str] = []
+    if change_x:
+        recenter_commands.append("xb.x=(layer.x.from+layer.x.to)/2;")
+    if change_y:
+        recenter_commands.append("yl.y=(layer.y.from+layer.y.to)/2;")
+    centered = operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; '
+        + " ".join(recenter_commands)
+    )
+    if not getattr(centered, "ok", False):
+        return {
+            "applied": False,
+            "reason": "bet_axis_title_recentering_failed",
+        }
+    return {
+        "applied": True,
+        "method": "bet_current_data_bounds_after_reviewed_style",
+        "decision": (
+            "adaptive_xy"
+            if change_x and change_y
+            else "adaptive_x"
+            if change_x
+            else "adaptive_y"
+        ),
+        "range_changed": True,
+        "x_data_matches_reference": same_x,
+        "y_data_matches_reference": same_y,
+        "reference_x_range_contains_current": reference_x_contains_current,
+        "x_min": x_from if change_x else template_x_from,
+        "x_max": x_to if change_x else template_x_to,
+        "y_min": y_from if change_y else template_y_from,
+        "y_max": y_to if change_y else template_y_to,
+        "source_x_min": x_min,
+        "source_x_max": x_max,
+        "source_y_min": y_min,
+        "source_y_max": y_max,
+        "series_count": len(current_series),
+        "axis_titles_recentered": True,
+    }
+
 
 
 def _padded_axis_bounds(min_value: float, max_value: float, *, zero_floor: bool = False) -> tuple[float, float]:
@@ -3080,6 +6758,103 @@ def _padded_axis_bounds(min_value: float, max_value: float, *, zero_floor: bool 
     if zero_floor and min_value >= 0:
         lower = 0.0
     return lower, upper
+
+
+def _photocurrent_xy_series(
+    rows: list[list[object]],
+    pairs: list[tuple[int, int]],
+) -> list[tuple[list[float], list[float]]]:
+    """Return strict contiguous finite X/Y runs for each processed photocurrent pair."""
+    series: list[tuple[list[float], list[float]]] = []
+    for x_column, y_column in pairs:
+        x_index = x_column - 1
+        y_index = y_column - 1
+        x_values: list[float] = []
+        y_values: list[float] = []
+        finite_run_ended = False
+        for row in rows:
+            x_value = _finite_numeric_value(row[x_index]) if x_index < len(row) else None
+            y_value = _finite_numeric_value(row[y_index]) if y_index < len(row) else None
+            if x_value is None and y_value is None:
+                if x_values:
+                    finite_run_ended = True
+                continue
+            if x_value is None or y_value is None or finite_run_ended:
+                return []
+            x_values.append(float(x_value))
+            y_values.append(float(y_value))
+        if not x_values or len(x_values) != len(y_values):
+            return []
+        series.append((x_values, y_values))
+    return series
+
+
+def _photocurrent_reference_xy_series(
+    snapshot: dict[str, object] | None,
+) -> list[tuple[list[float], list[float]]]:
+    if not isinstance(snapshot, dict):
+        return []
+    plots = snapshot.get("plots")
+    if not isinstance(plots, list) or not plots:
+        return []
+    series: list[tuple[list[float], list[float]]] = []
+    for plot in plots:
+        if not isinstance(plot, dict):
+            return []
+        raw_x = plot.get("x_values")
+        raw_y = plot.get("y_values")
+        if not isinstance(raw_x, list) or not isinstance(raw_y, list) or len(raw_x) != len(raw_y):
+            return []
+        x_values: list[float] = []
+        y_values: list[float] = []
+        finite_run_ended = False
+        for raw_x_value, raw_y_value in zip(raw_x, raw_y):
+            x_value = _finite_numeric_value(raw_x_value)
+            y_value = _finite_numeric_value(raw_y_value)
+            if x_value is None and y_value is None:
+                if x_values:
+                    finite_run_ended = True
+                continue
+            if x_value is None or y_value is None or finite_run_ended:
+                return []
+            x_values.append(float(x_value))
+            y_values.append(float(y_value))
+        if not x_values:
+            return []
+        series.append((x_values, y_values))
+    return series
+
+
+def _photocurrent_axis_series_match(
+    current: list[tuple[list[float], list[float]]],
+    reference: list[tuple[list[float], list[float]]],
+    *,
+    axis: str,
+) -> bool:
+    if axis not in {"x", "y"} or len(current) != len(reference):
+        return False
+    axis_index = 0 if axis == "x" else 1
+    reference_values = [value for series in reference for value in series[axis_index]]
+    if not reference_values:
+        return False
+    reference_span = max(reference_values) - min(reference_values)
+    absolute_tolerance = max(abs(reference_span) * 1e-12, 1e-15)
+    for current_series, reference_series in zip(current, reference):
+        current_values = current_series[axis_index]
+        expected_values = reference_series[axis_index]
+        if len(current_values) != len(expected_values):
+            return False
+        if any(
+            not math.isclose(
+                actual,
+                expected,
+                rel_tol=1e-9,
+                abs_tol=absolute_tolerance,
+            )
+            for actual, expected in zip(current_values, expected_values)
+        ):
+            return False
+    return True
 
 
 def _apply_saved_template_legend_anchor(
@@ -3364,13 +7139,15 @@ def _format_preserved_line_sample_legend(
     operations: object,
     graph_name: str,
     style: ResolvedPlotStyle,
+    *,
+    font_size: int | None = None,
 ) -> dict[str, object]:
     font_name = style.font_family or "Arial"
-    font_size = int(style.legend_font_size or 26)
+    resolved_font_size = int(font_size or style.legend_font_size or 26)
     commands = [
         f'win -a "{quote_labtalk(graph_name)}"; legend.show=1;',
         f'win -a "{quote_labtalk(graph_name)}"; legend.font$="{quote_labtalk(font_name)}";',
-        f'win -a "{quote_labtalk(graph_name)}"; legend.fsize={font_size};',
+        f'win -a "{quote_labtalk(graph_name)}"; legend.fsize={resolved_font_size};',
         f'win -a "{quote_labtalk(graph_name)}"; legend.bold=1;',
         f'win -a "{quote_labtalk(graph_name)}"; legend.background=0;',
         f'win -a "{quote_labtalk(graph_name)}"; legend.border=0;',
@@ -3382,7 +7159,7 @@ def _format_preserved_line_sample_legend(
         graph_name,
         "Legend",
         font_name=font_name,
-        font_size=font_size,
+        font_size=resolved_font_size,
         color=1,
     )
     applied = com_style or all(bool(getattr(result, "ok", False)) for result in results[:4])
@@ -3391,7 +7168,7 @@ def _format_preserved_line_sample_legend(
         "method": "preserve_line_samples_format_legend_text",
         "line_samples_preserved": True,
         "font_name": font_name,
-        "font_size": font_size,
+        "font_size": resolved_font_size,
         "bold": True,
         "no_frame": True,
         "styled_with_com": com_style,
@@ -3653,6 +7430,14 @@ def _style_graph_object(
     top: int | None = None,
     width: int | None = None,
     height: int | None = None,
+    bold: int = 1,
+    background: int = 0,
+    border: int = 0,
+    frame: int = 0,
+    fill: int = 0,
+    fill_color: int | None = None,
+    border_color: int | None = None,
+    line_width: float | None = None,
 ) -> bool:
     app = getattr(operations, "app", None)
     if app is None:
@@ -3681,13 +7466,18 @@ def _style_graph_object(
     for prop, value in (
         ("font", font_code),
         ("fsize", int(font_size)),
-        ("bold", 1),
+        ("bold", int(bold)),
         ("color", int(color)),
-        ("background", 0),
-        ("border", 0),
-        ("frame", 0),
-        ("fill", 0),
+        ("background", int(background)),
+        ("border", int(border)),
+        ("frame", int(frame)),
+        ("fill", int(fill)),
+        ("fillColor", fill_color),
+        ("borderColor", border_color),
+        ("lineWidth", line_width),
     ):
+        if value is None:
+            continue
         try:
             graph_object.SetNumProp(prop, value)
         except Exception:
@@ -3826,6 +7616,207 @@ def _find_origin_graph_object(layer: object, name: str) -> object | None:
             if str(getattr(obj, "Name", "") or "").casefold() == name.casefold():
                 return obj
     return None
+
+
+def _find_unique_origin_graph_object(layer: object, name: str) -> object | None:
+    """Return a named object only when the template contains it exactly once."""
+    candidate = _find_origin_graph_object(layer, name)
+    collection = getattr(layer, "GraphObjects", None)
+    if candidate is None or collection is None:
+        return None
+    try:
+        count = int(getattr(collection, "Count"))
+    except (TypeError, ValueError, AttributeError):
+        return None
+    if count < 1:
+        return None
+    # Origin collections can be zero- or one-based depending on the COM
+    # wrapper.  Use the first base that enumerates the full collection, then
+    # reject duplicate case-insensitive object names rather than guessing.
+    objects: list[object] = []
+    for base in (0, 1):
+        attempt: list[object] = []
+        for index in range(count):
+            try:
+                attempt.append(collection.Item(index + base))
+            except Exception:
+                break
+        if len(attempt) == count:
+            objects = attempt
+            break
+    if not objects:
+        return None
+    matches = [
+        graph_object
+        for graph_object in objects
+        if str(getattr(graph_object, "Name", "") or "").casefold() == name.casefold()
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _update_verified_epr_label_objects(
+    operations: object,
+    graph_name: str,
+    entries: list[str],
+) -> dict[str, object]:
+    labels = [str(value).strip() for value in entries]
+    if (
+        len(labels) != 3
+        or any(not label for label in labels)
+        or len({label.casefold() for label in labels}) != 3
+    ):
+        return {"applied": False, "reason": "epr_labels_must_be_three_nonempty_unique_values"}
+    app = getattr(operations, "app", None)
+    if app is None:
+        return {"applied": False, "reason": "no_origin_app"}
+    try:
+        layer = (
+            app.FindGraphLayer(f"[{graph_name}]Layer1")
+            or app.FindGraphLayer(f"[{graph_name}]1")
+            or app.FindGraphLayer(graph_name)
+        )
+    except Exception:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+    if not layer:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+    readback: dict[str, str] = {}
+    for object_name, label in zip(("DL1", "DL2", "DL3"), labels):
+        graph_object = _find_unique_origin_graph_object(layer, object_name)
+        if graph_object is None:
+            return {
+                "applied": False,
+                "reason": "required_epr_label_missing_or_not_unique",
+                "object_name": object_name,
+            }
+        rich_text = origin_bold_text(label)
+        try:
+            graph_object.Text = rich_text
+            actual = str(getattr(graph_object, "Text", "") or "")
+        except Exception:
+            return {
+                "applied": False,
+                "reason": "epr_label_write_or_readback_failed",
+                "object_name": object_name,
+            }
+        if actual != rich_text:
+            return {
+                "applied": False,
+                "reason": "epr_label_readback_mismatch",
+                "object_name": object_name,
+                "expected": rich_text,
+                "actual": actual,
+            }
+        readback[object_name] = actual
+    return {
+        "applied": True,
+        "method": "template_dl_objects_current_bold_rich_text",
+        "objects": readback,
+        "entries": labels,
+    }
+
+
+def _update_verified_pl_legend(
+    operations: object,
+    graph_name: str,
+    entries: list[str],
+) -> dict[str, object]:
+    labels = [str(value).strip() for value in entries]
+    if (
+        len(labels) != 3
+        or any(not label for label in labels)
+        or len({label.casefold() for label in labels}) != 3
+    ):
+        return {"applied": False, "reason": "pl_legend_requires_three_nonempty_unique_values"}
+    rows = [
+        f"\\l({index})\\b( {_reviewed_template_legend_rich_text(label)})"
+        for index, label in enumerate(labels, start=1)
+    ]
+    if not _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "Legend",
+        "\r\n".join(rows),
+    ):
+        return {"applied": False, "reason": "pl_legend_com_text_write_failed"}
+    return {
+        "applied": True,
+        "method": "template_legend_current_bold_rich_text",
+        "entries": labels,
+        "line_samples_preserved": True,
+    }
+
+
+def _update_verified_photocurrent_legend(
+    operations: object,
+    graph_name: str,
+    entries: list[str],
+) -> dict[str, object]:
+    labels = [str(value).strip() for value in entries]
+    if (
+        len(labels) != 3
+        or any(not label for label in labels)
+        or len({label.casefold() for label in labels}) != 3
+    ):
+        return {
+            "applied": False,
+            "reason": "photocurrent_legend_requires_three_nonempty_unique_current_labels",
+        }
+    rows = [
+        f"\\l({index})\\b( {_reviewed_template_legend_rich_text(label)})"
+        for index, label in enumerate(labels, start=1)
+    ]
+    text = "\r\n".join(rows)
+    if not _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "Legend",
+        text,
+    ):
+        return {
+            "applied": False,
+            "reason": "photocurrent_legend_com_text_write_failed",
+        }
+    return {
+        "applied": True,
+        "method": "template_legend_current_bold_rich_text",
+        "entries": labels,
+        "rich_text": text,
+        "line_samples_preserved": True,
+        "old_sample_names_removed": True,
+    }
+
+
+def _update_verified_ftir_legend(
+    operations: object,
+    graph_name: str,
+    entries: list[str],
+) -> dict[str, object]:
+    labels = tuple(str(value).strip() for value in entries)
+    if labels != VERIFIED_FTIR_SERIES_LABELS:
+        return {
+            "applied": False,
+            "reason": "ftir_legend_requires_exact_reviewed_series_labels",
+        }
+    rows = [
+        r"\l(1)\b(\i( )\c1(BiOBr)\-(\c1(0.5))\c1(Cl)\-(\c1(0.5)))",
+        r"\l(2)\b(\i( )CuWO\-(4))",
+        r"\l(3)\b(\i( )BiCu-10)",
+    ]
+    text = "\r\n".join(rows)
+    if not _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "Legend",
+        text,
+    ):
+        return {"applied": False, "reason": "ftir_legend_com_text_write_failed"}
+    return {
+        "applied": True,
+        "method": "template_legend_exact_reference_rich_text",
+        "entries": list(labels),
+        "rich_text": text,
+        "line_samples_preserved": True,
+    }
 
 
 def _set_origin_graph_object_text(

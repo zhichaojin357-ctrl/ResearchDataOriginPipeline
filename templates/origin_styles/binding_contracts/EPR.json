@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "EPR",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "9ce74e1ad00105deaff83a5d55303df37256f80b9caf29015b013210b338a3dc",
+      "graph_page": "EPR0601FULL",
+      "source_series_count": 3,
+      "source_schema": {
+        "status": "ready",
+        "layout": "shared_x_y_columns",
+        "worksheet_layout": "one_sheet_shared_x_three_y",
+        "source_csv_indices": [0, 1, 2, 3],
+        "x_header": "magnetic_field",
+        "y_headers": ["BC", "CWO", "BOBC"],
+        "transform": "Origin edge-median baseline, adjacent-average npts=7, and reviewed 0.85 median-range vertical offsets",
+        "plot_type": "line",
+        "group_plots": false
+      },
+      "plots": [
+        {"layer_index": 1, "plot_index": 1, "x_dataset": "CodexProjectR_A", "y_dataset": "CodexProjectR_B", "row_from": 1, "row_to": 4096, "source_series_index": 1, "semantic_role": "processed_top_series"},
+        {"layer_index": 1, "plot_index": 2, "x_dataset": "CodexProjectR_A", "y_dataset": "CodexProjectR_C", "row_from": 1, "row_to": 4096, "source_series_index": 2, "semantic_role": "processed_middle_series"},
+        {"layer_index": 1, "plot_index": 3, "x_dataset": "CodexProjectR_A", "y_dataset": "CodexProjectR_D", "row_from": 1, "row_to": 4096, "source_series_index": 3, "semantic_role": "processed_bottom_series"}
+      ]
+    }
+  ]
+}

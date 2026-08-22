@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "product_key": "XRD",
+      "data_type": "XRD",
+      "source_opju": "templates/origin_styles/reference_opju/XRD.opju",
+      "graph_page": "Graph4",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/XRD.otpu",
+      "binding_contract": "templates/origin_styles/binding_contracts/XRD.json"
+    }
+  ]
+}

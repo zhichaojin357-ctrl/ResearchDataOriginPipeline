@@ -384,6 +384,29 @@ class OriginOperations:
         )
         return OperationResult(True, "Worksheet created", {"book_name": book, "sheet_name": sheet_name})
 
+    def add_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+        """Append one named worksheet to an existing workbook and activate it."""
+
+        book = str(book_name).strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", book):
+            return OperationResult(False, "Worksheet book has an unsafe internal name")
+        visible_sheet = visible_origin_label(sheet_name, "Data")
+        internal_sheet = safe_origin_name(visible_sheet, "Data")
+        created = self.run_labtalk(
+            f'win -a "{quote_labtalk(book)}"; '
+            f'newsheet name:="{quote_labtalk(internal_sheet)}" active:=1; '
+            f'wks.name$="{quote_labtalk(internal_sheet)}"; '
+            f'wks.longname$="{quote_labtalk(visible_sheet)}"; '
+            'wks.comments$="";'
+        )
+        if not created.ok:
+            return OperationResult(False, f"Could not add worksheet to workbook: {book}")
+        return OperationResult(
+            True,
+            "Worksheet added",
+            {"book_name": book, "sheet_name": internal_sheet},
+        )
+
     def set_worksheet_data(
         self,
         book_name: str,
@@ -699,6 +722,10 @@ class OriginOperations:
         plot_type: str = "line+symbol",
         rescale: bool = False,
         legend: bool = False,
+        group_plots: bool = False,
+        group_layer_indices: Iterable[int] | None = None,
+        individual_stack_offsets: Iterable[dict[str, object]] | None = None,
+        plot_format_contracts: Iterable[dict[str, object]] | None = None,
     ) -> OperationResult:
         """Create a fresh graph from one OTP/OTPU and explicit worksheet X/Y ranges.
 
@@ -720,7 +747,8 @@ class OriginOperations:
             return OperationResult(False, "Worksheet book has an unsafe internal name for template plotting")
 
         rendered_ranges: list[str] = []
-        normalized_ranges: list[dict[str, int]] = []
+        normalized_ranges: list[dict[str, object]] = []
+        explicit_layer_indices: list[int | None] = []
         for raw in xy_ranges:
             if not isinstance(raw, dict):
                 return OperationResult(False, "Every template XY range must be an object")
@@ -733,53 +761,735 @@ class OriginOperations:
                 return OperationResult(False, "Template XY range has nonnumeric column or row indices")
             if min(x_col, y_col, row_from) < 1 or row_to < row_from:
                 return OperationResult(False, "Template XY range has invalid column or row bounds")
-            rendered_ranges.append(f"({x_col},{y_col}[{row_from}:{row_to}])")
-            normalized_ranges.append(
-                {
-                    "x_col": x_col,
-                    "y_col": y_col,
-                    "row_from": row_from,
-                    "row_to": row_to,
-                }
-            )
+            range_book_value = raw.get("book_name")
+            range_book: str | None = None
+            if range_book_value is not None:
+                range_book = str(range_book_value).strip()
+                if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", range_book):
+                    return OperationResult(False, "Template XY range has an unsafe workbook internal name")
+            sheet_value = raw.get("sheet_index")
+            normalized = {
+                "x_col": x_col,
+                "y_col": y_col,
+                "row_from": row_from,
+                "row_to": row_to,
+            }
+            if range_book is not None:
+                normalized["book_name"] = range_book
+            layer_value = raw.get("layer_index")
+            layer_index: int | None = None
+            if layer_value is not None:
+                if isinstance(layer_value, bool):
+                    return OperationResult(False, "Template XY range graph layer index must be a positive integer")
+                try:
+                    layer_index = int(layer_value)
+                except (TypeError, ValueError):
+                    return OperationResult(False, "Template XY range has a nonnumeric graph layer index")
+                if isinstance(layer_value, float) and not layer_value.is_integer():
+                    return OperationResult(False, "Template XY range graph layer index must be a positive integer")
+                if layer_index < 1:
+                    return OperationResult(False, "Template XY range graph layer index must be positive")
+                normalized["layer_index"] = layer_index
+            if sheet_value is None and range_book is None:
+                rendered_ranges.append(f"({x_col},{y_col}[{row_from}:{row_to}])")
+            else:
+                if sheet_value is None:
+                    sheet_index = 1
+                else:
+                    try:
+                        sheet_index = int(sheet_value)
+                    except (TypeError, ValueError):
+                        return OperationResult(False, "Template XY range has a nonnumeric worksheet index")
+                if sheet_index < 1:
+                    return OperationResult(False, "Template XY range worksheet index must be positive")
+                rendered_ranges.append(
+                    f"[{range_book or safe_book}]{sheet_index}!"
+                    f"({x_col}[{row_from}:{row_to}],{y_col}[{row_from}:{row_to}])"
+                )
+                normalized["sheet_index"] = sheet_index
+            normalized_ranges.append(normalized)
+            explicit_layer_indices.append(layer_index)
         if not rendered_ranges:
             return OperationResult(False, "No template XY ranges were provided")
+
+        requested_group_layers: set[int] = set()
+        if group_layer_indices is not None:
+            for raw_layer_index in group_layer_indices:
+                if isinstance(raw_layer_index, bool):
+                    return OperationResult(
+                        False,
+                        "Template plot-group layer index must be a positive integer",
+                    )
+                try:
+                    layer_index = int(raw_layer_index)
+                except (TypeError, ValueError):
+                    return OperationResult(
+                        False,
+                        "Template plot-group layer index is nonnumeric",
+                    )
+                if (
+                    isinstance(raw_layer_index, float)
+                    and not raw_layer_index.is_integer()
+                ) or layer_index < 1:
+                    return OperationResult(
+                        False,
+                        "Template plot-group layer index must be a positive integer",
+                    )
+                requested_group_layers.add(layer_index)
+
+        normalized_stack_offsets: list[dict[str, float | int]] = []
+        for raw_offset in individual_stack_offsets or ():
+            if not isinstance(raw_offset, dict):
+                return OperationResult(
+                    False,
+                    "Every individual stack-offset contract must be an object",
+                )
+            try:
+                layer_index = int(raw_offset.get("layer_index"))
+                plot_index = int(raw_offset.get("plot_index"))
+                x_offset = float(raw_offset.get("x_offset", 0.0))
+                y_offset = float(raw_offset.get("y_offset", 0.0))
+                x_multiplier = float(raw_offset.get("x_multiplier", 1.0))
+                y_multiplier = float(raw_offset.get("y_multiplier", 1.0))
+            except (TypeError, ValueError, OverflowError):
+                return OperationResult(
+                    False,
+                    "Individual stack-offset contract contains a nonnumeric value",
+                )
+            if layer_index < 1 or plot_index < 1:
+                return OperationResult(
+                    False,
+                    "Individual stack-offset layer and plot indices must be positive",
+                )
+            if not all(
+                math.isfinite(value)
+                for value in (x_offset, y_offset, x_multiplier, y_multiplier)
+            ):
+                return OperationResult(
+                    False,
+                    "Individual stack-offset values must be finite",
+                )
+            normalized_stack_offsets.append(
+                {
+                    "layer_index": layer_index,
+                    "plot_index": plot_index,
+                    "x_offset": x_offset,
+                    "y_offset": y_offset,
+                    "x_multiplier": x_multiplier,
+                    "y_multiplier": y_multiplier,
+                }
+            )
+
+        plot_format_option_map = {
+            "color": "c",
+            "line_color": "cl",
+            "line_width": "w",
+            "line_style": "d",
+            "connect": "l",
+            "vertical_drop_lines": "lv",
+            "vertical_drop_line_color": "lvc",
+            "vertical_drop_line_style": "lvs",
+            "vertical_drop_line_width": "lvw",
+        }
+        normalized_plot_formats: list[dict[str, object]] = []
+        plot_format_targets: set[tuple[int, int]] = set()
+        for raw_format in plot_format_contracts or ():
+            if not isinstance(raw_format, dict):
+                return OperationResult(
+                    False,
+                    "Every native plot-format contract must be an object",
+                )
+            try:
+                layer_index = int(raw_format.get("layer_index"))
+                plot_index = int(raw_format.get("plot_index"))
+            except (TypeError, ValueError):
+                return OperationResult(
+                    False,
+                    "Native plot-format layer and plot indices must be numeric",
+                )
+            if layer_index < 1 or plot_index < 1:
+                return OperationResult(
+                    False,
+                    "Native plot-format layer and plot indices must be positive",
+                )
+            target = (layer_index, plot_index)
+            if target in plot_format_targets:
+                return OperationResult(
+                    False,
+                    "Native plot-format contract contains a duplicate layer/plot target",
+                )
+            values: dict[str, float] = {}
+            for key in plot_format_option_map:
+                if key not in raw_format:
+                    continue
+                try:
+                    value = float(raw_format[key])
+                except (TypeError, ValueError, OverflowError):
+                    return OperationResult(
+                        False,
+                        f"Native plot-format value is nonnumeric: {key}",
+                    )
+                if not math.isfinite(value):
+                    return OperationResult(
+                        False,
+                        f"Native plot-format value must be finite: {key}",
+                    )
+                values[key] = value
+            if not values:
+                return OperationResult(
+                    False,
+                    "Native plot-format contract contains no supported properties",
+                )
+            plot_format_targets.add(target)
+            normalized_plot_formats.append(
+                {
+                    "layer_index": layer_index,
+                    "plot_index": plot_index,
+                    **values,
+                }
+            )
 
         activated = self.run_labtalk(f'win -a "{quote_labtalk(safe_book)}"; layer -s 1;')
         if not activated.ok:
             return OperationResult(False, f"Could not activate template data workbook: {safe_book}")
-        template = quote_labtalk(to_origin_path(path.resolve()))
-        command = (
-            f"plotxy iy:=({','.join(rendered_ranges)}) plot:={ptype} size:=-1 "
-            f"rescale:={1 if rescale else 0} legend:={1 if legend else 0} "
-            f'ogl:=[<new template:="{template}" name:="{quote_labtalk(safe_graph)}">];'
+        uses_explicit_layers = any(index is not None for index in explicit_layer_indices)
+        if uses_explicit_layers:
+            for normalized, layer_index in zip(normalized_ranges, explicit_layer_indices):
+                normalized.setdefault("layer_index", layer_index or 1)
+            # Origin's template resolver prefers installed templates when it
+            # receives only a basename.  Scientific product names such as
+            # XRD can collide with Origin's own system templates, silently
+            # producing a valid-looking but completely different graph.
+            # CreatePage accepts an absolute path (including Unicode paths),
+            # so keep the detached asset identity explicit.
+            template_arg = str(path.resolve())
+            if path.is_absolute():
+                # Keep this best-effort for compatibility with
+                # ``create_graph_from_template``: Origin can still resolve a
+                # template filename after ``cd`` reports a nonzero status.
+                self.run_labtalk(f'cd "{quote_labtalk(to_origin_path(path.parent))}";')
+            try:
+                created_graph = self.app.CreatePage(3, safe_graph, template_arg)
+            except Exception as exc:
+                return OperationResult(
+                    False,
+                    f"Origin could not create a blank graph from template: {path.name}: {exc}",
+                    {"graph_name": safe_graph, "template_path": str(path)},
+                )
+            if not created_graph:
+                return OperationResult(
+                    False,
+                    f"Origin could not create a blank graph from template: {path.name}",
+                    {"graph_name": safe_graph, "template_path": str(path)},
+                )
+            template_axis_scales: dict[int, dict[str, float]] = {}
+            for layer_index in sorted(
+                {int(item["layer_index"]) for item in normalized_ranges}
+            ):
+                variables = {
+                    # Keep LabTalk numeric identifiers short.  Older Origin
+                    # engines truncate long identifiers, which can make the
+                    # five values alias one another silently.
+                    "x_from": f"rt{layer_index}xf",
+                    "x_to": f"rt{layer_index}xt",
+                    "y_from": f"rt{layer_index}yf",
+                    "y_to": f"rt{layer_index}yt",
+                    "link": f"rt{layer_index}lk",
+                }
+                captured = self.run_labtalk(
+                    f'win -a "{quote_labtalk(safe_graph)}"; layer -s {layer_index}; '
+                    f'{variables["x_from"]}=layer.x.from; '
+                    f'{variables["x_to"]}=layer.x.to; '
+                    f'{variables["y_from"]}=layer.y.from; '
+                    f'{variables["y_to"]}=layer.y.to; '
+                    f'{variables["link"]}=layer.link;'
+                )
+                if not captured.ok:
+                    return OperationResult(
+                        False,
+                        "Origin template axis scales could not be captured before plotting",
+                        {"graph_name": safe_graph, "layer_index": layer_index},
+                    )
+                scale: dict[str, float] = {}
+                for key, variable in variables.items():
+                    try:
+                        value = float(
+                            self.get_labtalk_variable(variable).payload.get("value")
+                        )
+                    except (TypeError, ValueError, OverflowError):
+                        return OperationResult(
+                            False,
+                            "Origin template axis scale readback was nonnumeric",
+                            {
+                                "graph_name": safe_graph,
+                                "layer_index": layer_index,
+                                "property": key,
+                            },
+                        )
+                    if not math.isfinite(value):
+                        return OperationResult(
+                            False,
+                            "Origin template axis scale readback was not finite",
+                            {
+                                "graph_name": safe_graph,
+                                "layer_index": layer_index,
+                                "property": key,
+                            },
+                        )
+                    scale[key] = value
+                template_axis_scales[layer_index] = scale
+            for rendered_range, normalized in zip(rendered_ranges, normalized_ranges):
+                layer_index = int(normalized["layer_index"])
+                command = (
+                    f"plotxy iy:={rendered_range} plot:={ptype} size:=-1 "
+                    f"rescale:={1 if rescale else 0} legend:={1 if legend else 0} "
+                    # Target by one-based layer index.  Reviewed overlay
+                    # templates commonly rename layers (for example RightY),
+                    # so synthesizing ``Layer2`` can report success while
+                    # adding no plot at all.
+                    f"ogl:=[{safe_graph}]{layer_index};"
+                )
+                plotted = self.run_labtalk(command)
+                if not plotted.ok:
+                    return OperationResult(
+                        False,
+                        f"Origin plotxy failed for graph layer {layer_index} from template: {path.name}",
+                        {
+                            "graph_name": safe_graph,
+                            "template_path": str(path),
+                            "layer_index": layer_index,
+                        },
+                    )
+        else:
+            template_axis_scales = {}
+            template = quote_labtalk(to_origin_path(path.resolve()))
+            command = (
+                f"plotxy iy:=({','.join(rendered_ranges)}) plot:={ptype} size:=-1 "
+                f"rescale:={1 if rescale else 0} legend:={1 if legend else 0} "
+                f'ogl:=[<new template:="{template}" name:="{quote_labtalk(safe_graph)}">];'
+            )
+            plotted = self.run_labtalk(command)
+            if not plotted.ok:
+                return OperationResult(
+                    False,
+                    f"Origin plotxy failed to create graph from template: {path.name}",
+                    {"graph_name": safe_graph, "template_path": str(path)},
+                )
+        if uses_explicit_layers:
+            expected_by_layer: dict[int, int] = {}
+            for normalized in normalized_ranges:
+                layer_index = int(normalized["layer_index"])
+                expected_by_layer[layer_index] = expected_by_layer.get(layer_index, 0) + 1
+            actual_plot_count = 0
+            for layer_index, expected_count in expected_by_layer.items():
+                layer = self._graph_layer(safe_graph, layer_index)
+                if layer is None:
+                    return OperationResult(
+                        False,
+                        f"Origin template graph layer {layer_index} was not created",
+                        {
+                            "graph_name": safe_graph,
+                            "template_path": str(path),
+                            "layer_index": layer_index,
+                        },
+                    )
+                actual_count = int(layer.DataPlots.Count)
+                if actual_count != expected_count:
+                    return OperationResult(
+                        False,
+                        "Origin template graph layer plot count does not match the explicit XY ranges",
+                        {
+                            "graph_name": safe_graph,
+                            "template_path": str(path),
+                            "layer_index": layer_index,
+                            "expected_plot_count": expected_count,
+                            "actual_plot_count": actual_count,
+                        },
+                    )
+                actual_plot_count += actual_count
+        else:
+            layer = self._graph_layer(safe_graph, 1)
+            if layer is None:
+                return OperationResult(
+                    False,
+                    "Origin plotxy returned success but the requested template graph was not created",
+                    {"graph_name": safe_graph, "template_path": str(path)},
+                )
+            actual_plot_count = int(layer.DataPlots.Count)
+            if actual_plot_count != len(normalized_ranges):
+                return OperationResult(
+                    False,
+                    "Origin template graph plot count does not match the explicit XY ranges",
+                    {
+                        "graph_name": safe_graph,
+                        "template_path": str(path),
+                        "expected_plot_count": len(normalized_ranges),
+                        "actual_plot_count": actual_plot_count,
+                    },
+                )
+
+        if group_plots and not requested_group_layers:
+            if uses_explicit_layers:
+                requested_group_layers.update(
+                    layer_index
+                    for layer_index, expected_count in expected_by_layer.items()
+                    if expected_count > 1
+                )
+            else:
+                requested_group_layers.add(1)
+
+        available_layer_counts = (
+            expected_by_layer
+            if uses_explicit_layers
+            else {1: len(normalized_ranges)}
         )
-        plotted = self.run_labtalk(command)
-        if not plotted.ok:
-            return OperationResult(
-                False,
-                f"Origin plotxy failed to create graph from template: {path.name}",
-                {"graph_name": safe_graph, "template_path": str(path)},
+        for layer_index in sorted(requested_group_layers):
+            expected_count = available_layer_counts.get(layer_index, 0)
+            if expected_count < 2:
+                return OperationResult(
+                    False,
+                    "Origin template plot grouping requires at least two plots in the requested layer",
+                    {
+                        "graph_name": safe_graph,
+                        "template_path": str(path),
+                        "layer_index": layer_index,
+                        "plot_count": expected_count,
+                    },
+                )
+            grouped = self.run_labtalk(
+                f'win -a "{quote_labtalk(safe_graph)}"; '
+                f"layer -s {layer_index}; layer -g;"
             )
-        layer = self._graph_layer(safe_graph, 1)
-        if layer is None:
-            return OperationResult(
-                False,
-                "Origin plotxy returned success but the requested template graph was not created",
-                {"graph_name": safe_graph, "template_path": str(path)},
+            if not grouped.ok:
+                return OperationResult(
+                    False,
+                    "Origin template graph plots could not be grouped",
+                    {
+                        "graph_name": safe_graph,
+                        "template_path": str(path),
+                        "layer_index": layer_index,
+                    },
+                )
+
+        plot_format_readback: list[dict[str, object]] = []
+        for contract in normalized_plot_formats:
+            layer_index = int(contract["layer_index"])
+            plot_index = int(contract["plot_index"])
+            layer = self._graph_layer(safe_graph, layer_index)
+            if layer is None or plot_index > int(layer.DataPlots.Count):
+                return OperationResult(
+                    False,
+                    "Origin native plot-format target does not exist",
+                    {
+                        "graph_name": safe_graph,
+                        "layer_index": layer_index,
+                        "plot_index": plot_index,
+                    },
+                )
+            plot_name = str(layer.DataPlots.Item(plot_index - 1).Name)
+            expected = {
+                key: float(value)
+                for key, value in contract.items()
+                if key in plot_format_option_map
+            }
+            activated_format_layer = self.run_labtalk(
+                f'win -a "{quote_labtalk(safe_graph)}"; layer -s {layer_index};'
             )
-        actual_plot_count = int(layer.DataPlots.Count)
-        if actual_plot_count != len(normalized_ranges):
-            return OperationResult(
-                False,
-                "Origin template graph plot count does not match the explicit XY ranges",
+            if not activated_format_layer.ok:
+                return OperationResult(
+                    False,
+                    "Origin native plot-format target layer could not be activated",
+                    {
+                        "graph_name": safe_graph,
+                        "layer_index": layer_index,
+                        "plot_index": plot_index,
+                    },
+                )
+            commands = " ".join(
+                f"set {plot_name} -{plot_format_option_map[key]} {value:.17g};"
+                for key, value in expected.items()
+            )
+            applied = self.run_labtalk(commands)
+            if not applied.ok:
+                return OperationResult(
+                    False,
+                    "Origin native plot-format properties could not be applied",
+                    {
+                        "graph_name": safe_graph,
+                        "layer_index": layer_index,
+                        "plot_index": plot_index,
+                        "plot_name": plot_name,
+                    },
+                )
+            actual: dict[str, float] = {}
+            for key, expected_value in expected.items():
+                option = plot_format_option_map[key]
+                variable = f"__rdop_plotfmt_{layer_index}_{plot_index}_{option}"
+                queried = self.run_labtalk(
+                    f"get {plot_name} -{option} {variable};"
+                )
+                if not queried.ok:
+                    return OperationResult(
+                        False,
+                        "Origin native plot-format readback failed",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "plot_index": plot_index,
+                            "property": key,
+                        },
+                    )
+                try:
+                    actual_value = float(
+                        self.get_labtalk_variable(variable).payload.get("value")
+                    )
+                except (TypeError, ValueError, OverflowError):
+                    return OperationResult(
+                        False,
+                        "Origin native plot-format readback was nonnumeric",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "plot_index": plot_index,
+                            "property": key,
+                        },
+                    )
+                if not math.isclose(
+                    actual_value,
+                    expected_value,
+                    rel_tol=1e-12,
+                    abs_tol=1e-9,
+                ):
+                    return OperationResult(
+                        False,
+                        "Origin native plot-format readback did not match the contract: "
+                        f"layer {layer_index}, plot {plot_index}, {key}, "
+                        f"expected {expected_value:.17g}, actual {actual_value:.17g}",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "plot_index": plot_index,
+                            "property": key,
+                            "expected": expected_value,
+                            "actual": actual_value,
+                        },
+                    )
+                actual[key] = actual_value
+            plot_format_readback.append(
                 {
-                    "graph_name": safe_graph,
-                    "template_path": str(path),
-                    "expected_plot_count": len(normalized_ranges),
-                    "actual_plot_count": actual_plot_count,
-                },
+                    "layer_index": layer_index,
+                    "plot_index": plot_index,
+                    "plot_name": plot_name,
+                    **actual,
+                }
             )
+
+        stack_offsets_by_layer: dict[int, list[dict[str, float | int]]] = {}
+        for contract in normalized_stack_offsets:
+            stack_offsets_by_layer.setdefault(int(contract["layer_index"]), []).append(
+                contract
+            )
+        stack_readback: list[dict[str, object]] = []
+        for layer_index, contracts in sorted(stack_offsets_by_layer.items()):
+            layer = self._graph_layer(safe_graph, layer_index)
+            if layer is None:
+                return OperationResult(
+                    False,
+                    "Origin individual stack-offset target layer was not created",
+                    {"graph_name": safe_graph, "layer_index": layer_index},
+                )
+            x_enabled = any(
+                float(contract["x_offset"]) != 0.0
+                or float(contract["x_multiplier"]) != 1.0
+                for contract in contracts
+            )
+            y_enabled = any(
+                float(contract["y_offset"]) != 0.0
+                or float(contract["y_multiplier"]) != 1.0
+                for contract in contracts
+            )
+            configured = self.run_labtalk(
+                f'win -a "{quote_labtalk(safe_graph)}"; '
+                f"layer -s {layer_index}; "
+                f"layer -b s 4 {1 if x_enabled else 0} {1 if y_enabled else 0};"
+            )
+            if not configured.ok:
+                return OperationResult(
+                    False,
+                    "Origin individual stack-offset mode could not be enabled",
+                    {"graph_name": safe_graph, "layer_index": layer_index},
+                )
+            for contract in sorted(contracts, key=lambda item: int(item["plot_index"])):
+                plot_index = int(contract["plot_index"])
+                if plot_index > int(layer.DataPlots.Count):
+                    return OperationResult(
+                        False,
+                        "Origin individual stack-offset plot index is out of range",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "plot_index": plot_index,
+                        },
+                    )
+                plot_name = str(layer.DataPlots.Item(plot_index - 1).Name)
+                expected = {
+                    "sx": float(contract["x_offset"]),
+                    "sy": float(contract["y_offset"]),
+                    "sxs": float(contract["x_multiplier"]),
+                    "sys": float(contract["y_multiplier"]),
+                }
+                enabled_options = (
+                    ({"sx", "sxs"} if x_enabled else set())
+                    | ({"sy", "sys"} if y_enabled else set())
+                )
+                commands = " ".join(
+                    f"set {plot_name} -{option} {value:.17g};"
+                    for option, value in expected.items()
+                    if option in enabled_options
+                )
+                applied = self.run_labtalk(commands) if commands else OperationResult(
+                    True,
+                    "No enabled stack-offset dimension required a write",
+                )
+                if not applied.ok:
+                    return OperationResult(
+                        False,
+                        "Origin individual stack-offset values could not be applied",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "plot_index": plot_index,
+                            "plot_name": plot_name,
+                        },
+                    )
+                actual: dict[str, float] = {}
+                for option, expected_value in expected.items():
+                    variable = f"__rdop_stack_{layer_index}_{plot_index}_{option}"
+                    queried = self.run_labtalk(
+                        f"get {plot_name} -{option} {variable};"
+                    )
+                    if not queried.ok:
+                        return OperationResult(
+                            False,
+                            "Origin individual stack-offset readback failed",
+                            {
+                                "graph_name": safe_graph,
+                                "layer_index": layer_index,
+                                "plot_index": plot_index,
+                                "option": option,
+                            },
+                        )
+                    try:
+                        actual_value = float(
+                            self.get_labtalk_variable(variable).payload.get("value")
+                        )
+                    except (TypeError, ValueError, OverflowError):
+                        return OperationResult(
+                            False,
+                            "Origin individual stack-offset readback was nonnumeric",
+                            {
+                                "graph_name": safe_graph,
+                                "layer_index": layer_index,
+                                "plot_index": plot_index,
+                                "option": option,
+                            },
+                        )
+                    if not math.isclose(
+                        actual_value,
+                        expected_value,
+                        rel_tol=1e-12,
+                        abs_tol=1e-9,
+                    ):
+                        return OperationResult(
+                            False,
+                            "Origin individual stack-offset readback did not match the contract",
+                            {
+                                "graph_name": safe_graph,
+                                "layer_index": layer_index,
+                                "plot_index": plot_index,
+                                "option": option,
+                                "expected": expected_value,
+                                "actual": actual_value,
+                            },
+                        )
+                    actual[option] = actual_value
+                stack_readback.append(
+                    {
+                        "layer_index": layer_index,
+                        "plot_index": plot_index,
+                        "plot_name": plot_name,
+                        **actual,
+                    }
+                )
+        axis_scale_readback: dict[int, dict[str, float]] = {}
+        for layer_index, scale in sorted(template_axis_scales.items()):
+            # Linked overlay layers derive their scales from their parent.
+            # Restoring an inherited scale directly can break the link; only
+            # restore independent layers whose native range was changed by
+            # plot insertion or Individual Stack mode.
+            if int(round(scale["link"])) != 0:
+                continue
+            restored = self.run_labtalk(
+                f'win -a "{quote_labtalk(safe_graph)}"; layer -s {layer_index}; '
+                f'layer.x.from={scale["x_from"]:.17g}; '
+                f'layer.x.to={scale["x_to"]:.17g}; '
+                f'layer.y.from={scale["y_from"]:.17g}; '
+                f'layer.y.to={scale["y_to"]:.17g};'
+            )
+            if not restored.ok:
+                return OperationResult(
+                    False,
+                    "Origin template axis scales could not be restored after plotting",
+                    {"graph_name": safe_graph, "layer_index": layer_index},
+                )
+            variables = {
+                "x_from": f"rr{layer_index}xf",
+                "x_to": f"rr{layer_index}xt",
+                "y_from": f"rr{layer_index}yf",
+                "y_to": f"rr{layer_index}yt",
+            }
+            queried = self.run_labtalk(
+                " ".join(
+                    [
+                        f'{variables["x_from"]}=layer.x.from;',
+                        f'{variables["x_to"]}=layer.x.to;',
+                        f'{variables["y_from"]}=layer.y.from;',
+                        f'{variables["y_to"]}=layer.y.to;',
+                    ]
+                )
+            )
+            if not queried.ok:
+                return OperationResult(
+                    False,
+                    "Origin restored axis scale readback failed",
+                    {"graph_name": safe_graph, "layer_index": layer_index},
+                )
+            actual_scale: dict[str, float] = {}
+            for key, variable in variables.items():
+                actual_value = float(
+                    self.get_labtalk_variable(variable).payload.get("value")
+                )
+                if not math.isclose(
+                    actual_value,
+                    scale[key],
+                    rel_tol=1e-12,
+                    abs_tol=1e-9,
+                ):
+                    return OperationResult(
+                        False,
+                        "Origin restored axis scale did not match the template: "
+                        f"layer {layer_index}, {key}, expected {scale[key]:.17g}, "
+                        f"actual {actual_value:.17g}",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "property": key,
+                            "expected": scale[key],
+                            "actual": actual_value,
+                        },
+                    )
+                actual_scale[key] = actual_value
+            axis_scale_readback[layer_index] = actual_scale
         return OperationResult(
             True,
             "Graph created from absolute template with explicit X/Y ranges",
@@ -787,6 +1497,14 @@ class OriginOperations:
                 "graph_name": safe_graph,
                 "template_path": str(path),
                 "plot_type": plot_type,
+                "group_plots": bool(group_plots),
+                "group_layer_indices": sorted(requested_group_layers),
+                "individual_stack_offsets": normalized_stack_offsets,
+                "individual_stack_readback": stack_readback,
+                "plot_format_contracts": normalized_plot_formats,
+                "plot_format_readback": plot_format_readback,
+                "template_axis_scales": template_axis_scales,
+                "axis_scale_readback": axis_scale_readback,
                 "xy_ranges": normalized_ranges,
                 "plot_count": actual_plot_count,
             },
@@ -796,15 +1514,28 @@ class OriginOperations:
         self,
         book_name: str,
         column_indices: Iterable[int],
+        *,
+        sheet_index: int = 1,
     ) -> OperationResult:
         """Read Origin column labels and designations through LabTalk variables."""
 
         book = str(book_name).strip()
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", book):
             return OperationResult(False, "Worksheet book has an unsafe internal name")
-        activated = self.run_labtalk(f'win -a "{quote_labtalk(book)}"; layer -s 1;')
+        try:
+            sheet = int(sheet_index)
+        except (TypeError, ValueError):
+            return OperationResult(False, "Worksheet index is not numeric")
+        if sheet < 1:
+            return OperationResult(False, "Worksheet index must be one-based and positive")
+        activated = self.run_labtalk(
+            f'win -a "{quote_labtalk(book)}"; layer -s {sheet};'
+        )
         if not activated.ok:
-            return OperationResult(False, f"Could not activate worksheet book: {book}")
+            return OperationResult(
+                False,
+                f"Could not activate worksheet book/sheet: {book}/{sheet}",
+            )
         metadata: list[dict[str, object]] = []
         for raw_index in column_indices:
             try:
@@ -840,22 +1571,35 @@ class OriginOperations:
         return OperationResult(
             True,
             "Worksheet column metadata read",
-            {"book_name": book, "columns": metadata},
+            {"book_name": book, "sheet_index": sheet, "columns": metadata},
         )
 
     def set_worksheet_column_metadata(
         self,
         book_name: str,
         columns: Iterable[dict[str, object]],
+        *,
+        sheet_index: int = 1,
     ) -> OperationResult:
         """Write labels while preserving Origin rich-text backslashes."""
 
         book = str(book_name).strip()
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", book):
             return OperationResult(False, "Worksheet book has an unsafe internal name")
-        activated = self.run_labtalk(f'win -a "{quote_labtalk(book)}"; layer -s 1;')
+        try:
+            sheet = int(sheet_index)
+        except (TypeError, ValueError):
+            return OperationResult(False, "Worksheet index is not numeric")
+        if sheet < 1:
+            return OperationResult(False, "Worksheet index must be one-based and positive")
+        activated = self.run_labtalk(
+            f'win -a "{quote_labtalk(book)}"; layer -s {sheet};'
+        )
         if not activated.ok:
-            return OperationResult(False, f"Could not activate worksheet book: {book}")
+            return OperationResult(
+                False,
+                f"Could not activate worksheet book/sheet: {book}/{sheet}",
+            )
         updated: list[int] = []
         for raw in columns:
             if not isinstance(raw, dict):
@@ -884,7 +1628,7 @@ class OriginOperations:
         return OperationResult(
             True,
             "Worksheet column metadata written",
-            {"book_name": book, "column_indices": updated},
+            {"book_name": book, "sheet_index": sheet, "column_indices": updated},
         )
 
     def save_graph_theme(

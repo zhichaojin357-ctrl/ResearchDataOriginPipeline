@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "XRD",
+  "status": "accepted",
+  "generated_at": "2026-08-23T12:00:00+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed four native Origin sample curves, native reference-card sticks, bold visible X/Y axis titles, exact legend and annotations, correct three-layer layout, and no blank graph or raster/background surrogate.",
+  "validation_invocation": "Direct formal replay-function invocation with a task-owned isolated Origin.Application DispatchEx instance; an unrelated inaccessible windowless Origin orphan was neither reused nor closed.",
+  "reproduction_command": "python run.py origin-style-asset-replay --template-plan templates/origin_styles/validation_plans/XRD_verified_20260823.json --output-dir <configured-output-root>/diagnostics/20260823_XRD_project_asset_formal_replay_01 --with-origin",
+  "formal_evidence_location": "diagnostics/20260823_XRD_project_asset_formal_replay_01/products/XRD/comparison.json",
+  "validation_plan": {
+    "path": "validation_plans/XRD_verified_20260823.json",
+    "sha256": "81af66cb27f14ad2bb79d2f52ee0be752dfa986c56fe6d77b8c2d5f4df05bcaa"
+  },
+  "origin": {
+    "entrypoint": "Origin.Application",
+    "version": "10.3",
+    "build": 197,
+    "task_owned_isolated_instance": true
+  },
+  "pipeline_git_base_commit": "2bf94bc",
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/XRD.otpu",
+    "sha256": "a891cad5f30b377c4c811708fa1fc56d272e218932ff02ade4bc25406149ebe1",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju"
+  },
+  "reference": {
+    "path": "reference_opju/XRD.opju",
+    "graph_page": "Graph4",
+    "sha256": "54d6485d6f28e20c6b0ec41b1872c48c49b5653f05363c391c317c7404e04ed9",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/XRD.json",
+    "sha256": "921b4574697ebef0d4daae1e100703201fc460025b2d71fd52834f340b4719d8",
+    "source_series_count": 5,
+    "explicit_xy_ranges": true,
+    "layer_count": 3,
+    "group_layer_indices": [1],
+    "native_individual_stack": true
+  },
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "eea017e91044b4fbfaae70bffe442b7210baf7b85f0394a967cfc5695f11600e",
+    "generated_plot_values_sha256": "eea017e91044b4fbfaae70bffe442b7210baf7b85f0394a967cfc5695f11600e",
+    "reference_plot_mapping_sha256": "2b5e7b5a5e380de40e8ebf810fb90d171057ab3638f946908b2e2f34f80de753",
+    "generated_plot_mapping_sha256": "2b5e7b5a5e380de40e8ebf810fb90d171057ab3638f946908b2e2f34f80de753"
+  },
+  "style": {
+    "status": "pass",
+    "compared_fields": 69,
+    "matched_fields": 69,
+    "axis_title_hard_gate": true,
+    "x_axis_title": "\\b(2θ (degree))",
+    "y_axis_title": "\\b(Intensity (a.u))"
+  },
+  "native_origin_objects": {
+    "worksheet_data": true,
+    "sample_curves": true,
+    "reference_card_sticks": true,
+    "axis_titles": true,
+    "legend": true,
+    "annotations": true,
+    "raster_or_background_surrogate": false,
+    "external_plotting_library_used_for_product": false
+  },
+  "pixels": {
+    "same_size": true,
+    "exact_pixel_match": true,
+    "changed_pixels": 0,
+    "rms": 0.0
+  },
+  "save_reopen": {
+    "saved_reopened": true,
+    "graph_page": "Graph4"
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  }
+}
