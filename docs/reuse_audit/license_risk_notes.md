@@ -63,6 +63,14 @@ Optional dependencies must remain optional:
 - the current automated pipeline must not call pyGAPS BET fitting, pore-size modeling, material classification, or any automatic adsorption interpretation.
 - If pyGAPS is unavailable or construction fails, the BET processor falls back to the exported-table parser and keeps only table-derived candidate values.
 
+## Current XRD Jade/PDF Decision
+
+- The formal XRD data-only path reuses the project table reader and SciPy adapter, then reads the user's configured local Jade/PDF XID/SID/RID files with Python standard-library `struct` and `mmap`; no third-party decoder source is copied or translated.
+- Jade/PDF/ICSD data remain external licensed database assets. The repository does not vendor them, and the `xrd-analyze` command requires an explicit `--database-dir`.
+- Database ownership or redistribution rights are not inferred from local availability. Users must provide a licensed/authorized database location.
+- `xrdfit` remains optional and unverified; it is not imported by the formal XRD reader or candidate matcher.
+- Reference intensity decoding and all phase rankings remain candidates requiring manual review. No hkl, purity, quantitative phase, crystallite-size, strain, or mechanism conclusion is authorized.
+
 ## Current OpenLab HPLC Decision
 
 - Production `.dx` decoding is implemented by the in-repository strict OPC/ACMD20/Signal179 adapter. It uses Python standard-library ZIP/XML handling plus NumPy and does not load OpenLab, MestReNova, a `.pmx` file, or any proprietary Agilent assembly.

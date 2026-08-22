@@ -2,8 +2,10 @@
 
 import csv
 import hashlib
+import json
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.file_utils import (
@@ -27,6 +29,9 @@ from src.processors.eis import (
     read_eis_measurements,
 )
 from src.processors.profiles import SUPPORTED_PROCESSOR_PROFILES
+
+if TYPE_CHECKING:
+    from src.core.xrd_jade import XrdPhaseMatchOptions
 
 
 MANUAL_CHECK_ITEMS = {
@@ -53,9 +58,12 @@ def process_table_dataset(
     force: bool = False,
     triage: dict | None = None,
     output_root: Path | None = None,
+    xrd_phase_options: XrdPhaseMatchOptions | None = None,
 ) -> dict:
     data_type = classification["inferred_data_type"]
     processor_name = classification["selected_processor"]
+    if xrd_phase_options is not None and data_type != "XRD":
+        raise ValueError("xrd_phase_options can only be used with XRD data")
     if (
         classification.get("supported_in_pipeline") is False
         or processor_name == "none"
@@ -95,7 +103,10 @@ def process_table_dataset(
     metadata_dir = effective_output_root / "metadata" / safe_name(data_type)
     processed_csv = processed_dir / f"{output_slug}_processed.csv"
     metadata_path = metadata_dir / output_slug / "metadata.json"
+    xrd_match_path = metadata_path.parent / "card_match_candidates.json" if xrd_phase_options is not None else None
     planned_outputs = [processed_csv, metadata_path]
+    if xrd_match_path is not None:
+        planned_outputs.append(xrd_match_path)
     if not no_origin:
         origin_paths = plan_origin_plot_output_paths(
             project_root,
@@ -122,6 +133,7 @@ def process_table_dataset(
 
     warnings = list(input_warnings)
     key_results = {}
+    xrd_phase_result: dict[str, object] | None = None
     processed_headers: list[str] = []
     if data_type == "HPLC/LC exported data":
         key_results = type_specific_results(data_type, numeric, rows)
@@ -190,12 +202,21 @@ def process_table_dataset(
         status = "fail"
     else:
         numeric = sorted(numeric, key=lambda item: item[0], reverse=data_type in {"XPS", "FTIR"})
-        headers, processed_rows = build_processed_table(data_type, numeric, rows)
+        xrd_peak_parameters = (
+            (
+                xrd_phase_options.peak_prominence_normalized,
+                xrd_phase_options.minimum_peak_distance_deg,
+            )
+            if data_type == "XRD" and xrd_phase_options is not None
+            else None
+        )
+        headers, processed_rows = build_processed_table(
+            data_type,
+            numeric,
+            rows,
+            xrd_peak_parameters=xrd_peak_parameters,
+        )
         processed_headers = headers
-        with processed_csv.open("w", encoding="utf-8", newline="") as handle:
-            writer = csv.writer(handle)
-            writer.writerow(headers)
-            writer.writerows(processed_rows)
         y_values = [value for _, value in numeric]
         key_results = {
             "point_count": len(numeric),
@@ -204,7 +225,56 @@ def process_table_dataset(
             "y_min": min(y_values),
             "y_max": max(y_values),
         }
-        key_results.update(type_specific_results(data_type, numeric, rows))
+        key_results.update(
+            type_specific_results(
+                data_type,
+                numeric,
+                rows,
+                xrd_peak_parameters=xrd_peak_parameters,
+            )
+        )
+        if data_type == "XRD" and xrd_phase_options is not None:
+            from src.core.xrd_jade import match_xrd_phases
+
+            assert xrd_match_path is not None
+            xrd_phase_result = match_xrd_phases(numeric, xrd_phase_options)
+            xrd_match_path.write_text(
+                json.dumps(xrd_phase_result, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            warnings.extend(str(item) for item in xrd_phase_result.get("warnings", []))
+            matches = list(xrd_phase_result.get("matches", []))
+            key_results["xrd_phase_matching"] = {
+                "status": xrd_phase_result.get("status"),
+                "candidate_count": xrd_phase_result.get("candidate_count"),
+                "database": xrd_phase_result.get("database"),
+                "peak_detection": xrd_phase_result.get("peak_detection"),
+                "parameters": xrd_phase_result.get("parameters"),
+                "top_candidates": [
+                    {
+                        key: item.get(key)
+                        for key in (
+                            "card_id",
+                            "formula",
+                            "database_name",
+                            "matched_peak_count",
+                            "match_score_candidate",
+                            "confidence_candidate",
+                        )
+                    }
+                    for item in matches[:5]
+                    if isinstance(item, dict)
+                ],
+                "candidate_output": xrd_match_path,
+                "manual_check_required": True,
+            }
+        # Phase screening is an input to this data product.  Keep all output
+        # files absent until it has completed, so a Jade/phase failure cannot
+        # leave a processed CSV that has no matching metadata.
+        with processed_csv.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(headers)
+            writer.writerows(processed_rows)
         if data_type == "UV-vis DRS":
             warnings.append("Eg candidate requires configured Tauc interval selection.")
         if (
@@ -253,6 +323,8 @@ def process_table_dataset(
         if profile
         else MANUAL_CHECK_ITEMS.get(data_type, ("manual_check_required by pipeline policy",))
     )
+    if xrd_phase_result is not None:
+        manual_check_items.extend(str(item) for item in xrd_phase_result.get("manual_check_items", []))
     if data_type == "EIS":
         manual_check_items.append(
             "Select any equivalent circuit, fitting interval, and excluded points manually; the default processor did not run a fit."
@@ -263,6 +335,11 @@ def process_table_dataset(
     ):
         manual_check_items.append("Confirm the photocurrent input current unit; processing assumed A before conversion to uA.")
     forbidden_claims = _forbidden_claims(project_root, data_type, profile)
+    if xrd_phase_result is not None:
+        for claim in xrd_phase_result.get("forbidden_claims", []):
+            rendered = str(claim)
+            if rendered not in forbidden_claims:
+                forbidden_claims.append(rendered)
     plot_type = _metadata_plot_type(data_type, key_results, profile)
     return write_metadata(
         project_root=project_root,
@@ -282,7 +359,23 @@ def process_table_dataset(
         warnings=warnings,
         key_results=key_results,
         triage=triage,
-        parameters={"algorithm_provenance": _algorithm_provenance(data_type, processor_name, processed_headers, key_results)},
+        parameters={
+            "algorithm_provenance": _algorithm_provenance(data_type, processor_name, processed_headers, key_results),
+            **(
+                {
+                    "xrd_phase_matching": {
+                        "database_stem": xrd_phase_options.database_stem,
+                        "peak_prominence_normalized": xrd_phase_options.peak_prominence_normalized,
+                        "minimum_peak_distance_deg": xrd_phase_options.minimum_peak_distance_deg,
+                        "card_tolerance_deg": xrd_phase_options.card_tolerance_deg,
+                        "minimum_card_relative_intensity": xrd_phase_options.minimum_card_relative_intensity,
+                        "wavelength_angstrom": xrd_phase_options.wavelength_angstrom,
+                    }
+                }
+                if xrd_phase_options is not None
+                else {}
+            ),
+        },
         output_root=effective_output_root,
     )
 
@@ -434,7 +527,17 @@ def _reaction_response_axis_title(source_headers: list[str]) -> str:
 def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str], key_results: dict) -> dict:
     candidate_methods = []
     if "peak_position_candidates" in key_results:
-        candidate_methods.append("local_neighbor_peak_candidates")
+        if data_type == "XRD" and isinstance(key_results.get("peak_detection"), dict):
+            peak_detection = key_results["peak_detection"]
+            method = str(peak_detection.get("method") or "unknown")
+            if method == "scipy.signal.find_peaks":
+                candidate_methods.append("scipy_prominence_distance_peak_candidates")
+            elif method == "local_neighbor_peak_candidates":
+                candidate_methods.append("local_neighbor_peak_candidates_fallback")
+            else:
+                candidate_methods.append(f"xrd_phase_peak_detection_{method}")
+        else:
+            candidate_methods.append("local_neighbor_peak_candidates")
     if "valley_position_candidates" in key_results:
         candidate_methods.append("local_neighbor_valley_candidates")
     if "integral_area_candidate" in key_results or "area_candidate" in key_results:
@@ -492,6 +595,8 @@ def _algorithm_provenance(data_type: str, processor_name: str, headers: list[str
         provenance["adapter_results"] = key_results["adapter_results"]
     if data_type == "EIS":
         provenance["equivalent_circuit_fit_policy"] = "not_run_blocked_by_policy"
+    if data_type == "XRD" and isinstance(key_results.get("peak_detection"), dict):
+        provenance["xrd_peak_detection"] = key_results["peak_detection"]
     if "linear_fit_point_count" in key_results:
         provenance["fit_point_count"] = key_results["linear_fit_point_count"]
         provenance["fit_method"] = "ordinary_least_squares_candidate"

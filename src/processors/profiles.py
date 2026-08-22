@@ -65,10 +65,10 @@ SUPPORTED_PROCESSOR_PROFILES = MappingProxyType(
         "XRD": _profile(
             "XRD",
             "xrd_processor",
+            ("confirm candidate peak positions and any normalization",),
             (
-                "confirm candidate peak positions, local Jade/PDF card identifiers, match tolerances, alternatives, and any normalization",
+                "do not present candidate card rankings as confirmed phase identity, label crystal planes, or claim phase purity automatically",
             ),
-            ("do not label crystal planes or claim phase purity automatically",),
             ("2theta-intensity line plot", "stacked pattern overlay"),
         ),
         "UV-vis DRS": _profile(

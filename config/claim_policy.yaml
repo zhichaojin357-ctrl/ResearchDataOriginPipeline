@@ -88,7 +88,7 @@
       ],
       "allowed": [
         "output candidate peak positions",
-        "search the configured local Jade/PDF card database and output automatic phase matches with card identifiers, matched peaks, alternatives, and confidence"
+        "search the configured local Jade/PDF card database and output manual-review reference-card candidate rankings with card identifiers, matched peaks, alternatives, and candidate confidence"
       ]
     },
     "EIS": {

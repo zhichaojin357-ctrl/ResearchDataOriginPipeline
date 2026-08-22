@@ -10,6 +10,7 @@ The latest full codebase audit is
 - Scan and classify characterization data.
 - Build triage and reviewed queues.
 - Process supported numeric data into normalized CSV plus `metadata.json`.
+- Process one exported XRD dataset directly against an explicitly selected local Jade/PDF XID/SID/RID group, producing candidate-card evidence without Origin or plotting.
 - Generate OriginPro products, save `.opju`, export 600 dpi `.tif`, and write preview/report artifacts.
 - Keep uncertain or high-risk interpretation as manual-review fields.
 
@@ -44,6 +45,15 @@ The processor registry currently supports 15 maintained pipeline entries:
 - EIS
 
 SEM, TEM, NMR, MS, and kinetics/reference folders remain scan-only.
+
+The direct XRD card-matching path accepts exported tabular diffraction data.
+Binary vendor `.raw` decoding remains unsupported. Full-library screening is
+composition-blind and produces manual-review candidates only; it does not
+authorize automatic phase, purity, hkl, or quantitative-phase conclusions.
+The J7 reader has strict synthetic XID/SID/RID regression coverage, but no
+licensed real Jade database or trusted exported card was found in the current
+project/data scope. Runtime results therefore retain an explicit
+candidate-only decoder warning until a local trusted-card comparison is run.
 
 ## Origin Requirements
 

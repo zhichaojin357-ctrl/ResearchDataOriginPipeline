@@ -240,6 +240,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="explicitly overwrite every preflighted output owned by this timestamped XRD run",
     )
 
+    xrd_analysis = subparsers.add_parser(
+        "xrd-analyze",
+        help="process one exported XRD dataset and generate Jade/ICSD phase-match candidates without Origin or plotting",
+    )
+    xrd_analysis.add_argument("--source", type=Path, required=True, help="one exported XRD TXT/CSV/DAT/XY/XLSX file")
+    xrd_analysis.add_argument("--database-dir", type=Path, required=True, help="directory containing one Jade XID/SID/RID group")
+    xrd_analysis.add_argument("--database-stem", default="ICSD-ALL")
+    xrd_analysis.add_argument("--card-id", action="append", default=[], help="card ID to compare; repeat as needed")
+    xrd_analysis.add_argument("--card-query", action="append", default=[], help="formula or phase-name query; repeat as needed")
+    xrd_analysis.add_argument("--full-library-screen", action="store_true", help="composition-blind exploratory screen of the selected database group")
+    xrd_analysis.add_argument("--query-limit", type=int, default=20)
+    xrd_analysis.add_argument("--result-limit", type=int, default=20)
+    xrd_analysis.add_argument("--wavelength", type=float, default=1.5406, help="X-ray wavelength in angstrom")
+    xrd_analysis.add_argument("--prominence", type=float, default=0.05, help="normalized candidate-peak prominence")
+    xrd_analysis.add_argument("--distance-deg", type=float, default=0.10, help="minimum candidate-peak distance in degrees")
+    xrd_analysis.add_argument("--card-tolerance", type=float, default=0.20, help="2theta card-match tolerance in degrees")
+    xrd_analysis.add_argument("--min-card-intensity", type=float, default=10.0, help="minimum reference relative intensity")
+    xrd_analysis.add_argument("--output-root", type=Path, help="external output root; defaults to configured output root")
+    xrd_analysis.add_argument("--force", action="store_true", help="replace this command's preflighted output files")
+
     xrd_no_card = subparsers.add_parser(
         "xrd-no-card-overlay",
         help="build a user-reviewed no-card XRD overlay from one directory or explicit XRD text sources",
@@ -647,6 +667,33 @@ def main(argv: list[str] | None = None) -> int:
         print(f"figure_tif={result['figure_tif']}")
         print(f"preview_png={result['preview_png']}")
         return 0 if (not args.with_origin or bool(result["origin_status"].get("ok"))) else 1
+    if args.command == "xrd-analyze":
+        from src.core.xrd_analysis import XrdAnalysisOptions, run_xrd_analysis
+
+        result = run_xrd_analysis(
+            project_root,
+            XrdAnalysisOptions(
+                source=args.source,
+                database_dir=args.database_dir,
+                database_stem=args.database_stem,
+                card_ids=tuple(args.card_id),
+                card_queries=tuple(args.card_query),
+                full_library_screen=bool(args.full_library_screen),
+                query_limit=args.query_limit,
+                result_limit=args.result_limit,
+                wavelength_angstrom=args.wavelength,
+                peak_prominence_normalized=args.prominence,
+                minimum_peak_distance_deg=args.distance_deg,
+                card_tolerance_deg=args.card_tolerance,
+                minimum_card_relative_intensity=args.min_card_intensity,
+                output_root=_resolve_cli_output_root(project_root, args),
+                force=bool(args.force),
+            ),
+        )
+        print(f"processed_data={result['processed_data']}")
+        print(f"metadata={result['metadata']}")
+        print(f"card_match_candidates={result['card_match_candidates']}")
+        return 0 if result["ok"] else 1
     if args.command == "xrd-no-card-overlay":
         from src.core.xrd_no_card_overlay import (
             XrdNoCardOverlayOptions,

@@ -14,14 +14,16 @@
 2. Detect 2theta/intensity columns.
 3. Sort by 2theta and remove empty rows.
 4. Optionally normalize intensity when configured.
-5. Search the configured local Jade/PDF card database when phase identification is requested.
-6. Record card identifiers, matched and unmatched peaks, alternatives, tolerances, and confidence.
-7. Plot single or stacked patterns in Origin when requested.
-8. Save processed CSV, `metadata.json`, and any requested Origin artifacts.
+5. When explicitly requested, search a configured local Jade/PDF XID/SID/RID database and output reference-card match candidates.
+6. Record database stem, card identifiers, matched/unmatched peaks, alternatives, tolerance, and candidate score.
+7. Plot single or stacked patterns in Origin only when separately requested.
+8. Save processed CSV, `metadata.json`, card-candidate JSON, and any separately requested Origin artifacts.
 
 ## Automatic Calculations Allowed
-- Peak-position candidates using `scipy.signal.find_peaks`.
-- Local Jade/PDF reference-card search and automatic phase matching with traceable card identifiers.
+- Ordinary XRD processing retains the established local-neighbour peak
+  candidates; the explicit `xrd-analyze` path uses parameterized
+  `scipy.signal.find_peaks` candidates and records its provenance.
+- Local Jade/PDF reference-card candidate ranking with traceable card identifiers and peak deviations.
 - Relative intensity normalization.
 - Basic smoothing only if explicitly configured and reported.
 
@@ -38,8 +40,8 @@
 ## Manual Checks Required
 - Confirm wavelength/source and scan range.
 - Confirm background subtraction or smoothing choices.
-- Confirm candidate peaks, database version, card identifiers, tolerances, and competing phase matches.
-- Confirm crystal-plane labels and any purity or quantitative-phase conclusion manually.
+- Confirm candidate peaks, database provenance, card identifiers, match tolerances, alternatives, and any reference pattern comparison.
+- Confirm phase identity, phase purity, and crystal-plane assignments manually using independent evidence.
 
 ## Forbidden Claims
 - Do not automatically label crystal planes.
@@ -57,6 +59,11 @@
 ## the current automated pipeline Implementation Status
 - Supported in the current automated pipeline.
 - Planned processor: `xrd_processor`.
+- Data-only direct command: `python run.py xrd-analyze --source <export> --database-dir <jade-dir> --card-query <formula> --output-root <external-output>`.
+- Binary vendor `.raw` files are detected but remain unsupported; use instrument-exported TXT/CSV/XY/XLSX.
+- J7 XID/SID/RID decoding currently has strict synthetic regression coverage;
+  until the user's licensed local database is compared with a trusted exported
+  card, decoder intensities and all rankings remain explicitly candidate-only.
 
 ## Risk Level
-- Medium-high. Automatic database-backed phase matching is allowed with card provenance and confidence; purity, quantitative phase fractions, and crystal-plane claims require additional evidence.
+- Medium-high. Database-backed reference-card rankings are candidates only; phase identity, purity, quantitative fractions, crystallite size, strain, and crystal-plane interpretation remain manual.
