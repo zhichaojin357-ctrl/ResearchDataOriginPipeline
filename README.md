@@ -25,6 +25,7 @@ python run.py template-format-products --pairing <pairing-plan.json> --with-orig
 python run.py template-format-products --pairing <pairing-plan.json> --asset-only --with-origin
 python run.py origin-style-asset-replay --template-plan <template-plan.json> --output-dir <run-dir> --with-origin
 python run.py xps-heterojunction-stacked --with-origin <required inputs>
+python run.py xrd-analyze --source <exported-xrd-table> --database-dir <jade-xid-sid-rid-dir> --card-query <formula-or-name> --output-root <external-output-root>
 python run.py xrd-overlay --with-origin <required inputs>
 python run.py jeol-epr-decode --out <external-output-root> <raw-epr-folder>
 python run.py epr-overlay --reference-dir <verified-epr-xlsx-dir> --output-root <external-output-root> --with-origin
@@ -32,6 +33,12 @@ python run.py hplc-openlab-export --input <openlab-root> --since <YYYY-MM-DD> --
 python run.py validate
 python run.py readiness --no-desktop-review-xlsx
 ```
+
+`xrd-analyze` is data-only: it writes processed CSV, `metadata.json`, and
+manual-review card candidates without launching Origin or creating plots.
+Binary vendor `.raw` is not decoded by this command; use an instrument-exported
+TXT/CSV/XY/XLSX table. `--full-library-screen` is composition-blind exploratory
+screening, not an automatic phase-identification result.
 
 `--asset-only` is the formal proof path for external-template independence. It uses only `templates/origin_styles`, does not scan external OPJU roots, does not export an external reference preview, and records `asset_only=true` plus `external_template_dependency=false` in each product metadata file. Harvest and replay commands may use reviewed source OPJU files; product generation does not.
 

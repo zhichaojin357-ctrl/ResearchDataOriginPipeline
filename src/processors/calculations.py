@@ -9,10 +9,16 @@ def type_specific_results(
     data_type: str,
     numeric: list[tuple[float, float]],
     rows: list[dict[str, str]],
+    *,
+    xrd_peak_parameters: tuple[float, float] | None = None,
 ) -> dict:
     y_values = [y for _, y in numeric]
     if data_type == "XRD":
-        return {"peak_position_candidates": local_peak_positions(numeric)}
+        peak_positions, peak_detection = xrd_peak_positions(numeric, xrd_peak_parameters=xrd_peak_parameters)
+        return {
+            "peak_position_candidates": peak_positions,
+            "peak_detection": peak_detection,
+        }
     if data_type == "UV-vis DRS":
         return uvvis_results(numeric, rows)
     if data_type == "EIS":
@@ -119,9 +125,15 @@ def build_processed_table(
     data_type: str,
     numeric: list[tuple[float, float]],
     rows: list[dict[str, str]],
+    *,
+    xrd_peak_parameters: tuple[float, float] | None = None,
 ) -> tuple[list[str], list[list[float | str | None]]]:
     if data_type == "XRD":
-        peaks = set(local_peak_positions(numeric))
+        peak_positions, _peak_detection = xrd_peak_positions(
+            numeric,
+            xrd_peak_parameters=xrd_peak_parameters,
+        )
+        peaks = set(peak_positions)
         max_y = max((y for _, y in numeric), default=None)
         output = []
         for two_theta, intensity in numeric:
@@ -1328,6 +1340,29 @@ def local_peak_positions(numeric: list[tuple[float, float]]) -> list[float]:
         if y_value >= previous_y and y_value >= next_y and (y_value > previous_y or y_value > next_y):
             peaks.append(float(x_value))
     return peaks
+
+
+def xrd_peak_positions(
+    numeric: list[tuple[float, float]],
+    *,
+    xrd_peak_parameters: tuple[float, float] | None = None,
+) -> tuple[list[float], dict[str, object]]:
+    from src.core.xrd_jade import (
+        DEFAULT_MINIMUM_PEAK_DISTANCE_DEG,
+        DEFAULT_PEAK_PROMINENCE_NORMALIZED,
+        detect_observed_peaks,
+    )
+
+    prominence, distance_deg = xrd_peak_parameters or (
+        DEFAULT_PEAK_PROMINENCE_NORMALIZED,
+        DEFAULT_MINIMUM_PEAK_DISTANCE_DEG,
+    )
+    candidates, provenance = detect_observed_peaks(
+        numeric,
+        prominence=prominence,
+        distance_deg=distance_deg,
+    )
+    return [peak.two_theta_deg for peak in candidates], provenance
 
 
 def scipy_peak_positions(numeric: list[tuple[float, float]]) -> list[float]:

@@ -21,6 +21,8 @@
 - `src/core/xps_heterojunction.py`: maintained stacked XPS product workflow with candidate-only peak labels and transactional Origin artifacts.
 - `src/core/xrd_overlay.py`: XRD overlay workflow.
 - `src/core/xrd_no_card_overlay.py`: no-card XRD overlay workflow.
+- `src/core/xrd_analysis.py`: direct single-file, data-only XRD processing and Jade candidate-match orchestration.
+- `src/core/xrd_jade.py`: memory-mapped Jade J7 XID/SID/RID reader, candidate peak matching, and bounded Top-K full-library screening.
 - `src/core/epr_jeol.py`: verified JEOL `cAcqu` decoder, data-only XLSX/metadata export, hash validation, and package transaction.
 - `src/core/epr_overlay.py`: verified EPR condition overlays, explicit output-root routing, package transaction, and optional Origin export.
 - `src/core/hplc_openlab.py`: Agilent OpenLab `.rslt/.dx/.rx` raw-data decode and verified Excel export workflow.
