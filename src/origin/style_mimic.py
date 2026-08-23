@@ -200,6 +200,7 @@ def read_graph_style_snapshot(
     *,
     source_label: str = "",
     graph_pages: list[str] | None = None,
+    prefer_custom_rgb: bool = False,
 ) -> OpjuStyleSnapshot:
     activated = operations.run_labtalk(f'win -a "{quote_labtalk(graph_page)}";')
     if not getattr(activated, "ok", False):
@@ -216,7 +217,11 @@ def read_graph_style_snapshot(
     layer_count = int(audit_numeric_values.get("page.nlayers", 0))
     plot_names = _plot_names(operations, graph_page)
     plot_line_widths = _read_plot_properties(operations, plot_names, "-w")
-    plot_colors = _read_plot_properties(operations, plot_names, "-c")
+    plot_colors = (
+        _read_plot_colors(operations, plot_names)
+        if prefer_custom_rgb
+        else _read_plot_properties(operations, plot_names, "-c")
+    )
     plot_line_colors = _read_plot_properties(operations, plot_names, "-cl")
     marker_shapes = _read_plot_properties(operations, plot_names, "-k")
     marker_sizes = _read_plot_properties(operations, plot_names, "-z")
@@ -237,7 +242,10 @@ def read_graph_style_snapshot(
         marker_shapes=marker_shapes,
         marker_sizes=marker_sizes,
         plot_visibility=plot_visibility,
-        graph_object_positions=_read_graph_object_positions(operations),
+        graph_object_positions=_read_graph_object_positions(
+            operations,
+            graph_page,
+        ),
         warnings=[
             "Visible scientific annotations are not copied from the exemplar.",
             "Series line width is later overridden by the product policy when required.",
@@ -252,6 +260,7 @@ def apply_style_snapshot(
     *,
     apply_default_font: bool = True,
     apply_axis_titles: bool = False,
+    preserve_custom_rgb: bool = False,
 ) -> bool:
     layout_values = snapshot.layout_values if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("layout_values", {})
     audit_numeric = snapshot.audit_numeric_values if isinstance(snapshot, OpjuStyleSnapshot) else snapshot.get("audit_numeric_values", {})
@@ -306,7 +315,12 @@ def apply_style_snapshot(
                         f'win -a "{quote_labtalk(graph_name)}"; '
                         + " ".join(position_commands)
                     )
-    _apply_plot_style_snapshot(operations, graph_name, snapshot)
+    _apply_plot_style_snapshot(
+        operations,
+        graph_name,
+        snapshot,
+        preserve_custom_rgb=preserve_custom_rgb,
+    )
     if apply_default_font and hasattr(operations, "set_graph_font"):
         operations.set_graph_font(graph_name)
     return True
@@ -315,11 +329,15 @@ def apply_style_snapshot(
 def _origin_rich_text_for_labtalk(value: object) -> str:
     text = (
         str(value or "")
-        .replace("/", "\\")
         .replace("\r", " ")
         .replace("\n", " ")
         .strip()
     )
+    # Embedded legacy snapshots encode Origin rich-text escapes with a
+    # forward slash, while current Origin readback uses a backslash.  Convert
+    # only recognized escape prefixes: a scientific title can contain a
+    # literal slash (for example ``Ag/AgCl``) that must remain unchanged.
+    text = re.sub(r"/(?=(?:[bil]\(|[cf](?::|\d)|[+\-]\(|\(\d+\)))", r"\\", text)
     return re.sub(r"\\+$", "", text).strip()
 
 
@@ -327,6 +345,8 @@ def _apply_plot_style_snapshot(
     operations: object,
     graph_name: str,
     snapshot: OpjuStyleSnapshot | dict[str, Any],
+    *,
+    preserve_custom_rgb: bool = False,
 ) -> None:
     plot_names = _plot_names(operations, graph_name)
     if not plot_names:
@@ -347,11 +367,24 @@ def _apply_plot_style_snapshot(
         if index < len(colors):
             color = _to_float(colors[index])
             if color is not None and math.isfinite(color):
-                commands.append(f"set {plot_name} -c {int(round(color))};")
+                if preserve_custom_rgb:
+                    color_option, color_value = _origin_plot_color_for_labtalk(color)
+                else:
+                    color_option, color_value = "-c", str(int(round(color)))
+                commands.append(
+                    f"set {plot_name} {color_option} {color_value};"
+                )
         if index < len(line_colors):
             line_color = _to_float(line_colors[index])
             if line_color is not None and math.isfinite(line_color):
-                commands.append(f"set {plot_name} -cl {int(round(line_color))};")
+                line_color_value = (
+                    _origin_color_value_for_labtalk(line_color)
+                    if preserve_custom_rgb
+                    else str(int(round(line_color)))
+                )
+                commands.append(
+                    f"set {plot_name} -cl {line_color_value};"
+                )
         if index < len(shapes):
             shape = _to_float(shapes[index])
             if shape is not None and math.isfinite(shape):
@@ -375,6 +408,39 @@ def _origin_line_width_to_set_value(value: object) -> float | None:
     if number > 100:
         return max(0.1, number / 500.0)
     return number
+
+
+def _origin_plot_color_for_labtalk(value: object) -> tuple[str, str]:
+    """Render a plot colour with the correct LabTalk ``set`` option.
+
+    Origin stores a custom RGB colour as ``0x01BBGGRR``.  Passing that large
+    integer directly to ``set -c`` is interpreted as a palette index.  For a
+    line+symbol plot, Origin's documented custom-RGB path is ``-cse`` (symbol
+    edge colour) with ``color(r,g,b)``; the line colour remains independently
+    controlled by ``-cl``.
+    """
+
+    encoded, rendered = _origin_color_parts_for_labtalk(value)
+    if 0x01000000 <= encoded <= 0x01FFFFFF:
+        return "-cse", rendered
+    return "-c", rendered
+
+
+def _origin_color_value_for_labtalk(value: object) -> str:
+    return _origin_color_parts_for_labtalk(value)[1]
+
+
+def _origin_color_parts_for_labtalk(value: object) -> tuple[int, str]:
+    number = _to_float(value)
+    if number is None or not math.isfinite(number):
+        raise ValueError("Origin colour must be finite")
+    encoded = int(round(number))
+    if 0x01000000 <= encoded <= 0x01FFFFFF:
+        red = encoded & 0xFF
+        green = (encoded >> 8) & 0xFF
+        blue = (encoded >> 16) & 0xFF
+        return encoded, f"color({red},{green},{blue})"
+    return encoded, str(encoded)
 
 
 def _read_numeric_fields(operations: object, fields: tuple[str, ...]) -> dict[str, float]:
@@ -422,13 +488,38 @@ def _read_plot_properties(operations: object, plot_names: list[str], option: str
     return values
 
 
-def _read_graph_object_positions(operations: object) -> dict[str, dict[str, float]]:
+def _read_plot_colors(operations: object, plot_names: list[str]) -> list[float]:
+    combined = _read_plot_properties(operations, plot_names, "-c")
+    symbol_edges = _read_plot_properties(operations, plot_names, "-cse")
+    values: list[float] = []
+    for index, base in enumerate(combined):
+        edge = symbol_edges[index] if index < len(symbol_edges) else None
+        # A tagged RGB symbol-edge colour is authoritative for line+symbol
+        # plots.  ``get -c`` can fall back to the linked line palette index
+        # after the symbol edge is set independently with ``-cse``.
+        if edge is not None and 0x01000000 <= int(round(edge)) <= 0x01FFFFFF:
+            values.append(edge)
+        else:
+            values.append(base)
+    return values
+
+
+def _read_graph_object_positions(
+    operations: object,
+    graph_page: str,
+) -> dict[str, dict[str, float]]:
     app = getattr(operations, "app", None)
     if app is None:
         return {}
     try:
-        layer = app.ActiveLayer()
+        layer = (
+            app.FindGraphLayer(f"[{graph_page}]Layer1")
+            or app.FindGraphLayer(f"[{graph_page}]1")
+            or app.FindGraphLayer(graph_page)
+        )
     except Exception:
+        return {}
+    if not layer:
         return {}
     graph_objects = getattr(layer, "GraphObjects", None)
     if graph_objects is None:
@@ -437,12 +528,23 @@ def _read_graph_object_positions(operations: object) -> dict[str, dict[str, floa
         count = int(graph_objects.Count)
     except Exception:
         return {}
+    objects: list[object] = []
+    for base in (0, 1):
+        attempt: list[object] = []
+        for index in range(count):
+            try:
+                attempt.append(graph_objects.Item(index + base))
+            except Exception:
+                attempt = []
+                break
+        if len(attempt) == count:
+            objects = attempt
+            break
+    if not objects:
+        return {}
+
     positions: dict[str, dict[str, float]] = {}
-    for index in range(count):
-        try:
-            obj = graph_objects.Item(index)
-        except Exception:
-            continue
+    for index, obj in enumerate(objects):
         name = str(getattr(obj, "Name", "") or f"object_{index + 1}")
         values: dict[str, float] = {}
         for attr in ("Left", "Top", "Width", "Height"):

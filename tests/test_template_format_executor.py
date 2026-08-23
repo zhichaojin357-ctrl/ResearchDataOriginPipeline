@@ -25,6 +25,7 @@ from src.core.template_format_executor import (
     _apply_adaptive_photocurrent_oth_json_text_policy,
     _apply_cached_style_rich_text_policies,
     _apply_external_reference_plot_sequence,
+    _apply_mott_schottky_source_masks,
     _export_verified_graph_template_product_with_origin,
     _export_external_reference_preview_if_requested,
     _apply_nonoverlap_plain_legend_anchor,
@@ -38,12 +39,14 @@ from src.core.template_format_executor import (
     _load_saved_data_snapshot,
     _load_saved_style_snapshot,
     _mott_schottky_candidate_guides,
+    _origin_rich_text_for_labtalk,
     _plain_text_legend_policy,
     _plain_text_legend_entries,
     _prepare_verified_bet_otpu_binding,
     _prepare_verified_eis_otpu_binding,
     _prepare_verified_epr_otpu_binding,
     _prepare_verified_ftir_otpu_binding,
+    _prepare_verified_mott_otpu_binding,
     _prepare_verified_pl_otpu_binding,
     _prepare_verified_photocurrent_otpu_binding,
     _prepare_verified_otpu_binding,
@@ -4272,6 +4275,200 @@ def test_saved_template_legend_anchor_preserves_fraction_after_axis_change() -> 
     assert "0.85 * (layer.x.to - layer.x.from)" in ops.commands[0]
 
 
+def test_saved_template_legend_anchor_can_preserve_current_legend_text() -> None:
+    ops = _FakeAxisOps()
+    snapshot = {
+        "audit_numeric_values": {"legend.show": 1},
+        "layout_values": {
+            "layer.x.from": -1.2,
+            "layer.x.to": 0.8,
+            "layer.y.from": 0.0,
+            "layer.y.to": 28.0,
+            "legend.x": -0.6,
+            "legend.y": 25.0,
+        },
+    }
+
+    policy = _apply_saved_template_legend_anchor(
+        ops,
+        "Graph2",
+        snapshot,
+        regenerate=False,
+    )
+
+    assert policy["applied"] is True
+    assert policy["method"] == "saved_template_fractional_anchor_without_legend_regeneration"
+    assert "legend -r" not in ops.commands[0]
+    assert "legend.show=1" in ops.commands[0]
+
+
+def test_saved_template_legend_anchor_restores_native_origin_geometry() -> None:
+    class LegendObject:
+        Name = "Legend"
+        Left = 0
+        Top = 0
+        Width = 0
+        Height = 0
+
+    class GraphObjects:
+        Count = 1
+
+        def __init__(self, legend: LegendObject) -> None:
+            self.legend = legend
+
+        def Item(self, index: int) -> LegendObject:
+            if index != 0:
+                raise IndexError(index)
+            return self.legend
+
+    class Layer:
+        def __init__(self, legend: LegendObject) -> None:
+            self.GraphObjects = GraphObjects(legend)
+
+    class App:
+        def __init__(self, layer: Layer) -> None:
+            self.layer = layer
+            self.requested: list[str] = []
+
+        def FindGraphLayer(self, name: str) -> Layer | None:
+            self.requested.append(name)
+            return self.layer if name == "[Graph2]Layer1" else None
+
+    legend = LegendObject()
+    ops = _FakeAxisOps()
+    ops.app = App(Layer(legend))
+    snapshot = {
+        "audit_numeric_values": {"legend.show": 1},
+        "graph_object_positions": {
+            "Legend": {
+                "left": 1037.0,
+                "top": 541.0,
+                "width": 2868.0,
+                "height": 2210.0,
+            }
+        },
+    }
+
+    policy = _apply_saved_template_legend_anchor(
+        ops,
+        "Graph2",
+        snapshot,
+        regenerate=False,
+    )
+
+    assert policy == {
+        "applied": True,
+        "visible": True,
+        "method": "saved_template_native_object_geometry",
+        "geometry": {
+            "left": 1037,
+            "top": 541,
+            "width": 2868,
+            "height": 2210,
+        },
+        "saved_geometry": {
+            "left": 1037,
+            "top": 541,
+            "width": 2868,
+            "height": 2210,
+        },
+        "position_restored": True,
+        "size_restored": True,
+    }
+    assert (legend.Left, legend.Top, legend.Width, legend.Height) == (
+        1037,
+        541,
+        2868,
+        2210,
+    )
+    assert ops.app.requested == ["[Graph2]Layer1"]
+    assert all("legend -r" not in command for command in ops.commands)
+
+
+def test_saved_template_legend_anchor_accepts_origin_native_auto_size() -> None:
+    class AutoSizedLegend:
+        Name = "Legend"
+
+        def __init__(self) -> None:
+            self.Left = 0
+            self.Top = 0
+            self._width = 2162
+            self._height = 799
+
+        @property
+        def Width(self) -> int:
+            return self._width
+
+        @Width.setter
+        def Width(self, _value: int) -> None:
+            pass
+
+        @property
+        def Height(self) -> int:
+            return self._height
+
+        @Height.setter
+        def Height(self, _value: int) -> None:
+            pass
+
+    class GraphObjects:
+        Count = 1
+
+        def __init__(self, legend: AutoSizedLegend) -> None:
+            self.legend = legend
+
+        def Item(self, index: int) -> AutoSizedLegend:
+            if index != 0:
+                raise IndexError(index)
+            return self.legend
+
+    class Layer:
+        def __init__(self, legend: AutoSizedLegend) -> None:
+            self.GraphObjects = GraphObjects(legend)
+
+    class App:
+        def __init__(self, layer: Layer) -> None:
+            self.layer = layer
+
+        def FindGraphLayer(self, name: str) -> Layer | None:
+            return self.layer if name == "[Graph2]Layer1" else None
+
+    legend = AutoSizedLegend()
+    ops = _FakeAxisOps()
+    ops.app = App(Layer(legend))
+    snapshot = {
+        "audit_numeric_values": {"legend.show": 1},
+        "graph_object_positions": {
+            "Legend": {"left": 1037, "top": 541, "width": 2868, "height": 2210}
+        },
+    }
+
+    policy = _apply_saved_template_legend_anchor(
+        ops,
+        "Graph2",
+        snapshot,
+        regenerate=False,
+    )
+
+    assert policy["applied"] is True
+    assert policy["method"] == "saved_template_native_object_geometry"
+    assert policy["position_restored"] is True
+    assert policy["size_restored"] is False
+    assert policy["geometry"] == {
+        "left": 1037,
+        "top": 541,
+        "width": 2162,
+        "height": 799,
+    }
+    assert (legend.Left, legend.Top) == (1037, 541)
+
+
+def test_executor_origin_rich_text_preserves_literal_scientific_slash() -> None:
+    assert _origin_rich_text_for_labtalk(r"\b(Potential (V vs Ag/AgCl))") == (
+        r"\b(Potential (V vs Ag/AgCl))"
+    )
+
+
 def test_saved_template_legend_anchor_rejects_hidden_placeholder_coordinates() -> None:
     ops = _FakeAxisOps()
     snapshot = {
@@ -4524,6 +4721,222 @@ def test_mott_candidate_guides_recover_reviewed_common_linear_window() -> None:
     assert min(candidate["constrained_r_squared"]) > 0.98
 
 
+def _verified_mott_product_and_table(
+    tmp_path: Path,
+) -> tuple[ProductContext, list[str], list[list[float]], Path]:
+    data_snapshot_path = (
+        Path(__file__).parents[1]
+        / "templates"
+        / "origin_styles"
+        / "data_snapshots"
+        / "Mott_Schottky.json"
+    )
+    data_snapshot = json.loads(data_snapshot_path.read_text(encoding="utf-8"))
+    plots = data_snapshot["plots"]
+    headers = [
+        "potential_v",
+        "1500_one_over_c_squared",
+        "2000_one_over_c_squared",
+        "2500_one_over_c_squared",
+        "3000_one_over_c_squared",
+        "3500_one_over_c_squared",
+    ]
+    rows = [
+        [plots[0]["x_values"][index], *(plot["y_values"][index] for plot in plots)]
+        for index in range(len(plots[0]["x_values"]))
+    ]
+    processed = tmp_path / "mott.csv"
+    processed.write_text(
+        "\n".join(
+            [",".join(headers), *[",".join(str(value) for value in row) for row in rows]]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="Mott-Schottky",
+        legend_entries=[
+            "1500Hz BiOBr0.5Cl0.5",
+            "2000Hz BiOBr0.5Cl0.5",
+            "2500Hz BiOBr0.5Cl0.5",
+            "3000Hz BiOBr0.5Cl0.5",
+            "3500Hz BiOBr0.5Cl0.5",
+        ],
+        plot_type="line+symbol",
+    )
+    contract = (
+        Path(__file__).parents[1]
+        / "templates"
+        / "origin_styles"
+        / "binding_contracts"
+        / "Mott_Schottky.json"
+    )
+    return product, headers, rows, contract
+
+
+def test_verified_mott_otpu_binding_maps_shared_x_to_reviewed_d_to_l_columns(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract = _verified_mott_product_and_table(tmp_path)
+
+    result = _prepare_verified_mott_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract,
+    )
+
+    assert result["ok"] is True
+    assert result["graph_page"] == "Graph2"
+    assert result["page_mask_override"] == 0
+    assert result["group_plots"] is False
+    assert result["book_name"] == "Book1"
+    assert all(value["book_name"] == "Book1" for value in result["xy_ranges"])
+    assert all(value["sheet_index"] == 1 for value in result["xy_ranges"])
+    assert all(value["layer_index"] == 1 for value in result["xy_ranges"])
+    assert [(value["x_col"], value["y_col"]) for value in result["xy_ranges"]] == [
+        (5, 4),
+        (5, 6),
+        (7, 8),
+        (9, 10),
+        (11, 12),
+    ]
+    assert [value["source_y_index"] for value in result["xy_ranges"]] == [
+        1,
+        2,
+        3,
+        4,
+        5,
+    ]
+    assert [value["connect"] for value in result["plot_format_contracts"]] == [
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    dispatched = _prepare_verified_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract,
+    )
+    assert dispatched["ok"] is True
+
+
+def test_verified_mott_workbook_uses_native_columns_and_reference_mask_state(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract = _verified_mott_product_and_table(tmp_path)
+    binding = _prepare_verified_mott_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract,
+    )
+
+    class WorkbookOps:
+        def __init__(self) -> None:
+            self.columns: list[list[float]] = []
+            self.metadata: list[dict[str, object]] = []
+            self.masks: list[tuple[int, list[int]]] = []
+
+        def create_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(
+                True,
+                "created",
+                {"book_name": book_name, "sheet_name": sheet_name},
+            )
+
+        def set_worksheet_data(
+            self,
+            _book_name: str,
+            _sheet_name: str,
+            columns: list[list[float]],
+        ) -> OperationResult:
+            self.columns = columns
+            return OperationResult(True, "written")
+
+        def set_worksheet_column_metadata(
+            self,
+            _book_name: str,
+            metadata: list[dict[str, object]],
+        ) -> OperationResult:
+            self.metadata = metadata
+            return OperationResult(True, "metadata")
+
+        def set_worksheet_column_mask_rows(
+            self,
+            _book_name: str,
+            column_index: int,
+            masked_rows: list[int],
+        ) -> OperationResult:
+            self.masks.append((column_index, list(masked_rows)))
+            return OperationResult(True, "masked")
+
+    operations = WorkbookOps()
+    result = _populate_verified_otpu_workbook(
+        operations,
+        product,
+        headers,
+        rows,
+        binding,
+    )
+
+    assert result["ok"] is True
+    assert result["masked_rows"] == [1, 2, 3, 4, 5]
+    assert result["masked_y_columns"] == [4, 6, 8, 10]
+    assert len(operations.columns) == 12
+    assert operations.columns[3] == [row[1] for row in rows]
+    assert operations.columns[4] == [row[0] for row in rows]
+    assert operations.columns[5] == [row[2] for row in rows]
+    assert operations.columns[6] == [row[0] for row in rows]
+    assert operations.columns[7] == [row[3] for row in rows]
+    assert operations.columns[8] == [row[0] for row in rows]
+    assert operations.columns[9] == [row[4] for row in rows]
+    assert operations.columns[10] == [row[0] for row in rows]
+    assert operations.columns[11] == [row[5] for row in rows]
+    assert operations.masks == [
+        (4, [1, 2, 3, 4, 5]),
+        (6, [1, 2, 3, 4, 5]),
+        (8, [1, 2, 3, 4, 5]),
+        (10, [1, 2, 3, 4, 5]),
+    ]
+
+
+def test_adaptive_mott_masks_each_current_y_column_without_masking_numeric_zero() -> None:
+    class MaskOps:
+        def __init__(self) -> None:
+            self.masks: list[tuple[int, list[int]]] = []
+
+        def set_worksheet_column_mask_rows(
+            self,
+            _book_name: str,
+            column_index: int,
+            masked_rows: list[int],
+        ) -> OperationResult:
+            self.masks.append((column_index, list(masked_rows)))
+            return OperationResult(True, "masked")
+
+    operations = MaskOps()
+    rows = [
+        [-0.05, 1.0, 2.0],
+        [-7.45e-9, 1.1, 2.1],
+        [0.05, 1.2, 2.2],
+    ]
+
+    result = _apply_mott_schottky_source_masks(
+        operations,
+        "Mott",
+        rows,
+        [(1, 2), (1, 3)],
+    )
+
+    assert result["applied"] is True
+    assert operations.masks == [(2, [1]), (3, [1])]
+
+
 def test_reviewed_mott_policy_draws_data_dependent_candidate_guides(tmp_path: Path) -> None:
     data_snapshot_path = Path(__file__).parents[1] / "templates" / "origin_styles" / "data_snapshots" / "Mott_Schottky.json"
     data_snapshot = json.loads(data_snapshot_path.read_text(encoding="utf-8"))
@@ -4551,7 +4964,12 @@ def test_reviewed_mott_policy_draws_data_dependent_candidate_guides(tmp_path: Pa
     )
     ops = PlotOps()
     style_snapshot = {
-        "layout_values": {"layer.x.from": -1.2, "layer.x.to": 0.78, "layer.y.to": 2.7e9},
+        "layout_values": {
+            "layer.x.from": -1.2,
+            "layer.x.to": 0.78,
+            "layer.y.to": 2.7e9,
+            "legend.fsize": 28,
+        },
         "audit_string_values": {"xb.text$": "Potential", "yl.text$": "C^-2"},
     }
 
@@ -4569,6 +4987,8 @@ def test_reviewed_mott_policy_draws_data_dependent_candidate_guides(tmp_path: Pa
     assert guides["applied"] is True
     assert guides["manual_check_required"] is True
     assert guides["annotation"] == "-1.04 V"
+    assert policy["legend_font_size"] == 28
+    assert "legend.fsize=28" in joined
     assert "draw -n rdop_mott_fit_1 -w 3 -d 1 -l" in joined
     assert "rdop_mott_fit_1.color=color(128,128,128)" in joined
     assert "label -a" not in joined
@@ -5150,7 +5570,11 @@ def test_adaptive_eis_legend_uses_all_current_series_not_fixed_visible_slots(tmp
         product_key="EIS",
         legend_entries=["A", "B", "C", "D"],
     )
-    ops = _FakeAxisOps()
+    class PlotOps(_FakeAxisOps):
+        def _plot_names(self, _graph_name: str) -> list[str]:
+            return ["Plot1", "Plot2", "Plot3", "Plot4"]
+
+    ops = PlotOps()
     captured: dict[str, object] = {}
 
     def set_text(_ops, _graph, _name, text):
@@ -5168,13 +5592,19 @@ def test_adaptive_eis_legend_uses_all_current_series_not_fixed_visible_slots(tmp
         "Graph1",
         product,
         ResolvedPlotStyle(),
-        {},
+        {"layout_values": {"legend.fsize": 28}},
     )
 
     assert policy["visible_plot_indices"] == [1, 2, 3, 4]
     assert policy["entries"] == ["A", "B", "C", "D"]
     assert "\\l(4)" in str(captured["text"])
     assert policy["line_samples_preserved"] is True
+    assert policy["font_size"] == 28
+    assert policy["all_current_plots_visible"] is True
+    assert all(
+        f"layer.plot{index}.show=1" in "\n".join(ops.commands)
+        for index in range(1, 5)
+    )
 
 
 def test_adaptive_photocurrent_legend_restores_snapshot_format_and_current_entries(
@@ -5350,6 +5780,13 @@ def test_adaptive_series_count_conformance_relaxes_only_per_plot_array_lengths()
                 "message": "reference has three values; product has two",
             }
             for field in sorted(cardinality_fields)
+        ]
+        + [
+            {
+                "field": "plot_visibility[2]",
+                "severity": "fail",
+                "message": "the fixed reference plot is hidden but the current adaptive plot is visible",
+            }
         ],
     }
 
@@ -5359,6 +5796,7 @@ def test_adaptive_series_count_conformance_relaxes_only_per_plot_array_lengths()
             "current_csv_pair_count": 2,
             "reopened_plot_count": 2,
             "contract_series_count": 3,
+            "all_current_plots_visible": True,
         },
     )
 
@@ -5378,7 +5816,10 @@ def test_adaptive_series_count_conformance_relaxes_only_per_plot_array_lengths()
         {"current_csv_pair_count": 2, "reopened_plot_count": 2},
     )
     assert not_relaxed["status"] == "fail"
-    assert [issue["field"] for issue in not_relaxed["issues"]] == ["layer.height"]
+    assert [issue["field"] for issue in not_relaxed["issues"]] == [
+        "plot_visibility[2]",
+        "layer.height",
+    ]
 
 
 def test_adaptive_photocurrent_readback_requires_current_xy_values_match() -> None:
@@ -5387,7 +5828,7 @@ def test_adaptive_photocurrent_readback_requires_current_xy_values_match() -> No
     matched = _adaptive_oth_json_readback_validation(
         product,
         [(1, 2), (3, 4)],
-        {"plot_count": 2},
+        {"plot_count": 2, "plot_visibility": [1, 1]},
         decision,
         {"status": "fail"},
         current_data_validation={"ok": True, "status": "matched"},
@@ -5398,7 +5839,7 @@ def test_adaptive_photocurrent_readback_requires_current_xy_values_match() -> No
     mismatch = _adaptive_oth_json_readback_validation(
         product,
         [(1, 2), (3, 4)],
-        {"plot_count": 2},
+        {"plot_count": 2, "plot_visibility": [1, 1]},
         decision,
         {"status": "fail"},
         current_data_validation={"ok": False, "status": "mismatch"},
@@ -5443,6 +5884,21 @@ def test_adaptive_photocurrent_validation_ranges_keep_per_pair_row_counts() -> N
     ]
 
 
+def test_adaptive_variable_cardinality_blocks_hidden_current_curve() -> None:
+    result = _adaptive_oth_json_readback_validation(
+        SimpleNamespace(product_key="Mott-Schottky"),
+        [(1, 2), (1, 3), (1, 4), (1, 5)],
+        {"plot_count": 4, "plot_visibility": [1, 1, 1, 0]},
+        {"selected_mode": "oth-json", "contract_series_count": 5},
+        {"status": "fail"},
+        current_data_validation={"ok": True, "status": "matched"},
+    )
+
+    assert result["ok"] is False
+    assert result["all_current_plots_visible"] is False
+    assert "not every current CSV curve is visible" in result["message"]
+
+
 def test_adaptive_bet_readback_requires_current_xy_values_match() -> None:
     product = SimpleNamespace(product_key="BET")
     decision = {"selected_mode": "oth-json", "contract_series_count": 6}
@@ -5450,7 +5906,7 @@ def test_adaptive_bet_readback_requires_current_xy_values_match() -> None:
     matched = _adaptive_oth_json_readback_validation(
         product,
         [(1, 2), (3, 4)],
-        {"plot_count": 2},
+        {"plot_count": 2, "plot_visibility": [1, 1]},
         decision,
         {"status": "fail"},
         current_data_validation={"ok": True, "status": "matched"},
@@ -5461,7 +5917,7 @@ def test_adaptive_bet_readback_requires_current_xy_values_match() -> None:
     mismatch = _adaptive_oth_json_readback_validation(
         product,
         [(1, 2), (3, 4)],
-        {"plot_count": 2},
+        {"plot_count": 2, "plot_visibility": [1, 1]},
         decision,
         {"status": "fail"},
         current_data_validation={"ok": False, "status": "mismatch"},

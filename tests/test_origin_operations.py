@@ -334,6 +334,23 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertFalse(read.ok)
         self.assertIn("not iterable", read.message)
 
+    def test_set_worksheet_column_mask_rows_uses_native_mask_state(self):
+        app = FakeOriginApp()
+        result = OriginOperations(app).set_worksheet_column_mask_rows(
+            "Book1",
+            4,
+            [5, 1, 2, 2],
+            sheet_index=1,
+        )
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload["masked_rows"], [1, 2, 5])
+        commands = "\n".join(app.commands)
+        self.assertIn('win -a "Book1"; layer -s 1;', commands)
+        self.assertIn("wcol(4)<1>=1;", commands)
+        self.assertIn("wcol(4)<2>=1;", commands)
+        self.assertIn("wcol(4)<5>=1;", commands)
+
     def test_template_workbook_column_replacement_operations(self):
         app = FakeOriginApp()
         ops = OriginOperations(app)

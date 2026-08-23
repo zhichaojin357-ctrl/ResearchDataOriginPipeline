@@ -2026,7 +2026,11 @@ def _build_template_xy_multisource_table(
     if pairing.product_key == "PL":
         candidates = _template_pl_candidate_files(pairing, template, target_series)
     if pairing.product_key == "Mott-Schottky":
-        candidates = _template_mott_candidate_files(pairing, candidates, target_series)
+        candidates = _template_mott_candidate_files(
+            pairing,
+            candidates,
+            target_series,
+        )
     series: list[tuple[str, list[list[float | str | None]]]] = []
     used_files: list[Path] = []
     for path in candidates:
@@ -2045,7 +2049,10 @@ def _build_template_xy_multisource_table(
             continue
         series.append((_template_xy_series_label(pairing.product_key, path), rows))
         used_files.append(path)
-        if (pairing.product_key != "photocurrent" or origin_style_mode == "otpu") and len(series) >= target_series:
+        preserve_variable_cardinality = pairing.product_key == "Mott-Schottky" or (
+            pairing.product_key == "photocurrent" and origin_style_mode != "otpu"
+        )
+        if not preserve_variable_cardinality and len(series) >= target_series:
             break
     if not series:
         return None
@@ -2059,7 +2066,7 @@ def _build_template_xy_multisource_table(
     if pairing.product_key == "Mott-Schottky":
         labels["legend_entries"] = [
             f"{label}Hz BiOBr0.5Cl0.5"
-            for label, _values in series[:3]
+            for label, _values in series
         ]
     if pairing.product_key == "photocurrent":
         # The reference photocurrent workbook contains three independent X/Y
@@ -2070,7 +2077,17 @@ def _build_template_xy_multisource_table(
         headers, rows = _template_independent_xy_table(x_header, y_suffix, series)
         product_series_count = len(series)
     else:
-        headers, rows = _template_same_x_overlay_table(x_header, [(f"{label}_{y_suffix}", values) for label, values in series])
+        named_series = [
+            (f"{label}_{y_suffix}", values)
+            for label, values in series
+        ]
+        if pairing.product_key == "Mott-Schottky":
+            headers, rows = _template_exact_shared_x_overlay_table(
+                x_header,
+                named_series,
+            )
+        else:
+            headers, rows = _template_same_x_overlay_table(x_header, named_series)
         product_series_count = len(headers) - 1
     alignment = _template_alignment_payload(
         pairing,
@@ -2090,6 +2107,14 @@ def _build_template_xy_multisource_table(
         alignment.update(
             {
                 "interpolation": "not_applied",
+                "smoothing": "not_applied",
+                "normalization": "not_applied",
+            }
+        )
+    if pairing.product_key == "Mott-Schottky":
+        alignment.update(
+            {
+                "interpolation": "not_applied_exact_shared_x_required",
                 "smoothing": "not_applied",
                 "normalization": "not_applied",
             }
@@ -2344,6 +2369,59 @@ def _template_same_x_overlay_table(
         for _label, rows in series:
             row.append(rows[index][1])
         output.append(row)
+    return headers, output
+
+
+def _template_exact_shared_x_overlay_table(
+    x_header: str,
+    series: list[tuple[str, list[list[float | str | None]]]],
+) -> tuple[list[str], list[list[float | str | None]]]:
+    """Build a shared-X Mott table without sorting, merging, or interpolation."""
+
+    if not series:
+        raise ValueError("Mott-Schottky requires at least one explicit source series.")
+    headers = [x_header, *[safe_name(label) for label, _rows in series]]
+    normalized: list[list[tuple[float, float]]] = []
+    for label, source_rows in series:
+        points: list[tuple[float, float]] = []
+        for row_index, row in enumerate(source_rows, start=1):
+            if len(row) < 2:
+                raise ValueError(
+                    f"Mott-Schottky series {label!r} row {row_index} is incomplete."
+                )
+            x_value = _to_float(row[0])
+            y_value = _to_float(row[1])
+            if (
+                x_value is None
+                or y_value is None
+                or not math.isfinite(x_value)
+                or not math.isfinite(y_value)
+            ):
+                raise ValueError(
+                    f"Mott-Schottky series {label!r} row {row_index} is not finite."
+                )
+            points.append((float(x_value), float(y_value)))
+        if len(points) < 2:
+            raise ValueError(
+                f"Mott-Schottky series {label!r} has fewer than two finite points."
+            )
+        normalized.append(points)
+
+    reference_x = [value[0] for value in normalized[0]]
+    for (label, _source_rows), points in zip(series[1:], normalized[1:]):
+        current_x = [value[0] for value in points]
+        if current_x != reference_x:
+            raise ValueError(
+                "Mott-Schottky source grids must match exactly; interpolation is forbidden "
+                f"for series {label!r}."
+            )
+    output = [
+        [
+            reference_x[row_index],
+            *[points[row_index][1] for points in normalized],
+        ]
+        for row_index in range(len(reference_x))
+    ]
     return headers, output
 
 
@@ -2623,10 +2701,10 @@ def _canonical_material_label(value: str) -> str:
 def _template_mott_candidate_files(
     pairing: TargetPairing,
     candidates: list[Path],
-    target_series: int,
+    _target_series: int,
 ) -> list[Path]:
     preferred = [path for path in pairing.data_paths if path.is_file()]
-    pool = preferred if len(preferred) >= target_series else _template_unique_paths([*preferred, *candidates])
+    pool = preferred if preferred else _template_unique_paths(candidates)
 
     def frequency_key(path: Path) -> tuple[int, float, str]:
         values = re.findall(r"\d+(?:\.\d+)?", path.stem)
@@ -2635,10 +2713,7 @@ def _template_mott_candidate_files(
         return (0, float(values[-1]), path.name.casefold())
 
     ordered = sorted(pool, key=frequency_key)
-    if len(ordered) <= target_series:
-        return ordered
-    start = max(0, (len(ordered) - target_series) // 2)
-    return ordered[start : start + target_series]
+    return ordered
 
 
 def _template_mott_schottky_rows(path: Path) -> list[list[float | str | None]]:
@@ -3341,7 +3416,13 @@ def _export_template_product_with_origin_connected(
         pages = operations.list_worksheets().payload.get("pages", [])
         graph_pages = [str(item["name"]) for item in pages if item.get("type") == "graph"]
         reopened_graph = graph_name if graph_name in graph_pages else (graph_pages[0] if graph_pages else graph_name)
-        product_snapshot = read_graph_style_snapshot(operations, reopened_graph, source_label=product.origin_file.name, graph_pages=graph_pages)
+        product_snapshot = read_graph_style_snapshot(
+            operations,
+            reopened_graph,
+            source_label=product.origin_file.name,
+            graph_pages=graph_pages,
+            prefer_custom_rgb=product.product_key == "Mott-Schottky",
+        )
         conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
         strict_readback = _strict_style_readback(product_snapshot.to_dict())
         png = operations.export_graph(reopened_graph, product.preview_png, "png", dpi=style.export_dpi)
@@ -3739,6 +3820,7 @@ def _extract_template_product_reference_snapshot(operations: object, product: Pr
         graph_page,
         source_label=product.reference_opju_copy.name,
         graph_pages=graph_pages,
+        prefer_custom_rgb=product.product_key == "Mott-Schottky",
     )
 
 

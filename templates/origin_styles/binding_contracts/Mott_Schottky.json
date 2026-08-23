@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "Mott-Schottky",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "6bc398d3ddd0b3c18b8cfda06d0a3754915097c1ebcddc18cd94e0d6583a8cf9",
+      "graph_page": "Graph2",
+      "source_series_count": 5,
+      "source_schema": {
+        "status": "ready",
+        "layout": "shared_x_y_columns",
+        "x_header": "potential_v",
+        "y_header_suffix": "_one_over_c_squared",
+        "source_csv_indices": [0, 1, 2, 3, 4, 5],
+        "worksheet_layout": "processed_shared_x_is_copied_to_reviewed_destination_x_columns_e_g_i_k_and_five_y_series_to_d_f_h_j_l",
+        "transform": "reference_plotted_potential_and_inverse_capacitance_squared_values_without_additional_fit_or_band_edge_inference",
+        "plot_type": "line+symbol",
+        "group_plots": false,
+        "page_mask_override": 0,
+        "mask_policy": {
+          "authority": "reviewed_reference_opju_native_mask_readback",
+          "reference_y_masked_rows": {
+            "plot_1": [1, 2, 3, 4, 5],
+            "plot_2": [1, 2, 3, 4, 5],
+            "plot_3": [1, 2, 3, 4, 5],
+            "plot_4": [1, 2, 3, 4, 5],
+            "plot_5": []
+          },
+          "current_data_rule": "mask finite Y rows whose potential_v is below -1e-8 V; preserve the reviewed unmasked fifth hidden plot in the fixed five-series runtime",
+          "display_mode": "page.mask=0 hides native masked points"
+        },
+        "plot_format_contracts": [
+          {"layer_index": 1, "plot_index": 1, "connect": 0},
+          {"layer_index": 1, "plot_index": 2, "connect": 0},
+          {"layer_index": 1, "plot_index": 3, "connect": 0},
+          {"layer_index": 1, "plot_index": 4, "connect": 0},
+          {"layer_index": 1, "plot_index": 5, "connect": 0}
+        ]
+      },
+      "plots": [
+        {
+          "layer_index": 1,
+          "plot_index": 1,
+          "x_dataset": "Book1_E",
+          "y_dataset": "Book1_D",
+          "row_from": 1,
+          "row_to": 21,
+          "source_series_index": 1,
+          "semantic_role": "mott_schottky_series_1"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 2,
+          "x_dataset": "Book1_E",
+          "y_dataset": "Book1_F",
+          "row_from": 1,
+          "row_to": 21,
+          "source_series_index": 2,
+          "semantic_role": "mott_schottky_series_2"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 3,
+          "x_dataset": "Book1_G",
+          "y_dataset": "Book1_H",
+          "row_from": 1,
+          "row_to": 21,
+          "source_series_index": 3,
+          "semantic_role": "mott_schottky_series_3"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 4,
+          "x_dataset": "Book1_I",
+          "y_dataset": "Book1_J",
+          "row_from": 1,
+          "row_to": 21,
+          "source_series_index": 4,
+          "semantic_role": "reference_plot_4"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 5,
+          "x_dataset": "Book1_K",
+          "y_dataset": "Book1_L",
+          "row_from": 1,
+          "row_to": 21,
+          "source_series_index": 5,
+          "semantic_role": "reference_plot_5"
+        }
+      ]
+    }
+  ]
+}

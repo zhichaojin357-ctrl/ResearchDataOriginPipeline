@@ -41,12 +41,21 @@ from src.origin.style_registry import (
     resolve_origin_adaptive_style_asset,
     resolve_origin_runtime_style_asset,
 )
-from src.origin.style_mimic import apply_style_snapshot, extract_style_snapshot, read_graph_style_snapshot
+from src.origin.style_mimic import (
+    _origin_plot_color_for_labtalk,
+    apply_style_snapshot,
+    extract_style_snapshot,
+    read_graph_style_snapshot,
+)
 from src.origin.template_binding import (
     load_template_binding_contracts,
     validate_template_source_bindings,
 )
-from src.origin.template_format import build_template_dataset_updates, build_template_format_plan
+from src.origin.template_format import (
+    build_template_dataset_updates,
+    build_template_format_plan,
+    parse_origin_dataset_reference,
+)
 from src.origin.text_format import origin_bold_text
 from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overrides
 from src.processors.base import safe_name
@@ -70,7 +79,15 @@ REVIEWED_TEMPLATE_VISIBLE_PLOTS = {
     "EIS": (3, 4, 5),
     "Mott-Schottky": (1, 2, 3),
 }
-VERIFIED_GRAPH_TEMPLATE_PRODUCTS = {"BET", "EIS", "EPR", "PL", "photocurrent", "FTIR"}
+VERIFIED_GRAPH_TEMPLATE_PRODUCTS = {
+    "BET",
+    "EIS",
+    "EPR",
+    "PL",
+    "photocurrent",
+    "FTIR",
+    "Mott-Schottky",
+}
 
 VERIFIED_FTIR_SERIES_LABELS = ("BiOBr0.5Cl0.5", "CuWO4", "BiCu-10")
 VERIFIED_FTIR_RAW_TO_PLOTTED_OFFSETS = (
@@ -84,6 +101,7 @@ VERIFIED_FTIR_LAST_CURVE_TRANSLATE_ANNOTATIONS = (
     -0.62347949080622,
 )
 VERIFIED_PHOTOCURRENT_DESTINATION_PAIRS = ((9, 10), (13, 14), (17, 18))
+VERIFIED_MOTT_DESTINATION_PAIRS = ((5, 4), (5, 6), (7, 8), (9, 10), (11, 12))
 VERIFIED_PHOTOCURRENT_X_TITLE = "Time (s)"
 VERIFIED_BET_X_TITLE = "Relative Pressure (P/Po)"
 VERIFIED_BET_Y_TITLE = "Quantity Adsorbed (cm3/g STP)"
@@ -1336,7 +1354,13 @@ def _export_template_base_product_with_origin_impl(
             pages = operations.list_worksheets().payload.get("pages", [])
             graph_pages = [str(item["name"]) for item in pages if item.get("type") == "graph"]
             reopened_graph = graph_name if graph_name in graph_pages else (graph_pages[0] if graph_pages else graph_name)
-            product_snapshot = read_graph_style_snapshot(operations, reopened_graph, source_label=product.origin_file.name, graph_pages=graph_pages)
+            product_snapshot = read_graph_style_snapshot(
+                operations,
+                reopened_graph,
+                source_label=product.origin_file.name,
+                graph_pages=graph_pages,
+                prefer_custom_rgb=product.product_key == "Mott-Schottky",
+            )
             product_data_snapshot = (
                 read_graph_data_snapshot(
                     operations,
@@ -1830,7 +1854,13 @@ def _export_template_snapshot_fallback_product_with_origin(
     pages = operations.list_worksheets().payload.get("pages", [])
     graph_pages = [str(item["name"]) for item in pages if item.get("type") == "graph"]
     reopened_graph = graph_name if graph_name in graph_pages else (graph_pages[0] if graph_pages else graph_name)
-    product_snapshot = read_graph_style_snapshot(operations, reopened_graph, source_label=product.origin_file.name, graph_pages=graph_pages)
+    product_snapshot = read_graph_style_snapshot(
+        operations,
+        reopened_graph,
+        source_label=product.origin_file.name,
+        graph_pages=graph_pages,
+        prefer_custom_rgb=product.product_key == "Mott-Schottky",
+    )
     conformance = compare_style_snapshots(exemplar_snapshot, product_snapshot, required_line_width_pt=style.line_width_pt)
     strict_readback = _strict_style_readback(product_snapshot.to_dict())
     png = operations.export_graph(reopened_graph, runtime_preview_png, "png", dpi=style.export_dpi)
@@ -2011,13 +2041,15 @@ def _export_verified_graph_template_product_with_origin(
         }
     reference_data_path = getattr(style_asset, "data_snapshot_path", None)
     reference_data = _load_json_object(reference_data_path)
-    if product.product_key == "photocurrent" and (
+    if product.product_key in {"photocurrent", "Mott-Schottky"} and (
         not isinstance(reference_data, dict)
         or str(reference_data.get("status") or "") != "ready"
     ):
         return {
             "ok": False,
-            "message": "Verified photocurrent OTPU export requires its saved data snapshot.",
+            "message": (
+                f"Verified {product.product_key} OTPU export requires its saved data snapshot."
+            ),
             "template_format_plan": plan_payload,
         }
     reference_axis_titles: dict[str, object] | None = None
@@ -2093,6 +2125,7 @@ def _export_verified_graph_template_product_with_origin(
         rescale=False,
         legend=False,
         group_plots=bool(binding.get("group_plots", False)),
+        plot_format_contracts=list(binding.get("plot_format_contracts") or []),
     )
     if not getattr(created, "ok", False):
         return {
@@ -2105,6 +2138,17 @@ def _export_verified_graph_template_product_with_origin(
             "template_format_plan": plan_payload,
         }
     graph_name = str(created.payload.get("graph_name") or binding["graph_page"])
+    page_mask_override = binding.get("page_mask_override")
+    if page_mask_override is not None:
+        mask_display = operations.run_labtalk(
+            f'win -a "{quote_labtalk(graph_name)}"; page.mask={int(page_mask_override)};'
+        )
+        if not getattr(mask_display, "ok", False):
+            return {
+                "ok": False,
+                "message": f"Verified {product.product_key} masked-point display policy failed.",
+                "template_format_plan": plan_payload,
+            }
     post_plot_style = _apply_verified_otpu_post_plot_style(
         operations,
         product,
@@ -2171,6 +2215,7 @@ def _export_verified_graph_template_product_with_origin(
         graph_name,
         source_label=product.origin_file.name,
         graph_pages=graph_pages,
+        prefer_custom_rgb=product.product_key == "Mott-Schottky",
     )
     product_style = product_snapshot.to_dict()
     product_axis_titles: dict[str, object] | None = None
@@ -2200,6 +2245,17 @@ def _export_verified_graph_template_product_with_origin(
         ),
     ).to_dict()
     conformance["reference_source"] = runtime_reference["reference_kind"]
+    if (
+        product.product_key == "Mott-Schottky"
+        and str(conformance.get("status") or "").casefold() == "fail"
+    ):
+        return {
+            "ok": False,
+            "message": "Verified Mott-Schottky style conformance failed after save/reopen.",
+            "template_format_plan": plan_payload,
+            "conformance": conformance,
+            "product_style": product_style,
+        }
     current_data_snapshot = read_graph_data_snapshot(
         operations,
         graph_name,
@@ -2328,6 +2384,7 @@ def _prepare_verified_otpu_binding(
         "PL": _prepare_verified_pl_otpu_binding,
         "photocurrent": _prepare_verified_photocurrent_otpu_binding,
         "FTIR": _prepare_verified_ftir_otpu_binding,
+        "Mott-Schottky": _prepare_verified_mott_otpu_binding,
     }
     prepare = preparers.get(product.product_key)
     if prepare is None:
@@ -2383,7 +2440,7 @@ def _verified_otpu_conformance_reference(
             expected_strings["legend.text$"] = actual_strings["legend.text$"]
         adjusted["audit_string_values"] = expected_strings
         return adjusted
-    if product_key == "PL":
+    if product_key in {"PL", "Mott-Schottky"}:
         adjusted = dict(reference_style)
         expected_strings = dict(reference_style.get("audit_string_values") or {})
         actual_strings = dict(product_style.get("audit_string_values") or {})
@@ -2430,7 +2487,7 @@ def _verified_otpu_required_line_width_pt(
 ) -> float | None:
     # EIS preserves a template-specific width. The reviewed photocurrent Graph2
     # and FTIR assets are explicitly audited at the current 3 pt product policy.
-    return None if product_key == "EIS" else style.line_width_pt
+    return None if product_key in {"EIS", "Mott-Schottky"} else style.line_width_pt
 
 
 def _verified_otpu_axis_title_bold_policy(
@@ -2902,6 +2959,202 @@ def _prepare_verified_pl_otpu_binding(
         "book_name": "PL",
         "plot_type": str(source_schema.get("plot_type") or "line"),
         "group_plots": False,
+        "xy_ranges": xy_ranges,
+        "contract": contract.to_dict(),
+    }
+
+
+def _prepare_verified_mott_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    if product.product_key != "Mott-Schottky":
+        return {
+            "ok": False,
+            "message": "Verified Mott-Schottky binding received a different product.",
+        }
+    contracts = load_template_binding_contracts(contract_path)
+    contract = contracts.get("mott_schottky")
+    if contract is None or not contract.ready:
+        return {
+            "ok": False,
+            "message": "The reviewed Mott-Schottky template binding contract is unavailable.",
+        }
+    source_schema = dict(contract.source_schema)
+    expected_source_indices = [0, 1, 2, 3, 4, 5]
+    if (
+        str(source_schema.get("layout") or "") != "shared_x_y_columns"
+        or str(source_schema.get("x_header") or "") != "potential_v"
+        or str(source_schema.get("y_header_suffix") or "")
+        != "_one_over_c_squared"
+        or source_schema.get("source_csv_indices") != expected_source_indices
+        or bool(source_schema.get("group_plots", True))
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "Mott-Schottky contract must bind potential_v plus five Y columns "
+                "as one ungrouped shared-X source table."
+            ),
+        }
+
+    contracted_plots = sorted(
+        contract.plots,
+        key=lambda plot: (plot.layer_index, plot.plot_index),
+    )
+    expected_datasets = [("E", "D"), ("E", "F"), ("G", "H"), ("I", "J"), ("K", "L")]
+    actual_datasets = [
+        (
+            str(plot.x_dataset).rsplit("_", 1)[-1].upper(),
+            str(plot.y_dataset).rsplit("_", 1)[-1].upper(),
+        )
+        for plot in contracted_plots
+    ]
+    if (
+        len(contracted_plots) != 5
+        or contract.source_series_count != 5
+        or any(plot.layer_index != 1 for plot in contracted_plots)
+        or [plot.plot_index for plot in contracted_plots] != [1, 2, 3, 4, 5]
+        or [plot.source_series_index for plot in contracted_plots] != [1, 2, 3, 4, 5]
+        or actual_datasets != expected_datasets
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "Mott-Schottky contract must contain ordered layer-1 E-D, E-F, "
+                "G-H, I-J, and K-L plots."
+            ),
+        }
+    if len(headers) != 6 or not rows or str(headers[0]).strip() != "potential_v":
+        return {
+            "ok": False,
+            "message": (
+                "Mott-Schottky processed CSV must contain potential_v and exactly five Y columns."
+            ),
+        }
+    y_headers = [str(value).strip() for value in headers[1:]]
+    y_suffix = "_one_over_c_squared"
+    identities = [
+        value[: -len(y_suffix)] if value.endswith(y_suffix) else ""
+        for value in y_headers
+    ]
+    if (
+        any(not value for value in identities)
+        or len({value.casefold() for value in identities}) != 5
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "Mott-Schottky Y headers must have five unique identities and the "
+                "_one_over_c_squared suffix."
+            ),
+        }
+    legend_entries = [str(value).strip() for value in product.legend_entries]
+    if len(legend_entries) != 5 or any(not value for value in legend_entries):
+        return {
+            "ok": False,
+            "message": (
+                "Mott-Schottky fixed template requires one current legend label "
+                "for each of its five bound source series."
+            ),
+        }
+
+    reference_books: set[str] = set()
+    reference_sheets: set[int] = set()
+    for plot in contracted_plots:
+        for dataset in (plot.x_dataset, plot.y_dataset):
+            parsed = parse_origin_dataset_reference(dataset)
+            if parsed is None:
+                return {
+                    "ok": False,
+                    "message": (
+                        "Mott-Schottky contract contains an unparseable Origin "
+                        f"dataset reference: {dataset}"
+                    ),
+                }
+            reference_books.add(parsed.book_name)
+            reference_sheets.add(parsed.sheet_index)
+    if len(reference_books) != 1 or reference_sheets != {1}:
+        return {
+            "ok": False,
+            "message": (
+                "Mott-Schottky fixed template requires one reviewed workbook "
+                "and worksheet identity across all plots."
+            ),
+        }
+    reference_book_name = next(iter(reference_books))
+
+    xy_ranges: list[dict[str, object]] = []
+    for fixed_index, (plot, (x_col, y_col)) in enumerate(zip(
+        contracted_plots,
+        VERIFIED_MOTT_DESTINATION_PAIRS,
+    ), start=1):
+        source_y_index = int(plot.source_series_index)
+        bounds = _paired_numeric_row_bounds(rows, 0, source_y_index)
+        if bounds is None:
+            return {
+                "ok": False,
+                "message": (
+                    f"Mott-Schottky source trace {source_y_index} must contain one "
+                    "contiguous finite potential/Y run."
+                ),
+            }
+        row_from, row_to = bounds
+        expected_masked_rows = (
+            [
+                row_index
+                for row_index in range(row_from, row_to + 1)
+                if (x_value := _finite_numeric_value(rows[row_index - 1][0])) is not None
+                and x_value < -1.0e-8
+            ]
+            if fixed_index <= 4
+            else []
+        )
+        xy_ranges.append(
+            {
+                "x_col": x_col,
+                "y_col": y_col,
+                "book_name": reference_book_name,
+                "sheet_index": 1,
+                "layer_index": int(plot.layer_index),
+                "expected_x_col_letter": chr(64 + x_col),
+                "expected_y_col_letter": chr(64 + y_col),
+                "row_from": row_from,
+                "row_to": row_to,
+                "source_x_index": 0,
+                "source_y_index": source_y_index,
+                "source_row_from": row_from,
+                "source_row_to": row_to,
+                "expected_y_masked_rows": expected_masked_rows,
+            }
+        )
+    raw_plot_formats = source_schema.get("plot_format_contracts")
+    plot_format_contracts = (
+        [dict(value) for value in raw_plot_formats if isinstance(value, dict)]
+        if isinstance(raw_plot_formats, list)
+        else []
+    )
+    if len(plot_format_contracts) != 5 or any(
+        int(value.get("connect", -1)) != 0 for value in plot_format_contracts
+    ):
+        return {
+            "ok": False,
+            "message": "Mott-Schottky contract must explicitly set connect=0 for all five plots.",
+        }
+    return {
+        "ok": True,
+        "message": (
+            "Processed Mott-Schottky shared-X columns match the reviewed OTPU binding contract."
+        ),
+        "graph_page": contract.graph_page,
+        "book_name": reference_book_name,
+        "plot_type": str(source_schema.get("plot_type") or "line+symbol"),
+        "group_plots": False,
+        "page_mask_override": int(source_schema.get("page_mask_override", 0)),
+        "plot_format_contracts": plot_format_contracts,
         "xy_ranges": xy_ranges,
         "contract": contract.to_dict(),
     }
@@ -3535,6 +3788,125 @@ def _populate_verified_otpu_workbook(
             "last_origin_curve_translate_annotations": annotation_offsets,
         }
 
+    if product.product_key == "Mott-Schottky":
+        created = operations.create_worksheet(str(binding["book_name"]), "Sheet1")
+        if not getattr(created, "ok", False):
+            return _verified_otpu_failure(
+                created,
+                "Mott-Schottky workbook creation failed.",
+            )
+        book_name = str(getattr(created, "payload", {}).get("book_name") or "")
+        sheet_name = str(
+            getattr(created, "payload", {}).get("sheet_name") or "Sheet1"
+        )
+        if not book_name:
+            return {
+                "ok": False,
+                "message": "Origin did not return the Mott-Schottky workbook name.",
+            }
+        if book_name != str(binding["book_name"]):
+            return {
+                "ok": False,
+                "message": (
+                    "Origin did not preserve the reviewed Mott-Schottky workbook "
+                    f"identity: expected {binding['book_name']}, actual {book_name}."
+                ),
+            }
+        columns = [[math.nan] * len(rows) for _index in range(12)]
+        shared_x = [
+            float(value)
+            if (value := _finite_numeric_value(row[0])) is not None
+            else math.nan
+            for row in rows
+        ]
+        for destination_x in sorted(
+            {pair[0] for pair in VERIFIED_MOTT_DESTINATION_PAIRS}
+        ):
+            columns[destination_x - 1] = list(shared_x)
+        for source_y, (_destination_x, destination_y) in enumerate(
+            VERIFIED_MOTT_DESTINATION_PAIRS,
+            start=1,
+        ):
+            columns[destination_y - 1] = [
+                float(value)
+                if source_y < len(row)
+                and (value := _finite_numeric_value(row[source_y])) is not None
+                else math.nan
+                for row in rows
+            ]
+        written = operations.set_worksheet_data(
+            book_name,
+            sheet_name,
+            columns,
+        )
+        if not getattr(written, "ok", False):
+            return _verified_otpu_failure(
+                written,
+                "Mott-Schottky worksheet data write failed.",
+            )
+        metadata: list[dict[str, object]] = []
+        x_headers_written: set[int] = set()
+        for source_y, (x_col, y_col) in enumerate(
+            VERIFIED_MOTT_DESTINATION_PAIRS,
+            start=1,
+        ):
+            if x_col not in x_headers_written:
+                metadata.append(
+                    {
+                        "column_index": x_col,
+                        "long_name": headers[0],
+                        "unit": "V",
+                        "comment": "",
+                        "type": 4,
+                    }
+                )
+                x_headers_written.add(x_col)
+            metadata.append(
+                {
+                    "column_index": y_col,
+                    "long_name": headers[source_y],
+                    "unit": "10^8 cm^4 F^-2",
+                    "comment": "",
+                    "type": 1,
+                }
+            )
+        metadata_write = operations.set_worksheet_column_metadata(book_name, metadata)
+        if not getattr(metadata_write, "ok", False):
+            return _verified_otpu_failure(
+                metadata_write,
+                "Mott-Schottky worksheet metadata write failed.",
+            )
+        masked_rows = [
+            row_index
+            for row_index, value in enumerate(shared_x, start=1)
+            if math.isfinite(value) and value < -1.0e-8
+        ]
+        mask_columns: list[int] = []
+        for _x_col, y_col in VERIFIED_MOTT_DESTINATION_PAIRS[:4]:
+            mask_write = operations.set_worksheet_column_mask_rows(
+                book_name,
+                y_col,
+                masked_rows,
+            )
+            if not getattr(mask_write, "ok", False):
+                return _verified_otpu_failure(
+                    mask_write,
+                    "Mott-Schottky worksheet mask-state write failed.",
+                )
+            mask_columns.append(y_col)
+        return {
+            "ok": True,
+            "method": "mott_shared_x_to_reviewed_d_to_l_columns_with_native_masks",
+            "book_name": book_name,
+            "sheet_count": 1,
+            "destination_pairs": [
+                {"x_col": x_col, "y_col": y_col}
+                for x_col, y_col in VERIFIED_MOTT_DESTINATION_PAIRS
+            ],
+            "masked_rows": masked_rows,
+            "masked_y_columns": mask_columns,
+        }
+
     if product.product_key == "photocurrent":
         created = operations.create_worksheet(str(binding["book_name"]), "Sheet1")
         if not getattr(created, "ok", False):
@@ -3723,6 +4095,78 @@ def _apply_verified_otpu_post_plot_style(
             "format_theme_applied": False,
             "style_snapshot_applied": False,
             "legend_policy": legend_policy,
+        }
+    if product.product_key == "Mott-Schottky":
+        if runtime_theme is not None:
+            return {
+                "ok": False,
+                "message": "Verified Mott-Schottky OTPU runtime must not apply an OTH asset.",
+            }
+        if (
+            not isinstance(reference_data, dict)
+            or str(reference_data.get("status") or "") != "ready"
+        ):
+            return {
+                "ok": False,
+                "message": "Verified Mott-Schottky plot styles require the reviewed data snapshot.",
+            }
+        snapshot_applied = apply_style_snapshot(
+            operations,
+            graph_name,
+            reference_style,
+            apply_default_font=False,
+            apply_axis_titles=True,
+            preserve_custom_rgb=True,
+        )
+        if not snapshot_applied:
+            return {
+                "ok": False,
+                "message": "Verified Mott-Schottky style snapshot application failed.",
+            }
+        reviewed_policy = _apply_reviewed_template_plot_policy(
+            operations,
+            graph_name,
+            product,
+            reference_style,
+            style,
+            data_snapshot=reference_data,
+            restore_plot_styles=False,
+        )
+        if not reviewed_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified Mott-Schottky plot visibility, styles, legend, or guides failed.",
+                "reviewed_plot_policy": reviewed_policy,
+            }
+        guide_policy = reviewed_policy.get("mott_schottky_candidate_guides")
+        if not isinstance(guide_policy, dict) or not guide_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified Mott-Schottky candidate guide construction failed.",
+                "reviewed_plot_policy": reviewed_policy,
+            }
+        legend_anchor_policy = _apply_saved_template_legend_anchor(
+            operations,
+            graph_name,
+            reference_style,
+            regenerate=False,
+        )
+        if not legend_anchor_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified Mott-Schottky template legend anchor could not be restored.",
+                "reviewed_plot_policy": reviewed_policy,
+                "legend_anchor_policy": legend_anchor_policy,
+            }
+        return {
+            "ok": True,
+            "method": "otpu_then_snapshot_then_reviewed_native_plot_policy_and_candidate_guides",
+            "format_theme_applied": False,
+            "style_snapshot_applied": True,
+            "apply_default_font": False,
+            "apply_axis_titles": True,
+            "reviewed_plot_policy": reviewed_policy,
+            "legend_anchor_policy": legend_anchor_policy,
         }
     if product.product_key == "photocurrent":
         if runtime_theme is None or not runtime_theme.is_file():
@@ -3973,6 +4417,53 @@ def _paired_numeric_row_bounds(
     return min(valid_rows), max(valid_rows)
 
 
+def _apply_mott_schottky_source_masks(
+    operations: object,
+    book_name: str,
+    rows: list[list[object]],
+    plot_pairs: list[tuple[int, int]],
+) -> dict[str, object]:
+    mask_writer = getattr(operations, "set_worksheet_column_mask_rows", None)
+    if not callable(mask_writer):
+        return {"applied": False, "reason": "worksheet_mask_operation_unavailable"}
+    if not plot_pairs:
+        return {"applied": False, "reason": "mott_plot_pairs_unavailable"}
+    applied: list[dict[str, object]] = []
+    for series_index, (x_col, y_col) in enumerate(plot_pairs, start=1):
+        masked_rows = [
+            row_index
+            for row_index, row in enumerate(rows, start=1)
+            if x_col - 1 < len(row)
+            and y_col - 1 < len(row)
+            and (x_value := _finite_numeric_value(row[x_col - 1])) is not None
+            and _finite_numeric_value(row[y_col - 1]) is not None
+            and x_value < -1.0e-8
+        ]
+        written = mask_writer(book_name, y_col, masked_rows)
+        if not getattr(written, "ok", False):
+            return {
+                "applied": False,
+                "reason": "worksheet_mask_write_failed",
+                "series_index": series_index,
+                "y_column": y_col,
+                "message": getattr(written, "message", "mask write failed"),
+            }
+        applied.append(
+            {
+                "series_index": series_index,
+                "x_column": x_col,
+                "y_column": y_col,
+                "masked_rows": masked_rows,
+            }
+        )
+    return {
+        "applied": True,
+        "method": "origin_native_y_column_masks_for_negative_potential_rows",
+        "zero_tolerance_v": 1.0e-8,
+        "series": applied,
+    }
+
+
 def _finite_numeric_value(value: object) -> float | None:
     try:
         number = float(value)
@@ -3984,7 +4475,7 @@ def _finite_numeric_value(value: object) -> float | None:
 def _validate_verified_current_data(
     product_key: str,
     rows: list[list[object]],
-    xy_ranges: list[dict[str, int]],
+    xy_ranges: list[dict[str, object]],
     graph_snapshot: dict[str, object],
 ) -> dict[str, object]:
     plots = [
@@ -4034,6 +4525,17 @@ def _validate_verified_current_data(
             reasons.append(f"plot {index + 1} Y dataset column differs")
         if expected_x_letter and str(plot.get("x_mapping_source") or "") != "graph_plot_mapping":
             reasons.append(f"plot {index + 1} lacks explicit graph X mapping readback")
+        if "expected_y_masked_rows" in expected:
+            expected_masked_rows = [
+                int(value) for value in list(expected.get("expected_y_masked_rows") or [])
+            ]
+            actual_masked_rows = [
+                int(value) for value in list(plot.get("y_masked_rows") or [])
+            ]
+            if str(plot.get("mask_readback_status") or "") != "ready":
+                reasons.append(f"plot {index + 1} lacks native mask-state readback")
+            elif actual_masked_rows != expected_masked_rows:
+                reasons.append(f"plot {index + 1} Y masked rows differ")
     return {
         "ok": not reasons,
         "status": "matched" if not reasons else "mismatch",
@@ -4129,6 +4631,23 @@ def _export_saved_format_theme_product_with_origin(
         plot_pairs = _processed_csv_plot_pairs(product, headers)
         if not plot_pairs:
             return {"ok": False, "message": "processed CSV does not contain plottable column pairs", "template_format_plan": plan.to_dict()}
+        mott_mask_policy = (
+            _apply_mott_schottky_source_masks(
+                operations,
+                book_name,
+                rows,
+                plot_pairs,
+            )
+            if product.product_key == "Mott-Schottky"
+            else {"applied": False, "reason": "not_required_for_product"}
+        )
+        if product.product_key == "Mott-Schottky" and not mott_mask_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Mott-Schottky native worksheet mask policy failed.",
+                "template_format_plan": plan.to_dict(),
+                "mott_schottky_mask_policy": mott_mask_policy,
+            }
         first_header = headers[plot_pairs[0][1] - 1] if plot_pairs[0][1] - 1 < len(headers) else ""
         created = operations.create_graph(
             graph_name,
@@ -4141,6 +4660,16 @@ def _export_saved_format_theme_product_with_origin(
         if not getattr(created, "ok", False):
             return {"ok": False, "message": getattr(created, "message", "graph creation failed"), "template_format_plan": plan.to_dict()}
         graph_name = str(created.payload.get("graph_name") or graph_name)
+        if product.product_key == "Mott-Schottky":
+            mask_display = operations.run_labtalk(
+                f'win -a "{quote_labtalk(graph_name)}"; page.mask=0;'
+            )
+            if not getattr(mask_display, "ok", False):
+                return {
+                    "ok": False,
+                    "message": "Mott-Schottky masked-point display policy failed.",
+                    "template_format_plan": plan.to_dict(),
+                }
         for x_col, y_col in plot_pairs[1:]:
             header = headers[y_col - 1] if y_col - 1 < len(headers) else ""
             added = operations.add_plot_to_graph(
@@ -4199,6 +4728,7 @@ def _export_saved_format_theme_product_with_origin(
                 saved_style_snapshot,
                 apply_default_font=False,
                 apply_axis_titles=True,
+                preserve_custom_rgb=product.product_key == "Mott-Schottky",
             )
         )
         plot_sequence = _apply_external_reference_plot_sequence(
@@ -4214,6 +4744,7 @@ def _export_saved_format_theme_product_with_origin(
                 graph_name,
                 saved_data_snapshot,
                 cycle_styles=adaptive_cardinality,
+                preserve_custom_rgb=product.product_key == "Mott-Schottky",
             )
             if selected_oth_json
             else {"applied": False, "reason": "not_oth_json_mode"}
@@ -4230,6 +4761,45 @@ def _export_saved_format_theme_product_with_origin(
                 data_snapshot=saved_data_snapshot,
             )
         )
+        adaptive_mott_guide_policy = {
+            "applied": False,
+            "reason": "not_required_for_product_or_cardinality",
+        }
+        if (
+            selected_oth_json
+            and product.product_key == "Mott-Schottky"
+            and adaptive_cardinality
+        ):
+            adaptive_mott_guide_policy = _apply_mott_schottky_candidate_guides(
+                operations,
+                graph_name,
+                product,
+                saved_style_snapshot,
+                series_count=len(plot_pairs),
+            )
+            if not adaptive_mott_guide_policy.get("applied"):
+                if (
+                    adaptive_mott_guide_policy.get("reason")
+                    == "no_defensible_common_linear_window"
+                ):
+                    adaptive_mott_guide_policy = {
+                        **adaptive_mott_guide_policy,
+                        "status": "omitted",
+                        "guides_omitted": True,
+                        "manual_check_required": True,
+                        "visible_claim": "none",
+                        "message": (
+                            "No common linear-window candidate passed the quality gate; "
+                            "the native current-data curves are retained without fit guides."
+                        ),
+                    }
+                else:
+                    return {
+                        "ok": False,
+                        "message": "Adaptive Mott-Schottky candidate guide construction failed.",
+                        "template_format_plan": plan.to_dict(),
+                        "mott_schottky_candidate_guides": adaptive_mott_guide_policy,
+                    }
         if product.product_key == "FTIR" and selected_oth_json:
             legend_policy = _apply_adaptive_ftir_oth_json_text_policy(
                 operations,
@@ -4321,6 +4891,10 @@ def _export_saved_format_theme_product_with_origin(
             "apply_axis_titles": True,
         }
         legend_policy["reviewed_template_plot_policy"] = reviewed_plot_policy
+        legend_policy["mott_schottky_mask_policy"] = mott_mask_policy
+        legend_policy["adaptive_mott_schottky_candidate_guides"] = (
+            adaptive_mott_guide_policy
+        )
         legend_policy["final_reviewed_legend"] = (
             {
                 "applied": False,
@@ -4394,6 +4968,7 @@ def _export_saved_format_theme_product_with_origin(
                 reopened_graph,
                 source_label=product.origin_file.name,
                 graph_pages=graph_pages,
+                prefer_custom_rgb=product.product_key == "Mott-Schottky",
             )
             product_style = snapshot.to_dict()
         except Exception as exc:
@@ -4419,7 +4994,11 @@ def _export_saved_format_theme_product_with_origin(
             "ok": True,
             "status": "not_required",
         }
-        if selected_oth_json and product.product_key in {"BET", "photocurrent"}:
+        if selected_oth_json and product.product_key in {
+            "BET",
+            "photocurrent",
+            "Mott-Schottky",
+        }:
             current_data_snapshot = read_graph_data_snapshot(
                 operations,
                 reopened_graph,
@@ -4428,6 +5007,7 @@ def _export_saved_format_theme_product_with_origin(
             validation_ranges = _adaptive_photocurrent_validation_ranges(
                 rows,
                 plot_pairs,
+                mask_negative_x=product.product_key == "Mott-Schottky",
             )
             if len(validation_ranges) != len(plot_pairs):
                 return {
@@ -4571,6 +5151,18 @@ def _export_saved_format_theme_product_with_origin(
                 conformance,
                 adaptive_validation,
             )
+        if str(conformance.get("status") or "").casefold() == "fail":
+            return {
+                "ok": False,
+                "message": (
+                    "Adaptive OTH+JSON style conformance retained a hard failure "
+                    "after the permitted series-cardinality differences were removed."
+                ),
+                "template_format_plan": plan.to_dict(),
+                "product_style": product_style,
+                "conformance": conformance,
+                "adaptive_oth_json_validation": adaptive_validation,
+            }
         conformance["reference_source"] = (
             external_reference_preview.get("reference_kind")
             if reference_style_snapshot is independent_style_snapshot
@@ -4773,7 +5365,12 @@ def _export_external_reference_preview_if_requested(
     exported = operations.export_graph(graph_name, runtime_reference_png, "png", dpi=style.export_dpi)
     snapshot_payload: dict[str, object] = {}
     try:
-        snapshot_payload = read_graph_style_snapshot(operations, graph_name, source_label=source.name).to_dict()
+        snapshot_payload = read_graph_style_snapshot(
+            operations,
+            graph_name,
+            source_label=source.name,
+            prefer_custom_rgb=product.product_key == "Mott-Schottky",
+        ).to_dict()
     except Exception as exc:
         snapshot_payload = {"status": "readback_failed", "message": str(exc)}
     metadata_warning = _strip_raster_metadata(runtime_reference_png, dpi=style.export_dpi) if runtime_reference_png.exists() else ""
@@ -4898,9 +5495,27 @@ def _adaptive_oth_json_readback_validation(
         failures.append(
             f"reopened graph has {actual} curves; current CSV requires {expected}"
         )
+    raw_visibility = product_style.get("plot_visibility")
+    visibility = (
+        [_finite_float(value) for value in raw_visibility]
+        if isinstance(raw_visibility, list)
+        else []
+    )
+    all_current_plots_visible = (
+        len(visibility) == expected
+        and all(value is not None and value > 0.5 for value in visibility)
+    )
+    if relaxed and not all_current_plots_visible:
+        failures.append(
+            "not every current CSV curve is visible after adaptive save/reopen"
+        )
     if not relaxed and str(conformance.get("status") or "").casefold() == "fail":
         failures.append("fixed-cardinality OTH+JSON style conformance failed")
-    requires_current_data_match = product.product_key in {"BET", "photocurrent"}
+    requires_current_data_match = product.product_key in {
+        "BET",
+        "photocurrent",
+        "Mott-Schottky",
+    }
     current_data_match = bool(
         isinstance(current_data_validation, dict)
         and current_data_validation.get("ok") is True
@@ -4920,6 +5535,7 @@ def _adaptive_oth_json_readback_validation(
         "reopened_plot_count": actual,
         "contract_series_count": contract_count,
         "series_cardinality_relaxed": relaxed,
+        "all_current_plots_visible": all_current_plots_visible,
         "one_to_one_claim_allowed": False,
         "saved_reopened": True,
         "native_tif_600dpi_required": True,
@@ -4933,12 +5549,15 @@ def _adaptive_oth_json_readback_validation(
 def _adaptive_photocurrent_validation_ranges(
     rows: list[list[object]],
     plot_pairs: list[tuple[int, int]],
-) -> list[dict[str, int]]:
+    *,
+    mask_negative_x: bool = False,
+) -> list[dict[str, object]]:
     series = _photocurrent_xy_series(rows, plot_pairs)
     if len(series) != len(plot_pairs):
         return []
-    return [
-        {
+    ranges: list[dict[str, object]] = []
+    for (x_column, y_column), (x_values, _y_values) in zip(plot_pairs, series):
+        record: dict[str, int | list[int]] = {
             "x_col": x_column,
             "y_col": y_column,
             "row_from": 1,
@@ -4948,8 +5567,14 @@ def _adaptive_photocurrent_validation_ranges(
             "source_row_from": 1,
             "source_row_to": len(x_values),
         }
-        for (x_column, y_column), (x_values, _y_values) in zip(plot_pairs, series)
-    ]
+        if mask_negative_x:
+            record["expected_y_masked_rows"] = [
+                row_index
+                for row_index, value in enumerate(x_values, start=1)
+                if value < -1.0e-8
+            ]
+        ranges.append(record)
+    return ranges
 
 
 def _adaptive_series_count_conformance(
@@ -4971,10 +5596,32 @@ def _adaptive_series_count_conformance(
         "marker_sizes",
         "plot_visibility",
     }
+    cardinality_changed = (
+        int(validation.get("current_csv_pair_count") or 0)
+        != int(validation.get("contract_series_count") or 0)
+    )
+    all_current_plots_visible = validation.get("all_current_plots_visible") is True
+
+    def intentional_adaptive_difference(issue: dict[str, object]) -> bool:
+        field = str(issue.get("field") or "")
+        if field in cardinality_fields:
+            return True
+        # A fixed template may intentionally hide surplus reference plots.  In
+        # an adaptive graph every plot represents current input data, so those
+        # plots must be visible.  Treat that indexed visibility difference as
+        # part of the cardinality adaptation only after readback proves that
+        # every current plot is visible; other indexed style differences remain
+        # hard conformance issues.
+        return (
+            cardinality_changed
+            and all_current_plots_visible
+            and re.fullmatch(r"plot_visibility\[\d+\]", field) is not None
+        )
+
     retained = [
         issue
         for issue in issues
-        if str(issue.get("field") or "") not in cardinality_fields
+        if not intentional_adaptive_difference(issue)
     ]
     payload["original_status"] = conformance.get("status", "")
     payload["original_issues"] = issues
@@ -5069,6 +5716,7 @@ def _apply_reviewed_template_plot_policy(
     style: ResolvedPlotStyle,
     *,
     data_snapshot: dict[str, object] | None = None,
+    restore_plot_styles: bool = True,
 ) -> dict[str, object]:
     visible_indices = REVIEWED_TEMPLATE_VISIBLE_PLOTS.get(product.product_key)
     if visible_indices is None:
@@ -5083,10 +5731,17 @@ def _apply_reviewed_template_plot_policy(
         }
 
     graph = quote_labtalk(graph_name)
-    plot_style_policy = _apply_reviewed_template_plot_styles(
-        operations,
-        graph_name,
-        data_snapshot or {},
+    plot_style_policy = (
+        _apply_reviewed_template_plot_styles(
+            operations,
+            graph_name,
+            data_snapshot or {},
+        )
+        if restore_plot_styles
+        else {
+            "applied": False,
+            "reason": "fixed_otpu_and_style_snapshot_preserve_native_plot_styles",
+        }
     )
     visibility_commands: list[str] = []
     for index in range(1, len(plot_names) + 1):
@@ -5108,10 +5763,11 @@ def _apply_reviewed_template_plot_policy(
         for plot_index, label in zip(visible_indices, entries)
     ]
     legend_text = "%(CRLF)".join(legend_rows)
+    legend_font_size = _reviewed_template_legend_font_size(snapshot, style)
     operations.run_labtalk(
         f'win -a "{graph}"; legend.show=1; legend.text$="{_quote_origin_rich_text(legend_text)}"; '
         f'legend.font$="{quote_labtalk(style.font_family or "Arial")}"; '
-        f"legend.fsize={int(style.legend_font_size or 26)}; legend.bold=1; "
+        f"legend.fsize={legend_font_size}; legend.bold=1; "
         "legend.background=0; legend.border=0; legend.fill=0;"
     )
     legend_com_text_refreshed = _set_origin_graph_object_text(
@@ -5125,7 +5781,7 @@ def _apply_reviewed_template_plot_policy(
         graph_name,
         "Legend",
         font_name=style.font_family or "Arial",
-        font_size=int(style.legend_font_size or 26),
+        font_size=legend_font_size,
         color=1,
     )
     if snapshot:
@@ -5140,6 +5796,7 @@ def _apply_reviewed_template_plot_policy(
         "visible_indices": list(visible_indices),
         "hidden_indices": [index for index in range(1, len(plot_names) + 1) if index not in visible_indices],
         "legend_entries": entries,
+        "legend_font_size": legend_font_size,
         "legend_line_samples_preserved": True,
         "legend_com_text_refreshed": legend_com_text_refreshed,
         "axis_titles_restored_from_style_snapshot": bool(snapshot),
@@ -5303,6 +5960,7 @@ def _apply_reviewed_template_plot_styles(
     data_snapshot: dict[str, object],
     *,
     cycle_styles: bool = False,
+    preserve_custom_rgb: bool = False,
 ) -> dict[str, object]:
     plot_names = operations._plot_names(graph_name) if hasattr(operations, "_plot_names") else []
     records = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
@@ -5328,9 +5986,6 @@ def _apply_reviewed_template_plot_styles(
         ("fill_color", "-pfc", True),
         ("border_color", "-pbc", True),
         ("border_width", "-pbw", False),
-        # Apply the composite Origin color last; earlier component-color
-        # commands can otherwise replace it with a plain palette index.
-        ("color", "-c", True),
     )
     applied: list[dict[str, object]] = []
     graph = quote_labtalk(graph_name)
@@ -5356,6 +6011,14 @@ def _apply_reviewed_template_plot_styles(
             rendered: int | float = int(round(value)) if integer_value else value
             commands.append(f"set {plot_name} {option} {_origin_number(rendered)};")
             restored[field] = rendered
+        color = _finite_float(plot_style.get("color"))
+        if color is not None:
+            if preserve_custom_rgb:
+                color_option, color_value = _origin_plot_color_for_labtalk(color)
+            else:
+                color_option, color_value = "-c", str(int(round(color)))
+            commands.append(f"set {plot_name} {color_option} {color_value};")
+            restored["color"] = int(round(color))
         if not commands:
             return {
                 "applied": False,
@@ -5385,12 +6048,14 @@ def _apply_adaptive_oth_json_plot_styles(
     data_snapshot: dict[str, object],
     *,
     cycle_styles: bool,
+    preserve_custom_rgb: bool = False,
 ) -> dict[str, object]:
     return _apply_reviewed_template_plot_styles(
         operations,
         graph_name,
         data_snapshot,
         cycle_styles=cycle_styles,
+        preserve_custom_rgb=preserve_custom_rgb,
     )
 
 
@@ -5403,6 +6068,32 @@ def _apply_adaptive_dynamic_legend_policy(
 ) -> dict[str, object]:
     _apply_exemplar_axis_title_text(operations, graph_name, snapshot)
     entries = _plain_text_legend_entries(product)
+    plot_names = (
+        operations._plot_names(graph_name)
+        if hasattr(operations, "_plot_names")
+        else []
+    )
+    if plot_names and len(plot_names) != len(entries):
+        return {
+            "applied": False,
+            "reason": "current_plot_and_legend_entry_count_mismatch",
+            "plot_count": len(plot_names),
+            "legend_entry_count": len(entries),
+        }
+    visibility_commands: list[str] = []
+    for index in range(1, len(plot_names) + 1):
+        command = (
+            f'win -a "{quote_labtalk(graph_name)}"; '
+            f"layer.plot{index}.show=1;"
+        )
+        result = operations.run_labtalk(command)
+        if not getattr(result, "ok", False):
+            return {
+                "applied": False,
+                "reason": "current_plot_visibility_restore_failed",
+                "plot_index": index,
+            }
+        visibility_commands.append(command)
     rows = [
         f"\\l({index})\\b({_reviewed_template_legend_rich_text(label)})"
         for index, label in enumerate(entries, start=1)
@@ -5411,15 +6102,29 @@ def _apply_adaptive_dynamic_legend_policy(
     written = bool(rows) and _set_origin_graph_object_text(
         operations, graph_name, "Legend", text
     )
+    font_size = _reviewed_template_legend_font_size(snapshot, style)
     preserved = _format_preserved_line_sample_legend(
-        operations, graph_name, style
+        operations,
+        graph_name,
+        style,
+        font_size=font_size,
+    )
+    anchor_policy = _apply_saved_template_legend_anchor(
+        operations,
+        graph_name,
+        snapshot,
+        regenerate=False,
     )
     return {
         "applied": written,
         "method": "adaptive_dynamic_rich_text_legend_all_current_plots",
         "entries": entries,
         "visible_plot_indices": list(range(1, len(entries) + 1)),
+        "all_current_plots_visible": len(plot_names) == len(entries),
+        "visibility_commands": visibility_commands,
         "line_samples_preserved": True,
+        "font_size": font_size,
+        "anchor_policy": anchor_policy,
         "preserved_line_sample_policy": preserved,
         "axis_titles_restored_from_style_snapshot": bool(snapshot),
     }
@@ -5908,16 +6613,34 @@ def _apply_mott_schottky_candidate_guides(
     graph_name: str,
     product: ProductContext,
     snapshot: dict[str, object],
+    *,
+    series_count: int = 3,
 ) -> dict[str, object]:
     try:
         headers, rows = _read_processed_csv(product.processed_data)
     except (OSError, ValueError) as exc:
         return {"applied": False, "reason": f"processed_data_unavailable: {exc}"}
-    candidate = _mott_schottky_candidate_guides(headers, rows, series_count=3)
+    candidate = _mott_schottky_candidate_guides(
+        headers,
+        rows,
+        series_count=series_count,
+    )
     if not candidate:
         return {"applied": False, "reason": "no_defensible_common_linear_window"}
 
     graph = quote_labtalk(graph_name)
+    cleared = operations.run_labtalk(
+        f'win -a "{graph}"; '
+        "label -r Line3; label -r Line4; label -r Line5; label -r Text; "
+        "label -r rdop_mott_fit_1; label -r rdop_mott_fit_2; "
+        "label -r rdop_mott_fit_3; label -r rdop_mott_x_intercept;"
+    )
+    if not getattr(cleared, "ok", False):
+        return {
+            "applied": False,
+            "reason": "template_candidate_guide_cleanup_failed",
+            **candidate,
+        }
     x_intercept = float(candidate["shared_x_intercept_candidate"])
     x_end = float(candidate["guide_x_end"])
     line_results: list[dict[str, object]] = []
@@ -6861,6 +7584,8 @@ def _apply_saved_template_legend_anchor(
     operations: object,
     graph_name: str,
     snapshot: dict[str, object],
+    *,
+    regenerate: bool = True,
 ) -> dict[str, object]:
     if not hasattr(operations, "run_labtalk"):
         return {"applied": False, "reason": "run_labtalk_unavailable"}
@@ -6869,6 +7594,40 @@ def _apply_saved_template_legend_anchor(
     legend_show = _snapshot_axis_value(audit, "legend.show")
     if legend_show is None or abs(legend_show - 1.0) > 1e-9:
         return {"applied": False, "reason": "saved_template_legend_not_visible"}
+    object_positions = (
+        snapshot.get("graph_object_positions")
+        if isinstance(snapshot, dict)
+        else None
+    )
+    legend_geometry: dict[str, object] | None = None
+    if isinstance(object_positions, dict):
+        for object_name, raw_geometry in object_positions.items():
+            if (
+                str(object_name).casefold() == "legend"
+                and isinstance(raw_geometry, dict)
+            ):
+                legend_geometry = raw_geometry
+                break
+    if legend_geometry is not None:
+        restored = _restore_graph_object_geometry(
+            operations,
+            graph_name,
+            "Legend",
+            legend_geometry,
+        )
+        if restored.get("applied"):
+            operations.run_labtalk(
+                f'win -a "{quote_labtalk(graph_name)}"; legend.show=1;'
+            )
+            return {
+                "applied": True,
+                "visible": True,
+                "method": "saved_template_native_object_geometry",
+                "geometry": restored.get("geometry"),
+                "saved_geometry": restored.get("saved_geometry"),
+                "position_restored": restored.get("position_restored"),
+                "size_restored": restored.get("size_restored"),
+            }
     x_from = _snapshot_axis_value(layout, "layer.x.from")
     x_to = _snapshot_axis_value(layout, "layer.x.to")
     y_from = _snapshot_axis_value(layout, "layer.y.from")
@@ -6887,20 +7646,97 @@ def _apply_saved_template_legend_anchor(
         return {"applied": False, "reason": "saved_template_legend_fraction_invalid"}
     x_fraction = min(0.95, max(0.05, x_fraction))
     y_fraction = min(0.95, max(0.05, y_fraction))
+    regenerate_command = "legend -r; " if regenerate else ""
     operations.run_labtalk(
         f'win -a "{quote_labtalk(graph_name)}"; '
-        "legend -r; legend.show=1; "
+        f"{regenerate_command}legend.show=1; "
         f"legend.x = layer.x.from + {x_fraction:.8g} * (layer.x.to - layer.x.from); "
         f"legend.y = layer.y.from + {y_fraction:.8g} * (layer.y.to - layer.y.from);"
     )
     return {
         "applied": True,
         "visible": True,
-        "method": "saved_template_fractional_anchor_before_plain_text_replacement",
+        "method": (
+            "saved_template_fractional_anchor_before_plain_text_replacement"
+            if regenerate
+            else "saved_template_fractional_anchor_without_legend_regeneration"
+        ),
         "x_fraction": x_fraction,
         "y_fraction": y_fraction,
         "saved_x": legend_x,
         "saved_y": legend_y,
+    }
+
+
+def _restore_graph_object_geometry(
+    operations: object,
+    graph_name: str,
+    object_name: str,
+    geometry: dict[str, object],
+) -> dict[str, object]:
+    app = getattr(operations, "app", None)
+    if app is None:
+        return {"applied": False, "reason": "origin_app_unavailable"}
+    values: dict[str, int] = {}
+    for key in ("left", "top", "width", "height"):
+        value = _finite_float(geometry.get(key))
+        if value is None:
+            return {
+                "applied": False,
+                "reason": "saved_template_object_geometry_incomplete",
+                "missing": key,
+            }
+        values[key] = int(round(value))
+    try:
+        layer = (
+            app.FindGraphLayer(f"[{graph_name}]Layer1")
+            or app.FindGraphLayer(f"[{graph_name}]1")
+            or app.FindGraphLayer(graph_name)
+        )
+    except Exception:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+    if not layer:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+    graph_object = _find_origin_graph_object(layer, object_name)
+    if graph_object is None:
+        return {"applied": False, "reason": "graph_object_unavailable"}
+    try:
+        graph_object.Left = values["left"]
+        graph_object.Top = values["top"]
+        graph_object.Width = values["width"]
+        graph_object.Height = values["height"]
+        actual = {
+            "left": int(round(float(graph_object.Left))),
+            "top": int(round(float(graph_object.Top))),
+            "width": int(round(float(graph_object.Width))),
+            "height": int(round(float(graph_object.Height))),
+        }
+    except Exception as exc:
+        return {
+            "applied": False,
+            "reason": "graph_object_geometry_restore_failed",
+            "message": str(exc),
+        }
+    position_keys = ("left", "top")
+    position_matches = all(actual[key] == values[key] for key in position_keys)
+    if not position_matches:
+        return {
+            "applied": False,
+            "reason": "graph_object_position_readback_mismatch",
+            "expected": values,
+            "actual": actual,
+        }
+    size_matches = all(actual[key] == values[key] for key in ("width", "height"))
+    return {
+        "applied": True,
+        "method": "origin_native_graph_object_geometry",
+        "geometry": actual,
+        "saved_geometry": values,
+        "position_restored": True,
+        # Origin auto-sizes native text objects from their current text.  A
+        # shortened dynamic legend therefore legitimately rejects the saved
+        # width/height while still preserving the reviewed Left/Top anchor.
+        "size_restored": size_matches,
     }
 
 
@@ -8011,8 +8847,13 @@ def _clean_exemplar_legend_entry(value: object) -> str:
 
 
 def _origin_rich_text_for_labtalk(value: object) -> str:
-    text = str(value or "").replace("/", "\\").replace("\r", " ").replace("\n", " ").strip()
-    return re.sub(r"\\+$", "", text).strip()
+    text = str(value or "").replace("\r", " ").replace("\n", " ").strip()
+    text = re.sub(
+        r"/(?=(?:[bil]\(|[cf](?::|\d)|[+\-]\(|\(\d+\)))",
+        r"\\",
+        text,
+    )
+    return re.sub(r"[/\\]+$", "", text).strip()
 
 
 def _strip_raster_metadata(path: Path, *, dpi: int) -> str:

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-07-06T09:14:15",
+  "generated_at": "2026-08-24T01:26:02+08:00",
   "asset_root": "templates/origin_styles",
-  "origin_dependency_boundary": "Legacy accepted .oth themes remain compatibility runtime assets for data types that have not yet been migrated. Historical batch-derived .otpu files are quarantined and are not runtime fallbacks. A detached replacement asset may be promoted only after a fresh-project replay uses the exact same per-plot X/Y data and mappings, saves and reopens the generated OPJU, exports a native 600 dpi TIFF, has zero decoded-pixel difference, and passes manual preview. BET is the first independently validated .otpu runtime asset.",
+  "origin_dependency_boundary": "Current formal exact-style runs use isolated reviewed reference_opju copies. Harvested .oth/.otpu assets remain quarantined until a fresh-project replay uses identical explicit per-plot X/Y data and mappings, saves and reopens the generated OPJU, exports native 600 dpi, has zero decoded-pixel difference, and passes manual preview.",
   "assets": [
     {
       "product_key": "BET",
@@ -882,11 +882,11 @@
           "sha256": "053f047a5b71c4d5f0d6526a26446de6a366f1166d02a04f7a2c7cb94d3f7115",
           "size_bytes": 4422
         },
-      "adaptive_runtime_validation_evidence": {
-        "kind": "json",
-        "sha256": "d8c6766fcc4abb3375402ee8dbff307a83cb62c4ac0d58f0f3965594fca213e5",
-        "size_bytes": 5016
-      },
+        "adaptive_runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "d8c6766fcc4abb3375402ee8dbff307a83cb62c4ac0d58f0f3965594fca213e5",
+          "size_bytes": 5016
+        },
         "validation_plan": {
           "kind": "json",
           "sha256": "9ede8ba8223a1135dd0f2636a73cc519c22da3298d7eea8b63cd320f36c9402a",
@@ -1046,9 +1046,13 @@
       "data_type": "Mott-Schottky",
       "status": "accepted",
       "graph_page": "Graph2",
-      "source_mode": "direct_fdrive_template_opju",
+      "source_mode": "individually_regenerated_from_reviewed_reference_opju",
       "format_theme": "format_themes/Mott_Schottky.oth",
       "graph_template": "graph_templates/Mott_Schottky.otpu",
+      "binding_contract": "binding_contracts/Mott_Schottky.json",
+      "runtime_validation_evidence": "validation_evidence/Mott_Schottky_verified_20260824.json",
+      "adaptive_runtime_validation_evidence": "validation_evidence/Mott_Schottky_oth_json_adaptive_verified_20260824.json",
+      "validation_plan": "validation_plans/Mott_Schottky_verified_20260823.json",
       "style_snapshot": "snapshots/Mott_Schottky.json",
       "data_snapshot": "data_snapshots/Mott_Schottky.json",
       "template_opju": "reference_opju/Mott_Schottky.opju",
@@ -1056,17 +1060,18 @@
       "reference_preview_png": "",
       "template_preview_comparison_png": "",
       "preview_rms": null,
-      "asset_kind": "oth",
-      "sha256": "060ed7d8545be393b1dea58ea4382616aaa72109a273bdf3670ecea9ae7e490c",
-      "file_size_bytes": 25675,
+      "asset_kind": "otpu",
+      "sha256": "2506c565bad302671d93a8921671d7e1bdeab16defee27e202879bd275d0768a",
+      "file_size_bytes": 30765,
       "expected_layer_count": 1,
       "expected_plot_count": 5,
-      "origin_version": "",
-      "origin_build": "",
-      "pipeline_git_commit": "",
-      "harvested_at": "2026-07-06T09:14:15",
-      "source_opju_hash": "c200e6c8fc9f14da46b1ec3f739acae16f9ddd7883ec7202f1f521e14b929af7",
-      "exact_pixel_match": null,
+      "origin_version": "10.3",
+      "origin_build": "197",
+      "pipeline_git_commit": "d205588",
+      "harvested_at": "2026-08-24T01:26:02+08:00",
+      "source_opju_hash": "6bc398d3ddd0b3c18b8cfda06d0a3754915097c1ebcddc18cd94e0d6583a8cf9",
+      "exact_pixel_match": true,
+      "format_theme_role": "adaptive_runtime",
       "file_integrity": {
         "format_theme": {
           "kind": "oth",
@@ -1075,27 +1080,75 @@
         },
         "graph_template": {
           "kind": "otpu",
-          "sha256": "c6fcdc4383c5e6b7285b028ad0e672982d8d8a5d3401ddb7fbe69ed5f63bc2df",
-          "size_bytes": 30761
+          "sha256": "2506c565bad302671d93a8921671d7e1bdeab16defee27e202879bd275d0768a",
+          "size_bytes": 30765
+        },
+        "binding_contract": {
+          "kind": "json",
+          "sha256": "0e0ff0cfd7f22fec9399b95f1a185526a13741d4dde472381df4abdd559e17fc",
+          "size_bytes": 3407
+        },
+        "runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "f1f8b86dfe048465f69eea7fe9fc5d8c96c57dcfbaae281ddec0ee3c522902f2",
+          "size_bytes": 4666
+        },
+        "adaptive_runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "211b53f74c6ab8b0ed7aaa25ce2c6905e0d464eb59afd12d414a40f9d3bdcdd1",
+          "size_bytes": 3950
+        },
+        "validation_plan": {
+          "kind": "json",
+          "sha256": "6dbe61008bd9e103af3b11c97ad2480cb8dc84f63d07c88f250c7d39059a8d8a",
+          "size_bytes": 625
         },
         "style_snapshot": {
           "kind": "json",
-          "sha256": "ac06860143a78ac0f6995f9052fea36475c81453ff8af244704c4dfd12e54b0d",
-          "size_bytes": 3853
+          "sha256": "599b8963a2525fa1a3e3f2f026628d0f100842939c55e47a9aa963925fba8453",
+          "size_bytes": 4121
         },
         "data_snapshot": {
           "kind": "json",
-          "sha256": "6166c923ed385b8f5fe0a6c658a2f8d9a921aff5ada90c0b2610564bd946ce17",
-          "size_bytes": 8642
+          "sha256": "a99b4cb5b1978781dbef071e3bb7ce36140ec2623887e5e9c1980c746418b107",
+          "size_bytes": 12946
         },
         "template_opju": {
           "kind": "opju",
-          "sha256": "c200e6c8fc9f14da46b1ec3f739acae16f9ddd7883ec7202f1f521e14b929af7",
-          "size_bytes": 141285
+          "sha256": "6bc398d3ddd0b3c18b8cfda06d0a3754915097c1ebcddc18cd94e0d6583a8cf9",
+          "size_bytes": 141284
         }
-      }
+      },
+      "runtime_validation": {
+        "status": "accepted",
+        "asset_kind": "otpu",
+        "asset_path": "graph_templates/Mott_Schottky.otpu",
+        "asset_sha256": "2506c565bad302671d93a8921671d7e1bdeab16defee27e202879bd275d0768a",
+        "reference_opju_sha256": "6bc398d3ddd0b3c18b8cfda06d0a3754915097c1ebcddc18cd94e0d6583a8cf9",
+        "binding_contract_sha256": "0e0ff0cfd7f22fec9399b95f1a185526a13741d4dde472381df4abdd559e17fc",
+        "evidence_sha256": "f1f8b86dfe048465f69eea7fe9fc5d8c96c57dcfbaae281ddec0ee3c522902f2",
+        "comparison_scope": "fresh_project_same_data",
+        "fresh_project_verified": true,
+        "style_asset_only": true,
+        "same_data_verified": true,
+        "reference_plot_values_sha256": "6d1791ba365bb49a15f9a31112dcd6cc78ca596adf079e536cf83114a1702732",
+        "generated_plot_values_sha256": "6d1791ba365bb49a15f9a31112dcd6cc78ca596adf079e536cf83114a1702732",
+        "reference_plot_mapping_sha256": "3585a69b1d9501ba763a65b2d80d0a0f711c317b76e3b232125c8c2e175a218d",
+        "generated_plot_mapping_sha256": "3585a69b1d9501ba763a65b2d80d0a0f711c317b76e3b232125c8c2e175a218d",
+        "saved_reopened": true,
+        "native_tif_600dpi_verified": true,
+        "manual_preview_passed": true,
+        "axis_title_hard_gate": true,
+        "exact_pixel_match": true,
+        "same_size": true,
+        "changed_pixels": 0,
+        "rms": 0.0,
+        "reference_opju_self_replay": false
+      },
+      "style_source_product_key": "",
+      "style_source_theme": ""
     }
   ],
-  "integrity_updated_at": "2026-07-11T12:30:00",
+  "integrity_updated_at": "2026-08-24T01:26:02+08:00",
   "integrity_policy": "SHA-256 and byte-size records cover every project-local file referenced by each asset entry; visual assets are not rewritten during integrity refresh."
 }

@@ -1639,6 +1639,36 @@ def test_replay_column_merge_accepts_shifted_partial_overlap() -> None:
     assert merged["values"] == [20.0, 30.0, 40.0, 50.0, 60.0]
 
 
+def test_replay_column_merge_allows_masked_rows_added_outside_existing_overlap() -> None:
+    from src.core.origin_style_assets import _merge_replay_worksheet_column_record
+
+    existing = _merge_replay_worksheet_column_record(
+        None,
+        {
+            "row_from": 1,
+            "row_to": 2,
+            "values": [10.0, 20.0],
+            "masked_rows": [],
+        },
+        sheet_index=1,
+        column_index=2,
+    )
+    merged = _merge_replay_worksheet_column_record(
+        existing,
+        {
+            "row_from": 1,
+            "row_to": 4,
+            "values": [10.0, 20.0, 30.0, 40.0],
+            "masked_rows": [3, 4],
+        },
+        sheet_index=1,
+        column_index=2,
+    )
+
+    assert merged["values"] == [10.0, 20.0, 30.0, 40.0]
+    assert merged["masked_rows"] == [3, 4]
+
+
 def test_replay_column_merge_keeps_nonadjacent_gap_as_nan() -> None:
     from src.core.origin_style_assets import _merge_replay_worksheet_column_record
 

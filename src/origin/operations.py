@@ -431,6 +431,85 @@ class OriginOperations:
             {"target": target, "columns": len(data_columns), "rows": len(data_columns[0])},
         )
 
+    def set_worksheet_column_mask_rows(
+        self,
+        book_name: str,
+        column_index: int,
+        masked_rows: Iterable[int],
+        *,
+        sheet_index: int = 1,
+    ) -> OperationResult:
+        """Apply worksheet-cell masks in a task-owned fresh workbook.
+
+        Origin stores masking as worksheet state rather than as a numeric data
+        value.  Replaying only X/Y numbers would therefore expose points that
+        were intentionally masked in the reviewed graph.  This operation uses
+        Origin's native ``dataset<row>`` mask syntax after validating every
+        book, sheet, column, and row identifier.
+        """
+
+        book = str(book_name).strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", book):
+            return OperationResult(False, "Worksheet book has an unsafe internal name")
+        try:
+            column = int(column_index)
+            sheet = int(sheet_index)
+        except (TypeError, ValueError):
+            return OperationResult(False, "Worksheet mask column/sheet index is not numeric")
+        if column < 1 or sheet < 1:
+            return OperationResult(
+                False,
+                "Worksheet mask column/sheet indices must be one-based and positive",
+            )
+        normalized_rows: list[int] = []
+        for raw_row in masked_rows:
+            try:
+                row = int(raw_row)
+            except (TypeError, ValueError):
+                return OperationResult(False, "Worksheet mask row is not numeric")
+            if row < 1:
+                return OperationResult(False, "Worksheet mask rows must be positive")
+            normalized_rows.append(row)
+        normalized_rows = sorted(set(normalized_rows))
+        if not normalized_rows:
+            return OperationResult(
+                True,
+                "No worksheet masks requested",
+                {
+                    "book_name": book,
+                    "sheet_index": sheet,
+                    "column_index": column,
+                    "masked_rows": [],
+                },
+            )
+        activated = self.run_labtalk(
+            f'win -a "{quote_labtalk(book)}"; layer -s {sheet};'
+        )
+        if not activated.ok:
+            return OperationResult(
+                False,
+                f"Could not activate worksheet book/sheet for masking: {book}/{sheet}",
+            )
+        commands = " ".join(
+            f"wcol({column})<{row}>=1;" for row in normalized_rows
+        )
+        written = self.run_labtalk(commands)
+        if not written.ok:
+            return OperationResult(
+                False,
+                f"Could not apply worksheet masks: {book}/{sheet}/col{column}",
+            )
+        return OperationResult(
+            True,
+            "Worksheet masks applied",
+            {
+                "book_name": book,
+                "sheet_index": sheet,
+                "column_index": column,
+                "masked_rows": normalized_rows,
+            },
+        )
+
     def get_worksheet_data(self, book_name: str, sheet_name: str) -> OperationResult:
         target = f"[{book_name}]{sheet_name}"
         data = self.app.GetWorksheet(target)

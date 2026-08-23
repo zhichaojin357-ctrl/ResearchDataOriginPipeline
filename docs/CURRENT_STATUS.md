@@ -69,9 +69,9 @@ independent visual/style evidence. They are not product bases or data sources.
 Historical batch-derived `.otpu` files are quarantined and are not runtime
 fallbacks. Runtime `.otpu` dispatch is manifest-driven. The current individually
 regenerated and independently validated products are BET, EIS, EPR, PL,
-photocurrent, XRD with a standard card, and the fixed nine-curve XRD no-card
-layout. The XRD no-card product retains an adaptive OTH+JSON route for every
-other positive curve count.
+photocurrent, Mott-Schottky, XRD with a standard card, and the fixed nine-curve
+XRD no-card layout. The XRD no-card and Mott-Schottky products also retain
+separately validated adaptive OTH+JSON routes for variable curve counts.
 
 ## Latest Origin Audit
 
@@ -105,6 +105,15 @@ other positive curve count.
   `C→D`, and `E→F` mappings (2600 points per curve), 1 pt curves, 16 pt
   non-bold dynamic axis titles, and native 600 dpi export; this run is not
   claimed to be pixel-identical to the reference data.
+- Mott-Schottky now has an accepted detached five-series `.otpu` route and a
+  separately accepted adaptive `.oth`+JSON route. The fixed same-data replay
+  matched the reviewed mapping and native export pixel-for-pixel after
+  save/reopen. A separate four-series adaptive product preserved every current
+  X/Y series, made all four current Origin plots and legend rows visible, and
+  passed native 600 dpi plus manual PNG inspection without loading the
+  reference OPJU. When the current curves do not share a defensible common
+  linear window, candidate guides are omitted and manual review is required;
+  the executor does not fabricate a fit.
 - The other historical `.otpu` files remain quarantined. Their `.oth` products
   have not inherited BET/EIS/EPR/PL/photocurrent acceptance and must be validated
   one type at a time; do not describe the complete all-types set as visually

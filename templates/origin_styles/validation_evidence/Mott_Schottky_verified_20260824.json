@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "Mott-Schottky",
+  "status": "accepted",
+  "generated_at": "2026-08-24T01:26:02+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection of the current-package side-by-side replay confirmed the reviewed pink, blue, and green visible traces, native line-plus-symbol rendering, 1 pt curve styling, bold scientific axis titles, 28 pt native Origin legend at the reviewed top-left anchor, three data-dependent candidate guides, candidate intercept label, axes, and page geometry. The formal replay opened an isolated reference copy only as independent evidence; the generated candidate started from a fresh project and never used that OPJU as its product base. The separate current-data runtime did not load the reference OPJU.",
+  "formal_replay_evidence_location": "origin_style_validation/20260824_Mott_Schottky_formal_replay_current_01/products/Mott_Schottky/comparison.json",
+  "current_data_runtime_evidence_location": "origin_style_validation/20260824_Mott_Schottky_current_data_fixed_07/result.json",
+  "validation_plan": {
+    "path": "validation_plans/Mott_Schottky_verified_20260823.json",
+    "sha256": "6dbe61008bd9e103af3b11c97ad2480cb8dc84f63d07c88f250c7d39059a8d8a"
+  },
+  "origin": {
+    "entrypoint": "Origin.Application",
+    "isolated_dispatch": true,
+    "version": "10.3",
+    "build": 197
+  },
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/Mott_Schottky.otpu",
+    "sha256": "2506c565bad302671d93a8921671d7e1bdeab16defee27e202879bd275d0768a",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju",
+    "minimum_generation_package": "otpu_plus_explicit_binding_contract"
+  },
+  "reference": {
+    "path": "reference_opju/Mott_Schottky.opju",
+    "graph_page": "Graph2",
+    "sha256": "6bc398d3ddd0b3c18b8cfda06d0a3754915097c1ebcddc18cd94e0d6583a8cf9",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/Mott_Schottky.json",
+    "sha256": "0e0ff0cfd7f22fec9399b95f1a185526a13741d4dde472381df4abdd559e17fc",
+    "source_series_count": 5,
+    "source_layout": "shared_x_y_columns",
+    "workbook_name": "Book1",
+    "worksheet_index": 1,
+    "group_plots": false,
+    "explicit_xy_mappings": [
+      "Book1_E->Book1_D[1:21]",
+      "Book1_E->Book1_F[1:21]",
+      "Book1_G->Book1_H[1:21]",
+      "Book1_I->Book1_J[1:21]",
+      "Book1_K->Book1_L[1:21]"
+    ],
+    "native_mask_policy": "Plots 1-4 mask finite rows below -1e-8 V; the reviewed fifth hidden plot remains unmasked in the fixed runtime."
+  },
+  "same_data_asset_replay": {
+    "verified": true,
+    "current_style_snapshot_sha256": "599b8963a2525fa1a3e3f2f026628d0f100842939c55e47a9aa963925fba8453",
+    "current_binding_contract_sha256": "0e0ff0cfd7f22fec9399b95f1a185526a13741d4dde472381df4abdd559e17fc",
+    "reference_plot_values_sha256": "6d1791ba365bb49a15f9a31112dcd6cc78ca596adf079e536cf83114a1702732",
+    "generated_plot_values_sha256": "6d1791ba365bb49a15f9a31112dcd6cc78ca596adf079e536cf83114a1702732",
+    "reference_plot_mapping_sha256": "3585a69b1d9501ba763a65b2d80d0a0f711c317b76e3b232125c8c2e175a218d",
+    "generated_plot_mapping_sha256": "3585a69b1d9501ba763a65b2d80d0a0f711c317b76e3b232125c8c2e175a218d",
+    "style_conformance": "69/69",
+    "exact_pixel_match": true,
+    "same_size": true,
+    "changed_pixels": 0,
+    "rms": 0.0,
+    "reference_opju_self_replay": false
+  },
+  "current_data_runtime": {
+    "status": "accepted",
+    "current_series_count": 5,
+    "reopened_plot_count": 5,
+    "processed_csv_xy_values_match_reopened_graph": true,
+    "reviewed_visible_plot_indices": [1, 2, 3],
+    "reviewed_hidden_plot_indices": [4, 5],
+    "legend_native_left": 1037,
+    "legend_native_top": 541,
+    "legend_font_size": 28,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true
+  },
+  "candidate_guide_policy": {
+    "manual_check_required": true,
+    "visible_claim": "numeric x-intercept candidate only",
+    "forbidden_automatic_claims": [
+      "carrier type",
+      "carrier density",
+      "band-edge position"
+    ]
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4560.0,
+    "width_px": 3859,
+    "height_px": 2735,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.780701754386,
+    "sensitive_metadata_scan": "pass"
+  }
+}

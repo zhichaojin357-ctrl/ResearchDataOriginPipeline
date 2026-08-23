@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "product_key": "Mott-Schottky",
+      "data_type": "Mott-Schottky",
+      "source_opju": "templates/origin_styles/reference_opju/Mott_Schottky.opju",
+      "graph_page": "Graph2",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/Mott_Schottky.otpu",
+      "style_snapshot": "templates/origin_styles/snapshots/Mott_Schottky.json",
+      "data_snapshot": "templates/origin_styles/data_snapshots/Mott_Schottky.json",
+      "binding_contract": "templates/origin_styles/binding_contracts/Mott_Schottky.json"
+    }
+  ]
+}

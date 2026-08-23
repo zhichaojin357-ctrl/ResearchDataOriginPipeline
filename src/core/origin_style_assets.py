@@ -352,7 +352,16 @@ def export_origin_style_assets(
                 if item.style_snapshot_path is not None:
                     item.style_snapshot_path.parent.mkdir(parents=True, exist_ok=True)
                     item.style_snapshot_path.write_text(
-                        json.dumps(read_graph_style_snapshot(operations, item.graph_page, source_label=item.origin_file.name).to_dict(), ensure_ascii=False, indent=2),
+                        json.dumps(
+                            read_graph_style_snapshot(
+                                operations,
+                                item.graph_page,
+                                source_label=item.origin_file.name,
+                                prefer_custom_rgb=item.product_key == "Mott-Schottky",
+                            ).to_dict(),
+                            ensure_ascii=False,
+                            indent=2,
+                        ),
                         encoding="utf-8",
                     )
                 if item.data_snapshot_path is not None:
@@ -1014,11 +1023,15 @@ def _replay_fresh_graph_template_same_data(
             column_records = book_sheet_column_records.setdefault(y_book, {}).setdefault(
                 y_sheet_index, {}
             )
-            for index, values in ((x_col, x_values), (y_col, y_values)):
+            for index, values, masked_rows in (
+                (x_col, x_values, list(plot.get("x_masked_rows") or [])),
+                (y_col, y_values, list(plot.get("y_masked_rows") or [])),
+            ):
                 record = {
                     "row_from": row_from,
                     "row_to": row_to,
                     "values": values,
+                    "masked_rows": masked_rows,
                 }
                 existing = column_records.get(index)
                 column_records[index] = _merge_replay_worksheet_column_record(
@@ -1086,6 +1099,10 @@ def _replay_fresh_graph_template_same_data(
                         "book_name": book_name,
                         "sheet_index": sheet_index,
                         "columns": columns,
+                        "mask_rows_by_column": {
+                            int(column_index): list(record.get("masked_rows") or [])
+                            for column_index, record in records.items()
+                        },
                         "column_metadata": list(
                             metadata_read.payload.get("columns", [])
                         ),
@@ -1116,6 +1133,19 @@ def _replay_fresh_graph_template_same_data(
                 "Binding source_schema.plot_format_contracts must be an array of objects."
             )
         plot_format_contracts = [dict(item) for item in raw_plot_formats]
+        raw_page_mask_override = source_schema.get("page_mask_override")
+        page_mask_override: int | None = None
+        if raw_page_mask_override is not None:
+            try:
+                page_mask_override = int(raw_page_mask_override)
+            except (TypeError, ValueError):
+                raise RuntimeError(
+                    "Binding source_schema.page_mask_override must be numeric."
+                )
+            if page_mask_override not in {0, 1, 2}:
+                raise RuntimeError(
+                    "Binding source_schema.page_mask_override must be 0, 1, or 2."
+                )
         activated_layer = operations.run_labtalk(
             f'win -a "{quote_labtalk(item.graph_page)}"; layer -s 1;'
         )
@@ -1131,6 +1161,7 @@ def _replay_fresh_graph_template_same_data(
             operations,
             item.graph_page,
             source_label="isolated_reference_copy.opju",
+            prefer_custom_rgb=item.product_key == "Mott-Schottky",
         )
         try:
             page_width = int(round(float(reference_style.layout_values["page.width"])))
@@ -1199,6 +1230,25 @@ def _replay_fresh_graph_template_same_data(
                 raise RuntimeError(
                     getattr(metadata_write, "message", "Fresh worksheet metadata write failed.")
                 )
+            for column_index, masked_rows in dict(
+                payload.get("mask_rows_by_column") or {}
+            ).items():
+                if not masked_rows:
+                    continue
+                mask_write = operations.set_worksheet_column_mask_rows(
+                    actual_book,
+                    int(column_index),
+                    list(masked_rows),
+                    sheet_index=sheet_index,
+                )
+                if not getattr(mask_write, "ok", False):
+                    raise RuntimeError(
+                        getattr(
+                            mask_write,
+                            "message",
+                            "Fresh worksheet mask-state write failed.",
+                        )
+                    )
         fresh_xy_ranges = [
             {
                 **xy_range,
@@ -1259,8 +1309,18 @@ def _replay_fresh_graph_template_same_data(
                 style_payload,
                 apply_default_font=False,
                 apply_axis_titles=True,
+                preserve_custom_rgb=item.product_key == "Mott-Schottky",
             ):
                 raise RuntimeError("Detached candidate style snapshot could not be applied.")
+        if page_mask_override is not None:
+            mask_display = operations.run_labtalk(
+                f'win -a "{quote_labtalk(item.graph_page)}"; '
+                f"page.mask={page_mask_override};"
+            )
+            if not getattr(mask_display, "ok", False):
+                raise RuntimeError(
+                    "Detached candidate page-level mask display could not be applied."
+                )
         annotation_contract = source_schema.get("xrd_standard_card_annotations")
         annotation_policy: dict[str, object] = {
             "applied": True,
@@ -1312,6 +1372,7 @@ def _replay_fresh_graph_template_same_data(
             operations,
             item.graph_page,
             source_label="fresh_graph_template_candidate.opju",
+            prefer_custom_rgb=item.product_key == "Mott-Schottky",
         )
         candidate_png_export = operations.export_graph(
             item.graph_page,
@@ -1428,6 +1489,7 @@ def _replay_fresh_graph_template_same_data(
                     plotted.payload.get("individual_stack_readback", [])
                 ),
                 "plot_format_contracts": plot_format_contracts,
+                "page_mask_override": page_mask_override,
                 "plot_format_readback": list(
                     plotted.payload.get("plot_format_readback", [])
                 ),
@@ -1513,6 +1575,13 @@ def _merge_replay_worksheet_column_record(
     incoming_from = int(incoming["row_from"])
     incoming_to = int(incoming["row_to"])
     incoming_values = [float(value) for value in list(incoming["values"])]
+    incoming_masks = {
+        int(row) for row in list(incoming.get("masked_rows") or [])
+    }
+    if any(row < incoming_from or row > incoming_to for row in incoming_masks):
+        raise RuntimeError(
+            f"Reference worksheet {sheet_index} column {column_index} has a mask outside its incoming row range."
+        )
     if incoming_to - incoming_from + 1 != len(incoming_values):
         raise RuntimeError(
             f"Reference worksheet {sheet_index} column {column_index} has an invalid incoming row range."
@@ -1522,6 +1591,7 @@ def _merge_replay_worksheet_column_record(
             "row_from": incoming_from,
             "row_to": incoming_to,
             "values": incoming_values,
+            "masked_rows": sorted(incoming_masks),
             "_covered_rows": frozenset(range(incoming_from, incoming_to + 1)),
         }
 
@@ -1532,7 +1602,13 @@ def _merge_replay_worksheet_column_record(
         raise RuntimeError(
             f"Reference worksheet {sheet_index} column {column_index} has an invalid existing row range."
         )
-    covered_rows = set(existing.get("_covered_rows", range(existing_from, existing_to + 1)))
+    existing_covered_rows = set(
+        existing.get("_covered_rows", range(existing_from, existing_to + 1))
+    )
+    covered_rows = set(existing_covered_rows)
+    existing_masks = {
+        int(row) for row in list(existing.get("masked_rows") or [])
+    }
     merged_from = min(existing_from, incoming_from)
     merged_to = max(existing_to, incoming_to)
     merged_values = [math.nan] * (merged_to - merged_from + 1)
@@ -1553,10 +1629,18 @@ def _merge_replay_worksheet_column_record(
         else:
             merged_values[slot] = incoming_value
             covered_rows.add(row)
+    incoming_rows = set(range(incoming_from, incoming_to + 1))
+    for row in existing_covered_rows & incoming_rows:
+        if (row in existing_masks) != (row in incoming_masks):
+            raise RuntimeError(
+                f"Reference plots disagree on mask state for worksheet {sheet_index} "
+                f"column {column_index} at row {row}."
+            )
     return {
         "row_from": merged_from,
         "row_to": merged_to,
         "values": merged_values,
+        "masked_rows": sorted(existing_masks | incoming_masks),
         "_covered_rows": frozenset(covered_rows),
     }
 
@@ -1993,6 +2077,7 @@ def read_graph_data_snapshot(
             "layer_index": plot.get("layer_index"),
             "plot_index": plot.get("plot_index"),
             "xy_data_sha256": plot.get("xy_data_sha256"),
+            "mask_data_sha256": plot.get("mask_data_sha256"),
         }
         for plot in plots
         if plot.get("status") == "ready"
@@ -2110,6 +2195,9 @@ def compare_graph_data_snapshots(
             ("x_data_sha256", "X values differ"),
             ("y_data_sha256", "Y values differ"),
             ("xy_data_sha256", "paired X/Y values differ"),
+            ("mask_data_sha256", "worksheet mask state differs"),
+            ("x_masked_rows", "X mask rows differ"),
+            ("y_masked_rows", "Y mask rows differ"),
             ("plot_row_from", "displayed row start differs"),
             ("plot_row_to", "displayed row end differs"),
             ("row_count", "displayed row count differs"),
@@ -2296,6 +2384,24 @@ def _graph_plot_data_record(
         x_col_index,
         x_sheet_index,
     )
+    x_masks = _read_dataset_mask_rows(
+        operations,
+        x_dataset,
+        row_from=plot_row_from,
+        row_to=plot_row_to,
+    )
+    y_masks = _read_dataset_mask_rows(
+        operations,
+        dataset,
+        row_from=plot_row_from,
+        row_to=plot_row_to,
+    )
+    x_masked_rows = list(x_masks.get("masked_rows", []))
+    y_masked_rows = list(y_masks.get("masked_rows", []))
+    mask_payload = {
+        "x_masked_rows": x_masked_rows,
+        "y_masked_rows": y_masked_rows,
+    }
     _activate_graph_layer_for_style_readback(operations, graph_page, layer_index)
     return {
         **base,
@@ -2320,12 +2426,73 @@ def _graph_plot_data_record(
             if raw_row_from is not None and raw_row_to is not None
             else "full_worksheet_fallback"
         ),
+        "mask_readback_status": (
+            "ready"
+            if x_masks.get("status") == "ready" and y_masks.get("status") == "ready"
+            else "unavailable"
+        ),
+        "x_masked_rows": x_masked_rows,
+        "y_masked_rows": y_masked_rows,
+        "mask_data_sha256": _stable_json_sha256(mask_payload),
         "style": _read_plot_style_properties(operations, dataset),
         "x_values": x_values,
         "y_values": y_values,
         "x_data_sha256": _stable_json_sha256(x_values),
         "y_data_sha256": _stable_json_sha256(y_values),
-        "xy_data_sha256": _stable_json_sha256({"x": x_values, "y": y_values}),
+        "xy_data_sha256": _stable_json_sha256(
+            {"x": x_values, "y": y_values, **mask_payload}
+        ),
+    }
+
+
+def _read_dataset_mask_rows(
+    operations: object,
+    dataset: str,
+    *,
+    row_from: int,
+    row_to: int,
+) -> dict[str, object]:
+    if parse_origin_dataset_reference(dataset) is None:
+        return {"status": "unavailable", "masked_rows": []}
+    variable = "__rdop_mask_state"
+    try:
+        counted = operations.run_labtalk(
+            f"{variable}=ismasked(0,{dataset});"
+        )
+        if not getattr(counted, "ok", False):
+            return {"status": "unavailable", "masked_rows": []}
+        raw_count = getattr(
+            operations.get_labtalk_variable(variable),
+            "payload",
+            {},
+        ).get("value")
+        count = int(round(float(raw_count)))
+    except (AttributeError, TypeError, ValueError, OverflowError):
+        return {"status": "unavailable", "masked_rows": []}
+    if count <= 0:
+        return {"status": "ready", "masked_rows": [], "dataset_mask_count": 0}
+    masked_rows: list[int] = []
+    for row in range(int(row_from), int(row_to) + 1):
+        try:
+            read = operations.run_labtalk(
+                f"{variable}=ismasked({row},{dataset});"
+            )
+            if not getattr(read, "ok", False):
+                return {"status": "unavailable", "masked_rows": []}
+            raw_state = getattr(
+                operations.get_labtalk_variable(variable),
+                "payload",
+                {},
+            ).get("value")
+            state = int(round(float(raw_state)))
+        except (AttributeError, TypeError, ValueError, OverflowError):
+            return {"status": "unavailable", "masked_rows": []}
+        if state:
+            masked_rows.append(row)
+    return {
+        "status": "ready",
+        "masked_rows": masked_rows,
+        "dataset_mask_count": count,
     }
 
 

@@ -19,12 +19,12 @@ Current runtime assets and evidence:
 
 Runtime eligibility is resolved from the current manifest, binding contract,
 validation plan, validation evidence, and file-integrity records. BET, EIS,
-EPR, PL, photocurrent, XRD with a standard card, and the fixed nine-curve XRD
-no-card layout have individually regenerated, independently validated `.otpu`
-runtime assets. The XRD no-card product also has a separately validated
-adaptive `.oth`+JSON route for other curve counts. Other historical
-batch-derived `.otpu` files remain quarantined harvest records and are not
-runtime fallbacks.
+EPR, PL, photocurrent, Mott-Schottky, XRD with a standard card, and the fixed
+nine-curve XRD no-card layout have individually regenerated, independently
+validated `.otpu` runtime assets. Mott-Schottky and XRD no-card also have
+separately validated adaptive `.oth`+JSON routes for variable curve counts.
+Other historical batch-derived `.otpu` files remain quarantined harvest records
+and are not runtime fallbacks.
 
 The remaining plotted types continue to use their registered `.oth` compatibility
 assets until an individual `.otpu` has passed the same fresh-project, same-data,
@@ -49,6 +49,13 @@ labels. Project-local `reference_opju/*.opju` copies are retained for recovery
 and independent visual/style evidence, never as routine product bases or
 workbook data sources. Normal accepted `.otpu` execution does not load a
 reference OPJU.
+
+Mott-Schottky uses its accepted OTPU only when the current CSV exactly matches
+the fixed five-series binding contract. A different positive series count uses
+the separately accepted OTH+JSON bundle, keeps all current native Origin plots
+visible, and rebuilds the current legend. Both routes verify current X/Y values
+after save/reopen. Candidate fit guides are data-dependent and are omitted with
+a manual-check requirement when no defensible common linear window exists.
 
 The project-local reference preview must be freshly exported from that independent OPJU copy. A generated product preview cannot be copied or reused as its own reference. Outside `--asset-only`, an explicitly selected external reference still has priority.
 
@@ -167,6 +174,14 @@ the following products:
   2600 points each, 1 pt curves, 16 pt non-bold dynamic axis titles, and native
   600 dpi export. The real-data product is not claimed to be pixel-identical to
   the reference data.
+- Mott-Schottky: `validation_evidence/Mott_Schottky_verified_20260824.json`
+  validates the detached fixed five-series OTPU with the reviewed explicit
+  worksheet mapping, save/reopen, native 600 dpi export, and zero decoded-pixel
+  difference. `validation_evidence/Mott_Schottky_oth_json_adaptive_verified_20260824.json`
+  separately validates a four-series adaptive OTH+JSON product with exact
+  current-data readback, all current plots visible, a current four-row legend,
+  and manual PNG inspection. Neither path loads the reference OPJU as a product
+  base.
 - XRD with standard card: `validation_evidence/XRD_verified_20260823.json`;
   the accepted fixed-shape OTPU uses the explicit three-layer worksheet/plot
   binding contract and passed fresh-project same-data exact-pixel replay. The

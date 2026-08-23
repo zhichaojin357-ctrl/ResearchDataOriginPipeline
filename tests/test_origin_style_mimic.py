@@ -5,6 +5,7 @@ from pathlib import Path
 from src.origin.style_mimic import (
     FORBIDDEN_EXEMPLAR_TEXT_CATEGORIES,
     OpjuStyleSnapshot,
+    _read_graph_object_positions,
     apply_style_snapshot,
     extract_style_snapshot,
 )
@@ -61,6 +62,49 @@ def test_extract_style_snapshot_prefers_main_graph_over_sparkline_pages(tmp_path
     assert snapshot.plot_count == 3
     assert snapshot.audit_string_values["xb.text$"] == "Z' (kOhm)"
     assert snapshot.audit_string_values["yl.text$"] == "-Z'' (kOhm)"
+
+
+def test_read_graph_object_positions_uses_selected_page_and_one_based_com_collection() -> None:
+    class GraphObject:
+        Name = "Legend"
+        Left = 1037
+        Top = 541
+        Width = 2868
+        Height = 2210
+
+    class OneBasedGraphObjects:
+        Count = 1
+
+        def Item(self, index: int) -> GraphObject:
+            if index != 1:
+                raise IndexError(index)
+            return GraphObject()
+
+    class Layer:
+        GraphObjects = OneBasedGraphObjects()
+
+    class App:
+        def __init__(self) -> None:
+            self.requested: list[str] = []
+
+        def FindGraphLayer(self, name: str) -> Layer | None:
+            self.requested.append(name)
+            return Layer() if name == "[Graph2]Layer1" else None
+
+    operations = type("Operations", (), {})()
+    operations.app = App()
+
+    positions = _read_graph_object_positions(operations, "Graph2")
+
+    assert positions == {
+        "Legend": {
+            "left": 1037.0,
+            "top": 541.0,
+            "width": 2868.0,
+            "height": 2210.0,
+        }
+    }
+    assert operations.app.requested == ["[Graph2]Layer1"]
 
 
 def test_apply_style_snapshot_replays_only_numeric_layout_values() -> None:
@@ -137,6 +181,32 @@ def test_apply_style_snapshot_restores_per_plot_visibility() -> None:
     assert position_command_index > title_command_index
 
 
+def test_apply_style_snapshot_preserves_literal_axis_slash_and_custom_rgb() -> None:
+    fake = _FakeStyleOps()
+    snapshot = OpjuStyleSnapshot(
+        source_opju="copied.opju",
+        status="extracted",
+        graph_page="Graph1",
+        layout_values={"page.width": 720.0},
+        plot_colors=[26777852.0],
+        audit_string_values={
+            "xb.text$": r"/b(Potential (V vs Ag/AgCl))",
+        },
+    )
+
+    assert apply_style_snapshot(
+        fake,
+        "Graph1",
+        snapshot,
+        apply_default_font=False,
+        apply_axis_titles=True,
+        preserve_custom_rgb=True,
+    )
+    command_text = "\n".join(fake.labtalk_scripts)
+    assert r"label -s -xb \b(Potential (V vs Ag/AgCl));" in command_text
+    assert "set Plot1 -cse color(252,152,152);" in command_text
+
+
 class _FakeResult:
     def __init__(self, ok: bool = True, message: str = "ok", payload: dict[str, object] | None = None) -> None:
         self.ok = ok
@@ -201,6 +271,8 @@ class _FakeStyleOps:
             "__style_mimic_w_2": 20.0,
             "__style_mimic_c_1": 2.0,
             "__style_mimic_c_2": 4.0,
+            "__style_mimic_cse_1": 2.0,
+            "__style_mimic_cse_2": 4.0,
             "__style_mimic_cl_1": 2.0,
             "__style_mimic_cl_2": 2.0,
             "__style_mimic_k_1": 1.0,

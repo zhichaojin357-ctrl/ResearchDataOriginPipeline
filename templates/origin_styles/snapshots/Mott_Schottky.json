@@ -1,5 +1,5 @@
 {
-  "source_opju": "bobc格式美化版本.opju",
+  "source_opju": "Mott_Schottky.opju",
   "status": "extracted",
   "graph_page": "Graph2",
   "graph_pages": [
@@ -114,6 +114,13 @@
     26394616.0,
     23980013.0
   ],
+  "plot_line_colors": [
+    24.0,
+    24.0,
+    24.0,
+    24.0,
+    24.0
+  ],
   "marker_shapes": [
     20.0,
     20.0,
@@ -128,7 +135,21 @@
     15.0,
     15.0
   ],
-  "graph_object_positions": {},
+  "plot_visibility": [
+    1.0,
+    1.0,
+    1.0,
+    0.0,
+    0.0
+  ],
+  "graph_object_positions": {
+    "Legend": {
+      "left": 1037.0,
+      "top": 541.0,
+      "width": 2868.0,
+      "height": 2210.0
+    }
+  },
   "warnings": [
     "Visible scientific annotations are not copied from the exemplar.",
     "Series line width is later overridden by the product policy when required."

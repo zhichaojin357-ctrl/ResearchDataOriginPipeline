@@ -23,6 +23,7 @@ from src.core.template_product_builder import (
     _template_candidate_files,
     _template_display_path,
     _template_mott_candidate_files,
+    _template_exact_shared_x_overlay_table,
     _template_independent_xy_table,
     _template_photocurrent_candidate_files,
     _template_pl_candidate_files,
@@ -60,6 +61,7 @@ from src.core.template_product_builder import (
     prepare_template_product,
 )
 from src.core.template_product_common import ProductContext, TargetPairing
+from src.core.template_format_executor import _prepare_verified_mott_otpu_binding
 from src.core.xps_heterojunction import XpsFitRecord
 from src.origin.style_mimic import OpjuStyleSnapshot
 from src.origin.user_style import ResolvedPlotStyle
@@ -327,7 +329,7 @@ def test_template_candidate_pool_excludes_f_drive_xps_templates(tmp_path: Path) 
     assert any(candidate.product_key == "BET" and candidate.source == "f_drive_scan" for candidate in candidates)
 
 
-def test_template_mott_candidate_selection_matches_centered_reviewed_frequency_window(tmp_path: Path) -> None:
+def test_template_mott_candidate_selection_preserves_all_explicit_frequencies(tmp_path: Path) -> None:
     paths = []
     for frequency in range(1000, 4001, 500):
         path = tmp_path / f"{frequency}.xlsx"
@@ -345,7 +347,126 @@ def test_template_mott_candidate_selection_matches_centered_reviewed_frequency_w
 
     selected = _template_mott_candidate_files(pairing, paths, 5)
 
-    assert [path.stem for path in selected] == ["1500", "2000", "2500", "3000", "3500"]
+    assert [path.stem for path in selected] == [
+        "1000",
+        "1500",
+        "2000",
+        "2500",
+        "3000",
+        "3500",
+        "4000",
+    ]
+
+
+def test_template_mott_auto_five_series_builder_output_satisfies_fixed_binding(
+    tmp_path: Path,
+) -> None:
+    paths: list[Path] = []
+    for series_index, frequency in enumerate((1500, 2000, 2500, 3000, 3500), start=1):
+        path = tmp_path / f"{frequency}.csv"
+        path.write_text(
+            "potential,1/c2\n"
+            f"-0.05,{series_index}.0\n"
+            f"0.00,{series_index + 1}.0\n"
+            f"0.05,{series_index + 2}.0\n",
+            encoding="utf-8",
+        )
+        paths.append(path)
+    reference = tmp_path / "Mott_Schottky.opju"
+    reference.write_bytes(b"opju placeholder")
+    pairing = TargetPairing(
+        product_key="Mott-Schottky",
+        data_type="Mott-Schottky",
+        xps_subtype="",
+        data_root_label="test",
+        data_paths=paths,
+        opju_root_label="test",
+        reference_opju=reference,
+    )
+    template = TemplateCandidate(
+        "Mott-Schottky",
+        reference,
+        "unit",
+        graph_page="Graph2",
+        plot_count=5,
+    )
+
+    built = _build_template_xy_multisource_table(
+        pairing,
+        template,
+        origin_style_mode="auto",
+    )
+
+    assert built is not None
+    assert built["alignment"]["style_execution_mode_selected"] == "otpu"
+    assert built["labels"]["legend_entries"] == [
+        "1500Hz BiOBr0.5Cl0.5",
+        "2000Hz BiOBr0.5Cl0.5",
+        "2500Hz BiOBr0.5Cl0.5",
+        "3000Hz BiOBr0.5Cl0.5",
+        "3500Hz BiOBr0.5Cl0.5",
+    ]
+    product = ProductContext(
+        product_key="Mott-Schottky",
+        slug="Mott_Schottky",
+        pairing=pairing,
+        type_root=tmp_path,
+        processed_data=tmp_path / "processed.csv",
+        input_copies=[],
+        reference_opju_copy=reference,
+        reference_preview_png=tmp_path / "reference.png",
+        origin_file=tmp_path / "product.opju",
+        figure_tif=tmp_path / "product.tif",
+        preview_png=tmp_path / "product.png",
+        x_label=str(built["labels"]["x_label"]),
+        y_label=str(built["labels"]["y_label"]),
+        graph_title=str(built["labels"]["title"]),
+        plot_type=str(built["labels"]["plot_type"]),
+        legend_entries=list(built["labels"]["legend_entries"]),
+    )
+    contract = (
+        Path(__file__).parents[1]
+        / "templates"
+        / "origin_styles"
+        / "binding_contracts"
+        / "Mott_Schottky.json"
+    )
+
+    binding = _prepare_verified_mott_otpu_binding(
+        product,
+        list(built["headers"]),
+        list(built["rows"]),
+        contract_path=contract,
+    )
+
+    assert binding["ok"] is True
+    assert binding["book_name"] == "Book1"
+    assert len(binding["xy_ranges"]) == 5
+
+
+def test_template_mott_exact_shared_x_rejects_interpolation() -> None:
+    headers, rows = _template_exact_shared_x_overlay_table(
+        "potential_v",
+        [
+            ("1500_one_over_c_squared", [[-0.1, 1.0], [0.0, 2.0]]),
+            ("2000_one_over_c_squared", [[-0.1, 3.0], [0.0, 4.0]]),
+        ],
+    )
+
+    assert headers == [
+        "potential_v",
+        "1500_one_over_c_squared",
+        "2000_one_over_c_squared",
+    ]
+    assert rows == [[-0.1, 1.0, 3.0], [0.0, 2.0, 4.0]]
+    with pytest.raises(ValueError, match="interpolation is forbidden"):
+        _template_exact_shared_x_overlay_table(
+            "potential_v",
+            [
+                ("1500_one_over_c_squared", [[-0.1, 1.0], [0.0, 2.0]]),
+                ("2000_one_over_c_squared", [[-0.1, 3.0], [0.1, 4.0]]),
+            ],
+        )
 
 
 def test_template_display_path_hides_workspace_prefixes() -> None:
