@@ -69,10 +69,11 @@ independent visual/style evidence. They are not product bases or data sources.
 Historical batch-derived `.otpu` files are quarantined and are not runtime
 fallbacks. Runtime `.otpu` dispatch is manifest-driven. The current individually
 regenerated and independently validated products are BET, EIS, EPR, PL,
-photocurrent, Raman, Mott-Schottky, XRD with a standard card, and the fixed
-nine-curve XRD no-card layout. The XRD no-card, Raman, and Mott-Schottky
-products also retain separately validated adaptive OTH+JSON routes for variable
-curve counts.
+photocurrent, Raman, FTIR, Mott-Schottky, UV-vis DRS, Tauc, XRD with a standard
+card, and the fixed nine-curve XRD no-card layout. BET, XRD no-card, Raman,
+photocurrent, FTIR, Mott-Schottky, UV-vis DRS, and Tauc also retain separately
+validated adaptive OTH+JSON routes for variable curve counts or current-data
+semantic identities.
 
 ## Latest Origin Audit
 
@@ -114,6 +115,15 @@ curve counts.
   blue/green curve styles, matched every reopened current X/Y value, passed
   style conformance with no issues, and produced a native 600 dpi TIFF without
   loading the reference OPJU.
+- UV-vis DRS and Tauc are now separate accepted products rather than one
+  ambiguous combined asset. Each has an accepted detached fixed `.otpu` route
+  that reproduced the reviewed graph pixel-for-pixel with the same data after
+  save/reopen, plus an accepted adaptive `.oth`+JSON route using current
+  Origin-native plots. The accepted absorbance examples preserved all 1201
+  current points per series without interpolation, smoothing, normalization,
+  or blank-tail plotting. Tauc uses native Origin rich-text axis titles and
+  removes reference-specific guide objects and 2.28/2.94 labels when they are
+  unsupported by current data.
 - Mott-Schottky now has an accepted detached five-series `.otpu` route and a
   separately accepted adaptive `.oth`+JSON route. The fixed same-data replay
   matched the reviewed mapping and native export pixel-for-pixel after

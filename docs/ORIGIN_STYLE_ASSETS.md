@@ -19,10 +19,12 @@ Current runtime assets and evidence:
 
 Runtime eligibility is resolved from the current manifest, binding contract,
 validation plan, validation evidence, and file-integrity records. BET, EIS,
-EPR, PL, photocurrent, Mott-Schottky, XRD with a standard card, and the fixed
-nine-curve XRD no-card layout have individually regenerated, independently
-validated `.otpu` runtime assets. Mott-Schottky and XRD no-card also have
-separately validated adaptive `.oth`+JSON routes for variable curve counts.
+EPR, PL, photocurrent, Raman, FTIR, Mott-Schottky, UV-vis DRS, Tauc, XRD with a
+standard card, and the fixed nine-curve XRD no-card layout have individually
+regenerated, independently validated `.otpu` runtime assets. BET, photocurrent,
+Raman, FTIR, Mott-Schottky, UV-vis DRS, Tauc, and XRD no-card also have
+separately validated adaptive `.oth`+JSON routes for variable curve counts or
+current-data semantic identities.
 Other historical batch-derived `.otpu` files remain quarantined harvest records
 and are not runtime fallbacks.
 
