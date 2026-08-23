@@ -69,9 +69,10 @@ independent visual/style evidence. They are not product bases or data sources.
 Historical batch-derived `.otpu` files are quarantined and are not runtime
 fallbacks. Runtime `.otpu` dispatch is manifest-driven. The current individually
 regenerated and independently validated products are BET, EIS, EPR, PL,
-photocurrent, Mott-Schottky, XRD with a standard card, and the fixed nine-curve
-XRD no-card layout. The XRD no-card and Mott-Schottky products also retain
-separately validated adaptive OTH+JSON routes for variable curve counts.
+photocurrent, Raman, Mott-Schottky, XRD with a standard card, and the fixed
+nine-curve XRD no-card layout. The XRD no-card, Raman, and Mott-Schottky
+products also retain separately validated adaptive OTH+JSON routes for variable
+curve counts.
 
 ## Latest Origin Audit
 
@@ -105,6 +106,14 @@ separately validated adaptive OTH+JSON routes for variable curve counts.
   `C→D`, and `E→F` mappings (2600 points per curve), 1 pt curves, 16 pt
   non-bold dynamic axis titles, and native 600 dpi export; this run is not
   claimed to be pixel-identical to the reference data.
+- Raman now has an accepted detached three-series, two-layer `.otpu` route and
+  a separately accepted adaptive `.oth`+JSON route. The fixed same-data product
+  reproduced the reviewed Graph2 product pixel-for-pixel after save/reopen. A
+  separate two-series adaptive product used independent Origin `plotxy` ranges
+  for the current finite X/Y rows, preserved natural source order and reviewed
+  blue/green curve styles, matched every reopened current X/Y value, passed
+  style conformance with no issues, and produced a native 600 dpi TIFF without
+  loading the reference OPJU.
 - Mott-Schottky now has an accepted detached five-series `.otpu` route and a
   separately accepted adaptive `.oth`+JSON route. The fixed same-data replay
   matched the reviewed mapping and native export pixel-for-pixel after

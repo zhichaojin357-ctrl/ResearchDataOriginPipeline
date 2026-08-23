@@ -628,53 +628,104 @@
       "data_type": "Raman",
       "status": "accepted",
       "graph_page": "Graph2",
+      "source_mode": "individually_regenerated_from_reviewed_reference_opju",
       "format_theme": "format_themes/Raman.oth",
+      "graph_template": "graph_templates/Raman.otpu",
+      "binding_contract": "binding_contracts/Raman.json",
+      "runtime_validation_evidence": "validation_evidence/Raman_verified_20260824.json",
+      "adaptive_runtime_validation_evidence": "validation_evidence/Raman_oth_json_adaptive_verified_20260824.json",
+      "validation_plan": "validation_plans/Raman_verified_20260824.json",
+      "style_snapshot": "snapshots/Raman.json",
+      "data_snapshot": "data_snapshots/Raman.json",
+      "template_opju": "reference_opju/Raman.opju",
       "preview_png": "",
       "reference_preview_png": "",
       "template_preview_comparison_png": "",
       "preview_rms": null,
-      "source_mode": "direct_fdrive_template_opju",
-      "graph_template": "graph_templates/Raman.otpu",
-      "style_snapshot": "snapshots/Raman.json",
-      "data_snapshot": "data_snapshots/Raman.json",
-      "template_opju": "reference_opju/Raman.opju",
-      "asset_kind": "oth",
-      "sha256": "81679f42f025cff98d269925b821690e68fbb6cf4f77bbacc288d6d8084422ee",
-      "file_size_bytes": 25569,
+      "asset_kind": "otpu",
+      "sha256": "fba7a84de8cb7bd1eb345df2a58df98558e83f2a06c87750795e33283daa1985",
+      "file_size_bytes": 29329,
       "expected_layer_count": 2,
       "expected_plot_count": 3,
-      "origin_version": "",
-      "origin_build": "",
-      "pipeline_git_commit": "",
-      "harvested_at": "2026-07-06T09:14:15",
+      "origin_version": "10.3",
+      "origin_build": "197",
+      "pipeline_git_commit": "79c9397",
+      "harvested_at": "2026-08-24T01:53:10+08:00",
       "source_opju_hash": "59030c7768db16b5fdf77d42b327f4d8fc31319da03e9833f5d3ede7e8f86839",
-      "exact_pixel_match": null,
+      "exact_pixel_match": true,
+      "format_theme_role": "adaptive_runtime",
       "file_integrity": {
         "format_theme": {
           "kind": "oth",
-          "sha256": "81679f42f025cff98d269925b821690e68fbb6cf4f77bbacc288d6d8084422ee",
-          "size_bytes": 25569
+          "sha256": "77ba353f859d32da2d1dae505cf99567416a10f615fee6cc90078ddf2c5d61b0",
+          "size_bytes": 25573
         },
         "graph_template": {
           "kind": "otpu",
-          "sha256": "60d58d622be8dc69c86fec7c8c4784b4b77cb26e1e2405069a2b99c8e3148ffd",
-          "size_bytes": 29325
+          "sha256": "fba7a84de8cb7bd1eb345df2a58df98558e83f2a06c87750795e33283daa1985",
+          "size_bytes": 29329
+        },
+        "binding_contract": {
+          "kind": "json",
+          "sha256": "7379713572b5d18b616de2afe0adc99fd94464265bc969d7ace71f7f40f56760",
+          "size_bytes": 1825
+        },
+        "runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "1345581caea50a31114545ff7e74166c36f908124ed1885a03ca5ca547edbb17",
+          "size_bytes": 4167
+        },
+        "adaptive_runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "585d445ea2a7a4fae6dcbaf8fb65395b3e6bec794ddba64d1ffc44d09a9a0be7",
+          "size_bytes": 3281
+        },
+        "validation_plan": {
+          "kind": "json",
+          "sha256": "2beb1bc9f7d5a91f6ff228d19eddf1cf374334cdab028e745de6eeb4aed67522",
+          "size_bytes": 569
         },
         "style_snapshot": {
           "kind": "json",
-          "sha256": "d978e91505a0de19e40dc232fbe01cb34fddcac639d25441790a477c625f46b8",
-          "size_bytes": 3660
+          "sha256": "48f218c4cf79a746f9f4e32513c12b3705c9d7cdc70bb2d5c497dbb259ec0af9",
+          "size_bytes": 5382
         },
         "data_snapshot": {
           "kind": "json",
-          "sha256": "c832dc619c7d26c65bf0646d10623783f447106d7d998ad7c6932cc81950b606",
-          "size_bytes": 156052
+          "sha256": "895d812e15f16b9a6b656df6c6d31d46a31ccaef1d78ab7d051f629db2a1d5b3",
+          "size_bytes": 157933
         },
         "template_opju": {
           "kind": "opju",
           "sha256": "59030c7768db16b5fdf77d42b327f4d8fc31319da03e9833f5d3ede7e8f86839",
           "size_bytes": 236099
         }
+      },
+      "runtime_validation": {
+        "status": "accepted",
+        "asset_kind": "otpu",
+        "asset_path": "graph_templates/Raman.otpu",
+        "asset_sha256": "fba7a84de8cb7bd1eb345df2a58df98558e83f2a06c87750795e33283daa1985",
+        "reference_opju_sha256": "59030c7768db16b5fdf77d42b327f4d8fc31319da03e9833f5d3ede7e8f86839",
+        "binding_contract_sha256": "7379713572b5d18b616de2afe0adc99fd94464265bc969d7ace71f7f40f56760",
+        "evidence_sha256": "1345581caea50a31114545ff7e74166c36f908124ed1885a03ca5ca547edbb17",
+        "comparison_scope": "fresh_project_same_data",
+        "fresh_project_verified": true,
+        "style_asset_only": true,
+        "same_data_verified": true,
+        "reference_plot_values_sha256": "42fdb93b76a087995a08c797d6eda4d677f94e56df4ce18efe09e914c91490b2",
+        "generated_plot_values_sha256": "42fdb93b76a087995a08c797d6eda4d677f94e56df4ce18efe09e914c91490b2",
+        "reference_plot_mapping_sha256": "47caa07227fb51042b2e703345882f70c0f1370612216c452828c05832cd92b0",
+        "generated_plot_mapping_sha256": "47caa07227fb51042b2e703345882f70c0f1370612216c452828c05832cd92b0",
+        "saved_reopened": true,
+        "native_tif_600dpi_verified": true,
+        "manual_preview_passed": true,
+        "axis_title_hard_gate": true,
+        "exact_pixel_match": true,
+        "same_size": true,
+        "changed_pixels": 0,
+        "rms": 0.0,
+        "reference_opju_self_replay": false
       }
     },
     {

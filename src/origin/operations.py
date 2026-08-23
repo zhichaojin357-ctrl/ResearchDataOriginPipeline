@@ -82,6 +82,26 @@ class OperationResult:
     payload: dict[str, Any] = field(default_factory=dict)
 
 
+def _plotxy_data_reference(
+    data_book: str,
+    data_sheet: str,
+    x_col: int,
+    y_col: int,
+    *,
+    y_error_col: int = 0,
+    row_from: int = 0,
+    row_to: int = 0,
+) -> str:
+    columns = [int(x_col), int(y_col)]
+    if y_error_col > 0:
+        columns.append(int(y_error_col))
+    if row_from >= 1 and row_to >= row_from:
+        body = ",".join(f"{column}[{row_from}:{row_to}]" for column in columns)
+    else:
+        body = ",".join(str(column) for column in columns)
+    return f"[{data_book}]{data_sheet}!({body})"
+
+
 def connect_origin(entrypoint: str = "Origin.Application", *, visible: bool = False, isolated: bool = True) -> "OriginOperations":
     """Start a task-owned Origin COM session and wrap it in the stable adapter.
 
@@ -767,14 +787,22 @@ class OriginOperations:
         plot_type: str = "line",
         y_error_col: int = 0,
         title: str = "",
+        row_from: int = 0,
+        row_to: int = 0,
     ) -> OperationResult:
         ptype = PLOT_TYPES.get(plot_type)
         if ptype is None:
             return OperationResult(False, f"Unsupported plot type: {plot_type}")
         graph = self.app.CreatePage(3, safe_origin_name(graph_name, "Graph"), "origin")
-        data_ref = f"[{data_book}]{data_sheet}!({x_col},{y_col})"
-        if y_error_col > 0:
-            data_ref = f"[{data_book}]{data_sheet}!({x_col},{y_col},{y_error_col})"
+        data_ref = _plotxy_data_reference(
+            data_book,
+            data_sheet,
+            x_col,
+            y_col,
+            y_error_col=y_error_col,
+            row_from=row_from,
+            row_to=row_to,
+        )
         self.run_labtalk(f"plotxy iy:={data_ref} plot:={ptype} ogl:=[{graph}]Layer1;")
         if title:
             self.run_labtalk(f'label -n title -s "{quote_origin_text(title)}"; title.x = 50; title.y = 95;')
@@ -1778,13 +1806,21 @@ class OriginOperations:
         y_col: int,
         plot_type: str = "line",
         y_error_col: int = 0,
+        row_from: int = 0,
+        row_to: int = 0,
     ) -> OperationResult:
         ptype = PLOT_TYPES.get(plot_type)
         if ptype is None:
             return OperationResult(False, f"Unsupported plot type: {plot_type}")
-        data_ref = f"[{data_book}]{data_sheet}!({x_col},{y_col})"
-        if y_error_col > 0:
-            data_ref = f"[{data_book}]{data_sheet}!({x_col},{y_col},{y_error_col})"
+        data_ref = _plotxy_data_reference(
+            data_book,
+            data_sheet,
+            x_col,
+            y_col,
+            y_error_col=y_error_col,
+            row_from=row_from,
+            row_to=row_to,
+        )
         self.run_labtalk(f"plotxy iy:={data_ref} plot:={ptype} ogl:=[{graph_name}]Layer1;")
         return OperationResult(True, "Plot added", {"graph_name": graph_name, "plot_type": plot_type})
 

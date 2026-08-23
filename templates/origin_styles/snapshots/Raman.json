@@ -1,5 +1,5 @@
 {
-  "source_opju": "cwo+bobc raman.opju",
+  "source_opju": "reference_copy.opju",
   "status": "extracted",
   "graph_page": "Graph2",
   "graph_pages": [
@@ -110,6 +110,11 @@
     18128807.0,
     0.0
   ],
+  "plot_line_colors": [
+    33518174.0,
+    18128807.0,
+    0.0
+  ],
   "marker_shapes": [
     0.0,
     0.0,
@@ -120,7 +125,97 @@
     9.0,
     0.0
   ],
-  "graph_object_positions": {},
+  "plot_visibility": [
+    1.0,
+    1.0,
+    0.0
+  ],
+  "graph_object_positions": {
+    "Text1": {
+      "left": 4016.0,
+      "top": 1991.0,
+      "width": 1408.0,
+      "height": 296.0
+    },
+    "Text": {
+      "left": 4072.0,
+      "top": 3033.0,
+      "width": 1367.0,
+      "height": 251.0
+    },
+    "__FRAMESRCDATAINFOS": {
+      "left": 3516.0,
+      "top": 1992.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "YR": {
+      "left": 5618.0,
+      "top": 2292.0,
+      "width": 158.0,
+      "height": 93.0
+    },
+    "XT": {
+      "left": 3299.0,
+      "top": 339.0,
+      "width": 91.0,
+      "height": 151.0
+    },
+    "YL": {
+      "left": 608.0,
+      "top": 1320.0,
+      "width": 350.0,
+      "height": 2036.0
+    },
+    "XB": {
+      "left": 2010.0,
+      "top": 4427.0,
+      "width": 2668.0,
+      "height": 418.0
+    },
+    "3D": {
+      "left": 7178.0,
+      "top": 1884.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "__BCO2": {
+      "left": 3628.0,
+      "top": 4617.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "Legend": {
+      "left": 3563.0,
+      "top": 708.0,
+      "width": 1931.0,
+      "height": 606.0
+    },
+    "_202": {
+      "left": 0.0,
+      "top": 0.0,
+      "width": 0.0,
+      "height": 0.0
+    },
+    "_232": {
+      "left": 0.0,
+      "top": 0.0,
+      "width": 0.0,
+      "height": 0.0
+    },
+    "Line": {
+      "left": 3829.0,
+      "top": 1171.0,
+      "width": 58.0,
+      "height": 2680.0
+    },
+    "Line1": {
+      "left": 4153.0,
+      "top": 2079.0,
+      "width": 507.0,
+      "height": 82.0
+    }
+  },
   "warnings": [
     "Visible scientific annotations are not copied from the exemplar.",
     "Series line width is later overridden by the product policy when required."

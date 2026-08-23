@@ -16,6 +16,7 @@ from src.core.template_format_executor import (
     TEMPLATE_FORMAT_COMMAND,
     TEMPLATE_FORMAT_SCOPE,
     TemplateFormatExecutorOptions,
+    _adaptive_raman_conformance_reference,
     _adaptive_series_count_conformance,
     _adaptive_oth_json_readback_validation,
     _adaptive_photocurrent_validation_ranges,
@@ -49,6 +50,7 @@ from src.core.template_format_executor import (
     _prepare_verified_mott_otpu_binding,
     _prepare_verified_pl_otpu_binding,
     _prepare_verified_photocurrent_otpu_binding,
+    _prepare_verified_raman_otpu_binding,
     _prepare_verified_otpu_binding,
     _populate_verified_otpu_workbook,
     _apply_verified_otpu_post_plot_style,
@@ -69,6 +71,7 @@ from src.core.template_format_executor import (
     _update_verified_ftir_legend,
     _update_verified_pl_legend,
     _update_verified_photocurrent_legend,
+    _update_verified_raman_label_objects,
     _verified_otpu_axis_title_bold_policy,
     _verified_otpu_required_line_width_pt,
     _verified_otpu_style_contract,
@@ -4721,6 +4724,157 @@ def test_mott_candidate_guides_recover_reviewed_common_linear_window() -> None:
     assert min(candidate["constrained_r_squared"]) > 0.98
 
 
+def _verified_raman_product_and_table(
+    tmp_path: Path,
+) -> tuple[ProductContext, list[str], list[list[object]], Path]:
+    data_snapshot_path = (
+        Path(__file__).parents[1]
+        / "templates"
+        / "origin_styles"
+        / "data_snapshots"
+        / "Raman.json"
+    )
+    data_snapshot = json.loads(data_snapshot_path.read_text(encoding="utf-8"))
+    plots = sorted(data_snapshot["plots"], key=lambda value: int(value["x_col_index"]))
+    labels = ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-30"]
+    headers = [
+        header
+        for label in labels
+        for header in (
+            f"{label}_raman_shift_cm-1",
+            f"{label}_intensity",
+        )
+    ]
+    series = []
+    for plot in plots:
+        pairs = [
+            [x_value, y_value]
+            for x_value, y_value in zip(plot["x_values"], plot["y_values"])
+            if x_value is not None and y_value is not None
+        ]
+        series.append(pairs)
+    row_count = max(len(values) for values in series)
+    rows: list[list[object]] = []
+    for row_index in range(row_count):
+        row: list[object] = []
+        for values in series:
+            row.extend(values[row_index] if row_index < len(values) else [None, None])
+        rows.append(row)
+    processed = tmp_path / "raman.csv"
+    processed.write_text("placeholder", encoding="utf-8")
+    pairing = TargetPairing(
+        product_key="Raman",
+        data_type="Raman",
+        xps_subtype="",
+        data_root_label="test",
+        data_paths=[],
+        opju_root_label="test",
+        reference_opju=tmp_path / "reference.opju",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="Raman",
+        pairing=pairing,
+        legend_entries=labels,
+        x_label="Raman shift (cm-1)",
+        y_label="Intensity (a.u.)",
+    )
+    contract = (
+        Path(__file__).parents[1]
+        / "templates"
+        / "origin_styles"
+        / "binding_contracts"
+        / "Raman.json"
+    )
+    return product, headers, rows, contract
+
+
+def test_verified_raman_binding_preserves_source_order_and_two_layer_mapping(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract = _verified_raman_product_and_table(tmp_path)
+
+    result = _prepare_verified_raman_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract,
+    )
+
+    assert result["ok"] is True
+    assert result["graph_page"] == "Graph2"
+    assert result["book_name"] == "Book2"
+    assert [
+        (value["layer_index"], value["x_col"], value["y_col"])
+        for value in result["xy_ranges"]
+    ] == [(1, 1, 2), (1, 5, 6), (2, 3, 4)]
+    assert [
+        (value["source_x_index"], value["source_y_index"])
+        for value in result["xy_ranges"]
+    ] == [(0, 1), (4, 5), (2, 3)]
+    assert _processed_csv_plot_pairs(product, headers) == [(1, 2), (3, 4), (5, 6)]
+    assert _prepare_verified_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract,
+    )["ok"] is True
+
+
+def test_verified_raman_workbook_copies_all_six_columns_without_transform(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract = _verified_raman_product_and_table(tmp_path)
+    binding = _prepare_verified_raman_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract,
+    )
+
+    class WorkbookOps:
+        def __init__(self) -> None:
+            self.columns: list[list[float]] = []
+            self.metadata: list[dict[str, object]] = []
+
+        def create_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "created", {"book_name": book_name, "sheet_name": sheet_name})
+
+        def set_worksheet_data(
+            self,
+            _book_name: str,
+            _sheet_name: str,
+            columns: list[list[float]],
+        ) -> OperationResult:
+            self.columns = columns
+            return OperationResult(True, "written")
+
+        def set_worksheet_column_metadata(
+            self,
+            _book_name: str,
+            metadata: list[dict[str, object]],
+        ) -> OperationResult:
+            self.metadata = metadata
+            return OperationResult(True, "metadata")
+
+    ops = WorkbookOps()
+    result = _populate_verified_otpu_workbook(ops, product, headers, rows, binding)
+
+    assert result["ok"] is True
+    assert result["method"] == "raman_independent_a_b_c_d_e_f_copy_without_numeric_transform"
+    assert len(ops.columns) == 6
+    for column_index in range(6):
+        expected = [
+            float(row[column_index]) if row[column_index] is not None else math.nan
+            for row in rows
+        ]
+        assert all(
+            (math.isnan(actual) and math.isnan(reference)) or actual == reference
+            for actual, reference in zip(ops.columns[column_index], expected)
+        )
+    assert [value["type"] for value in ops.metadata] == [4, 1, 4, 1, 4, 1]
+
+
 def _verified_mott_product_and_table(
     tmp_path: Path,
 ) -> tuple[ProductContext, list[str], list[list[float]], Path]:
@@ -5820,6 +5974,89 @@ def test_adaptive_series_count_conformance_relaxes_only_per_plot_array_lengths()
         "plot_visibility[2]",
         "layer.height",
     ]
+
+
+def test_adaptive_raman_conformance_uses_natural_source_order_and_cycles() -> None:
+    style = {
+        "plot_count": 3,
+        "plot_colors": ["blue", "yellow", "green"],
+        "plot_line_colors": ["blue", "yellow", "green"],
+        "plot_line_widths": [1500, 1500, 0],
+        "marker_shapes": [0, 0, 0],
+        "marker_sizes": [9, 9, 0],
+        "plot_visibility": [1, 1, 1],
+    }
+    data = {
+        "plots": [
+            {
+                "book_name": "Book2",
+                "sheet_index": 1,
+                "x_col_index": 0,
+                "style": {
+                    "color": "blue",
+                    "line_color": "blue",
+                    "line_width_origin_units": 1500,
+                    "symbol_shape": 0,
+                    "symbol_size": 9,
+                },
+            },
+            {
+                "book_name": "Book2",
+                "sheet_index": 1,
+                "x_col_index": 4,
+                "style": {
+                    "color": "yellow",
+                    "line_color": "yellow",
+                    "line_width_origin_units": 1500,
+                    "symbol_shape": 0,
+                    "symbol_size": 9,
+                },
+            },
+            {
+                "book_name": "Book2",
+                "sheet_index": 1,
+                "x_col_index": 2,
+                "style": {
+                    "color": "green",
+                    "line_color": "green",
+                    "line_width_origin_units": 1500,
+                    "symbol_shape": 0,
+                    "symbol_size": 9,
+                },
+            },
+        ]
+    }
+
+    reference = _adaptive_raman_conformance_reference(style, data, 4)
+
+    assert reference["plot_count"] == 4
+    assert reference["plot_colors"] == ["blue", "green", "yellow", "blue"]
+    assert reference["plot_line_colors"] == ["blue", "green", "yellow", "blue"]
+    assert reference["plot_line_widths"] == [1500, 1500, 1500, 1500]
+    assert reference["marker_sizes"] == [9, 9, 9, 9]
+
+
+def test_adaptive_raman_conformance_relaxes_only_verified_layer_count_change() -> None:
+    conformance = {
+        "status": "fail",
+        "issues": [
+            {"field": "layer_count", "severity": "fail"},
+            {"field": "layer.height", "severity": "fail"},
+        ],
+    }
+
+    relaxed = _adaptive_series_count_conformance(
+        conformance,
+        {
+            "product_key": "Raman",
+            "current_csv_pair_count": 2,
+            "contract_series_count": 3,
+            "all_current_plots_visible": True,
+        },
+    )
+
+    assert relaxed["status"] == "fail"
+    assert [issue["field"] for issue in relaxed["issues"]] == ["layer.height"]
 
 
 def test_adaptive_photocurrent_readback_requires_current_xy_values_match() -> None:

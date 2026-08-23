@@ -2016,6 +2016,14 @@ def _build_template_xy_multisource_table(
         prefer_template_parent=prefer_template_parent,
         limit=max(target_series * 4, 12),
     )
+    if pairing.product_key == "Raman":
+        # Raman products must contain exactly the files selected for the
+        # current product.  Scanning adjacent folders can silently mix a
+        # different material cohort, and projecting independent spectra onto
+        # a union X grid changes supplied measurements.  Fixed-cardinality
+        # OTPU and adaptive OTH+JSON therefore share this explicit-only,
+        # independent-pair source table.
+        candidates = _template_explicit_raman_files(pairing)
     if pairing.product_key == "photocurrent":
         if origin_style_mode == "otpu":
             candidates = _template_photocurrent_candidate_files(pairing, template, target_series)
@@ -2049,7 +2057,7 @@ def _build_template_xy_multisource_table(
             continue
         series.append((_template_xy_series_label(pairing.product_key, path), rows))
         used_files.append(path)
-        preserve_variable_cardinality = pairing.product_key == "Mott-Schottky" or (
+        preserve_variable_cardinality = pairing.product_key in {"Raman", "Mott-Schottky"} or (
             pairing.product_key == "photocurrent" and origin_style_mode != "otpu"
         )
         if not preserve_variable_cardinality and len(series) >= target_series:
@@ -2068,9 +2076,8 @@ def _build_template_xy_multisource_table(
             f"{label}Hz BiOBr0.5Cl0.5"
             for label, _values in series
         ]
-    if pairing.product_key == "photocurrent":
-        # The reference photocurrent workbook contains three independent X/Y
-        # pairs (A/B, C/D, E/F), rather than one shared time column.  Keep
+    if pairing.product_key in {"Raman", "photocurrent"}:
+        # Both reviewed products bind independent adjacent X/Y pairs.  Keep
         # each source's row order, repeated X values, and original sampling
         # grid; only pad shorter sources after their final supplied row.
         labels["legend_entries"] = [str(label).strip() for label, _values in series]
@@ -2103,7 +2110,7 @@ def _build_template_xy_multisource_table(
             fixed_contract_series_count=int(template.plot_count or 0),
         )
     )
-    if pairing.product_key == "photocurrent":
+    if pairing.product_key in {"Raman", "photocurrent"}:
         alignment.update(
             {
                 "interpolation": "not_applied",
@@ -2580,6 +2587,18 @@ def _template_xy_suffixes(product_key: str) -> tuple[str, ...]:
     if product_key == "Mott-Schottky":
         return (".csv", ".xlsx", ".xls", ".txt")
     return (".txt", ".csv")
+
+
+def _template_explicit_raman_files(pairing: TargetPairing) -> list[Path]:
+    """Return only explicitly paired Raman text exports, in supplied order."""
+
+    paths = _template_unique_paths(list(pairing.data_paths))
+    if not paths:
+        raise ValueError("Raman style construction requires at least one explicitly paired source file.")
+    for path in paths:
+        if not path.is_file() or path.suffix.casefold() not in {".txt", ".csv"}:
+            raise ValueError(f"Raman explicit pairing contains an invalid source file: {path}")
+    return paths
 
 
 def _template_pl_candidate_files(pairing: TargetPairing, template: TemplateCandidate, target_series: int) -> list[Path]:

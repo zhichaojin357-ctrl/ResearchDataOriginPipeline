@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "Raman",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "59030c7768db16b5fdf77d42b327f4d8fc31319da03e9833f5d3ede7e8f86839",
+      "graph_page": "Graph2",
+      "source_series_count": 3,
+      "source_schema": {
+        "status": "ready",
+        "layout": "paired_xy_columns",
+        "x_header_suffix": "_raman_shift_cm-1",
+        "y_header_suffix": "_intensity",
+        "source_csv_indices": [0, 1, 2, 3, 4, 5],
+        "worksheet_layout": "one_sheet_three_independent_xy_pairs",
+        "transform": "independent_raman_xy_pairs_without_sorting_interpolation_smoothing_normalization_or_added_offsets",
+        "plot_type": "line",
+        "group_plots": false
+      },
+      "plots": [
+        {
+          "layer_index": 1,
+          "plot_index": 1,
+          "x_dataset": "Book2_A",
+          "y_dataset": "Book2_B",
+          "row_from": 1,
+          "row_to": 1214,
+          "source_series_index": 1,
+          "semantic_role": "raman_source_series_1_top"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 2,
+          "x_dataset": "Book2_E",
+          "y_dataset": "Book2_F",
+          "row_from": 1,
+          "row_to": 1186,
+          "source_series_index": 3,
+          "semantic_role": "raman_source_series_3_bottom"
+        },
+        {
+          "layer_index": 2,
+          "plot_index": 1,
+          "x_dataset": "Book2_C",
+          "y_dataset": "Book2_D",
+          "row_from": 1,
+          "row_to": 1214,
+          "source_series_index": 2,
+          "semantic_role": "raman_source_series_2_middle"
+        }
+      ]
+    }
+  ]
+}

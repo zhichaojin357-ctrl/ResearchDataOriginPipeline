@@ -544,6 +544,22 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         ops = OriginOperations(app)
         self.assertTrue(ops.create_graph("Fig1", "Data", "Sheet1", 1, 2, "line").ok)
         self.assertTrue(ops.add_plot_to_graph("Fig1", "Data", "Sheet1", 1, 3, "scatter").ok)
+        self.assertTrue(
+            ops.add_plot_to_graph(
+                "Fig1",
+                "Data",
+                "Sheet1",
+                4,
+                5,
+                "line",
+                row_from=2,
+                row_to=9,
+            ).ok
+        )
+        self.assertIn(
+            "[Data]Sheet1!(4[2:9],5[2:9])",
+            "\n".join(app.commands),
+        )
         self.assertTrue(ops.set_axis_labels("Fig1", "Time (s)", "Signal").ok)
         self.assertTrue(ops.set_axis_range("Fig1", 0, 10, -1, 1).ok)
         self.assertTrue(ops.set_plot_style("Fig1", 1, line_width=3, symbol_size=9, color="blue").ok)

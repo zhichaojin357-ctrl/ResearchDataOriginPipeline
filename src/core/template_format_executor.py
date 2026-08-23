@@ -83,6 +83,7 @@ VERIFIED_GRAPH_TEMPLATE_PRODUCTS = {
     "BET",
     "EIS",
     "EPR",
+    "Raman",
     "PL",
     "photocurrent",
     "FTIR",
@@ -101,6 +102,7 @@ VERIFIED_FTIR_LAST_CURVE_TRANSLATE_ANNOTATIONS = (
     -0.62347949080622,
 )
 VERIFIED_PHOTOCURRENT_DESTINATION_PAIRS = ((9, 10), (13, 14), (17, 18))
+VERIFIED_RAMAN_DESTINATION_PAIRS = ((1, 2), (3, 4), (5, 6))
 VERIFIED_MOTT_DESTINATION_PAIRS = ((5, 4), (5, 6), (7, 8), (9, 10), (11, 12))
 VERIFIED_PHOTOCURRENT_X_TITLE = "Time (s)"
 VERIFIED_BET_X_TITLE = "Relative Pressure (P/Po)"
@@ -2041,7 +2043,7 @@ def _export_verified_graph_template_product_with_origin(
         }
     reference_data_path = getattr(style_asset, "data_snapshot_path", None)
     reference_data = _load_json_object(reference_data_path)
-    if product.product_key in {"photocurrent", "Mott-Schottky"} and (
+    if product.product_key in {"Raman", "photocurrent", "Mott-Schottky"} and (
         not isinstance(reference_data, dict)
         or str(reference_data.get("status") or "") != "ready"
     ):
@@ -2246,12 +2248,14 @@ def _export_verified_graph_template_product_with_origin(
     ).to_dict()
     conformance["reference_source"] = runtime_reference["reference_kind"]
     if (
-        product.product_key == "Mott-Schottky"
+        product.product_key in {"Raman", "Mott-Schottky"}
         and str(conformance.get("status") or "").casefold() == "fail"
     ):
         return {
             "ok": False,
-            "message": "Verified Mott-Schottky style conformance failed after save/reopen.",
+            "message": (
+                f"Verified {product.product_key} style conformance failed after save/reopen."
+            ),
             "template_format_plan": plan_payload,
             "conformance": conformance,
             "product_style": product_style,
@@ -2276,6 +2280,21 @@ def _export_verified_graph_template_product_with_origin(
             ),
             "template_format_plan": plan_payload,
             "current_data_validation": current_data_validation,
+        }
+    raman_plot_style_validation = (
+        _validate_raman_reopened_plot_styles(reference_data, current_data_snapshot)
+        if product.product_key == "Raman"
+        else {"ok": True, "status": "not_required"}
+    )
+    if not raman_plot_style_validation.get("ok"):
+        return {
+            "ok": False,
+            "message": str(
+                raman_plot_style_validation.get("message")
+                or "Reopened Raman per-layer plot styles differ from the reviewed snapshot."
+            ),
+            "template_format_plan": plan_payload,
+            "raman_plot_style_validation": raman_plot_style_validation,
         }
     png = operations.export_graph(graph_name, runtime_png, "png", dpi=style.export_dpi)
     tif = _export_native_tif_with_physical_validation(
@@ -2339,6 +2358,7 @@ def _export_verified_graph_template_product_with_origin(
             "reference_opju_used_as_product_base": False,
             "reference_opju_loaded": False,
             "current_data_validation": current_data_validation,
+            "raman_plot_style_validation": raman_plot_style_validation,
             "template_binding": binding,
             "workbook_preparation": workbook,
             "post_plot_style": post_plot_style,
@@ -2355,6 +2375,7 @@ def _export_verified_graph_template_product_with_origin(
         "conformance": conformance,
         "current_data_snapshot": current_data_snapshot,
         "current_data_validation": current_data_validation,
+        "raman_plot_style_validation": raman_plot_style_validation,
         "reopened_graph": graph_name,
         "tif_resolution_evidence": tif.get("evidence", {}),
         "line_width_policy_pt": _verified_otpu_required_line_width_pt(
@@ -2381,6 +2402,7 @@ def _prepare_verified_otpu_binding(
         "BET": _prepare_verified_bet_otpu_binding,
         "EIS": _prepare_verified_eis_otpu_binding,
         "EPR": _prepare_verified_epr_otpu_binding,
+        "Raman": _prepare_verified_raman_otpu_binding,
         "PL": _prepare_verified_pl_otpu_binding,
         "photocurrent": _prepare_verified_photocurrent_otpu_binding,
         "FTIR": _prepare_verified_ftir_otpu_binding,
@@ -2440,7 +2462,7 @@ def _verified_otpu_conformance_reference(
             expected_strings["legend.text$"] = actual_strings["legend.text$"]
         adjusted["audit_string_values"] = expected_strings
         return adjusted
-    if product_key in {"PL", "Mott-Schottky"}:
+    if product_key in {"PL", "Raman", "Mott-Schottky"}:
         adjusted = dict(reference_style)
         expected_strings = dict(reference_style.get("audit_string_values") or {})
         actual_strings = dict(product_style.get("audit_string_values") or {})
@@ -2476,7 +2498,7 @@ def _verified_otpu_conformance_reference(
 def _verified_otpu_style_contract(product_key: str) -> str:
     return (
         "preserve_exemplar_exact"
-        if product_key in {"EIS", "photocurrent", "FTIR"}
+        if product_key in {"EIS", "Raman", "photocurrent", "FTIR"}
         else "verified_detached_otpu"
     )
 
@@ -2487,7 +2509,10 @@ def _verified_otpu_required_line_width_pt(
 ) -> float | None:
     # EIS preserves a template-specific width. The reviewed photocurrent Graph2
     # and FTIR assets are explicitly audited at the current 3 pt product policy.
-    return None if product_key in {"EIS", "Mott-Schottky"} else style.line_width_pt
+    # Raman's reviewed graph spans two layers. The flattened page-level style
+    # snapshot cannot read the third plot width reliably; its per-layer data
+    # snapshot is validated explicitly after reopen instead.
+    return None if product_key in {"EIS", "Raman", "Mott-Schottky"} else style.line_width_pt
 
 
 def _verified_otpu_axis_title_bold_policy(
@@ -2958,6 +2983,173 @@ def _prepare_verified_pl_otpu_binding(
         "graph_page": contract.graph_page,
         "book_name": "PL",
         "plot_type": str(source_schema.get("plot_type") or "line"),
+        "group_plots": False,
+        "xy_ranges": xy_ranges,
+        "contract": contract.to_dict(),
+    }
+
+
+def _prepare_verified_raman_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    """Bind three independent Raman X/Y pairs to the reviewed two-layer OTPU."""
+
+    if product.product_key != "Raman":
+        return {"ok": False, "message": "Verified Raman binding received a non-Raman product."}
+    contracts = load_template_binding_contracts(contract_path)
+    contract = contracts.get("raman")
+    if contract is None or not contract.ready:
+        return {
+            "ok": False,
+            "message": "The reviewed Raman template binding contract is unavailable.",
+        }
+    source_schema = dict(contract.source_schema)
+    if (
+        str(source_schema.get("status") or "") != "ready"
+        or str(source_schema.get("layout") or "") != "paired_xy_columns"
+        or str(source_schema.get("worksheet_layout") or "")
+        != "one_sheet_three_independent_xy_pairs"
+        or source_schema.get("source_csv_indices") != [0, 1, 2, 3, 4, 5]
+        or str(source_schema.get("x_header_suffix") or "")
+        != "_raman_shift_cm-1"
+        or str(source_schema.get("y_header_suffix") or "") != "_intensity"
+        or str(source_schema.get("transform") or "")
+        != "independent_raman_xy_pairs_without_sorting_interpolation_smoothing_normalization_or_added_offsets"
+        or str(source_schema.get("plot_type") or "") != "line"
+        or bool(source_schema.get("group_plots", True))
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "Raman contract must define three independent adjacent X/Y pairs "
+                "without interpolation or other numeric transformation."
+            ),
+        }
+
+    contracted_plots = sorted(
+        contract.plots,
+        key=lambda plot: (plot.layer_index, plot.plot_index),
+    )
+    expected_datasets = [
+        ("Book2_A", "Book2_B"),
+        ("Book2_E", "Book2_F"),
+        ("Book2_C", "Book2_D"),
+    ]
+    if (
+        len(contracted_plots) != 3
+        or contract.source_series_count != 3
+        or contract.graph_page != "Graph2"
+        or [(plot.layer_index, plot.plot_index) for plot in contracted_plots]
+        != [(1, 1), (1, 2), (2, 1)]
+        or [plot.source_series_index for plot in contracted_plots] != [1, 3, 2]
+        or [
+            (str(plot.x_dataset), str(plot.y_dataset))
+            for plot in contracted_plots
+        ]
+        != expected_datasets
+    ):
+        return {
+            "ok": False,
+            "message": (
+                "Raman contract must bind Graph2 A/B, E/F, and C/D in the "
+                "reviewed two-layer plot order while preserving source order 1/3/2."
+            ),
+        }
+    if len(headers) != 6 or not rows:
+        return {
+            "ok": False,
+            "message": "Raman processed CSV must contain exactly three adjacent X/Y pairs.",
+        }
+    source_pairs = _adjacent_independent_xy_pairs(
+        headers,
+        x_suffix="_raman_shift_cm-1",
+        y_suffix="_intensity",
+    )
+    if source_pairs != [(1, 2), (3, 4), (5, 6)]:
+        return {
+            "ok": False,
+            "message": "Raman processed CSV headers do not form three unique paired spectra.",
+        }
+    identities = [
+        str(headers[index]).strip()[: -len("_raman_shift_cm-1")]
+        for index in (0, 2, 4)
+    ]
+    labels = [str(value).strip() for value in product.legend_entries]
+    if (
+        len(labels) != 3
+        or any(not value for value in labels)
+        or [safe_name(value).casefold() for value in labels]
+        != [value.casefold() for value in identities]
+    ):
+        return {
+            "ok": False,
+            "message": "Raman current labels must match the three processed paired-spectrum identities.",
+        }
+
+    xy_ranges: list[dict[str, object]] = []
+    reference_books: set[str] = set()
+    reference_sheets: set[int] = set()
+    for plot in contracted_plots:
+        x_reference = parse_origin_dataset_reference(str(plot.x_dataset))
+        y_reference = parse_origin_dataset_reference(str(plot.y_dataset))
+        if (
+            x_reference is None
+            or y_reference is None
+            or x_reference.book_name != y_reference.book_name
+            or x_reference.sheet_index != y_reference.sheet_index
+        ):
+            return {
+                "ok": False,
+                "message": "Raman contract contains an invalid same-sheet Origin X/Y mapping.",
+            }
+        reference_books.add(x_reference.book_name)
+        reference_sheets.add(x_reference.sheet_index)
+        source_x_index = (int(plot.source_series_index) - 1) * 2
+        source_y_index = source_x_index + 1
+        bounds = _paired_numeric_row_bounds(rows, source_x_index, source_y_index)
+        if bounds is None or bounds[0] != 1:
+            return {
+                "ok": False,
+                "message": (
+                    f"Raman source series {plot.source_series_index} must contain one "
+                    "contiguous finite X/Y run followed only by a blank tail."
+                ),
+            }
+        row_from, row_to = bounds
+        xy_ranges.append(
+            {
+                "book_name": x_reference.book_name,
+                "sheet_index": x_reference.sheet_index,
+                "layer_index": int(plot.layer_index),
+                "x_col": x_reference.column_index + 1,
+                "y_col": y_reference.column_index + 1,
+                "expected_x_col_letter": chr(65 + x_reference.column_index),
+                "expected_y_col_letter": chr(65 + y_reference.column_index),
+                "row_from": row_from,
+                "row_to": row_to,
+                "source_x_index": source_x_index,
+                "source_y_index": source_y_index,
+                "source_row_from": row_from,
+                "source_row_to": row_to,
+            }
+        )
+    if reference_books != {"Book2"} or reference_sheets != {1}:
+        return {
+            "ok": False,
+            "message": "Raman fixed template requires reviewed workbook Book2 sheet 1.",
+        }
+    return {
+        "ok": True,
+        "message": (
+            "Processed Raman independent X/Y pairs match the reviewed two-layer OTPU binding contract."
+        ),
+        "graph_page": contract.graph_page,
+        "book_name": "Book2",
+        "plot_type": "line",
         "group_plots": False,
         "xy_ranges": xy_ranges,
         "contract": contract.to_dict(),
@@ -3727,6 +3919,57 @@ def _populate_verified_otpu_workbook(
             "sheet_count": 1,
         }
 
+    if product.product_key == "Raman":
+        created = operations.create_worksheet(str(binding["book_name"]), "Sheet1")
+        if not getattr(created, "ok", False):
+            return _verified_otpu_failure(created, "Raman workbook creation failed.")
+        book_name = str(getattr(created, "payload", {}).get("book_name") or "")
+        sheet_name = str(getattr(created, "payload", {}).get("sheet_name") or "Sheet1")
+        if book_name != "Book2":
+            return {
+                "ok": False,
+                "message": (
+                    "Origin did not preserve the reviewed Raman workbook identity: "
+                    f"expected Book2, actual {book_name or '<empty>'}."
+                ),
+            }
+        columns = [
+            [
+                float(value)
+                if source_index < len(row)
+                and (value := _finite_numeric_value(row[source_index])) is not None
+                else math.nan
+                for row in rows
+            ]
+            for source_index in range(6)
+        ]
+        written = operations.set_worksheet_data(book_name, sheet_name, columns)
+        if not getattr(written, "ok", False):
+            return _verified_otpu_failure(written, "Raman worksheet data write failed.")
+        metadata = [
+            {
+                "column_index": column_index,
+                "long_name": headers[column_index - 1],
+                "unit": "cm^-1" if column_index % 2 else "a.u.",
+                "comment": "",
+                "type": 4 if column_index % 2 else 1,
+            }
+            for column_index in range(1, 7)
+        ]
+        metadata_write = operations.set_worksheet_column_metadata(book_name, metadata)
+        if not getattr(metadata_write, "ok", False):
+            return _verified_otpu_failure(metadata_write, "Raman worksheet metadata write failed.")
+        return {
+            "ok": True,
+            "method": "raman_independent_a_b_c_d_e_f_copy_without_numeric_transform",
+            "book_name": book_name,
+            "sheet_count": 1,
+            "destination_pairs": [
+                {"x_col": x_col, "y_col": y_col}
+                for x_col, y_col in VERIFIED_RAMAN_DESTINATION_PAIRS
+            ],
+        }
+
     if product.product_key == "FTIR":
         created = operations.create_worksheet(str(binding["book_name"]), "Sheet1")
         if not getattr(created, "ok", False):
@@ -4072,6 +4315,44 @@ def _apply_verified_otpu_post_plot_style(
 ) -> dict[str, object]:
     if product.product_key == "BET":
         return {"ok": True, "method": "otpu_native_style_only"}
+    if product.product_key == "Raman":
+        if runtime_theme is not None:
+            return {
+                "ok": False,
+                "message": "Verified Raman OTPU runtime must not apply an OTH asset.",
+            }
+        snapshot_applied = apply_style_snapshot(
+            operations,
+            graph_name,
+            reference_style,
+            apply_default_font=False,
+            apply_axis_titles=True,
+        )
+        if not snapshot_applied:
+            return {
+                "ok": False,
+                "message": "Verified Raman style snapshot application failed.",
+            }
+        label_policy = _update_verified_raman_label_objects(
+            operations,
+            graph_name,
+            product.legend_entries,
+        )
+        if not label_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified Raman current-label object replacement failed.",
+                "label_policy": label_policy,
+            }
+        return {
+            "ok": True,
+            "method": "otpu_then_snapshot_then_current_distributed_labels",
+            "format_theme_applied": False,
+            "style_snapshot_applied": True,
+            "apply_default_font": False,
+            "apply_axis_titles": True,
+            "label_policy": label_policy,
+        }
     if product.product_key == "FTIR":
         if runtime_theme is not None:
             return {
@@ -4551,6 +4832,86 @@ def _validate_verified_current_data(
     }
 
 
+def _validate_raman_reopened_plot_styles(
+    reference_data: dict[str, object] | None,
+    current_data: dict[str, object],
+) -> dict[str, object]:
+    """Audit Raman plot styles per layer, avoiding flattened layer-1 readback."""
+
+    if not isinstance(reference_data, dict) or str(reference_data.get("status") or "") != "ready":
+        return {
+            "ok": False,
+            "status": "blocked",
+            "message": "Reviewed Raman per-layer data snapshot is unavailable.",
+        }
+    reference_plots = {
+        (int(plot.get("layer_index") or 0), int(plot.get("plot_index") or 0)): dict(plot)
+        for plot in reference_data.get("plots", [])
+        if isinstance(plot, dict)
+    }
+    current_plots = {
+        (int(plot.get("layer_index") or 0), int(plot.get("plot_index") or 0)): dict(plot)
+        for plot in current_data.get("plots", [])
+        if isinstance(plot, dict)
+    }
+    reasons: list[str] = []
+    expected_keys = {(1, 1), (1, 2), (2, 1)}
+    if set(reference_plots) != expected_keys:
+        reasons.append("reviewed Raman snapshot does not contain the expected 2-layer/3-plot structure")
+    if set(current_plots) != expected_keys:
+        reasons.append("reopened Raman graph does not contain the expected 2-layer/3-plot structure")
+    style_fields = (
+        "color",
+        "line_color",
+        "line_width_origin_units",
+        "line_width_pt",
+        "line_style",
+        "symbol_shape",
+        "symbol_size",
+    )
+    compared: list[dict[str, object]] = []
+    for key in sorted(expected_keys):
+        reference_plot = reference_plots.get(key)
+        current_plot = current_plots.get(key)
+        if reference_plot is None or current_plot is None:
+            continue
+        reference_style = dict(reference_plot.get("style") or {})
+        current_style = dict(current_plot.get("style") or {})
+        mismatches = [
+            field
+            for field in style_fields
+            if reference_style.get(field) != current_style.get(field)
+        ]
+        if mismatches:
+            reasons.append(
+                f"Raman layer {key[0]} plot {key[1]} style differs: {', '.join(mismatches)}"
+            )
+        compared.append(
+            {
+                "layer_index": key[0],
+                "plot_index": key[1],
+                "reference_style": {
+                    field: reference_style.get(field) for field in style_fields
+                },
+                "current_style": {
+                    field: current_style.get(field) for field in style_fields
+                },
+                "matches": not mismatches,
+            }
+        )
+    return {
+        "ok": not reasons,
+        "status": "matched" if not reasons else "mismatch",
+        "message": (
+            "Reopened Raman graph preserves all reviewed per-layer curve styles."
+            if not reasons
+            else "; ".join(reasons)
+        ),
+        "plots": compared,
+        "reasons": reasons,
+    }
+
+
 def _validate_verified_bet_current_data(
     rows: list[list[object]],
     xy_ranges: list[dict[str, int]],
@@ -4631,6 +4992,23 @@ def _export_saved_format_theme_product_with_origin(
         plot_pairs = _processed_csv_plot_pairs(product, headers)
         if not plot_pairs:
             return {"ok": False, "message": "processed CSV does not contain plottable column pairs", "template_format_plan": plan.to_dict()}
+        selected_oth_json = str(
+            (style_execution_decision or {}).get("selected_mode") or ""
+        ) == "oth-json"
+        raman_plot_bounds: dict[tuple[int, int], tuple[int, int]] = {}
+        if selected_oth_json and product.product_key == "Raman":
+            for x_col, y_col in plot_pairs:
+                bounds = _paired_numeric_row_bounds(rows, x_col - 1, y_col - 1)
+                if bounds is None or bounds[0] != 1:
+                    return {
+                        "ok": False,
+                        "message": (
+                            "Adaptive Raman requires one contiguous finite X/Y run "
+                            "per spectrum followed only by blank tail rows."
+                        ),
+                        "template_format_plan": plan.to_dict(),
+                    }
+                raman_plot_bounds[(x_col, y_col)] = bounds
         mott_mask_policy = (
             _apply_mott_schottky_source_masks(
                 operations,
@@ -4649,6 +5027,12 @@ def _export_saved_format_theme_product_with_origin(
                 "mott_schottky_mask_policy": mott_mask_policy,
             }
         first_header = headers[plot_pairs[0][1] - 1] if plot_pairs[0][1] - 1 < len(headers) else ""
+        first_bounds = raman_plot_bounds.get(plot_pairs[0], (0, 0))
+        first_row_kwargs = (
+            {"row_from": first_bounds[0], "row_to": first_bounds[1]}
+            if first_bounds[0] > 0
+            else {}
+        )
         created = operations.create_graph(
             graph_name,
             book_name,
@@ -4656,6 +5040,7 @@ def _export_saved_format_theme_product_with_origin(
             plot_pairs[0][0],
             plot_pairs[0][1],
             plot_type=template_plot_type_for_header(product.product_key, str(first_header), product.plot_type),
+            **first_row_kwargs,
         )
         if not getattr(created, "ok", False):
             return {"ok": False, "message": getattr(created, "message", "graph creation failed"), "template_format_plan": plan.to_dict()}
@@ -4672,6 +5057,12 @@ def _export_saved_format_theme_product_with_origin(
                 }
         for x_col, y_col in plot_pairs[1:]:
             header = headers[y_col - 1] if y_col - 1 < len(headers) else ""
+            row_bounds = raman_plot_bounds.get((x_col, y_col), (0, 0))
+            row_kwargs = (
+                {"row_from": row_bounds[0], "row_to": row_bounds[1]}
+                if row_bounds[0] > 0
+                else {}
+            )
             added = operations.add_plot_to_graph(
                 graph_name,
                 book_name,
@@ -4679,6 +5070,7 @@ def _export_saved_format_theme_product_with_origin(
                 x_col,
                 y_col,
                 plot_type=template_plot_type_for_header(product.product_key, str(header), product.plot_type),
+                **row_kwargs,
             )
             if not getattr(added, "ok", False):
                 return {"ok": False, "message": getattr(added, "message", f"plot add failed for columns {x_col}/{y_col}"), "template_format_plan": plan.to_dict()}
@@ -4700,9 +5092,6 @@ def _export_saved_format_theme_product_with_origin(
             theme_path,
             explicit_path=data_snapshot_path,
         )
-        selected_oth_json = str(
-            (style_execution_decision or {}).get("selected_mode") or ""
-        ) == "oth-json"
         photocurrent_source_axis_titles: dict[str, object] | None = None
         if selected_oth_json and product.product_key == "photocurrent":
             photocurrent_source_axis_titles = _validate_photocurrent_axis_titles(
@@ -4745,6 +5134,7 @@ def _export_saved_format_theme_product_with_origin(
                 saved_data_snapshot,
                 cycle_styles=adaptive_cardinality,
                 preserve_custom_rgb=product.product_key == "Mott-Schottky",
+                product_key=product.product_key,
             )
             if selected_oth_json
             else {"applied": False, "reason": "not_oth_json_mode"}
@@ -4996,6 +5386,7 @@ def _export_saved_format_theme_product_with_origin(
         }
         if selected_oth_json and product.product_key in {
             "BET",
+            "Raman",
             "photocurrent",
             "Mott-Schottky",
         }:
@@ -5107,7 +5498,13 @@ def _export_saved_format_theme_product_with_origin(
             else saved_style_snapshot
         )
         conformance_reference = (
-            _verified_otpu_conformance_reference(
+            _adaptive_raman_conformance_reference(
+                reference_style_snapshot,
+                saved_data_snapshot,
+                len(plot_pairs),
+            )
+            if selected_oth_json and product.product_key == "Raman"
+            else _verified_otpu_conformance_reference(
                 product.product_key,
                 reference_style_snapshot,
                 product_style,
@@ -5513,6 +5910,7 @@ def _adaptive_oth_json_readback_validation(
         failures.append("fixed-cardinality OTH+JSON style conformance failed")
     requires_current_data_match = product.product_key in {
         "BET",
+        "Raman",
         "photocurrent",
         "Mott-Schottky",
     }
@@ -5525,6 +5923,7 @@ def _adaptive_oth_json_readback_validation(
         failures.append("reopened graph X/Y values do not match the current processed CSV")
     return {
         "ok": not failures,
+        "product_key": product.product_key,
         "status": "accepted" if not failures else "blocked",
         "message": (
             "Adaptive OTH+JSON graph curve count matches the current CSV after save/reopen."
@@ -5606,6 +6005,15 @@ def _adaptive_series_count_conformance(
         field = str(issue.get("field") or "")
         if field in cardinality_fields:
             return True
+        if (
+            field == "layer_count"
+            and cardinality_changed
+            and str(validation.get("product_key") or "") == "Raman"
+        ):
+            # The fixed Raman OTPU uses a second overlay layer for its middle
+            # trace.  Variable-cardinality OTH+JSON instead builds one native
+            # Origin layer containing exactly the current spectra.
+            return all_current_plots_visible
         # A fixed template may intentionally hide surplus reference plots.  In
         # an adaptive graph every plot represents current input data, so those
         # plots must be visible.  Treat that indexed visibility difference as
@@ -6049,14 +6457,84 @@ def _apply_adaptive_oth_json_plot_styles(
     *,
     cycle_styles: bool,
     preserve_custom_rgb: bool = False,
+    product_key: str = "",
 ) -> dict[str, object]:
+    snapshot = data_snapshot
+    if product_key == "Raman":
+        raw_plots = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
+        if isinstance(raw_plots, list):
+            plots = [dict(value) for value in raw_plots if isinstance(value, dict)]
+            plots.sort(
+                key=lambda value: (
+                    str(value.get("book_name") or ""),
+                    int(value.get("sheet_index") or 0),
+                    int(value.get("x_col_index") or 0),
+                )
+            )
+            snapshot = {**data_snapshot, "plots": plots}
     return _apply_reviewed_template_plot_styles(
         operations,
         graph_name,
-        data_snapshot,
+        snapshot,
         cycle_styles=cycle_styles,
         preserve_custom_rgb=preserve_custom_rgb,
     )
+
+
+def _adaptive_raman_conformance_reference(
+    style_snapshot: dict[str, object],
+    data_snapshot: dict[str, object],
+    series_count: int,
+) -> dict[str, object]:
+    """Build the Raman adaptive style sequence in natural source-column order."""
+
+    raw_plots = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
+    if not isinstance(raw_plots, list) or not raw_plots or series_count <= 0:
+        return dict(style_snapshot)
+    indexed_plots = [
+        (index, value)
+        for index, value in enumerate(raw_plots)
+        if isinstance(value, dict)
+    ]
+    if len(indexed_plots) != len(raw_plots):
+        return dict(style_snapshot)
+    natural_plots = [
+        value
+        for _index, value in sorted(
+            indexed_plots,
+            key=lambda item: (
+                str(item[1].get("book_name") or ""),
+                int(item[1].get("sheet_index") or 0),
+                int(item[1].get("x_col_index") or 0),
+            ),
+        )
+    ]
+    result = dict(style_snapshot)
+    data_style_fields = {
+        "plot_colors": "color",
+        "plot_line_colors": "line_color",
+        "plot_line_widths": "line_width_origin_units",
+        "marker_shapes": "symbol_shape",
+        "marker_sizes": "symbol_size",
+    }
+    for field, data_style_field in data_style_fields.items():
+        natural_values = [
+            (plot.get("style") or {}).get(data_style_field)
+            if isinstance(plot.get("style"), dict)
+            else None
+            for plot in natural_plots
+        ]
+        if any(value is None for value in natural_values):
+            continue
+        result[field] = [
+            natural_values[index % len(natural_values)]
+            for index in range(series_count)
+        ]
+    visibility = style_snapshot.get("plot_visibility")
+    if isinstance(visibility, list) and visibility:
+        result["plot_visibility"] = [1.0] * series_count
+    result["plot_count"] = series_count
+    return result
 
 
 def _apply_adaptive_dynamic_legend_policy(
@@ -6995,6 +7473,18 @@ def _apply_exemplar_axis_title_text(operations: object, graph_name: str, exempla
 def _processed_csv_plot_pairs(product: ProductContext, headers: list[str]) -> list[tuple[int, int]]:
     if len(headers) < 2:
         return []
+    if product.product_key == "Raman":
+        pairs = _adjacent_independent_xy_pairs(
+            headers,
+            x_suffix="_raman_shift_cm-1",
+            y_suffix="_intensity",
+        )
+        if pairs:
+            return pairs
+        return _legacy_shared_x_pairs(
+            headers,
+            x_headers={"raman_shift_cm-1", "raman_shift"},
+        )
     if product.product_key == "FTIR":
         pairs = _adjacent_independent_xy_pairs(
             headers,
@@ -8579,6 +9069,88 @@ def _update_verified_pl_legend(
         "method": "template_legend_current_bold_rich_text",
         "entries": labels,
         "line_samples_preserved": True,
+    }
+
+
+def _update_verified_raman_label_objects(
+    operations: object,
+    graph_name: str,
+    entries: list[str],
+) -> dict[str, object]:
+    """Replace Raman's three distributed native label objects in source order."""
+
+    labels = [str(value).strip() for value in entries]
+    if (
+        len(labels) != 3
+        or any(not label for label in labels)
+        or len({label.casefold() for label in labels}) != 3
+    ):
+        return {
+            "applied": False,
+            "reason": "raman_labels_require_three_nonempty_unique_values",
+        }
+    app = getattr(operations, "app", None)
+    if app is None:
+        return {"applied": False, "reason": "no_origin_app"}
+    try:
+        layer = (
+            app.FindGraphLayer(f"[{graph_name}]Layer1")
+            or app.FindGraphLayer(f"[{graph_name}]1")
+            or app.FindGraphLayer(graph_name)
+        )
+    except Exception:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+    if not layer:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+
+    top_label = (
+        r"\l(1)\b(\c33518175(\c1( BiOBr)\-(\c1(0.5))\c1(Cl)\-(\c1(0.5))))"
+        if labels[0] == "BiOBr0.5Cl0.5"
+        else f"\\l(1)\\b( {_reviewed_template_legend_rich_text(labels[0])})"
+    )
+    object_text = {
+        "Legend": top_label,
+        "Text1": f"\\b(           {_reviewed_template_legend_rich_text(labels[1])})",
+        "Text": f"\\l(2)\\b( {_reviewed_template_legend_rich_text(labels[2])})",
+    }
+    readback: dict[str, str] = {}
+    for object_name, text in object_text.items():
+        graph_object = _find_unique_origin_graph_object(layer, object_name)
+        if graph_object is None:
+            return {
+                "applied": False,
+                "reason": "required_raman_label_missing_or_not_unique",
+                "object_name": object_name,
+            }
+        try:
+            graph_object.Text = text
+            actual = str(getattr(graph_object, "Text", "") or "")
+        except Exception:
+            return {
+                "applied": False,
+                "reason": "raman_label_write_or_readback_failed",
+                "object_name": object_name,
+            }
+        if actual != text:
+            return {
+                "applied": False,
+                "reason": "raman_label_readback_mismatch",
+                "object_name": object_name,
+                "expected": text,
+                "actual": actual,
+            }
+        readback[object_name] = actual
+    return {
+        "applied": True,
+        "method": "template_distributed_label_objects_current_bold_rich_text",
+        "entries": labels,
+        "objects": readback,
+        "source_order_to_template_objects": {
+            "1": "Legend/plot1",
+            "2": "Text1/Line1/layer2_plot1",
+            "3": "Text/plot2",
+        },
+        "native_line_samples_preserved": True,
     }
 
 

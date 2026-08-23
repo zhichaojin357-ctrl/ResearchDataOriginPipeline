@@ -1444,13 +1444,15 @@ def test_validated_otpu_does_not_require_runtime_reference_preview(tmp_path: Pat
     assert product["status"] == "accepted"
 
 
-def test_template_xy_alignment_uses_adjacent_real_sources_without_fabricating_missing_series(tmp_path: Path) -> None:
+def test_template_raman_uses_only_explicit_independent_pairs_without_interpolation(tmp_path: Path) -> None:
     data_root = tmp_path / "raman"
     data_root.mkdir()
     first = data_root / "BOBC.txt"
     second = data_root / "CWO.txt"
-    first.write_text("100 10\n200 12\n300 14\n", encoding="utf-8")
-    second.write_text("100 20\n200 22\n300 24\n", encoding="utf-8")
+    unrelated = data_root / "unrelated.txt"
+    first.write_text("300 14\n100 10\n100 11\n", encoding="utf-8")
+    second.write_text("500 20\n600 22\n", encoding="utf-8")
+    unrelated.write_text("1 999\n2 999\n", encoding="utf-8")
     template_path = data_root / "template.opju"
     template_path.write_bytes(b"opju placeholder")
 
@@ -1459,7 +1461,7 @@ def test_template_xy_alignment_uses_adjacent_real_sources_without_fabricating_mi
         data_type="Raman",
         xps_subtype="",
         data_root_label="tmp",
-        data_paths=[first],
+        data_paths=[first, second],
         opju_root_label="tmp",
         reference_opju=template_path,
     )
@@ -1476,13 +1478,25 @@ def test_template_xy_alignment_uses_adjacent_real_sources_without_fabricating_mi
     aligned = _build_template_xy_multisource_table(pairing, template)
 
     assert aligned is not None
-    assert aligned["headers"] == ["raman_shift_cm-1", "BOBC_intensity", "CWO_intensity"]
-    assert aligned["rows"][0] == [100.0, 10.0, 20.0]
+    assert aligned["headers"] == [
+        "BOBC_raman_shift_cm-1",
+        "BOBC_intensity",
+        "CWO_raman_shift_cm-1",
+        "CWO_intensity",
+    ]
+    assert aligned["rows"] == [
+        [300.0, 14.0, 500.0, 20.0],
+        [100.0, 10.0, 600.0, 22.0],
+        [100.0, 11.0, None, None],
+    ]
+    assert aligned["labels"]["legend_entries"] == ["BOBC", "CWO"]
     alignment = aligned["alignment"]
     assert alignment["template_plot_count"] == 3
     assert alignment["product_series_count"] == 2
     assert alignment["missing_template_series_count"] == 1
     assert alignment["fabrication_policy"] == "do_not_synthesize_missing_template_series"
+    assert alignment["used_files"] == [str(first), str(second)]
+    assert alignment["interpolation"] == "not_applied"
 
 
 def test_template_overlay_table_unions_x_grid_without_truncating_longer_series() -> None:

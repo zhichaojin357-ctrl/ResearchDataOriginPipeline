@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "Raman",
+  "status": "accepted",
+  "generated_at": "2026-08-24T01:53:10+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed that the independently generated Raman product is pixel-identical to the reviewed reference: three native Origin curves, the reviewed two-layer geometry, blue/green/yellow styles, distributed native labels, bold axis titles, hidden Y numeric labels, guide objects, and page layout are unchanged. The current-data runtime started from a fresh project, loaded the detached OTPU plus JSON snapshots, and did not load the reference OPJU as a product base.",
+  "staged_asset_replay_location": "origin_style_validation/20260824_Raman_candidate_replay_01/products/Raman/comparison.json",
+  "current_data_runtime_evidence_location": "origin_style_validation/20260824_Raman_current_data_fixed_02/result.json",
+  "validation_plan": {
+    "path": "validation_plans/Raman_verified_20260824.json",
+    "sha256": "2beb1bc9f7d5a91f6ff228d19eddf1cf374334cdab028e745de6eeb4aed67522"
+  },
+  "origin": {
+    "entrypoint": "Origin.Application",
+    "isolated_dispatch": true,
+    "version": "10.3",
+    "build": 197
+  },
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/Raman.otpu",
+    "sha256": "fba7a84de8cb7bd1eb345df2a58df98558e83f2a06c87750795e33283daa1985",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju",
+    "minimum_generation_package": "otpu_plus_explicit_binding_contract_plus_style_snapshot"
+  },
+  "reference": {
+    "path": "reference_opju/Raman.opju",
+    "graph_page": "Graph2",
+    "sha256": "59030c7768db16b5fdf77d42b327f4d8fc31319da03e9833f5d3ede7e8f86839",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/Raman.json",
+    "sha256": "7379713572b5d18b616de2afe0adc99fd94464265bc969d7ace71f7f40f56760",
+    "source_series_count": 3,
+    "source_layout": "paired_xy_columns",
+    "workbook_name": "Book2",
+    "worksheet_index": 1,
+    "group_plots": false,
+    "source_order_to_template_plot_order": [1, 3, 2],
+    "explicit_xy_mappings": [
+      "layer1:Book2_A->Book2_B[1:1214]",
+      "layer1:Book2_E->Book2_F[1:1186]",
+      "layer2:Book2_C->Book2_D[1:1214]"
+    ],
+    "numeric_transform": "none"
+  },
+  "same_data_asset_replay": {
+    "verified": true,
+    "current_style_snapshot_sha256": "48f218c4cf79a746f9f4e32513c12b3705c9d7cdc70bb2d5c497dbb259ec0af9",
+    "current_binding_contract_sha256": "7379713572b5d18b616de2afe0adc99fd94464265bc969d7ace71f7f40f56760",
+    "reference_plot_values_sha256": "42fdb93b76a087995a08c797d6eda4d677f94e56df4ce18efe09e914c91490b2",
+    "generated_plot_values_sha256": "42fdb93b76a087995a08c797d6eda4d677f94e56df4ce18efe09e914c91490b2",
+    "reference_plot_mapping_sha256": "47caa07227fb51042b2e703345882f70c0f1370612216c452828c05832cd92b0",
+    "generated_plot_mapping_sha256": "47caa07227fb51042b2e703345882f70c0f1370612216c452828c05832cd92b0",
+    "style_conformance": "59/59",
+    "axis_title_hard_gate": true,
+    "exact_pixel_match": true,
+    "same_size": true,
+    "changed_pixels": 0,
+    "rms": 0.0,
+    "reference_opju_self_replay": false
+  },
+  "current_data_runtime": {
+    "status": "accepted",
+    "current_series_count": 3,
+    "reopened_plot_count": 3,
+    "processed_csv_xy_values_match_reopened_graph": true,
+    "per_layer_plot_styles_match": true,
+    "reference_opju_loaded": false,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true,
+    "exact_pixel_match_to_reference": true,
+    "changed_pixels": 0,
+    "rms": 0.0
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  }
+}
