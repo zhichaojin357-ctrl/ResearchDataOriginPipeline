@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "product_key": "UV-vis DRS",
+      "data_type": "UV-vis DRS",
+      "source_opju": "templates/origin_styles/reference_opju/UV_vis_DRS_Tauc.opju",
+      "graph_page": "Graph1",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/UV_vis_DRS.otpu",
+      "style_snapshot": "templates/origin_styles/snapshots/UV_vis_DRS.json",
+      "data_snapshot": "templates/origin_styles/data_snapshots/UV_vis_DRS.json",
+      "binding_contract": "templates/origin_styles/binding_contracts/UV_vis_DRS.json"
+    }
+  ]
+}

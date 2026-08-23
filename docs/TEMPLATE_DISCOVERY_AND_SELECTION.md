@@ -15,7 +15,8 @@
 | EPR | `templates/origin_styles/format_themes/EPR.oth` | ohG | selected | project-local saved Origin format theme |
 | EIS | `templates/origin_styles/format_themes/EIS.oth` | Graph1 | selected | project-local saved Origin format theme |
 | Raman | `templates/origin_styles/graph_templates/Raman.otpu` (fixed); `templates/origin_styles/format_themes/Raman.oth` + JSON snapshots (adaptive) | Graph2 | accepted | fixed three-series/two-layer exact replay plus separately validated variable-cardinality Origin-native route |
-| UV-vis DRS / Tauc | `templates/origin_styles/format_themes/UV_vis_DRS_Tauc.oth` | Graph1 | selected | project-local saved Origin format theme |
+| UV-vis DRS | `templates/origin_styles/graph_templates/UV_vis_DRS.otpu` (fixed); `templates/origin_styles/format_themes/UV_vis_DRS.oth` + JSON snapshots (adaptive) | Graph1 | accepted | fixed reviewed six-plot replay plus separately validated current-data/cardinality Origin-native route |
+| Tauc | `templates/origin_styles/graph_templates/Tauc.otpu` (fixed); `templates/origin_styles/format_themes/Tauc.oth` + JSON snapshots (adaptive) | Graph2 | accepted | fixed reviewed three-plot replay plus separately validated current-data/cardinality Origin-native route with reference-specific guides removed when unsupported |
 | PL | `templates/origin_styles/format_themes/PL.oth` | EXJF | selected | project-local saved Origin format theme |
 | photocurrent | `templates/origin_styles/format_themes/photocurrent.oth` | Graph1 | selected | project-local saved Origin format theme |
 | FTIR | `templates/origin_styles/format_themes/FTIR.oth` | Graph1 | selected | project-local saved Origin format theme |

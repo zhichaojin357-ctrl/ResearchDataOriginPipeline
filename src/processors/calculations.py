@@ -254,6 +254,11 @@ def build_processed_table(
 
 def uvvis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
     signal = uvvis_signal_type(rows)
+    if signal == "transmittance":
+        raise ValueError(
+            "UV-vis transmittance cannot be treated as diffuse reflectance or absorbance "
+            "without an explicit, reviewed conversion."
+        )
     reflectance_is_percent = uvvis_reflectance_is_percent(rows)
     converted = []
     photon_energies = []
@@ -353,6 +358,11 @@ def uvvis_processed_table(
     rows: list[dict[str, str]],
 ) -> tuple[list[str], list[list[float | str | None]]]:
     signal = uvvis_signal_type(rows)
+    if signal == "transmittance":
+        raise ValueError(
+            "UV-vis transmittance cannot be treated as diffuse reflectance or absorbance "
+            "without an explicit, reviewed conversion."
+        )
     reflectance_is_percent = uvvis_reflectance_is_percent(rows)
     output = []
     if signal == "absorbance":
@@ -381,6 +391,8 @@ def uvvis_processed_table(
 def uvvis_signal_type(rows: list[dict[str, str]]) -> str:
     if rows and matching_key(rows[0], ["absorbance", "abs"]):
         return "absorbance"
+    if rows and matching_key(rows[0], ["transmittance", "%t"]):
+        return "transmittance"
     return "reflectance"
 
 

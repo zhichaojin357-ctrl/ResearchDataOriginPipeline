@@ -109,6 +109,41 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertEqual(result.rows[0]["Potential/V"], "1.700e-1")
             self.assertEqual(result.rows[0]["Z'/ohm"], " 3.754e+1")
 
+    def test_hitachi_u3900_reader_uses_only_explicit_wavelength_scan_data_block(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "hitachi-abs.txt"
+            source.write_text(
+                "\n".join(
+                    [
+                        "Instrument",
+                        "Model:\tU-3900 Spectrophotometer",
+                        "Measurement Type:\tWavelength Scan",
+                        "Data Mode:\tAbs",
+                        "Peak #\tStart (nm)\tApex (nm)\tEnd (nm)",
+                        "1\t250\t260\t270",
+                        "Data Points",
+                        "nm\tAbs",
+                        "800.00\t0.101",
+                        "799.50\t0.102",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = read_table_with_metadata(source)
+
+            self.assertEqual(result.source_format, "hitachi_u3900_wavelength_scan")
+            self.assertEqual(result.header_row_index, 7)
+            self.assertEqual(
+                result.rows,
+                [
+                    {"wavelength_nm": "800.00", "absorbance": "0.101"},
+                    {"wavelength_nm": "799.50", "absorbance": "0.102"},
+                ],
+            )
+            self.assertEqual(coerce_numeric_rows(result.rows), [(800.0, 0.101), (799.5, 0.102)])
+
     def test_text_reader_accepts_zplotw_eis_export(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             source = Path(tmpdir) / "bobc-z.txt"
@@ -642,6 +677,22 @@ class ProcessorBehaviorTest(unittest.TestCase):
             self.assertIn("absorbance", rows[0])
             self.assertIn("tauc_y_absorbance_direct_candidate", rows[0])
             self.assertNotIn("reflectance", rows[0])
+
+    def test_uvvis_drs_rejects_explicit_transmittance_without_reviewed_conversion(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "uvvis_transmittance.csv"
+            source.write_text(
+                "wavelength_nm,transmittance_percent\n400,50\n500,40\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "transmittance cannot be treated"):
+                process_table_dataset(
+                    root,
+                    classification("UV-vis DRS", "uvvis_drs_processor"),
+                    source,
+                )
 
     def test_eis_outputs_nyquist_and_bode_candidates_from_impedance_columns(self):
         with tempfile.TemporaryDirectory() as tmpdir:

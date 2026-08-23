@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_detached_adaptive_oth_json_validation",
+  "product_key": "Tauc",
+  "status": "accepted",
+  "generated_at": "2026-08-24T03:31:00+08:00",
+  "runtime_role": "adaptive_runtime",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed two current Origin-native Tauc candidate curves with current bc10 and bc10-2 legend entries, reviewed page and layer geometry, bold rich-text h-nu and alpha-h-nu-squared axis titles with native Greek and superscript formatting, and no stale reviewed-fit guides, band-gap labels, reference sample names, or non-Origin overlays.",
+  "evidence_location": "origin_style_validation/20260824_Tauc_adaptive_absorbance_02",
+  "asset": {
+    "kind": "oth_json",
+    "format_theme": "format_themes/Tauc.oth",
+    "style_snapshot": "snapshots/Tauc.json",
+    "data_snapshot": "data_snapshots/Tauc.json",
+    "source_mode": "reviewed_theme_plus_explicit_style_and_curve_snapshot_replay"
+  },
+  "generation_boundary": {
+    "entrypoint": "Origin.Application",
+    "isolated_dispatch": true,
+    "fresh_project": true,
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "one_to_one_exact_match_claim_allowed": false
+  },
+  "current_data_validation": {
+    "status": "accepted",
+    "origin_style_mode_requested": "oth-json",
+    "style_execution_mode": "variable_structure_oth_json",
+    "current_series_count": 2,
+    "fixed_contract_series_count": 3,
+    "reopened_plot_count": 2,
+    "series_cardinality_relaxed": true,
+    "all_current_plots_visible": true,
+    "plot_visibility": [1, 1],
+    "current_xy_values_match_reopened_graph": true,
+    "current_legend_entries": ["bc10", "bc10-2"],
+    "source_signal_mode": "absorbance",
+    "source_rows_per_series": 1201,
+    "photon_energy_range_ev": [1.549625, 6.1985],
+    "tauc_y_mode": "direct_candidate_from_absorbance",
+    "numeric_transform": "existing_uvvis_processor_tauc_candidate",
+    "interpolation": false,
+    "smoothing": false,
+    "normalization": false,
+    "blank_tail_values_plotted": false,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true
+  },
+  "changed_data_cleanup_validation": {
+    "status": "pass",
+    "checked_after_save_reopen": true,
+    "removed_reference_object_names": [
+      "Line", "Line1", "Line2", "Line3", "Line4", "Line5",
+      "Arrow", "Arrow1", "Arrow2", "Arrow3", "Text", "Text1"
+    ],
+    "removed_reference_visible_text": ["2.28", "2.94"],
+    "remaining_reference_guides": 0,
+    "remaining_reference_band_gap_labels": 0
+  },
+  "style_conformance": {
+    "status": "pass",
+    "issues": 0,
+    "current_data_titles_and_legends": true,
+    "cardinality_only_differences_relaxed": true,
+    "non_cardinality_failures": 0,
+    "axis_titles_are_native_origin_objects": true,
+    "axis_titles_bold": true,
+    "origin_rich_text_superscript_verified": true,
+    "axis_title_no_overlap": true
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "sensitive_metadata_scan": "pass"
+  },
+  "acceptance_note": "The OTPU remains the exact fixed three-plot route for the reviewed semantic identities and guide objects. OTH+JSON is the adaptive current-data route; reference-specific fit guides are intentionally removed when they are not supported by current data. Both create native Origin graph objects and never use the reference OPJU as the product base."
+}

@@ -10,7 +10,8 @@ from src.origin.type_mimic.photocurrent import SPEC as PHOTOCURRENT_SPEC
 from src.origin.type_mimic.pl import SPEC as PL_SPEC
 from src.origin.type_mimic.raman import SPEC as RAMAN_SPEC
 from src.origin.type_mimic.reaction_condition_screening import SPEC as REACTION_CONDITION_SCREENING_SPEC
-from src.origin.type_mimic.uvvis_drs_tauc import SPEC as UVVIS_DRS_TAUC_SPEC
+from src.origin.type_mimic.uvvis_drs_tauc import DRS_SPEC as UVVIS_DRS_SPEC
+from src.origin.type_mimic.uvvis_drs_tauc import TAUC_SPEC
 from src.origin.type_mimic.xps_in_situ import SPEC as XPS_IN_SITU_SPEC
 from src.origin.type_mimic.xps_non_in_situ import SPEC as XPS_NON_IN_SITU_SPEC
 from src.origin.type_mimic.xrd import SPEC as XRD_SPEC
@@ -27,7 +28,8 @@ REMAINING_TYPE_MIMIC_SPECS: dict[str, TypeMimicSpec] = {
         EIS_SPEC,
         RAMAN_SPEC,
         MOTT_SCHOTTKY_SPEC,
-        UVVIS_DRS_TAUC_SPEC,
+        UVVIS_DRS_SPEC,
+        TAUC_SPEC,
         PL_SPEC,
         PHOTOCURRENT_SPEC,
         FTIR_SPEC,

@@ -51,12 +51,17 @@ from src.core.template_format_executor import (
     _prepare_verified_pl_otpu_binding,
     _prepare_verified_photocurrent_otpu_binding,
     _prepare_verified_raman_otpu_binding,
+    _prepare_verified_uvvis_otpu_binding,
     _prepare_verified_otpu_binding,
     _populate_verified_otpu_workbook,
     _apply_verified_otpu_post_plot_style,
+    _apply_uvvis_current_axis_titles,
+    _apply_verified_uvvis_fixed_visibility,
     _processed_csv_plot_pairs,
     _refresh_graph_for_export,
     _replace_eis_dynamic_legend_with_static_rich_text,
+    _remove_tauc_reference_candidate_guides,
+    _validate_tauc_reference_guides_removed,
     _resolve_origin_style_execution_route,
     _select_plain_legend_anchor,
     _saved_theme_reference_policy,
@@ -2094,6 +2099,41 @@ def test_verified_photocurrent_reopen_validation_requires_explicit_i_j_m_n_q_r_m
     assert rejected["ok"] is False
     assert "plot 2 X dataset column differs" in rejected["reasons"]
     assert "plot 3 lacks explicit graph X mapping readback" in rejected["reasons"]
+
+
+def test_verified_current_data_reports_nonfinite_reopened_values_without_raising() -> None:
+    result = _validate_verified_current_data(
+        "UV-vis DRS",
+        [[260.0, 10.0], [261.0, 11.0]],
+        [
+            {
+                "x_col": 1,
+                "y_col": 2,
+                "row_from": 1,
+                "row_to": 2,
+                "source_x_index": 0,
+                "source_y_index": 1,
+                "source_row_from": 1,
+                "source_row_to": 2,
+            }
+        ],
+        {
+            "status": "ready",
+            "plots": [
+                {
+                    "x_values": [260.0, None],
+                    "y_values": [10.0, 11.0],
+                    "plot_row_from": 1,
+                    "plot_row_to": 2,
+                }
+            ],
+        },
+    )
+
+    assert result["ok"] is False
+    assert result["reasons"] == [
+        "plot 1 reopened X/Y range contains a nonfinite value"
+    ]
 
 
 def test_photocurrent_axis_title_hard_gate_accepts_only_reviewed_scientific_titles() -> None:
@@ -4153,24 +4193,26 @@ def test_embedded_snapshot_xrd_axis_range_uses_normalized_offset_sample_bounds(t
     assert result["reference_sticks_present"] is True
 
 
-def test_uvvis_wavelength_data_overrides_tauc_theme_axis_range(tmp_path: Path) -> None:
+def test_uvvis_drs_uses_current_paired_xy_axis_range(tmp_path: Path) -> None:
     processed = tmp_path / "uvvis.csv"
     processed.write_text(
-        "wavelength_nm,BOBC,CWO\n200,1,2\n1000,3,4\n",
+        "BOBC_wavelength_nm,BOBC_drs_signal,CWO_wavelength_nm,CWO_drs_signal\n"
+        "200,1,220,2\n1000,3,980,4\n",
         encoding="utf-8",
     )
-    product = replace(_product(tmp_path, processed), product_key="UV-vis DRS / Tauc")
+    product = replace(_product(tmp_path, processed), product_key="UV-vis DRS")
     ops = _FakeAxisOps()
 
-    result = _apply_embedded_snapshot_data_axis_range(ops, "Graph2", product)
+    result = _apply_embedded_snapshot_data_axis_range(ops, "Graph1", product)
 
-    assert result == {
-        "applied": True,
-        "method": "uvvis_wavelength_bounds_after_tauc_style_geometry",
-        "x_min": 200.0,
-        "x_max": 1000.0,
-    }
-    assert ops.axis_calls == [{"x_min": 200.0, "x_max": 1000.0, "y_min": None, "y_max": None}]
+    assert result["applied"] is True
+    assert result["method"] == "uvvis_current_xy_bounds_after_reviewed_style"
+    assert result["x_min"] == 200.0
+    assert result["x_max"] == 1000.0
+    assert ops.axis_calls[0]["x_min"] == 200.0
+    assert ops.axis_calls[0]["x_max"] == 1000.0
+    assert ops.axis_calls[0]["y_min"] == 0.0
+    assert float(ops.axis_calls[0]["y_max"]) > 4.0
 
 
 def test_epr_verified_field_data_overrides_legacy_template_axis_range(tmp_path: Path) -> None:
@@ -5602,6 +5644,245 @@ def test_processed_csv_plot_pairs_strictly_recognizes_variable_independent_xy(tm
         product,
         ["A_wavenumber_cm-1", "A_wavenumber_cm-1"],
     ) == []
+
+
+def test_verified_uvvis_fixed_bindings_require_reviewed_semantic_roles(tmp_path: Path) -> None:
+    cases = (
+        (
+            "UV-vis DRS",
+            "UV_vis_DRS.json",
+            "_wavelength_nm",
+            "_drs_signal",
+            [
+                "CuWO4_hidden_raw",
+                "BiOBr0_5Cl0_5_hidden_raw",
+                "BiCu_10_hidden_raw",
+                "CuWO4_visible",
+                "BiOBr0_5Cl0_5_visible",
+                "BiCu_10_visible",
+            ],
+            ["CuWO4", "BiOBr0.5Cl0.5", "BiCu-10", "CuWO4", "BiOBr0.5Cl0.5", "BiCu-10"],
+            "Graph1",
+            [(1, 2), (3, 4), (5, 6), (10, 11), (18, 19), (20, 21)],
+        ),
+        (
+            "Tauc",
+            "Tauc.json",
+            "_photon_energy_eV",
+            "_tauc_y_direct_candidate",
+            ["CuWO4_unsmoothed_hidden", "BiOBr0_5Cl0_5_visible", "CuWO4_visible"],
+            ["CuWO4", "BiOBr0.5Cl0.5", "CuWO4"],
+            "Graph2",
+            [(3, 4), (7, 8), (9, 10)],
+        ),
+    )
+    contract_root = Path(__file__).parents[1] / "templates" / "origin_styles" / "binding_contracts"
+    for product_key, contract_name, x_suffix, y_suffix, identities, labels, graph_page, destinations in cases:
+        headers = [value for identity in identities for value in (identity + x_suffix, identity + y_suffix)]
+        rows = [[float(index + 1) for index in range(len(headers))], [float(index + 2) for index in range(len(headers))]]
+        processed = tmp_path / f"{product_key}.csv"
+        processed.write_text(
+            ",".join(headers) + "\n" + "\n".join(",".join(str(value) for value in row) for row in rows) + "\n",
+            encoding="utf-8",
+        )
+        product = replace(
+            _product(tmp_path, processed),
+            product_key=product_key,
+            legend_entries=labels,
+        )
+
+        binding = _prepare_verified_uvvis_otpu_binding(
+            product,
+            headers,
+            rows,
+            contract_path=contract_root / contract_name,
+        )
+
+        assert binding["ok"] is True
+        assert binding["graph_page"] == graph_page
+        assert [(value["x_col"], value["y_col"]) for value in binding["xy_ranges"]] == destinations
+        wrong_headers = list(headers)
+        wrong_headers[0] = "ordinary_sample" + x_suffix
+        wrong_headers[1] = "ordinary_sample" + y_suffix
+        rejected = _prepare_verified_uvvis_otpu_binding(
+            product,
+            wrong_headers,
+            rows,
+            contract_path=contract_root / contract_name,
+        )
+        assert rejected["ok"] is False
+        assert "adaptive OTH+JSON" in rejected["message"]
+
+
+def test_uvvis_auto_uses_adaptive_for_ordinary_same_cardinality_data(tmp_path: Path, monkeypatch) -> None:
+    identities = [f"sample_{index}" for index in range(1, 7)]
+    headers = [
+        value
+        for identity in identities
+        for value in (identity + "_wavelength_nm", identity + "_drs_signal")
+    ]
+    processed = tmp_path / "uvvis.csv"
+    processed.write_text(
+        ",".join(headers) + "\n" + ",".join(str(index + 1) for index in range(len(headers))) + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="UV-vis DRS",
+        legend_entries=identities,
+    )
+    theme = tmp_path / "UV_vis_DRS.oth"
+    template = tmp_path / "UV_vis_DRS.otpu"
+    style_snapshot = tmp_path / "UV_vis_DRS.style.json"
+    data_snapshot = tmp_path / "UV_vis_DRS.data.json"
+    theme.write_bytes(b"oth")
+    template.write_bytes(b"otpu")
+    style_snapshot.write_text('{"status":"extracted","plot_count":6}', encoding="utf-8")
+    data_snapshot.write_text('{"status":"ready","plot_count":6,"plots":[]}', encoding="utf-8")
+    contract = Path(__file__).parents[1] / "templates" / "origin_styles" / "binding_contracts" / "UV_vis_DRS.json"
+    exact = SimpleNamespace(
+        runtime_asset_kind="otpu",
+        runtime_asset_path=template,
+        format_theme_path=theme,
+        style_snapshot_path=style_snapshot,
+        data_snapshot_path=data_snapshot,
+        binding_contract_path=contract,
+    )
+    adaptive = SimpleNamespace(
+        runtime_asset_kind="oth_json",
+        runtime_asset_path=theme,
+        format_theme_path=theme,
+        style_snapshot_path=style_snapshot,
+        data_snapshot_path=data_snapshot,
+        binding_contract_path=contract,
+    )
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_runtime_style_asset", lambda *_a, **_k: exact)
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_adaptive_style_asset", lambda *_a, **_k: adaptive)
+
+    auto, selected = _resolve_origin_style_execution_route(tmp_path, product, requested_mode="auto")
+    explicit, explicit_asset = _resolve_origin_style_execution_route(tmp_path, product, requested_mode="otpu")
+
+    assert selected is adaptive
+    assert auto["selected_mode"] == "oth-json"
+    assert auto["reason_code"] == "fixed_cardinality_semantics_select_adaptive_uvvis"
+    assert explicit_asset is None
+    assert explicit["reason_code"] == "verified_otpu_binding_mismatch"
+
+
+def test_changed_tauc_data_removes_reference_fit_guides() -> None:
+    operations = _FakeTemplateOps()
+
+    result = _remove_tauc_reference_candidate_guides(operations, "Graph2")
+
+    assert result["applied"] is True
+    assert result["manual_check_required"] is True
+    command = operations.commands[-1]
+    for name in (
+        "Line", "Line1", "Line2", "Line3", "Line4", "Line5",
+        "Arrow", "Arrow1", "Arrow2", "Arrow3", "Text", "Text1",
+    ):
+        assert f"label -r {name};" in command
+
+
+def test_tauc_guide_cleanup_readback_rejects_any_remaining_reference_object() -> None:
+    clean = _validate_tauc_reference_guides_removed(
+        SimpleNamespace(app=None),
+        "Graph2",
+        {"graph_object_positions": {"Legend": {}}},
+    )
+    dirty = _validate_tauc_reference_guides_removed(
+        SimpleNamespace(app=None),
+        "Graph2",
+        {"graph_object_positions": {"Line1": {}, "Text": {}}},
+    )
+
+    assert clean["ok"] is True
+    assert dirty["ok"] is False
+    assert dirty["present_objects"] == ["Line1", "Text"]
+
+
+def test_verified_uvvis_fixed_visibility_restores_hidden_reference_plots() -> None:
+    class Operations(_FakeTemplateOps):
+        def _plot_names(self, _graph_name: str) -> list[str]:
+            return [f"plot{index}" for index in range(1, 7)]
+
+    operations = Operations()
+
+    result = _apply_verified_uvvis_fixed_visibility(
+        operations,
+        "Graph1",
+        {"plot_visibility": [0, 0, 0, 1, 1, 1]},
+    )
+
+    assert result["applied"] is True
+    assert result["plot_visibility"] == [0, 0, 0, 1, 1, 1]
+    assert "layer.plot1.show=0" in operations.commands[0]
+    assert "layer.plot6.show=1" in operations.commands[-1]
+
+
+def test_uvvis_current_axis_titles_use_native_bold_objects_with_readback() -> None:
+    class GraphObject:
+        def __init__(self) -> None:
+            self.Text = ""
+            self.props: dict[str, float] = {"bold": 0.0}
+
+        def SetNumProp(self, name: str, value: object) -> None:
+            self.props[name] = float(value)
+
+        def GetNumProp(self, name: str) -> float:
+            assert name == "bold"
+            return -1.23456789e-300
+
+    objects = {"XB": GraphObject(), "YL": GraphObject()}
+
+    class GraphObjects:
+        def __getitem__(self, name: str) -> GraphObject:
+            return objects[name]
+
+    class Layer:
+        def __init__(self) -> None:
+            self.GraphObjects = GraphObjects()
+
+    class App:
+        def FindGraphLayer(self, _name: str) -> Layer:
+            return Layer()
+
+    class Operations:
+        app = App()
+
+        def set_axis_labels(
+            self,
+            _graph_name: str,
+            _x_label: str,
+            _y_label: str,
+            _title: str,
+        ) -> OperationResult:
+            return OperationResult(True, "ok")
+
+    result = _apply_uvvis_current_axis_titles(
+        Operations(),
+        "Graph1",
+        "Wavelength (nm)",
+        "Reflectance (a.u.)",
+    )
+
+    assert result["applied"] is True
+    assert objects["XB"].Text == r"\b(Wavelength (nm))"
+    assert objects["YL"].Text == r"\b(Reflectance (a.u.))"
+    assert objects["XB"].props["bold"] == 1.0
+    assert objects["YL"].props["bold"] == 1.0
+    assert result["readback"]["XB"]["bold"] is None
+
+    tauc = _apply_uvvis_current_axis_titles(
+        Operations(),
+        "Graph2",
+        "hν (eV)",
+        "(αhν)^2",
+    )
+
+    assert tauc["applied"] is True
+    assert objects["XB"].Text == r"\b(\i(h\f:g(ν) )(eV))"
+    assert objects["YL"].Text == r"\b(\(40)\i(\f:g(α)h\f:g(ν))\(41)\+(2))"
 
 
 def test_auto_style_route_uses_otpu_for_exact_fixed_binding(tmp_path: Path, monkeypatch) -> None:

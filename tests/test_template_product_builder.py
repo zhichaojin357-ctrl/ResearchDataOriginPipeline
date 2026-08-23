@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from PIL import Image
+import pytest
 
 from src.core.epr_jeol import JeolEprExportSeries
 from src.core.file_utils import file_sha256
@@ -28,6 +29,7 @@ from src.core.template_product_builder import (
     template_acceptance_status,
     _build_pairing_template_candidates,
     _build_template_eis_table,
+    _build_template_uvvis_table,
     _repair_exemplar_driven_pairings,
     _require_asset_only_style_integrity,
     _prioritized_template_validation_targets,
@@ -35,6 +37,7 @@ from src.core.template_product_builder import (
     _resolve_run_relative_artifact,
     _template_xrd_normalized_offset_rows,
     _template_xrd_target_sample_series_count,
+    _template_target_types,
     _write_template_preview_comparison,
     _blocked_product_record,
 )
@@ -97,12 +100,138 @@ def test_classify_templates_uses_f_drive_type_paths_and_separates_xps_subtypes()
         "XPS_non_in_situ",
         "XRD",
         "EIS",
-        "UV-vis DRS / Tauc",
+        "UV-vis DRS",
         "photocurrent",
     }
+    assert [item.product_key for item in classified if item.path.name == "BOBC+MS.opju"] == ["UV-vis DRS"]
     assert [item.path.name for item in classified if item.product_key == "XPS_in_situ"] == ["insitu.opju"]
     assert [item.path.name for item in classified if item.product_key == "XPS_non_in_situ"] == ["bobc xps.opju"]
     assert tuple(TEMPLATE_TARGET_TYPES) == tuple(TEMPLATE_ACCEPTED_TYPES)
+
+
+def test_uvvis_legacy_only_type_alias_expands_to_two_products(tmp_path: Path) -> None:
+    base = TemplateProductBuilderOptions(pairing_path=tmp_path / "pairing.json")
+
+    assert _template_target_types(replace(base, only_type="UV-vis DRS / Tauc")) == (
+        "UV-vis DRS",
+        "Tauc",
+    )
+    assert _template_target_types(replace(base, only_type="UV_vis_DRS_Tauc")) == (
+        "UV-vis DRS",
+        "Tauc",
+    )
+
+
+def test_uvvis_drs_and_tauc_preserve_each_explicit_source_grid(tmp_path: Path) -> None:
+    first = tmp_path / "sample_A.csv"
+    second = tmp_path / "sample_B.csv"
+    first.write_text("wavelength,absorbance\n200,0.1\n300,0.2\n", encoding="utf-8")
+    second.write_text("wavelength,absorbance\n220,0.3\n340,0.4\n", encoding="utf-8")
+    template_path = tmp_path / "uv.opju"
+    drs_pairing = TargetPairing(
+        "UV-vis DRS",
+        "UV-vis DRS",
+        "",
+        "test",
+        [first, second],
+        "test",
+        template_path,
+    )
+    tauc_pairing = replace(drs_pairing, product_key="Tauc", data_type="Tauc")
+
+    drs = _build_template_uvvis_table(
+        drs_pairing,
+        TemplateCandidate("UV-vis DRS", template_path, "unit", graph_page="Graph1", plot_count=6),
+        origin_style_mode="auto",
+    )
+    tauc = _build_template_uvvis_table(
+        tauc_pairing,
+        TemplateCandidate("Tauc", template_path, "unit", graph_page="Graph2", plot_count=3),
+        origin_style_mode="auto",
+    )
+
+    assert drs["headers"] == [
+        "sample_A_wavelength_nm",
+        "sample_A_drs_signal",
+        "sample_B_wavelength_nm",
+        "sample_B_drs_signal",
+    ]
+    assert drs["rows"] == [[200.0, 0.1, 220.0, 0.3], [300.0, 0.2, 340.0, 0.4]]
+    assert tauc["headers"] == [
+        "sample_A_photon_energy_eV",
+        "sample_A_tauc_y_direct_candidate",
+        "sample_B_photon_energy_eV",
+        "sample_B_tauc_y_direct_candidate",
+    ]
+    assert tauc["rows"][0][0] == pytest.approx(1239.7 / 200.0)
+    assert tauc["rows"][0][2] == pytest.approx(1239.7 / 220.0)
+    assert tauc["labels"]["y_label"] == "(αhν)^2"
+    assert tauc["alignment"]["source_signal_mode"] == "absorbance"
+    assert drs["alignment"]["interpolation"] == "not_applied"
+    assert tauc["alignment"]["interpolation"] == "not_applied"
+
+
+def test_uvvis_drs_rejects_mixed_absorbance_and_reflectance(tmp_path: Path) -> None:
+    absorbance = tmp_path / "abs.csv"
+    reflectance = tmp_path / "refl.csv"
+    absorbance.write_text("wavelength,absorbance\n200,0.1\n300,0.2\n", encoding="utf-8")
+    reflectance.write_text("wavelength,reflectance\n200,20\n300,30\n", encoding="utf-8")
+    pairing = TargetPairing(
+        "UV-vis DRS",
+        "UV-vis DRS",
+        "",
+        "test",
+        [absorbance, reflectance],
+        "test",
+        tmp_path / "uv.opju",
+    )
+
+    with pytest.raises(ValueError, match="cannot mix absorbance and reflectance"):
+        _build_template_uvvis_table(
+            pairing,
+            TemplateCandidate("UV-vis DRS", pairing.reference_opju, "unit", graph_page="Graph1", plot_count=6),
+            origin_style_mode="auto",
+        )
+
+
+def test_tauc_reflectance_uses_kubelka_munk_axis_and_rejects_mixed_signal_modes(
+    tmp_path: Path,
+) -> None:
+    reflectance = tmp_path / "refl.csv"
+    absorbance = tmp_path / "abs.csv"
+    reflectance.write_text("wavelength,reflectance\n200,20\n300,30\n", encoding="utf-8")
+    absorbance.write_text("wavelength,absorbance\n200,0.1\n300,0.2\n", encoding="utf-8")
+    template = TemplateCandidate(
+        "Tauc",
+        tmp_path / "uv.opju",
+        "unit",
+        graph_page="Graph2",
+        plot_count=3,
+    )
+    reflectance_pairing = TargetPairing(
+        "Tauc",
+        "Tauc",
+        "",
+        "test",
+        [reflectance],
+        "test",
+        template.path,
+    )
+
+    product = _build_template_uvvis_table(
+        reflectance_pairing,
+        template,
+        origin_style_mode="auto",
+    )
+
+    assert product["labels"]["y_label"] == "(F(R)hν)^2"
+    assert product["alignment"]["source_signal_mode"] == "reflectance"
+    with pytest.raises(ValueError, match="cannot mix absorbance and reflectance"):
+        _build_template_uvvis_table(
+            replace(reflectance_pairing, data_paths=[reflectance, absorbance]),
+            template,
+            origin_style_mode="auto",
+        )
 
 
 def test_classify_template_xps_reference_root_uses_in_situ_reference_opjus(tmp_path: Path) -> None:

@@ -88,6 +88,8 @@ VERIFIED_GRAPH_TEMPLATE_PRODUCTS = {
     "photocurrent",
     "FTIR",
     "Mott-Schottky",
+    "UV-vis DRS",
+    "Tauc",
 }
 
 VERIFIED_FTIR_SERIES_LABELS = ("BiOBr0.5Cl0.5", "CuWO4", "BiCu-10")
@@ -107,6 +109,21 @@ VERIFIED_MOTT_DESTINATION_PAIRS = ((5, 4), (5, 6), (7, 8), (9, 10), (11, 12))
 VERIFIED_PHOTOCURRENT_X_TITLE = "Time (s)"
 VERIFIED_BET_X_TITLE = "Relative Pressure (P/Po)"
 VERIFIED_BET_Y_TITLE = "Quantity Adsorbed (cm3/g STP)"
+TAUC_REFERENCE_GUIDE_OBJECTS = (
+    "Line",
+    "Line1",
+    "Line2",
+    "Line3",
+    "Line4",
+    "Line5",
+    "Arrow",
+    "Arrow1",
+    "Arrow2",
+    "Arrow3",
+    "Text",
+    "Text1",
+)
+TAUC_REFERENCE_INTERCEPT_LABELS = ("2.28", "2.94")
 BET_ADAPTIVE_Y_TITLE_OBJECT = "RDOPBETYL"
 # The reviewed Graph5 Y title starts at 391/78. Adaptive numeric tick labels
 # are wider than the reference integer labels, so the stable text replacement
@@ -797,6 +814,37 @@ def _resolve_origin_style_execution_route(
         except (OSError, ValueError) as exc:
             binding = {"ok": False, "message": str(exc)}
         if not bool(binding.get("ok")):
+            if product.product_key in {"UV-vis DRS", "Tauc"}:
+                source_validation = _strict_adaptive_source_validation(
+                    contract,
+                    headers,
+                    rows,
+                    [(x_col - 1, y_col - 1) for x_col, y_col in plot_pairs],
+                )
+                adaptive_complete, adaptive_error = _adaptive_asset_complete(adaptive_asset)
+                if source_validation.get("ok") and adaptive_complete:
+                    return (
+                        _style_execution_decision(
+                            product,
+                            requested_mode=mode,
+                            selected_mode="oth-json",
+                            reason_code="fixed_cardinality_semantics_select_adaptive_uvvis",
+                            message=(
+                                "Current UV-vis columns are valid spectra but do not carry the "
+                                "reviewed hidden/visible fixed-template roles; accepted OTH+JSON was selected."
+                            ),
+                            current_series_count=current_count,
+                            contract_series_count=contract_count,
+                            asset=adaptive_asset,
+                        ),
+                        adaptive_asset,
+                    )
+                if source_validation.get("ok") and not adaptive_complete:
+                    binding = {
+                        **binding,
+                        "message": str(binding.get("message") or "OTPU binding failed.")
+                        + f" Adaptive route unavailable: {adaptive_error}",
+                    }
             return (
                 _style_execution_decision(
                     product,
@@ -2043,7 +2091,7 @@ def _export_verified_graph_template_product_with_origin(
         }
     reference_data_path = getattr(style_asset, "data_snapshot_path", None)
     reference_data = _load_json_object(reference_data_path)
-    if product.product_key in {"Raman", "photocurrent", "Mott-Schottky"} and (
+    if product.product_key in {"Raman", "photocurrent", "Mott-Schottky", "UV-vis DRS", "Tauc"} and (
         not isinstance(reference_data, dict)
         or str(reference_data.get("status") or "") != "ready"
     ):
@@ -2220,6 +2268,27 @@ def _export_verified_graph_template_product_with_origin(
         prefer_custom_rgb=product.product_key == "Mott-Schottky",
     )
     product_style = product_snapshot.to_dict()
+    tauc_guide_cleanup_validation: dict[str, object] = {
+        "ok": True,
+        "status": "not_required",
+    }
+    if (
+        product.product_key == "Tauc"
+        and not bool(post_plot_style.get("reference_fit_guides_preserved"))
+    ):
+        tauc_guide_cleanup_validation = _validate_tauc_reference_guides_removed(
+            operations,
+            graph_name,
+            product_style,
+        )
+        if not tauc_guide_cleanup_validation.get("ok"):
+            return {
+                "ok": False,
+                "message": "Changed-data Tauc reference guides remained after save/reopen.",
+                "template_format_plan": plan_payload,
+                "product_style": product_style,
+                "tauc_guide_cleanup_validation": tauc_guide_cleanup_validation,
+            }
     product_axis_titles: dict[str, object] | None = None
     if product.product_key == "photocurrent":
         product_axis_titles = _validate_photocurrent_axis_titles(
@@ -2248,7 +2317,7 @@ def _export_verified_graph_template_product_with_origin(
     ).to_dict()
     conformance["reference_source"] = runtime_reference["reference_kind"]
     if (
-        product.product_key in {"Raman", "Mott-Schottky"}
+        product.product_key in {"Raman", "Mott-Schottky", "UV-vis DRS", "Tauc"}
         and str(conformance.get("status") or "").casefold() == "fail"
     ):
         return {
@@ -2362,6 +2431,7 @@ def _export_verified_graph_template_product_with_origin(
             "template_binding": binding,
             "workbook_preparation": workbook,
             "post_plot_style": post_plot_style,
+            "tauc_guide_cleanup_validation": tauc_guide_cleanup_validation,
             "photocurrent_axis_titles": product_axis_titles,
             "render_refresh": render_refresh,
             "raster_metadata_stripped": not bool(metadata_warning),
@@ -2407,6 +2477,8 @@ def _prepare_verified_otpu_binding(
         "photocurrent": _prepare_verified_photocurrent_otpu_binding,
         "FTIR": _prepare_verified_ftir_otpu_binding,
         "Mott-Schottky": _prepare_verified_mott_otpu_binding,
+        "UV-vis DRS": _prepare_verified_uvvis_otpu_binding,
+        "Tauc": _prepare_verified_uvvis_otpu_binding,
     }
     prepare = preparers.get(product.product_key)
     if prepare is None:
@@ -2429,7 +2501,7 @@ def _verified_otpu_conformance_reference(
     reference_style: dict[str, object],
     product_style: dict[str, object],
 ) -> dict[str, object]:
-    if product_key in {"BET", "photocurrent"}:
+    if product_key in {"BET", "photocurrent", "UV-vis DRS", "Tauc"}:
         adjusted = dict(reference_style)
         data_dependent_fields = {
             "layer.x.from",
@@ -2460,6 +2532,10 @@ def _verified_otpu_conformance_reference(
         # and the legend text are current-data dependent for adaptive products.
         if "legend.text$" in actual_strings:
             expected_strings["legend.text$"] = actual_strings["legend.text$"]
+        if product_key in {"UV-vis DRS", "Tauc"}:
+            for field in ("xb.text$", "yl.text$"):
+                if field in actual_strings:
+                    expected_strings[field] = actual_strings[field]
         adjusted["audit_string_values"] = expected_strings
         return adjusted
     if product_key in {"PL", "Raman", "Mott-Schottky"}:
@@ -3828,6 +3904,164 @@ def _prepare_verified_ftir_otpu_binding(
     }
 
 
+def _prepare_verified_uvvis_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    """Bind explicit DRS or Tauc pairs to the reviewed detached graph page."""
+
+    if product.product_key not in {"UV-vis DRS", "Tauc"}:
+        return {"ok": False, "message": "UV-vis OTPU binding received a different product."}
+    contracts = load_template_binding_contracts(contract_path)
+    contract_key = "uv_vis_drs" if product.product_key == "UV-vis DRS" else "tauc"
+    contract = contracts.get(contract_key)
+    if contract is None or not contract.ready:
+        return {
+            "ok": False,
+            "message": f"The reviewed {product.product_key} template binding contract is unavailable.",
+        }
+    source_schema = dict(contract.source_schema)
+    expected_x_suffix = "_wavelength_nm" if product.product_key == "UV-vis DRS" else "_photon_energy_eV"
+    expected_y_suffix = "_drs_signal" if product.product_key == "UV-vis DRS" else "_tauc_y_direct_candidate"
+    if (
+        str(source_schema.get("status") or "") != "ready"
+        or str(source_schema.get("layout") or "") != "paired_xy_columns"
+        or str(source_schema.get("x_header_suffix") or "") != expected_x_suffix
+        or str(source_schema.get("y_header_suffix") or "") != expected_y_suffix
+        or str(source_schema.get("plot_type") or "") != "line"
+        or bool(source_schema.get("group_plots", True))
+    ):
+        return {
+            "ok": False,
+            "message": (
+                f"{product.product_key} contract must define ungrouped adjacent X/Y pairs "
+                "using the current processor-output header suffixes."
+            ),
+        }
+    source_pairs = _adjacent_independent_xy_pairs(
+        headers,
+        x_suffix=expected_x_suffix,
+        y_suffix=expected_y_suffix,
+    )
+    if len(source_pairs) != contract.source_series_count or not rows:
+        return {
+            "ok": False,
+            "message": (
+                f"{product.product_key} processed CSV must contain exactly "
+                f"{contract.source_series_count} contracted adjacent X/Y pairs."
+            ),
+        }
+    contracted_plots = sorted(contract.plots, key=lambda plot: (plot.layer_index, plot.plot_index))
+    if (
+        len(contracted_plots) != contract.source_series_count
+        or any(plot.layer_index != 1 for plot in contracted_plots)
+        or [plot.plot_index for plot in contracted_plots]
+        != list(range(1, contract.source_series_count + 1))
+        or sorted(plot.source_series_index for plot in contracted_plots)
+        != list(range(1, contract.source_series_count + 1))
+    ):
+        return {
+            "ok": False,
+            "message": f"{product.product_key} contract plot/source indices are incomplete or ambiguous.",
+        }
+    identities = [
+        str(headers[x_index - 1]).strip()[: -len(expected_x_suffix)]
+        for x_index, _y_index in source_pairs
+    ]
+    labels = [str(value).strip() for value in product.legend_entries]
+    expected_identities = [
+        str(value).strip()
+        for value in source_schema.get("source_identities", [])
+    ]
+    expected_labels = [
+        str(value).strip()
+        for value in source_schema.get("source_legend_entries", [])
+    ]
+    if (
+        len(expected_identities) != contract.source_series_count
+        or len(expected_labels) != contract.source_series_count
+        or [value.casefold() for value in identities]
+        != [value.casefold() for value in expected_identities]
+        or len(labels) != len(expected_labels)
+        or [value.casefold() for value in labels]
+        != [value.casefold() for value in expected_labels]
+    ):
+        return {
+            "ok": False,
+            "message": (
+                f"{product.product_key} fixed OTPU requires the reviewed hidden/visible source roles "
+                "and legend sequence; ordinary current spectra must use adaptive OTH+JSON."
+            ),
+        }
+
+    reference_books: set[str] = set()
+    reference_sheets: set[int] = set()
+    xy_ranges: list[dict[str, object]] = []
+    for plot in contracted_plots:
+        x_reference = parse_origin_dataset_reference(str(plot.x_dataset))
+        y_reference = parse_origin_dataset_reference(str(plot.y_dataset))
+        if (
+            x_reference is None
+            or y_reference is None
+            or x_reference.book_name != y_reference.book_name
+            or x_reference.sheet_index != y_reference.sheet_index
+        ):
+            return {
+                "ok": False,
+                "message": f"{product.product_key} contract contains an invalid same-sheet X/Y mapping.",
+            }
+        reference_books.add(x_reference.book_name)
+        reference_sheets.add(x_reference.sheet_index)
+        source_x_index, source_y_index = source_pairs[plot.source_series_index - 1]
+        source_x_index -= 1
+        source_y_index -= 1
+        bounds = _paired_numeric_row_bounds(rows, source_x_index, source_y_index)
+        if bounds is None or bounds[0] != 1:
+            return {
+                "ok": False,
+                "message": (
+                    f"{product.product_key} source series {plot.source_series_index} must contain "
+                    "one contiguous finite X/Y run followed only by a blank tail."
+                ),
+            }
+        row_from, row_to = bounds
+        xy_ranges.append(
+            {
+                "book_name": x_reference.book_name,
+                "sheet_index": x_reference.sheet_index,
+                "layer_index": int(plot.layer_index),
+                "x_col": x_reference.column_index + 1,
+                "y_col": y_reference.column_index + 1,
+                "expected_x_col_letter": chr(65 + x_reference.column_index),
+                "expected_y_col_letter": chr(65 + y_reference.column_index),
+                "row_from": row_from,
+                "row_to": row_to,
+                "source_x_index": source_x_index,
+                "source_y_index": source_y_index,
+                "source_row_from": row_from,
+                "source_row_to": row_to,
+            }
+        )
+    if len(reference_books) != 1 or reference_sheets != {1}:
+        return {
+            "ok": False,
+            "message": f"{product.product_key} fixed template requires one reviewed workbook and worksheet.",
+        }
+    return {
+        "ok": True,
+        "message": f"Processed {product.product_key} X/Y pairs match the reviewed OTPU binding contract.",
+        "graph_page": contract.graph_page,
+        "book_name": next(iter(reference_books)),
+        "plot_type": "line",
+        "group_plots": False,
+        "xy_ranges": xy_ranges,
+        "contract": contract.to_dict(),
+    }
+
+
 def _populate_verified_otpu_workbook(
     operations: object,
     product: ProductContext,
@@ -3854,6 +4088,80 @@ def _populate_verified_otpu_workbook(
             "method": "processed_csv_single_sheet_import",
             "book_name": book_name,
             "sheet_count": 1,
+        }
+
+    if product.product_key in {"UV-vis DRS", "Tauc"}:
+        created = operations.create_worksheet(str(binding["book_name"]), "Sheet1")
+        if not getattr(created, "ok", False):
+            return _verified_otpu_failure(created, f"{product.product_key} workbook creation failed.")
+        book_name = str(getattr(created, "payload", {}).get("book_name") or "")
+        sheet_name = str(getattr(created, "payload", {}).get("sheet_name") or "Sheet1")
+        if book_name != str(binding["book_name"]):
+            return {
+                "ok": False,
+                "message": (
+                    f"Origin did not preserve the reviewed {product.product_key} workbook identity: "
+                    f"expected {binding['book_name']}, actual {book_name or '<empty>'}."
+                ),
+            }
+        xy_ranges = [dict(value) for value in binding.get("xy_ranges", []) if isinstance(value, dict)]
+        destination_count = max(
+            (max(int(value["x_col"]), int(value["y_col"])) for value in xy_ranges),
+            default=0,
+        )
+        if destination_count <= 0:
+            return {"ok": False, "message": f"{product.product_key} destination columns are unavailable."}
+        columns = [[math.nan] * len(rows) for _index in range(destination_count)]
+        metadata: list[dict[str, object]] = []
+        for plot_index, value in enumerate(xy_ranges, start=1):
+            x_col = int(value["x_col"])
+            y_col = int(value["y_col"])
+            source_x_index = int(value["source_x_index"])
+            source_y_index = int(value["source_y_index"])
+            columns[x_col - 1] = [
+                float(current)
+                if source_x_index < len(row)
+                and (current := _finite_numeric_value(row[source_x_index])) is not None
+                else math.nan
+                for row in rows
+            ]
+            columns[y_col - 1] = [
+                float(current)
+                if source_y_index < len(row)
+                and (current := _finite_numeric_value(row[source_y_index])) is not None
+                else math.nan
+                for row in rows
+            ]
+            metadata.extend(
+                (
+                    {
+                        "column_index": x_col,
+                        "long_name": headers[source_x_index],
+                        "unit": "nm" if product.product_key == "UV-vis DRS" else "eV",
+                        "comment": "",
+                        "type": 4,
+                    },
+                    {
+                        "column_index": y_col,
+                        "long_name": headers[source_y_index],
+                        "unit": "a.u.",
+                        "comment": "",
+                        "type": 1,
+                    },
+                )
+            )
+        written = operations.set_worksheet_data(book_name, sheet_name, columns)
+        if not getattr(written, "ok", False):
+            return _verified_otpu_failure(written, f"{product.product_key} worksheet data write failed.")
+        metadata_write = operations.set_worksheet_column_metadata(book_name, metadata)
+        if not getattr(metadata_write, "ok", False):
+            return _verified_otpu_failure(metadata_write, f"{product.product_key} worksheet metadata write failed.")
+        return {
+            "ok": True,
+            "method": "uvvis_explicit_processor_xy_pairs_to_reviewed_sparse_columns",
+            "book_name": book_name,
+            "sheet_count": 1,
+            "destination_column_count": destination_count,
         }
 
     if product.product_key == "EPR":
@@ -4303,6 +4611,290 @@ def _verified_otpu_failure(result: object, fallback: str) -> dict[str, object]:
     return {"ok": False, "message": getattr(result, "message", fallback)}
 
 
+def _uvvis_current_data_matches_reference(
+    product: ProductContext,
+    reference_data: dict[str, object] | None,
+) -> dict[str, object]:
+    if not isinstance(reference_data, dict) or str(reference_data.get("status") or "") != "ready":
+        return {"matches": False, "reason": "reference_data_snapshot_unavailable"}
+    try:
+        headers, rows = _read_processed_csv(product.processed_data)
+    except (OSError, ValueError) as exc:
+        return {"matches": False, "reason": f"processed_data_unavailable: {exc}"}
+    pairs = _processed_csv_plot_pairs(product, headers)
+    plots = sorted(
+        [dict(value) for value in reference_data.get("plots", []) if isinstance(value, dict)],
+        key=lambda value: (int(value.get("layer_index") or 0), int(value.get("plot_index") or 0)),
+    )
+    if len(pairs) != len(plots):
+        return {
+            "matches": False,
+            "reason": "series_count_differs",
+            "current_series_count": len(pairs),
+            "reference_series_count": len(plots),
+        }
+    for series_index, ((x_col, y_col), plot) in enumerate(zip(pairs, plots), start=1):
+        current_x: list[float] = []
+        current_y: list[float] = []
+        for row in rows:
+            x_value = _finite_numeric_value(row[x_col - 1] if x_col - 1 < len(row) else None)
+            y_value = _finite_numeric_value(row[y_col - 1] if y_col - 1 < len(row) else None)
+            if x_value is None and y_value is None:
+                continue
+            if x_value is None or y_value is None:
+                return {"matches": False, "reason": f"series_{series_index}_has_unpaired_values"}
+            current_x.append(x_value)
+            current_y.append(y_value)
+        reference_x = [float(value) for value in list(plot.get("x_values") or [])]
+        reference_y = [float(value) for value in list(plot.get("y_values") or [])]
+        if current_x != reference_x or current_y != reference_y:
+            return {"matches": False, "reason": f"series_{series_index}_values_differ"}
+    return {
+        "matches": True,
+        "reason": "all_current_xy_values_match_reference_snapshot",
+        "series_count": len(pairs),
+    }
+
+
+def _update_verified_uvvis_fixed_legend(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+) -> dict[str, object]:
+    labels = [str(value).strip() for value in product.legend_entries]
+    visible_indices = (4, 5, 6) if product.product_key == "UV-vis DRS" else (2, 3)
+    if len(labels) < max(visible_indices) or any(not labels[index - 1] for index in visible_indices):
+        return {
+            "applied": False,
+            "reason": "visible_plot_labels_unavailable",
+            "visible_plot_indices": list(visible_indices),
+            "label_count": len(labels),
+        }
+    rows = [
+        f"\\l({index})\\b({_reviewed_template_legend_rich_text(labels[index - 1])})"
+        for index in visible_indices
+    ]
+    text = "\r\n".join(rows)
+    written = _set_origin_graph_object_text(operations, graph_name, "Legend", text)
+    return {
+        "applied": bool(written),
+        "method": "current_labels_for_reviewed_visible_plot_indices",
+        "visible_plot_indices": list(visible_indices),
+        "entries": [labels[index - 1] for index in visible_indices],
+    }
+
+
+def _apply_verified_uvvis_fixed_visibility(
+    operations: object,
+    graph_name: str,
+    reference_style: dict[str, object],
+) -> dict[str, object]:
+    plot_names = operations._plot_names(graph_name) if hasattr(operations, "_plot_names") else []
+    raw_visibility = reference_style.get("plot_visibility")
+    visibility = list(raw_visibility) if isinstance(raw_visibility, list) else []
+    if not plot_names or len(visibility) != len(plot_names):
+        return {
+            "applied": False,
+            "reason": "reference_visibility_or_current_plot_count_mismatch",
+            "plot_count": len(plot_names),
+            "visibility_count": len(visibility),
+        }
+    commands: list[str] = []
+    applied_visibility: list[int] = []
+    for index, value in enumerate(visibility, start=1):
+        numeric = _finite_numeric_value(value)
+        show = 1 if numeric is not None and numeric > 0.5 else 0
+        command = (
+            f'win -a "{quote_labtalk(graph_name)}"; '
+            f"layer.plot{index}.show={show};"
+        )
+        result = operations.run_labtalk(command)
+        if not getattr(result, "ok", False):
+            return {
+                "applied": False,
+                "reason": "reference_plot_visibility_restore_failed",
+                "plot_index": index,
+                "commands": commands,
+            }
+        commands.append(command)
+        applied_visibility.append(show)
+    return {
+        "applied": True,
+        "method": "reviewed_fixed_plot_visibility",
+        "plot_visibility": applied_visibility,
+        "commands": commands,
+    }
+
+
+def _apply_uvvis_current_axis_titles(
+    operations: object,
+    graph_name: str,
+    x_label: str,
+    y_label: str,
+) -> dict[str, object]:
+    labels = operations.set_axis_labels(graph_name, x_label, y_label, "")
+    if not getattr(labels, "ok", False):
+        return {"applied": False, "reason": "set_axis_labels_failed"}
+    app = getattr(operations, "app", None)
+    if app is None:
+        return {"applied": False, "reason": "origin_app_unavailable"}
+    try:
+        layer = (
+            app.FindGraphLayer(f"[{graph_name}]Layer1")
+            or app.FindGraphLayer(f"[{graph_name}]1")
+            or app.FindGraphLayer(graph_name)
+        )
+    except Exception:
+        layer = None
+    if not layer:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+    readback: dict[str, dict[str, object]] = {}
+    for object_name, plain_text in (("XB", x_label), ("YL", y_label)):
+        graph_object = _find_origin_graph_object(layer, object_name)
+        if graph_object is None:
+            return {
+                "applied": False,
+                "reason": "axis_title_object_unavailable",
+                "object_name": object_name,
+            }
+        rich_text = _uvvis_axis_title_rich_text(plain_text)
+        try:
+            graph_object.Text = rich_text
+            graph_object.SetNumProp("bold", 1)
+            graph_object.SetNumProp("show", 1)
+        except Exception as exc:
+            return {
+                "applied": False,
+                "reason": "axis_title_com_write_failed",
+                "object_name": object_name,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+        try:
+            actual_text = str(getattr(graph_object, "Text", "") or "")
+        except Exception:
+            actual_text = ""
+        try:
+            actual_bold = _finite_float(graph_object.GetNumProp("bold"))
+        except Exception:
+            actual_bold = None
+        if actual_bold is not None and actual_bold != 0.0 and abs(actual_bold) < 1e-250:
+            # Origin returns a tiny finite missing-value sentinel for some
+            # graph-object properties instead of raising or returning None.
+            actual_bold = None
+        elif actual_bold is not None and not (
+            math.isclose(actual_bold, 0.0, abs_tol=1e-9)
+            or math.isclose(actual_bold, 1.0, abs_tol=1e-9)
+        ):
+            actual_bold = None
+        if actual_bold is not None and not math.isclose(actual_bold, 1.0, abs_tol=1e-9):
+            return {
+                "applied": False,
+                "reason": "axis_title_immediate_bold_readback_mismatch",
+                "object_name": object_name,
+                "actual_text": actual_text,
+                "actual_bold": actual_bold,
+            }
+        readback[object_name] = {
+            "text": actual_text,
+            "bold": actual_bold,
+            "immediate_readback_available": bool(actual_text) and actual_bold is not None,
+        }
+    return {
+        "applied": True,
+        "method": "origin_native_axis_title_objects_with_save_reopen_hard_gate",
+        "readback": readback,
+    }
+
+
+def _uvvis_axis_title_rich_text(value: str) -> str:
+    compact = re.sub(r"\s+", "", str(value))
+    if compact == "hν(eV)":
+        return r"\b(\i(h\f:g(ν) )(eV))"
+    if compact == "(αhν)^2":
+        return r"\b(\(40)\i(\f:g(α)h\f:g(ν))\(41)\+(2))"
+    if compact == "(F(R)hν)^2":
+        return r"\b(\(40)\i(F\(40)R\(41)h\f:g(ν))\(41)\+(2))"
+    return origin_bold_text(value)
+
+
+def _remove_tauc_reference_candidate_guides(
+    operations: object,
+    graph_name: str,
+) -> dict[str, object]:
+    command = f'win -a "{quote_labtalk(graph_name)}"; ' + " ".join(
+        f"label -r {name};" for name in TAUC_REFERENCE_GUIDE_OBJECTS
+    )
+    result = operations.run_labtalk(command)
+    return {
+        "applied": bool(getattr(result, "ok", False)),
+        "method": "remove_reference_data_dependent_fit_guides_and_intercept_labels",
+        "removed_objects": list(TAUC_REFERENCE_GUIDE_OBJECTS),
+        "removed_intercept_labels": list(TAUC_REFERENCE_INTERCEPT_LABELS),
+        "manual_check_required": True,
+        "visible_claim": "none",
+    }
+
+
+def _validate_tauc_reference_guides_removed(
+    operations: object,
+    graph_name: str,
+    product_style: dict[str, object],
+) -> dict[str, object]:
+    positions = product_style.get("graph_object_positions")
+    position_names = (
+        {str(name).casefold() for name in positions}
+        if isinstance(positions, dict)
+        else set()
+    )
+    present_names = [
+        name
+        for name in TAUC_REFERENCE_GUIDE_OBJECTS
+        if name.casefold() in position_names
+    ]
+    present_intercept_labels: list[str] = []
+    app = getattr(operations, "app", None)
+    layer = None
+    if app is not None:
+        try:
+            layer = app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(graph_name)
+        except Exception:
+            layer = None
+    if layer:
+        for name in TAUC_REFERENCE_GUIDE_OBJECTS:
+            if _find_origin_graph_object(layer, name) is not None and name not in present_names:
+                present_names.append(name)
+        collection = getattr(layer, "GraphObjects", None)
+        if collection is not None:
+            try:
+                count = int(getattr(collection, "Count", 0))
+            except Exception:
+                count = 0
+            objects: list[object] = []
+            for base in (0, 1):
+                attempt: list[object] = []
+                for index in range(count):
+                    try:
+                        attempt.append(collection.Item(index + base))
+                    except Exception:
+                        continue
+                if len(attempt) == count:
+                    objects = attempt
+                    break
+            for graph_object in objects:
+                text = str(getattr(graph_object, "Text", "") or "")
+                for label in TAUC_REFERENCE_INTERCEPT_LABELS:
+                    if label in text and label not in present_intercept_labels:
+                        present_intercept_labels.append(label)
+    return {
+        "ok": not present_names and not present_intercept_labels,
+        "status": "pass" if not present_names and not present_intercept_labels else "fail",
+        "checked_objects": list(TAUC_REFERENCE_GUIDE_OBJECTS),
+        "present_objects": present_names,
+        "checked_intercept_labels": list(TAUC_REFERENCE_INTERCEPT_LABELS),
+        "present_intercept_labels": present_intercept_labels,
+    }
+
+
 def _apply_verified_otpu_post_plot_style(
     operations: object,
     product: ProductContext,
@@ -4315,6 +4907,116 @@ def _apply_verified_otpu_post_plot_style(
 ) -> dict[str, object]:
     if product.product_key == "BET":
         return {"ok": True, "method": "otpu_native_style_only"}
+    if product.product_key in {"UV-vis DRS", "Tauc"}:
+        same_data = _uvvis_current_data_matches_reference(product, reference_data)
+        plot_style_policy = _apply_reviewed_template_plot_styles(
+            operations,
+            graph_name,
+            reference_data or {},
+        )
+        if not plot_style_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": f"Verified {product.product_key} per-plot style restore failed.",
+                "plot_style_policy": plot_style_policy,
+            }
+        visibility_policy = _apply_verified_uvvis_fixed_visibility(
+            operations,
+            graph_name,
+            reference_style,
+        )
+        if not visibility_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": f"Verified {product.product_key} reference visibility restore failed.",
+                "visibility_policy": visibility_policy,
+            }
+        if same_data.get("matches"):
+            strings = reference_style.get("audit_string_values")
+            strings = strings if isinstance(strings, dict) else {}
+            legend_text = str(strings.get("legend.text$") or "")
+            legend_restored = bool(legend_text) and _set_origin_graph_object_text(
+                operations,
+                graph_name,
+                "Legend",
+                legend_text,
+            )
+            if not legend_restored:
+                return {
+                    "ok": False,
+                    "message": f"Verified {product.product_key} reference legend restore failed.",
+                    "visibility_policy": visibility_policy,
+                }
+            return {
+                "ok": True,
+                "method": "otpu_native_style_exact_same_data_with_reviewed_visibility_and_legend",
+                "same_data_reference_match": same_data,
+                "plot_style_policy": plot_style_policy,
+                "visibility_policy": visibility_policy,
+                "legend_policy": {
+                    "applied": True,
+                    "method": "reviewed_reference_legend_text",
+                },
+                "reference_fit_guides_preserved": product.product_key == "Tauc",
+            }
+        legend_policy = _update_verified_uvvis_fixed_legend(
+            operations,
+            graph_name,
+            product,
+        )
+        if not legend_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": f"Verified {product.product_key} current-label legend replacement failed.",
+                "legend_policy": legend_policy,
+            }
+        axis_title_policy = _apply_uvvis_current_axis_titles(
+            operations,
+            graph_name,
+            product.x_label,
+            product.y_label,
+        )
+        if not axis_title_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": f"Verified {product.product_key} current scientific axis titles failed.",
+                "axis_title_policy": axis_title_policy,
+            }
+        axis_range_policy = _apply_embedded_snapshot_data_axis_range(
+            operations,
+            graph_name,
+            product,
+        )
+        if not axis_range_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": f"Verified {product.product_key} current-data axis range failed.",
+                "axis_range_policy": axis_range_policy,
+            }
+        guide_policy = (
+            _remove_tauc_reference_candidate_guides(operations, graph_name)
+            if product.product_key == "Tauc"
+            else {"applied": False, "reason": "not_tauc"}
+        )
+        if product.product_key == "Tauc" and not guide_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Old Tauc fit guides or intercept labels could not be removed for changed data.",
+                "guide_policy": guide_policy,
+            }
+        return {
+            "ok": True,
+            "method": "otpu_native_style_with_current_labels_axes_and_claim_cleanup",
+            "same_data_reference_match": same_data,
+            "plot_style_policy": plot_style_policy,
+            "visibility_policy": visibility_policy,
+            "legend_policy": legend_policy,
+            "axis_title_policy": axis_title_policy,
+            "axis_range_policy": axis_range_policy,
+            "guide_policy": guide_policy,
+            "reference_fit_guides_preserved": False,
+            "manual_check_required": product.product_key == "Tauc",
+        }
     if product.product_key == "Raman":
         if runtime_theme is not None:
             return {
@@ -4779,16 +5481,32 @@ def _validate_verified_current_data(
         source_y_index = int(expected.get("source_y_index", expected["y_col"] - 1))
         source_row_from = int(expected.get("source_row_from", expected["row_from"]))
         source_row_to = int(expected.get("source_row_to", expected["row_to"]))
-        expected_x = [
-            float(rows[row_index - 1][source_x_index])
+        expected_x_raw = [
+            _finite_numeric_value(rows[row_index - 1][source_x_index])
             for row_index in range(source_row_from, source_row_to + 1)
         ]
-        expected_y = [
-            float(rows[row_index - 1][source_y_index])
+        expected_y_raw = [
+            _finite_numeric_value(rows[row_index - 1][source_y_index])
             for row_index in range(source_row_from, source_row_to + 1)
         ]
-        actual_x = [float(value) for value in list(plot.get("x_values") or [])]
-        actual_y = [float(value) for value in list(plot.get("y_values") or [])]
+        actual_x_raw = [
+            _finite_numeric_value(value)
+            for value in list(plot.get("x_values") or [])
+        ]
+        actual_y_raw = [
+            _finite_numeric_value(value)
+            for value in list(plot.get("y_values") or [])
+        ]
+        if any(value is None for value in expected_x_raw + expected_y_raw):
+            reasons.append(f"plot {index + 1} expected CSV range contains a nonfinite X/Y value")
+            continue
+        if any(value is None for value in actual_x_raw + actual_y_raw):
+            reasons.append(f"plot {index + 1} reopened X/Y range contains a nonfinite value")
+            continue
+        expected_x = [float(value) for value in expected_x_raw if value is not None]
+        expected_y = [float(value) for value in expected_y_raw if value is not None]
+        actual_x = [float(value) for value in actual_x_raw if value is not None]
+        actual_y = [float(value) for value in actual_y_raw if value is not None]
         if actual_x != expected_x:
             reasons.append(f"plot {index + 1} X values differ from processed CSV")
         if actual_y != expected_y:
@@ -4995,20 +5713,24 @@ def _export_saved_format_theme_product_with_origin(
         selected_oth_json = str(
             (style_execution_decision or {}).get("selected_mode") or ""
         ) == "oth-json"
-        raman_plot_bounds: dict[tuple[int, int], tuple[int, int]] = {}
-        if selected_oth_json and product.product_key == "Raman":
+        adaptive_plot_bounds: dict[tuple[int, int], tuple[int, int]] = {}
+        if selected_oth_json and product.product_key in {
+            "Raman",
+            "UV-vis DRS",
+            "Tauc",
+        }:
             for x_col, y_col in plot_pairs:
                 bounds = _paired_numeric_row_bounds(rows, x_col - 1, y_col - 1)
                 if bounds is None or bounds[0] != 1:
                     return {
                         "ok": False,
                         "message": (
-                            "Adaptive Raman requires one contiguous finite X/Y run "
+                            f"Adaptive {product.product_key} requires one contiguous finite X/Y run "
                             "per spectrum followed only by blank tail rows."
                         ),
                         "template_format_plan": plan.to_dict(),
                     }
-                raman_plot_bounds[(x_col, y_col)] = bounds
+                adaptive_plot_bounds[(x_col, y_col)] = bounds
         mott_mask_policy = (
             _apply_mott_schottky_source_masks(
                 operations,
@@ -5027,7 +5749,7 @@ def _export_saved_format_theme_product_with_origin(
                 "mott_schottky_mask_policy": mott_mask_policy,
             }
         first_header = headers[plot_pairs[0][1] - 1] if plot_pairs[0][1] - 1 < len(headers) else ""
-        first_bounds = raman_plot_bounds.get(plot_pairs[0], (0, 0))
+        first_bounds = adaptive_plot_bounds.get(plot_pairs[0], (0, 0))
         first_row_kwargs = (
             {"row_from": first_bounds[0], "row_to": first_bounds[1]}
             if first_bounds[0] > 0
@@ -5057,7 +5779,7 @@ def _export_saved_format_theme_product_with_origin(
                 }
         for x_col, y_col in plot_pairs[1:]:
             header = headers[y_col - 1] if y_col - 1 < len(headers) else ""
-            row_bounds = raman_plot_bounds.get((x_col, y_col), (0, 0))
+            row_bounds = adaptive_plot_bounds.get((x_col, y_col), (0, 0))
             row_kwargs = (
                 {"row_from": row_bounds[0], "row_to": row_bounds[1]}
                 if row_bounds[0] > 0
@@ -5080,8 +5802,8 @@ def _export_saved_format_theme_product_with_origin(
         operations.set_axis_labels(graph_name, product.x_label, product.y_label, "")
         _apply_template_base_global_policies(operations, graph_name, product, style)
         data_axis_policy = (
-            {"applied": False, "reason": "deferred_until_photocurrent_snapshots_loaded"}
-            if product.product_key == "photocurrent"
+            {"applied": False, "reason": "deferred_until_saved_snapshots_are_applied"}
+            if product.product_key in {"photocurrent", "UV-vis DRS", "Tauc"}
             else _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
         )
         saved_style_snapshot = _load_saved_style_snapshot(
@@ -5108,6 +5830,9 @@ def _export_saved_format_theme_product_with_origin(
         adaptive_cardinality = bool(
             (style_execution_decision or {}).get("adaptive_series_cardinality")
         )
+        adaptive_uvvis = bool(
+            selected_oth_json and product.product_key in {"UV-vis DRS", "Tauc"}
+        )
         adaptive_snapshot_style_applied = bool(
             selected_oth_json
             and saved_style_snapshot
@@ -5132,7 +5857,7 @@ def _export_saved_format_theme_product_with_origin(
                 operations,
                 graph_name,
                 saved_data_snapshot,
-                cycle_styles=adaptive_cardinality,
+                cycle_styles=adaptive_cardinality or adaptive_uvvis,
                 preserve_custom_rgb=product.product_key == "Mott-Schottky",
                 product_key=product.product_key,
             )
@@ -5140,8 +5865,8 @@ def _export_saved_format_theme_product_with_origin(
             else {"applied": False, "reason": "not_oth_json_mode"}
         )
         reviewed_plot_policy = (
-            {"applied": False, "reason": "adaptive_cardinality_uses_all_current_plots"}
-            if adaptive_cardinality
+            {"applied": False, "reason": "adaptive_route_uses_all_current_plots"}
+            if adaptive_cardinality or adaptive_uvvis
             else _apply_reviewed_template_plot_policy(
                 operations,
                 graph_name,
@@ -5257,7 +5982,7 @@ def _export_saved_format_theme_product_with_origin(
                     "template_format_plan": plan.to_dict(),
                     "legend_policy": legend_policy,
                 }
-        elif adaptive_cardinality:
+        elif adaptive_cardinality or adaptive_uvvis:
             legend_policy = _apply_adaptive_dynamic_legend_policy(
                 operations,
                 graph_name,
@@ -5273,6 +5998,52 @@ def _export_saved_format_theme_product_with_origin(
                 style,
                 snapshot=saved_style_snapshot,
             )
+        uvvis_guide_policy: dict[str, object] = {
+            "applied": False,
+            "reason": "not_required_for_product",
+        }
+        uvvis_axis_title_policy: dict[str, object] = {
+            "applied": False,
+            "reason": "not_required_for_product",
+        }
+        if adaptive_uvvis:
+            data_axis_policy = _apply_embedded_snapshot_data_axis_range(
+                operations,
+                graph_name,
+                product,
+            )
+            if not data_axis_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": f"Adaptive {product.product_key} current-data axis range application failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_range_policy": data_axis_policy,
+                }
+            uvvis_axis_title_policy = _apply_uvvis_current_axis_titles(
+                operations,
+                graph_name,
+                product.x_label,
+                product.y_label,
+            )
+            if not uvvis_axis_title_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": f"Adaptive {product.product_key} current scientific axis titles failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_title_policy": uvvis_axis_title_policy,
+                }
+            if product.product_key == "Tauc":
+                uvvis_guide_policy = _remove_tauc_reference_candidate_guides(
+                    operations,
+                    graph_name,
+                )
+                if not uvvis_guide_policy.get("applied"):
+                    return {
+                        "ok": False,
+                        "message": "Adaptive Tauc old guide cleanup failed.",
+                        "template_format_plan": plan.to_dict(),
+                        "tauc_guide_policy": uvvis_guide_policy,
+                    }
         legend_policy["adaptive_plot_style"] = adaptive_plot_style_policy
         legend_policy["adaptive_style_snapshot"] = {
             "loaded": bool(saved_style_snapshot),
@@ -5285,14 +6056,15 @@ def _export_saved_format_theme_product_with_origin(
         legend_policy["adaptive_mott_schottky_candidate_guides"] = (
             adaptive_mott_guide_policy
         )
+        legend_policy["tauc_reference_guide_policy"] = uvvis_guide_policy
         legend_policy["final_reviewed_legend"] = (
             {
                 "applied": False,
                 "reason": "adaptive_oth_json_legend_already_finalized",
             }
-            if selected_oth_json and product.product_key in {"BET", "FTIR", "photocurrent"}
+            if selected_oth_json and product.product_key in {"BET", "FTIR", "photocurrent", "UV-vis DRS", "Tauc"}
             else {"applied": False, "reason": "adaptive_cardinality_uses_dynamic_current_legend"}
-            if adaptive_cardinality
+            if adaptive_cardinality or adaptive_uvvis
             else _finalize_reviewed_template_legend(
                 operations,
                 graph_name,
@@ -5379,6 +6151,24 @@ def _export_saved_format_theme_product_with_origin(
                 "available_graph_pages": graph_pages,
                 "product_style": product_style,
             }
+        tauc_guide_cleanup_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        if selected_oth_json and product.product_key == "Tauc":
+            tauc_guide_cleanup_validation = _validate_tauc_reference_guides_removed(
+                operations,
+                reopened_graph,
+                product_style,
+            )
+            if not tauc_guide_cleanup_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive Tauc reference guides remained after save/reopen.",
+                    "template_format_plan": plan.to_dict(),
+                    "product_style": product_style,
+                    "tauc_guide_cleanup_validation": tauc_guide_cleanup_validation,
+                }
         current_data_snapshot: dict[str, object] = {}
         current_data_validation: dict[str, object] = {
             "ok": True,
@@ -5389,6 +6179,8 @@ def _export_saved_format_theme_product_with_origin(
             "Raman",
             "photocurrent",
             "Mott-Schottky",
+            "UV-vis DRS",
+            "Tauc",
         }:
             current_data_snapshot = read_graph_data_snapshot(
                 operations,
@@ -5506,10 +6298,21 @@ def _export_saved_format_theme_product_with_origin(
             if selected_oth_json and product.product_key == "Raman"
             else _verified_otpu_conformance_reference(
                 product.product_key,
+                _adaptive_uvvis_conformance_reference(
+                    product.product_key,
+                    reference_style_snapshot,
+                    saved_data_snapshot,
+                    len(plot_pairs),
+                ),
+                product_style,
+            )
+            if selected_oth_json and product.product_key in {"UV-vis DRS", "Tauc"}
+            else _verified_otpu_conformance_reference(
+                product.product_key,
                 reference_style_snapshot,
                 product_style,
             )
-            if product.product_key in {"BET", "photocurrent"}
+            if product.product_key in {"BET", "photocurrent", "UV-vis DRS", "Tauc"}
             else reference_style_snapshot
         )
         conformance = compare_style_snapshots(
@@ -5624,12 +6427,14 @@ def _export_saved_format_theme_product_with_origin(
             "metadata_warnings": metadata_warnings,
             "tif_resolution_evidence": tif.get("evidence", {}),
             "axis_range_policy": data_axis_policy,
+            "uvvis_axis_title_policy": uvvis_axis_title_policy,
             "legend_policy": legend_policy,
             "render_refresh": render_refresh,
             "adaptive_oth_json_validation": adaptive_validation,
             "bet_axis_titles": bet_product_axis_titles,
             "photocurrent_axis_titles": photocurrent_product_axis_titles,
             "current_data_validation": current_data_validation,
+            "tauc_guide_cleanup_validation": tauc_guide_cleanup_validation,
             "adaptive_json_assets": {
                 "style_snapshot_loaded": bool(saved_style_snapshot),
                 "style_snapshot_applied": adaptive_snapshot_style_applied,
@@ -5902,7 +6707,11 @@ def _adaptive_oth_json_readback_validation(
         len(visibility) == expected
         and all(value is not None and value > 0.5 for value in visibility)
     )
-    if relaxed and not all_current_plots_visible:
+    requires_all_current_plots_visible = relaxed or product.product_key in {
+        "UV-vis DRS",
+        "Tauc",
+    }
+    if requires_all_current_plots_visible and not all_current_plots_visible:
         failures.append(
             "not every current CSV curve is visible after adaptive save/reopen"
         )
@@ -5913,6 +6722,8 @@ def _adaptive_oth_json_readback_validation(
         "Raman",
         "photocurrent",
         "Mott-Schottky",
+        "UV-vis DRS",
+        "Tauc",
     }
     current_data_match = bool(
         isinstance(current_data_validation, dict)
@@ -5935,6 +6746,7 @@ def _adaptive_oth_json_readback_validation(
         "contract_series_count": contract_count,
         "series_cardinality_relaxed": relaxed,
         "all_current_plots_visible": all_current_plots_visible,
+        "all_current_plots_visible_required": requires_all_current_plots_visible,
         "one_to_one_claim_allowed": False,
         "saved_reopened": True,
         "native_tif_600dpi_required": True,
@@ -6472,6 +7284,19 @@ def _apply_adaptive_oth_json_plot_styles(
                 )
             )
             snapshot = {**data_snapshot, "plots": plots}
+    if product_key in {"UV-vis DRS", "Tauc"}:
+        raw_plots = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
+        if isinstance(raw_plots, list):
+            plots = [dict(value) for value in raw_plots if isinstance(value, dict)]
+            visible_start = 3 if product_key == "UV-vis DRS" else 1
+            visible_count = 3 if product_key == "UV-vis DRS" else 2
+            visible_plots = plots[visible_start : visible_start + visible_count]
+            if visible_plots:
+                snapshot = {
+                    **data_snapshot,
+                    "plots": visible_plots,
+                    "plot_count": len(visible_plots),
+                }
     return _apply_reviewed_template_plot_styles(
         operations,
         graph_name,
@@ -6479,6 +7304,44 @@ def _apply_adaptive_oth_json_plot_styles(
         cycle_styles=cycle_styles,
         preserve_custom_rgb=preserve_custom_rgb,
     )
+
+
+def _adaptive_uvvis_conformance_reference(
+    product_key: str,
+    style_snapshot: dict[str, object],
+    data_snapshot: dict[str, object],
+    series_count: int,
+) -> dict[str, object]:
+    raw_plots = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
+    if not isinstance(raw_plots, list) or series_count <= 0:
+        return dict(style_snapshot)
+    plots = [dict(value) for value in raw_plots if isinstance(value, dict)]
+    visible_start = 3 if product_key == "UV-vis DRS" else 1
+    visible_count = 3 if product_key == "UV-vis DRS" else 2
+    visible_plots = plots[visible_start : visible_start + visible_count]
+    if not visible_plots:
+        return dict(style_snapshot)
+    result = dict(style_snapshot)
+    data_style_fields = {
+        "plot_colors": "color",
+        "plot_line_colors": "line_color",
+        "plot_line_widths": "line_width_origin_units",
+        "marker_shapes": "symbol_shape",
+        "marker_sizes": "symbol_size",
+    }
+    for field, data_style_field in data_style_fields.items():
+        values = [
+            (plot.get("style") or {}).get(data_style_field)
+            if isinstance(plot.get("style"), dict)
+            else None
+            for plot in visible_plots
+        ]
+        if any(value is None for value in values):
+            continue
+        result[field] = [values[index % len(values)] for index in range(series_count)]
+    result["plot_visibility"] = [1.0] * series_count
+    result["plot_count"] = series_count
+    return result
 
 
 def _adaptive_raman_conformance_reference(
@@ -6921,9 +7784,16 @@ def _apply_adaptive_ftir_oth_json_text_policy(
         "CuWO4": r"\b(\i( )CuWO\-(4))",
         "BiCu-10": r"\b(\i( )BiCu-10)",
     }
+    legend_bodies = [
+        reviewed_legend_bodies.get(
+            label,
+            "\\b(" + _reviewed_template_legend_rich_text(label) + ")",
+        )
+        for label in entries
+    ]
     rows = [
-        f"\\l({index}){reviewed_legend_bodies.get(label, f'\\b({_reviewed_template_legend_rich_text(label)})')}"
-        for index, label in enumerate(entries, start=1)
+        f"\\l({index}){body}"
+        for index, body in enumerate(legend_bodies, start=1)
     ]
     text = "\r\n".join(rows)
     written = bool(rows) and _set_origin_graph_object_text(
@@ -7503,6 +8373,18 @@ def _processed_csv_plot_pairs(product: ProductContext, headers: list[str]) -> li
         if pairs:
             return pairs
         return _legacy_shared_x_pairs(headers, x_headers={"time_s"})
+    if product.product_key == "UV-vis DRS":
+        return _adjacent_independent_xy_pairs(
+            headers,
+            x_suffix="_wavelength_nm",
+            y_suffix="_drs_signal",
+        )
+    if product.product_key == "Tauc":
+        return _adjacent_independent_xy_pairs(
+            headers,
+            x_suffix="_photon_energy_eV",
+            y_suffix="_tauc_y_direct_candidate",
+        )
     if product.product_key == "BET":
         paired_x_suffix = "_relative_pressure_p_p0"
         paired_y_suffix = "_quantity_adsorbed_cm3_g_stp"
@@ -7768,22 +8650,54 @@ def _apply_embedded_snapshot_data_axis_range(
             "series_count": len(current_series),
             "axis_titles_recentered": True,
         }
-    if product.product_key in {"UV-vis DRS / Tauc", "EPR"}:
-        x_min, x_max = _csv_bounds_for_columns(product.processed_data, (0,))
-        if x_min is None or x_max is None or x_max <= x_min:
-            return {"applied": False, "reason": "csv_x_bounds_unavailable"}
-        result = set_axis_range(graph_name, x_min=x_min, x_max=x_max)
+    if product.product_key in {"UV-vis DRS", "Tauc", "EPR"}:
+        try:
+            headers, rows = _read_processed_csv(product.processed_data)
+        except (OSError, ValueError) as exc:
+            return {"applied": False, "reason": f"processed_data_unavailable: {exc}"}
+        pairs = _processed_csv_plot_pairs(product, headers)
+        x_values = [
+            value
+            for x_col, _y_col in pairs
+            for row in rows
+            if (value := _finite_numeric_value(row[x_col - 1] if x_col - 1 < len(row) else None)) is not None
+        ]
+        y_values = [
+            value
+            for _x_col, y_col in pairs
+            for row in rows
+            if (value := _finite_numeric_value(row[y_col - 1] if y_col - 1 < len(row) else None)) is not None
+        ]
+        if not x_values or not y_values:
+            return {"applied": False, "reason": "csv_xy_bounds_unavailable"}
+        x_min, x_max = min(x_values), max(x_values)
+        if x_max <= x_min:
+            return {"applied": False, "reason": "csv_x_bounds_invalid"}
+        if product.product_key == "EPR":
+            y_from = y_to = None
+            result = set_axis_range(graph_name, x_min=x_min, x_max=x_max)
+        else:
+            y_from, y_to = _padded_axis_bounds(min(y_values), max(y_values), zero_floor=True)
+            result = set_axis_range(
+                graph_name,
+                x_min=x_min,
+                x_max=x_max,
+                y_min=y_from,
+                y_max=y_to,
+            )
         if not getattr(result, "ok", False):
             return {"applied": False, "reason": getattr(result, "message", "set_axis_range_failed")}
         return {
             "applied": True,
             "method": (
-                "uvvis_wavelength_bounds_after_tauc_style_geometry"
-                if product.product_key == "UV-vis DRS / Tauc"
+                "uvvis_current_xy_bounds_after_reviewed_style"
+                if product.product_key in {"UV-vis DRS", "Tauc"}
                 else "epr_verified_field_bounds_after_legacy_style_geometry"
             ),
             "x_min": x_min,
             "x_max": x_max,
+            "y_min": y_from,
+            "y_max": y_to,
         }
     if product.product_key != "EIS":
         return {"applied": False, "reason": "not_required_for_product"}
@@ -9349,7 +10263,8 @@ def _strip_redundant_measurement_suffixes(product_key: str, entries: list[str]) 
         "FTIR": ("transmittance",),
         "PL": ("counts",),
         "Raman": ("intensity",),
-        "UV-vis DRS / Tauc": ("signal",),
+        "UV-vis DRS": ("drs signal",),
+        "Tauc": ("tauc y direct candidate",),
         "photocurrent": ("current a",),
     }.get(product_key, ())
     if not suffixes:

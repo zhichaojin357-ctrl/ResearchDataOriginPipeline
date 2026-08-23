@@ -1,0 +1,229 @@
+{
+  "source_opju": "reference_copy.opju",
+  "status": "extracted",
+  "graph_page": "Graph1",
+  "graph_pages": [
+    "Graph1",
+    "Graph2"
+  ],
+  "layout_values": {
+    "page.width": 6432.0,
+    "page.height": 4923.0,
+    "page.kar": 0.0,
+    "layer.left": 17.88,
+    "layer.top": 11.6,
+    "layer.width": 68.16,
+    "layer.height": 71.83,
+    "layer.x.from": 260.0,
+    "layer.x.to": 800.0,
+    "layer.y.from": 0.0,
+    "layer.y.to": 3000.0,
+    "layer.x.thickness": 3.0,
+    "layer.y.thickness": 3.0,
+    "layer.x.ticks": 10.0,
+    "layer.y.ticks": 0.0,
+    "layer.x.majorLen": 0.0,
+    "layer.y.majorLen": 0.0,
+    "layer.x.minor": 0.0,
+    "layer.y.minor": 0.0,
+    "layer.x.label.pt": 28.0,
+    "layer.y.label.pt": 20.0,
+    "layer.x.label.show": 0.0,
+    "layer.y.label.show": 0.0,
+    "layer.x.showLabels": 1.0,
+    "layer.y.showLabels": 0.0,
+    "layer.x.label.bold": 1.0,
+    "layer.y.label.bold": 1.0,
+    "layer.x.label.offset": 0.0,
+    "layer.y.label.offset": 0.0,
+    "xb.show": 1.0,
+    "yl.show": 1.0,
+    "xb.fsize": 36.0,
+    "yl.fsize": 36.0,
+    "xb.bold": 0.0,
+    "yl.bold": 0.0,
+    "xb.x": 530.0,
+    "xb.y": -433.54072398190044,
+    "yl.x": 228.46715328467153,
+    "yl.y": 1500.8484162895927,
+    "legend.show": 1.0,
+    "legend.x": 666.970802919708,
+    "legend.y": 2507.070135746606,
+    "legend.background": 0.0,
+    "legend.border": 0.0,
+    "legend.frame": 0.0,
+    "legend.fill": 0.0,
+    "legend.fillColor": -4.0,
+    "legend.borderColor": 4294967292.0,
+    "legend.lineWidth": 0.0,
+    "legend.fsize": 28.0,
+    "legend.bold": 0.0,
+    "title.show": 0.0,
+    "title.x": 0.0,
+    "title.y": 0.0,
+    "title.fsize": 0.0,
+    "title.bold": 0.0
+  },
+  "audit_numeric_values": {
+    "page.nlayers": 1.0,
+    "layer.x.ticks": 10.0,
+    "layer.y.ticks": 0.0,
+    "layer.x.label.show": 0.0,
+    "layer.y.label.show": 0.0,
+    "layer.x.showLabels": 1.0,
+    "layer.y.showLabels": 0.0,
+    "xb.show": 1.0,
+    "yl.show": 1.0,
+    "xb.fsize": 36.0,
+    "yl.fsize": 36.0,
+    "xb.bold": 0.0,
+    "yl.bold": 0.0,
+    "legend.show": 1.0,
+    "legend.x": 666.970802919708,
+    "legend.y": 2507.070135746606,
+    "legend.background": 0.0,
+    "legend.border": 0.0,
+    "legend.frame": 0.0,
+    "legend.fill": 0.0,
+    "legend.fillColor": -4.0,
+    "legend.borderColor": 4294967292.0,
+    "legend.lineWidth": 0.0,
+    "legend.fsize": 28.0,
+    "legend.bold": 0.0,
+    "title.show": 0.0,
+    "title.fsize": 0.0,
+    "title.bold": 0.0
+  },
+  "audit_string_values": {
+    "xb.text$": "\\b(Wavelength (nm))",
+    "yl.text$": "\\b(Absorbance (a.u.))",
+    "legend.text$": "\\l(1)\\b( CuWO\\-(4))\r\n\\l(2)\\b( BiOBr\\-(0.5)Cl\\-(0.5))\r\n\\l(3)\\b( BiCu-10)\r\n\\l(4) \\b(CuWO\\-(4))\r\n\\l(5) \\b(BiOBr\\-(0.5)Cl\\-(0.5))\r\n\\l(6) \\b(BiCu-10)"
+  },
+  "layer_count": 1,
+  "plot_count": 6,
+  "plot_line_widths": [
+    1500.0,
+    1500.0,
+    1500.0,
+    1500.0,
+    1500.0,
+    1500.0
+  ],
+  "plot_colors": [
+    16814848.0,
+    33518174.0,
+    18128807.0,
+    16814848.0,
+    33518174.0,
+    18128807.0
+  ],
+  "plot_line_colors": [
+    16814848.0,
+    33518174.0,
+    18128807.0,
+    16814848.0,
+    33518174.0,
+    18128807.0
+  ],
+  "marker_shapes": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "marker_sizes": [
+    9.0,
+    9.0,
+    9.0,
+    9.0,
+    9.0,
+    9.0
+  ],
+  "plot_visibility": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "graph_object_positions": {
+    "__FRAMESRCDATAINFOS": {
+      "left": 3516.0,
+      "top": 1992.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "YR": {
+      "left": 5615.0,
+      "top": 2175.0,
+      "width": 158.0,
+      "height": 329.0
+    },
+    "XT": {
+      "left": 3308.0,
+      "top": 339.0,
+      "width": 69.0,
+      "height": 151.0
+    },
+    "YL": {
+      "left": 719.0,
+      "top": 1070.0,
+      "width": 350.0,
+      "height": 2537.0
+    },
+    "XB": {
+      "left": 2133.0,
+      "top": 4449.0,
+      "width": 2418.0,
+      "height": 338.0
+    },
+    "3D": {
+      "left": 7178.0,
+      "top": 1884.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "__BCO2": {
+      "left": 3628.0,
+      "top": 4617.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "Legend": {
+      "left": 3489.0,
+      "top": 673.0,
+      "width": 1931.0,
+      "height": 958.0
+    },
+    "_202": {
+      "left": 0.0,
+      "top": 0.0,
+      "width": 0.0,
+      "height": 0.0
+    },
+    "_232": {
+      "left": 0.0,
+      "top": 0.0,
+      "width": 0.0,
+      "height": 0.0
+    }
+  },
+  "warnings": [
+    "Visible scientific annotations are not copied from the exemplar.",
+    "Series line width is later overridden by the product policy when required."
+  ],
+  "copied_visible_text": false,
+  "forbidden_visible_text_categories": [
+    "peak assignments",
+    "crystal-plane labels",
+    "phase labels",
+    "XPS valence labels",
+    "mechanism arrows or text",
+    "EPR radical labels",
+    "product identity labels",
+    "conversion/selectivity/yield text"
+  ]
+}

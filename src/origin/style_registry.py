@@ -20,7 +20,8 @@ REQUIRED_STYLE_PRODUCT_KEYS = (
     "EPR",
     "EIS",
     "Raman",
-    "UV-vis DRS / Tauc",
+    "UV-vis DRS",
+    "Tauc",
     "PL",
     "photocurrent",
     "FTIR",
@@ -31,6 +32,7 @@ STYLE_ASSET_FILE_FIELDS = (
     "graph_template",
     "binding_contract",
     "runtime_validation_evidence",
+    "adaptive_runtime_validation_evidence",
     "style_snapshot",
     "data_snapshot",
     "template_opju",
@@ -679,7 +681,8 @@ def resolve_origin_adaptive_style_asset(
             ),
             runtime_validation_evidence_path=_existing_local_manifest_path(
                 base,
-                raw.get("runtime_validation_evidence"),
+                raw.get("adaptive_runtime_validation_evidence")
+                or raw.get("runtime_validation_evidence"),
             ),
             format_theme_role=format_theme_role,
             expected_plot_count=expected_plot_count,

@@ -34,12 +34,16 @@ def test_load_remaining_pairings_selects_remaining_types_only(tmp_path: Path) ->
         "EIS",
         "Raman",
         "Mott-Schottky",
-        "UV-vis DRS / Tauc",
+        "UV-vis DRS",
+        "Tauc",
         "PL",
         "photocurrent",
         "FTIR",
     ]
     assert all(item.product_key != "BET" for item in selected)
+    uv_items = [item for item in selected if item.product_key in {"UV-vis DRS", "Tauc"}]
+    assert [item.data_type for item in uv_items] == ["UV-vis DRS", "Tauc"]
+    assert uv_items[0].data_paths == uv_items[1].data_paths
 
 
 def _root_map(tmp_path: Path) -> dict[str, Path]:

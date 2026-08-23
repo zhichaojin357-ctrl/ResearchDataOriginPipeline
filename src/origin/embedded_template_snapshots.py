@@ -1719,6 +1719,10 @@ _EMBEDDED_TEMPLATE_SNAPSHOTS_JSON = r'''
 '''
 
 EMBEDDED_TEMPLATE_SNAPSHOTS: dict[str, dict[str, Any]] = json.loads(_EMBEDDED_TEMPLATE_SNAPSHOTS_JSON)
+# The former combined UV-vis/Tauc snapshot captured only Graph2 (Tauc) and is
+# therefore not a valid fallback for either of the now-independent products.
+# Both products resolve through their reviewed graph-specific project assets.
+EMBEDDED_TEMPLATE_SNAPSHOTS.pop("UV-vis DRS / Tauc", None)
 
 
 def embedded_template_product_keys() -> tuple[str, ...]:

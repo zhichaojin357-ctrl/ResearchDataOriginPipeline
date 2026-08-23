@@ -34,6 +34,8 @@ def _write_adaptive_style_bundle(
         "graph_template": style_root / "graph_templates" / "FTIR.otpu",
         "style_snapshot": style_root / "snapshots" / "FTIR.json",
         "data_snapshot": style_root / "data_snapshots" / "FTIR.json",
+        "runtime_validation_evidence": style_root / "validation_evidence" / "FTIR_fixed.json",
+        "adaptive_runtime_validation_evidence": style_root / "validation_evidence" / "FTIR_adaptive.json",
     }
     for path in files.values():
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -45,6 +47,14 @@ def _write_adaptive_style_bundle(
     )
     files["data_snapshot"].write_text(
         '{"schema_version":1,"plot_count":3,"plots":[]}',
+        encoding="utf-8",
+    )
+    files["runtime_validation_evidence"].write_text(
+        '{"schema_version":1,"status":"accepted","route":"otpu"}',
+        encoding="utf-8",
+    )
+    files["adaptive_runtime_validation_evidence"].write_text(
+        '{"schema_version":1,"status":"accepted","route":"oth-json"}',
         encoding="utf-8",
     )
     relative_paths = {
@@ -134,8 +144,40 @@ def test_adaptive_style_resolver_accepts_complete_runtime_bundle(
     assert resolved.style_snapshot_path == files["style_snapshot"]
     assert resolved.data_snapshot_path == files["data_snapshot"]
     assert resolved.graph_template_path == files["graph_template"]
+    assert (
+        resolved.runtime_validation_evidence_path
+        == files["adaptive_runtime_validation_evidence"]
+    )
     assert resolved.format_theme_role == role
     assert resolved.expected_plot_count == 3
+
+
+@pytest.mark.parametrize(
+    ("product_key", "adaptive_evidence_name"),
+    [
+        (
+            "UV-vis DRS",
+            "UV_vis_DRS_oth_json_adaptive_verified_20260824.json",
+        ),
+        ("Tauc", "Tauc_oth_json_adaptive_verified_20260824.json"),
+    ],
+)
+def test_current_uvvis_products_resolve_fixed_and_adaptive_runtime_assets(
+    product_key: str,
+    adaptive_evidence_name: str,
+) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+
+    fixed = resolve_origin_runtime_style_asset(project_root, product_key)
+    adaptive = resolve_origin_adaptive_style_asset(project_root, product_key)
+
+    assert fixed is not None
+    assert fixed.runtime_asset_kind == "otpu"
+    assert adaptive is not None
+    assert adaptive.runtime_asset_kind == "oth_json"
+    assert adaptive.format_theme_role == "adaptive_runtime"
+    assert adaptive.runtime_validation_evidence_path is not None
+    assert adaptive.runtime_validation_evidence_path.name == adaptive_evidence_name
 
 
 @pytest.mark.parametrize(

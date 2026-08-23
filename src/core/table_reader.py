@@ -114,6 +114,10 @@ def read_table_with_metadata(path: Path, *, allow_legacy_xls_com: bool = True) -
     if bracketed_result is not None:
         return bracketed_result
 
+    hitachi_uvvis_result = _hitachi_u3900_wavelength_scan_table_result(text)
+    if hitachi_uvvis_result is not None:
+        return hitachi_uvvis_result
+
     numeric_rows = _headerless_numeric_rows(text)
     if numeric_rows:
         return TableReadResult(numeric_rows)
@@ -508,6 +512,80 @@ def _bracketed_data_table_result(text: str) -> TableReadResult | None:
         sheet_name="Data",
         header_row_index=(data_index + 1 + (result.header_row_index or 0)),
         sheet_scores=result.sheet_scores,
+    )
+
+
+def _hitachi_u3900_wavelength_scan_table_result(text: str) -> TableReadResult | None:
+    """Read only the explicit spectrum block from a Hitachi U-3900 text export."""
+
+    lines = text.splitlines()
+    signature = "\n".join(lines[:100]).casefold()
+    if (
+        "u-3900 spectrophotometer" not in signature
+        or "measurement type:" not in signature
+        or "wavelength scan" not in signature
+        or "data points" not in signature
+    ):
+        return None
+
+    header_index: int | None = None
+    signal_header = ""
+    raw_signal_header = ""
+    for index, line in enumerate(lines[:200]):
+        parts = [part.strip() for part in re.split(r"[\t,;]+", line.strip()) if part.strip()]
+        if len(parts) < 2:
+            continue
+        x_header = _normalize_header(parts[0])
+        y_header = _normalize_header(parts[1])
+        if x_header not in {"nm", "wavelength", "wavelength nm"}:
+            continue
+        if y_header in {"abs", "absorbance"}:
+            signal_header = "absorbance"
+        elif y_header in {"r", "%r", "reflectance", "reflectance %"}:
+            signal_header = "reflectance_percent" if "%" in parts[1] else "reflectance"
+        elif y_header in {"t", "%t", "transmittance", "transmittance %"}:
+            signal_header = "transmittance_percent" if "%" in parts[1] else "transmittance"
+        else:
+            continue
+        header_index = index
+        raw_signal_header = parts[1]
+        break
+    if header_index is None or not signal_header:
+        return None
+
+    rows: list[dict[str, str]] = []
+    started = False
+    for line in lines[header_index + 1 :]:
+        parts = _split_numeric_line(line)
+        if len(parts) < 2 or _to_float(parts[0]) is None or _to_float(parts[1]) is None:
+            if started:
+                break
+            continue
+        started = True
+        rows.append({"wavelength_nm": parts[0], signal_header: parts[1]})
+    if len(rows) < 2:
+        return None
+    return TableReadResult(
+        rows,
+        sheet_name="Hitachi U-3900 spectrum",
+        header_row_index=header_index,
+        sheet_scores={
+            "Hitachi U-3900 spectrum": {
+                "score": len(rows) * 2,
+                "header_bonus": 2,
+                "numeric_rows": len(rows),
+                "numeric_columns": 2,
+                "header_row_index": header_index,
+            }
+        },
+        source_format="hitachi_u3900_wavelength_scan",
+        format_metadata={
+            "vendor": "Hitachi",
+            "instrument_model": "U-3900 Spectrophotometer",
+            "measurement_type": "Wavelength Scan",
+            "signal_header": raw_signal_header,
+            "data_section_only": True,
+        },
     )
 
 

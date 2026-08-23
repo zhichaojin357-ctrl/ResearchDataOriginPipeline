@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "product_key": "Tauc",
+      "data_type": "Tauc",
+      "source_opju": "templates/origin_styles/reference_opju/UV_vis_DRS_Tauc.opju",
+      "graph_page": "Graph2",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/Tauc.otpu",
+      "style_snapshot": "templates/origin_styles/snapshots/Tauc.json",
+      "data_snapshot": "templates/origin_styles/data_snapshots/Tauc.json",
+      "binding_contract": "templates/origin_styles/binding_contracts/Tauc.json"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 {
-  "schema_version": 1,
-  "source_opju": "BOBC+CWO.opju",
+  "schema_version": 3,
+  "status": "ready",
+  "source_opju": "reference_copy.opju",
   "graph_page": "Graph2",
   "sheet_name": "Sheet1",
   "layer_count_with_plots": 1,
@@ -24,13 +25,25 @@
       "y_dataset": "Book2_D",
       "status": "ready",
       "book_name": "Book2",
-      "sheet_name": "Sheet1",
+      "sheet_name": "1",
+      "sheet_index": 1,
       "x_dataset": "Book2_C",
+      "x_book_name": "Book2",
+      "x_sheet_name": "1",
+      "x_sheet_index": 1,
+      "x_mapping_source": "graph_plot_mapping",
       "x_col_index": 2,
       "y_col_index": 3,
       "x_col_letter": "C",
       "y_col_letter": "D",
       "row_count": 1601,
+      "plot_row_from": 1,
+      "plot_row_to": 1601,
+      "plot_row_range_source": "graph_plot_mapping",
+      "mask_readback_status": "ready",
+      "x_masked_rows": [],
+      "y_masked_rows": [],
+      "mask_data_sha256": "ccf87e4ccf35ebc8ae7a817d212e2a3e4a9b98f7ff68cd56aebac98e8f73cea1",
       "style": {
         "color": 16814848.0,
         "line_color": 16814848.0,
@@ -3249,7 +3262,10 @@
         5238.845771144279,
         5535.78054862843,
         5408.88
-      ]
+      ],
+      "x_data_sha256": "f0f5ba2375b030075b7e786798c221e58acffef8db6009bf8fbc95261c5d7b79",
+      "y_data_sha256": "354afad6267413f5cf386553f63261f2681da4d7438c9b89bb9b96afb37f8d59",
+      "xy_data_sha256": "b5473f2287b452f4656ee09f7e22073403b5157beb10a11fcd30a1da18aebbc1"
     },
     {
       "graph_page": "Graph2",
@@ -3258,13 +3274,25 @@
       "y_dataset": "Book2_H",
       "status": "ready",
       "book_name": "Book2",
-      "sheet_name": "Sheet1",
+      "sheet_name": "1",
+      "sheet_index": 1,
       "x_dataset": "Book2_G",
+      "x_book_name": "Book2",
+      "x_sheet_name": "1",
+      "x_sheet_index": 1,
+      "x_mapping_source": "graph_plot_mapping",
       "x_col_index": 6,
       "y_col_index": 7,
       "x_col_letter": "G",
       "y_col_letter": "H",
       "row_count": 1601,
+      "plot_row_from": 1,
+      "plot_row_to": 1601,
+      "plot_row_range_source": "graph_plot_mapping",
+      "mask_readback_status": "ready",
+      "x_masked_rows": [],
+      "y_masked_rows": [],
+      "mask_data_sha256": "ccf87e4ccf35ebc8ae7a817d212e2a3e4a9b98f7ff68cd56aebac98e8f73cea1",
       "style": {
         "color": 33518174.0,
         "line_color": 33518174.0,
@@ -6483,7 +6511,10 @@
         1434.6368159203982,
         1454.9127182044888,
         1415.77
-      ]
+      ],
+      "x_data_sha256": "f0f5ba2375b030075b7e786798c221e58acffef8db6009bf8fbc95261c5d7b79",
+      "y_data_sha256": "06be2e478c5df510764df1a1c07822ab3c8fcb0c32a1b73a10b081272b8e69f0",
+      "xy_data_sha256": "98ca1947080e21706f836ea45365573ecfd54c656413d6a8f5e219990b3b4423"
     },
     {
       "graph_page": "Graph2",
@@ -6492,13 +6523,25 @@
       "y_dataset": "Book2_J",
       "status": "ready",
       "book_name": "Book2",
-      "sheet_name": "Sheet1",
+      "sheet_name": "1",
+      "sheet_index": 1,
       "x_dataset": "Book2_I",
+      "x_book_name": "Book2",
+      "x_sheet_name": "1",
+      "x_sheet_index": 1,
+      "x_mapping_source": "graph_plot_mapping",
       "x_col_index": 8,
       "y_col_index": 9,
       "x_col_letter": "I",
       "y_col_letter": "J",
       "row_count": 1601,
+      "plot_row_from": 1,
+      "plot_row_to": 1601,
+      "plot_row_range_source": "graph_plot_mapping",
+      "mask_readback_status": "ready",
+      "x_masked_rows": [],
+      "y_masked_rows": [],
+      "mask_data_sha256": "ccf87e4ccf35ebc8ae7a817d212e2a3e4a9b98f7ff68cd56aebac98e8f73cea1",
       "style": {
         "color": 16814848.0,
         "line_color": 16814848.0,
@@ -9717,8 +9760,16 @@
         5231.2401460299625,
         5228.298425592698,
         5224.946833053165
-      ]
+      ],
+      "x_data_sha256": "f0f5ba2375b030075b7e786798c221e58acffef8db6009bf8fbc95261c5d7b79",
+      "y_data_sha256": "8ae5ae6269a24d56ab074cc91e742218a1dadd68a6c15bf495e372c28ed5d583",
+      "xy_data_sha256": "9643a3b95d3721fdc6db3997aedae7c80a6afb1e03e7c97209325ca5e57a93f3"
     }
   ],
-  "mapping_policy": "Each Origin Y dataset name Book_Col is paired with the preceding worksheet column as X, matching the reviewed XRD Graph4 paired-XY workbook layout."
+  "plot_values_sha256": "559adb995fea0e755bea5f0a1b0736fa2ade792b5d0f4f1eb491fc0e64f5c775",
+  "plot_mapping_sha256": "d40cc3deed9871d68e545f6ddccd9cc18df7feefc93d064447f95218277f88e8",
+  "plot_data_sha256": "4356e3f70201132b91bed55e133649028cf00b9122b1cd9213b4f05031fff6b0",
+  "mapping_failure_count": 0,
+  "mapping_policy": "Use Origin range -wx/-wy plus nameof(range)$ first, preserving @sheet creation indices and plotted row bounds; worksheet designations/findX are diagnostic fallbacks only and cannot prove same-data exact replay.",
+  "same_data_exact_requirement": "Reference and generated graphs must have identical plot_values_sha256 and plot_mapping_sha256 values from explicit Origin plotdata X/Y readback before pixel equality may be accepted as one-to-one evidence."
 }

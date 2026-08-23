@@ -1,8 +1,9 @@
 {
-  "source_opju": "BOBC+CWO.opju",
+  "source_opju": "reference_copy.opju",
   "status": "extracted",
   "graph_page": "Graph2",
   "graph_pages": [
+    "Graph1",
     "Graph2"
   ],
   "layout_values": {
@@ -110,6 +111,11 @@
     33518174.0,
     16814848.0
   ],
+  "plot_line_colors": [
+    16814848.0,
+    33518174.0,
+    16814848.0
+  ],
   "marker_shapes": [
     0.0,
     0.0,
@@ -120,7 +126,151 @@
     9.0,
     9.0
   ],
-  "graph_object_positions": {},
+  "plot_visibility": [
+    0.0,
+    1.0,
+    1.0
+  ],
+  "graph_object_positions": {
+    "OL": {
+      "left": 0.0,
+      "top": 0.0,
+      "width": 0.0,
+      "height": 0.0
+    },
+    "__FRAMESRCDATAINFOS": {
+      "left": 3516.0,
+      "top": 1992.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "YR": {
+      "left": 5616.0,
+      "top": 2106.0,
+      "width": 158.0,
+      "height": 466.0
+    },
+    "XT": {
+      "left": 3271.0,
+      "top": 339.0,
+      "width": 143.0,
+      "height": 151.0
+    },
+    "YL": {
+      "left": 395.0,
+      "top": 1939.0,
+      "width": 385.0,
+      "height": 799.0
+    },
+    "XB": {
+      "left": 2858.0,
+      "top": 4449.0,
+      "width": 968.0,
+      "height": 339.0
+    },
+    "3D": {
+      "left": 7178.0,
+      "top": 1884.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "__BCO2": {
+      "left": 3628.0,
+      "top": 4617.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "Legend": {
+      "left": 1228.0,
+      "top": 656.0,
+      "width": 1931.0,
+      "height": 661.0
+    },
+    "Line": {
+      "left": 78605.0,
+      "top": 180018.0,
+      "width": 14877.0,
+      "height": 82.0
+    },
+    "Line1": {
+      "left": 78605.0,
+      "top": -2900000.0,
+      "width": 14877.0,
+      "height": 6100000.0
+    },
+    "Line2": {
+      "left": 78605.0,
+      "top": -2900000.0,
+      "width": 14877.0,
+      "height": 6100000.0
+    },
+    "Arrow": {
+      "left": -3473.0,
+      "top": -2900000.0,
+      "width": 1550.0,
+      "height": 1057161.0
+    },
+    "Arrow1": {
+      "left": -3501.0,
+      "top": -2900000.0,
+      "width": 1574.0,
+      "height": 5212178.0
+    },
+    "Text": {
+      "left": 2102.0,
+      "top": 3355.0,
+      "width": 359.0,
+      "height": 213.0
+    },
+    "Text1": {
+      "left": 3462.0,
+      "top": 3501.0,
+      "width": 359.0,
+      "height": 213.0
+    },
+    "Line3": {
+      "left": 1402.0,
+      "top": 1872.0,
+      "width": 1797.0,
+      "height": 2250.0
+    },
+    "Line4": {
+      "left": 2414.0,
+      "top": 3222.0,
+      "width": 1242.0,
+      "height": 907.0
+    },
+    "Line5": {
+      "left": 1125.0,
+      "top": 3793.0,
+      "width": 4394.0,
+      "height": 82.0
+    },
+    "Arrow2": {
+      "left": 1667.0,
+      "top": 3557.0,
+      "width": 436.0,
+      "height": 259.0
+    },
+    "Arrow3": {
+      "left": 2875.0,
+      "top": 3640.0,
+      "width": 565.0,
+      "height": 194.0
+    },
+    "_202": {
+      "left": 0.0,
+      "top": 0.0,
+      "width": 0.0,
+      "height": 0.0
+    },
+    "_232": {
+      "left": 0.0,
+      "top": 0.0,
+      "width": 0.0,
+      "height": 0.0
+    }
+  },
   "warnings": [
     "Visible scientific annotations are not copied from the exemplar.",
     "Series line width is later overridden by the product policy when required."

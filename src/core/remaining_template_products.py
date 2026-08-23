@@ -19,7 +19,8 @@ REMAINING_TARGET_PRODUCT_KEYS = (
     "EIS",
     "Raman",
     "Mott-Schottky",
-    "UV-vis DRS / Tauc",
+    "UV-vis DRS",
+    "Tauc",
     "PL",
     "photocurrent",
     "FTIR",
@@ -29,7 +30,8 @@ REMAINING_TYPE_DIRS = {
     "EIS": "EIS",
     "Raman": "Raman",
     "Mott-Schottky": "Mott_Schottky",
-    "UV-vis DRS / Tauc": "UV_vis_DRS_Tauc",
+    "UV-vis DRS": "UV_vis_DRS",
+    "Tauc": "Tauc",
     "PL": "PL",
     "photocurrent": "photocurrent",
     "FTIR": "FTIR",
@@ -45,8 +47,8 @@ def load_remaining_pairings(pairing_path: Path, root_map: dict[str, Path]) -> li
     selected: list[TargetPairing] = []
     seen: set[str] = set()
     for item in items:
-        product_key = _remaining_product_key(item)
-        if product_key is None or product_key in seen:
+        product_keys = _remaining_product_keys(item)
+        if not product_keys:
             continue
         data_root_label = str(item.get("selected_data_root_label") or "")
         opju_root_label = str(item.get("selected_opju_root_label") or "")
@@ -56,19 +58,22 @@ def load_remaining_pairings(pairing_path: Path, root_map: dict[str, Path]) -> li
         opju_relative = str(item.get("selected_opju_relative_path") or "")
         if not raw_data_paths or not opju_relative:
             continue
-        selected.append(
-            TargetPairing(
-                product_key=product_key,
-                data_type=str(item.get("data_type") or ""),
-                xps_subtype=str(item.get("xps_subtype") or ""),
-                data_root_label=data_root_label,
-                data_paths=[_resolve_pairing_path(data_root, value) for value in raw_data_paths],
-                opju_root_label=opju_root_label,
-                reference_opju=_resolve_pairing_path(opju_root, opju_relative),
-                raw=dict(item),
+        for product_key in product_keys:
+            if product_key in seen:
+                continue
+            selected.append(
+                TargetPairing(
+                    product_key=product_key,
+                    data_type=product_key,
+                    xps_subtype=str(item.get("xps_subtype") or ""),
+                    data_root_label=data_root_label,
+                    data_paths=[_resolve_pairing_path(data_root, value) for value in raw_data_paths],
+                    opju_root_label=opju_root_label,
+                    reference_opju=_resolve_pairing_path(opju_root, opju_relative),
+                    raw=dict(item),
+                )
             )
-        )
-        seen.add(product_key)
+            seen.add(product_key)
     return selected
 
 
@@ -99,15 +104,6 @@ def _build_remaining_processed_plot_table(pairing: TargetPairing) -> tuple[list[
             "title": "Mott-Schottky draft",
             "plot_type": "line+symbol",
             "notes": "Carrier type and band positions are not inferred.",
-        }
-    if pairing.product_key == "UV-vis DRS / Tauc":
-        rows = _data_points_rows(pairing.data_paths[0])
-        return ["wavelength_nm", "signal"], rows, {
-            "x_label": "Wavelength (nm)",
-            "y_label": "Signal (a.u.)",
-            "title": "UV-vis DRS draft",
-            "plot_type": "line",
-            "notes": "DRS/Tauc transform and bandgap interpretation require manual review.",
         }
     if pairing.product_key == "PL":
         rows = _coerced_xy_rows(pairing.data_paths[0])
@@ -216,9 +212,11 @@ def _ftir_overlay_table(paths: list[Path]) -> tuple[list[str], list[list[float |
     }
 
 
-def _remaining_product_key(item: dict[str, Any]) -> str | None:
+def _remaining_product_keys(item: dict[str, Any]) -> tuple[str, ...]:
     data_type = str(item.get("data_type") or "")
-    return data_type if data_type in REMAINING_TARGET_PRODUCT_KEYS else None
+    if data_type == "UV-vis DRS / Tauc":
+        return ("UV-vis DRS", "Tauc")
+    return (data_type,) if data_type in REMAINING_TARGET_PRODUCT_KEYS else ()
 
 
 def _pick_column(columns: list[str], needles: tuple[str, ...]) -> str | None:

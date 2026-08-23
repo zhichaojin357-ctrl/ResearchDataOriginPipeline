@@ -52,7 +52,7 @@ from src.core.remaining_template_products import (
     load_remaining_pairings,
 )
 from src.core.runtime_paths import create_run_output_layout, resolve_output_root
-from src.core.table_reader import read_table
+from src.core.table_reader import coerce_numeric_rows, read_table
 from src.core.xrd_no_card_overlay import xrd_no_card_offset_for_index
 from src.core.xps_heterojunction import (
     XpsFitRecord,
@@ -79,7 +79,7 @@ from src.origin.style_mimic import OpjuStyleSnapshot, apply_style_snapshot, extr
 from src.origin.text_format import origin_bold_text
 from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overrides, load_user_plot_style, resolve_user_plot_style
 from src.processors.base import safe_name
-from src.processors.calculations import bet_processed_table, mott_schottky_numeric
+from src.processors.calculations import bet_processed_table, mott_schottky_numeric, uvvis_processed_table
 from src.processors.eis import (
     EisPoint,
     clean_eis_file,
@@ -94,7 +94,8 @@ TEMPLATE_TARGET_TYPES = (
     "EPR",
     "EIS",
     "Raman",
-    "UV-vis DRS / Tauc",
+    "UV-vis DRS",
+    "Tauc",
     "PL",
     "photocurrent",
     "FTIR",
@@ -112,7 +113,8 @@ TEMPLATE_TYPE_DIRS = {
     "EPR": "EPR",
     "EIS": "EIS",
     "Raman": "Raman",
-    "UV-vis DRS / Tauc": "UV_vis_DRS_Tauc",
+    "UV-vis DRS": "UV_vis_DRS",
+    "Tauc": "Tauc",
     "PL": "PL",
     "photocurrent": "photocurrent",
     "FTIR": "FTIR",
@@ -129,7 +131,8 @@ TEMPLATE_PRODUCT_SLUGS = {
     "EPR": "EPR_OH_overlay_exemplar",
     "EIS": "EIS_BOBC_exemplar",
     "Raman": "Raman_BOBC_exemplar",
-    "UV-vis DRS / Tauc": "UV_vis_DRS_Tauc_BOBC_exemplar",
+    "UV-vis DRS": "UV_vis_DRS_BOBC_exemplar",
+    "Tauc": "Tauc_BOBC_exemplar",
     "PL": "PL_BOBC_exemplar",
     "photocurrent": "photocurrent_BOBC_exemplar",
     "FTIR": "FTIR_BOBC_CWO_exemplar",
@@ -1111,6 +1114,9 @@ def _template_target_types(options: TemplateProductBuilderOptions) -> tuple[str,
         return target_types
     requested = str(options.only_type).strip()
     requested_key = requested.casefold().replace("-", "_").replace(" ", "_").replace("/", "_")
+    requested_compact = re.sub(r"[^a-z0-9]+", "", requested.casefold())
+    if requested_compact == "uvvisdrstauc":
+        return ("UV-vis DRS", "Tauc")
     matches = [
         product_key
         for product_key in target_types
@@ -1537,7 +1543,9 @@ def _build_template_aligned_remaining_table(
     *,
     origin_style_mode: str = "otpu",
 ) -> dict[str, object]:
-    if pairing.product_key in {"Raman", "UV-vis DRS / Tauc", "PL", "photocurrent", "FTIR", "Mott-Schottky"}:
+    if pairing.product_key in {"UV-vis DRS", "Tauc"}:
+        return _build_template_uvvis_table(pairing, template, origin_style_mode=origin_style_mode)
+    if pairing.product_key in {"Raman", "PL", "photocurrent", "FTIR", "Mott-Schottky"}:
         aligned = _build_template_xy_multisource_table(
             pairing,
             template,
@@ -1646,6 +1654,120 @@ def _build_template_bet_multisource_table(
         "labels": labels,
         "alignment": alignment,
     }
+
+
+def _build_template_uvvis_table(
+    pairing: TargetPairing,
+    template: TemplateCandidate,
+    *,
+    origin_style_mode: str,
+) -> dict[str, object]:
+    """Build DRS or Tauc plot pairs from the same explicit UV-vis sources.
+
+    Each file is processed by the existing UV-vis calculation module, then
+    retained on its own X grid.  The graph builder never sorts, interpolates,
+    smooths, normalizes, or duplicates a spectrum to satisfy a template shape.
+    """
+
+    origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
+    paths = _template_unique_paths(list(pairing.data_paths))
+    if not paths:
+        raise ValueError(f"{pairing.product_key} requires at least one explicitly paired UV-vis source file.")
+    series: list[tuple[str, list[list[float | str | None]]]] = []
+    signal_headers: set[str] = set()
+    used_files: list[Path] = []
+    for path in paths:
+        if not path.is_file() or path.suffix.casefold() not in {".txt", ".csv", ".xlsx", ".xls"}:
+            raise ValueError(f"UV-vis explicit pairing contains an invalid source file: {path}")
+        source_rows = read_table(path)
+        numeric = coerce_numeric_rows(source_rows)
+        if len(numeric) < 2:
+            raise ValueError(f"UV-vis source contains fewer than two numeric rows: {path}")
+        processed_headers, processed_rows = uvvis_processed_table(numeric, source_rows)
+        index = {str(header): position for position, header in enumerate(processed_headers)}
+        if pairing.product_key == "UV-vis DRS":
+            signal_header = "absorbance" if "absorbance" in index else "reflectance"
+            signal_headers.add(signal_header)
+            x_index = index["wavelength_nm"]
+            y_index = index[signal_header]
+        else:
+            x_index = index["photon_energy_eV"]
+            if "tauc_y_absorbance_direct_candidate" in index:
+                signal_headers.add("absorbance")
+                y_header = "tauc_y_absorbance_direct_candidate"
+            else:
+                signal_headers.add("reflectance")
+                y_header = "tauc_y_direct_candidate"
+            y_index = index[y_header]
+        values = [
+            [row[x_index], row[y_index]]
+            for row in processed_rows
+            if row[x_index] not in {None, ""} and row[y_index] not in {None, ""}
+        ]
+        if len(values) < 2:
+            raise ValueError(f"UV-vis processing produced fewer than two finite {pairing.product_key} points: {path}")
+        series.append((_template_xy_series_label(pairing.product_key, path), values))
+        used_files.append(path)
+    if len(signal_headers) != 1:
+        raise ValueError(
+            f"One {pairing.product_key} product cannot mix absorbance and reflectance "
+            "sources under a single Y-axis title."
+        )
+    if pairing.product_key == "UV-vis DRS":
+        x_suffix, y_suffix = "wavelength_nm", "drs_signal"
+        y_label = "Absorbance (a.u.)" if signal_headers == {"absorbance"} else "Reflectance (a.u.)"
+        labels = {
+            "x_label": "Wavelength (nm)",
+            "y_label": y_label,
+            "title": "UV-vis DRS",
+            "plot_type": "line",
+            "notes": "Signal mode and wavelength range require manual confirmation; no band-edge conclusion is inferred.",
+        }
+    else:
+        x_suffix, y_suffix = "photon_energy_eV", "tauc_y_direct_candidate"
+        y_label = (
+            "(αhν)^2"
+            if signal_headers == {"absorbance"}
+            else "(F(R)hν)^2"
+        )
+        labels = {
+            "x_label": "hν (eV)",
+            "y_label": y_label,
+            "title": "Tauc",
+            "plot_type": "line",
+            "notes": "Tauc transform and linear interval are candidates requiring manual review; no final bandgap is inferred.",
+        }
+    labels["legend_entries"] = [str(label).strip() for label, _values in series]
+    headers, rows = _template_independent_xy_table(x_suffix, y_suffix, series)
+    current_series_count = len(series)
+    alignment = _template_alignment_payload(
+        pairing,
+        template,
+        used_files,
+        current_series_count,
+        f"explicit_{safe_name(pairing.product_key)}_processor_output_independent_xy",
+    )
+    alignment.update(
+        _template_style_shape_payload(
+            requested_mode=origin_style_mode,
+            current_series_count=current_series_count,
+            fixed_contract_series_count=int(template.plot_count or 0),
+        )
+    )
+    alignment.update(
+        {
+            "interpolation": "not_applied",
+            "smoothing": "not_applied",
+            "normalization": "not_applied",
+            "numeric_transform": (
+                "existing_uvvis_processor_tauc_candidate"
+                if pairing.product_key == "Tauc"
+                else "existing_uvvis_processor_drs_signal"
+            ),
+            "source_signal_mode": next(iter(signal_headers)),
+        }
+    )
+    return {"headers": headers, "rows": rows, "labels": labels, "alignment": alignment}
 
 
 def _template_explicit_bet_files(pairing: TargetPairing) -> list[Path]:
@@ -2043,9 +2165,7 @@ def _build_template_xy_multisource_table(
     used_files: list[Path] = []
     for path in candidates:
         try:
-            if pairing.product_key == "UV-vis DRS / Tauc":
-                rows = _data_points_rows(path)
-            elif pairing.product_key == "Mott-Schottky":
+            if pairing.product_key == "Mott-Schottky":
                 rows = _template_mott_schottky_rows(path)
             else:
                 rows = _coerced_xy_rows(path)
@@ -2749,14 +2869,6 @@ def _template_xy_labels(product_key: str) -> tuple[str, str, dict[str, str]]:
             "y_label": "Intensity (a.u.)",
             "title": "Raman draft",
             "plot_type": "line",
-        }
-    if product_key == "UV-vis DRS / Tauc":
-        return "wavelength_nm", "signal", {
-            "x_label": "Wavelength (nm)",
-            "y_label": "Signal (a.u.)",
-            "title": "UV-vis DRS draft",
-            "plot_type": "line",
-            "notes": "DRS/Tauc transform and bandgap interpretation require manual review.",
         }
     if product_key == "PL":
         return "wavelength_nm", "counts", {
@@ -4453,7 +4565,7 @@ def _legend_bold_readback(numeric: dict[str, object], strings: dict[str, object]
 
 
 def _apply_template_axis_range(operations: object, graph_name: str, product: ProductContext) -> None:
-    if product.product_key not in {"EIS", "XRD", "EPR", "UV-vis DRS / Tauc"}:
+    if product.product_key not in {"EIS", "XRD", "EPR", "UV-vis DRS", "Tauc"}:
         return
     if product.product_key == "EIS":
         x_min, x_max = _csv_bounds_for_columns(product.processed_data, (0, 2))
@@ -7394,7 +7506,7 @@ def _product_key_from_f_drive_path(path: Path) -> str | None:
     if "拉曼" in text:
         return "Raman"
     if "固体紫外" in text or "紫外" in text:
-        return "UV-vis DRS / Tauc"
+        return "UV-vis DRS"
     if "激发" in text or "发射" in text:
         return "PL"
     if "光电流" in text:
@@ -7405,8 +7517,10 @@ def _product_key_from_f_drive_path(path: Path) -> str | None:
         return "EIS"
     if "鎷夋浖" in text or "raman" in text:
         return "Raman"
-    if "鍥轰綋绱" in text or "uv" in text or "tauc" in text:
-        return "UV-vis DRS / Tauc"
+    if "tauc" in text:
+        return "Tauc"
+    if "鍥轰綋绱" in text or "uv" in text:
+        return "UV-vis DRS"
     if any(part == "pl" for part in parts) or "鑽у厜" in text:
         return "PL"
     if "鍏夌數娴" in text or "photocurrent" in text or "i-t" in text:

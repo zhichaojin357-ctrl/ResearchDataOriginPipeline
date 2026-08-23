@@ -94,7 +94,15 @@ def resolve_user_plot_style(
     config = user_config or {}
     global_values = config.get("global") if isinstance(config.get("global"), dict) else {}
     _merge_style_values(values, global_values)
-    type_values = config.get(_style_key(product_key)) if isinstance(config.get(_style_key(product_key)), dict) else {}
+    style_key = _style_key(product_key)
+    legacy_uv_values = (
+        config.get("uv_vis_drs_tauc")
+        if style_key in {"uv_vis_drs", "tauc"}
+        and isinstance(config.get("uv_vis_drs_tauc"), dict)
+        else {}
+    )
+    _merge_style_values(values, legacy_uv_values)
+    type_values = config.get(style_key) if isinstance(config.get(style_key), dict) else {}
     _merge_style_values(values, type_values)
     return _coerce_style(values)
 
@@ -182,7 +190,7 @@ def _style_key(product_key: str) -> str:
     if lowered.startswith("xps"):
         return "xps"
     if "uv" in lowered:
-        return "uv_vis_drs_tauc"
+        return "uv_vis_drs"
     return (
         lowered.replace("/", "_")
         .replace("-", "_")

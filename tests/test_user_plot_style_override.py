@@ -58,6 +58,21 @@ def test_user_style_override_maps_xps_group_to_xps_key() -> None:
     assert style.tick_label_font_size == 20
 
 
+def test_split_uvvis_products_keep_legacy_style_fallback_with_dedicated_override() -> None:
+    config = {
+        "uv_vis_drs_tauc": {"line_width_pt": 2.5, "axis_title_font_size": 31},
+        "uv_vis_drs": {"axis_title_font_size": 33},
+    }
+
+    drs = resolve_user_plot_style("UV-vis DRS", user_config=config)
+    tauc = resolve_user_plot_style("Tauc", user_config=config)
+
+    assert drs.line_width_pt == 2.5
+    assert drs.axis_title_font_size == 33
+    assert tauc.line_width_pt == 2.5
+    assert tauc.axis_title_font_size == 31
+
+
 def test_exemplar_origin_line_width_units_convert_to_points() -> None:
     exemplar = OpjuStyleSnapshot(
         source_opju="reference.opju",

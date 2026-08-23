@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "UV-vis DRS",
+  "status": "accepted",
+  "generated_at": "2026-08-24T12:30:00+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed that the detached Graph1 OTPU replay is pixel-identical to the reviewed DRS graph: page and layer geometry, six native Origin plots with the reviewed hidden/visible state, curve colors and widths, bold axis titles, tick labels, legend, and all visible layout details are unchanged. The fresh plot did not load the reference OPJU as a product base.",
+  "staged_asset_replay_location": "origin_style_validation/20260824_UV_vis_DRS_candidate_replay_01/run_result.json",
+  "validation_plan": {
+    "path": "validation_plans/UV_vis_DRS_verified_20260824.json",
+    "sha256": "ac87b62b027b814374e80939136fe242dbd5e124fc9876dd07c478d983c02fc2"
+  },
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/UV_vis_DRS.otpu",
+    "sha256": "3972ea48f8259c77e1112c16613f120dfc6234949e329e2f5b4f90a71b197e0c",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju",
+    "minimum_generation_package": "otpu_plus_explicit_binding_contract_plus_style_and_data_snapshots"
+  },
+  "reference": {
+    "path": "reference_opju/UV_vis_DRS_Tauc.opju",
+    "graph_page": "Graph1",
+    "sha256": "35061cd16b51840d3643035f649388809e9f333120219008db05f02b3aac48a6",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/UV_vis_DRS.json",
+    "sha256": "903c65db4b483f67c4c656a7fb62c9935ecc01e1efb85655cea7e04ff43e5820",
+    "source_series_count": 6,
+    "source_layout": "paired_xy_columns",
+    "workbook_name": "Book1",
+    "worksheet_index": 1,
+    "group_plots": false,
+    "fixed_semantic_roles_required": true,
+    "numeric_transform": "none"
+  },
+  "same_data_asset_replay": {
+    "verified": true,
+    "current_style_snapshot_sha256": "8370ef4c0bc6cd93d98da95bcdcc7e4d734f27d152d2492a28cc7341c866ccf0",
+    "reference_plot_values_sha256": "d695bd2facce25b8960875de8e216761cdd47080b830c3f35ddb53a17f425887",
+    "generated_plot_values_sha256": "d695bd2facce25b8960875de8e216761cdd47080b830c3f35ddb53a17f425887",
+    "reference_plot_mapping_sha256": "0b1aa5552c134cffa998525b114666d8da54ed06b36beb899f803b52655f707f",
+    "generated_plot_mapping_sha256": "0b1aa5552c134cffa998525b114666d8da54ed06b36beb899f803b52655f707f",
+    "style_conformance": "74/74",
+    "axis_title_hard_gate": true,
+    "exact_pixel_match": true,
+    "same_size": true,
+    "changed_pixels": 0,
+    "rms": 0.0,
+    "reference_opju_self_replay": false,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "sensitive_metadata_scan": "pass"
+  }
+}

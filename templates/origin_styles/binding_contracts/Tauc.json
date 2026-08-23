@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "Tauc",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "35061cd16b51840d3643035f649388809e9f333120219008db05f02b3aac48a6",
+      "graph_page": "Graph2",
+      "source_series_count": 3,
+      "source_schema": {
+        "status": "ready",
+        "layout": "paired_xy_columns",
+        "x_header_suffix": "_photon_energy_eV",
+        "y_header_suffix": "_tauc_y_direct_candidate",
+        "source_csv_indices": [0, 1, 2, 3, 4, 5],
+        "source_identities": [
+          "CuWO4_unsmoothed_hidden",
+          "BiOBr0_5Cl0_5_visible",
+          "CuWO4_visible"
+        ],
+        "source_legend_entries": [
+          "CuWO4",
+          "BiOBr0.5Cl0.5",
+          "CuWO4"
+        ],
+        "worksheet_layout": "Book2_sheet1_explicit_sparse_destination_ranges",
+        "transform": "reviewed_reference_plotted_tauc_values_without_sorting_interpolation_smoothing_normalization_or_added_fit_claims",
+        "plot_type": "line",
+        "group_plots": false
+      },
+      "plots": [
+        {
+          "layer_index": 1,
+          "plot_index": 1,
+          "x_dataset": "Book2_C",
+          "y_dataset": "Book2_D",
+          "row_from": 1,
+          "row_to": 1601,
+          "source_series_index": 1,
+          "semantic_role": "hidden_unsmoothed_tauc_source"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 2,
+          "x_dataset": "Book2_G",
+          "y_dataset": "Book2_H",
+          "row_from": 1,
+          "row_to": 1601,
+          "source_series_index": 2,
+          "semantic_role": "visible_biobr_cl_tauc_curve"
+        },
+        {
+          "layer_index": 1,
+          "plot_index": 3,
+          "x_dataset": "Book2_I",
+          "y_dataset": "Book2_J",
+          "row_from": 1,
+          "row_to": 1601,
+          "source_series_index": 3,
+          "semantic_role": "visible_cuwo4_tauc_curve"
+        }
+      ]
+    }
+  ]
+}

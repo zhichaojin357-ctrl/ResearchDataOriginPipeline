@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "Tauc",
+  "status": "accepted",
+  "generated_at": "2026-08-24T12:30:00+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed that the detached Graph2 OTPU replay is pixel-identical to the reviewed Tauc graph: page and layer geometry, three native Origin plots with the reviewed hidden/visible state, curve colors and widths, bold axis titles, tick labels, legend, reviewed guide objects, and visible layout details are unchanged. The fresh plot did not load the reference OPJU as a product base.",
+  "staged_asset_replay_location": "origin_style_validation/20260824_Tauc_candidate_replay_01/run_result.json",
+  "validation_plan": {
+    "path": "validation_plans/Tauc_verified_20260824.json",
+    "sha256": "03cd688b0c5d9f9159f792c81a57a27a8c16531606c61b5a7e6296b8c281c2ef"
+  },
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/Tauc.otpu",
+    "sha256": "e56b68edee033f5c4c497a2a27c5cb25a206d662afa1c6566b14b1e3d18582ff",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju",
+    "minimum_generation_package": "otpu_plus_explicit_binding_contract_plus_style_and_data_snapshots"
+  },
+  "reference": {
+    "path": "reference_opju/UV_vis_DRS_Tauc.opju",
+    "graph_page": "Graph2",
+    "sha256": "35061cd16b51840d3643035f649388809e9f333120219008db05f02b3aac48a6",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/Tauc.json",
+    "sha256": "1d15586e568dbb542a01dab04d6483a76cf91e2391c228c89ba302c5cb402d70",
+    "source_series_count": 3,
+    "source_layout": "paired_xy_columns",
+    "workbook_name": "Book2",
+    "worksheet_index": 1,
+    "group_plots": false,
+    "fixed_semantic_roles_required": true,
+    "numeric_transform": "none"
+  },
+  "same_data_asset_replay": {
+    "verified": true,
+    "current_style_snapshot_sha256": "7d866b908a9f1c3814572ca9ad509a3c1ea3dec380f220e822372aa2aa7c667a",
+    "reference_plot_values_sha256": "559adb995fea0e755bea5f0a1b0736fa2ade792b5d0f4f1eb491fc0e64f5c775",
+    "generated_plot_values_sha256": "559adb995fea0e755bea5f0a1b0736fa2ade792b5d0f4f1eb491fc0e64f5c775",
+    "reference_plot_mapping_sha256": "d40cc3deed9871d68e545f6ddccd9cc18df7feefc93d064447f95218277f88e8",
+    "generated_plot_mapping_sha256": "d40cc3deed9871d68e545f6ddccd9cc18df7feefc93d064447f95218277f88e8",
+    "style_conformance": "74/74",
+    "axis_title_hard_gate": true,
+    "exact_pixel_match": true,
+    "same_size": true,
+    "changed_pixels": 0,
+    "rms": 0.0,
+    "reference_opju_self_replay": false,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "sensitive_metadata_scan": "pass"
+  }
+}
