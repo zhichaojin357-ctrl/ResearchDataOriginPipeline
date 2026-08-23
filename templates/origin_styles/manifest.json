@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-08-24T01:26:02+08:00",
+  "generated_at": "2026-08-24T01:27:52+08:00",
   "asset_root": "templates/origin_styles",
   "origin_dependency_boundary": "Current formal exact-style runs use isolated reviewed reference_opju copies. Harvested .oth/.otpu assets remain quarantined until a fresh-project replay uses identical explicit per-plot X/Y data and mappings, saves and reopens the generated OPJU, exports native 600 dpi, has zero decoded-pixel difference, and passes manual preview.",
   "assets": [
@@ -1067,7 +1067,7 @@
       "expected_plot_count": 5,
       "origin_version": "10.3",
       "origin_build": "197",
-      "pipeline_git_commit": "d205588",
+      "pipeline_git_commit": "5495d48",
       "harvested_at": "2026-08-24T01:26:02+08:00",
       "source_opju_hash": "6bc398d3ddd0b3c18b8cfda06d0a3754915097c1ebcddc18cd94e0d6583a8cf9",
       "exact_pixel_match": true,
@@ -1149,6 +1149,6 @@
       "style_source_theme": ""
     }
   ],
-  "integrity_updated_at": "2026-08-24T01:26:02+08:00",
+  "integrity_updated_at": "2026-08-24T01:27:52+08:00",
   "integrity_policy": "SHA-256 and byte-size records cover every project-local file referenced by each asset entry; visual assets are not rewritten during integrity refresh."
 }
