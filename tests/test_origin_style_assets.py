@@ -169,6 +169,7 @@ def test_adaptive_style_resolver_accepts_complete_runtime_bundle(
             "XPS_non_in_situ_oth_json_adaptive_verified_20260824.json",
         ),
         ("EPR", "EPR_oth_json_adaptive_verified_20260825.json"),
+        ("PL", "PL_oth_json_adaptive_verified_20260824.json"),
         ("XRD", "XRD_oth_json_adaptive_verified_20260824.json"),
     ],
 )

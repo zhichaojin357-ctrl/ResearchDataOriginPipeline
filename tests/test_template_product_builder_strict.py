@@ -1885,6 +1885,41 @@ def test_template_pl_selects_only_requested_scan_family_and_material_labels(tmp_
     assert len(set(built["headers"])) == len(built["headers"])
 
 
+def test_template_pl_explicit_oth_json_uses_only_paired_current_curves(tmp_path: Path) -> None:
+    root = tmp_path / "PL" / "bobc+cwo+bc"
+    root.mkdir(parents=True)
+    paths = [root / f"{index}-EX-em640nm.txt" for index in range(1, 4)]
+    for index, path in enumerate(paths, start=1):
+        path.write_text(f"250 {index}\n251 {index + 1}\n", encoding="utf-8")
+    pairing = TargetPairing(
+        "PL",
+        "PL",
+        "",
+        "root",
+        [paths[2], paths[0]],
+        "root",
+        tmp_path / "pl.opju",
+    )
+    template = TemplateCandidate(
+        "PL",
+        tmp_path / "pl.opju",
+        "unit",
+        graph_page="EXJF",
+        plot_count=3,
+    )
+
+    built = _build_template_xy_multisource_table(
+        pairing,
+        template,
+        origin_style_mode="oth-json",
+    )
+
+    assert built is not None
+    assert built["headers"] == ["wavelength_nm", "BC_counts", "BOBC_counts"]
+    assert built["labels"]["legend_entries"] == ["BC", "BOBC"]
+    assert all("CWO" not in header for header in built["headers"])
+
+
 def test_template_photocurrent_uses_sample_directory_labels(tmp_path: Path) -> None:
     root = tmp_path / "photocurrent" / "1bobc+2cwo+3bicu-10"
     paths = [

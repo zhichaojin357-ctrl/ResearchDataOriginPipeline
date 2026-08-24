@@ -19,6 +19,7 @@ from src.core.template_format_executor import (
     TemplateFormatExecutorOptions,
     _adaptive_raman_conformance_reference,
     _adaptive_epr_conformance_reference,
+    _adaptive_pl_conformance_reference,
     _adaptive_series_count_conformance,
     _adaptive_oth_json_readback_validation,
     _adaptive_photocurrent_validation_ranges,
@@ -86,6 +87,7 @@ from src.core.template_format_executor import (
     _validate_xps_non_in_situ_reopened_plot_styles,
     _validate_adaptive_xps_non_in_situ_reopened_plot_styles,
     _validate_adaptive_epr_reopened_plot_styles,
+    _validate_adaptive_reopened_plot_style_cycle,
     _validate_photocurrent_axis_titles,
     _validate_bet_axis_titles,
     _update_verified_epr_label_objects,
@@ -1511,7 +1513,7 @@ def test_verified_pl_post_plot_order_and_legend_helper_fail_closed(
     }
     assert _update_verified_pl_legend(object(), "EXJF", ["BOBC", "CWO", "CWO"]) == {
         "applied": False,
-        "reason": "pl_legend_requires_three_nonempty_unique_values",
+        "reason": "pl_legend_requires_nonempty_unique_current_values",
     }
 
 
@@ -1573,6 +1575,45 @@ def test_verified_pl_conformance_allows_only_current_legend_text() -> None:
         "legend.text$": r"\\l(1)\\b(Current BOBC)",
     }
     assert reference["audit_string_values"]["legend.text$"] == r"\\l(1)\\b(BOBC)"
+
+
+def test_adaptive_pl_conformance_allows_only_current_data_geometry_and_legend() -> None:
+    reference = {
+        "layout_values": {
+            "page.width": 6983,
+            "layer.x.from": 239.5,
+            "layer.y.to": 70000,
+            "legend.x": 555,
+        },
+        "audit_numeric_values": {"layer.x.from": 239.5, "xb.bold": 1},
+        "audit_string_values": {"legend.text$": r"\\l(1)\\b(BOBC)"},
+    }
+    product = {
+        "layout_values": {
+            "page.width": 9999,
+            "layer.x.from": 250,
+            "layer.y.to": 80000,
+            "legend.x": 580,
+        },
+        "audit_numeric_values": {"layer.x.from": 250, "xb.bold": 0},
+        "audit_string_values": {"legend.text$": r"\\l(1)\\b(Current)"},
+    }
+
+    adjusted = _adaptive_pl_conformance_reference(reference, product)
+
+    assert adjusted["layout_values"] == {
+        "page.width": 6983,
+        "layer.x.from": 250,
+        "layer.y.to": 80000,
+        "legend.x": 580,
+    }
+    assert adjusted["audit_numeric_values"] == {
+        "layer.x.from": 250,
+        "xb.bold": 1,
+    }
+    assert adjusted["audit_string_values"] == {
+        "legend.text$": r"\\l(1)\\b(Current)",
+    }
 
 
 def _write_verified_photocurrent_contract(
@@ -4233,6 +4274,37 @@ def test_uvvis_drs_uses_current_paired_xy_axis_range(tmp_path: Path) -> None:
     assert float(ops.axis_calls[0]["y_max"]) > 4.0
 
 
+def test_pl_axis_range_preserves_reviewed_bounds_when_current_data_fit(tmp_path: Path) -> None:
+    processed = tmp_path / "pl.csv"
+    processed.write_text(
+        "wavelength_nm,BOBC_counts,CWO_counts,BC_counts\n"
+        "250,100,200,300\n600,400,,500\n",
+        encoding="utf-8",
+    )
+    product = replace(_product(tmp_path, processed), product_key="PL")
+    ops = _FakeAxisOps()
+    style = {
+        "layout_values": {
+            "layer.x.from": 239.5,
+            "layer.x.to": 610.5,
+            "layer.y.from": -5000.0,
+            "layer.y.to": 70000.0,
+        }
+    }
+
+    result = _apply_embedded_snapshot_data_axis_range(
+        ops,
+        "EXJF",
+        product,
+        reference_style_snapshot=style,
+    )
+
+    assert result["applied"] is True
+    assert result["decision"] == "template_preserved"
+    assert result["range_changed"] is False
+    assert ops.axis_calls == []
+
+
 def test_epr_verified_field_data_overrides_legacy_template_axis_range(tmp_path: Path) -> None:
     processed = tmp_path / "epr.csv"
     processed.write_text(
@@ -5966,6 +6038,71 @@ def test_strict_adaptive_xrd_accepts_shared_x_card_contract_not_fixed_multibook_
     assert result["layout"] == "multi_book_xy_pairs"
 
 
+def test_strict_adaptive_shared_x_accepts_distinct_contiguous_y_bounds() -> None:
+    contract = SimpleNamespace(
+        product_key="PL",
+        source_schema={
+            "layout": "shared_x_y_columns",
+            "x_header": "wavelength_nm",
+            "y_header_suffix": "_counts",
+        },
+    )
+    headers = ["wavelength_nm", "BOBC_counts", "CWO_counts"]
+    rows = [
+        [250.0, 1.0, math.nan],
+        [251.0, 2.0, 10.0],
+        [252.0, 3.0, 11.0],
+        [253.0, 4.0, math.nan],
+    ]
+
+    accepted = _strict_adaptive_source_validation(
+        contract,
+        headers,
+        rows,
+        [(0, 1), (0, 2)],
+    )
+    assert accepted["ok"] is True
+    assert _adaptive_photocurrent_validation_ranges(
+        rows,
+        [(1, 2), (1, 3)],
+        shared_x_variable_y=True,
+    ) == [
+        {
+            "x_col": 1,
+            "y_col": 2,
+            "row_from": 1,
+            "row_to": 4,
+            "source_x_index": 0,
+            "source_y_index": 1,
+            "source_row_from": 1,
+            "source_row_to": 4,
+        },
+        {
+            "x_col": 1,
+            "y_col": 3,
+            "row_from": 2,
+            "row_to": 3,
+            "source_x_index": 0,
+            "source_y_index": 2,
+            "source_row_from": 2,
+            "source_row_to": 3,
+        },
+    ]
+
+    rows_with_gap = [list(row) for row in rows]
+    rows_with_gap[1][2] = 10.0
+    rows_with_gap[2][2] = math.nan
+    rows_with_gap[3][2] = 12.0
+    rejected = _strict_adaptive_source_validation(
+        contract,
+        headers,
+        rows_with_gap,
+        [(0, 1), (0, 2)],
+    )
+    assert rejected["ok"] is False
+    assert "contiguous finite X/Y run" in rejected["message"]
+
+
 def test_load_saved_style_snapshot_reads_adjacent_snapshot_file(tmp_path: Path) -> None:
     theme = tmp_path / "templates" / "origin_styles" / "format_themes" / "XRD.oth"
     snapshot = tmp_path / "templates" / "origin_styles" / "snapshots" / "XRD.json"
@@ -7353,6 +7490,92 @@ def test_adaptive_photocurrent_readback_requires_current_xy_values_match() -> No
     assert mismatch["ok"] is False
     assert mismatch["current_plot_values_match_csv"] is False
     assert "X/Y values" in mismatch["message"]
+
+
+def test_adaptive_pl_readback_requires_current_xy_and_visible_curves() -> None:
+    product = SimpleNamespace(product_key="PL")
+    decision = {"selected_mode": "oth-json", "contract_series_count": 3}
+
+    matched = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (1, 3)],
+        {"plot_count": 2, "plot_visibility": [1, 1]},
+        decision,
+        {"status": "fail"},
+        current_data_validation={"ok": True, "status": "matched"},
+    )
+    assert matched["ok"] is True
+    assert matched["all_current_plots_visible"] is True
+    assert matched["current_plot_values_match_csv"] is True
+
+    hidden = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (1, 3)],
+        {"plot_count": 2, "plot_visibility": [1, 0]},
+        decision,
+        {"status": "fail"},
+        current_data_validation={"ok": True, "status": "matched"},
+    )
+    assert hidden["ok"] is False
+    assert "not every current CSV curve is visible" in hidden["message"]
+
+    wrong_data = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (1, 3)],
+        {"plot_count": 2, "plot_visibility": [1, 1]},
+        decision,
+        {"status": "fail"},
+        current_data_validation={"ok": False, "status": "mismatch"},
+    )
+    assert wrong_data["ok"] is False
+    assert "X/Y values" in wrong_data["message"]
+
+
+def test_adaptive_pl_reopened_styles_use_reviewed_native_cycle() -> None:
+    styles = [
+        {
+            "color": color,
+            "line_color": color,
+            "line_width_origin_units": 1500.0,
+            "line_width_pt": 3.0,
+            "line_style": 1.0,
+            "symbol_shape": 0.0,
+            "symbol_size": 9.0,
+        }
+        for color in (10.0, 20.0, 30.0)
+    ]
+    reference = {
+        "status": "ready",
+        "plots": [
+            {"layer_index": 1, "plot_index": index, "style": style}
+            for index, style in enumerate(styles, start=1)
+        ],
+    }
+    current = {
+        "plots": [
+            {"layer_index": 1, "plot_index": index, "style": dict(styles[index - 1])}
+            for index in range(1, 3)
+        ]
+    }
+
+    matched = _validate_adaptive_reopened_plot_style_cycle(
+        reference,
+        current,
+        product_key="PL",
+        reference_plot_count=3,
+        expected_plot_count=2,
+    )
+    assert matched["ok"] is True
+    current["plots"][1]["style"]["line_color"] = 999.0
+    rejected = _validate_adaptive_reopened_plot_style_cycle(
+        reference,
+        current,
+        product_key="PL",
+        reference_plot_count=3,
+        expected_plot_count=2,
+    )
+    assert rejected["ok"] is False
+    assert "line_color" in rejected["message"]
 
 
 def test_adaptive_photocurrent_validation_ranges_keep_per_pair_row_counts() -> None:

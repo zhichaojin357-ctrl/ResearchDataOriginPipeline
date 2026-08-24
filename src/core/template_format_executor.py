@@ -684,10 +684,18 @@ def _strict_adaptive_source_validation(
         for row in rows:
             x_value = _finite_numeric_value(row[x_index]) if x_index < len(row) else None
             y_value = _finite_numeric_value(row[y_index]) if y_index < len(row) else None
-            if (x_value is None) != (y_value is None):
-                failures.append(f"series {series_index} contains an unpaired X or Y value")
-                break
-            states.append(x_value is not None)
+            if layout == "shared_x_y_columns":
+                if y_value is not None and x_value is None:
+                    failures.append(
+                        f"series {series_index} contains Y data without its shared X value"
+                    )
+                    break
+                states.append(y_value is not None)
+            else:
+                if (x_value is None) != (y_value is None):
+                    failures.append(f"series {series_index} contains an unpaired X or Y value")
+                    break
+                states.append(x_value is not None)
         bounds = _paired_numeric_row_bounds(rows, x_index, y_index)
         if bounds is None:
             failures.append(f"series {series_index} has no contiguous finite X/Y run")
@@ -7671,13 +7679,15 @@ def _validate_adaptive_xps_non_in_situ_reopened_plot_styles(
     }
 
 
-def _validate_adaptive_epr_reopened_plot_styles(
+def _validate_adaptive_reopened_plot_style_cycle(
     reference_data: dict[str, object],
     current_data: dict[str, object],
     *,
+    product_key: str,
+    reference_plot_count: int,
     expected_plot_count: int,
 ) -> dict[str, object]:
-    """Validate the native EPR three-style cycle after save/reopen."""
+    """Validate a reviewed native plot-style cycle after save/reopen."""
 
     reference_plots = sorted(
         [dict(value) for value in reference_data.get("plots", []) if isinstance(value, dict)],
@@ -7694,14 +7704,22 @@ def _validate_adaptive_epr_reopened_plot_styles(
         ),
     )
     reasons: list[str] = []
-    if str(reference_data.get("status") or "") != "ready" or len(reference_plots) != 3:
-        reasons.append("reviewed EPR snapshot does not contain the complete three-plot style cycle")
+    if (
+        str(reference_data.get("status") or "") != "ready"
+        or len(reference_plots) != reference_plot_count
+    ):
+        reasons.append(
+            f"reviewed {product_key} snapshot does not contain the complete "
+            f"{reference_plot_count}-plot style cycle"
+        )
     if expected_plot_count <= 0 or len(current_plots) != expected_plot_count or any(
         int(plot.get("layer_index") or 0) != 1
         or int(plot.get("plot_index") or 0) != plot_index
         for plot_index, plot in enumerate(current_plots, start=1)
     ):
-        reasons.append("adaptive EPR graph does not contain the expected one-layer current plot sequence")
+        reasons.append(
+            f"adaptive {product_key} graph does not contain the expected one-layer current plot sequence"
+        )
     style_fields = (
         "color",
         "line_color",
@@ -7712,9 +7730,14 @@ def _validate_adaptive_epr_reopened_plot_styles(
         "symbol_size",
     )
     compared: list[dict[str, object]] = []
-    if len(reference_plots) == 3 and len(current_plots) == expected_plot_count:
+    if (
+        len(reference_plots) == reference_plot_count
+        and len(current_plots) == expected_plot_count
+    ):
         for plot_index, current_plot in enumerate(current_plots, start=1):
-            reference_plot = reference_plots[(plot_index - 1) % 3]
+            reference_plot = reference_plots[
+                (plot_index - 1) % reference_plot_count
+            ]
             reference_style = dict(reference_plot.get("style") or {})
             current_style = dict(current_plot.get("style") or {})
             mismatches = [
@@ -7724,12 +7747,13 @@ def _validate_adaptive_epr_reopened_plot_styles(
             ]
             if mismatches:
                 reasons.append(
-                    f"adaptive EPR plot {plot_index} style differs: {', '.join(mismatches)}"
+                    f"adaptive {product_key} plot {plot_index} style differs: "
+                    f"{', '.join(mismatches)}"
                 )
             compared.append(
                 {
                     "plot_index": plot_index,
-                    "style_cycle_index": (plot_index - 1) % 3 + 1,
+                    "style_cycle_index": (plot_index - 1) % reference_plot_count + 1,
                     "matches": not mismatches,
                     "mismatches": mismatches,
                 }
@@ -7738,7 +7762,7 @@ def _validate_adaptive_epr_reopened_plot_styles(
         "ok": not reasons,
         "status": "matched" if not reasons else "mismatch",
         "message": (
-            "Adaptive EPR graph preserves the reviewed native color and 3 pt line-style cycle."
+            f"Adaptive {product_key} graph preserves the reviewed native plot-style cycle."
             if not reasons
             else "; ".join(reasons)
         ),
@@ -7747,6 +7771,21 @@ def _validate_adaptive_epr_reopened_plot_styles(
         "plots": compared,
         "reasons": reasons,
     }
+
+
+def _validate_adaptive_epr_reopened_plot_styles(
+    reference_data: dict[str, object],
+    current_data: dict[str, object],
+    *,
+    expected_plot_count: int,
+) -> dict[str, object]:
+    return _validate_adaptive_reopened_plot_style_cycle(
+        reference_data,
+        current_data,
+        product_key="EPR",
+        reference_plot_count=3,
+        expected_plot_count=expected_plot_count,
+    )
 
 
 def _validate_adaptive_epr_direct_labels(
@@ -8188,6 +8227,7 @@ def _export_saved_format_theme_product_with_origin(
         adaptive_plot_bounds: dict[tuple[int, int], tuple[int, int]] = {}
         if selected_oth_json and product.product_key in {
             "EPR",
+            "PL",
             "Raman",
             "UV-vis DRS",
             "Tauc",
@@ -8196,7 +8236,9 @@ def _export_saved_format_theme_product_with_origin(
         }:
             for x_col, y_col in plot_pairs:
                 bounds = _paired_numeric_row_bounds(rows, x_col - 1, y_col - 1)
-                if bounds is None or bounds[0] != 1:
+                if bounds is None or (
+                    product.product_key != "PL" and bounds[0] != 1
+                ):
                     return {
                         "ok": False,
                         "message": (
@@ -8307,7 +8349,7 @@ def _export_saved_format_theme_product_with_origin(
         _apply_template_base_global_policies(operations, graph_name, product, style)
         data_axis_policy = (
             {"applied": False, "reason": "deferred_until_saved_snapshots_are_applied"}
-            if product.product_key in {"EPR", "photocurrent", "UV-vis DRS", "Tauc", "XPS_non_in_situ", "XRD"}
+            if product.product_key in {"EPR", "PL", "photocurrent", "UV-vis DRS", "Tauc", "XPS_non_in_situ", "XRD"}
             else _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
         )
         saved_style_snapshot = _load_saved_style_snapshot(
@@ -8348,7 +8390,7 @@ def _export_saved_format_theme_product_with_origin(
                 saved_style_snapshot,
                 apply_default_font=False,
                 apply_axis_titles=True,
-                preserve_custom_rgb=product.product_key in {"Mott-Schottky", "EPR"},
+                preserve_custom_rgb=product.product_key in {"Mott-Schottky", "EPR", "PL"},
             )
         )
         plot_sequence = (
@@ -8385,6 +8427,7 @@ def _export_saved_format_theme_product_with_origin(
                     "Mott-Schottky",
                     "XPS_non_in_situ",
                     "EPR",
+                    "PL",
                 },
                 product_key=product.product_key,
             )
@@ -8393,7 +8436,7 @@ def _export_saved_format_theme_product_with_origin(
         )
         if (
             selected_oth_json
-            and product.product_key in {"EPR", "XPS_in_situ", "XPS_non_in_situ"}
+            and product.product_key in {"EPR", "PL", "XPS_in_situ", "XPS_non_in_situ"}
             and not adaptive_plot_style_policy.get("applied")
         ):
             return {
@@ -8627,6 +8670,33 @@ def _export_saved_format_theme_product_with_origin(
                     "template_format_plan": plan.to_dict(),
                     "legend_policy": legend_policy,
                 }
+        elif product.product_key == "PL" and selected_oth_json:
+            data_axis_policy = _apply_embedded_snapshot_data_axis_range(
+                operations,
+                graph_name,
+                product,
+                reference_style_snapshot=saved_style_snapshot,
+                reference_data_snapshot=saved_data_snapshot,
+            )
+            if not data_axis_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive PL current-data axis range application failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_range_policy": data_axis_policy,
+                }
+            legend_policy = _update_verified_pl_legend(
+                operations,
+                graph_name,
+                product.legend_entries,
+            )
+            if not legend_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive PL current-sample legend replacement failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "legend_policy": legend_policy,
+                }
         elif adaptive_xrd:
             legend_policy = _apply_xrd_standard_card_legend_and_label(
                 operations,
@@ -8723,7 +8793,7 @@ def _export_saved_format_theme_product_with_origin(
                 "applied": False,
                 "reason": "adaptive_oth_json_legend_already_finalized",
             }
-            if selected_oth_json and product.product_key in {"BET", "EPR", "FTIR", "photocurrent", "UV-vis DRS", "Tauc", "XRD"}
+            if selected_oth_json and product.product_key in {"BET", "EPR", "FTIR", "PL", "photocurrent", "UV-vis DRS", "Tauc", "XRD"}
             else {"applied": False, "reason": "adaptive_cardinality_uses_dynamic_current_legend"}
             if adaptive_cardinality or adaptive_uvvis or adaptive_xrd
             else _finalize_reviewed_template_legend(
@@ -8869,6 +8939,7 @@ def _export_saved_format_theme_product_with_origin(
         if selected_oth_json and product.product_key in {
             "BET",
             "EPR",
+            "PL",
             "Raman",
             "photocurrent",
             "Mott-Schottky",
@@ -8887,6 +8958,7 @@ def _export_saved_format_theme_product_with_origin(
                 rows,
                 plot_pairs,
                 mask_negative_x=product.product_key == "Mott-Schottky",
+                shared_x_variable_y=product.product_key == "PL",
             )
             if len(validation_ranges) != len(plot_pairs):
                 return {
@@ -8947,6 +9019,10 @@ def _export_saved_format_theme_product_with_origin(
             "ok": True,
             "status": "not_required",
         }
+        adaptive_pl_plot_style_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
         adaptive_epr_direct_label_validation: dict[str, object] = {
             "ok": True,
             "status": "not_required",
@@ -8955,6 +9031,26 @@ def _export_saved_format_theme_product_with_origin(
             "ok": True,
             "status": "not_required",
         }
+        if selected_oth_json and product.product_key == "PL":
+            adaptive_pl_plot_style_validation = (
+                _validate_adaptive_reopened_plot_style_cycle(
+                    saved_data_snapshot,
+                    current_data_snapshot,
+                    product_key="PL",
+                    reference_plot_count=3,
+                    expected_plot_count=len(plot_pairs),
+                )
+            )
+            if not adaptive_pl_plot_style_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(
+                        adaptive_pl_plot_style_validation.get("message")
+                        or "Adaptive PL native plot styles changed after save/reopen."
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_pl_plot_style_validation": adaptive_pl_plot_style_validation,
+                }
         if adaptive_epr:
             adaptive_epr_plot_style_validation = _validate_adaptive_epr_reopened_plot_styles(
                 saved_data_snapshot,
@@ -9093,6 +9189,11 @@ def _export_saved_format_theme_product_with_origin(
                 product_style,
             )
             if selected_oth_json and product.product_key == "XRD"
+            else _adaptive_pl_conformance_reference(
+                reference_style_snapshot,
+                product_style,
+            )
+            if selected_oth_json and product.product_key == "PL"
             else _verified_otpu_conformance_reference(
                 product.product_key,
                 _adaptive_uvvis_conformance_reference(
@@ -9231,6 +9332,7 @@ def _export_saved_format_theme_product_with_origin(
             "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
             "adaptive_epr_processing": adaptive_epr_processing,
             "adaptive_epr_plot_style_validation": adaptive_epr_plot_style_validation,
+            "adaptive_pl_plot_style_validation": adaptive_pl_plot_style_validation,
             "adaptive_epr_direct_label_validation": adaptive_epr_direct_label_validation,
             "adaptive_epr_axis_validation": adaptive_epr_axis_validation,
             "adaptive_xrd_plot_style_validation": adaptive_xrd_plot_style_validation,
@@ -9263,6 +9365,7 @@ def _export_saved_format_theme_product_with_origin(
         "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
         "adaptive_epr_processing": adaptive_epr_processing,
         "adaptive_epr_plot_style_validation": adaptive_epr_plot_style_validation,
+        "adaptive_pl_plot_style_validation": adaptive_pl_plot_style_validation,
         "adaptive_epr_direct_label_validation": adaptive_epr_direct_label_validation,
         "adaptive_epr_axis_validation": adaptive_epr_axis_validation,
         "adaptive_xrd_plot_style_validation": adaptive_xrd_plot_style_validation,
@@ -9761,6 +9864,7 @@ def _adaptive_oth_json_readback_validation(
     )
     requires_all_current_plots_visible = relaxed or product.product_key in {
         "EPR",
+        "PL",
         "UV-vis DRS",
         "Tauc",
         "XRD",
@@ -9774,6 +9878,7 @@ def _adaptive_oth_json_readback_validation(
     requires_current_data_match = product.product_key in {
         "BET",
         "EPR",
+        "PL",
         "Raman",
         "photocurrent",
         "Mott-Schottky",
@@ -9856,21 +9961,34 @@ def _adaptive_photocurrent_validation_ranges(
     plot_pairs: list[tuple[int, int]],
     *,
     mask_negative_x: bool = False,
+    shared_x_variable_y: bool = False,
 ) -> list[dict[str, object]]:
-    series = _photocurrent_xy_series(rows, plot_pairs)
+    series = (
+        _shared_x_contiguous_y_series(rows, plot_pairs)
+        if shared_x_variable_y
+        else _photocurrent_xy_series(rows, plot_pairs)
+    )
     if len(series) != len(plot_pairs):
         return []
     ranges: list[dict[str, object]] = []
     for (x_column, y_column), (x_values, _y_values) in zip(plot_pairs, series):
+        bounds = (
+            _paired_numeric_row_bounds(rows, x_column - 1, y_column - 1)
+            if shared_x_variable_y
+            else (1, len(x_values))
+        )
+        if bounds is None:
+            return []
+        row_from, row_to = bounds
         record: dict[str, int | list[int]] = {
             "x_col": x_column,
             "y_col": y_column,
-            "row_from": 1,
-            "row_to": len(x_values),
+            "row_from": row_from,
+            "row_to": row_to,
             "source_x_index": x_column - 1,
             "source_y_index": y_column - 1,
-            "source_row_from": 1,
-            "source_row_to": len(x_values),
+            "source_row_from": row_from,
+            "source_row_to": row_to,
         }
         if mask_negative_x:
             record["expected_y_masked_rows"] = [
@@ -10864,6 +10982,44 @@ def _adaptive_epr_conformance_reference(
         if field in current_layout:
             audit[field] = current_layout[field]
     result["audit_numeric_values"] = audit
+    return result
+
+
+def _adaptive_pl_conformance_reference(
+    style_snapshot: dict[str, object],
+    product_style: dict[str, object],
+) -> dict[str, object]:
+    """Keep PL formatting invariant while allowing current-data geometry/text."""
+
+    result = dict(style_snapshot)
+    data_dependent_fields = {
+        "layer.x.from",
+        "layer.x.to",
+        "layer.y.from",
+        "layer.y.to",
+        "xb.x",
+        "xb.y",
+        "yl.x",
+        "yl.y",
+        "legend.x",
+        "legend.y",
+    }
+    for section in ("layout_values", "audit_numeric_values"):
+        expected = dict(style_snapshot.get(section) or {})
+        actual = dict(product_style.get(section) or {})
+        expected.update(
+            {
+                field: actual[field]
+                for field in data_dependent_fields
+                if field in actual
+            }
+        )
+        result[section] = expected
+    expected_strings = dict(style_snapshot.get("audit_string_values") or {})
+    actual_strings = dict(product_style.get("audit_string_values") or {})
+    if "legend.text$" in actual_strings:
+        expected_strings["legend.text$"] = actual_strings["legend.text$"]
+    result["audit_string_values"] = expected_strings
     return result
 
 
@@ -12547,6 +12703,112 @@ def _apply_embedded_snapshot_data_axis_range(
             "series_count": len(current_series),
             "axis_titles_recentered": True,
         }
+    if product.product_key == "PL":
+        try:
+            headers, rows = _read_processed_csv(product.processed_data)
+        except (OSError, ValueError) as exc:
+            return {"applied": False, "reason": f"pl_processed_data_unavailable: {exc}"}
+        pairs = _processed_csv_plot_pairs(product, headers)
+        current_series = _shared_x_contiguous_y_series(rows, pairs)
+        if not pairs or len(current_series) != len(pairs):
+            return {"applied": False, "reason": "pl_xy_pairs_unavailable"}
+        x_values = [value for series in current_series for value in series[0]]
+        y_values = [value for series in current_series for value in series[1]]
+        x_min, x_max = min(x_values), max(x_values)
+        y_min, y_max = min(y_values), max(y_values)
+        layout = (
+            reference_style_snapshot.get("layout_values")
+            if isinstance(reference_style_snapshot, dict)
+            else None
+        )
+        template_x_from = _snapshot_axis_value(layout, "layer.x.from")
+        template_x_to = _snapshot_axis_value(layout, "layer.x.to")
+        template_y_from = _snapshot_axis_value(layout, "layer.y.from")
+        template_y_to = _snapshot_axis_value(layout, "layer.y.to")
+        template_valid = (
+            template_x_from is not None
+            and template_x_to is not None
+            and template_y_from is not None
+            and template_y_to is not None
+            and template_x_from < template_x_to
+            and template_y_from < template_y_to
+        )
+        x_inside = bool(
+            template_valid
+            and template_x_from <= x_min
+            and x_max <= template_x_to
+        )
+        y_inside = bool(
+            template_valid
+            and template_y_from <= y_min
+            and y_max <= template_y_to
+        )
+        if x_inside and y_inside:
+            return {
+                "applied": True,
+                "method": "pl_current_data_inside_reviewed_axis_bounds",
+                "decision": "template_preserved",
+                "range_changed": False,
+                "x_min": template_x_from,
+                "x_max": template_x_to,
+                "y_min": template_y_from,
+                "y_max": template_y_to,
+                "source_x_min": x_min,
+                "source_x_max": x_max,
+                "source_y_min": y_min,
+                "source_y_max": y_max,
+                "series_count": len(current_series),
+            }
+        x_from, x_to = (
+            (None, None)
+            if x_inside
+            else _padded_axis_bounds(x_min, x_max)
+        )
+        y_from, y_to = (
+            (None, None)
+            if y_inside
+            else _padded_axis_bounds(y_min, y_max, zero_floor=y_min >= 0)
+        )
+        result = set_axis_range(
+            graph_name,
+            x_min=x_from,
+            x_max=x_to,
+            y_min=y_from,
+            y_max=y_to,
+        )
+        if not getattr(result, "ok", False):
+            return {"applied": False, "reason": getattr(result, "message", "set_axis_range_failed")}
+        commands: list[str] = []
+        if not x_inside:
+            commands.append("xb.x=(layer.x.from+layer.x.to)/2;")
+        if not y_inside:
+            commands.append("yl.y=(layer.y.from+layer.y.to)/2;")
+        centered = operations.run_labtalk(
+            f'win -a "{quote_labtalk(graph_name)}"; ' + " ".join(commands)
+        )
+        if not getattr(centered, "ok", False):
+            return {"applied": False, "reason": "pl_axis_title_recentering_failed"}
+        return {
+            "applied": True,
+            "method": "pl_current_data_bounds_after_reviewed_style",
+            "decision": (
+                "adaptive_xy"
+                if not x_inside and not y_inside
+                else "adaptive_x"
+                if not x_inside
+                else "adaptive_y"
+            ),
+            "range_changed": True,
+            "x_min": template_x_from if x_inside else x_from,
+            "x_max": template_x_to if x_inside else x_to,
+            "y_min": template_y_from if y_inside else y_from,
+            "y_max": template_y_to if y_inside else y_to,
+            "source_x_min": x_min,
+            "source_x_max": x_max,
+            "source_y_min": y_min,
+            "source_y_max": y_max,
+            "series_count": len(current_series),
+        }
     if product.product_key in {"UV-vis DRS", "Tauc", "EPR"}:
         try:
             headers, rows = _read_processed_csv(product.processed_data)
@@ -12807,6 +13069,39 @@ def _photocurrent_xy_series(
                 return []
             x_values.append(float(x_value))
             y_values.append(float(y_value))
+        if not x_values or len(x_values) != len(y_values):
+            return []
+        series.append((x_values, y_values))
+    return series
+
+
+def _shared_x_contiguous_y_series(
+    rows: list[list[object]],
+    pairs: list[tuple[int, int]],
+) -> list[tuple[list[float], list[float]]]:
+    """Return contiguous shared-X series while allowing different Y run lengths."""
+    series: list[tuple[list[float], list[float]]] = []
+    for x_column, y_column in pairs:
+        x_index = x_column - 1
+        y_index = y_column - 1
+        bounds = _paired_numeric_row_bounds(rows, x_index, y_index)
+        if bounds is None:
+            return []
+        first_row, last_row = bounds
+        x_values: list[float] = []
+        y_values: list[float] = []
+        for row_index, row in enumerate(rows, start=1):
+            x_value = _finite_numeric_value(row[x_index]) if x_index < len(row) else None
+            y_value = _finite_numeric_value(row[y_index]) if y_index < len(row) else None
+            if y_value is not None and x_value is None:
+                return []
+            if first_row <= row_index <= last_row:
+                if x_value is None or y_value is None:
+                    return []
+                x_values.append(float(x_value))
+                y_values.append(float(y_value))
+            elif y_value is not None:
+                return []
         if not x_values or len(x_values) != len(y_values):
             return []
         series.append((x_values, y_values))
@@ -13862,11 +14157,11 @@ def _update_verified_pl_legend(
 ) -> dict[str, object]:
     labels = [str(value).strip() for value in entries]
     if (
-        len(labels) != 3
+        not labels
         or any(not label for label in labels)
-        or len({label.casefold() for label in labels}) != 3
+        or len({label.casefold() for label in labels}) != len(labels)
     ):
-        return {"applied": False, "reason": "pl_legend_requires_three_nonempty_unique_values"}
+        return {"applied": False, "reason": "pl_legend_requires_nonempty_unique_current_values"}
     rows = [
         f"\\l({index})\\b( {_reviewed_template_legend_rich_text(label)})"
         for index, label in enumerate(labels, start=1)
@@ -13882,6 +14177,7 @@ def _update_verified_pl_legend(
         "applied": True,
         "method": "template_legend_current_bold_rich_text",
         "entries": labels,
+        "entry_count": len(labels),
         "line_samples_preserved": True,
     }
 

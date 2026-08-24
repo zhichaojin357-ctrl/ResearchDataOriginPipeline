@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_detached_adaptive_oth_json_validation",
+  "product_key": "PL",
+  "status": "accepted",
+  "generated_at": "2026-08-24T15:03:15+08:00",
+  "runtime_role": "adaptive_runtime",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed three complete native Origin excitation traces, the reviewed custom colors and 3 pt line widths, complete bold Wavelength (nm) and Intensity titles, visible X tick labels, hidden Y tick values, a native colored line-sample legend containing only BOBC, CWO, and BC, and no clipping, overlap, stale sample text, or raster overlay.",
+  "asset": {
+    "kind": "oth_json",
+    "format_theme": "format_themes/PL.oth",
+    "style_snapshot": "snapshots/PL.json",
+    "data_snapshot": "data_snapshots/PL.json",
+    "binding_contract": "binding_contracts/PL.json",
+    "source_mode": "reviewed_theme_plus_native_origin_plot_and_explicit_style_object_replay"
+  },
+  "generation_boundary": {
+    "entrypoint": "Origin.Application",
+    "fresh_project": true,
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "one_to_one_exact_match_claim_allowed": false
+  },
+  "current_data_validation": {
+    "status": "accepted",
+    "evidence_location": "diagnostics/20260824_PL_adaptive_oth_json_runtime/runs/20260824_PL_04_template_format_products/products/PL/metadata.json",
+    "origin_style_mode_requested": "oth-json",
+    "style_execution_mode": "variable_structure_oth_json",
+    "style_execution_reason_code": "explicit_adaptive_oth_json",
+    "real_original_source_file_count": 3,
+    "source_measurement_family": "excitation_spectra",
+    "current_labels": [
+      "BOBC",
+      "CWO",
+      "BC"
+    ],
+    "current_series_count": 3,
+    "contract_series_count": 3,
+    "reopened_plot_count": 3,
+    "explicit_displayed_row_ranges": [
+      {
+        "label": "BOBC",
+        "row_from": 1,
+        "row_to": 351
+      },
+      {
+        "label": "CWO",
+        "row_from": 1,
+        "row_to": 176
+      },
+      {
+        "label": "BC",
+        "row_from": 1,
+        "row_to": 351
+      }
+    ],
+    "current_xy_values_match_reopened_graph": true,
+    "all_current_plots_visible": true,
+    "native_plot_style_readback": {
+      "status": "matched",
+      "matched_plots": 3,
+      "expected_plots": 3,
+      "line_width_pt": 3.0,
+      "reviewed_custom_rgb_and_line_style_cycle": true,
+      "symbols_hidden": true
+    },
+    "native_line_sample_legend": {
+      "status": "matched",
+      "entries": [
+        "BOBC",
+        "CWO",
+        "BC"
+      ],
+      "current_text_only": true,
+      "colored_line_samples_preserved": true,
+      "inside_page": true
+    },
+    "native_axis_titles": {
+      "status": "matched",
+      "x_title": "Wavelength (nm)",
+      "y_title": "Intensity",
+      "bold": true,
+      "reviewed_page_geometry_restored": true,
+      "all_current_points_inside_axis_bounds": true
+    },
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true,
+    "pixel_comparison": {
+      "role": "not_an_acceptance_gate_for_current_data_products",
+      "performed": false,
+      "one_to_one_exact_match": false
+    }
+  },
+  "generalization_contract": {
+    "status": "implementation_and_contract_validated",
+    "supported_series_cardinality": "one_or_more_explicit_current_PL_excitation_traces",
+    "source_selection": "explicit pairing.data_paths only; no neighbouring-directory substitution",
+    "shared_x_policy": "each Y trace has its own explicit contiguous finite row range and may be shorter than the shared X column",
+    "labels": "current explicit file labels remain unique and replace all reference sample text",
+    "style_cycle": "reviewed native PL custom RGB and line styles cycle across current traces",
+    "fixed_three_trace_compatibility": "the independently verified fixed PL OTPU route remains unchanged",
+    "targeted_tests": [
+      "tests/test_template_product_builder_strict.py::test_template_pl_selects_only_requested_scan_family_and_material_labels",
+      "tests/test_template_product_builder_strict.py::test_template_pl_explicit_oth_json_uses_only_paired_current_curves",
+      "tests/test_template_format_executor.py::test_strict_adaptive_shared_x_accepts_distinct_contiguous_y_bounds",
+      "tests/test_template_format_executor.py::test_adaptive_pl_readback_requires_current_xy_and_visible_curves",
+      "tests/test_template_format_executor.py::test_adaptive_pl_reopened_styles_use_reviewed_native_cycle",
+      "tests/test_template_format_executor.py::test_pl_axis_range_preserves_reviewed_bounds_when_current_data_fit"
+    ]
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6983.0,
+    "page_height_origin_units": 4678.0,
+    "width_px": 4190,
+    "height_px": 2806,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 600.0286409852499,
+    "effective_dpi_y": 599.8289867464729,
+    "sensitive_metadata_scan": "pass"
+  },
+  "acceptance_note": "The independently verified PL OTPU remains the exact fixed three-trace route. OTH+JSON is the detached adaptive route for current PL excitation traces. Both routes use native Origin graph objects; the adaptive route plots only explicitly paired current files, never loads the reference OPJU as a product base, and makes no pixel-exact claim for different current data."
+}

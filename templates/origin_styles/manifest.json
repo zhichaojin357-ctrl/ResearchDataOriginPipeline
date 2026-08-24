@@ -1055,6 +1055,7 @@
       "status": "accepted",
       "graph_page": "EXJF",
       "format_theme": "format_themes/PL.oth",
+      "format_theme_role": "adaptive_runtime",
       "preview_png": "",
       "reference_preview_png": "",
       "template_preview_comparison_png": "",
@@ -1063,6 +1064,7 @@
       "graph_template": "graph_templates/PL.otpu",
       "binding_contract": "binding_contracts/PL.json",
       "runtime_validation_evidence": "validation_evidence/PL_verified_20260822.json",
+      "adaptive_runtime_validation_evidence": "validation_evidence/PL_oth_json_adaptive_verified_20260824.json",
       "validation_plan": "validation_plans/PL_verified_20260822.json",
       "style_snapshot": "snapshots/PL.json",
       "data_snapshot": "data_snapshots/PL.json",
@@ -1098,6 +1100,11 @@
           "kind": "json",
           "sha256": "0b6f649ac50b35a1166240cecaa8b24a57a190a10f6aa813e196e720fcdedfe6",
           "size_bytes": 3722
+        },
+        "adaptive_runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "a4bb8301a58b7844b8acefdc1e8b175e007a96680650656d9f0729a29e3b9c49",
+          "size_bytes": 5511
         },
         "validation_plan": {
           "kind": "json",

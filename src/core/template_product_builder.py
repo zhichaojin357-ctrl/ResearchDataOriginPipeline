@@ -2160,7 +2160,11 @@ def _build_template_xy_multisource_table(
             if origin_style_mode == "auto" and len(candidates) == target_series:
                 candidates.sort(key=_template_photocurrent_series_sort_key)
     if pairing.product_key == "PL":
-        candidates = _template_pl_candidate_files(pairing, template, target_series)
+        candidates = (
+            _template_pl_candidate_files(pairing, template, target_series)
+            if origin_style_mode == "otpu"
+            else _template_explicit_pl_files(pairing)
+        )
     if pairing.product_key == "Mott-Schottky":
         candidates = _template_mott_candidate_files(
             pairing,
@@ -2184,7 +2188,8 @@ def _build_template_xy_multisource_table(
         series.append((_template_xy_series_label(pairing.product_key, path), rows))
         used_files.append(path)
         preserve_variable_cardinality = pairing.product_key in {"Raman", "Mott-Schottky"} or (
-            pairing.product_key == "photocurrent" and origin_style_mode != "otpu"
+            pairing.product_key in {"PL", "photocurrent"}
+            and origin_style_mode != "otpu"
         )
         if not preserve_variable_cardinality and len(series) >= target_series:
             break
@@ -2740,6 +2745,18 @@ def _template_pl_candidate_files(pairing: TargetPairing, template: TemplateCandi
         return files[:target_series]
     candidates = _template_candidate_files(pairing, template, suffixes=(".txt",), limit=max(target_series * 3, 9))
     return [path for path in candidates if scan_pattern.search(path.stem)][:target_series]
+
+
+def _template_explicit_pl_files(pairing: TargetPairing) -> list[Path]:
+    """Return exactly the PL text tables explicitly paired for adaptive mode."""
+
+    paths = _template_unique_paths(list(pairing.data_paths))
+    if not paths:
+        raise ValueError("PL adaptive style mode requires at least one explicitly paired source file.")
+    for path in paths:
+        if not path.is_file() or path.suffix.casefold() not in {".txt", ".csv"}:
+            raise ValueError(f"PL explicit pairing contains an invalid source file: {path}")
+    return paths
 
 
 def _template_photocurrent_candidate_files(pairing: TargetPairing, template: TemplateCandidate, target_series: int) -> list[Path]:
