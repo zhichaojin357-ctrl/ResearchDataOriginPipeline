@@ -1213,6 +1213,10 @@ class OriginOperationsSmokeTest(unittest.TestCase):
 
         with (
             mock.patch("src.origin.operations.origin_process_ids", return_value=set()),
+            mock.patch(
+                "src.origin.operations._wait_for_new_origin_process_ids",
+                return_value={8123},
+            ),
             mock.patch.dict(
                 "sys.modules",
                 {
@@ -1225,6 +1229,51 @@ class OriginOperationsSmokeTest(unittest.TestCase):
 
         self.assertIsInstance(ops, OriginOperations)
         self.assertEqual(fake_client.created, [("DispatchEx", "Origin.Application")])
+        self.assertEqual(ops._owned_process_ids, {8123})
+
+    def test_close_force_terminates_only_recorded_task_owned_origin_processes(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app, owned_process_ids={8123})
+        termination = {
+            "ok": True,
+            "requested_pids": [8123],
+            "terminated_pids": [8123],
+            "failures": [],
+        }
+
+        with (
+            mock.patch(
+                "src.origin.operations._wait_for_owned_origin_exit",
+                side_effect=[{8123}, set()],
+            ) as wait_for_exit,
+            mock.patch(
+                "src.origin.operations._terminate_owned_origin_processes",
+                return_value=termination,
+            ) as terminate,
+        ):
+            result = ops.close()
+
+        self.assertTrue(result.ok)
+        self.assertTrue(app.closed)
+        self.assertEqual(result.payload["owned_process_ids"], [8123])
+        self.assertFalse(result.payload["graceful_exit"])
+        self.assertTrue(result.payload["forced_process_termination"])
+        self.assertEqual(result.payload["remaining_process_ids"], [])
+        terminate.assert_called_once_with({8123})
+        self.assertEqual(wait_for_exit.call_count, 2)
+
+    def test_close_does_not_terminate_unowned_origin_processes(self):
+        app = FakeOriginApp()
+        ops = OriginOperations(app)
+
+        with mock.patch(
+            "src.origin.operations._terminate_owned_origin_processes",
+        ) as terminate:
+            result = ops.close()
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload["owned_process_ids"], [])
+        terminate.assert_not_called()
 
     def test_connect_origin_refuses_to_attach_when_origin_is_already_running(self):
         with mock.patch(

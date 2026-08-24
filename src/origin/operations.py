@@ -47,6 +47,9 @@ EXPORT_FORMATS = {
 RASTER_EXPORT_FORMATS = frozenset({"bmp", "jpg", "png", "tif"})
 MIN_EXPORT_DPI = 72
 MAX_EXPORT_DPI = 1200
+ORIGIN_PROCESS_START_TIMEOUT_SECONDS = 3.0
+ORIGIN_PROCESS_EXIT_TIMEOUT_SECONDS = 3.0
+ORIGIN_PROCESS_POLL_SECONDS = 0.1
 
 ORIGIN_XML_STYLE_CLIPBOARD_FORMAT = "Origin XML Style"
 THEME_APPLY_PAGE = 2
@@ -127,7 +130,18 @@ def connect_origin(entrypoint: str = "Origin.Application", *, visible: bool = Fa
         app.Visible = 1 if visible else 0
     except Exception:
         pass
-    return OriginOperations(app)
+    try:
+        owned_pids = _wait_for_new_origin_process_ids(
+            pre_existing_pids,
+            timeout_seconds=ORIGIN_PROCESS_START_TIMEOUT_SECONDS,
+        )
+    except Exception:
+        try:
+            app.Exit()
+        except Exception:
+            pass
+        raise
+    return OriginOperations(app, owned_process_ids=owned_pids)
 
 
 def origin_process_ids() -> set[int]:
@@ -174,6 +188,77 @@ def origin_process_ids() -> set[int]:
             )
         pids.add(pid)
     return pids
+
+
+def _wait_for_new_origin_process_ids(
+    pre_existing_pids: set[int],
+    *,
+    timeout_seconds: float,
+) -> set[int]:
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    while True:
+        current = origin_process_ids()
+        owned = current - set(pre_existing_pids)
+        if owned or time.monotonic() >= deadline:
+            return owned
+        time.sleep(ORIGIN_PROCESS_POLL_SECONDS)
+
+
+def _wait_for_owned_origin_exit(
+    owned_pids: set[int],
+    *,
+    timeout_seconds: float,
+) -> set[int]:
+    if not owned_pids:
+        return set()
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    while True:
+        remaining = origin_process_ids() & owned_pids
+        if not remaining or time.monotonic() >= deadline:
+            return remaining
+        time.sleep(ORIGIN_PROCESS_POLL_SECONDS)
+
+
+def _terminate_owned_origin_processes(owned_pids: set[int]) -> dict[str, object]:
+    """Force-close only PIDs captured from this isolated Origin session."""
+
+    requested = sorted({int(pid) for pid in owned_pids if int(pid) > 0})
+    terminated: list[int] = []
+    failures: list[dict[str, object]] = []
+    for process_id in requested:
+        script = (
+            f"$originPid = {process_id}; "
+            "$originProcess = Get-Process -Id $originPid -ErrorAction SilentlyContinue; "
+            "if ($null -eq $originProcess) { exit 0 }; "
+            "if ($originProcess.ProcessName -notlike 'Origin*') { exit 3 }; "
+            "Stop-Process -Id $originPid -Force -ErrorAction Stop"
+        )
+        try:
+            completed = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", script],
+                text=True,
+                capture_output=True,
+                timeout=10,
+            )
+        except Exception as exc:
+            failures.append({"pid": process_id, "error": str(exc)})
+            continue
+        if completed.returncode == 0:
+            terminated.append(process_id)
+        else:
+            failures.append(
+                {
+                    "pid": process_id,
+                    "returncode": completed.returncode,
+                    "error": (completed.stderr or completed.stdout or "termination failed").strip(),
+                }
+            )
+    return {
+        "ok": not failures,
+        "requested_pids": requested,
+        "terminated_pids": terminated,
+        "failures": failures,
+    }
 
 
 def quote_labtalk(value: str) -> str:
@@ -300,18 +385,31 @@ def _read_origin_xml_style_clipboard(timeout_seconds: float = 8.0) -> bytes | No
 class OriginOperations:
     """Stable, named Origin operation functions backed by Origin COM."""
 
-    def __init__(self, app: Any):
+    def __init__(
+        self,
+        app: Any,
+        *,
+        owned_process_ids: Iterable[int] | None = None,
+    ):
         self.app = app
+        self._owned_process_ids = {
+            int(process_id)
+            for process_id in (owned_process_ids or ())
+            if int(process_id) > 0
+        }
 
     def close(self) -> OperationResult:
         app = self.app
         self.app = None
+        owned_pids = set(self._owned_process_ids)
+        self._owned_process_ids.clear()
         if app is None:
             return OperationResult(True, "Origin already closed")
+        exit_error = ""
         try:
             app.Exit()
         except Exception as exc:
-            return OperationResult(False, f"Origin close failed: {exc}")
+            exit_error = str(exc)
         finally:
             del app
             try:
@@ -321,7 +419,53 @@ class OriginOperations:
             except Exception:
                 pass
             gc.collect()
-        return OperationResult(True, "Origin closed and COM proxy released")
+        try:
+            remaining = _wait_for_owned_origin_exit(
+                owned_pids,
+                timeout_seconds=ORIGIN_PROCESS_EXIT_TIMEOUT_SECONDS,
+            )
+        except Exception as exc:
+            remaining = set(owned_pids)
+            inspection_error = str(exc)
+        else:
+            inspection_error = ""
+        termination = {
+            "ok": True,
+            "requested_pids": [],
+            "terminated_pids": [],
+            "failures": [],
+        }
+        if remaining:
+            termination = _terminate_owned_origin_processes(remaining)
+            try:
+                remaining = _wait_for_owned_origin_exit(
+                    remaining,
+                    timeout_seconds=ORIGIN_PROCESS_EXIT_TIMEOUT_SECONDS,
+                )
+            except Exception as exc:
+                inspection_error = str(exc)
+        ok = not remaining and not inspection_error
+        forced = bool(termination.get("requested_pids"))
+        message = (
+            "Origin closed and COM proxy released"
+            if ok and not forced and not exit_error
+            else "Task-owned Origin process force-closed and COM proxy released"
+            if ok
+            else "Origin close left an active task-owned process"
+        )
+        return OperationResult(
+            ok,
+            message,
+            {
+                "owned_process_ids": sorted(owned_pids),
+                "graceful_exit": not exit_error and not forced,
+                "exit_error": exit_error,
+                "forced_process_termination": forced,
+                "termination": termination,
+                "remaining_process_ids": sorted(remaining),
+                "inspection_error": inspection_error,
+            },
+        )
 
     def run_labtalk(self, script: str) -> OperationResult:
         ok = bool(self.app.Execute(script))
