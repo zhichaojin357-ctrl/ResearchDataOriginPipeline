@@ -26,22 +26,6 @@ REMAINING_TARGET_PRODUCT_KEYS = (
     "FTIR",
 )
 
-REMAINING_TYPE_DIRS = {
-    "EIS": "EIS",
-    "Raman": "Raman",
-    "Mott-Schottky": "Mott_Schottky",
-    "UV-vis DRS": "UV_vis_DRS",
-    "Tauc": "Tauc",
-    "PL": "PL",
-    "photocurrent": "photocurrent",
-    "FTIR": "FTIR",
-    "reaction_condition_screening": "reaction_condition_screening",
-    "HPLC/LC exported data": "HPLC_LC_deferred_or_generic",
-}
-
-PREVIOUS_COMPLETED_TYPES = ("BET", "XPS_in_situ", "XPS_non_in_situ", "XRD", "EPR")
-
-
 def load_remaining_pairings(pairing_path: Path, root_map: dict[str, Path]) -> list[TargetPairing]:
     items = _load_pairing_items(pairing_path)
     selected: list[TargetPairing] = []

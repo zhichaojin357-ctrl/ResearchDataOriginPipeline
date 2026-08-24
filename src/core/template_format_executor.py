@@ -9374,7 +9374,7 @@ def _export_saved_format_theme_product_with_origin(
                 conformance,
                 adaptive_validation,
             )
-        if str(conformance.get("status") or "").casefold() == "fail":
+        if selected_oth_json and str(conformance.get("status") or "").casefold() == "fail":
             return {
                 "ok": False,
                 "message": (

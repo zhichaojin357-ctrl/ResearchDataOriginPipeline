@@ -716,13 +716,14 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
                 figure_tif.parent.mkdir(parents=True, exist_ok=True)
                 figure_tif.write_text("native reopened tif", encoding="utf-8")
 
-            with patch("src.origin.adapter.check_origin_available", return_value=(True, "origin available")):
-                with patch("src.origin.adapter.connect_origin", return_value=fake) as connect_origin:
-                    with patch(
-                        "src.origin.adapter.reexport_tif_from_reopened_opju",
-                        side_effect=fake_reexport,
-                    ) as reexport:
-                        result = origin_smoke_test(project_root)
+            with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
+                with patch("src.origin.adapter.check_origin_available", return_value=(True, "origin available")):
+                    with patch("src.origin.adapter.connect_origin", return_value=fake) as connect_origin:
+                        with patch(
+                            "src.origin.adapter.reexport_tif_from_reopened_opju",
+                            side_effect=fake_reexport,
+                        ) as reexport:
+                            result = origin_smoke_test(project_root)
 
             self.assertTrue(result.ok)
             self.assertEqual(result.message, "Origin isolated operations smoke test succeeded")

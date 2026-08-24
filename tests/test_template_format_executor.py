@@ -3352,6 +3352,7 @@ def test_export_template_base_uses_project_format_theme_when_reference_opju_miss
     result = export_template_base_product_with_origin(product, ResolvedPlotStyle(), project_root=project_root)
 
     assert result["ok"] is True
+    assert result["origin_style_decision"]["selected_mode"] == "legacy-oth"
     assert result["template_format_plan"]["mode"] == "saved_format_theme"
     assert result["origin_processing"]["method"] == "saved_format_theme_apply"
     assert result["origin_processing"]["neutral_runtime"] is True

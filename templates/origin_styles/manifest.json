@@ -2,7 +2,7 @@
   "schema_version": 2,
   "generated_at": "2026-08-24T01:27:52+08:00",
   "asset_root": "templates/origin_styles",
-  "origin_dependency_boundary": "Current formal exact-style runs use isolated reviewed reference_opju copies. Harvested .oth/.otpu assets remain quarantined until a fresh-project replay uses identical explicit per-plot X/Y data and mappings, saves and reopens the generated OPJU, exports native 600 dpi, has zero decoded-pixel difference, and passes manual preview.",
+  "origin_dependency_boundary": "Formal plotting dispatch is manifest-driven. Every accepted product has an independently validated fixed OTPU route for exact reviewed-shape replay and an accepted OTH+JSON adaptive runtime for current data shapes. Runtime use requires the manifest-bound contract and validation evidence; reference OPJU files remain isolated evidence/recovery assets and are never product bases or data sources. Any historical graph template explicitly marked quarantined remains nonruntime.",
   "assets": [
     {
       "product_key": "BET",
@@ -16,8 +16,6 @@
       "preview_rms": null,
       "source_mode": "individually_regenerated_from_reviewed_reference_opju",
       "format_theme_role": "adaptive_runtime",
-      "historical_graph_template": "graph_templates/BET.otpu",
-      "historical_graph_template_status": "quarantined_unvalidated",
       "graph_template": "graph_templates/BET_verified_20260813.otpu",
       "binding_contract": "binding_contracts/BET.json",
       "runtime_validation_evidence": "validation_evidence/BET_verified_20260813.json",

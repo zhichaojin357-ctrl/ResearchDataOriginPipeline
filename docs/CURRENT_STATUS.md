@@ -1,32 +1,19 @@
 # Current Status
 
-The project is maintained as a final runtime pipeline. The active code path is `run.py` -> `src/cli.py` -> `src/core`/`src/processors`/`src/origin`.
+This repository is the maintained runtime pipeline. The active path is
+`run.py -> src/cli.py -> src/core / src/processors / src/origin`. Historical
+commits and old generated assets are evidence only; current behavior is defined
+by the working tree, registry, manifest, validators, and current run reports.
 
-The latest full codebase audit is
-[`CODEBASE_AUDIT_2026-07-31.md`](CODEBASE_AUDIT_2026-07-31.md).
+The latest broad code audit remains
+[CODEBASE_AUDIT_2026-07-31.md](CODEBASE_AUDIT_2026-07-31.md). This file records
+the newer runtime state after the Origin style-route work and XRD data-module
+merge.
 
-## Active Scope
+## Runtime scope
 
-- Scan and classify characterization data.
-- Build triage and reviewed queues.
-- Process supported numeric data into normalized CSV plus `metadata.json`.
-- Process one exported XRD dataset directly against an explicitly selected local Jade/PDF XID/SID/RID group, producing candidate-card evidence without Origin or plotting.
-- Generate OriginPro products, save `.opju`, export 600 dpi `.tif`, and write preview/report artifacts.
-- Keep uncertain or high-risk interpretation as manual-review fields.
-
-## Output Root
-
-All formal runs should write under:
-
-```text
-D:\Codex Project\科研数据处理\输出
-```
-
-Project-local `output/` is not the default runtime destination.
-
-## Supported Runtime Types
-
-The processor registry currently supports 15 maintained pipeline entries:
+`config/processor_registry.yaml` currently declares 15 supported pipeline
+entries:
 
 - photocurrent
 - BET
@@ -41,166 +28,122 @@ The processor registry currently supports 15 maintained pipeline entries:
 - Raman
 - Mott-Schottky
 - HPLC/LC exported data
-- HPLC/LC OpenLab raw data (dedicated raw-to-Excel command)
+- HPLC/LC OpenLab raw data
 - EIS
 
-SEM, TEM, NMR, MS, and kinetics/reference folders remain scan-only.
+SEM, TEM, NMR, MS, and kinetics/reference inputs remain scan-only or
+reference-only. The registry, rather than this summary, is authoritative when
+the supported set changes.
 
-The direct XRD card-matching path accepts exported tabular diffraction data.
-Binary vendor `.raw` decoding remains unsupported. Full-library screening is
-composition-blind and produces manual-review candidates only; it does not
-authorize automatic phase, purity, hkl, or quantitative-phase conclusions.
-The J7 reader has strict synthetic XID/SID/RID regression coverage, but no
-licensed real Jade database or trusted exported card was found in the current
-project/data scope. Runtime results therefore retain an explicit
-candidate-only decoder warning until a local trusted-card comparison is run.
+Formal outputs resolve through the configured output-root policy. On the
+current workstation the normal root is the external
+`D:\Codex Project\科研数据处理\输出`; project-local generated-output
+directories are not production destinations.
 
-## Origin Requirements
+## Origin product state
 
-- Use OriginPro through the formal Origin modules.
-- Use template-backed plotting when a template exists.
-- Save `.opju`, reopen that final project read-only, and natively export the target graph as a 600 dpi `.tif`.
-- Validate the TIFF tag, both pixel dimensions, and effective DPI against the reopened Origin page dimensions; retagging or interpolating a smaller raster is not accepted.
-- Do not write full source paths, Codex labels, or comments into OPJU-facing workbook names/comments.
-- For template conformance work, a current run must provide strict one-to-one comparison evidence, not only cached or manual-check artifacts.
+`templates/origin_styles/manifest.json` currently contains 14 accepted Origin
+product keys:
 
-Project-local `reference_opju` files may be opened only from isolated copies as
-independent visual/style evidence. They are not product bases or data sources.
-Historical batch-derived `.otpu` files are quarantined and are not runtime
-fallbacks. Runtime `.otpu` dispatch is manifest-driven. The current individually
-regenerated and independently validated products are BET, EIS, EPR, PL,
-photocurrent, Raman, FTIR, Mott-Schottky, UV-vis DRS, Tauc, XRD with a standard
-card, and the fixed nine-curve XRD no-card layout. BET, XRD no-card, Raman,
-photocurrent, FTIR, Mott-Schottky, UV-vis DRS, Tauc, and XRD with a standard
-card also retain separately
-validated adaptive OTH+JSON routes for variable curve counts or current-data
-semantic identities.
+- BET
+- EIS
+- EPR
+- FTIR
+- Mott-Schottky
+- photocurrent
+- PL
+- Raman
+- Tauc
+- UV-vis DRS
+- XPS_in_situ
+- XPS_non_in_situ
+- XRD
+- XRD_no_card
 
-## Latest Origin Audit
+Every product retains both supported routes:
 
-- The earlier 12/12 pixel-identical replay used byte-identical source and
-  project-local reference OPJUs. It is now classified as 12
-  `reference_opju_self_replay` results (deterministic export evidence), with
-  zero independent style-asset matches. It does not validate `.oth` behavior
-  on a newly constructed graph.
-- The latest all-types Origin run produced all required OPJU/TIFF/PNG/data/
-  metadata/report artifacts, and every TIFF passed native physical 600 dpi and
-  metadata-path checks.
-- BET, EIS, and EPR now have accepted detached `.otpu` runtime packages with
-  explicit X/Y binding contracts and fresh-project same-data exact-pixel
-  evidence. EIS
-  also passed a separate real-data formal run on 2026-08-22: 8 plots, 101 points
-  per plot, current labels, OPJU save/reopen, style conformance, native 600 dpi
-  TIFF, and manual PNG inspection, without loading a reference OPJU.
-- PL now has an accepted detached runtime bundle requiring the manifest-bound
-  `.otpu`, `.oth`, and style snapshot together. Its reviewed mapping is
-  `A→B` rows 1–351, `A→D` rows 1–176, and `A→F` rows 1–351. The project formal
-  replay passed 59/59 style checks, save/reopen, native 600 dpi export, and
-  same-data TIFF comparison with zero decoded-pixel difference (RMS 0). The
-  separate real-data product did not load a reference OPJU; its no-label/path
-  audit had 0 hits, and its 4190×2806 TIF matched the reference replay TIF with
-  zero decoded-pixel difference.
-- Photocurrent now has an accepted detached runtime asset requiring the
-  manifest-bound `.otpu` and style snapshot (no `.oth`). The formal same-data
-  replay passed 59/59 style checks, save/reopen, native 600 dpi export, and
-  zero decoded-pixel difference. Its separate real-data product used fresh
-  graph creation with `reference_opju_loaded=false`, independent `A→B`,
-  `C→D`, and `E→F` mappings (2600 points per curve), 1 pt curves, 16 pt
-  non-bold dynamic axis titles, and native 600 dpi export; this run is not
-  claimed to be pixel-identical to the reference data.
-- Raman now has an accepted detached three-series, two-layer `.otpu` route and
-  a separately accepted adaptive `.oth`+JSON route. The fixed same-data product
-  reproduced the reviewed Graph2 product pixel-for-pixel after save/reopen. A
-  separate two-series adaptive product used independent Origin `plotxy` ranges
-  for the current finite X/Y rows, preserved natural source order and reviewed
-  blue/green curve styles, matched every reopened current X/Y value, passed
-  style conformance with no issues, and produced a native 600 dpi TIFF without
-  loading the reference OPJU.
-- UV-vis DRS and Tauc are now separate accepted products rather than one
-  ambiguous combined asset. Each has an accepted detached fixed `.otpu` route
-  that reproduced the reviewed graph pixel-for-pixel with the same data after
-  save/reopen, plus an accepted adaptive `.oth`+JSON route using current
-  Origin-native plots. The accepted absorbance examples preserved all 1201
-  current points per series without interpolation, smoothing, normalization,
-  or blank-tail plotting. Tauc uses native Origin rich-text axis titles and
-  removes reference-specific guide objects and 2.28/2.94 labels when they are
-  unsupported by current data.
-- Mott-Schottky now has an accepted detached five-series `.otpu` route and a
-  separately accepted adaptive `.oth`+JSON route. The fixed same-data replay
-  matched the reviewed mapping and native export pixel-for-pixel after
-  save/reopen. A separate four-series adaptive product preserved every current
-  X/Y series, made all four current Origin plots and legend rows visible, and
-  passed native 600 dpi plus manual PNG inspection without loading the
-  reference OPJU. When the current curves do not share a defensible common
-  linear window, candidate guides are omitted and manual review is required;
-  the executor does not fabricate a fit.
-- The other historical `.otpu` files remain quarantined. Their `.oth` products
-  have not inherited BET/EIS/EPR/PL/photocurrent acceptance and must be validated
-  one type at a time; do not describe the complete all-types set as visually
-  accepted.
-- A controlled XRD trial using the OPJU directly as the product base was
-  rejected: workbook-column mismatch produced flat curves and overlapping
-  labels despite a higher style-field match ratio.
-- The fixed-data HPLC calibration regression reproduced all three reviewed
-  source-OPJU PNGs exactly (3216 x 2461; zero changed pixels), while the source
-  OPJU hash remained unchanged. The transaction-safe first run and explicit
-  force rerun also decoded to zero changed pixels and left no Origin process.
-  This evidence is scoped only to that controlled calibration helper.
-- EPR passed both independent asset and current-data runtime gates on
-  2026-08-22. The fresh-project replay used the exact reference 4096-by-3 data
-  and shared-X mapping, matched 59/59 style fields, and changed zero decoded
-  pixels. A separate verified-JEOL OH run generated a new OPJU from the accepted
-  OTPU/OTH/snapshot package without loading the reference OPJU; save/reopen X/Y
-  readback matched, current bold `BC`/`CWO`/`BOBC` labels persisted at the
-  reviewed positions, the native 3859 x 2953 TIFF was approximately 600
-  physical dpi, and the PNG was inspected with no old template labels.
-- XRD with a standard card now starts from a fresh Origin project and the
-  accepted `XRD.otpu`, binds current sample/card worksheets as native Origin
-  plots, replaces current annotations, saves/reopens the OPJU, and exports a
-  native 600 dpi TIFF without loading the reference OPJU. Its same-data formal
-  replay changed zero decoded pixels, and the separate real-data PNG was
-  inspected with one bold X title, one bold Y title, three current sample
-  curves, and the current standard card.
-- Its separately accepted adaptive `.oth`+JSON route handles any positive
-  sample count followed by exactly one supplied reference-card column in one
-  clean Origin layer. The controlled current-data run plotted one real sample
-  and one native Origin column-stick card, matched every reopened X/Y value,
-  retained native bold page-attached axis titles after save/reopen, passed
-  style readback and native 600 dpi export, and loaded no reference OPJU. This
-  current-data validation deliberately makes no one-to-one pixel claim; the
-  fixed four-sample-plus-card `.otpu` remains the exact replay route.
-- XRD without a standard card now has two detached native-Origin paths:
-  exactly nine curves use `XRD_no_card.otpu`; every other positive count uses
-  `XRD_no_card.oth` plus the explicit style/label contract. Both same-data
-  validations changed zero decoded pixels. A separate nine-file real-data run
-  created nine worksheet-bound curves and current direct labels, loaded no
-  reference OPJU, saved/reopened the OPJU, passed the native 600 dpi TIFF gate,
-  and passed manual PNG inspection.
-- The 2026-08-23 full regression run reported 1100 passed, 3 skipped, and 2
-  failures. The HPLC hard-link safety failure was then fixed and its isolated
-  test passed. The remaining known failure is the Origin smoke-test lifecycle
-  guard detecting the pre-existing inaccessible Origin process; no additional
-  Origin plotting was launched for the XRD data-only merge.
-- `validate` passes dependencies, registry, Origin contracts, style-asset
-  integrity, and claim policy, but exits 1 because old PPT files remain under
-  the repository-local `output/组会PPT_20260808/`. `readiness` therefore reports
-  21 checks, 1 failure, 17 warnings, `ready=false`, and
-  `release_ready=false`. Those user files were not deleted or moved, and the
-  validation rule was not weakened.
+1. A manifest-bound fixed `.otpu` route for the reviewed curve/layer shape.
+   Each current fixed route has fresh-project, same-data, save/reopen, native
+   600 dpi, manual-preview, and exact decoded-pixel evidence.
+2. A manifest-bound adaptive `.oth` + JSON route for current data identities
+   and data shapes. Each current adaptive route has its own accepted evidence;
+   acceptance is route-specific and does not imply that every adaptive product
+   is pixel-identical to the fixed reference.
 
-Do not call the current all-types product set visually accepted or
-release-ready. Do not lower the comparison threshold merely to make it green.
+Reference OPJU files are retained as isolated style evidence and recovery
+assets. They are not runtime graph bases or data sources. The confirmed-invalid
+historical `graph_templates/BET.otpu` was removed after its accepted replacement
+`BET_verified_20260813.otpu` became the sole BET fixed-template runtime asset.
+Older audit documents may still mention the former path as historical evidence.
 
-## Validation Commands
+The EIS adaptive route is the important non-pixel-exact case. Its controlled
+same-input run passed current X/Y and row-range readback, per-plot style,
+legend, axis, save/reopen, native 600 dpi, and manual PNG inspection, but its
+decoded pixels were not identical to the fixed-template replay. The fixed EIS
+OTPU route remains the exact-replay route. No threshold was relaxed to call the
+adaptive comparison exact.
+
+XRD has two native-Origin products. `XRD` handles sample curves plus one
+provided standard-card stick plot; `XRD_no_card` handles sample-only curves.
+Their fixed routes preserve the reviewed layouts, while the adaptive routes
+handle valid variable sample counts without raster overlays or synthetic
+layout filler.
+
+Detailed asset roles, contracts, and acceptance evidence are authoritative in
+the manifest and the referenced files under:
+
+- `templates/origin_styles/binding_contracts/`
+- `templates/origin_styles/validation_plans/`
+- `templates/origin_styles/validation_evidence/`
+
+## XRD data processing
+
+The `codex/xrd-data-optimization` branch is an ancestor of the current
+`master`; its data-only Jade/PDF candidate-analysis work was integrated by
+merge commit `ca095d1`. This module is separate from Origin plotting and does
+not require a graph test when only its data-processing behavior changes.
+
+XRD card matching remains candidate-only. It must record the selected local
+database/card source, matches, alternatives, and manual-review requirements.
+It does not automatically prove phase purity, hkl assignments, quantitative
+phase fractions, or absence of impurities.
+
+## Safety and interpretation boundaries
+
+- Raw data, user templates, and locked result packages remain read-only.
+- Origin is started only for explicit plotting work, and task-owned instances
+  are closed by code.
+- Successful Origin products must be saved, reopened, read back, and natively
+  exported as 600 dpi TIFF plus PNG preview.
+- High-risk scientific conclusions remain governed by
+  `config/claim_policy.yaml` and require manual review.
+- A file's presence, an old `accepted` label, or a self-replay is not
+  independent asset validation.
+
+## Validation
+
+Latest final verification on 2026-08-24:
+
+- Targeted cleanup/style-contract tests: 196 passed and 9 subtests passed.
+- Final full regression: 1186 passed, 3 skipped, and 59 subtests passed.
+- `validate`: all dependency, registry, Origin contract, claim-policy, and
+  14-asset integrity checks passed. The command still exits 1 only because
+  user PPT files remain under the repository-local
+  `output/组会PPT_20260808/`; they were not deleted or moved.
+- `readiness`: 21 checks, 1 failure, 17 warnings, `ready=false`, and
+  `release_ready=false`. The failure is the current validation report; the
+  warnings are missing or stale operational queue/review artifacts. No rule
+  was weakened to make the report green.
+
+Run final validation once after a coherent change batch, rather than repeating
+full-suite or Origin tests after every low-risk documentation edit:
 
 ```powershell
-python -m pytest
-python run.py validate
-python run.py readiness --no-desktop-review-xlsx
+D:\Python\python.exe -m pytest
+D:\Python\python.exe run.py validate
+D:\Python\python.exe run.py readiness --no-desktop-review-xlsx
 ```
 
-For plot-format changes, additionally run the relevant formal Origin commands and inspect their reports under the generated run root in `输出\runs`.
-
-`readiness.summary.ready` is the compatibility signal for zero hard failures.
-Release decisions use `readiness.summary.release_ready`, which additionally
-requires zero warnings.
+The two readiness commands must run in that order. Plot-format changes also
+require the affected formal Origin run and actual PNG inspection; data-only or
+documentation-only changes do not.
