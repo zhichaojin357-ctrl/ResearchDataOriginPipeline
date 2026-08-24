@@ -991,7 +991,7 @@ def test_template_xrd_finds_card_beside_pairing_opju_when_style_asset_is_elsewhe
     assert _template_xrd_target_sample_series_count(pairing, template) == 4
 
 
-def test_template_xrd_uses_pairing_data_before_template_adjacent_files(tmp_path: Path) -> None:
+def test_template_xrd_uses_only_explicit_pairing_data_without_sibling_fill(tmp_path: Path) -> None:
     template_dir = tmp_path / "template"
     data_dir = tmp_path / "data"
     template_dir.mkdir()
@@ -1025,8 +1025,57 @@ def test_template_xrd_uses_pairing_data_before_template_adjacent_files(tmp_path:
     built = _build_template_xrd_multisource_table(pairing, template)
 
     assert built is not None
+    assert built["headers"] == ["two_theta_deg", "current_A"]
+    assert [Path(path) for path in built["alignment"]["used_files"]] == [current_a]
+    assert built["alignment"]["product_series_count"] == 1
+    assert built["alignment"]["missing_series_count"] == 1
+
+    template.path.write_bytes(b"opju")
+    product, extra = prepare_template_product(tmp_path / "run", pairing, template, origin_style_mode="auto")
+
+    assert product.legend_entries == ["current A"]
+    assert extra["template_data_alignment"]["used_files"] == [str(current_a)]
+    assert extra["origin_processing"]["final_headers"] == ["two_theta_deg", "current_A"]
+    assert len(extra["origin_processing"]["transforms"]) == 2
+    assert extra["origin_processing"]["style_execution_mode_selected"] == "oth-json"
+
+
+def test_template_xrd_uses_all_explicit_pairing_data_without_directory_scan(tmp_path: Path) -> None:
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    current_a = data_dir / "current_A.txt"
+    current_b = data_dir / "current_B.txt"
+    unselected = data_dir / "unselected.txt"
+    current_a.write_text("5 1\n6 2\n", encoding="utf-8")
+    current_b.write_text("5 3\n6 4\n", encoding="utf-8")
+    unselected.write_text("5 50\n6 60\n", encoding="utf-8")
+    template = TemplateCandidate(
+        product_key="XRD",
+        path=tmp_path / "template.opju",
+        source="pairing_plan_exemplar",
+        path_score=100,
+        status="extracted",
+        graph_page="Graph4",
+        layer_count=1,
+        plot_count=4,
+    )
+    pairing = TargetPairing(
+        product_key="XRD",
+        data_type="XRD",
+        xps_subtype="",
+        data_root_label="project_data",
+        data_paths=[current_a, current_b],
+        opju_root_label="origin_manual_save",
+        reference_opju=template.path,
+    )
+
+    built = _build_template_xrd_multisource_table(pairing, template)
+
+    assert built is not None
     assert built["headers"] == ["two_theta_deg", "current_A", "current_B"]
     assert [Path(path) for path in built["alignment"]["used_files"]] == [current_a, current_b]
+    assert built["alignment"]["product_series_count"] == 2
+    assert built["alignment"]["missing_series_count"] == 2
 
 
 def test_all_template_target_modes_include_mott() -> None:

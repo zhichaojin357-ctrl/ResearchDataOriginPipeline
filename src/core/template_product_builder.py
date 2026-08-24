@@ -1920,15 +1920,12 @@ def _select_template_bet_candidate_cohort(
 
 
 def _build_template_xrd_multisource_table(pairing: TargetPairing, template: TemplateCandidate) -> dict[str, object] | None:
-    target_series = _template_xrd_target_sample_series_count(pairing, template)
-    candidates = _template_candidate_files(
-        pairing,
-        template,
-        suffixes=(".txt", ".dql"),
-        exclude_name_tokens=("pdf#", "jcpds", "card", "鏍囧崱"),
-        prefer_template_parent=False,
-        limit=max(target_series * 3, 8),
-    )
+    # A reviewed pairing is the complete XRD source authorization.  Do not scan
+    # its directory (or a template directory) to fill a template's plot count:
+    # doing so silently changes the selected experiment.  A fixed-cardinality
+    # template with fewer explicitly selected samples is handled by the
+    # existing adaptive route, not by adding sibling files here.
+    candidates = _template_unique_paths(list(pairing.data_paths))
     series: list[tuple[str, list[list[float | str | None]]]] = []
     used_files: list[Path] = []
     for path in candidates:
@@ -1943,8 +1940,6 @@ def _build_template_xrd_multisource_table(pairing: TargetPairing, template: Temp
             continue
         series.append((_template_xy_series_label(pairing.product_key, path), rows))
         used_files.append(path)
-        if len(series) >= target_series:
-            break
     if len(series) < 1:
         return None
     reference_card = _template_xrd_reference_stick_series(pairing, template, series[0][1])
