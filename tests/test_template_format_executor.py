@@ -52,6 +52,7 @@ from src.core.template_format_executor import (
     _prepare_verified_photocurrent_otpu_binding,
     _prepare_verified_raman_otpu_binding,
     _prepare_verified_uvvis_otpu_binding,
+    _prepare_verified_xps_in_situ_otpu_binding,
     _prepare_verified_otpu_binding,
     _populate_verified_otpu_workbook,
     _apply_verified_otpu_post_plot_style,
@@ -67,9 +68,12 @@ from src.core.template_format_executor import (
     _saved_theme_reference_policy,
     _set_origin_graph_object_text,
     _strip_raster_metadata,
+    _strict_adaptive_source_validation,
     _with_default_xps_non_in_situ_template_root,
     _verified_otpu_conformance_reference,
     _validate_verified_current_data,
+    _validate_xps_in_situ_reopened_plot_styles,
+    _validate_adaptive_xps_in_situ_reopened_plot_styles,
     _validate_photocurrent_axis_titles,
     _validate_bet_axis_titles,
     _update_verified_epr_label_objects,
@@ -80,6 +84,7 @@ from src.core.template_format_executor import (
     _verified_otpu_axis_title_bold_policy,
     _verified_otpu_required_line_width_pt,
     _verified_otpu_style_contract,
+    _xps_in_situ_current_data_matches_reference,
     _xrd_direct_label_positions,
     _xrd_plain_label_text,
     _xrd_standard_card_keeps_line_sample_legend,
@@ -5577,6 +5582,254 @@ def _product(tmp_path: Path, processed: Path) -> ProductContext:
         graph_title="BET",
         plot_type="line",
     )
+
+
+def _verified_xps_in_situ_product_and_table(
+    tmp_path: Path,
+) -> tuple[ProductContext, list[str], list[list[float]], Path]:
+    roles = (
+        "_measured",
+        "_component_1",
+        "_component_1_fill_baseline",
+        "_component_2",
+        "_component_2_fill_baseline",
+        "_background",
+        "_envelope",
+    )
+    samples = ("Sample_A", "Sample_B", "Sample_C")
+    headers = [
+        header
+        for sample in samples
+        for header in (sample + "_binding_energy_eV", *(sample + role for role in roles))
+    ]
+    rows: list[list[float]] = []
+    for row_index, x_value in enumerate((168.0, 167.5, 167.0), start=1):
+        row = []
+        for sample_index in range(3):
+            background = float(sample_index + 1) / 10.0
+            row.extend(
+                [
+                    x_value - sample_index * 0.1,
+                    float(row_index + sample_index),
+                    float(row_index + sample_index) + 0.5,
+                    background,
+                    float(4 - row_index + sample_index) + 0.25,
+                    background,
+                    background,
+                    float(row_index + sample_index) + 0.75,
+                ]
+            )
+        rows.append(row)
+    processed = tmp_path / "xps_in_situ.csv"
+    processed.write_text(
+        ",".join(headers)
+        + "\n"
+        + "\n".join(",".join(str(value) for value in row) for row in rows)
+        + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="XPS_in_situ",
+        graph_title="Bi 4f",
+        legend_entries=list(samples),
+    )
+    contract = (
+        Path(__file__).parents[1]
+        / "templates"
+        / "origin_styles"
+        / "binding_contracts"
+        / "XPS_in_situ.json"
+    )
+    return product, headers, rows, contract
+
+
+def test_xps_in_situ_verified_binding_and_workbook_preserve_reviewed_native_topology(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract = _verified_xps_in_situ_product_and_table(tmp_path)
+    binding = _prepare_verified_xps_in_situ_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract,
+    )
+
+    assert binding["ok"] is True
+    assert binding["graph_page"] == "Bi_4f"
+    assert [value["book_name"] for value in binding["workbooks"]] == ["Book2", "Book3", "Book4"]
+    assert [value["y_col"] for value in binding["xy_ranges"]] == [2, 3, 5, 4, 5, 5, 6] * 3
+    assert [value["source_x_index"] for value in binding["xy_ranges"]] == [0] * 7 + [8] * 7 + [16] * 7
+    assert [value["source_y_index"] for value in binding["xy_ranges"]] == [
+        1, 4, 3, 2, 5, 6, 7,
+        9, 12, 11, 10, 13, 14, 15,
+        17, 20, 19, 18, 21, 22, 23,
+    ]
+
+    class WorkbookOps:
+        def __init__(self) -> None:
+            self.data: dict[str, list[list[float]]] = {}
+
+        def create_worksheet(self, book_name: str, sheet_name: str) -> OperationResult:
+            return OperationResult(True, "created", {"book_name": book_name, "sheet_name": sheet_name})
+
+        def set_worksheet_data(
+            self,
+            book_name: str,
+            _sheet_name: str,
+            columns: list[list[float]],
+        ) -> OperationResult:
+            self.data[book_name] = columns
+            return OperationResult(True, "written")
+
+        def set_worksheet_column_metadata(
+            self,
+            _book_name: str,
+            columns: list[dict[str, object]],
+        ) -> OperationResult:
+            assert [column["column_index"] for column in columns] == [1, 2, 3, 4, 5, 6]
+            return OperationResult(True, "metadata")
+
+    operations = WorkbookOps()
+    result = _populate_verified_otpu_workbook(operations, product, headers, rows, binding)
+    assert result["ok"] is True
+    assert result["book_names"] == ["Book2", "Book3", "Book4"]
+    assert all(len(columns) == 6 for columns in operations.data.values())
+    assert operations.data["Book2"][0] == [row[0] for row in rows]
+    assert operations.data["Book3"][0] == [row[8] for row in rows]
+    assert operations.data["Book4"][0] == [row[16] for row in rows]
+    assert min(operations.data["Book2"][1]) == pytest.approx(2.82)
+    assert max(operations.data["Book2"][1]) == pytest.approx(3.82)
+    assert min(operations.data["Book3"][1]) == pytest.approx(1.41)
+    assert max(operations.data["Book3"][1]) == pytest.approx(2.41)
+    assert min(operations.data["Book4"][1]) == pytest.approx(0.0)
+    assert max(operations.data["Book4"][1]) == pytest.approx(1.0)
+    assert operations.data["Book2"][2][0] > operations.data["Book2"][2][-1]
+    assert operations.data["Book2"][3][0] < operations.data["Book2"][3][-1]
+
+
+def test_xps_in_situ_verified_binding_rejects_nonshared_fill_baseline(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract = _verified_xps_in_situ_product_and_table(tmp_path)
+    rows[1][3] += 0.1
+
+    result = _prepare_verified_xps_in_situ_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract,
+    )
+
+    assert result["ok"] is False
+    assert "same supplied curve" in str(result["message"])
+
+
+def test_xps_in_situ_verified_same_data_and_plot_style_hard_gates(tmp_path: Path) -> None:
+    product, headers, rows, _contract = _verified_xps_in_situ_product_and_table(tmp_path)
+    plots = []
+    runtime_sources = [
+        1, 4, 3, 2, 5, 6, 7,
+        9, 12, 11, 10, 13, 14, 15,
+        17, 20, 19, 18, 21, 22, 23,
+    ]
+    runtime_x_sources = [0] * 7 + [8] * 7 + [16] * 7
+    for plot_index, (source_x_index, source_y_index) in enumerate(
+        zip(runtime_x_sources, runtime_sources),
+        start=1,
+    ):
+        role_index = (plot_index - 1) % 7 + 1
+        plots.append(
+            {
+                "layer_index": 1,
+                "plot_index": plot_index,
+                "x_values": [row[source_x_index] for row in rows],
+                "y_values": [row[source_y_index] for row in rows],
+                "style": {
+                    "color": role_index,
+                    "line_color": role_index,
+                    "line_width_origin_units": 0.0 if plot_index % 7 in {3, 5, 6} else 1500.0,
+                    "line_width_pt": 0.0 if plot_index % 7 in {3, 5, 6} else 3.0,
+                    "line_style": 1.0,
+                    "symbol_shape": 0.0,
+                    "symbol_size": 9.0,
+                    "fill_area": 1.0,
+                    "fill_color": -9.0,
+                    "border_color": 1.0,
+                    "border_width": 0.5,
+                },
+            }
+        )
+    reference = {"status": "ready", "plots": plots}
+    assert _xps_in_situ_current_data_matches_reference(product, reference)["matches"] is True
+    current = json.loads(json.dumps(reference))
+    assert _validate_xps_in_situ_reopened_plot_styles(reference, current)["ok"] is True
+    current["plots"][2]["style"]["line_width_pt"] = 3.0
+    rejected = _validate_xps_in_situ_reopened_plot_styles(reference, current)
+    assert rejected["ok"] is False
+    assert "line_width_pt" in str(rejected["message"])
+
+
+def test_xps_in_situ_adaptive_source_and_role_styles_support_two_sample_groups(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_xps_in_situ_product_and_table(tmp_path)
+    headers = headers[:16]
+    rows = [row[:16] for row in rows]
+    for row in rows:
+        row[2], row[4] = row[4], row[2]
+        row[10], row[12] = row[12], row[10]
+    product.processed_data.write_text(
+        ",".join(headers)
+        + "\n"
+        + "\n".join(",".join(str(value) for value in row) for row in rows)
+        + "\n",
+        encoding="utf-8",
+    )
+    contract_payload = json.loads(contract_path.read_text(encoding="utf-8"))["contracts"][0]
+    pairs = [
+        (x_column - 1, y_column - 1)
+        for x_column, y_column in _processed_csv_plot_pairs(product, headers)
+    ]
+    validation = _strict_adaptive_source_validation(
+        SimpleNamespace(source_schema=contract_payload["source_schema"]),
+        headers,
+        rows,
+        pairs,
+    )
+    assert validation["ok"] is True
+    assert validation["source_series_count"] == 14
+
+    reference_plots = []
+    for plot_index in range(1, 22):
+        role_index = (plot_index - 1) % 7 + 1
+        reference_plots.append(
+            {
+                "layer_index": 1,
+                "plot_index": plot_index,
+                "style": {
+                    "color": role_index,
+                    "line_color": role_index,
+                    "line_width_origin_units": 0.0 if role_index in {3, 5, 6} else 1500.0,
+                    "line_width_pt": 0.0 if role_index in {3, 5, 6} else 3.0,
+                    "line_style": 1.0,
+                    "symbol_shape": 0.0,
+                    "symbol_size": 9.0,
+                    "fill_area": 1.0,
+                    "fill_color": -9.0,
+                    "border_color": 1.0,
+                    "border_width": 0.5,
+                },
+            }
+        )
+    reference = {"status": "ready", "plots": reference_plots}
+    current = {"status": "ready", "plots": reference_plots[:14]}
+    style_validation = _validate_adaptive_xps_in_situ_reopened_plot_styles(
+        reference,
+        current,
+        expected_plot_count=14,
+    )
+    assert style_validation["ok"] is True
 
 
 def _dual_mode_ftir_product(tmp_path: Path, processed: Path, labels: list[str]) -> ProductContext:

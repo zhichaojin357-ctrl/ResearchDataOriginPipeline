@@ -138,8 +138,12 @@ def origin_process_ids() -> set[int]:
             "powershell",
             "-NoProfile",
             "-Command",
-            "Get-Process -Name Origin* -ErrorAction SilentlyContinue | "
-            "Select-Object -ExpandProperty Id",
+            "$originProcesses = Get-Process -Name Origin* -ErrorAction SilentlyContinue; "
+            "foreach ($originProcess in $originProcesses) { "
+            "try { "
+            "if (@($originProcess.Threads).Count -gt 0) { $originProcess.Id } "
+            "} catch { $originProcess.Id } "
+            "}",
         ],
         text=True,
         capture_output=True,

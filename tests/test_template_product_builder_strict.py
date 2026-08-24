@@ -671,7 +671,7 @@ def test_template_xps_components_are_followed_by_template_fill_baselines() -> No
                 "Backgnd.": 10.0,
                 "envelope": 9.0,
                 "Bi4f Scan A": 14.0,
-                "Bi4f Scan B": 13.0,
+                "Bi4f Scan B": 19.0,
             },
             {
                 "binding_energy_eV": 159.0,
@@ -725,6 +725,21 @@ def test_template_xps_components_are_followed_by_template_fill_baselines() -> No
         "BOBC_envelope",
     ]
     assert template_xps_component_fill_pairs(in_situ_headers) == [(2, 3), (4, 5)]
+
+    reviewed_headers, reviewed_rows = _xps_records_to_offset_table(
+        [record],
+        include_envelope=True,
+        include_components=True,
+        component_fill_mode="template_line_fill",
+        series_layout="in_situ_template",
+        vertical_offsets=(2.82,),
+        higher_binding_component_first=True,
+    )
+    assert reviewed_headers == in_situ_headers
+    assert min(row[1] for row in reviewed_rows) == pytest.approx(2.82)
+    assert max(row[1] for row in reviewed_rows) == pytest.approx(3.82)
+    assert reviewed_rows[0][2] > reviewed_rows[1][2]
+    assert reviewed_rows[0][4] < reviewed_rows[1][4]
 
     non_in_situ_headers, _non_in_situ_rows = _xps_records_to_offset_table(
         [record],

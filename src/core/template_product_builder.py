@@ -24,6 +24,7 @@ from src.core.template_product_common import (
     FORBIDDEN_LABELS,
     ProductContext,
     TargetPairing,
+    XPS_IN_SITU_REVIEWED_VERTICAL_OFFSETS,
     _build_processed_plot_table,
     _copy_inputs,
     _copy_reference,
@@ -1529,11 +1530,20 @@ def _build_template_aligned_first_batch_table(
         pairing,
         xps_component_fill_mode=xps_component_fill_mode,
     )
+    plotted_series_count = (
+        sum(
+            1
+            for header in headers
+            if not str(header).casefold().endswith("_binding_energy_ev")
+        )
+        if pairing.product_key == "XPS_in_situ"
+        else len(headers) - 1
+    )
     return {
         "headers": headers,
         "rows": rows,
         "labels": labels,
-        "alignment": _template_alignment_payload(pairing, template, pairing.data_paths, len(headers) - 1, "fallback_existing_first_batch_builder"),
+        "alignment": _template_alignment_payload(pairing, template, pairing.data_paths, plotted_series_count, "fallback_existing_first_batch_builder"),
     }
 
 
@@ -2977,9 +2987,14 @@ def _write_template_origin_processing_plan(
     shape = dict(alignment or {})
     current_series_count = int(
         shape.get("current_series_count")
+        or shape.get("product_series_count")
         or (len(headers) // 2 if pairing.product_key in {"FTIR", "photocurrent"} else max(len(headers) - 1, 0))
     )
-    fixed_contract_series_count = int(shape.get("fixed_contract_series_count") or current_series_count)
+    fixed_contract_series_count = int(
+        shape.get("fixed_contract_series_count")
+        or shape.get("template_plot_count")
+        or current_series_count
+    )
     plan.update(
         _template_style_shape_payload(
             requested_mode=origin_style_mode,
@@ -3158,9 +3173,17 @@ def _write_template_xps_origin_processing_plan(
 ) -> dict[str, object]:
     records = _select_template_xps_records_for_origin_processing(pairing)
     point_count = min(len(record.data) for record in records)
-    raw_headers = ["binding_energy_eV"]
-    raw_columns: list[list[float | None]] = [[_to_float(records[0].data[index].get("binding_energy_eV")) for index in range(point_count)]]
-    transforms: list[dict[str, object]] = [{"header": "binding_energy_eV", "kind": "copy", "source_col": 1}]
+    if pairing.product_key == "XPS_in_situ":
+        raw_headers: list[str] = []
+        raw_columns: list[list[float | None]] = []
+        transforms: list[dict[str, object]] = []
+    else:
+        raw_headers = ["binding_energy_eV"]
+        raw_columns = [[
+            _to_float(records[0].data[index].get("binding_energy_eV"))
+            for index in range(point_count)
+        ]]
+        transforms = [{"header": "binding_energy_eV", "kind": "copy", "source_col": 1}]
 
     def add_raw_column(header: str, values: list[float | None]) -> int:
         raw_headers.append(header)
@@ -3168,8 +3191,27 @@ def _write_template_xps_origin_processing_plan(
         return len(raw_headers)
 
     for record_index, record in enumerate(records):
-        offset = record_index * 1.35
+        offset = (
+            XPS_IN_SITU_REVIEWED_VERTICAL_OFFSETS[record_index]
+            if pairing.product_key == "XPS_in_situ"
+            else record_index * 1.35
+        )
         sample = _series_sample_name(record.sample)
+        if pairing.product_key == "XPS_in_situ":
+            binding_energy_col = add_raw_column(
+                f"{sample}_binding_energy_eV_raw",
+                [
+                    _to_float(record.data[index].get("binding_energy_eV"))
+                    for index in range(point_count)
+                ],
+            )
+            transforms.append(
+                {
+                    "header": f"{sample}_binding_energy_eV",
+                    "kind": "copy",
+                    "source_col": binding_energy_col,
+                }
+            )
         measured_col = add_raw_column(
             f"{sample}_measured_raw",
             _xps_raw_series(record, "raw_intensity", point_count),
@@ -3207,8 +3249,18 @@ def _write_template_xps_origin_processing_plan(
                 "scale_col": measured_col,
                 "offset": offset,
             }
+        component_labels = list(record.component_labels)
+        if pairing.product_key == "XPS_in_situ":
+            component_labels.sort(
+                key=lambda label: _xps_raw_component_peak_binding_energy(
+                    record,
+                    label,
+                    point_count,
+                ),
+                reverse=True,
+            )
         component_transforms: list[tuple[dict[str, object], dict[str, object]]] = []
-        for component_index, label in enumerate(record.component_labels, start=1):
+        for component_index, label in enumerate(component_labels, start=1):
             component_values = _xps_raw_series_any(record, (_component_key(label), label), point_count)
             if not any(value is not None for value in component_values):
                 continue
@@ -3291,6 +3343,30 @@ def _write_template_xps_origin_processing_plan(
         plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     return plan
+
+
+def _xps_raw_component_peak_binding_energy(
+    record: XpsFitRecord,
+    label: str,
+    point_count: int,
+) -> float:
+    values = _xps_raw_series_any(record, (_component_key(label), label), point_count)
+    points = [
+        (
+            _to_float(record.data[index].get("binding_energy_eV")),
+            value,
+        )
+        for index, value in enumerate(values)
+        if value is not None and math.isfinite(value)
+    ]
+    finite = [
+        (float(x_value), float(y_value))
+        for x_value, y_value in points
+        if x_value is not None and math.isfinite(x_value)
+    ]
+    if not finite:
+        raise ValueError(f"XPS component curve is empty for {record.sample}")
+    return max(finite, key=lambda point: point[1])[0]
 
 
 def _select_template_xps_records_for_origin_processing(pairing: TargetPairing) -> list[XpsFitRecord]:
@@ -4720,16 +4796,18 @@ def _xps_peak_annotations_from_processed_data(processed_data: Path, *, product_t
     region = _xps_default_region_label(element)
     annotations: list[dict[str, object]] = []
     for header in component_headers:
+        sample = header.rsplit("_component_", 1)[0]
+        sample_x_header = f"{sample}_binding_energy_eV"
+        x_header = sample_x_header if sample_x_header in headers else headers[0]
         points: list[tuple[float, float]] = []
         for row in rows:
-            x_value = _to_float(row.get(headers[0]))
+            x_value = _to_float(row.get(x_header))
             y_value = _to_float(row.get(header))
             if x_value is not None and y_value is not None:
                 points.append((x_value, y_value))
         if not points:
             continue
         peak_x, peak_y = max(points, key=lambda item: item[1])
-        sample = header.rsplit("_component_", 1)[0]
         component = re.sub(r"_(?:line|fill_upper)$", "", header.rsplit("_component_", 1)[-1])
         annotations.append(
             {
@@ -4786,16 +4864,24 @@ def _apply_template_xps_sample_labels(
     headers, rows = _read_template_csv_table(processed_data)
     if len(headers) < 2 or not rows:
         return {"applied": False, "label_count": 0, "labels": []}
-    x_values = [_to_float(row[0]) for row in rows if row]
-    finite_x = [value for value in x_values if value is not None and math.isfinite(value)]
-    if not finite_x:
-        return {"applied": False, "label_count": 0, "labels": []}
-    x_pos = max(finite_x) - abs(max(finite_x) - min(finite_x)) * 0.06
     labels: list[dict[str, object]] = []
     for column_index, header in enumerate(headers[1:], start=1):
         if not header.endswith("_measured"):
             continue
         sample = header[: -len("_measured")]
+        sample_x_header = f"{sample}_binding_energy_eV"
+        x_column_index = headers.index(sample_x_header) if sample_x_header in headers else 0
+        x_values = [
+            _to_float(row[x_column_index])
+            for row in rows
+            if x_column_index < len(row)
+        ]
+        finite_x = [
+            value for value in x_values if value is not None and math.isfinite(value)
+        ]
+        if not finite_x:
+            continue
+        x_pos = max(finite_x) - abs(max(finite_x) - min(finite_x)) * 0.06
         values = [_to_float(row[column_index]) for row in rows if column_index < len(row)]
         finite_y = [value for value in values if value is not None and math.isfinite(value)]
         if not finite_y:

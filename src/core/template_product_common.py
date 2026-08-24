@@ -34,6 +34,7 @@ from src.processors.calculations import bet_processed_table
 TARGET_PRODUCT_KEYS = ("BET", "XPS_in_situ", "XPS_non_in_situ", "XRD", "EPR")
 TARGET_SIMPLE_TYPES = {"BET", "XRD", "EPR"}
 XPS_TARGET_SUBTYPES = {"XPS_in_situ", "XPS_non_in_situ"}
+XPS_IN_SITU_REVIEWED_VERTICAL_OFFSETS = (2.82, 1.41, 0.0)
 DEFAULT_PRODUCT_SLUGS = {key: spec.output_slug for key, spec in TYPE_MIMIC_SPECS.items()}
 FORBIDDEN_LABELS = (
     "Codex",
@@ -331,6 +332,9 @@ def _build_xps_in_situ_table(
         include_components=True,
         component_fill_mode=component_fill_mode,
         series_layout="in_situ_template" if component_fill_mode == "template_line_fill" else "compact",
+        vertical_offsets=XPS_IN_SITU_REVIEWED_VERTICAL_OFFSETS,
+        higher_binding_component_first=True,
+        independent_x_per_record=True,
     )
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
@@ -381,18 +385,34 @@ def _xps_records_to_offset_table(
     include_components: bool = False,
     component_fill_mode: str = "plain",
     series_layout: str = "compact",
+    vertical_offsets: tuple[float, ...] | None = None,
+    higher_binding_component_first: bool = False,
+    independent_x_per_record: bool = False,
 ) -> tuple[list[str], list[list[float | str | None]]]:
     if not records:
         raise ValueError("No XPS records to plot")
     if series_layout not in {"compact", "in_situ_template", "non_in_situ_template"}:
         raise ValueError(f"Unsupported XPS series layout: {series_layout}")
     point_count = min(len(record.data) for record in records)
-    headers = ["binding_energy_eV"]
+    headers = [] if independent_x_per_record else ["binding_energy_eV"]
     series_by_record: list[list[list[float | None]]] = []
+    x_by_record: list[list[float | None]] = []
     for record_index, record in enumerate(records):
-        offset = record_index * 1.35
+        if vertical_offsets is not None:
+            if len(vertical_offsets) != len(records):
+                raise ValueError("XPS reviewed vertical offsets must match the selected record count")
+            offset = float(vertical_offsets[record_index])
+        else:
+            offset = record_index * 1.35
         common_scale = _xps_record_common_scale(record, point_count) if component_fill_mode == "template_line_fill" else None
         sample = _series_sample_name(record.sample)
+        record_x = [
+            _to_float(record.data[index].get("binding_energy_eV"))
+            for index in range(point_count)
+        ]
+        x_by_record.append(record_x)
+        if independent_x_per_record:
+            headers.append(f"{sample}_binding_energy_eV")
         measured = _normalized_record_series_for_xps_mode(record, "raw_intensity", offset, point_count, common_scale)
         envelope = (
             _normalized_record_series_for_xps_mode(record, "envelope", offset, point_count, common_scale)
@@ -408,6 +428,23 @@ def _xps_records_to_offset_table(
                 component = _normalized_record_series_any_for_xps_mode(record, (_component_key(label), label), offset, point_count, common_scale)
                 if any(value is not None for value in component):
                     components.append((component_index, component))
+        if higher_binding_component_first:
+            ordered_components = sorted(
+                components,
+                key=lambda value: _xps_component_peak_binding_energy(
+                    record,
+                    value[1],
+                    point_count,
+                ),
+                reverse=True,
+            )
+            components = [
+                (component_index, values)
+                for component_index, (_source_index, values) in enumerate(
+                    ordered_components,
+                    start=1,
+                )
+            ]
 
         record_series: list[list[float | None]] = []
 
@@ -461,13 +498,39 @@ def _xps_records_to_offset_table(
         series_by_record.append(record_series)
     rows: list[list[float | str | None]] = []
     for index in range(point_count):
-        binding = _to_float(records[0].data[index].get("binding_energy_eV"))
-        row: list[float | str | None] = [binding]
-        for record_series in series_by_record:
+        row: list[float | str | None] = []
+        if not independent_x_per_record:
+            row.append(x_by_record[0][index])
+        for record_index, record_series in enumerate(series_by_record):
+            if independent_x_per_record:
+                row.append(x_by_record[record_index][index])
             for series in record_series:
                 row.append(series[index])
         rows.append(row)
     return headers, rows
+
+
+def _xps_component_peak_binding_energy(
+    record: XpsFitRecord,
+    component: list[float | None],
+    point_count: int,
+) -> float:
+    points = [
+        (
+            _to_float(record.data[index].get("binding_energy_eV")),
+            value,
+        )
+        for index, value in enumerate(component[:point_count])
+        if value is not None and math.isfinite(value)
+    ]
+    finite = [
+        (float(x_value), float(y_value))
+        for x_value, y_value in points
+        if x_value is not None and math.isfinite(x_value)
+    ]
+    if not finite:
+        raise ValueError(f"XPS component curve is empty for {record.sample}")
+    return max(finite, key=lambda point: point[1])[0]
 
 
 def _normalized_record_series(record: XpsFitRecord, key: str, offset: float, point_count: int) -> list[float | None]:

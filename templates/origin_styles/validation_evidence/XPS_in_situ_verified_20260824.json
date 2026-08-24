@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "XPS_in_situ",
+  "status": "accepted",
+  "generated_at": "2026-08-24T08:46:31+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed that the detached Bi_4f OTPU replay is pixel-identical to the reviewed XPS in-situ graph: page and layer geometry, three vertically arranged sample products, all 21 native Origin plots, blue/pink component fills, gray shared backgrounds, black envelopes, bold axis titles, current reference labels, peak labels, and all visible layout details are unchanged. The fresh plot did not load the reference OPJU as a product base.",
+  "staged_asset_replay_location": "origin_style_validation/20260824_XPS_in_situ_fresh_replay_02/products/XPS_in_situ/comparison.json",
+  "validation_plan": {
+    "path": "validation_plans/XPS_in_situ_verified_20260824.json",
+    "sha256": "ff30c35a6ec0ca8d94d4c03de9257e01edb9e90e199d7350cd29dde38c75db09"
+  },
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/XPS_in_situ.otpu",
+    "sha256": "5dc6ee679c6a30ca08efa10303ff59a4d24b2c03efb8b8ce28c640cdff7b54e7",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju",
+    "minimum_generation_package": "otpu_plus_explicit_21_plot_binding_contract_plus_style_and_data_snapshots"
+  },
+  "reference": {
+    "path": "reference_opju/XPS_in_situ.opju",
+    "graph_page": "Bi_4f",
+    "sha256": "4d9f598ee9cfa654ac6f66020ebf9d4743d72968c50ca7158a73105a6a3701e8",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/XPS_in_situ.json",
+    "sha256": "b1af93273db70b1ffa8908a1eb9b769f7b596060e5272b82a11dd6dfdaf5032e",
+    "source_series_count": 21,
+    "source_layout": "three_sample_independent_x_with_seven_roles",
+    "worksheet_layout": "three_workbooks_shared_x_six_destination_columns",
+    "workbook_names": ["Book2", "Book3", "Book4"],
+    "group_plots": false,
+    "fixed_semantic_roles_required": true,
+    "numeric_transform": "minmax_normalization_plus_reviewed_vertical_offsets",
+    "reviewed_vertical_offsets": [2.82, 1.41, 0.0],
+    "component_order": "higher_binding_energy_peak_first",
+    "interpolation": "not_applied",
+    "smoothing": "not_applied",
+    "refitting": "not_applied"
+  },
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "2de6e593152b5d5db2d5ff7237ac4171e1e6c41ee6d1aa58cf854d8df70c803f",
+    "generated_plot_values_sha256": "2de6e593152b5d5db2d5ff7237ac4171e1e6c41ee6d1aa58cf854d8df70c803f",
+    "reference_plot_mapping_sha256": "b86f1a840f20a8930ad54dd7e291a51d06ce1d0779aed9656403c436da592fe2",
+    "generated_plot_mapping_sha256": "b86f1a840f20a8930ad54dd7e291a51d06ce1d0779aed9656403c436da592fe2"
+  },
+  "style": {
+    "status": "pass",
+    "current_style_snapshot_sha256": "b17696ba29ed0b49491bd2ff7f7e302aa7ff762e6d9329f304e9f233c0f12158",
+    "style_conformance": "149/149",
+    "axis_title_hard_gate": true
+  },
+  "pixels": {
+    "exact_pixel_match": true,
+    "same_size": true,
+    "changed_pixels": 0,
+    "rms": 0.0
+  },
+  "save_reopen": {
+    "reference_opju_self_replay": false,
+    "saved_reopened": true
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "sensitive_metadata_scan": "pass"
+  }
+}

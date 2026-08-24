@@ -1259,6 +1259,28 @@ class OriginOperationsSmokeTest(unittest.TestCase):
 
                 origin_process_ids()
 
+    def test_origin_process_ids_filters_only_confirmed_zero_thread_residue(self):
+        completed = type(
+            "Completed",
+            (),
+            {
+                "returncode": 0,
+                "stderr": "",
+                "stdout": "8123\n",
+            },
+        )()
+        with mock.patch(
+            "src.origin.operations.subprocess.run",
+            return_value=completed,
+        ) as run:
+            from src.origin.operations import origin_process_ids
+
+            self.assertEqual(origin_process_ids(), {8123})
+
+        command = run.call_args.args[0]
+        self.assertIn("@($originProcess.Threads).Count -gt 0", command[-1])
+        self.assertIn("catch { $originProcess.Id }", command[-1])
+
     def test_origin_process_ids_fails_closed_on_unparseable_output(self):
         completed = type(
             "Completed",

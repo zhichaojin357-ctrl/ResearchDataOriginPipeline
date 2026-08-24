@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_detached_adaptive_oth_json_validation",
+  "product_key": "XPS_in_situ",
+  "status": "accepted",
+  "generated_at": "2026-08-24T12:05:00+08:00",
+  "runtime_role": "adaptive_runtime",
+  "asset": {
+    "kind": "oth_json",
+    "format_theme": "format_themes/XPS_in_situ.oth",
+    "style_snapshot": "snapshots/XPS_in_situ.json",
+    "data_snapshot": "data_snapshots/XPS_in_situ.json",
+    "binding_contract": "binding_contracts/XPS_in_situ.json",
+    "source_mode": "legacy_compatible_theme_with_explicit_native_plot_style_data_and_graph_object_replay"
+  },
+  "generation_boundary": {
+    "entrypoint": "Origin.Application",
+    "fresh_project": true,
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "one_to_one_exact_match_claim_allowed": false
+  },
+  "fixed_cardinality_validation": {
+    "status": "accepted",
+    "origin_style_mode_requested": "oth-json",
+    "style_execution_mode": "variable_structure_oth_json",
+    "evidence_location": "runs/20260824_120000_XPS_in_situ_adaptive_oth_json_03_template_format_products/products/XPS_in_situ/metadata.json",
+    "current_series_count": 21,
+    "contract_series_count": 21,
+    "reopened_plot_count": 21,
+    "current_plot_values_match_csv": true,
+    "per_plot_native_style_readback": "21/21",
+    "style_conformance": {
+      "status": "pass",
+      "matched_fields": 149,
+      "compared_fields": 149
+    },
+    "native_workbook_topology": {
+      "method": "one_native_origin_workbook_per_sample_with_shared_fill_baseline",
+      "book_names": ["Book2", "Book3", "Book4"],
+      "destination_columns_per_book": 6,
+      "plot_roles_per_sample": 7
+    },
+    "native_graph_objects": {
+      "status": "accepted",
+      "object_names": ["Text", "Text1", "Text2", "Text3", "Text4", "Text5", "Text6", "Text7", "Text8", "Text9"],
+      "current_sample_and_peak_candidate_text_applied": true,
+      "stale_reference_text_allowed": false
+    },
+    "same_processed_data_as_otpu_validation": true,
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true,
+    "pixel_comparison": {
+      "role": "diagnostic_only_not_an_acceptance_gate",
+      "same_size": true,
+      "width_px": 6432,
+      "height_px": 4923,
+      "changed_pixels": 260254,
+      "rms": 22.46362556504712,
+      "one_to_one_exact_match": false
+    }
+  },
+  "variable_structure_support": {
+    "status": "implementation_and_contract_validated",
+    "origin_visual_run_scope": "not_repeated_by_user_request_to_control_test_scale",
+    "source_layout": "one_or_more_sample_local_X_plus_seven_role_groups",
+    "semantic_guards": [
+      "unique sample identity per group",
+      "higher-binding-energy component first",
+      "shared supplied fill baselines and background",
+      "contiguous finite sample-local X/Y rows"
+    ],
+    "native_origin_construction": "one workbook per current sample and seven reviewed plot roles per sample",
+    "style_cycle": "reviewed seven-role native line-fill-helper cycle",
+    "text_policy": "three samples use current native annotations; other sample counts remove stale annotations and use a native Origin measured-curve legend",
+    "targeted_test": "tests/test_template_format_executor.py::test_xps_in_situ_adaptive_source_and_role_styles_support_two_sample_groups"
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  },
+  "acceptance_note": "XPS_in_situ OTH+JSON is accepted as the detached adaptive route. It uses only native Origin workbooks, plots, fills, text objects, OPJU save/reopen, and native export. The independently verified OTPU remains the zero-pixel fixed-structure route; this adaptive route deliberately makes no one-to-one pixel claim."
+}

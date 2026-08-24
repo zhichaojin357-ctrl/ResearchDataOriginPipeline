@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "product_key": "XPS_in_situ",
+      "data_type": "XPS",
+      "source_opju": "templates/origin_styles/reference_opju/XPS_in_situ.opju",
+      "graph_page": "Bi_4f",
+      "comparison_mode": "fresh_project_graph_template_same_data",
+      "graph_template": "templates/origin_styles/graph_templates/XPS_in_situ.otpu",
+      "style_snapshot": "templates/origin_styles/snapshots/XPS_in_situ.json",
+      "data_snapshot": "templates/origin_styles/data_snapshots/XPS_in_situ.json",
+      "binding_contract": "templates/origin_styles/binding_contracts/XPS_in_situ.json"
+    }
+  ]
+}

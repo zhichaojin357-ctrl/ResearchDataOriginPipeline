@@ -1,5 +1,5 @@
 {
-  "source_opju": "XPS_in_situ_BOBC_exemplar_template_format.opju",
+  "source_opju": "XPS_in_situ.opju",
   "status": "extracted",
   "graph_page": "Bi_4f",
   "graph_pages": [
@@ -145,6 +145,29 @@
     33554431.0,
     16777216.0
   ],
+  "plot_line_colors": [
+    29212093.0,
+    30586738.0,
+    33554431.0,
+    27692005.0,
+    33554431.0,
+    33554431.0,
+    16777216.0,
+    29212093.0,
+    30586738.0,
+    33554431.0,
+    27692005.0,
+    33554431.0,
+    33554431.0,
+    16777216.0,
+    29212093.0,
+    30586738.0,
+    33554431.0,
+    27692005.0,
+    33554431.0,
+    33554431.0,
+    16777216.0
+  ],
   "marker_shapes": [
     0.0,
     0.0,
@@ -191,7 +214,145 @@
     9.0,
     9.0
   ],
-  "graph_object_positions": {},
+  "plot_visibility": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "graph_object_positions": {
+    "__FRAMESRCDATAINFOS": {
+      "left": 5306.0,
+      "top": 547.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "YR": {
+      "left": 5618.0,
+      "top": 1678.0,
+      "width": 158.0,
+      "height": 1321.0
+    },
+    "XT": {
+      "left": 2641.0,
+      "top": 339.0,
+      "width": 1406.0,
+      "height": 151.0
+    },
+    "YL": {
+      "left": 705.0,
+      "top": 1320.0,
+      "width": 350.0,
+      "height": 2036.0
+    },
+    "XB": {
+      "left": 1927.0,
+      "top": 4575.0,
+      "width": 2834.0,
+      "height": 338.0
+    },
+    "__BCO2": {
+      "left": 5300.0,
+      "top": 338.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "_202": {
+      "left": 0.0,
+      "top": 0.0,
+      "width": 0.0,
+      "height": 0.0
+    },
+    "Text": {
+      "left": 1381.0,
+      "top": 693.0,
+      "width": 472.0,
+      "height": 251.0
+    },
+    "Text1": {
+      "left": 1179.0,
+      "top": 1283.0,
+      "width": 962.0,
+      "height": 226.0
+    },
+    "Text2": {
+      "left": 2392.0,
+      "top": 1120.0,
+      "width": 609.0,
+      "height": 323.0
+    },
+    "Text3": {
+      "left": 4040.0,
+      "top": 990.0,
+      "width": 609.0,
+      "height": 323.0
+    },
+    "Text4": {
+      "left": 1238.0,
+      "top": 2202.0,
+      "width": 1043.0,
+      "height": 193.0
+    },
+    "Text5": {
+      "left": 2496.0,
+      "top": 2211.0,
+      "width": 609.0,
+      "height": 323.0
+    },
+    "Text6": {
+      "left": 4050.0,
+      "top": 2128.0,
+      "width": 609.0,
+      "height": 323.0
+    },
+    "Text7": {
+      "left": 1172.0,
+      "top": 3170.0,
+      "width": 1078.0,
+      "height": 193.0
+    },
+    "Text8": {
+      "left": 2460.0,
+      "top": 3265.0,
+      "width": 609.0,
+      "height": 323.0
+    },
+    "Text9": {
+      "left": 4146.0,
+      "top": 3129.0,
+      "width": 609.0,
+      "height": 323.0
+    }
+  },
+  "adaptive_native_graph_objects": [
+    {"name": "Text", "text": "\\b(Bi 4f)", "left": 1381, "top": 693, "width": 472, "height": 251, "font_name": "Arial", "font_size": 26, "color": 1},
+    {"name": "Text1", "text": "\\b(BiOBr\\-(0.5)Cl\\-(0.5))", "left": 1179, "top": 1283, "width": 962, "height": 226, "font_name": "Arial", "font_size": 20, "color": 1},
+    {"name": "Text2", "text": "\\b(Bi 4f5/2)\r\n\\b(164.68 eV)", "left": 2392, "top": 1120, "width": 609, "height": 323, "font_name": "Arial", "font_size": 16, "color": 8421504},
+    {"name": "Text3", "text": "\\b(Bi 4f7/2)\r\n\\b(159.38 eV)", "left": 4040, "top": 990, "width": 609, "height": 323, "font_name": "Arial", "font_size": 16, "color": 8421504},
+    {"name": "Text4", "text": "\\b(BiCu-10 Dark)", "left": 1238, "top": 2202, "width": 1043, "height": 193, "font_name": "Arial", "font_size": 20, "color": 1},
+    {"name": "Text5", "text": "\\b(Bi 4f5/2)\r\n\\b(164.82 eV)", "left": 2496, "top": 2211, "width": 609, "height": 323, "font_name": "Arial", "font_size": 16, "color": 8421504},
+    {"name": "Text6", "text": "\\b(Bi 4f7/2)\r\n\\b(159.52 eV)", "left": 4050, "top": 2128, "width": 609, "height": 323, "font_name": "Arial", "font_size": 16, "color": 8421504},
+    {"name": "Text7", "text": "\\b(BiCu-10 Light)", "left": 1172, "top": 3170, "width": 1078, "height": 193, "font_name": "Arial", "font_size": 20, "color": 1},
+    {"name": "Text8", "text": "\\b(Bi 4f5/2)\r\n\\b(164.62 eV)", "left": 2460, "top": 3265, "width": 609, "height": 323, "font_name": "Arial", "font_size": 16, "color": 8421504},
+    {"name": "Text9", "text": "\\b(Bi 4f7/2)\r\n\\b(159.32 eV)", "left": 4146, "top": 3129, "width": 609, "height": 323, "font_name": "Arial", "font_size": 16, "color": 8421504}
+  ],
   "warnings": [
     "Visible scientific annotations are not copied from the exemplar.",
     "Series line width is later overridden by the product policy when required."

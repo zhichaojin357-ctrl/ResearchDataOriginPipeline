@@ -160,9 +160,13 @@ def test_adaptive_style_resolver_accepts_complete_runtime_bundle(
             "UV_vis_DRS_oth_json_adaptive_verified_20260824.json",
         ),
         ("Tauc", "Tauc_oth_json_adaptive_verified_20260824.json"),
+        (
+            "XPS_in_situ",
+            "XPS_in_situ_oth_json_adaptive_verified_20260824.json",
+        ),
     ],
 )
-def test_current_uvvis_products_resolve_fixed_and_adaptive_runtime_assets(
+def test_current_products_resolve_fixed_and_adaptive_runtime_assets(
     product_key: str,
     adaptive_evidence_name: str,
 ) -> None:
