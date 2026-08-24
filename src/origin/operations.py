@@ -77,6 +77,27 @@ SYMBOL_SHAPES = {
     6: 6,
 }
 
+PLOT_FORMAT_OPTION_MAP = {
+    "color": "c",
+    "line_color": "cl",
+    "line_width": "w",
+    "line_style": "d",
+    "connect": "l",
+    "fill_enabled": "pf",
+    "fill_mode": "pfv",
+    "fill_above_color": "pfb",
+    "fill_below_color": "p2fb",
+    "fill_above_pattern_color": "pfc",
+    "fill_below_pattern_color": "p2fc",
+    "fill_above_pattern": "pfp",
+    "fill_below_pattern": "p2fp",
+    "fill_transparency": "paaf",
+    "vertical_drop_lines": "lv",
+    "vertical_drop_line_color": "lvc",
+    "vertical_drop_line_style": "lvs",
+    "vertical_drop_line_width": "lvw",
+}
+
 
 @dataclass(frozen=True)
 class OperationResult:
@@ -141,6 +162,15 @@ def connect_origin(entrypoint: str = "Origin.Application", *, visible: bool = Fa
         except Exception:
             pass
         raise
+    if not owned_pids:
+        try:
+            app.Exit()
+        except Exception:
+            pass
+        raise RuntimeError(
+            "Origin COM started but no new Origin process ID could be captured; "
+            "refusing to continue without a verifiable task-owned process."
+        )
     return OriginOperations(app, owned_process_ids=owned_pids)
 
 
@@ -444,14 +474,17 @@ class OriginOperations:
                 )
             except Exception as exc:
                 inspection_error = str(exc)
-        ok = not remaining and not inspection_error
+        ownership_unverifiable = bool(exit_error and not owned_pids)
+        ok = not remaining and not inspection_error and not ownership_unverifiable
         forced = bool(termination.get("requested_pids"))
         message = (
             "Origin closed and COM proxy released"
             if ok and not forced and not exit_error
             else "Task-owned Origin process force-closed and COM proxy released"
+            if ok and forced
+            else "Origin process exit verified after COM Exit returned an error"
             if ok
-            else "Origin close left an active task-owned process"
+            else "Origin close could not verify task-owned process termination"
         )
         return OperationResult(
             ok,
@@ -464,6 +497,7 @@ class OriginOperations:
                 "termination": termination,
                 "remaining_process_ids": sorted(remaining),
                 "inspection_error": inspection_error,
+                "ownership_unverifiable": ownership_unverifiable,
             },
         )
 
@@ -1135,17 +1169,7 @@ class OriginOperations:
                 }
             )
 
-        plot_format_option_map = {
-            "color": "c",
-            "line_color": "cl",
-            "line_width": "w",
-            "line_style": "d",
-            "connect": "l",
-            "vertical_drop_lines": "lv",
-            "vertical_drop_line_color": "lvc",
-            "vertical_drop_line_style": "lvs",
-            "vertical_drop_line_width": "lvw",
-        }
+        plot_format_option_map = PLOT_FORMAT_OPTION_MAP
         normalized_plot_formats: list[dict[str, object]] = []
         plot_format_targets: set[tuple[int, int]] = set()
         for raw_format in plot_format_contracts or ():
@@ -1426,118 +1450,15 @@ class OriginOperations:
                     },
                 )
 
-        plot_format_readback: list[dict[str, object]] = []
-        for contract in normalized_plot_formats:
-            layer_index = int(contract["layer_index"])
-            plot_index = int(contract["plot_index"])
-            layer = self._graph_layer(safe_graph, layer_index)
-            if layer is None or plot_index > int(layer.DataPlots.Count):
-                return OperationResult(
-                    False,
-                    "Origin native plot-format target does not exist",
-                    {
-                        "graph_name": safe_graph,
-                        "layer_index": layer_index,
-                        "plot_index": plot_index,
-                    },
-                )
-            plot_name = str(layer.DataPlots.Item(plot_index - 1).Name)
-            expected = {
-                key: float(value)
-                for key, value in contract.items()
-                if key in plot_format_option_map
-            }
-            activated_format_layer = self.run_labtalk(
-                f'win -a "{quote_labtalk(safe_graph)}"; layer -s {layer_index};'
-            )
-            if not activated_format_layer.ok:
-                return OperationResult(
-                    False,
-                    "Origin native plot-format target layer could not be activated",
-                    {
-                        "graph_name": safe_graph,
-                        "layer_index": layer_index,
-                        "plot_index": plot_index,
-                    },
-                )
-            commands = " ".join(
-                f"set {plot_name} -{plot_format_option_map[key]} {value:.17g};"
-                for key, value in expected.items()
-            )
-            applied = self.run_labtalk(commands)
-            if not applied.ok:
-                return OperationResult(
-                    False,
-                    "Origin native plot-format properties could not be applied",
-                    {
-                        "graph_name": safe_graph,
-                        "layer_index": layer_index,
-                        "plot_index": plot_index,
-                        "plot_name": plot_name,
-                    },
-                )
-            actual: dict[str, float] = {}
-            for key, expected_value in expected.items():
-                option = plot_format_option_map[key]
-                variable = f"__rdop_plotfmt_{layer_index}_{plot_index}_{option}"
-                queried = self.run_labtalk(
-                    f"get {plot_name} -{option} {variable};"
-                )
-                if not queried.ok:
-                    return OperationResult(
-                        False,
-                        "Origin native plot-format readback failed",
-                        {
-                            "graph_name": safe_graph,
-                            "layer_index": layer_index,
-                            "plot_index": plot_index,
-                            "property": key,
-                        },
-                    )
-                try:
-                    actual_value = float(
-                        self.get_labtalk_variable(variable).payload.get("value")
-                    )
-                except (TypeError, ValueError, OverflowError):
-                    return OperationResult(
-                        False,
-                        "Origin native plot-format readback was nonnumeric",
-                        {
-                            "graph_name": safe_graph,
-                            "layer_index": layer_index,
-                            "plot_index": plot_index,
-                            "property": key,
-                        },
-                    )
-                if not math.isclose(
-                    actual_value,
-                    expected_value,
-                    rel_tol=1e-12,
-                    abs_tol=1e-9,
-                ):
-                    return OperationResult(
-                        False,
-                        "Origin native plot-format readback did not match the contract: "
-                        f"layer {layer_index}, plot {plot_index}, {key}, "
-                        f"expected {expected_value:.17g}, actual {actual_value:.17g}",
-                        {
-                            "graph_name": safe_graph,
-                            "layer_index": layer_index,
-                            "plot_index": plot_index,
-                            "property": key,
-                            "expected": expected_value,
-                            "actual": actual_value,
-                        },
-                    )
-                actual[key] = actual_value
-            plot_format_readback.append(
-                {
-                    "layer_index": layer_index,
-                    "plot_index": plot_index,
-                    "plot_name": plot_name,
-                    **actual,
-                }
-            )
+        format_result = self.apply_graph_plot_format_contracts(
+            safe_graph,
+            normalized_plot_formats,
+        )
+        if not format_result.ok:
+            return format_result
+        plot_format_readback = list(
+            format_result.payload.get("plot_format_readback", [])
+        )
 
         stack_offsets_by_layer: dict[int, list[dict[str, float | int]]] = {}
         for contract in normalized_stack_offsets:
@@ -1762,6 +1683,202 @@ class OriginOperations:
                 "axis_scale_readback": axis_scale_readback,
                 "xy_ranges": normalized_ranges,
                 "plot_count": actual_plot_count,
+            },
+        )
+
+    def apply_graph_plot_format_contracts(
+        self,
+        graph_name: str,
+        plot_format_contracts: Iterable[dict[str, object]] | None,
+    ) -> OperationResult:
+        """Apply and immediately read back native Origin plot properties.
+
+        This operation is intentionally reusable after a graph theme or style
+        snapshot is applied.  Some Origin template properties, notably custom
+        Fill Area Under Curve colours, can be reset by later plot-colour writes
+        even when the rest of the OTPU style remains intact.
+        """
+
+        safe_graph = safe_origin_name(graph_name, "Graph")
+        normalized: list[dict[str, object]] = []
+        targets: set[tuple[int, int]] = set()
+        for raw_format in plot_format_contracts or ():
+            if not isinstance(raw_format, dict):
+                return OperationResult(
+                    False,
+                    "Every native plot-format contract must be an object",
+                )
+            try:
+                layer_index = int(raw_format.get("layer_index"))
+                plot_index = int(raw_format.get("plot_index"))
+            except (TypeError, ValueError):
+                return OperationResult(
+                    False,
+                    "Native plot-format layer and plot indices must be numeric",
+                )
+            if layer_index < 1 or plot_index < 1:
+                return OperationResult(
+                    False,
+                    "Native plot-format layer and plot indices must be positive",
+                )
+            target = (layer_index, plot_index)
+            if target in targets:
+                return OperationResult(
+                    False,
+                    "Native plot-format contract contains a duplicate layer/plot target",
+                )
+            values: dict[str, float] = {}
+            for key in PLOT_FORMAT_OPTION_MAP:
+                if key not in raw_format:
+                    continue
+                try:
+                    value = float(raw_format[key])
+                except (TypeError, ValueError, OverflowError):
+                    return OperationResult(
+                        False,
+                        f"Native plot-format value is nonnumeric: {key}",
+                    )
+                if not math.isfinite(value):
+                    return OperationResult(
+                        False,
+                        f"Native plot-format value must be finite: {key}",
+                    )
+                values[key] = value
+            if not values:
+                return OperationResult(
+                    False,
+                    "Native plot-format contract contains no supported properties",
+                )
+            targets.add(target)
+            normalized.append(
+                {
+                    "layer_index": layer_index,
+                    "plot_index": plot_index,
+                    **values,
+                }
+            )
+
+        readback: list[dict[str, object]] = []
+        for contract in normalized:
+            layer_index = int(contract["layer_index"])
+            plot_index = int(contract["plot_index"])
+            layer = self._graph_layer(safe_graph, layer_index)
+            if layer is None or plot_index > int(layer.DataPlots.Count):
+                return OperationResult(
+                    False,
+                    "Origin native plot-format target does not exist",
+                    {
+                        "graph_name": safe_graph,
+                        "layer_index": layer_index,
+                        "plot_index": plot_index,
+                    },
+                )
+            plot_name = str(layer.DataPlots.Item(plot_index - 1).Name)
+            expected = {
+                key: float(value)
+                for key, value in contract.items()
+                if key in PLOT_FORMAT_OPTION_MAP
+            }
+            activated = self.run_labtalk(
+                f'win -a "{quote_labtalk(safe_graph)}"; layer -s {layer_index};'
+            )
+            if not activated.ok:
+                return OperationResult(
+                    False,
+                    "Origin native plot-format target layer could not be activated",
+                    {
+                        "graph_name": safe_graph,
+                        "layer_index": layer_index,
+                        "plot_index": plot_index,
+                    },
+                )
+            commands = " ".join(
+                f"set {plot_name} -{PLOT_FORMAT_OPTION_MAP[key]} "
+                f"{_origin_plot_contract_value(key, value)};"
+                for key, value in expected.items()
+            )
+            applied = self.run_labtalk(commands)
+            if not applied.ok:
+                return OperationResult(
+                    False,
+                    "Origin native plot-format properties could not be applied",
+                    {
+                        "graph_name": safe_graph,
+                        "layer_index": layer_index,
+                        "plot_index": plot_index,
+                        "plot_name": plot_name,
+                    },
+                )
+
+            actual: dict[str, float] = {}
+            for key, expected_value in expected.items():
+                option = PLOT_FORMAT_OPTION_MAP[key]
+                variable = f"__rdop_plotfmt_{layer_index}_{plot_index}_{option}"
+                queried = self.run_labtalk(
+                    f"get {plot_name} -{option} {variable};"
+                )
+                if not queried.ok:
+                    return OperationResult(
+                        False,
+                        "Origin native plot-format readback failed",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "plot_index": plot_index,
+                            "property": key,
+                        },
+                    )
+                try:
+                    actual_value = float(
+                        self.get_labtalk_variable(variable).payload.get("value")
+                    )
+                except (TypeError, ValueError, OverflowError):
+                    return OperationResult(
+                        False,
+                        "Origin native plot-format readback was nonnumeric",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "plot_index": plot_index,
+                            "property": key,
+                        },
+                    )
+                if not math.isclose(
+                    actual_value,
+                    expected_value,
+                    rel_tol=1e-12,
+                    abs_tol=1e-9,
+                ):
+                    return OperationResult(
+                        False,
+                        "Origin native plot-format readback did not match the contract: "
+                        f"layer {layer_index}, plot {plot_index}, {key}, "
+                        f"expected {expected_value:.17g}, actual {actual_value:.17g}",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "plot_index": plot_index,
+                            "property": key,
+                            "expected": expected_value,
+                            "actual": actual_value,
+                        },
+                    )
+                actual[key] = actual_value
+            readback.append(
+                {
+                    "layer_index": layer_index,
+                    "plot_index": plot_index,
+                    "plot_name": plot_name,
+                    **actual,
+                }
+            )
+        return OperationResult(
+            True,
+            "Origin native plot-format contracts applied and read back",
+            {
+                "graph_name": safe_graph,
+                "plot_format_contracts": normalized,
+                "plot_format_readback": readback,
             },
         )
 
@@ -2567,6 +2684,30 @@ def _operation_float(value: object) -> float | None:
     except (TypeError, ValueError):
         return None
     return number if math.isfinite(number) else None
+
+
+def _origin_plot_contract_value(key: str, value: float) -> str:
+    """Serialize native plot-format values without losing custom RGB colors.
+
+    Origin stores a custom RGB color as ``0x01BBGGRR``.  A raw integer can
+    appear correct during the active session for pattern-fill options but be
+    discarded when the project is saved and reopened.  LabTalk's documented
+    ``color(r,g,b)`` expression persists the same value in the OPJU.
+    """
+
+    encoded = int(round(value))
+    color_fields = {
+        "fill_above_color",
+        "fill_below_color",
+        "fill_above_pattern_color",
+        "fill_below_pattern_color",
+    }
+    if key in color_fields and 0x01000000 <= encoded <= 0x01FFFFFF:
+        red = encoded & 0xFF
+        green = (encoded >> 8) & 0xFF
+        blue = (encoded >> 16) & 0xFF
+        return f"color({red},{green},{blue})"
+    return f"{value:.17g}"
 
 
 def _origin_numeric_or_missing(value: object) -> float:

@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_fresh_project_same_data_graph_template_validation",
+  "product_key": "XPS_non_in_situ",
+  "status": "accepted",
+  "generated_at": "2026-08-24T21:55:00+08:00",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed that the detached XPS_Bi_BOBC_vs_c890fa98 OTPU replay is pixel-identical to the reviewed non-in-situ XPS graph. The two native Origin sample stacks, measured/background/envelope curves, purple and orange component fills, black component lines, current sample/peak labels, page/layer geometry, axis titles, and all visible layout details are unchanged. The fresh plot did not load the reference OPJU as a product base.",
+  "staged_asset_replay_location": "diagnostics/20260824_xps_non_reference_audit/fresh_otpu_replay_05/products/XPS_non_in_situ/comparison.json",
+  "validation_plan": {
+    "path": "validation_plans/XPS_non_in_situ_verified_20260824.json",
+    "sha256": "bdd8ed2067d4ce2592d30762160406716b220fcd04e36d2bb94964b336f517e1"
+  },
+  "asset": {
+    "kind": "otpu",
+    "path": "graph_templates/XPS_non_in_situ.otpu",
+    "sha256": "da9211adecb3ad48758f75690c7f7e28362588114fd57181cc866c4782431a17",
+    "source_mode": "individually_regenerated_from_reviewed_reference_opju",
+    "minimum_generation_package": "otpu_plus_explicit_18_plot_binding_contract_plus_persistent_native_fill_contract_plus_style_and_data_snapshots"
+  },
+  "reference": {
+    "path": "reference_opju/XPS_non_in_situ.opju",
+    "graph_page": "XPS_Bi_BOBC_vs_c890fa98",
+    "sha256": "1a4917ef6b907811f3d0fb471ee1cd06d5e2091a52f3c4006e8cab834369d3e2",
+    "used_as_product_base": false,
+    "loaded_during_fresh_plot": false,
+    "source_unchanged": true
+  },
+  "binding_contract": {
+    "path": "binding_contracts/XPS_non_in_situ.json",
+    "sha256": "ef24e5b01d7f4b5a60c4febee688d7ff77fe16319ab7a8365fbc585d1a637af5",
+    "source_series_count": 18,
+    "source_layout": "two_sample_shared_x_with_nine_roles",
+    "worksheet_layout": "one_workbook_shared_x_eighteen_destination_columns",
+    "workbook_names": ["Book2"],
+    "group_plots": false,
+    "fixed_semantic_roles_required": true,
+    "numeric_transform": "common_raw_intensity_scale_plus_reviewed_vertical_offsets",
+    "reviewed_vertical_offsets": [0.0, 1.35],
+    "component_order": "source_workbook_order",
+    "interpolation": "not_applied",
+    "smoothing": "not_applied",
+    "refitting": "not_applied",
+    "persistent_native_fill_color_readback": "18/18"
+  },
+  "same_data": {
+    "verified": true,
+    "reference_plot_values_sha256": "77c4fc2323c255d057b51c32cb6bb789597f0c81ca753d3c5ff0442ca12d58d1",
+    "generated_plot_values_sha256": "77c4fc2323c255d057b51c32cb6bb789597f0c81ca753d3c5ff0442ca12d58d1",
+    "reference_plot_mapping_sha256": "84578b0b056d7055e4044cf9554cb4422aa34f750ebe3076d6023c2226139304",
+    "generated_plot_mapping_sha256": "84578b0b056d7055e4044cf9554cb4422aa34f750ebe3076d6023c2226139304"
+  },
+  "style": {
+    "status": "pass",
+    "current_style_snapshot_sha256": "5eb0c2e97e27fd92db5073601c58575847f6cea5e2da4f72aedda4bd76f354f4",
+    "style_conformance": "134/134",
+    "axis_title_hard_gate": true,
+    "native_fill_state_hard_gate": true
+  },
+  "pixels": {
+    "exact_pixel_match": true,
+    "same_size": true,
+    "changed_pixels": 0,
+    "rms": 0.0
+  },
+  "save_reopen": {
+    "reference_opju_self_replay": false,
+    "saved_reopened": true
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  }
+}

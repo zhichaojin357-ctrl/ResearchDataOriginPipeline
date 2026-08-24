@@ -222,59 +222,104 @@
       "status": "accepted",
       "graph_page": "XPS_Bi_BOBC_vs_c890fa98",
       "format_theme": "format_themes/XPS_non_in_situ.oth",
+      "format_theme_role": "adaptive_runtime",
+      "graph_template": "graph_templates/XPS_non_in_situ.otpu",
+      "binding_contract": "binding_contracts/XPS_non_in_situ.json",
+      "runtime_validation_evidence": "validation_evidence/XPS_non_in_situ_verified_20260824.json",
+      "adaptive_runtime_validation_evidence": "validation_evidence/XPS_non_in_situ_oth_json_adaptive_verified_20260824.json",
+      "validation_plan": "validation_plans/XPS_non_in_situ_verified_20260824.json",
+      "style_snapshot": "snapshots/XPS_non_in_situ.json",
+      "data_snapshot": "data_snapshots/XPS_non_in_situ.json",
+      "template_opju": "reference_opju/XPS_non_in_situ.opju",
       "preview_png": "",
       "reference_preview_png": "",
       "template_preview_comparison_png": "",
       "preview_rms": null,
-      "source_mode": "style_donor_product_key",
-      "graph_template": "graph_templates/XPS_non_in_situ.otpu",
-      "style_snapshot": "snapshots/XPS_non_in_situ.json",
-      "data_snapshot": "data_snapshots/XPS_non_in_situ.json",
-      "template_opju": "reference_opju/XPS_non_in_situ.opju",
-      "style_source_product_key": "XPS_in_situ",
-      "style_source_theme": "format_themes/XPS_in_situ.oth",
-      "asset_kind": "oth",
-      "sha256": "7a2ea81c819542279f9bddecfb5593eff736892d6453619ca51ee7a131ae8f5f",
-      "file_size_bytes": 29995,
+      "source_mode": "individually_regenerated_from_reviewed_reference_opju",
+      "asset_kind": "otpu",
+      "sha256": "da9211adecb3ad48758f75690c7f7e28362588114fd57181cc866c4782431a17",
+      "file_size_bytes": 35477,
       "expected_layer_count": 1,
       "expected_plot_count": 18,
-      "origin_version": "",
-      "origin_build": "",
-      "pipeline_git_commit": "",
-      "harvested_at": "2026-07-06T09:14:15",
-      "source_opju_hash": "d8ef85f44dd8854d101df4e86d3703ae3611840989f7a08292ebbbfbdebd8fda",
-      "exact_pixel_match": null,
+      "origin_version": "10.3",
+      "origin_build": "197",
+      "pipeline_git_commit": "4415786",
+      "harvested_at": "2026-08-24T21:55:00+08:00",
+      "source_opju_hash": "1a4917ef6b907811f3d0fb471ee1cd06d5e2091a52f3c4006e8cab834369d3e2",
+      "exact_pixel_match": true,
       "file_integrity": {
         "format_theme": {
           "kind": "oth",
-          "sha256": "7a2ea81c819542279f9bddecfb5593eff736892d6453619ca51ee7a131ae8f5f",
-          "size_bytes": 29995
+          "sha256": "7abca37b6518418c2d308c73a6a38a763f3578376d8afdf0cf9f2fca1f12628a",
+          "size_bytes": 27795
         },
         "graph_template": {
           "kind": "otpu",
-          "sha256": "fca221cb0329affd8957248c61cbc5c20bca1ce4c55e00f29728671ce7a9212a",
-          "size_bytes": 62402
+          "sha256": "da9211adecb3ad48758f75690c7f7e28362588114fd57181cc866c4782431a17",
+          "size_bytes": 35477
+        },
+        "binding_contract": {
+          "kind": "json",
+          "sha256": "a43a1dd0670c80cbeb621e1441a84ade4a1c11bc7395dc3c5a421ba4c8b8b9c5",
+          "size_bytes": 6092
+        },
+        "runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "79271e4100bacc00c70375825ec6706661ee2f7f62c9fed492e591796a86709e",
+          "size_bytes": 3816
+        },
+        "adaptive_runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "f510f5e83920fd2920b99ff8a7fce38a32c73d34ddf71bd468f68828c7a79c8b",
+          "size_bytes": 4514
+        },
+        "validation_plan": {
+          "kind": "json",
+          "sha256": "bdd8ed2067d4ce2592d30762160406716b220fcd04e36d2bb94964b336f517e1",
+          "size_bytes": 644
         },
         "style_snapshot": {
           "kind": "json",
-          "sha256": "c5780bd2d14931e8b1104e379a8adfe412638e9e58f66a4dbdc3209bd1d49ceb",
-          "size_bytes": 4218
+          "sha256": "98a0d6704fbe957d81519becc5e21a51fad755cffef646f0de2b4d162ccdc9d5",
+          "size_bytes": 7967
         },
         "data_snapshot": {
           "kind": "json",
-          "sha256": "9a4250aa5923edee75ef01c2c95003839a9c8096830bb457e9b5cbefeb84114a",
-          "size_bytes": 153798
+          "sha256": "acedfe88c492ac010490cc670c65c9cdaa6bcd0b3483c4cbb8f4e3971b853b98",
+          "size_bytes": 166487
         },
         "template_opju": {
           "kind": "opju",
-          "sha256": "d8ef85f44dd8854d101df4e86d3703ae3611840989f7a08292ebbbfbdebd8fda",
-          "size_bytes": 75430
-        },
-        "style_source_theme": {
-          "kind": "oth",
-          "sha256": "30e4ec6c428672b92eb1cd3b155853129955458af1bc81a9e1d83660e1d75032",
-          "size_bytes": 32639
+          "sha256": "1a4917ef6b907811f3d0fb471ee1cd06d5e2091a52f3c4006e8cab834369d3e2",
+          "size_bytes": 67681
         }
+      },
+      "runtime_validation": {
+        "status": "accepted",
+        "asset_kind": "otpu",
+        "asset_path": "graph_templates/XPS_non_in_situ.otpu",
+        "asset_sha256": "da9211adecb3ad48758f75690c7f7e28362588114fd57181cc866c4782431a17",
+        "reference_opju_sha256": "1a4917ef6b907811f3d0fb471ee1cd06d5e2091a52f3c4006e8cab834369d3e2",
+        "binding_contract_sha256": "a43a1dd0670c80cbeb621e1441a84ade4a1c11bc7395dc3c5a421ba4c8b8b9c5",
+        "evidence_sha256": "79271e4100bacc00c70375825ec6706661ee2f7f62c9fed492e591796a86709e",
+        "comparison_scope": "fresh_project_same_data",
+        "fresh_project_verified": true,
+        "style_asset_only": true,
+        "same_data_verified": true,
+        "reference_plot_values_sha256": "77c4fc2323c255d057b51c32cb6bb789597f0c81ca753d3c5ff0442ca12d58d1",
+        "generated_plot_values_sha256": "77c4fc2323c255d057b51c32cb6bb789597f0c81ca753d3c5ff0442ca12d58d1",
+        "reference_plot_mapping_sha256": "84578b0b056d7055e4044cf9554cb4422aa34f750ebe3076d6023c2226139304",
+        "generated_plot_mapping_sha256": "84578b0b056d7055e4044cf9554cb4422aa34f750ebe3076d6023c2226139304",
+        "saved_reopened": true,
+        "native_tif_600dpi_verified": true,
+        "manual_preview_passed": true,
+        "axis_title_hard_gate": true,
+        "native_fill_state_hard_gate": true,
+        "exact_pixel_match": true,
+        "same_size": true,
+        "changed_pixels": 0,
+        "rms": 0.0,
+        "reference_opju_self_replay": false
       }
     },
     {

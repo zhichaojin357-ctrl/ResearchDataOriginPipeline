@@ -1,5 +1,5 @@
 {
-  "source_opju": "XPS_non_in_situ.opju",
+  "source_opju": "verified_reference_XPS_Bi_BOBC_vs_BC_stacked.opju",
   "status": "extracted",
   "graph_page": "XPS_Bi_BOBC_vs_c890fa98",
   "graph_pages": [
@@ -13,26 +13,26 @@
     "layer.top": 11.6,
     "layer.width": 68.19,
     "layer.height": 71.81,
-    "layer.x.from": 168.18,
-    "layer.x.to": 154.22,
-    "layer.y.from": -0.25358644399754776,
-    "layer.y.to": 4.896041702188032,
+    "layer.x.from": 168.78,
+    "layer.x.to": 154.88,
+    "layer.y.from": -0.6883885471537301,
+    "layer.y.to": 3.146919072702766,
     "layer.x.thickness": 3.0,
     "layer.y.thickness": 3.0,
     "layer.x.ticks": 10.0,
-    "layer.y.ticks": 0.0,
+    "layer.y.ticks": 10.0,
     "layer.x.majorLen": 0.0,
     "layer.y.majorLen": 0.0,
     "layer.x.minor": 0.0,
     "layer.y.minor": 0.0,
     "layer.x.label.pt": 28.0,
-    "layer.y.label.pt": 14.0,
+    "layer.y.label.pt": 30.0,
     "layer.x.label.show": 0.0,
     "layer.y.label.show": 0.0,
-    "layer.x.showLabels": 1.0,
+    "layer.x.showLabels": 0.0,
     "layer.y.showLabels": 0.0,
     "layer.x.label.bold": 1.0,
-    "layer.y.label.bold": 0.0,
+    "layer.y.label.bold": 1.0,
     "layer.x.label.offset": 0.0,
     "layer.y.label.offset": 0.0,
     "xb.show": 1.0,
@@ -41,10 +41,10 @@
     "yl.fsize": 36.0,
     "xb.bold": 0.0,
     "yl.bold": 0.0,
-    "xb.x": 161.8302051983584,
-    "xb.y": -1.1276393118083958,
-    "yl.x": 173.77864113087097,
-    "yl.y": 1.2293899217215243,
+    "xb.x": 161.83,
+    "xb.y": -1.1277943706450686,
+    "yl.x": 173.75877336981304,
+    "yl.y": 1.319858809099275,
     "legend.show": 0.0,
     "legend.x": 0.0,
     "legend.y": 0.0,
@@ -66,10 +66,10 @@
   "audit_numeric_values": {
     "page.nlayers": 1.0,
     "layer.x.ticks": 10.0,
-    "layer.y.ticks": 0.0,
+    "layer.y.ticks": 10.0,
     "layer.x.label.show": 0.0,
     "layer.y.label.show": 0.0,
-    "layer.x.showLabels": 1.0,
+    "layer.x.showLabels": 0.0,
     "layer.y.showLabels": 0.0,
     "xb.show": 1.0,
     "yl.show": 1.0,
@@ -94,50 +94,70 @@
     "title.bold": 0.0
   },
   "audit_string_values": {
-    "xb.text$": "\\b(Binding energy (eV))",
-    "yl.text$": "\\b(Intensity (a.u.))"
+    "xb.text$": "\\b(Binding Energy / eV)",
+    "yl.text$": "\\b(Intensity / a.u.)"
   },
   "layer_count": 1,
   "plot_count": 18,
   "plot_line_widths": [
-    1500.0,
-    1500.0,
+    0.0,
     0.0,
     1500.0,
     0.0,
-    1500.0,
-    1500.0,
-    1500.0,
-    1500.0,
-    0.0,
-    1500.0,
     0.0,
     1500.0,
     1500.0,
     1500.0,
     1500.0,
     0.0,
+    0.0,
+    1500.0,
+    0.0,
+    0.0,
+    1500.0,
+    1500.0,
+    1500.0,
     1500.0
   ],
   "plot_colors": [
-    29212093.0,
-    30586738.0,
+    30972633.0,
     33554431.0,
-    27692005.0,
+    30972633.0,
+    25540850.0,
     33554431.0,
-    27172510.0,
+    25540850.0,
+    28817335.0,
+    26119822.0,
     16777216.0,
-    29212093.0,
-    30586738.0,
+    30972633.0,
     33554431.0,
-    27692005.0,
+    30972633.0,
+    25540850.0,
     33554431.0,
-    27172510.0,
+    25540850.0,
+    28817335.0,
+    26119822.0,
+    16777216.0
+  ],
+  "plot_line_colors": [
+    30972633.0,
+    33554431.0,
+    30972633.0,
+    25540850.0,
+    33554431.0,
+    25540850.0,
+    28817335.0,
+    26119822.0,
     16777216.0,
-    29212093.0,
-    30586738.0,
+    30972633.0,
     33554431.0,
-    27692005.0
+    30972633.0,
+    25540850.0,
+    33554431.0,
+    25540850.0,
+    28817335.0,
+    26119822.0,
+    16777216.0
   ],
   "marker_shapes": [
     0.0,
@@ -179,12 +199,180 @@
     9.0,
     9.0
   ],
-  "graph_object_positions": {},
+  "plot_visibility": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "graph_object_positions": {
+    "__FRAMESRCDATAINFOS": {
+      "left": 5306.0,
+      "top": 547.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "YR": {
+      "left": 51018.0,
+      "top": -2679.0,
+      "width": 158.0,
+      "height": 3085.0
+    },
+    "XT": {
+      "left": 52256.0,
+      "top": -6373.0,
+      "width": 1148.0,
+      "height": 151.0
+    },
+    "YL": {
+      "left": -595.0,
+      "top": 1254.0,
+      "width": 350.0,
+      "height": 2002.0
+    },
+    "XB": {
+      "left": 1928.0,
+      "top": 4342.0,
+      "width": 2833.0,
+      "height": 338.0
+    },
+    "__BCO2": {
+      "left": 5300.0,
+      "top": 338.0,
+      "width": 100.0,
+      "height": 100.0
+    },
+    "_202": {
+      "left": 0.0,
+      "top": 0.0,
+      "width": 0.0,
+      "height": 0.0
+    },
+    "Text": {
+      "left": 1414.0,
+      "top": 3306.0,
+      "width": 916.0,
+      "height": 215.0
+    },
+    "Text1": {
+      "left": 1414.0,
+      "top": 1969.0,
+      "width": 600.0,
+      "height": 183.0
+    },
+    "Text2": {
+      "left": 2203.0,
+      "top": 2273.0,
+      "width": 609.0,
+      "height": 323.0
+    },
+    "Text3": {
+      "left": 4161.0,
+      "top": 2150.0,
+      "width": 609.0,
+      "height": 323.0
+    },
+    "Text4": {
+      "left": 2109.0,
+      "top": 937.0,
+      "width": 609.0,
+      "height": 323.0
+    },
+    "Text5": {
+      "left": 4066.0,
+      "top": 813.0,
+      "width": 609.0,
+      "height": 323.0
+    }
+  },
+  "adaptive_native_graph_objects": [
+    {
+      "name": "Text",
+      "text": "\\b(BiOBr\\-(0.5)Cl\\-(0.5))",
+      "left": 1414,
+      "top": 3306,
+      "width": 916,
+      "height": 215,
+      "font_name": "Arial",
+      "font_size": 19,
+      "color": 1
+    },
+    {
+      "name": "Text1",
+      "text": "\\b(BiCu-10)",
+      "left": 1414,
+      "top": 1969,
+      "width": 600,
+      "height": 183,
+      "font_name": "Arial",
+      "font_size": 19,
+      "color": 1
+    },
+    {
+      "name": "Text2",
+      "text": "\\b(Bi 4f5/2)\r\n\\b(164.68 eV)",
+      "left": 2203,
+      "top": 2273,
+      "width": 609,
+      "height": 323,
+      "font_name": "Arial",
+      "font_size": 16,
+      "color": 1
+    },
+    {
+      "name": "Text3",
+      "text": "\\b(Bi 4f7/2)\r\n\\b(159.38 eV)",
+      "left": 4161,
+      "top": 2150,
+      "width": 609,
+      "height": 323,
+      "font_name": "Arial",
+      "font_size": 16,
+      "color": 1
+    },
+    {
+      "name": "Text4",
+      "text": "\\b(Bi 4f5/2)\r\n\\b(164.98 eV)",
+      "left": 2109,
+      "top": 937,
+      "width": 609,
+      "height": 323,
+      "font_name": "Arial",
+      "font_size": 16,
+      "color": 1
+    },
+    {
+      "name": "Text5",
+      "text": "\\b(Bi 4f7/2)\r\n\\b(159.68 eV)",
+      "left": 4066,
+      "top": 813,
+      "width": 609,
+      "height": 323,
+      "font_name": "Arial",
+      "font_size": 16,
+      "color": 1
+    }
+  ],
   "warnings": [
-    "Visible scientific annotations are not copied from the exemplar.",
+    "Reviewed Bi 4f sample and peak text placeholders plus native object geometry are captured only for adaptive replay; runtime must replace them with current labels and candidate peak values or remove them, and stale-text readback is mandatory.",
     "Series line width is later overridden by the product policy when required."
   ],
-  "copied_visible_text": false,
+  "copied_visible_text": true,
+  "visible_text_runtime_policy": "captured_as_reviewed_placeholders_must_be_replaced_or_removed_and_stale_text_checked",
   "forbidden_visible_text_categories": [
     "peak assignments",
     "crystal-plane labels",

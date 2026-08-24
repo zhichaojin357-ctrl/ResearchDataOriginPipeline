@@ -56,6 +56,7 @@ from src.core.template_format_executor import (
     _prepare_verified_raman_otpu_binding,
     _prepare_verified_uvvis_otpu_binding,
     _prepare_verified_xps_in_situ_otpu_binding,
+    _prepare_verified_xps_non_in_situ_otpu_binding,
     _prepare_verified_otpu_binding,
     _populate_verified_otpu_workbook,
     _apply_verified_otpu_post_plot_style,
@@ -79,6 +80,8 @@ from src.core.template_format_executor import (
     _validate_verified_current_data,
     _validate_xps_in_situ_reopened_plot_styles,
     _validate_adaptive_xps_in_situ_reopened_plot_styles,
+    _validate_xps_non_in_situ_reopened_plot_styles,
+    _validate_adaptive_xps_non_in_situ_reopened_plot_styles,
     _validate_photocurrent_axis_titles,
     _validate_bet_axis_titles,
     _update_verified_epr_label_objects,
@@ -90,6 +93,7 @@ from src.core.template_format_executor import (
     _verified_otpu_required_line_width_pt,
     _verified_otpu_style_contract,
     _xps_in_situ_current_data_matches_reference,
+    _xps_non_in_situ_adaptive_plot_format_contracts,
     _xrd_direct_label_positions,
     _xrd_plain_label_text,
     _xrd_standard_card_keeps_line_sample_legend,
@@ -6119,6 +6123,244 @@ def test_xps_in_situ_adaptive_source_and_role_styles_support_two_sample_groups(
         expected_plot_count=14,
     )
     assert style_validation["ok"] is True
+
+
+def _verified_xps_non_in_situ_product_and_table(
+    tmp_path: Path,
+) -> tuple[ProductContext, list[str], list[list[float]], Path]:
+    roles = (
+        "_component_1_fill_upper",
+        "_component_1_fill_baseline",
+        "_component_1_line",
+        "_component_2_fill_upper",
+        "_component_2_fill_baseline",
+        "_component_2_line",
+        "_measured",
+        "_background",
+        "_envelope",
+    )
+    samples = ("Sample_A", "Sample_B")
+    headers = ["binding_energy_eV"] + [
+        sample + role for sample in samples for role in roles
+    ]
+    rows: list[list[float]] = []
+    for row_index, x_value in enumerate((168.0, 167.5, 167.0)):
+        row = [x_value]
+        for sample_index in range(2):
+            offset = sample_index * 1.35
+            background = offset + 0.05
+            component_1 = offset + (0.2, 0.5, 0.2)[row_index]
+            component_2 = offset + (0.1, 0.2, 0.6)[row_index]
+            row.extend(
+                [
+                    component_1,
+                    background,
+                    component_1,
+                    component_2,
+                    background,
+                    component_2,
+                    offset + (0.3, 0.7, 0.8)[row_index],
+                    background,
+                    offset + (0.31, 0.71, 0.81)[row_index],
+                ]
+            )
+        rows.append(row)
+    processed = tmp_path / "xps_non_in_situ.csv"
+    processed.write_text(
+        ",".join(headers)
+        + "\n"
+        + "\n".join(",".join(str(value) for value in row) for row in rows)
+        + "\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="XPS_non_in_situ",
+        graph_title="Bi 4f",
+        legend_entries=list(samples),
+    )
+    contract = (
+        Path(__file__).parents[1]
+        / "templates"
+        / "origin_styles"
+        / "binding_contracts"
+        / "XPS_non_in_situ.json"
+    )
+    return product, headers, rows, contract
+
+
+def test_xps_non_in_situ_verified_binding_preserves_reviewed_native_topology(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract = _verified_xps_non_in_situ_product_and_table(
+        tmp_path
+    )
+
+    binding = _prepare_verified_xps_non_in_situ_otpu_binding(
+        product,
+        headers,
+        rows,
+        contract_path=contract,
+    )
+
+    assert binding["ok"] is True
+    assert binding["graph_page"] == "XPS_Bi_BOBC_vs_c890fa98"
+    assert [value["x_col"] for value in binding["xy_ranges"]] == [1] * 18
+    assert [value["y_col"] for value in binding["xy_ranges"]] == list(range(2, 20))
+    assert [value["source_y_index"] for value in binding["xy_ranges"]] == list(range(1, 19))
+    assert [
+        value["fill_above_color"] for value in binding["plot_format_contracts"]
+    ] == [30972633, 1, 1, 25540850, 1, 1, 1, 1, 1] * 2
+
+    class WorkbookOps:
+        def import_csv_to_worksheet(
+            self,
+            _path: Path,
+            *,
+            book_name: str,
+        ) -> OperationResult:
+            return OperationResult(
+                True,
+                "imported",
+                {"book_name": book_name, "sheet_name": "Sheet1"},
+            )
+
+        def set_worksheet_column_metadata(
+            self,
+            book_name: str,
+            columns: list[dict[str, object]],
+        ) -> OperationResult:
+            assert book_name == "Book2"
+            assert [value["column_index"] for value in columns] == list(range(1, 20))
+            assert columns[0]["type"] == 4
+            assert all(value["type"] == 1 for value in columns[1:])
+            return OperationResult(True, "metadata")
+
+    populated = _populate_verified_otpu_workbook(
+        WorkbookOps(),
+        product,
+        headers,
+        rows,
+        binding,
+    )
+    assert populated["ok"] is True
+    assert populated["method"] == "xps_non_in_situ_shared_x_eighteen_role_native_workbook"
+
+
+def test_xps_non_in_situ_adaptive_contract_supports_variable_sample_count(
+    tmp_path: Path,
+) -> None:
+    product, headers, rows, contract_path = _verified_xps_non_in_situ_product_and_table(
+        tmp_path
+    )
+    one_sample_headers = headers[:10]
+    one_sample_rows = [row[:10] for row in rows]
+    contract_payload = json.loads(contract_path.read_text(encoding="utf-8"))["contracts"][0]
+    pairs = [
+        (x_column - 1, y_column - 1)
+        for x_column, y_column in _processed_csv_plot_pairs(
+            product,
+            one_sample_headers,
+        )
+    ]
+
+    validation = _strict_adaptive_source_validation(
+        SimpleNamespace(
+            source_schema=contract_payload["source_schema"],
+            product_key="XPS_non_in_situ",
+        ),
+        one_sample_headers,
+        one_sample_rows,
+        pairs,
+    )
+
+    assert validation["ok"] is True
+    assert validation["source_series_count"] == 9
+    assert _xps_non_in_situ_adaptive_plot_format_contracts(27)[18][
+        "fill_above_color"
+    ] == 30972633
+
+
+def test_xps_non_in_situ_native_fill_readback_is_a_hard_gate() -> None:
+    formats = _xps_non_in_situ_adaptive_plot_format_contracts(18)
+    reference_plots = []
+    for plot_index in range(1, 19):
+        role_index = (plot_index - 1) % 9 + 1
+        expected = formats[plot_index - 1]
+        reference_plots.append(
+            {
+                "layer_index": 1,
+                "plot_index": plot_index,
+                "style": {
+                    "color": role_index,
+                    "line_color": role_index,
+                    "line_width_origin_units": 0.0 if role_index in {1, 2, 4, 5} else 1500.0,
+                    "line_width_pt": 0.0 if role_index in {1, 2, 4, 5} else 3.0,
+                    "line_style": 1.0,
+                    "symbol_shape": 0.0,
+                    "symbol_size": 9.0,
+                    "fill_enabled": float(expected["fill_enabled"]),
+                    "fill_mode": float(expected["fill_mode"]),
+                    "fill_above_color": float(expected["fill_above_color"]),
+                    "fill_below_color": float(expected["fill_below_color"]),
+                },
+            }
+        )
+    reference = {"status": "ready", "plots": reference_plots}
+    current = json.loads(json.dumps(reference))
+
+    assert _validate_xps_non_in_situ_reopened_plot_styles(reference, current)["ok"] is True
+    adaptive = _validate_adaptive_xps_non_in_situ_reopened_plot_styles(
+        reference,
+        {"status": "ready", "plots": reference_plots[:9]},
+        expected_plot_count=9,
+    )
+    assert adaptive["ok"] is True
+    current["plots"][0]["style"]["fill_above_color"] = -1.0
+    rejected = _validate_xps_non_in_situ_reopened_plot_styles(reference, current)
+    assert rejected["ok"] is False
+    assert "fill_above_color" in str(rejected["message"])
+
+
+def test_xps_non_in_situ_explicit_adaptive_route_rejects_other_xps_regions(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    product, _headers, _rows, contract = _verified_xps_non_in_situ_product_and_table(
+        tmp_path
+    )
+    product = replace(product, graph_title="Bi 5d")
+    style_root = Path(__file__).parents[1] / "templates" / "origin_styles"
+    theme = style_root / "format_themes" / "XPS_non_in_situ.oth"
+    adaptive = SimpleNamespace(
+        runtime_asset_kind="oth_json",
+        runtime_asset_path=theme,
+        format_theme_path=theme,
+        style_snapshot_path=style_root / "snapshots" / "XPS_non_in_situ.json",
+        data_snapshot_path=style_root
+        / "data_snapshots"
+        / "XPS_non_in_situ.json",
+        binding_contract_path=contract,
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor.resolve_origin_runtime_style_asset",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "src.core.template_format_executor.resolve_origin_adaptive_style_asset",
+        lambda *_args, **_kwargs: adaptive,
+    )
+
+    decision, selected = _resolve_origin_style_execution_route(
+        tmp_path,
+        product,
+        requested_mode="oth-json",
+    )
+
+    assert selected is None
+    assert decision["ok"] is False
+    assert decision["reason_code"] == "xps_non_in_situ_bi4f_scope_mismatch"
+    assert "Bi 4f only" in str(decision["message"])
 
 
 def _dual_mode_ftir_product(tmp_path: Path, processed: Path, labels: list[str]) -> ProductContext:

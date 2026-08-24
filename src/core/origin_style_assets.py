@@ -36,8 +36,20 @@ PLOT_STYLE_READBACK_OPTIONS = {
     "line_style": "-l",
     "symbol_shape": "-k",
     "symbol_size": "-z",
+    # Keep these two legacy keys for compatibility with harvested snapshots.
+    # They historically represented the first-pattern background and
+    # foreground colours, not the Fill Area Under Curve enable/mode flags.
     "fill_area": "-pfb",
     "fill_color": "-pfc",
+    "fill_enabled": "-pf",
+    "fill_mode": "-pfv",
+    "fill_above_color": "-pfb",
+    "fill_below_color": "-p2fb",
+    "fill_above_pattern_color": "-pfc",
+    "fill_below_pattern_color": "-p2fc",
+    "fill_above_pattern": "-pfp",
+    "fill_below_pattern": "-p2fp",
+    "fill_transparency": "-paaf",
     "border_color": "-pbc",
     "border_width": "-pbw",
 }
@@ -1274,6 +1286,10 @@ def _replay_fresh_graph_template_same_data(
             raise RuntimeError(
                 getattr(plotted, "message", "Fresh graph-template plot failed.")
             )
+        initial_plot_format_readback = list(
+            plotted.payload.get("plot_format_readback", [])
+        )
+        final_plot_format_readback = list(initial_plot_format_readback)
         # Multi-layer templates leave the final populated layer active.  The
         # reviewed detached theme/snapshot for the graph is anchored to layer
         # 1, so make that target explicit before applying any style.  Without
@@ -1312,6 +1328,22 @@ def _replay_fresh_graph_template_same_data(
                 preserve_custom_rgb=item.product_key == "Mott-Schottky",
             ):
                 raise RuntimeError("Detached candidate style snapshot could not be applied.")
+        if plot_format_contracts:
+            reapplied_formats = operations.apply_graph_plot_format_contracts(
+                item.graph_page,
+                plot_format_contracts,
+            )
+            if not getattr(reapplied_formats, "ok", False):
+                raise RuntimeError(
+                    getattr(
+                        reapplied_formats,
+                        "message",
+                        "Native plot-format contracts could not be restored after detached style application.",
+                    )
+                )
+            final_plot_format_readback = list(
+                reapplied_formats.payload.get("plot_format_readback", [])
+            )
         if page_mask_override is not None:
             mask_display = operations.run_labtalk(
                 f'win -a "{quote_labtalk(item.graph_page)}"; '
@@ -1490,9 +1522,8 @@ def _replay_fresh_graph_template_same_data(
                 ),
                 "plot_format_contracts": plot_format_contracts,
                 "page_mask_override": page_mask_override,
-                "plot_format_readback": list(
-                    plotted.payload.get("plot_format_readback", [])
-                ),
+                "initial_plot_format_readback": initial_plot_format_readback,
+                "plot_format_readback": final_plot_format_readback,
                 "template_axis_scales": dict(
                     plotted.payload.get("template_axis_scales", {})
                 ),

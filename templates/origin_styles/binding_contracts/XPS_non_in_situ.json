@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "contract_kind": "reference_opju_explicit_plot_binding",
+  "mapping_authority": "Origin LabTalk range -wx/-wy plus nameof(range)$ and get range -b/-e",
+  "contracts": [
+    {
+      "product_key": "XPS_non_in_situ",
+      "status": "mapping_readback_complete",
+      "reference_opju_sha256": "1a4917ef6b907811f3d0fb471ee1cd06d5e2091a52f3c4006e8cab834369d3e2",
+      "graph_page": "XPS_Bi_BOBC_vs_c890fa98",
+      "source_series_count": 18,
+      "source_schema": {
+        "status": "ready",
+        "layout": "two_sample_shared_x_with_nine_roles",
+        "region_scope": "Bi 4f only",
+        "x_header": "binding_energy_eV",
+        "source_csv_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+        "worksheet_layout": "one_workbook_shared_x_eighteen_destination_columns",
+        "transform": "two_samples_common_raw_intensity_scale_with_source_order_components_and_reviewed_vertical_offsets_without_interpolation_smoothing_or_refitting",
+        "reviewed_vertical_offsets": [0.0, 1.35],
+        "component_order": "source_workbook_order",
+        "plot_type": "line",
+        "group_plots": false,
+        "plot_format_contracts": [
+          {"layer_index": 1, "plot_index": 1, "fill_above_color": 30972633},
+          {"layer_index": 1, "plot_index": 2, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 3, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 4, "fill_above_color": 25540850},
+          {"layer_index": 1, "plot_index": 5, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 6, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 7, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 8, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 9, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 10, "fill_above_color": 30972633},
+          {"layer_index": 1, "plot_index": 11, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 12, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 13, "fill_above_color": 25540850},
+          {"layer_index": 1, "plot_index": 14, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 15, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 16, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 17, "fill_above_color": 1},
+          {"layer_index": 1, "plot_index": 18, "fill_above_color": 1}
+        ]
+      },
+      "plots": [
+        {"layer_index": 1, "plot_index": 1, "x_dataset": "Book2_A", "y_dataset": "Book2_B", "row_from": 1, "row_to": 151, "source_series_index": 1, "semantic_role": "sample_1_component_1_fill_upper"},
+        {"layer_index": 1, "plot_index": 2, "x_dataset": "Book2_A", "y_dataset": "Book2_C", "row_from": 1, "row_to": 151, "source_series_index": 2, "semantic_role": "sample_1_component_1_fill_baseline"},
+        {"layer_index": 1, "plot_index": 3, "x_dataset": "Book2_A", "y_dataset": "Book2_D", "row_from": 1, "row_to": 151, "source_series_index": 3, "semantic_role": "sample_1_component_1_line"},
+        {"layer_index": 1, "plot_index": 4, "x_dataset": "Book2_A", "y_dataset": "Book2_E", "row_from": 1, "row_to": 151, "source_series_index": 4, "semantic_role": "sample_1_component_2_fill_upper"},
+        {"layer_index": 1, "plot_index": 5, "x_dataset": "Book2_A", "y_dataset": "Book2_F", "row_from": 1, "row_to": 151, "source_series_index": 5, "semantic_role": "sample_1_component_2_fill_baseline"},
+        {"layer_index": 1, "plot_index": 6, "x_dataset": "Book2_A", "y_dataset": "Book2_G", "row_from": 1, "row_to": 151, "source_series_index": 6, "semantic_role": "sample_1_component_2_line"},
+        {"layer_index": 1, "plot_index": 7, "x_dataset": "Book2_A", "y_dataset": "Book2_H", "row_from": 1, "row_to": 151, "source_series_index": 7, "semantic_role": "sample_1_measured"},
+        {"layer_index": 1, "plot_index": 8, "x_dataset": "Book2_A", "y_dataset": "Book2_I", "row_from": 1, "row_to": 151, "source_series_index": 8, "semantic_role": "sample_1_background"},
+        {"layer_index": 1, "plot_index": 9, "x_dataset": "Book2_A", "y_dataset": "Book2_J", "row_from": 1, "row_to": 151, "source_series_index": 9, "semantic_role": "sample_1_envelope"},
+        {"layer_index": 1, "plot_index": 10, "x_dataset": "Book2_A", "y_dataset": "Book2_K", "row_from": 1, "row_to": 151, "source_series_index": 10, "semantic_role": "sample_2_component_1_fill_upper"},
+        {"layer_index": 1, "plot_index": 11, "x_dataset": "Book2_A", "y_dataset": "Book2_L", "row_from": 1, "row_to": 151, "source_series_index": 11, "semantic_role": "sample_2_component_1_fill_baseline"},
+        {"layer_index": 1, "plot_index": 12, "x_dataset": "Book2_A", "y_dataset": "Book2_M", "row_from": 1, "row_to": 151, "source_series_index": 12, "semantic_role": "sample_2_component_1_line"},
+        {"layer_index": 1, "plot_index": 13, "x_dataset": "Book2_A", "y_dataset": "Book2_N", "row_from": 1, "row_to": 151, "source_series_index": 13, "semantic_role": "sample_2_component_2_fill_upper"},
+        {"layer_index": 1, "plot_index": 14, "x_dataset": "Book2_A", "y_dataset": "Book2_O", "row_from": 1, "row_to": 151, "source_series_index": 14, "semantic_role": "sample_2_component_2_fill_baseline"},
+        {"layer_index": 1, "plot_index": 15, "x_dataset": "Book2_A", "y_dataset": "Book2_P", "row_from": 1, "row_to": 151, "source_series_index": 15, "semantic_role": "sample_2_component_2_line"},
+        {"layer_index": 1, "plot_index": 16, "x_dataset": "Book2_A", "y_dataset": "Book2_Q", "row_from": 1, "row_to": 151, "source_series_index": 16, "semantic_role": "sample_2_measured"},
+        {"layer_index": 1, "plot_index": 17, "x_dataset": "Book2_A", "y_dataset": "Book2_R", "row_from": 1, "row_to": 151, "source_series_index": 17, "semantic_role": "sample_2_background"},
+        {"layer_index": 1, "plot_index": 18, "x_dataset": "Book2_A", "y_dataset": "Book2_S", "row_from": 1, "row_to": 151, "source_series_index": 18, "semantic_role": "sample_2_envelope"}
+      ]
+    }
+  ]
+}

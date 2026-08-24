@@ -99,6 +99,7 @@ VERIFIED_GRAPH_TEMPLATE_PRODUCTS = {
     "UV-vis DRS",
     "Tauc",
     "XPS_in_situ",
+    "XPS_non_in_situ",
 }
 
 VERIFIED_FTIR_SERIES_LABELS = ("BiOBr0.5Cl0.5", "CuWO4", "BiCu-10")
@@ -126,6 +127,19 @@ VERIFIED_XPS_IN_SITU_ROLE_SUFFIXES = (
     "_background",
     "_envelope",
 )
+VERIFIED_XPS_NON_IN_SITU_ROLE_SUFFIXES = (
+    "_component_1_fill_upper",
+    "_component_1_fill_baseline",
+    "_component_1_line",
+    "_component_2_fill_upper",
+    "_component_2_fill_baseline",
+    "_component_2_line",
+    "_measured",
+    "_background",
+    "_envelope",
+)
+VERIFIED_XPS_NON_IN_SITU_DESTINATION_Y_COLUMNS = tuple(range(2, 20))
+VERIFIED_XPS_NON_IN_SITU_VERTICAL_OFFSETS = (0.0, 1.35)
 VERIFIED_PHOTOCURRENT_X_TITLE = "Time (s)"
 VERIFIED_BET_X_TITLE = "Relative Pressure (P/Po)"
 VERIFIED_BET_Y_TITLE = "Quantity Adsorbed (cm3/g STP)"
@@ -562,6 +576,89 @@ def _strict_adaptive_source_validation(
                         f"XPS sample group {sample_index + 1} fill baselines and background differ"
                     )
                     break
+    elif layout == "two_sample_shared_x_with_nine_roles":
+        if str(schema.get("region_scope") or "") != "Bi 4f only":
+            failures.append(
+                "XPS non-in-situ adaptive contract is not explicitly scoped to the reviewed Bi 4f region"
+            )
+        if not headers or str(headers[0]).strip() != "binding_energy_eV":
+            failures.append("XPS non-in-situ adaptive source requires shared binding_energy_eV")
+        if len(headers) < 10 or (len(headers) - 1) % 9 != 0:
+            failures.append("XPS non-in-situ adaptive source must contain complete nine-role sample groups")
+        sample_count = max(0, (len(headers) - 1) // 9)
+        expected_pairs = [(0, y_index) for y_index in range(1, len(headers))]
+        if source_pairs != expected_pairs:
+            failures.append("XPS non-in-situ adaptive plot pairs must use the shared X and reviewed role order")
+        identities: list[str] = []
+        for sample_index in range(sample_count):
+            first = 1 + sample_index * 9
+            identity = ""
+            for role_index, role_suffix in enumerate(
+                VERIFIED_XPS_NON_IN_SITU_ROLE_SUFFIXES
+            ):
+                y_index = first + role_index
+                if y_index >= len(headers):
+                    continue
+                y_header = str(headers[y_index]).strip()
+                current_identity = (
+                    y_header[: -len(role_suffix)]
+                    if y_header.casefold().endswith(role_suffix.casefold())
+                    else ""
+                )
+                if not current_identity:
+                    failures.append(
+                        f"XPS non-in-situ sample group {sample_index + 1} role "
+                        f"{role_index + 1} does not match {role_suffix!r}"
+                    )
+                elif not identity:
+                    identity = current_identity
+                elif current_identity.casefold() != identity.casefold():
+                    failures.append(
+                        f"XPS non-in-situ sample group {sample_index + 1} mixes sample identities"
+                    )
+            identities.append(identity.casefold())
+            group_bounds = [
+                _paired_numeric_row_bounds(rows, 0, first + role_index)
+                for role_index in range(9)
+            ]
+            finite_bounds = [value for value in group_bounds if value is not None]
+            if len(finite_bounds) != 9:
+                failures.append(
+                    f"XPS non-in-situ sample group {sample_index + 1} has an empty role curve"
+                )
+                continue
+            if len(set(finite_bounds)) != 1:
+                failures.append(
+                    f"XPS non-in-situ sample group {sample_index + 1} role curves do not share row bounds"
+                )
+                continue
+            row_from, row_to = finite_bounds[0]
+            for row_index in range(row_from - 1, row_to):
+                values = [
+                    _finite_numeric_value(rows[row_index][column_index])
+                    for column_index in range(first, first + 9)
+                ]
+                if any(value is None for value in values):
+                    failures.append(
+                        f"XPS non-in-situ sample group {sample_index + 1} has an incomplete role curve"
+                    )
+                    break
+                component_1, baseline_1, line_1 = values[0:3]
+                component_2, baseline_2, line_2 = values[3:6]
+                background = values[7]
+                if (
+                    component_1 != line_1
+                    or component_2 != line_2
+                    or baseline_1 != background
+                    or baseline_2 != background
+                ):
+                    failures.append(
+                        f"XPS non-in-situ sample group {sample_index + 1} fill helpers do not match supplied components/background"
+                    )
+                    break
+        nonempty = [value for value in identities if value]
+        if len(nonempty) != len(set(nonempty)):
+            failures.append("XPS non-in-situ sample identities must be nonempty and unique")
     elif (
         layout == "multi_book_xy_pairs"
         and str(getattr(contract, "product_key", "") or "").casefold() == "xrd"
@@ -710,6 +807,10 @@ def _resolve_origin_style_execution_route(
         contract_asset,
     )
     contract_count = int(getattr(contract, "source_series_count", 0) or 0)
+    xps_non_in_situ_bi4f_scope = bool(
+        product.product_key != "XPS_non_in_situ"
+        or re.search(r"\bBi\s*4f\b", str(product.graph_title), re.IGNORECASE)
+    )
 
     if mode == "otpu":
         if exact_asset is None:
@@ -765,6 +866,25 @@ def _resolve_origin_style_execution_route(
         )
 
     if mode == "oth-json":
+        if not xps_non_in_situ_bi4f_scope:
+            return (
+                _style_execution_decision(
+                    product,
+                    requested_mode=mode,
+                    selected_mode="blocked",
+                    reason_code="xps_non_in_situ_bi4f_scope_mismatch",
+                    message=(
+                        "The accepted XPS non-in-situ OTH+JSON asset is reviewed for Bi 4f only; "
+                        "a different XPS region requires its own reviewed style and annotation contract."
+                    ),
+                    current_series_count=current_count,
+                    contract_series_count=contract_count,
+                    asset=adaptive_asset,
+                    ok=False,
+                    candidate_assets_allowed=True,
+                ),
+                None,
+            )
         complete, message = _adaptive_asset_complete(adaptive_asset)
         if not complete:
             return (
@@ -841,6 +961,23 @@ def _resolve_origin_style_execution_route(
     if exact_asset is None:
         complete, _message = _adaptive_asset_complete(adaptive_asset)
         if complete:
+            if not xps_non_in_situ_bi4f_scope:
+                return (
+                    _style_execution_decision(
+                        product,
+                        requested_mode=mode,
+                        selected_mode="blocked",
+                        reason_code="xps_non_in_situ_bi4f_scope_mismatch",
+                        message=(
+                            "The accepted XPS non-in-situ adaptive asset is reviewed for Bi 4f only."
+                        ),
+                        current_series_count=current_count,
+                        contract_series_count=contract_count,
+                        asset=adaptive_asset,
+                        ok=False,
+                    ),
+                    None,
+                )
             return (
                 _style_execution_decision(
                     product,
@@ -992,6 +1129,23 @@ def _resolve_origin_style_execution_route(
     source_pairs = [
         (x_col - 1, y_col - 1) for x_col, y_col in plot_pairs
     ]
+    if not xps_non_in_situ_bi4f_scope:
+        return (
+            _style_execution_decision(
+                product,
+                requested_mode=mode,
+                selected_mode="blocked",
+                reason_code="xps_non_in_situ_bi4f_scope_mismatch",
+                message=(
+                    "The accepted XPS non-in-situ adaptive asset is reviewed for Bi 4f only."
+                ),
+                current_series_count=current_count,
+                contract_series_count=contract_count,
+                asset=adaptive_asset,
+                ok=False,
+            ),
+            None,
+        )
     source_validation = _strict_adaptive_source_validation(
         contract,
         headers,
@@ -2206,7 +2360,7 @@ def _export_verified_graph_template_product_with_origin(
         }
     reference_data_path = getattr(style_asset, "data_snapshot_path", None)
     reference_data = _load_json_object(reference_data_path)
-    if product.product_key in {"Raman", "photocurrent", "Mott-Schottky", "UV-vis DRS", "Tauc", "XPS_in_situ"} and (
+    if product.product_key in {"Raman", "photocurrent", "Mott-Schottky", "UV-vis DRS", "Tauc", "XPS_in_situ", "XPS_non_in_situ"} and (
         not isinstance(reference_data, dict)
         or str(reference_data.get("status") or "") != "ready"
     ):
@@ -2432,7 +2586,7 @@ def _export_verified_graph_template_product_with_origin(
     ).to_dict()
     conformance["reference_source"] = runtime_reference["reference_kind"]
     if (
-        product.product_key in {"Raman", "Mott-Schottky", "UV-vis DRS", "Tauc", "XPS_in_situ"}
+        product.product_key in {"Raman", "Mott-Schottky", "UV-vis DRS", "Tauc", "XPS_in_situ", "XPS_non_in_situ"}
         and str(conformance.get("status") or "").casefold() == "fail"
     ):
         return {
@@ -2483,6 +2637,11 @@ def _export_verified_graph_template_product_with_origin(
     xps_plot_style_validation = (
         _validate_xps_in_situ_reopened_plot_styles(reference_data, current_data_snapshot)
         if product.product_key == "XPS_in_situ"
+        else _validate_xps_non_in_situ_reopened_plot_styles(
+            reference_data,
+            current_data_snapshot,
+        )
+        if product.product_key == "XPS_non_in_situ"
         else {"ok": True, "status": "not_required"}
     )
     if not xps_plot_style_validation.get("ok"):
@@ -2490,7 +2649,7 @@ def _export_verified_graph_template_product_with_origin(
             "ok": False,
             "message": str(
                 xps_plot_style_validation.get("message")
-                or "Reopened XPS in-situ plot styles differ from the reviewed snapshot."
+                or "Reopened XPS plot styles differ from the reviewed snapshot."
             ),
             "template_format_plan": plan_payload,
             "xps_plot_style_validation": xps_plot_style_validation,
@@ -2590,11 +2749,11 @@ def _export_verified_graph_template_product_with_origin(
         ),
         "photocurrent_axis_titles": product_axis_titles,
         "xps_component_fill": {
-            "required": product.product_key == "XPS_in_situ",
-            "applied": product.product_key == "XPS_in_situ" and bool(xps_plot_style_validation.get("ok")),
+            "required": product.product_key in {"XPS_in_situ", "XPS_non_in_situ"},
+            "applied": product.product_key in {"XPS_in_situ", "XPS_non_in_situ"} and bool(xps_plot_style_validation.get("ok")),
             "method": (
                 "verified_otpu_native_component_fill_with_shared_background_helpers"
-                if product.product_key == "XPS_in_situ"
+                if product.product_key in {"XPS_in_situ", "XPS_non_in_situ"}
                 else "not_required"
             ),
         },
@@ -2620,6 +2779,7 @@ def _prepare_verified_otpu_binding(
         "UV-vis DRS": _prepare_verified_uvvis_otpu_binding,
         "Tauc": _prepare_verified_uvvis_otpu_binding,
         "XPS_in_situ": _prepare_verified_xps_in_situ_otpu_binding,
+        "XPS_non_in_situ": _prepare_verified_xps_non_in_situ_otpu_binding,
     }
     prepare = preparers.get(product.product_key)
     if prepare is None:
@@ -2729,7 +2889,7 @@ def _verified_otpu_required_line_width_pt(
     # Raman's reviewed graph spans two layers. The flattened page-level style
     # snapshot cannot read the third plot width reliably; its per-layer data
     # snapshot is validated explicitly after reopen instead.
-    return None if product_key in {"EIS", "Raman", "Mott-Schottky", "XPS_in_situ", "XRD"} else style.line_width_pt
+    return None if product_key in {"EIS", "Raman", "Mott-Schottky", "XPS_in_situ", "XPS_non_in_situ", "XRD"} else style.line_width_pt
 
 
 def _verified_otpu_axis_title_bold_policy(
@@ -2815,7 +2975,11 @@ def _prepare_verified_xps_in_situ_otpu_binding(
             "ok": False,
             "message": "XPS in-situ processed CSV must contain three sample-local binding-energy columns plus 21 fitted-role columns.",
         }
-    if re.search(r"\bBi\b", str(product.graph_title)) is None:
+    if re.search(
+        r"\bBi\s*4f\b",
+        str(product.graph_title),
+        re.IGNORECASE,
+    ) is None:
         return {
             "ok": False,
             "message": "The reviewed Bi 4f fixed template cannot be used for a non-Bi XPS region.",
@@ -3027,6 +3191,178 @@ def _prepare_verified_xps_in_situ_otpu_binding(
             "source_series_count": 21,
             "row_bounds_by_sample": [list(value) for value in bounds_by_sample],
         },
+        "contract": contract.to_dict(),
+    }
+
+
+def _prepare_verified_xps_non_in_situ_otpu_binding(
+    product: ProductContext,
+    headers: list[str],
+    rows: list[list[object]],
+    *,
+    contract_path: str | Path | None = None,
+) -> dict[str, object]:
+    if product.product_key != "XPS_non_in_situ":
+        return {
+            "ok": False,
+            "message": "Verified XPS non-in-situ binding received a different product type.",
+        }
+    contracts = load_template_binding_contracts(contract_path)
+    contract = contracts.get("xps_non_in_situ")
+    if contract is None or not contract.ready:
+        return {
+            "ok": False,
+            "message": "The reviewed XPS non-in-situ template binding contract is unavailable.",
+        }
+    source_schema = dict(contract.source_schema)
+    raw_plot_formats = source_schema.get("plot_format_contracts")
+    plot_format_contracts = (
+        [dict(value) for value in raw_plot_formats if isinstance(value, dict)]
+        if isinstance(raw_plot_formats, list)
+        else []
+    )
+    if (
+        str(source_schema.get("status") or "") != "ready"
+        or str(source_schema.get("layout") or "")
+        != "two_sample_shared_x_with_nine_roles"
+        or str(source_schema.get("x_header") or "") != "binding_energy_eV"
+        or str(source_schema.get("region_scope") or "") != "Bi 4f only"
+        or source_schema.get("source_csv_indices") != list(range(19))
+        or str(source_schema.get("worksheet_layout") or "")
+        != "one_workbook_shared_x_eighteen_destination_columns"
+        or list(source_schema.get("reviewed_vertical_offsets") or [])
+        != list(VERIFIED_XPS_NON_IN_SITU_VERTICAL_OFFSETS)
+        or str(source_schema.get("component_order") or "")
+        != "source_workbook_order"
+        or str(source_schema.get("plot_type") or "") != "line"
+        or bool(source_schema.get("group_plots", True))
+        or len(plot_format_contracts) != 18
+    ):
+        return {
+            "ok": False,
+            "message": "XPS non-in-situ contract must use the reviewed shared-X 19-column/18-plot layout.",
+        }
+    expected_fill_above = [
+        30972633,
+        1,
+        1,
+        25540850,
+        1,
+        1,
+        1,
+        1,
+        1,
+    ] * 2
+    if any(
+        int(value.get("layer_index", 0)) != 1
+        or int(value.get("plot_index", 0)) != plot_index
+        or int(value.get("fill_above_color", -1)) != expected_fill_above[plot_index - 1]
+        for plot_index, value in enumerate(plot_format_contracts, start=1)
+    ):
+        return {
+            "ok": False,
+            "message": "XPS non-in-situ contract lacks the reviewed persistent component-fill colour sequence.",
+        }
+    if len(headers) != 19:
+        return {
+            "ok": False,
+            "message": "XPS non-in-situ fixed OTPU requires shared X plus two complete nine-role sample groups.",
+        }
+    if re.search(
+        r"\bBi\s*4f\b",
+        str(product.graph_title),
+        re.IGNORECASE,
+    ) is None:
+        return {
+            "ok": False,
+            "message": "The reviewed Bi 4f fixed template cannot be used for a non-Bi XPS region.",
+        }
+    source_pairs = [(0, source_y_index) for source_y_index in range(1, 19)]
+    source_validation = _strict_adaptive_source_validation(
+        contract,
+        headers,
+        rows,
+        source_pairs,
+    )
+    if not source_validation.get("ok"):
+        return {
+            "ok": False,
+            "message": str(
+                source_validation.get("message")
+                or "XPS non-in-situ fixed source binding is invalid."
+            ),
+            "source_binding": source_validation,
+        }
+    sample_identities = [
+        str(headers[1 + sample_index * 9])[
+            : -len(VERIFIED_XPS_NON_IN_SITU_ROLE_SUFFIXES[0])
+        ]
+        for sample_index in range(2)
+    ]
+    contracted_plots = sorted(
+        contract.plots,
+        key=lambda plot: (plot.layer_index, plot.plot_index),
+    )
+    expected_datasets = [
+        ("Book2_A", f"Book2_{chr(64 + y_col)}")
+        for y_col in VERIFIED_XPS_NON_IN_SITU_DESTINATION_Y_COLUMNS
+    ]
+    if (
+        len(contracted_plots) != 18
+        or contract.source_series_count != 18
+        or any(plot.layer_index != 1 for plot in contracted_plots)
+        or [plot.plot_index for plot in contracted_plots] != list(range(1, 19))
+        or [plot.source_series_index for plot in contracted_plots]
+        != list(range(1, 19))
+        or [
+            (str(plot.x_dataset), str(plot.y_dataset))
+            for plot in contracted_plots
+        ]
+        != expected_datasets
+    ):
+        return {
+            "ok": False,
+            "message": "XPS non-in-situ contract must contain the reviewed ordered Book2 A/S 18-plot topology.",
+        }
+    bounds = [
+        _paired_numeric_row_bounds(rows, 0, source_y_index)
+        for source_y_index in range(1, 19)
+    ]
+    finite_bounds = [value for value in bounds if value is not None]
+    if len(finite_bounds) != 18 or len(set(finite_bounds)) != 1:
+        return {
+            "ok": False,
+            "message": "XPS non-in-situ fixed curves must share one contiguous finite row range.",
+        }
+    row_from, row_to = finite_bounds[0]
+    xy_ranges = [
+        {
+            "book_name": "Book2",
+            "sheet_index": 1,
+            "layer_index": 1,
+            "x_col": 1,
+            "y_col": y_col,
+            "row_from": row_from,
+            "row_to": row_to,
+            "source_x_index": 0,
+            "source_y_index": source_y_index,
+        }
+        for y_col, source_y_index in zip(
+            VERIFIED_XPS_NON_IN_SITU_DESTINATION_Y_COLUMNS,
+            range(1, 19),
+        )
+    ]
+    return {
+        "ok": True,
+        "message": "Processed XPS non-in-situ columns match the reviewed 18-role OTPU binding contract.",
+        "graph_page": contract.graph_page,
+        "book_name": "Book2",
+        "plot_type": "line",
+        "group_plots": False,
+        "plot_format_contracts": plot_format_contracts,
+        "xy_ranges": xy_ranges,
+        "sample_identities": sample_identities,
+        "source_binding": source_validation,
         "contract": contract.to_dict(),
     }
 
@@ -4732,6 +5068,64 @@ def _populate_verified_otpu_workbook(
             },
         }
 
+    if product.product_key == "XPS_non_in_situ":
+        imported = operations.import_csv_to_worksheet(
+            product.processed_data,
+            book_name=str(binding["book_name"]),
+        )
+        if not getattr(imported, "ok", False):
+            return _verified_otpu_failure(
+                imported,
+                "Processed XPS non-in-situ CSV import failed.",
+            )
+        book_name = str(getattr(imported, "payload", {}).get("book_name") or "")
+        if book_name != str(binding["book_name"]):
+            return {
+                "ok": False,
+                "message": (
+                    "Origin did not preserve the reviewed XPS non-in-situ workbook identity: "
+                    f"expected {binding['book_name']}, actual {book_name or '<empty>'}."
+                ),
+            }
+        metadata_write = operations.set_worksheet_column_metadata(
+            book_name,
+            [
+                {
+                    "column_index": column_index,
+                    "long_name": header,
+                    "unit": "eV" if column_index == 1 else "a.u.",
+                    "comment": "",
+                    "type": 4 if column_index == 1 else 1,
+                }
+                for column_index, header in enumerate(headers, start=1)
+            ],
+        )
+        if not getattr(metadata_write, "ok", False):
+            return _verified_otpu_failure(
+                metadata_write,
+                "XPS non-in-situ worksheet metadata write failed.",
+            )
+        return {
+            "ok": True,
+            "method": "xps_non_in_situ_shared_x_eighteen_role_native_workbook",
+            "book_name": book_name,
+            "sheet_count": 1,
+            "destination_column_count": 19,
+            "origin_processing": {
+                "required": True,
+                "applied": True,
+                "processing_location": "Processed current-data CSV before native Origin graph creation",
+                "processing_kind": "xps_common_raw_intensity_scale_with_reviewed_vertical_offsets",
+                "reviewed_vertical_offsets": list(
+                    VERIFIED_XPS_NON_IN_SITU_VERTICAL_OFFSETS
+                ),
+                "component_order": "source_workbook_order",
+                "interpolation": "not_applied",
+                "smoothing": "not_applied",
+                "refitting": "not_applied",
+            },
+        }
+
     if product.product_key == "BET":
         imported = operations.import_csv_to_worksheet(
             product.processed_data,
@@ -5431,7 +5825,44 @@ def _update_verified_xps_in_situ_annotations(
     graph_name: str,
     product: ProductContext,
 ) -> dict[str, object]:
-    """Replace reviewed native XPS text objects with current sample/candidate labels."""
+    return _update_verified_xps_native_annotations(
+        operations,
+        graph_name,
+        product,
+        expected_sample_count=3,
+        sample_objects=("Text1", "Text4", "Text7"),
+        peak_objects=(("Text2", "Text3"), ("Text5", "Text6"), ("Text8", "Text9")),
+        route_name="xps_in_situ",
+    )
+
+
+def _update_verified_xps_non_in_situ_annotations(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+) -> dict[str, object]:
+    return _update_verified_xps_native_annotations(
+        operations,
+        graph_name,
+        product,
+        expected_sample_count=2,
+        sample_objects=("Text", "Text1"),
+        peak_objects=(("Text2", "Text3"), ("Text4", "Text5")),
+        route_name="xps_non_in_situ",
+    )
+
+
+def _update_verified_xps_native_annotations(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    *,
+    expected_sample_count: int,
+    sample_objects: tuple[str, ...],
+    peak_objects: tuple[tuple[str, str], ...],
+    route_name: str,
+) -> dict[str, object]:
+    """Populate reviewed native XPS text objects from current candidate data."""
 
     try:
         headers, _rows = _read_processed_csv(product.processed_data)
@@ -5444,13 +5875,15 @@ def _update_verified_xps_in_situ_annotations(
     ]
     labels = [_template_xps_sample_display_label(value) for value in source_samples]
     if (
-        len(labels) != 3
+        len(labels) != expected_sample_count
+        or len(sample_objects) != expected_sample_count
+        or len(peak_objects) != expected_sample_count
         or any(not label for label in labels)
-        or len({label.casefold() for label in labels}) != 3
+        or len({label.casefold() for label in labels}) != expected_sample_count
     ):
         return {
             "applied": False,
-            "reason": "xps_in_situ_requires_three_nonempty_unique_current_sample_labels",
+            "reason": f"{route_name}_requires_{expected_sample_count}_nonempty_unique_current_sample_labels",
             "labels": labels,
         }
     try:
@@ -5465,12 +5898,12 @@ def _update_verified_xps_in_situ_annotations(
         annotations_by_sample.setdefault(str(annotation.get("sample") or ""), []).append(
             dict(annotation)
         )
-    if len(source_samples) != 3 or any(
+    if any(
         len(annotations_by_sample.get(sample, [])) != 2 for sample in source_samples
     ):
         return {
             "applied": False,
-            "reason": "xps_in_situ_requires_exactly_two_current_component_peak_candidates_per_sample",
+            "reason": f"{route_name}_requires_exactly_two_current_component_peak_candidates_per_sample",
             "sample_component_counts": {
                 sample: len(annotations_by_sample.get(sample, [])) for sample in source_samples
             },
@@ -5485,18 +5918,15 @@ def _update_verified_xps_in_situ_annotations(
             or app.FindGraphLayer(graph_name)
         )
     except Exception:
-        return {"applied": False, "reason": "graph_layer_unavailable"}
+        layer = None
     if not layer:
         return {"applied": False, "reason": "graph_layer_unavailable"}
 
     text_by_object: dict[str, str] = {}
-    peak_objects = (("Text2", "Text3"), ("Text5", "Text6"), ("Text8", "Text9"))
     for sample_index, (source_sample, display_label) in enumerate(
         zip(source_samples, labels),
-        start=1,
     ):
-        sample_object = ("Text1", "Text4", "Text7")[sample_index - 1]
-        text_by_object[sample_object] = origin_bold_text(
+        text_by_object[sample_objects[sample_index]] = origin_bold_text(
             _reviewed_template_legend_rich_text(display_label)
         )
         candidates = sorted(
@@ -5504,14 +5934,16 @@ def _update_verified_xps_in_situ_annotations(
             key=lambda value: float(value["x"]),
             reverse=True,
         )
-        for object_name, candidate in zip(peak_objects[sample_index - 1], candidates):
+        for object_name, candidate in zip(peak_objects[sample_index], candidates):
             candidate_text = str(candidate.get("text") or "").strip()
             energy_text = f"{float(candidate['x']):.2f} eV"
-            prefix = candidate_text[: -len(energy_text)].strip() if candidate_text.endswith(energy_text) else candidate_text
+            prefix = (
+                candidate_text[: -len(energy_text)].strip()
+                if candidate_text.endswith(energy_text)
+                else candidate_text
+            )
             if not prefix:
                 prefix = str(candidate.get("region") or "Peak").strip() or "Peak"
-            # Origin terminates a rich-text wrapper at a line break.  Bold the
-            # two native text lines independently so COM readback is stable.
             text_by_object[object_name] = (
                 f"{origin_bold_text(prefix)}\r\n{origin_bold_text(energy_text)}"
             )
@@ -6063,6 +6495,43 @@ def _apply_verified_otpu_post_plot_style(
             return {
                 "ok": False,
                 "message": "Verified XPS in-situ current sample/peak annotation replacement failed.",
+                "same_data_reference_match": same_data,
+                "annotation_policy": annotation_policy,
+            }
+        return {
+            "ok": True,
+            "method": "otpu_native_style_with_current_sample_and_peak_candidate_annotations",
+            "same_data_reference_match": same_data,
+            "annotation_policy": annotation_policy,
+            "format_theme_applied": False,
+            "reference_annotations_preserved": False,
+            "manual_check_required": True,
+        }
+    if product.product_key == "XPS_non_in_situ":
+        if runtime_theme is not None:
+            return {
+                "ok": False,
+                "message": "Verified XPS non-in-situ OTPU runtime must not apply an OTH asset.",
+            }
+        same_data = _uvvis_current_data_matches_reference(product, reference_data)
+        if same_data.get("matches"):
+            return {
+                "ok": True,
+                "method": "otpu_native_style_exact_same_data_with_native_xps_annotations",
+                "same_data_reference_match": same_data,
+                "format_theme_applied": False,
+                "reference_annotations_preserved": True,
+                "manual_check_required": True,
+            }
+        annotation_policy = _update_verified_xps_non_in_situ_annotations(
+            operations,
+            graph_name,
+            product,
+        )
+        if not annotation_policy.get("applied"):
+            return {
+                "ok": False,
+                "message": "Verified XPS non-in-situ current sample/peak annotation replacement failed.",
                 "same_data_reference_match": same_data,
                 "annotation_policy": annotation_policy,
             }
@@ -6884,6 +7353,111 @@ def _validate_xps_in_situ_reopened_plot_styles(
     }
 
 
+def _validate_xps_non_in_situ_reopened_plot_styles(
+    reference_data: dict[str, object] | None,
+    current_data: dict[str, object],
+) -> dict[str, object]:
+    """Audit the reviewed nine-role native XPS style cycle after save/reopen."""
+
+    if not isinstance(reference_data, dict) or str(reference_data.get("status") or "") != "ready":
+        return {
+            "ok": False,
+            "status": "blocked",
+            "message": "Reviewed XPS non-in-situ per-plot data snapshot is unavailable.",
+        }
+    reference_plots = sorted(
+        [dict(value) for value in reference_data.get("plots", []) if isinstance(value, dict)],
+        key=lambda value: (
+            int(value.get("layer_index") or 0),
+            int(value.get("plot_index") or 0),
+        ),
+    )
+    current_plots = sorted(
+        [dict(value) for value in current_data.get("plots", []) if isinstance(value, dict)],
+        key=lambda value: (
+            int(value.get("layer_index") or 0),
+            int(value.get("plot_index") or 0),
+        ),
+    )
+    reasons: list[str] = []
+    if len(reference_plots) != 18:
+        reasons.append("reviewed XPS non-in-situ snapshot does not contain 18 plots")
+    if len(current_plots) != 18 or any(
+        int(plot.get("layer_index") or 0) != 1
+        or int(plot.get("plot_index") or 0) != plot_index
+        for plot_index, plot in enumerate(current_plots, start=1)
+    ):
+        reasons.append("reopened XPS non-in-situ graph does not contain the expected one-layer 18-plot sequence")
+    style_fields = (
+        "color",
+        "line_color",
+        "line_width_origin_units",
+        "line_width_pt",
+        "line_style",
+        "symbol_shape",
+        "symbol_size",
+        "fill_enabled",
+        "fill_mode",
+        "fill_above_color",
+        "fill_below_color",
+        "fill_above_pattern_color",
+        "fill_below_pattern_color",
+        "fill_above_pattern",
+        "fill_below_pattern",
+        "fill_transparency",
+    )
+    compared: list[dict[str, object]] = []
+    if len(reference_plots) == 18 and len(current_plots) == 18:
+        expected_native_formats = _xps_non_in_situ_adaptive_plot_format_contracts(18)
+        for plot_index, (reference_plot, current_plot) in enumerate(
+            zip(reference_plots, current_plots),
+            start=1,
+        ):
+            reference_style = dict(reference_plot.get("style") or {})
+            current_style = dict(current_plot.get("style") or {})
+            fields = tuple(field for field in style_fields if field in reference_style)
+            mismatches = [
+                field
+                for field in fields
+                if reference_style.get(field) != current_style.get(field)
+            ]
+            expected_native = expected_native_formats[plot_index - 1]
+            mismatches.extend(
+                field
+                for field in (
+                    "fill_enabled",
+                    "fill_mode",
+                    "fill_above_color",
+                    "fill_below_color",
+                )
+                if current_style.get(field) != float(expected_native[field])
+                and field not in mismatches
+            )
+            if mismatches:
+                reasons.append(
+                    f"XPS non-in-situ plot {plot_index} style differs: {', '.join(mismatches)}"
+                )
+            compared.append(
+                {
+                    "plot_index": plot_index,
+                    "role_index": (plot_index - 1) % 9 + 1,
+                    "matches": not mismatches,
+                    "mismatches": mismatches,
+                }
+            )
+    return {
+        "ok": not reasons,
+        "status": "matched" if not reasons else "mismatch",
+        "message": (
+            "Reopened XPS non-in-situ graph preserves the reviewed native nine-role line/fill style cycle."
+            if not reasons
+            else "; ".join(reasons)
+        ),
+        "plots": compared,
+        "reasons": reasons,
+    }
+
+
 def _validate_adaptive_xps_in_situ_reopened_plot_styles(
     reference_data: dict[str, object],
     current_data: dict[str, object],
@@ -6969,6 +7543,122 @@ def _validate_adaptive_xps_in_situ_reopened_plot_styles(
         "status": "matched" if not reasons else "mismatch",
         "message": (
             "Adaptive XPS in-situ graph preserves the reviewed seven-role native style cycle."
+            if not reasons
+            else "; ".join(reasons)
+        ),
+        "expected_plot_count": expected_plot_count,
+        "current_plot_count": len(current_plots),
+        "plots": compared,
+        "reasons": reasons,
+    }
+
+
+def _validate_adaptive_xps_non_in_situ_reopened_plot_styles(
+    reference_data: dict[str, object],
+    current_data: dict[str, object],
+    *,
+    expected_plot_count: int,
+) -> dict[str, object]:
+    """Validate every adaptive non-in-situ XPS plot against its nine-role cycle."""
+
+    if (
+        not isinstance(reference_data, dict)
+        or str(reference_data.get("status") or "") != "ready"
+        or expected_plot_count <= 0
+        or expected_plot_count % 9 != 0
+    ):
+        return {
+            "ok": False,
+            "status": "blocked",
+            "message": "Adaptive XPS non-in-situ style validation lacks a complete reviewed role cycle.",
+        }
+    reference_plots = sorted(
+        [dict(value) for value in reference_data.get("plots", []) if isinstance(value, dict)],
+        key=lambda value: (
+            int(value.get("layer_index") or 0),
+            int(value.get("plot_index") or 0),
+        ),
+    )
+    current_plots = sorted(
+        [dict(value) for value in current_data.get("plots", []) if isinstance(value, dict)],
+        key=lambda value: (
+            int(value.get("layer_index") or 0),
+            int(value.get("plot_index") or 0),
+        ),
+    )
+    reasons: list[str] = []
+    if len(reference_plots) != 18:
+        reasons.append("reviewed XPS non-in-situ snapshot does not contain 18 plots")
+    if len(current_plots) != expected_plot_count or any(
+        int(plot.get("layer_index") or 0) != 1
+        or int(plot.get("plot_index") or 0) != plot_index
+        for plot_index, plot in enumerate(current_plots, start=1)
+    ):
+        reasons.append(
+            "adaptive XPS non-in-situ reopened graph does not contain the expected one-layer plot sequence"
+        )
+    style_fields = (
+        "color",
+        "line_color",
+        "line_width_origin_units",
+        "line_width_pt",
+        "line_style",
+        "symbol_shape",
+        "symbol_size",
+        "fill_enabled",
+        "fill_mode",
+        "fill_above_color",
+        "fill_below_color",
+        "fill_above_pattern_color",
+        "fill_below_pattern_color",
+        "fill_above_pattern",
+        "fill_below_pattern",
+        "fill_transparency",
+    )
+    compared: list[dict[str, object]] = []
+    if len(reference_plots) == 18 and len(current_plots) == expected_plot_count:
+        expected_native_formats = _xps_non_in_situ_adaptive_plot_format_contracts(
+            expected_plot_count
+        )
+        for plot_index, current_plot in enumerate(current_plots, start=1):
+            reference_plot = reference_plots[(plot_index - 1) % 9]
+            reference_style = dict(reference_plot.get("style") or {})
+            current_style = dict(current_plot.get("style") or {})
+            fields = tuple(field for field in style_fields if field in reference_style)
+            mismatches = [
+                field
+                for field in fields
+                if reference_style.get(field) != current_style.get(field)
+            ]
+            expected_native = expected_native_formats[plot_index - 1]
+            mismatches.extend(
+                field
+                for field in (
+                    "fill_enabled",
+                    "fill_mode",
+                    "fill_above_color",
+                    "fill_below_color",
+                )
+                if current_style.get(field) != float(expected_native[field])
+                and field not in mismatches
+            )
+            if mismatches:
+                reasons.append(
+                    f"adaptive XPS non-in-situ plot {plot_index} role style differs: {', '.join(mismatches)}"
+                )
+            compared.append(
+                {
+                    "plot_index": plot_index,
+                    "role_index": (plot_index - 1) % 9 + 1,
+                    "matches": not mismatches,
+                    "mismatches": mismatches,
+                }
+            )
+    return {
+        "ok": not reasons,
+        "status": "matched" if not reasons else "mismatch",
+        "message": (
+            "Adaptive XPS non-in-situ graph preserves the reviewed nine-role native style cycle."
             if not reasons
             else "; ".join(reasons)
         ),
@@ -7210,6 +7900,7 @@ def _export_saved_format_theme_product_with_origin(
             "UV-vis DRS",
             "Tauc",
             "XPS_in_situ",
+            "XPS_non_in_situ",
         }:
             for x_col, y_col in plot_pairs:
                 bounds = _paired_numeric_row_bounds(rows, x_col - 1, y_col - 1)
@@ -7324,7 +8015,7 @@ def _export_saved_format_theme_product_with_origin(
         _apply_template_base_global_policies(operations, graph_name, product, style)
         data_axis_policy = (
             {"applied": False, "reason": "deferred_until_saved_snapshots_are_applied"}
-            if product.product_key in {"photocurrent", "UV-vis DRS", "Tauc", "XRD"}
+            if product.product_key in {"photocurrent", "UV-vis DRS", "Tauc", "XPS_non_in_situ", "XRD"}
             else _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
         )
         saved_style_snapshot = _load_saved_style_snapshot(
@@ -7397,7 +8088,7 @@ def _export_saved_format_theme_product_with_origin(
                 graph_name,
                 saved_data_snapshot,
                 cycle_styles=adaptive_cardinality or adaptive_uvvis,
-                preserve_custom_rgb=product.product_key == "Mott-Schottky",
+                preserve_custom_rgb=product.product_key in {"Mott-Schottky", "XPS_non_in_situ"},
                 product_key=product.product_key,
             )
             if selected_oth_json
@@ -7405,12 +8096,12 @@ def _export_saved_format_theme_product_with_origin(
         )
         if (
             selected_oth_json
-            and product.product_key == "XPS_in_situ"
+            and product.product_key in {"XPS_in_situ", "XPS_non_in_situ"}
             and not adaptive_plot_style_policy.get("applied")
         ):
             return {
                 "ok": False,
-                "message": "Adaptive XPS in-situ per-plot native style restoration failed.",
+                "message": "Adaptive XPS per-plot native style restoration failed.",
                 "template_format_plan": plan.to_dict(),
                 "adaptive_plot_style_policy": adaptive_plot_style_policy,
             }
@@ -7508,6 +8199,36 @@ def _export_saved_format_theme_product_with_origin(
                 return {
                     "ok": False,
                     "message": "Adaptive XPS in-situ current annotation/legend policy failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "legend_policy": legend_policy,
+                }
+        elif product.product_key == "XPS_non_in_situ" and selected_oth_json:
+            data_axis_policy = _apply_xps_non_in_situ_data_axis_range(
+                operations,
+                graph_name,
+                product,
+                reference_style_snapshot=saved_style_snapshot,
+                reference_data_snapshot=saved_data_snapshot,
+            )
+            if not data_axis_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive XPS non-in-situ current-data axis range failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_range_policy": data_axis_policy,
+                }
+            legend_policy = _apply_adaptive_xps_non_in_situ_text_policy(
+                operations,
+                graph_name,
+                product,
+                style,
+                saved_style_snapshot,
+                saved_data_snapshot,
+            )
+            if not legend_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive XPS non-in-situ current annotation/legend policy failed.",
                     "template_format_plan": plan.to_dict(),
                     "legend_policy": legend_policy,
                 }
@@ -7825,6 +8546,7 @@ def _export_saved_format_theme_product_with_origin(
             "UV-vis DRS",
             "Tauc",
             "XPS_in_situ",
+            "XPS_non_in_situ",
             "XRD",
         }:
             current_data_snapshot = read_graph_data_snapshot(
@@ -7868,9 +8590,15 @@ def _export_saved_format_theme_product_with_origin(
             "ok": True,
             "status": "not_required",
         }
-        if selected_oth_json and product.product_key == "XPS_in_situ":
+        if selected_oth_json and product.product_key in {"XPS_in_situ", "XPS_non_in_situ"}:
             adaptive_xps_plot_style_validation = (
                 _validate_adaptive_xps_in_situ_reopened_plot_styles(
+                    saved_data_snapshot,
+                    current_data_snapshot,
+                    expected_plot_count=len(plot_pairs),
+                )
+                if product.product_key == "XPS_in_situ"
+                else _validate_adaptive_xps_non_in_situ_reopened_plot_styles(
                     saved_data_snapshot,
                     current_data_snapshot,
                     expected_plot_count=len(plot_pairs),
@@ -7881,7 +8609,7 @@ def _export_saved_format_theme_product_with_origin(
                     "ok": False,
                     "message": str(
                         adaptive_xps_plot_style_validation.get("message")
-                        or "Adaptive XPS in-situ plot styles differ from the reviewed role cycle."
+                        or "Adaptive XPS plot styles differ from the reviewed role cycle."
                     ),
                     "template_format_plan": plan.to_dict(),
                     "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
@@ -8646,6 +9374,7 @@ def _adaptive_oth_json_readback_validation(
         "UV-vis DRS",
         "Tauc",
         "XPS_in_situ",
+        "XPS_non_in_situ",
         "XRD",
     }
     current_data_match = bool(
@@ -8870,15 +9599,16 @@ def _saved_format_theme_xps_fill_intent(product: ProductContext) -> dict[str, ob
     }
 
 
-def _restore_adaptive_xps_in_situ_native_graph_objects(
+def _restore_adaptive_xps_native_graph_objects(
     operations: object,
     graph_name: str,
     style_snapshot: dict[str, object],
+    *,
+    expected_names: list[str],
 ) -> dict[str, object]:
     records = style_snapshot.get("adaptive_native_graph_objects")
     if not isinstance(records, list):
         return {"applied": False, "reason": "adaptive_native_graph_objects_missing"}
-    expected_names = ["Text", *(f"Text{index}" for index in range(1, 10))]
     if [str(value.get("name") or "") for value in records if isinstance(value, dict)] != expected_names:
         return {"applied": False, "reason": "adaptive_native_graph_objects_incomplete"}
     graph = quote_labtalk(graph_name)
@@ -8971,10 +9701,11 @@ def _apply_adaptive_xps_in_situ_text_policy(
         for sample_index in range(sample_count)
     ]
     graph = quote_labtalk(graph_name)
-    native_objects = _restore_adaptive_xps_in_situ_native_graph_objects(
+    native_objects = _restore_adaptive_xps_native_graph_objects(
         operations,
         graph_name,
         style_snapshot,
+        expected_names=["Text", *(f"Text{index}" for index in range(1, 10))],
     )
     if not native_objects.get("applied"):
         return {
@@ -9048,6 +9779,112 @@ def _apply_adaptive_xps_in_situ_text_policy(
         "sample_labels": sample_labels,
         "measured_plot_indices": measured_plot_indices,
         "stale_reference_annotations_removed": len(removed) == 9,
+        "removed_annotation_objects": removed,
+        "native_graph_objects": native_objects,
+        "legend_font_size": legend_font_size,
+    }
+
+
+def _apply_adaptive_xps_non_in_situ_text_policy(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    style: ResolvedPlotStyle,
+    style_snapshot: dict[str, object],
+    data_snapshot: dict[str, object],
+) -> dict[str, object]:
+    """Keep the reviewed two-sample native annotations; use a native legend otherwise."""
+
+    try:
+        headers, _rows = _read_processed_csv(product.processed_data)
+    except (OSError, ValueError) as exc:
+        return {"applied": False, "reason": f"processed_data_unavailable: {exc}"}
+    if len(headers) < 10 or (len(headers) - 1) % 9 != 0:
+        return {"applied": False, "reason": "incomplete_xps_non_in_situ_sample_groups"}
+    sample_count = (len(headers) - 1) // 9
+    sample_labels = [
+        str(headers[1 + sample_index * 9])[
+            : -len(VERIFIED_XPS_NON_IN_SITU_ROLE_SUFFIXES[0])
+        ]
+        for sample_index in range(sample_count)
+    ]
+    graph = quote_labtalk(graph_name)
+    object_names = ["Text", "Text1", "Text2", "Text3", "Text4", "Text5"]
+    native_objects = _restore_adaptive_xps_native_graph_objects(
+        operations,
+        graph_name,
+        style_snapshot,
+        expected_names=object_names,
+    )
+    if not native_objects.get("applied"):
+        return {
+            "applied": False,
+            "reason": "adaptive_native_graph_object_restore_failed",
+            "native_graph_objects": native_objects,
+        }
+    if sample_count == 2:
+        hidden = operations.run_labtalk(f'win -a "{graph}"; label -r Legend;')
+        annotation_policy = _update_verified_xps_non_in_situ_annotations(
+            operations,
+            graph_name,
+            product,
+        )
+        same_data = _uvvis_current_data_matches_reference(product, data_snapshot)
+        return {
+            "applied": bool(getattr(hidden, "ok", False))
+            and bool(annotation_policy.get("applied")),
+            "method": "native_xps_non_in_situ_two_sample_annotations_without_legend",
+            "sample_count": sample_count,
+            "sample_labels": sample_labels,
+            "same_data_reference_match": same_data,
+            "annotation_policy": annotation_policy,
+            "native_graph_objects": native_objects,
+            "stale_reference_annotations_removed": False,
+        }
+
+    removed: list[str] = []
+    for object_name in object_names:
+        result = operations.run_labtalk(
+            f'win -a "{graph}"; label -r {object_name};'
+        )
+        if getattr(result, "ok", False):
+            removed.append(object_name)
+    measured_plot_indices = [7 + sample_index * 9 for sample_index in range(sample_count)]
+    legend_rows = [
+        f"\\l({plot_index})\\b({_reviewed_template_legend_rich_text(label)})"
+        for plot_index, label in zip(measured_plot_indices, sample_labels)
+    ]
+    legend_text = "%(CRLF)".join(legend_rows)
+    legend_font_size = _reviewed_template_legend_font_size(style_snapshot, style)
+    legend_font_name = quote_labtalk(style.font_family or "Arial")
+    shown = operations.run_labtalk(
+        f'win -a "{graph}"; legend.show=1; '
+        f'legend.text$="{_quote_origin_rich_text(legend_text)}"; '
+        f'legend.font$="{legend_font_name}"; '
+        f"legend.fsize={legend_font_size}; legend.bold=1; "
+        "legend.background=0; legend.border=0; legend.fill=0;"
+    )
+    com_text = _set_origin_graph_object_text(
+        operations,
+        graph_name,
+        "Legend",
+        "\r\n".join(legend_rows),
+    )
+    _style_graph_object(
+        operations,
+        graph_name,
+        "Legend",
+        font_name=style.font_family or "Arial",
+        font_size=legend_font_size,
+        color=1,
+    )
+    return {
+        "applied": bool(getattr(shown, "ok", False)) and bool(com_text),
+        "method": "native_xps_non_in_situ_variable_sample_legend",
+        "sample_count": sample_count,
+        "sample_labels": sample_labels,
+        "measured_plot_indices": measured_plot_indices,
+        "stale_reference_annotations_removed": len(removed) == len(object_names),
         "removed_annotation_objects": removed,
         "native_graph_objects": native_objects,
         "legend_font_size": legend_font_size,
@@ -9423,13 +10260,75 @@ def _apply_adaptive_oth_json_plot_styles(
                     "plots": visible_plots,
                     "plot_count": len(visible_plots),
                 }
-    return _apply_reviewed_template_plot_styles(
+    if product_key == "XPS_non_in_situ":
+        raw_plots = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
+        if isinstance(raw_plots, list) and len(raw_plots) >= 9:
+            snapshot = {
+                **data_snapshot,
+                "plots": [
+                    dict(value)
+                    for value in raw_plots[:9]
+                    if isinstance(value, dict)
+                ],
+                "plot_count": 9,
+            }
+            cycle_styles = True
+    restored = _apply_reviewed_template_plot_styles(
         operations,
         graph_name,
         snapshot,
         cycle_styles=cycle_styles,
         preserve_custom_rgb=preserve_custom_rgb,
     )
+    if product_key != "XPS_non_in_situ" or not restored.get("applied"):
+        return restored
+    plot_names = operations._plot_names(graph_name) if hasattr(operations, "_plot_names") else []
+    native_formats = operations.apply_graph_plot_format_contracts(
+        graph_name,
+        _xps_non_in_situ_adaptive_plot_format_contracts(len(plot_names)),
+    )
+    if not getattr(native_formats, "ok", False):
+        return {
+            "applied": False,
+            "reason": "xps_non_in_situ_native_fill_style_restore_failed",
+            "plot_style_restore": restored,
+            "message": getattr(native_formats, "message", "native fill restore failed"),
+        }
+    return {
+        **restored,
+        "method": "project_local_nine_role_style_cycle_with_native_origin_fill_contracts",
+        "native_plot_format_readback": dict(
+            getattr(native_formats, "payload", {}) or {}
+        ),
+    }
+
+
+def _xps_non_in_situ_adaptive_plot_format_contracts(
+    plot_count: int,
+) -> list[dict[str, object]]:
+    role_cycle = (
+        (1, 9, 30972633, 30972633),
+        (0, 0, 1, 2),
+        (0, 0, 1, 2),
+        (1, 9, 25540850, 25540850),
+        (0, 0, 1, 2),
+        (0, 0, 1, 2),
+        (0, 0, 1, 2),
+        (0, 0, 1, 2),
+        (0, 0, 1, 2),
+    )
+    return [
+        {
+            "layer_index": 1,
+            "plot_index": plot_index,
+            "fill_enabled": role[0],
+            "fill_mode": role[1],
+            "fill_above_color": role[2],
+            "fill_below_color": role[3],
+        }
+        for plot_index in range(1, plot_count + 1)
+        for role in (role_cycle[(plot_index - 1) % len(role_cycle)],)
+    ]
 
 
 def _adaptive_uvvis_conformance_reference(
@@ -10604,6 +11503,95 @@ def _xrd_plotted_y_headers(product: ProductContext, headers: list[str]) -> list[
         for index, header in enumerate(headers[1:], start=1)
         if str(header).strip()
     ]
+
+
+def _apply_xps_non_in_situ_data_axis_range(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    *,
+    reference_style_snapshot: dict[str, object] | None,
+    reference_data_snapshot: dict[str, object] | None,
+) -> dict[str, object]:
+    set_axis_range = getattr(operations, "set_axis_range", None)
+    if not callable(set_axis_range):
+        return {"applied": False, "reason": "set_axis_range_unavailable"}
+    same_data = _uvvis_current_data_matches_reference(
+        product,
+        reference_data_snapshot,
+    )
+    layout = (
+        reference_style_snapshot.get("layout_values")
+        if isinstance(reference_style_snapshot, dict)
+        else None
+    )
+    if same_data.get("matches"):
+        required = {
+            key: _snapshot_axis_value(layout, key)
+            for key in (
+                "layer.x.from",
+                "layer.x.to",
+                "layer.y.from",
+                "layer.y.to",
+            )
+        }
+        if all(value is not None for value in required.values()):
+            return {
+                "applied": True,
+                "method": "xps_non_in_situ_reference_data_match_preserves_template_axes",
+                "decision": "template_preserved",
+                "range_changed": False,
+                "same_data_reference_match": same_data,
+                **required,
+            }
+    try:
+        headers, rows = _read_processed_csv(product.processed_data)
+    except (OSError, ValueError) as exc:
+        return {"applied": False, "reason": f"processed_data_unavailable: {exc}"}
+    pairs = _processed_csv_plot_pairs(product, headers)
+    x_values = [
+        value
+        for x_col, _y_col in pairs
+        for row in rows
+        if (value := _finite_numeric_value(row[x_col - 1])) is not None
+    ]
+    y_values = [
+        value
+        for _x_col, y_col in pairs
+        for row in rows
+        if (value := _finite_numeric_value(row[y_col - 1])) is not None
+    ]
+    if not x_values or not y_values:
+        return {"applied": False, "reason": "xps_non_in_situ_csv_bounds_unavailable"}
+    x_low, x_high = min(x_values), max(x_values)
+    y_low, y_high = min(y_values), max(y_values)
+    if x_high <= x_low or y_high <= y_low:
+        return {"applied": False, "reason": "xps_non_in_situ_csv_bounds_invalid"}
+    x_padding = (x_high - x_low) * 0.04
+    y_padding = (y_high - y_low) * 0.16
+    x_from, x_to = x_high + x_padding, x_low - x_padding
+    y_from, y_to = y_low - y_padding, y_high + y_padding
+    result = set_axis_range(
+        graph_name,
+        x_min=x_from,
+        x_max=x_to,
+        y_min=y_from,
+        y_max=y_to,
+    )
+    if not getattr(result, "ok", False):
+        return {"applied": False, "reason": getattr(result, "message", "set_axis_range_failed")}
+    return {
+        "applied": True,
+        "method": "xps_non_in_situ_changed_data_bounds_with_descending_binding_energy_axis",
+        "decision": "adaptive_xy",
+        "range_changed": True,
+        "same_data_reference_match": same_data,
+        "x_min": x_from,
+        "x_max": x_to,
+        "y_min": y_from,
+        "y_max": y_to,
+        "sample_count": (len(headers) - 1) // 9,
+    }
 
 
 def _apply_embedded_snapshot_data_axis_range(

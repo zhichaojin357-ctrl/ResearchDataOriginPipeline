@@ -2327,6 +2327,34 @@ def test_adaptive_oth_json_readback_requires_current_native_style_not_fixed_lege
     assert result["reasons"] == []
 
 
+def test_adaptive_oth_json_accepts_review_only_data_bound_axis_range_changes() -> None:
+    export_status = _adaptive_oth_json_export_status(series_count=18)
+    export_status["conformance"] = {
+        "status": "review",
+        "compared_fields": 134,
+        "matched_fields": 132,
+        "issues": [
+            {
+                "field": "layer.y.from",
+                "category": "axis",
+                "severity": "review",
+                "message": "numeric style value differs from exemplar beyond tolerance",
+            },
+            {
+                "field": "layer.y.to",
+                "category": "axis",
+                "severity": "review",
+                "message": "numeric style value differs from exemplar beyond tolerance",
+            },
+        ],
+    }
+
+    result = _adaptive_oth_json_detached_acceptance(export_status)
+
+    assert result["ok"] is True
+    assert result["reasons"] == []
+
+
 @pytest.mark.parametrize("failed_key", ["axis_title_visible", "legend_no_frame"])
 def test_adaptive_oth_json_readback_rejects_missing_current_native_style_gate(
     failed_key: str,

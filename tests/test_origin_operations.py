@@ -942,10 +942,16 @@ class OriginOperationsSmokeTest(unittest.TestCase):
                 ):
                     self.stack_values[(plot_name, option)] = float(value)
                 for plot_name, option, value in re.findall(
-                    r"set\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(c|cl|w|d|l|lv|lvc|lvs|lvw)\s+([-+0-9.eE]+);",
+                    r"set\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(c|cl|w|d|l|pf|pfv|pfb|p2fb|pfc|p2fc|pfp|p2fp|paaf|lv|lvc|lvs|lvw)\s+([-+0-9.eE]+|color\(\d+,\d+,\d+\));",
                     script,
                 ):
-                    self.plot_values[(plot_name, option)] = float(value)
+                    color_match = re.fullmatch(r"color\((\d+),(\d+),(\d+)\)", value)
+                    if color_match:
+                        red, green, blue = (int(part) for part in color_match.groups())
+                        numeric = float(0x01000000 | (blue << 16) | (green << 8) | red)
+                    else:
+                        numeric = float(value)
+                    self.plot_values[(plot_name, option)] = numeric
                 match = re.fullmatch(
                     r"get\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(sx|sy|sxs|sys)\s+([A-Za-z_][A-Za-z0-9_]*);",
                     script,
@@ -957,7 +963,7 @@ class OriginOperationsSmokeTest(unittest.TestCase):
                         1.0 if option in {"sxs", "sys"} else 0.0,
                     )
                 plot_match = re.fullmatch(
-                    r"get\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(c|cl|w|d|l|lv|lvc|lvs|lvw)\s+([A-Za-z_][A-Za-z0-9_]*);",
+                    r"get\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(c|cl|w|d|l|pf|pfv|pfb|p2fb|pfc|p2fc|pfp|p2fp|paaf|lv|lvc|lvs|lvw)\s+([A-Za-z_][A-Za-z0-9_]*);",
                     script,
                 )
                 if plot_match:
@@ -996,7 +1002,21 @@ class OriginOperationsSmokeTest(unittest.TestCase):
                     {"layer_index": 1, "plot_index": 3, "y_offset": -2808.5009666953847},
                 ],
                 plot_format_contracts=[
-                    {"layer_index": 1, "plot_index": 2, "color": 33518174, "line_width": 1500},
+                    {
+                        "layer_index": 1,
+                        "plot_index": 2,
+                        "color": 33518174,
+                        "line_width": 1500,
+                        "fill_enabled": 1,
+                        "fill_mode": 9,
+                        "fill_above_color": 30972633,
+                        "fill_below_color": 30972633,
+                        "fill_above_pattern_color": 0,
+                        "fill_below_pattern_color": 0,
+                        "fill_above_pattern": 0,
+                        "fill_below_pattern": 0,
+                        "fill_transparency": 0,
+                    },
                     {"layer_index": 2, "plot_index": 1, "connect": 0, "vertical_drop_lines": 1, "vertical_drop_line_color": 17585584, "vertical_drop_line_width": 3},
                 ],
             )
@@ -1013,6 +1033,17 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertAlmostEqual(app.stack_values[("Book2_D", "sy")], 560.2891913966785)
         self.assertAlmostEqual(app.stack_values[("Book2_F", "sy")], -2808.5009666953847)
         self.assertEqual(app.plot_values[("Book2_D", "c")], 33518174.0)
+        self.assertEqual(app.plot_values[("Book2_D", "pf")], 1.0)
+        self.assertEqual(app.plot_values[("Book2_D", "pfv")], 9.0)
+        self.assertEqual(app.plot_values[("Book2_D", "pfb")], 30972633.0)
+        self.assertEqual(app.plot_values[("Book2_D", "p2fb")], 30972633.0)
+        self.assertEqual(app.plot_values[("Book2_D", "pfc")], 0.0)
+        self.assertEqual(app.plot_values[("Book2_D", "p2fc")], 0.0)
+        self.assertEqual(app.plot_values[("Book2_D", "pfp")], 0.0)
+        self.assertEqual(app.plot_values[("Book2_D", "p2fp")], 0.0)
+        self.assertEqual(app.plot_values[("Book2_D", "paaf")], 0.0)
+        self.assertIn("set Book2_D -pfb color(217,154,216);", command_text)
+        self.assertIn("set Book2_D -p2fb color(217,154,216);", command_text)
         self.assertEqual(app.plot_values[("Book2_H", "l")], 0.0)
         self.assertEqual(app.plot_values[("Book2_H", "lv")], 1.0)
 
@@ -1274,6 +1305,51 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertEqual(result.payload["owned_process_ids"], [])
         terminate.assert_not_called()
+
+    def test_close_fails_when_exit_errors_without_a_captured_owned_process(self):
+        app = FakeOriginApp()
+
+        def fail_exit():
+            raise RuntimeError("COM exit failed")
+
+        app.Exit = fail_exit
+        result = OriginOperations(app).close()
+
+        self.assertFalse(result.ok)
+        self.assertTrue(result.payload["ownership_unverifiable"])
+        self.assertEqual(result.payload["owned_process_ids"], [])
+        self.assertEqual(result.payload["remaining_process_ids"], [])
+        self.assertIn("could not verify", result.message)
+
+    def test_connect_origin_rejects_session_when_owned_pid_is_not_captured(self):
+        app = FakeOriginApp()
+
+        class FakeClient:
+            def DispatchEx(self, _entrypoint):
+                return app
+
+        fake_client = FakeClient()
+        with (
+            mock.patch("src.origin.operations.origin_process_ids", return_value=set()),
+            mock.patch(
+                "src.origin.operations._wait_for_new_origin_process_ids",
+                return_value=set(),
+            ),
+            mock.patch.dict(
+                "sys.modules",
+                {
+                    "win32com.client": fake_client,
+                    "win32com": type("M", (), {"client": fake_client})(),
+                },
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "no new Origin process ID could be captured",
+            ):
+                connect_origin(isolated=True)
+
+        self.assertTrue(app.closed)
 
     def test_connect_origin_refuses_to_attach_when_origin_is_already_running(self):
         with mock.patch(

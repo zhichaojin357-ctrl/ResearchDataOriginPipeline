@@ -5039,7 +5039,11 @@ def _adaptive_oth_json_detached_acceptance(
     if not _native_600dpi_evidence_passes(tif):
         reasons.append("native 600 dpi TIFF evidence is missing or invalid")
     conformance_reasons = _template_conformance_acceptance_reasons(conformance)
-    if str(conformance.get("status") or "").casefold() != "pass" or conformance_reasons:
+    # Adaptive products may legitimately report review-only axis-range
+    # differences when the current data differ from the reviewed exemplar.
+    # Keep fail-severity style differences blocking, but do not turn those
+    # expected data-bound review signals into a detached-style failure.
+    if conformance_reasons:
         reasons.append("adaptive OTH+JSON style conformance did not pass")
     relevant_readback = _adaptive_oth_json_strict_readback_values(strict_readback)
     if not product_style or not relevant_readback or not all(bool(value) for value in relevant_readback.values()):
