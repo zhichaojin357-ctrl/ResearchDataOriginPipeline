@@ -168,6 +168,7 @@ def test_adaptive_style_resolver_accepts_complete_runtime_bundle(
             "XPS_non_in_situ",
             "XPS_non_in_situ_oth_json_adaptive_verified_20260824.json",
         ),
+        ("EIS", "EIS_oth_json_adaptive_verified_20260824.json"),
         ("EPR", "EPR_oth_json_adaptive_verified_20260825.json"),
         ("PL", "PL_oth_json_adaptive_verified_20260824.json"),
         ("XRD", "XRD_oth_json_adaptive_verified_20260824.json"),
@@ -1388,6 +1389,7 @@ def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
             }
             self.styles = {
                 ("Book2_H", "-c"): 22106449.0,
+                ("Book2_H", "-cse"): 30847682.0,
                 ("Book2_H", "-cl"): 22106449.0,
                 ("Book2_H", "-wp"): 0.5,
                 ("Book3_F", "-c"): 23709421.0,
@@ -1426,6 +1428,12 @@ def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
             return OperationResult(True, "ok", {"value": self.variables.get(name)})
 
     snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph4", source_label="CWO+BOBC+标卡.opju")
+    custom_rgb_snapshot = read_graph_data_snapshot(
+        FakeOriginOps(),
+        "Graph4",
+        source_label="CWO+BOBC+标卡.opju",
+        prefer_custom_rgb=True,
+    )
 
     assert snapshot["plot_count"] == 5
     assert snapshot["layer_count_with_plots"] == 3
@@ -1435,6 +1443,10 @@ def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
     assert plots["Book2_H"]["x_values"] == [15.287, 18.192]
     assert plots["Book2_H"]["y_values"] == [25.3, 0.2]
     assert plots["Book2_H"]["style"]["color"] == 22106449.0
+    custom_rgb_plots = {
+        plot["y_dataset"]: plot for plot in custom_rgb_snapshot["plots"]
+    }
+    assert custom_rgb_plots["Book2_H"]["style"]["color"] == 30847682.0
     assert plots["Book2_H"]["style"]["line_width_pt"] == 0.5
     assert plots["Book3_F"]["x_dataset"] == "Book3_E"
     assert plots["Book3_F"]["layer_index"] == 3

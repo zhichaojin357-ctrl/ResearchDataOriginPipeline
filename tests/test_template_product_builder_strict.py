@@ -15,6 +15,7 @@ from src.core.template_product_builder import (
     _apply_template_xps_y_axis_title_overlay,
     _build_template_acceptance,
     _build_template_epr_table,
+    _build_template_eis_table,
     _build_template_bet_multisource_table,
     _build_template_xrd_multisource_table,
     _build_template_xy_multisource_table,
@@ -70,6 +71,13 @@ from src.core.template_format_executor import _prepare_verified_mott_otpu_bindin
 from src.core.xps_heterojunction import XpsFitRecord
 from src.origin.style_mimic import OpjuStyleSnapshot
 from src.origin.user_style import ResolvedPlotStyle
+
+
+def _write_template_eis_csv(path: Path, points: list[tuple[float, float]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = ["Freq (Hz);Z' (kOhm);-Z'' (kOhm)"]
+    lines.extend(f"{1000 / (index + 1)};{real};{imag}" for index, (real, imag) in enumerate(points))
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _validated_style_entry(
@@ -1718,6 +1726,69 @@ def test_template_epr_finds_the_current_chinese_export_directory(
     )
 
     assert selected == reference_dir
+
+
+def test_template_eis_explicit_oth_json_uses_only_paired_curves_and_preserves_lengths(
+    tmp_path: Path,
+) -> None:
+    source_dir = tmp_path / "EIS" / "current"
+    selected = [
+        source_dir / "sample_A.csv",
+        source_dir / "sample_B.csv",
+    ]
+    _write_template_eis_csv(selected[0], [(1.0, 0.5), (2.0, 0.4), (3.0, 0.2)])
+    _write_template_eis_csv(selected[1], [(10.0, 2.0), (20.0, 1.5)])
+    neighbour = source_dir / "neighbour.csv"
+    _write_template_eis_csv(neighbour, [(999.0, 999.0), (1000.0, 999.0)])
+    reference = tmp_path / "template.opju"
+    reference.write_bytes(b"placeholder")
+    pairing = TargetPairing("EIS", "EIS", "", "root", selected, "root", reference)
+    template = TemplateCandidate("EIS", reference, "unit", graph_page="Graph1", plot_count=8)
+
+    product, extra = prepare_template_product(
+        tmp_path / "run",
+        pairing,
+        template,
+        compact_output=True,
+        origin_style_mode="oth-json",
+    )
+
+    assert product.pairing.data_paths == selected
+    assert extra["eis_overlay"]["source_files"] == [str(path) for path in selected]
+    assert extra["eis_overlay"]["plotted_source_count"] == 2
+    assert extra["eis_overlay"]["visible_plot_indices"] == [1, 2]
+    assert extra["eis_overlay"]["visible_series_labels"] == ["sample A", "sample B"]
+    assert extra["eis_overlay"]["selection_policy"].startswith("Use exactly pairing.data_paths")
+    assert extra["eis_overlay"]["source_selection_mode"] == "explicit_pairing_adaptive_oth_json"
+    assert product.legend_entries == ["sample A", "sample B"]
+    rows = product.processed_data.read_text(encoding="utf-8").splitlines()
+    assert rows[0] == "sample_A_z_real_kohm,sample_A_minus_z_imag_kohm,sample_B_z_real_kohm,sample_B_minus_z_imag_kohm"
+    assert len(rows) == 4
+    assert rows[-1].endswith(",,")
+    assert "999" not in product.processed_data.read_text(encoding="utf-8")
+
+
+def test_template_eis_fixed_route_keeps_exactly_eight_discovered_curves(tmp_path: Path) -> None:
+    source_dir = tmp_path / "EIS" / "reviewed_cohort"
+    selected = source_dir / "trace_1.csv"
+    paths = [source_dir / f"trace_{index}.csv" for index in range(1, 9)]
+    for index, path in enumerate(paths, start=1):
+        _write_template_eis_csv(
+            path,
+            [(float(index + point), 0.5 / (point + 1)) for point in range(10)],
+        )
+    reference = tmp_path / "template.opju"
+    reference.write_bytes(b"placeholder")
+    pairing = TargetPairing("EIS", "EIS", "", "root", [selected], "root", reference)
+    template = TemplateCandidate("EIS", reference, "unit", graph_page="Graph1", plot_count=8)
+
+    _headers, _rows, _labels, extra = _build_template_eis_table(pairing, tmp_path / "run", template)
+
+    overlay = extra["eis_overlay"]
+    assert overlay["plotted_source_count"] == 8
+    assert [Path(value).name for value in overlay["source_files"]] == [path.name for path in paths]
+    assert overlay["visible_plot_indices"] == [3, 4, 5]
+    assert overlay["source_selection_mode"] == "reviewed_coherent_source_family"
 
 
 def test_template_epr_explicit_oth_json_uses_only_four_paired_traces(tmp_path: Path) -> None:

@@ -7756,6 +7756,12 @@ def _validate_adaptive_reopened_plot_style_cycle(
                     "style_cycle_index": (plot_index - 1) % reference_plot_count + 1,
                     "matches": not mismatches,
                     "mismatches": mismatches,
+                    "expected_style": {
+                        field: reference_style.get(field) for field in style_fields
+                    },
+                    "current_style": {
+                        field: current_style.get(field) for field in style_fields
+                    },
                 }
             )
     return {
@@ -7784,6 +7790,21 @@ def _validate_adaptive_epr_reopened_plot_styles(
         current_data,
         product_key="EPR",
         reference_plot_count=3,
+        expected_plot_count=expected_plot_count,
+    )
+
+
+def _validate_adaptive_eis_reopened_plot_styles(
+    reference_data: dict[str, object],
+    current_data: dict[str, object],
+    *,
+    expected_plot_count: int,
+) -> dict[str, object]:
+    return _validate_adaptive_reopened_plot_style_cycle(
+        _adaptive_eis_style_cycle_snapshot(reference_data),
+        current_data,
+        product_key="EIS",
+        reference_plot_count=len(REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]),
         expected_plot_count=expected_plot_count,
     )
 
@@ -8226,6 +8247,7 @@ def _export_saved_format_theme_product_with_origin(
         graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
         adaptive_plot_bounds: dict[tuple[int, int], tuple[int, int]] = {}
         if selected_oth_json and product.product_key in {
+            "EIS",
             "EPR",
             "PL",
             "Raman",
@@ -8349,7 +8371,7 @@ def _export_saved_format_theme_product_with_origin(
         _apply_template_base_global_policies(operations, graph_name, product, style)
         data_axis_policy = (
             {"applied": False, "reason": "deferred_until_saved_snapshots_are_applied"}
-            if product.product_key in {"EPR", "PL", "photocurrent", "UV-vis DRS", "Tauc", "XPS_non_in_situ", "XRD"}
+            if product.product_key in {"EIS", "EPR", "PL", "photocurrent", "UV-vis DRS", "Tauc", "XPS_non_in_situ", "XRD"}
             else _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
         )
         saved_style_snapshot = _load_saved_style_snapshot(
@@ -8381,6 +8403,7 @@ def _export_saved_format_theme_product_with_origin(
         )
         adaptive_xrd = bool(selected_oth_json and product.product_key == "XRD")
         adaptive_epr = bool(selected_oth_json and product.product_key == "EPR")
+        adaptive_eis = bool(selected_oth_json and product.product_key == "EIS")
         adaptive_snapshot_style_applied = bool(
             selected_oth_json
             and saved_style_snapshot
@@ -8390,7 +8413,7 @@ def _export_saved_format_theme_product_with_origin(
                 saved_style_snapshot,
                 apply_default_font=False,
                 apply_axis_titles=True,
-                preserve_custom_rgb=product.product_key in {"Mott-Schottky", "EPR", "PL"},
+                preserve_custom_rgb=product.product_key in {"EIS", "Mott-Schottky", "EPR", "PL"},
             )
         )
         plot_sequence = (
@@ -8398,7 +8421,7 @@ def _export_saved_format_theme_product_with_origin(
                 "applied": False,
                 "reason": "adaptive_xrd_semantic_styles_replace_fixed_plot_sequence",
             }
-            if adaptive_xrd
+            if adaptive_xrd or adaptive_eis
             else _apply_external_reference_plot_sequence(
                 operations,
                 graph_name,
@@ -8422,8 +8445,9 @@ def _export_saved_format_theme_product_with_origin(
                 operations,
                 graph_name,
                 saved_data_snapshot,
-                cycle_styles=adaptive_cardinality or adaptive_uvvis,
+                cycle_styles=adaptive_cardinality or adaptive_uvvis or adaptive_eis,
                 preserve_custom_rgb=product.product_key in {
+                    "EIS",
                     "Mott-Schottky",
                     "XPS_non_in_situ",
                     "EPR",
@@ -8436,7 +8460,7 @@ def _export_saved_format_theme_product_with_origin(
         )
         if (
             selected_oth_json
-            and product.product_key in {"EPR", "PL", "XPS_in_situ", "XPS_non_in_situ"}
+            and product.product_key in {"EIS", "EPR", "PL", "XPS_in_situ", "XPS_non_in_situ"}
             and not adaptive_plot_style_policy.get("applied")
         ):
             return {
@@ -8447,7 +8471,7 @@ def _export_saved_format_theme_product_with_origin(
             }
         reviewed_plot_policy = (
             {"applied": False, "reason": "adaptive_route_uses_all_current_plots"}
-            if adaptive_cardinality or adaptive_uvvis or adaptive_xrd or adaptive_epr
+            if adaptive_cardinality or adaptive_uvvis or adaptive_xrd or adaptive_epr or adaptive_eis
             else _apply_reviewed_template_plot_policy(
                 operations,
                 graph_name,
@@ -8572,6 +8596,55 @@ def _export_saved_format_theme_product_with_origin(
                     "template_format_plan": plan.to_dict(),
                     "legend_policy": legend_policy,
                 }
+        elif adaptive_eis:
+            data_axis_policy = _apply_embedded_snapshot_data_axis_range(
+                operations,
+                graph_name,
+                product,
+                reference_style_snapshot=saved_style_snapshot,
+                reference_data_snapshot=saved_data_snapshot,
+            )
+            if not data_axis_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive EIS current-data axis range failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_range_policy": data_axis_policy,
+                }
+            legend_anchor_policy = _apply_saved_template_legend_anchor(
+                operations,
+                graph_name,
+                saved_style_snapshot,
+            )
+            if not legend_anchor_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive EIS reviewed legend anchor restoration failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "legend_anchor_policy": legend_anchor_policy,
+                }
+            current_entries = [
+                str(value).strip() for value in product.legend_entries
+                if str(value).strip()
+            ]
+            legend_policy = _replace_eis_dynamic_legend_with_static_rich_text(
+                operations,
+                graph_name,
+                product,
+                saved_style_snapshot,
+                style,
+                visible_plot_indices=tuple(range(1, len(plot_pairs) + 1)),
+                legend_entries=current_entries,
+                force_current_visibility=True,
+            )
+            if not legend_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive EIS current native legend/visibility policy failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "legend_policy": legend_policy,
+                }
+            legend_policy["anchor_policy"] = legend_anchor_policy
         elif adaptive_epr:
             data_axis_policy = _apply_adaptive_epr_data_axis_range(
                 operations,
@@ -8793,7 +8866,7 @@ def _export_saved_format_theme_product_with_origin(
                 "applied": False,
                 "reason": "adaptive_oth_json_legend_already_finalized",
             }
-            if selected_oth_json and product.product_key in {"BET", "EPR", "FTIR", "PL", "photocurrent", "UV-vis DRS", "Tauc", "XRD"}
+            if selected_oth_json and product.product_key in {"BET", "EIS", "EPR", "FTIR", "PL", "photocurrent", "UV-vis DRS", "Tauc", "XRD"}
             else {"applied": False, "reason": "adaptive_cardinality_uses_dynamic_current_legend"}
             if adaptive_cardinality or adaptive_uvvis or adaptive_xrd
             else _finalize_reviewed_template_legend(
@@ -8861,7 +8934,7 @@ def _export_saved_format_theme_product_with_origin(
                 reopened_graph,
                 source_label=product.origin_file.name,
                 graph_pages=graph_pages,
-                prefer_custom_rgb=product.product_key in {"Mott-Schottky", "EPR"},
+                prefer_custom_rgb=product.product_key in {"EIS", "Mott-Schottky", "EPR"},
             )
             product_style = snapshot.to_dict()
         except Exception as exc:
@@ -8938,6 +9011,7 @@ def _export_saved_format_theme_product_with_origin(
         }
         if selected_oth_json and product.product_key in {
             "BET",
+            "EIS",
             "EPR",
             "PL",
             "Raman",
@@ -8953,6 +9027,11 @@ def _export_saved_format_theme_product_with_origin(
                 operations,
                 reopened_graph,
                 source_label=product.origin_file.name,
+                prefer_custom_rgb=product.product_key in {
+                    "EIS",
+                    "Mott-Schottky",
+                    "EPR",
+                },
             )
             validation_ranges = _adaptive_photocurrent_validation_ranges(
                 rows,
@@ -9023,6 +9102,14 @@ def _export_saved_format_theme_product_with_origin(
             "ok": True,
             "status": "not_required",
         }
+        adaptive_eis_plot_style_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        adaptive_eis_legend_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
         adaptive_epr_direct_label_validation: dict[str, object] = {
             "ok": True,
             "status": "not_required",
@@ -9050,6 +9137,37 @@ def _export_saved_format_theme_product_with_origin(
                     ),
                     "template_format_plan": plan.to_dict(),
                     "adaptive_pl_plot_style_validation": adaptive_pl_plot_style_validation,
+                }
+        if adaptive_eis:
+            adaptive_eis_plot_style_validation = _validate_adaptive_eis_reopened_plot_styles(
+                saved_data_snapshot,
+                current_data_snapshot,
+                expected_plot_count=len(plot_pairs),
+            )
+            if not adaptive_eis_plot_style_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(
+                        adaptive_eis_plot_style_validation.get("message")
+                        or "Adaptive EIS native plot styles changed after save/reopen."
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_eis_plot_style_validation": adaptive_eis_plot_style_validation,
+                }
+            adaptive_eis_legend_validation = _validate_reopened_adaptive_eis_legend(
+                operations,
+                reopened_graph,
+                [str(value).strip() for value in product.legend_entries if str(value).strip()],
+            )
+            if not adaptive_eis_legend_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(
+                        adaptive_eis_legend_validation.get("message")
+                        or "Adaptive EIS native legend changed after save/reopen."
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_eis_legend_validation": adaptive_eis_legend_validation,
                 }
         if adaptive_epr:
             adaptive_epr_plot_style_validation = _validate_adaptive_epr_reopened_plot_styles(
@@ -9170,7 +9288,14 @@ def _export_saved_format_theme_product_with_origin(
             else saved_style_snapshot
         )
         conformance_reference = (
-            _adaptive_epr_conformance_reference(
+            _adaptive_eis_conformance_reference(
+                reference_style_snapshot,
+                saved_data_snapshot,
+                len(plot_pairs),
+                product_style,
+            )
+            if adaptive_eis
+            else _adaptive_epr_conformance_reference(
                 reference_style_snapshot,
                 saved_data_snapshot,
                 len(plot_pairs),
@@ -9330,6 +9455,8 @@ def _export_saved_format_theme_product_with_origin(
             "render_refresh": render_refresh,
             "adaptive_oth_json_validation": adaptive_validation,
             "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
+            "adaptive_eis_plot_style_validation": adaptive_eis_plot_style_validation,
+            "adaptive_eis_legend_validation": adaptive_eis_legend_validation,
             "adaptive_epr_processing": adaptive_epr_processing,
             "adaptive_epr_plot_style_validation": adaptive_epr_plot_style_validation,
             "adaptive_pl_plot_style_validation": adaptive_pl_plot_style_validation,
@@ -9363,6 +9490,8 @@ def _export_saved_format_theme_product_with_origin(
         "conformance": conformance,
         "adaptive_oth_json_validation": adaptive_validation,
         "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
+        "adaptive_eis_plot_style_validation": adaptive_eis_plot_style_validation,
+        "adaptive_eis_legend_validation": adaptive_eis_legend_validation,
         "adaptive_epr_processing": adaptive_epr_processing,
         "adaptive_epr_plot_style_validation": adaptive_epr_plot_style_validation,
         "adaptive_pl_plot_style_validation": adaptive_pl_plot_style_validation,
@@ -9863,6 +9992,7 @@ def _adaptive_oth_json_readback_validation(
         and all(value is not None and value > 0.5 for value in visibility)
     )
     requires_all_current_plots_visible = relaxed or product.product_key in {
+        "EIS",
         "EPR",
         "PL",
         "UV-vis DRS",
@@ -9877,6 +10007,7 @@ def _adaptive_oth_json_readback_validation(
         failures.append("fixed-cardinality OTH+JSON style conformance failed")
     requires_current_data_match = product.product_key in {
         "BET",
+        "EIS",
         "EPR",
         "PL",
         "Raman",
@@ -9929,6 +10060,22 @@ def _adaptive_oth_json_readback_validation(
         }
         if layer_count != 1:
             failures.append(f"adaptive EPR must reopen as one layer; found {layer_count}")
+    eis_structure: dict[str, object] = {"ok": True, "status": "not_required"}
+    if product.product_key == "EIS":
+        try:
+            layer_count = int(product_style.get("layer_count") or 0)
+        except (TypeError, ValueError):
+            layer_count = 0
+        eis_structure = {
+            "ok": layer_count == 1 and actual == expected,
+            "status": "matched" if layer_count == 1 and actual == expected else "mismatch",
+            "expected_layer_count": 1,
+            "actual_layer_count": layer_count,
+            "expected_plot_count": expected,
+            "actual_plot_count": actual,
+        }
+        if layer_count != 1:
+            failures.append(f"adaptive EIS must reopen as one layer; found {layer_count}")
     return {
         "ok": not failures,
         "product_key": product.product_key,
@@ -9953,6 +10100,7 @@ def _adaptive_oth_json_readback_validation(
         "current_data_validation": dict(current_data_validation or {}),
         "xrd_adaptive_structure": xrd_structure,
         "epr_adaptive_structure": epr_structure,
+        "eis_adaptive_structure": eis_structure,
     }
 
 
@@ -10566,13 +10714,56 @@ def _replace_eis_dynamic_legend_with_static_rich_text(
     product: ProductContext,
     snapshot: dict[str, object],
     style: ResolvedPlotStyle,
+    *,
+    visible_plot_indices: tuple[int, ...] | None = None,
+    legend_entries: list[str] | None = None,
+    force_current_visibility: bool = False,
 ) -> dict[str, object]:
     if product.product_key != "EIS":
         return {"applied": False, "reason": "not_required_for_product"}
-    visible_indices = REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]
-    entries = _plain_text_legend_entries(product)
+    visible_indices = (
+        tuple(visible_plot_indices)
+        if visible_plot_indices is not None
+        else REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]
+    )
+    entries = (
+        [str(value).strip() for value in legend_entries]
+        if legend_entries is not None
+        else _plain_text_legend_entries(product)
+    )
     if len(entries) != len(visible_indices):
         return {"applied": False, "reason": "legend_entry_count_mismatch"}
+    if any(not value for value in entries) or len(
+        {value.casefold() for value in entries}
+    ) != len(entries):
+        return {"applied": False, "reason": "legend_entries_must_be_nonempty_and_unique"}
+    visibility_commands: list[str] = []
+    if force_current_visibility:
+        plot_names = (
+            operations._plot_names(graph_name)
+            if hasattr(operations, "_plot_names")
+            else []
+        )
+        if len(plot_names) != len(visible_indices):
+            return {
+                "applied": False,
+                "reason": "adaptive_eis_plot_and_legend_count_mismatch",
+                "plot_count": len(plot_names),
+                "legend_entry_count": len(entries),
+            }
+        for plot_index in range(1, len(plot_names) + 1):
+            command = (
+                f'win -a "{quote_labtalk(graph_name)}"; '
+                f"layer.plot{plot_index}.show=1;"
+            )
+            shown = operations.run_labtalk(command)
+            if not getattr(shown, "ok", False):
+                return {
+                    "applied": False,
+                    "reason": "adaptive_eis_plot_visibility_restore_failed",
+                    "plot_index": plot_index,
+                }
+            visibility_commands.append(command)
     app = getattr(operations, "app", None)
     if app is None:
         return {"applied": False, "reason": "no_origin_app"}
@@ -10610,6 +10801,10 @@ def _replace_eis_dynamic_legend_with_static_rich_text(
     ]
     font_size = _reviewed_template_legend_font_size(snapshot, style)
     try:
+        dynamic_legend.Text = "\r\n".join(rows)
+    except Exception:
+        return {"applied": False, "reason": "dynamic_legend_text_refresh_failed"}
+    try:
         static_legend.Text = "\r\n".join(rows)
         static_legend.Left = left
         static_legend.Top = top
@@ -10638,9 +10833,79 @@ def _replace_eis_dynamic_legend_with_static_rich_text(
         "object_name": object_name,
         "entries": entries,
         "visible_plot_indices": list(visible_indices),
+        "all_current_plots_visible": bool(force_current_visibility),
+        "visibility_commands": visibility_commands,
         "font_size": font_size,
         "left": left,
         "top": top,
+    }
+
+
+def _validate_reopened_adaptive_eis_legend(
+    operations: object,
+    graph_name: str,
+    entries: list[str],
+) -> dict[str, object]:
+    app = getattr(operations, "app", None)
+    if app is None or not entries:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "message": "Adaptive EIS legend readback is unavailable.",
+        }
+    try:
+        layer = (
+            app.FindGraphLayer(f"[{graph_name}]Layer1")
+            or app.FindGraphLayer(f"[{graph_name}]1")
+            or app.FindGraphLayer(graph_name)
+        )
+    except Exception:
+        layer = None
+    if not layer:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "message": "Adaptive EIS reopened graph layer is unavailable.",
+        }
+    dynamic = _find_origin_graph_object(layer, "Legend")
+    static = _find_origin_graph_object(layer, "rdop_reviewed_legend")
+    expected_rows = [
+        f"\\l({index})\\b({_reviewed_template_legend_rich_text(label)})"
+        for index, label in enumerate(entries, start=1)
+    ]
+    expected_text = "\r\n".join(expected_rows)
+    actual_text = str(getattr(static, "Text", "") or "") if static is not None else ""
+    try:
+        dynamic_visible = float(getattr(dynamic, "Show", 0) or 0) > 0.5
+    except (TypeError, ValueError):
+        dynamic_visible = True
+    try:
+        static_visible = float(getattr(static, "Show", 0) or 0) > 0.5
+    except (TypeError, ValueError):
+        static_visible = False
+    reasons: list[str] = []
+    if static is None:
+        reasons.append("static native EIS legend object is missing")
+    elif actual_text != expected_text:
+        reasons.append("static native EIS legend text or line-sample mapping differs")
+    if dynamic is None or dynamic_visible:
+        reasons.append("dynamic Origin legend was not retained as a hidden source object")
+    if not static_visible:
+        reasons.append("static native EIS legend is hidden")
+    return {
+        "ok": not reasons,
+        "status": "matched" if not reasons else "mismatch",
+        "message": (
+            "Adaptive EIS reopened native line-sample legend matches current curves."
+            if not reasons
+            else "; ".join(reasons)
+        ),
+        "entries": entries,
+        "expected_text": expected_text,
+        "actual_text": actual_text,
+        "dynamic_legend_hidden": dynamic is not None and not dynamic_visible,
+        "static_legend_visible": static_visible,
+        "reasons": reasons,
     }
 
 
@@ -10746,7 +11011,25 @@ def _apply_reviewed_template_plot_styles(
                 color_option, color_value = _origin_plot_color_for_labtalk(color)
             else:
                 color_option, color_value = "-c", str(int(round(color)))
-            commands.append(f"set {plot_name} {color_option} {color_value};")
+            if color_option == "-cse":
+                # Persist the same native state used by the reviewed Origin
+                # line+symbol plots: the combined colour and symbol edge are
+                # the marker RGB, while the line colour remains independent.
+                # The reviewed project has custom colours enabled (``-cue 1``),
+                # and Origin otherwise falls back to the line colour on reopen.
+                # ``-cl`` can also relink/overwrite the symbol edge, so the edge
+                # colour must be restored after the line colour.
+                commands.append(f"set {plot_name} -cue 1;")
+                commands.append(f"set {plot_name} -c {color_value};")
+                line_color = _finite_float(plot_style.get("line_color"))
+                if line_color is not None:
+                    commands.append(
+                        f"set {plot_name} -cl "
+                        f"{_origin_color_value_for_labtalk(line_color)};"
+                    )
+                commands.append(f"set {plot_name} -cse {color_value};")
+            else:
+                commands.append(f"set {plot_name} {color_option} {color_value};")
             restored["color"] = int(round(color))
         if not commands:
             return {
@@ -10768,6 +11051,37 @@ def _apply_reviewed_template_plot_styles(
         "plot_count": len(applied),
         "cycled_for_variable_series_count": cycle_styles,
         "plots": applied,
+    }
+
+
+def _adaptive_eis_style_cycle_snapshot(
+    data_snapshot: dict[str, object],
+) -> dict[str, object]:
+    """Return the three reviewed visible EIS marker styles in display order."""
+    raw_plots = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
+    plots = [dict(value) for value in raw_plots if isinstance(value, dict)] if isinstance(raw_plots, list) else []
+    by_index = {
+        int(plot.get("plot_index") or 0): plot
+        for plot in plots
+        if int(plot.get("layer_index") or 0) == 1
+    }
+    visible = [
+        by_index[index]
+        for index in REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]
+        if index in by_index
+    ]
+    if len(visible) != len(REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]):
+        return {
+            **dict(data_snapshot or {}),
+            "status": "invalid",
+            "plot_count": 0,
+            "plots": [],
+        }
+    return {
+        **data_snapshot,
+        "status": "ready",
+        "plot_count": len(visible),
+        "plots": visible,
     }
 
 
@@ -10806,6 +11120,9 @@ def _apply_adaptive_oth_json_plot_styles(
                     "plots": visible_plots,
                     "plot_count": len(visible_plots),
                 }
+    if product_key == "EIS":
+        snapshot = _adaptive_eis_style_cycle_snapshot(data_snapshot)
+        cycle_styles = True
     if product_key == "XPS_non_in_situ":
         raw_plots = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
         if isinstance(raw_plots, list) and len(raw_plots) >= 9:
@@ -10982,6 +11299,54 @@ def _adaptive_epr_conformance_reference(
         if field in current_layout:
             audit[field] = current_layout[field]
     result["audit_numeric_values"] = audit
+    return result
+
+
+def _adaptive_eis_conformance_reference(
+    style_snapshot: dict[str, object],
+    data_snapshot: dict[str, object],
+    series_count: int,
+    product_style: dict[str, object],
+) -> dict[str, object]:
+    """Keep EIS geometry invariant while cycling the reviewed visible markers."""
+    result = _verified_otpu_conformance_reference(
+        "EIS",
+        style_snapshot,
+        product_style,
+    )
+    cycle_snapshot = _adaptive_eis_style_cycle_snapshot(data_snapshot)
+    plots = [
+        dict(value)
+        for value in cycle_snapshot.get("plots", [])
+        if isinstance(value, dict)
+    ]
+    if len(plots) != len(REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]) or series_count <= 0:
+        return result
+    style_fields = {
+        "plot_colors": "color",
+        "plot_line_colors": "line_color",
+        "plot_line_widths": "line_width_origin_units",
+        "marker_shapes": "symbol_shape",
+        "marker_sizes": "symbol_size",
+    }
+    for field, style_field in style_fields.items():
+        values = [
+            (plot.get("style") or {}).get(style_field)
+            if isinstance(plot.get("style"), dict)
+            else None
+            for plot in plots
+        ]
+        if any(value is None for value in values):
+            continue
+        result[field] = [values[index % len(values)] for index in range(series_count)]
+    result["plot_count"] = series_count
+    result["layer_count"] = 1
+    result["plot_visibility"] = [1.0] * series_count
+    expected_strings = dict(result.get("audit_string_values") or {})
+    actual_strings = dict(product_style.get("audit_string_values") or {})
+    if "legend.text$" in actual_strings:
+        expected_strings["legend.text$"] = actual_strings["legend.text$"]
+    result["audit_string_values"] = expected_strings
     return result
 
 

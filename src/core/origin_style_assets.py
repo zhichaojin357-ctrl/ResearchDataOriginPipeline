@@ -2062,6 +2062,7 @@ def read_graph_data_snapshot(
     source_label: str = "",
     sheet_name: str = "Sheet1",
     max_layers: int = 12,
+    prefer_custom_rgb: bool = False,
 ) -> dict[str, object]:
     plots: list[dict[str, object]] = []
     layers: list[dict[str, object]] = []
@@ -2092,6 +2093,7 @@ def read_graph_data_snapshot(
                 worksheet_cache,
                 sheet_name=sheet_name,
                 explicit_mapping=explicit_plot_mappings.get((plot_index, dataset)),
+                prefer_custom_rgb=prefer_custom_rgb,
             )
             plots.append(plot_record)
             layer_plots.append(plot_record)
@@ -2275,6 +2277,7 @@ def _graph_plot_data_record(
     *,
     sheet_name: str,
     explicit_mapping: dict[str, object] | None = None,
+    prefer_custom_rgb: bool = False,
 ) -> dict[str, object]:
     parsed = parse_origin_dataset_reference(dataset)
     base = {
@@ -2465,7 +2468,11 @@ def _graph_plot_data_record(
         "x_masked_rows": x_masked_rows,
         "y_masked_rows": y_masked_rows,
         "mask_data_sha256": _stable_json_sha256(mask_payload),
-        "style": _read_plot_style_properties(operations, dataset),
+        "style": _read_plot_style_properties(
+            operations,
+            dataset,
+            prefer_custom_rgb=prefer_custom_rgb,
+        ),
         "x_values": x_values,
         "y_values": y_values,
         "x_data_sha256": _stable_json_sha256(x_values),
@@ -2797,7 +2804,12 @@ def _json_safe_value(value: object) -> object:
     return number if math.isfinite(number) else None
 
 
-def _read_plot_style_properties(operations: object, dataset: str) -> dict[str, float]:
+def _read_plot_style_properties(
+    operations: object,
+    dataset: str,
+    *,
+    prefer_custom_rgb: bool = False,
+) -> dict[str, float]:
     if not hasattr(operations, "run_labtalk") or not hasattr(operations, "get_labtalk_variable"):
         return {}
     style: dict[str, float] = {}
@@ -2815,6 +2827,21 @@ def _read_plot_style_properties(operations: object, dataset: str) -> dict[str, f
         safe = _json_safe_value(value)
         if isinstance(safe, float):
             style[key] = safe
+    if prefer_custom_rgb:
+        try:
+            operations.run_labtalk(f"{variable}=nan;")
+            result = operations.run_labtalk(f"get {dataset} -cse {variable};")
+            read = operations.get_labtalk_variable(variable) if getattr(result, "ok", False) else None
+            symbol_edge = _json_safe_value(
+                getattr(read, "payload", {}).get("value") if read is not None else None
+            )
+        except Exception:
+            symbol_edge = None
+        if (
+            isinstance(symbol_edge, float)
+            and 0x01000000 <= int(round(symbol_edge)) <= 0x01FFFFFF
+        ):
+            style["color"] = symbol_edge
     return style
 
 

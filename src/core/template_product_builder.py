@@ -1430,6 +1430,7 @@ def prepare_template_product(
             template,
             strict_semicircle_branch=eis_strict_semicircle_branch,
             compact_output=compact_output,
+            origin_style_mode=origin_style_mode,
         )
         extra.update(eis_extra)
         eis_overlay = eis_extra.get("eis_overlay") if isinstance(eis_extra.get("eis_overlay"), dict) else {}
@@ -4157,8 +4158,18 @@ def _build_template_eis_table(
     *,
     strict_semicircle_branch: bool = False,
     compact_output: bool = False,
+    origin_style_mode: str = "auto",
 ) -> tuple[list[str], list[list[float | None]], dict[str, str], dict[str, object]]:
+    origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
     expected_plot_count = int(template.plot_count or 0) if template is not None else 0
+    if origin_style_mode == "oth-json":
+        return _build_template_eis_explicit_overlay_table(
+            pairing,
+            type_root,
+            expected_plot_count=expected_plot_count,
+            strict_semicircle_branch_requested=strict_semicircle_branch,
+            compact_output=compact_output,
+        )
     if expected_plot_count > 2:
         return _build_template_eis_overlay_table(
             pairing,
@@ -4227,18 +4238,38 @@ def _build_template_eis_overlay_table(
     expected_plot_count: int,
     strict_semicircle_branch_requested: bool,
     compact_output: bool,
+    source_files_override: list[Path] | None = None,
+    explicit_adaptive: bool = False,
 ) -> tuple[list[str], list[list[float | None]], dict[str, str], dict[str, object]]:
-    source_files = _discover_template_eis_overlay_sources(pairing, expected_plot_count)
-    cleanings = [(path, clean_eis_file(path)) for path in source_files]
+    source_files = (
+        list(source_files_override)
+        if source_files_override is not None
+        else _discover_template_eis_overlay_sources(pairing, expected_plot_count)
+    )
+    cleanings = []
+    for path in source_files:
+        try:
+            cleanings.append((path, clean_eis_file(path)))
+        except Exception as exc:
+            raise ValueError(f"EIS overlay contains an unreadable source file: {path}: {exc}") from exc
     if any(len(cleaning.raw_points) < 2 for _path, cleaning in cleanings):
         raise ValueError("EIS template overlay contains a source with fewer than two measured points")
 
     headers: list[str] = []
     columns: list[list[float | None]] = []
     legend_entries: list[str] = []
+    used_labels: set[str] = set()
     scale = 0.001
     for path, cleaning in cleanings:
         label = _template_series_label_from_path(path)
+        if explicit_adaptive:
+            base = label or "series"
+            label = base
+            suffix = 2
+            while label.casefold() in used_labels:
+                label = f"{base[: max(1, 42 - len(str(suffix)) - 1)]}_{suffix}"
+                suffix += 1
+        used_labels.add(label.casefold())
         headers.extend((f"{label}_z_real_kohm", f"{label}_minus_z_imag_kohm"))
         columns.extend(
             (
@@ -4353,7 +4384,7 @@ def _build_template_eis_overlay_table(
         "y_label": "-Z'' (kOhm)",
         "title": "EIS measured overlay",
         "plot_type": "line+symbol",
-        "legend_entries": legend_entries[2:5],
+        "legend_entries": legend_entries if explicit_adaptive else legend_entries[2:5],
         "notes": "Measured multi-source Nyquist overlay; equivalent-circuit interpretation requires manual review.",
     }
     overlay = {
@@ -4361,11 +4392,59 @@ def _build_template_eis_overlay_table(
         "expected_plot_count": expected_plot_count,
         "plotted_source_count": len(source_files),
         "series_labels": legend_entries,
-        "visible_plot_indices": [3, 4, 5],
-        "visible_series_labels": legend_entries[2:5],
-        "selection_policy": "Select one reviewed real EIS source family with exactly the template plot count; never duplicate or synthesize curves.",
+        "visible_plot_indices": list(range(1, len(source_files) + 1)) if explicit_adaptive else [3, 4, 5],
+        "visible_series_labels": legend_entries if explicit_adaptive else legend_entries[2:5],
+        "selection_policy": (
+            "Use exactly pairing.data_paths in supplied order; never scan neighbouring files, "
+            "duplicate curves, or synthesize missing points."
+            if explicit_adaptive
+            else "Select one reviewed real EIS source family with exactly the template plot count; never duplicate or synthesize curves."
+        ),
+        "source_selection_mode": (
+            "explicit_pairing_adaptive_oth_json" if explicit_adaptive else "reviewed_coherent_source_family"
+        ),
     }
     return headers, rows, labels, {"eis_cleaning": eis_metadata, "eis_overlay": overlay}
+
+
+def _build_template_eis_explicit_overlay_table(
+    pairing: TargetPairing,
+    type_root: Path,
+    *,
+    expected_plot_count: int,
+    strict_semicircle_branch_requested: bool,
+    compact_output: bool,
+) -> tuple[list[str], list[list[float | None]], dict[str, str], dict[str, object]]:
+    """Build an adaptive EIS table from only the explicitly paired sources.
+
+    The fixed route intentionally discovers the reviewed eight-curve source family.
+    Adaptive OTH+JSON is different: the pairing is the complete authority, so no
+    neighbouring directory scan or curve fabrication is allowed.
+    """
+
+    paths = list(pairing.data_paths)
+    if not paths:
+        raise ValueError("EIS adaptive style mode requires at least one explicitly paired source file.")
+    seen: set[str] = set()
+    allowed_suffixes = {".txt", ".csv", ".xls", ".xlsx", ".xlsm"}
+    for path in paths:
+        if not path.is_file():
+            raise ValueError(f"EIS explicit pairing contains a missing source file: {path}")
+        key = str(path.resolve()).casefold()
+        if key in seen:
+            raise ValueError(f"EIS explicit pairing contains a duplicate source file: {path}")
+        seen.add(key)
+        if path.suffix.casefold() not in allowed_suffixes:
+            raise ValueError(f"EIS explicit pairing contains a non-tabular source file: {path}")
+    return _build_template_eis_overlay_table(
+        pairing,
+        type_root,
+        expected_plot_count=expected_plot_count,
+        strict_semicircle_branch_requested=strict_semicircle_branch_requested,
+        compact_output=compact_output,
+        source_files_override=paths,
+        explicit_adaptive=True,
+    )
 
 
 def _discover_template_eis_overlay_sources(pairing: TargetPairing, expected_plot_count: int) -> list[Path]:
@@ -5420,7 +5499,17 @@ def _build_template_acceptance(
         if eis.get("mode") == "reviewed_template_multi_source_overlay":
             expected = int(eis.get("expected_plot_count") or 0)
             plotted = int(eis.get("plotted_source_count") or 0)
-            if expected <= 0 or plotted != expected:
+            overlay = extra.get("eis_overlay") if isinstance(extra.get("eis_overlay"), dict) else {}
+            adaptive_explicit = str(overlay.get("source_selection_mode") or "") == "explicit_pairing_adaptive_oth_json"
+            if adaptive_explicit:
+                source_files = overlay.get("source_files")
+                source_count = len(source_files) if isinstance(source_files, list) else 0
+                if plotted < 1 or plotted != source_count:
+                    visual_ok = False
+                    notes.append(
+                        f"EIS adaptive measured overlay plotted {plotted} real curves but paired {source_count}"
+                    )
+            elif expected <= 0 or plotted != expected:
                 visual_ok = False
                 notes.append(f"EIS measured overlay plotted {plotted} real curves but template requires {expected}")
         elif eis.get("mode") == "formal_measured_points_only":

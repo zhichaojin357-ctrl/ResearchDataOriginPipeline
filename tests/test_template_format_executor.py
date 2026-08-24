@@ -17,6 +17,7 @@ from src.core.template_format_executor import (
     TEMPLATE_FORMAT_COMMAND,
     TEMPLATE_FORMAT_SCOPE,
     TemplateFormatExecutorOptions,
+    _adaptive_eis_conformance_reference,
     _adaptive_raman_conformance_reference,
     _adaptive_epr_conformance_reference,
     _adaptive_pl_conformance_reference,
@@ -33,6 +34,7 @@ from src.core.template_format_executor import (
     _apply_adaptive_photocurrent_oth_json_text_policy,
     _apply_cached_style_rich_text_policies,
     _apply_external_reference_plot_sequence,
+    _apply_reviewed_template_plot_styles,
     _apply_mott_schottky_source_masks,
     _export_verified_graph_template_product_with_origin,
     _export_external_reference_preview_if_requested,
@@ -87,6 +89,7 @@ from src.core.template_format_executor import (
     _validate_xps_non_in_situ_reopened_plot_styles,
     _validate_adaptive_xps_non_in_situ_reopened_plot_styles,
     _validate_adaptive_epr_reopened_plot_styles,
+    _validate_adaptive_eis_reopened_plot_styles,
     _validate_adaptive_reopened_plot_style_cycle,
     _validate_photocurrent_axis_titles,
     _validate_bet_axis_titles,
@@ -7576,6 +7579,150 @@ def test_adaptive_pl_reopened_styles_use_reviewed_native_cycle() -> None:
     )
     assert rejected["ok"] is False
     assert "line_color" in rejected["message"]
+
+
+def test_adaptive_eis_uses_reviewed_visible_marker_cycle_after_reopen() -> None:
+    styles = [
+        {
+            "color": float(100 + index),
+            "line_color": 1.0,
+            "line_width_origin_units": 250.0,
+            "line_width_pt": 0.5,
+            "line_style": 0.0,
+            "symbol_shape": 20.0,
+            "symbol_size": 12.0,
+        }
+        for index in range(1, 9)
+    ]
+    reference = {
+        "status": "ready",
+        "plots": [
+            {"layer_index": 1, "plot_index": index, "style": style}
+            for index, style in enumerate(styles, start=1)
+        ],
+    }
+    current = {
+        "status": "ready",
+        "plots": [
+            {
+                "layer_index": 1,
+                "plot_index": index,
+                "style": dict(styles[index + 1]),
+            }
+            for index in range(1, 4)
+        ],
+    }
+
+    matched = _validate_adaptive_eis_reopened_plot_styles(
+        reference,
+        current,
+        expected_plot_count=3,
+    )
+    conformance = _adaptive_eis_conformance_reference(
+        {"plot_count": 8, "plot_visibility": [0, 0, 1, 1, 1, 0, 0, 0]},
+        reference,
+        3,
+        {"audit_string_values": {"legend.text$": "current"}},
+    )
+
+    assert matched["ok"] is True
+    assert conformance["plot_count"] == 3
+    assert conformance["plot_colors"] == [103.0, 104.0, 105.0]
+    assert conformance["plot_visibility"] == [1.0, 1.0, 1.0]
+
+    current["plots"][1]["style"]["symbol_shape"] = 18.0
+    rejected = _validate_adaptive_eis_reopened_plot_styles(
+        reference,
+        current,
+        expected_plot_count=3,
+    )
+    assert rejected["ok"] is False
+    assert "symbol_shape" in rejected["message"]
+    assert rejected["plots"][1]["expected_style"]["symbol_shape"] == 20.0
+    assert rejected["plots"][1]["current_style"]["symbol_shape"] == 18.0
+
+
+def test_adaptive_eis_custom_marker_color_is_restored_after_independent_line_color() -> None:
+    class _PlotStyleOps:
+        def __init__(self) -> None:
+            self.commands: list[str] = []
+
+        def _plot_names(self, _graph_name: str) -> list[str]:
+            return ["Book1_B"]
+
+        def run_labtalk(self, command: str) -> OperationResult:
+            self.commands.append(command)
+            return OperationResult(True, "ok")
+
+    operations = _PlotStyleOps()
+    marker_color = 30847682.0
+    line_color = 26724605.0
+    restored = _apply_reviewed_template_plot_styles(
+        operations,
+        "Graph1",
+        {
+            "plots": [
+                {
+                    "style": {
+                        "color": marker_color,
+                        "line_color": line_color,
+                        "line_width_pt": 0.5,
+                        "line_style": 0.0,
+                        "symbol_shape": 20.0,
+                        "symbol_size": 12.0,
+                    }
+                }
+            ]
+        },
+        preserve_custom_rgb=True,
+    )
+
+    assert restored["applied"] is True
+    command = operations.commands[-1]
+    marker = "color(194,178,214)"
+    line = "color(253,200,151)"
+    assert command.index("set Book1_B -cue 1;") < command.index(
+        f"set Book1_B -c {marker};"
+    )
+    assert command.index(f"set Book1_B -c {marker};") < command.index(
+        f"set Book1_B -cl {line};",
+        command.index(f"set Book1_B -c {marker};"),
+    )
+    assert command.index(f"set Book1_B -cl {line};", command.index(f"set Book1_B -c {marker};")) < command.index(
+        f"set Book1_B -cse {marker};"
+    )
+
+
+def test_adaptive_eis_readback_requires_visible_current_xy() -> None:
+    product = SimpleNamespace(product_key="EIS")
+    decision = {
+        "selected_mode": "oth-json",
+        "contract_series_count": 8,
+    }
+    matched = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (3, 4), (5, 6)],
+        {"layer_count": 1, "plot_count": 3, "plot_visibility": [1, 1, 1]},
+        decision,
+        {"status": "pass"},
+        current_data_validation={"ok": True, "status": "matched"},
+    )
+    assert matched["ok"] is True
+    assert matched["all_current_plots_visible"] is True
+    assert matched["current_plot_values_match_csv"] is True
+    assert matched["eis_adaptive_structure"]["status"] == "matched"
+
+    rejected = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (3, 4), (5, 6)],
+        {"layer_count": 1, "plot_count": 3, "plot_visibility": [1, 0, 1]},
+        decision,
+        {"status": "pass"},
+        current_data_validation={"ok": False, "status": "mismatch"},
+    )
+    assert rejected["ok"] is False
+    assert "visible" in rejected["message"]
+    assert "X/Y" in rejected["message"]
 
 
 def test_adaptive_photocurrent_validation_ranges_keep_per_pair_row_counts() -> None:

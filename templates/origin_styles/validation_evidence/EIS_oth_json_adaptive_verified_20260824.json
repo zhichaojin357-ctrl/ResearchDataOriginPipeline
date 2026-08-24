@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_detached_adaptive_oth_json_validation",
+  "product_key": "EIS",
+  "status": "accepted",
+  "generated_at": "2026-08-24T15:38:58+08:00",
+  "runtime_role": "adaptive_runtime",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed three complete native Origin Nyquist traces, the reviewed lavender/green/blue sphere-marker cycle, independent reviewed line colour and 0.5 pt width, complete bold Z' (kΩ) and -Z'' (kΩ) titles, the native line-sample legend containing only b3, b7, and b9-2z, and no clipping, overlap, stale sample text, raster overlay, or missing axis title. The generated PNG was visually compared with the independently accepted fixed-OTPU product made from the same three visible source files.",
+  "asset": {
+    "kind": "oth_json",
+    "format_theme": "format_themes/EIS.oth",
+    "style_snapshot": "snapshots/EIS.json",
+    "data_snapshot": "data_snapshots/EIS.json",
+    "binding_contract": "binding_contracts/EIS.json",
+    "source_mode": "reviewed_theme_plus_native_origin_plot_and_explicit_style_object_replay"
+  },
+  "generation_boundary": {
+    "entrypoint": "Origin.Application",
+    "fresh_project": true,
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "one_to_one_exact_match_claim_allowed": false
+  },
+  "current_data_validation": {
+    "status": "accepted",
+    "evidence_location": "diagnostics/20260824_EIS_adaptive_oth_json_runtime/runs/20260824_EIS_04_template_format_products/products/EIS/metadata.json",
+    "origin_style_mode_requested": "oth-json",
+    "style_execution_mode": "variable_structure_oth_json",
+    "style_execution_reason_code": "explicit_adaptive_oth_json",
+    "real_original_source_file_count": 3,
+    "source_measurement_family": "nyquist_impedance_spectra",
+    "current_labels": [
+      "b3",
+      "b7",
+      "b9-2z"
+    ],
+    "current_series_count": 3,
+    "fixed_contract_series_count": 8,
+    "reopened_plot_count": 3,
+    "explicit_displayed_row_ranges": [
+      {
+        "label": "b3",
+        "row_from": 1,
+        "row_to": 101
+      },
+      {
+        "label": "b7",
+        "row_from": 1,
+        "row_to": 101
+      },
+      {
+        "label": "b9-2z",
+        "row_from": 1,
+        "row_to": 101
+      }
+    ],
+    "current_xy_values_match_reopened_graph": true,
+    "all_current_plots_visible": true,
+    "native_plot_style_readback": {
+      "status": "matched",
+      "matched_plots": 3,
+      "expected_plots": 3,
+      "line_width_pt": 0.5,
+      "symbol_shape": 20,
+      "symbol_size": 12,
+      "reviewed_custom_rgb_symbol_edge_cycle": [
+        30847682,
+        23981498,
+        32750490
+      ],
+      "independent_line_color": 26724605
+    },
+    "native_line_sample_legend": {
+      "status": "matched",
+      "entries": [
+        "b3",
+        "b7",
+        "b9-2z"
+      ],
+      "current_text_only": true,
+      "native_plot_samples_preserved": true,
+      "dynamic_reference_legend_hidden": true,
+      "inside_page": true
+    },
+    "native_axis_titles": {
+      "status": "matched",
+      "x_title": "Z' (kΩ)",
+      "y_title": "-Z'' (kΩ)",
+      "bold": true,
+      "reviewed_page_geometry_restored": true,
+      "all_current_points_inside_axis_bounds": true,
+      "x_range": [
+        0.0,
+        34.9223936
+      ],
+      "y_range": [
+        0.0,
+        15.1707598158
+      ]
+    },
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true,
+    "pixel_comparison": {
+      "role": "not_an_acceptance_gate_for_detached_current_data_products",
+      "performed": true,
+      "same_size": true,
+      "reference_size_px": [
+        6432,
+        4923
+      ],
+      "generated_size_px": [
+        6432,
+        4923
+      ],
+      "changed_pixels": 428027,
+      "rms": 27.640892252833414,
+      "diff_bbox": [
+        649,
+        810,
+        4836,
+        4923
+      ],
+      "exact_pixel_match": false,
+      "one_to_one_exact_match": false,
+      "same_data_visual_reference_checked": true,
+      "interpretation": "The detached adaptive product is visually accepted and structurally/style-readback matched, but it is not promoted as a pixel-exact substitute for the fixed OTPU route."
+    }
+  },
+  "generalization_contract": {
+    "status": "implementation_and_contract_validated",
+    "supported_series_cardinality": "one_or_more_explicit_current_EIS_curves",
+    "source_selection": "explicit pairing.data_paths only in oth-json mode; no neighbouring-directory discovery or substitution",
+    "pairing_policy": "each current curve retains its own independent explicit X/Y pair and full contiguous finite row range",
+    "labels": "current explicit file stems remain unique and replace all reference sample text",
+    "style_cycle": "the three reviewed visible EIS sphere-marker styles from fixed plots 3, 4, and 5 cycle across current traces",
+    "fixed_eight_trace_compatibility": "the independently verified eight-worksheet EIS OTPU route and its visible-plots 3/4/5 policy remain unchanged",
+    "targeted_tests": [
+      "tests/test_template_product_builder_strict.py::test_template_eis_explicit_oth_json_uses_only_paired_curves_and_preserves_lengths",
+      "tests/test_template_product_builder_strict.py::test_template_eis_fixed_route_keeps_exactly_eight_discovered_curves",
+      "tests/test_template_format_executor.py::test_adaptive_eis_custom_marker_color_is_restored_after_independent_line_color",
+      "tests/test_template_format_executor.py::test_adaptive_eis_uses_reviewed_visible_marker_cycle_after_reopen",
+      "tests/test_template_format_executor.py::test_adaptive_eis_readback_requires_visible_current_xy",
+      "tests/test_template_format_executor.py::test_adaptive_eis_legend_uses_all_current_series_not_fixed_visible_slots",
+      "tests/test_origin_style_assets.py::test_graph_data_snapshot_records_multilayer_xrd_template_data"
+    ]
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  },
+  "acceptance_note": "The independently verified EIS OTPU remains the exact fixed eight-worksheet route with plots 3, 4, and 5 visible. OTH+JSON is the detached adaptive route for explicit current EIS inputs. Both routes use native Origin graph objects; the adaptive route never loads the reference OPJU as a product base and makes no pixel-exact claim for a variable current-data product."
+}

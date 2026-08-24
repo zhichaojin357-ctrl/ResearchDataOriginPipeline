@@ -639,6 +639,7 @@
       "status": "accepted",
       "graph_page": "Graph1",
       "format_theme": "format_themes/EIS.oth",
+      "format_theme_role": "adaptive_runtime",
       "preview_png": "",
       "reference_preview_png": "",
       "template_preview_comparison_png": "",
@@ -647,6 +648,7 @@
       "graph_template": "graph_templates/EIS.otpu",
       "binding_contract": "binding_contracts/EIS.json",
       "runtime_validation_evidence": "validation_evidence/EIS_verified_20260822.json",
+      "adaptive_runtime_validation_evidence": "validation_evidence/EIS_oth_json_adaptive_verified_20260824.json",
       "validation_plan": "validation_plans/EIS_verified_20260822.json",
       "style_snapshot": "snapshots/EIS.json",
       "data_snapshot": "data_snapshots/EIS.json",
@@ -682,6 +684,11 @@
           "kind": "json",
           "sha256": "979aaf55a50e59b6f10dbf9f10882826024b703b1993e8937dc9ea64ba0c4876",
           "size_bytes": 3527
+        },
+        "adaptive_runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "4d5ebd16c46e7b441b919f36c20d69579eb046a5d7e19b2ac4c9bc33fcc35ba5",
+          "size_bytes": 6783
         },
         "validation_plan": {
           "kind": "json",
