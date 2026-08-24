@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import hashlib
 import math
+import re
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -23,6 +24,8 @@ from src.core.template_format_executor import (
     _apply_embedded_snapshot_data_axis_range,
     _apply_adaptive_bet_oth_json_text_policy,
     _apply_adaptive_dynamic_legend_policy,
+    _apply_adaptive_xrd_standard_card_plot_styles,
+    _position_adaptive_xrd_axis_titles,
     _apply_adaptive_photocurrent_oth_json_text_policy,
     _apply_cached_style_rich_text_policies,
     _apply_external_reference_plot_sequence,
@@ -69,6 +72,8 @@ from src.core.template_format_executor import (
     _set_origin_graph_object_text,
     _strip_raster_metadata,
     _strict_adaptive_source_validation,
+    _validate_adaptive_xrd_standard_card_headers,
+    _validate_xrd_axis_title_page_bounds,
     _with_default_xps_non_in_situ_template_root,
     _verified_otpu_conformance_reference,
     _validate_verified_current_data,
@@ -4235,7 +4240,7 @@ def test_epr_verified_field_data_overrides_legacy_template_axis_range(tmp_path: 
     assert ops.axis_calls == [{"x_min": 324.0011, "x_max": 333.9989, "y_min": None, "y_max": None}]
 
 
-def test_xrd_standard_card_uses_four_sample_plots_plus_card(tmp_path: Path) -> None:
+def test_xrd_standard_card_keeps_every_selected_sample_plus_card(tmp_path: Path) -> None:
     processed = tmp_path / "xrd_card.csv"
     processed.write_text(
         "two_theta_deg,BOBC,BOBC600,bobc600,BOBC_BOBC15,BOBC_CWO15,CWO_PDF_04-009-8466_JCPDS_card_sticks\n"
@@ -4258,8 +4263,21 @@ def test_xrd_standard_card_uses_four_sample_plots_plus_card(tmp_path: Path) -> N
         "CWO_PDF_04-009-8466_JCPDS_card_sticks",
     ]
 
-    assert _processed_csv_plot_pairs(product, headers) == [(1, 2), (1, 3), (1, 4), (1, 5), (1, 7)]
-    assert _plain_text_legend_entries(product) == ["BOBC", "BOBC600", "bobc600", "BOBC BOBC15"]
+    assert _processed_csv_plot_pairs(product, headers) == [
+        (1, 2),
+        (1, 3),
+        (1, 4),
+        (1, 5),
+        (1, 6),
+        (1, 7),
+    ]
+    assert _plain_text_legend_entries(product) == [
+        "BOBC",
+        "BOBC600",
+        "bobc600",
+        "BOBC BOBC15",
+        "BOBC CWO15",
+    ]
 
 
 def test_plain_legend_anchor_avoids_data_dense_top_right_corner(tmp_path: Path) -> None:
@@ -5441,9 +5459,9 @@ def test_external_reference_plot_sequence_skips_xrd_reference_card_plot(tmp_path
 def test_external_reference_plot_sequence_uses_drawn_xrd_card_plot_order(tmp_path: Path) -> None:
     processed = tmp_path / "xrd_card.csv"
     processed.write_text(
-        "two_theta_deg,BOBC,BOBC600,bobc600,BOBC_BOBC15,BOBC_CWO15,CWO_PDF_04-009-8466_JCPDS_card_sticks\n"
-        "5,5.9,5.5,4.3,2.6,1.4,0\n"
-        "6,6.0,5.6,4.4,2.7,1.5,10\n",
+        "two_theta_deg,BOBC,BOBC600,bobc600,BOBC_BOBC15,CWO_PDF_04-009-8466_JCPDS_card_sticks\n"
+        "5,5.9,5.5,4.3,2.6,0\n"
+        "6,6.0,5.6,4.4,2.7,10\n",
         encoding="utf-8",
     )
     product = replace(_product(tmp_path, processed), product_key="XRD")
@@ -5467,6 +5485,277 @@ def test_external_reference_plot_sequence_uses_drawn_xrd_card_plot_order(tmp_pat
     assert "set Book_E -c 16814848" in joined
     assert "set Book_E -cl 16814848" in joined
     assert "set Book_G -c" not in joined
+
+
+def test_adaptive_xrd_standard_card_requires_exactly_one_final_card_header() -> None:
+    headers = [
+        "two_theta_deg",
+        "BiCu-10",
+        "CuWO4",
+        "CWO_PDF_04-009-8466_JCPDS_card_sticks",
+    ]
+    pairs = [(1, 2), (1, 3), (1, 4)]
+
+    accepted = _validate_adaptive_xrd_standard_card_headers(headers, pairs)
+
+    assert accepted["ok"] is True
+    assert accepted["sample_headers"] == ["BiCu-10", "CuWO4"]
+    assert accepted["reference_card_header"] == headers[-1]
+
+    many_samples = _validate_adaptive_xrd_standard_card_headers(
+        ["two_theta_deg", *[f"sample_{index}" for index in range(1, 9)], headers[-1]],
+        [(1, index) for index in range(2, 11)],
+    )
+    assert many_samples["ok"] is True
+    assert len(many_samples["sample_headers"]) == 8
+
+    no_card = _validate_adaptive_xrd_standard_card_headers(headers[:-1], pairs[:-1])
+    assert no_card["ok"] is False
+    assert "XRD_no_card" in str(no_card["message"])
+
+    two_cards = _validate_adaptive_xrd_standard_card_headers(
+        headers + ["BiOBr_PDF_00-001-0001_JCPDS_card_sticks"],
+        pairs + [(1, 5)],
+    )
+    assert two_cards["ok"] is False
+    assert two_cards["reference_card_count"] == 2
+
+
+def test_adaptive_xrd_standard_card_semantic_styles_write_and_read_back() -> None:
+    class PlotOps:
+        def __init__(self) -> None:
+            self.values: dict[tuple[str, str], float] = {}
+            self.variables: dict[str, float] = {}
+            self.commands: list[str] = []
+
+        def _plot_names(self, _graph_name: str) -> list[str]:
+            return ["Book_B", "Book_C", "Book_D"]
+
+        def run_labtalk(self, command: str) -> OperationResult:
+            self.commands.append(command)
+            for plot, option, value in re.findall(
+                r"set\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(\w+)\s+(-?[0-9.]+);",
+                command,
+            ):
+                self.values[(plot, option)] = float(value)
+            match = re.search(
+                r"get\s+([A-Za-z_][A-Za-z0-9_]*)\s+-(\w+)\s+([A-Za-z_][A-Za-z0-9_]*);",
+                command,
+            )
+            if match:
+                plot, option, variable = match.groups()
+                self.variables[variable] = self.values[(plot, option)]
+            return OperationResult(True, "")
+
+        def get_labtalk_variable(self, variable: str) -> OperationResult:
+            return OperationResult(True, "", {"value": self.variables[variable]})
+
+    ops = PlotOps()
+    policy = _apply_adaptive_xrd_standard_card_plot_styles(
+        ops,
+        "Graph4",
+        [
+            "two_theta_deg",
+            "BiCu-10",
+            "CuWO4",
+            "CWO_PDF_04-009-8466_JCPDS_card_sticks",
+        ],
+    )
+
+    assert policy["applied"] is True
+    assert policy["reference_card_plot_index"] == 3
+    assert [item["role"] for item in policy["plots"]] == [
+        "sample_pattern",
+        "sample_pattern",
+        "reference_card_sticks",
+    ]
+    assert ops.values[("Book_B", "l")] == 1
+    assert ops.values[("Book_B", "lv")] == 0
+    assert ops.values[("Book_B", "c")] == 33518174
+    assert ops.values[("Book_C", "c")] == 16814848
+    assert ops.values[("Book_D", "l")] == 0
+    assert ops.values[("Book_D", "lv")] == 0
+    assert ops.values[("Book_D", "c")] == 22106449
+    assert ops.values[("Book_D", "cl")] == 22106449
+    assert ops.values[("Book_D", "pbc")] == 11
+    assert ops.values[("Book_D", "pfb")] == 11
+    assert ops.values[("Book_D", "pfc")] == 11
+    assert ops.values[("Book_D", "pbs")] == 0
+    assert ops.values[("Book_D", "pbw")] == 0.5
+
+
+def test_adaptive_xrd_axis_titles_use_native_page_geometry_and_remain_in_bounds() -> None:
+    class GraphObject:
+        def __init__(self, name: str, width: int, height: int) -> None:
+            self.Name = name
+            self.Text = ""
+            self.Left = 0
+            self.Top = 0
+            self.Width = width
+            self.Height = height
+            self.properties: dict[str, float] = {}
+
+        def SetNumProp(self, name: str, value: float) -> None:
+            self.properties[name] = value
+
+    class GraphObjects:
+        def __init__(self, objects: list[GraphObject]) -> None:
+            self.objects = objects
+            self.Count = len(objects)
+
+        def __getitem__(self, name: str) -> GraphObject:
+            for graph_object in self.objects:
+                if graph_object.Name == name:
+                    return graph_object
+            raise KeyError(name)
+
+        def Item(self, index: int) -> GraphObject:
+            return self.objects[index]
+
+    class Layer:
+        def __init__(self, objects: list[GraphObject]) -> None:
+            self.GraphObjects = GraphObjects(objects)
+
+    class App:
+        def __init__(self, layer: Layer) -> None:
+            self.layer = layer
+
+        def FindGraphLayer(self, name: str) -> Layer | None:
+            return self.layer if name == "[Graph4]Layer1" else None
+
+        def Evaluate(self, _expression: str) -> float:
+            return 67
+
+    class Ops:
+        def __init__(self, app: App) -> None:
+            self.app = app
+            self.commands: list[str] = []
+
+        def run_labtalk(self, command: str) -> OperationResult:
+            self.commands.append(command)
+            return OperationResult(True, "ok")
+
+    xb = GraphObject("XB", 1598, 338)
+    yl = GraphObject("YL", 350, 2036)
+    ops = Ops(App(Layer([xb, yl])))
+    snapshot = {
+        "layout_values": {
+            "page.width": 6432,
+            "page.height": 4923,
+            "layer.left": 17.89,
+            "layer.top": 11.6,
+            "layer.width": 68.19,
+            "layer.height": 71.81,
+        }
+    }
+
+    result = _position_adaptive_xrd_axis_titles(
+        ops,
+        "Graph4",
+        "2θ (degree)",
+        "Intensity (a.u.)",
+        snapshot,
+        ResolvedPlotStyle(),
+    )
+
+    assert result["applied"] is True
+    assert xb.Text == r"\b(2θ (degree))"
+    assert yl.Text == r"\b(Intensity (a.u.))"
+    assert xb.Left == 2545
+    assert yl.Left == 691
+    assert xb.Top >= 0 and xb.Top + xb.Height <= 4923
+    assert yl.Top >= 0 and yl.Top + yl.Height <= 4923
+    assert xb.properties["show"] == 1
+    assert yl.properties["bold"] == 1
+    assert any("xb.attach=1; yl.attach=1" in command for command in ops.commands)
+    assert any("xb.show=1; yl.show=1" in command for command in ops.commands)
+
+
+def test_adaptive_xrd_axis_title_reopen_gate_rejects_off_page_objects() -> None:
+    base = {
+        "layout_values": {"page.width": 6432, "page.height": 4923},
+        "graph_object_positions": {
+            "XB": {"left": 2545, "top": 4485, "width": 1598, "height": 338},
+            "YL": {"left": 691, "top": 1321, "width": 350, "height": 2036},
+        },
+    }
+
+    accepted = _validate_xrd_axis_title_page_bounds(base)
+    assert accepted["ok"] is True
+    assert accepted["status"] == "matched"
+
+    rejected = _validate_xrd_axis_title_page_bounds(
+        {
+            **base,
+            "graph_object_positions": {
+                **base["graph_object_positions"],
+                "XB": {"left": 2545, "top": 3191178, "width": 1598, "height": 338},
+            },
+        }
+    )
+    assert rejected["ok"] is False
+    assert "outside page height" in str(rejected["message"])
+
+
+def test_adaptive_xrd_requires_current_data_and_one_layer_after_reopen() -> None:
+    product = SimpleNamespace(product_key="XRD")
+    decision = {"selected_mode": "oth-json", "contract_series_count": 5}
+    current_style = {
+        "plot_count": 3,
+        "layer_count": 1,
+        "plot_visibility": [1, 1, 1],
+    }
+
+    accepted = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (1, 3), (1, 4)],
+        current_style,
+        decision,
+        {"status": "pass"},
+        current_data_validation={"ok": True, "status": "matched"},
+    )
+    assert accepted["ok"] is True
+    assert accepted["xrd_adaptive_structure"]["actual_layer_count"] == 1
+
+    wrong_layer = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (1, 3), (1, 4)],
+        {**current_style, "layer_count": 3},
+        decision,
+        {"status": "pass"},
+        current_data_validation={"ok": True, "status": "matched"},
+    )
+    assert wrong_layer["ok"] is False
+    assert "one layer" in str(wrong_layer["message"])
+
+    wrong_data = _adaptive_oth_json_readback_validation(
+        product,
+        [(1, 2), (1, 3), (1, 4)],
+        current_style,
+        decision,
+        {"status": "pass"},
+        current_data_validation={"ok": False, "status": "mismatch"},
+    )
+    assert wrong_data["ok"] is False
+    assert "X/Y values" in str(wrong_data["message"])
+
+
+def test_strict_adaptive_xrd_accepts_shared_x_card_contract_not_fixed_multibook_layout() -> None:
+    contract = SimpleNamespace(
+        product_key="XRD",
+        source_schema={"layout": "multi_book_xy_pairs"},
+    )
+    headers = [
+        "two_theta_deg",
+        "BiCu-10",
+        "CWO_PDF_04-009-8466_JCPDS_card_sticks",
+    ]
+    rows = [[5.0, 2.0, 0.0], [6.0, 3.0, 10.0]]
+
+    result = _strict_adaptive_source_validation(contract, headers, rows, [(0, 1), (0, 2)])
+
+    assert result["ok"] is True
+    assert result["layout"] == "multi_book_xy_pairs"
 
 
 def test_load_saved_style_snapshot_reads_adjacent_snapshot_file(tmp_path: Path) -> None:

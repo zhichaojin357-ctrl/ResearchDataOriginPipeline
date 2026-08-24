@@ -5041,15 +5041,7 @@ def _adaptive_oth_json_detached_acceptance(
     conformance_reasons = _template_conformance_acceptance_reasons(conformance)
     if str(conformance.get("status") or "").casefold() != "pass" or conformance_reasons:
         reasons.append("adaptive OTH+JSON style conformance did not pass")
-    relevant_readback = _relevant_strict_readback_values(
-        strict_readback,
-        template_base_mode=False,
-        saved_style_asset_mode=True,
-        preserve_exemplar_exact=False,
-        axis_title_bold_required=_export_exemplar_axis_title_bold_required(export_status),
-        exemplar_style=export_status.get("exemplar_style"),
-        product_style=product_style,
-    )
+    relevant_readback = _adaptive_oth_json_strict_readback_values(strict_readback)
     if not product_style or not relevant_readback or not all(bool(value) for value in relevant_readback.values()):
         reasons.append("adaptive OTH+JSON strict style readback did not pass")
     return {
@@ -5395,6 +5387,30 @@ def _relevant_strict_readback_values(
     if axis_title_bold_required:
         keys = ("font_family_arial", "axis_title_bold", "axis_title_visible", "axis_title_no_overlap")
     return {key: strict_readback.get(key) for key in keys if key in strict_readback}
+
+
+def _adaptive_oth_json_strict_readback_values(
+    strict_readback: dict[str, object],
+) -> dict[str, object]:
+    """Return the required native-style checks for variable-cardinality products.
+
+    Adaptive OTH+JSON products intentionally rebuild the graph for the current
+    series count, so fixed-exemplar legend geometry is not a valid acceptance
+    requirement.  The current saved/reopened Origin graph must still report all
+    of the native typography, visibility, overlap, and legend checks below.
+    Missing keys therefore fail closed instead of being silently ignored.
+    """
+
+    required_keys = (
+        "font_family_arial",
+        "axis_title_font_size_36",
+        "axis_title_bold",
+        "axis_title_visible",
+        "axis_title_no_overlap",
+        "legend_no_frame",
+        "legend_bold",
+    )
+    return {key: strict_readback.get(key) for key in required_keys}
 
 
 def _line_widths_match_exemplar_conformance(

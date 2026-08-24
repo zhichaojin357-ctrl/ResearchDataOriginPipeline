@@ -76,8 +76,10 @@ FINAL_TEMPLATE_STYLE_OVERRIDE = {
     "font_bold": True,
     "legend_no_frame": True,
 }
-XRD_STANDARD_CARD_SAMPLE_LIMIT = 4
 XRD_STANDARD_CARD_SAMPLE_COLOR_SEQUENCE = (16814848, 33518174, 18128807, 16814848)
+XRD_STANDARD_CARD_ADAPTIVE_SAMPLE_COLORS = (16814848, 33518174, 18128807, 23709421)
+XRD_STANDARD_CARD_ADAPTIVE_CARD_COLOR = 22106449
+XRD_STANDARD_CARD_ADAPTIVE_STICK_COLOR = 11
 XRD_STANDARD_CARD_STICK_COLOR_EXPR = "color(181,91,0)"
 XRD_STANDARD_CARD_STICK_WIDTH = 1500
 XRD_STANDARD_CARD_STICK_WIDTH_PT = 3
@@ -560,6 +562,21 @@ def _strict_adaptive_source_validation(
                         f"XPS sample group {sample_index + 1} fill baselines and background differ"
                     )
                     break
+    elif (
+        layout == "multi_book_xy_pairs"
+        and str(getattr(contract, "product_key", "") or "").casefold() == "xrd"
+    ):
+        # The reviewed XRD OTPU contract owns multiple workbooks and layers.
+        # The adaptive OTH+JSON route deliberately does not: it plots the
+        # current shared-X CSV in one clean layer.  Its semantic contract is
+        # therefore explicit here rather than pretending its columns satisfy
+        # the fixed multi-book binding.
+        semantic = _validate_adaptive_xrd_standard_card_headers(
+            headers,
+            [(x_index + 1, y_index + 1) for x_index, y_index in source_pairs],
+        )
+        if not semantic.get("ok"):
+            failures.extend(str(value) for value in semantic.get("failures", []))
     else:
         failures.append(f"adaptive source layout is unsupported: {layout!r}")
 
@@ -905,7 +922,7 @@ def _resolve_origin_style_execution_route(
         except (OSError, ValueError) as exc:
             binding = {"ok": False, "message": str(exc)}
         if not bool(binding.get("ok")):
-            if product.product_key in {"UV-vis DRS", "Tauc"}:
+            if product.product_key in {"UV-vis DRS", "Tauc", "XRD"}:
                 source_validation = _strict_adaptive_source_validation(
                     contract,
                     headers,
@@ -919,9 +936,16 @@ def _resolve_origin_style_execution_route(
                             product,
                             requested_mode=mode,
                             selected_mode="oth-json",
-                            reason_code="fixed_cardinality_semantics_select_adaptive_uvvis",
+                            reason_code=(
+                                "fixed_cardinality_semantics_select_adaptive_xrd"
+                                if product.product_key == "XRD"
+                                else "fixed_cardinality_semantics_select_adaptive_uvvis"
+                            ),
                             message=(
-                                "Current UV-vis columns are valid spectra but do not carry the "
+                                "Current XRD shared-X columns carry one final reference-card role but "
+                                "do not carry the reviewed fixed multi-book/layer binding; accepted OTH+JSON was selected."
+                                if product.product_key == "XRD"
+                                else "Current UV-vis columns are valid spectra but do not carry the "
                                 "reviewed hidden/visible fixed-template roles; accepted OTH+JSON was selected."
                             ),
                             current_series_count=current_count,
@@ -2705,7 +2729,7 @@ def _verified_otpu_required_line_width_pt(
     # Raman's reviewed graph spans two layers. The flattened page-level style
     # snapshot cannot read the third plot width reliably; its per-layer data
     # snapshot is validated explicitly after reopen instead.
-    return None if product_key in {"EIS", "Raman", "Mott-Schottky", "XPS_in_situ"} else style.line_width_pt
+    return None if product_key in {"EIS", "Raman", "Mott-Schottky", "XPS_in_situ", "XRD"} else style.line_width_pt
 
 
 def _verified_otpu_axis_title_bold_policy(
@@ -5691,6 +5715,241 @@ def _uvvis_axis_title_rich_text(value: str) -> str:
     return origin_bold_text(value)
 
 
+def _position_adaptive_xrd_axis_titles(
+    operations: object,
+    graph_name: str,
+    x_label: str,
+    y_label: str,
+    style_snapshot: dict[str, object],
+    style: ResolvedPlotStyle,
+) -> dict[str, object]:
+    """Place native XRD axis-title objects from reviewed page/layer geometry."""
+
+    layout = style_snapshot.get("layout_values") if isinstance(style_snapshot, dict) else None
+    required = {
+        key: _snapshot_axis_value(layout, key)
+        for key in (
+            "page.width",
+            "page.height",
+            "layer.left",
+            "layer.top",
+            "layer.width",
+            "layer.height",
+        )
+    }
+    missing = [key for key, value in required.items() if value is None]
+    if missing:
+        return {
+            "applied": False,
+            "reason": "reviewed_page_layer_geometry_unavailable",
+            "missing": missing,
+        }
+    page_width = float(required["page.width"])
+    page_height = float(required["page.height"])
+    layer_left = float(required["layer.left"])
+    layer_top = float(required["layer.top"])
+    layer_width = float(required["layer.width"])
+    layer_height = float(required["layer.height"])
+    if page_width <= 0 or page_height <= 0 or layer_width <= 0 or layer_height <= 0:
+        return {"applied": False, "reason": "reviewed_page_layer_geometry_invalid"}
+
+    app = getattr(operations, "app", None)
+    if app is None:
+        return {"applied": False, "reason": "origin_app_unavailable"}
+    try:
+        layer = (
+            app.FindGraphLayer(f"[{graph_name}]Layer1")
+            or app.FindGraphLayer(f"[{graph_name}]1")
+            or app.FindGraphLayer(graph_name)
+        )
+    except Exception as exc:
+        return {
+            "applied": False,
+            "reason": "graph_layer_unavailable",
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+    if not layer:
+        return {"applied": False, "reason": "graph_layer_unavailable"}
+
+    objects: dict[str, object] = {}
+    for object_name in ("XB", "YL"):
+        graph_object = _find_origin_graph_object(layer, object_name)
+        if graph_object is None:
+            return {
+                "applied": False,
+                "reason": "axis_title_object_unavailable",
+                "object_name": object_name,
+            }
+        objects[object_name] = graph_object
+
+    attach_result = operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; xb.attach=1; yl.attach=1;'
+    )
+    if not getattr(attach_result, "ok", False):
+        return {"applied": False, "reason": "axis_title_page_attachment_failed"}
+    for graph_object in objects.values():
+        try:
+            graph_object.Attach = 1
+        except Exception:
+            # LabTalk is the authoritative write for special Origin axis-title
+            # objects; some COM wrappers do not expose Attach directly.
+            pass
+
+    font_code = _origin_font_code(app, style.font_family)
+    for object_name, plain_text in (("XB", x_label), ("YL", y_label)):
+        graph_object = objects[object_name]
+        try:
+            graph_object.Text = origin_bold_text(plain_text)
+            for prop, value in (
+                ("font", font_code),
+                ("fsize", int(style.axis_title_font_size)),
+                ("bold", 1 if style.font_bold else 0),
+                ("color", 1),
+                ("show", 1),
+                ("background", 0),
+                ("border", 0),
+                ("frame", 0),
+                ("fill", 0),
+            ):
+                graph_object.SetNumProp(prop, value)
+        except Exception as exc:
+            return {
+                "applied": False,
+                "reason": "axis_title_native_style_write_failed",
+                "object_name": object_name,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+
+    show_result = operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; xb.show=1; yl.show=1; doc -uw;'
+    )
+    if not getattr(show_result, "ok", False):
+        return {"applied": False, "reason": "axis_title_native_refresh_failed"}
+
+    try:
+        xb_width = float(getattr(objects["XB"], "Width"))
+        xb_height = float(getattr(objects["XB"], "Height"))
+        yl_width = float(getattr(objects["YL"], "Width"))
+        yl_height = float(getattr(objects["YL"], "Height"))
+    except Exception as exc:
+        return {
+            "applied": False,
+            "reason": "axis_title_native_size_readback_failed",
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+    if min(xb_width, xb_height, yl_width, yl_height) <= 0:
+        return {"applied": False, "reason": "axis_title_native_size_invalid"}
+
+    layer_center_x = page_width * (layer_left + layer_width / 2.0) / 100.0
+    layer_center_y = page_height * (layer_top + layer_height / 2.0) / 100.0
+    positions = {
+        "XB": {
+            "left": int(round(layer_center_x - xb_width / 2.0)),
+            "top": int(round(page_height * (layer_top + layer_height + 7.7) / 100.0)),
+            "width": int(round(xb_width)),
+            "height": int(round(xb_height)),
+        },
+        "YL": {
+            "left": int(round(page_width * layer_left / 100.0 - yl_width - page_width * 0.017)),
+            "top": int(round(layer_center_y - yl_height / 2.0)),
+            "width": int(round(yl_width)),
+            "height": int(round(yl_height)),
+        },
+    }
+    try:
+        for object_name, geometry in positions.items():
+            graph_object = objects[object_name]
+            graph_object.Left = geometry["left"]
+            graph_object.Top = geometry["top"]
+    except Exception as exc:
+        return {
+            "applied": False,
+            "reason": "axis_title_native_position_write_failed",
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+
+    position_refresh = operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; doc -uw;'
+    )
+    if not getattr(position_refresh, "ok", False):
+        return {"applied": False, "reason": "axis_title_position_refresh_failed"}
+
+    actual_positions: dict[str, dict[str, int]] = {}
+    failures: list[str] = []
+    for object_name, graph_object in objects.items():
+        try:
+            geometry = {
+                "left": int(round(float(getattr(graph_object, "Left")))),
+                "top": int(round(float(getattr(graph_object, "Top")))),
+                "width": int(round(float(getattr(graph_object, "Width")))),
+                "height": int(round(float(getattr(graph_object, "Height")))),
+            }
+        except Exception as exc:
+            failures.append(f"{object_name}: geometry readback failed ({type(exc).__name__})")
+            continue
+        actual_positions[object_name] = geometry
+        if geometry["left"] < 0 or geometry["top"] < 0:
+            failures.append(f"{object_name}: negative page coordinate")
+        if geometry["left"] + geometry["width"] > page_width + 1:
+            failures.append(f"{object_name}: exceeds page width")
+        if geometry["top"] + geometry["height"] > page_height + 1:
+            failures.append(f"{object_name}: exceeds page height")
+    return {
+        "applied": not failures,
+        "method": "origin_native_axis_title_page_geometry_from_reviewed_layout",
+        "attachment": "page",
+        "page_width": page_width,
+        "page_height": page_height,
+        "positions": actual_positions,
+        "failures": failures,
+    }
+
+
+def _validate_xrd_axis_title_page_bounds(product_style: dict[str, object]) -> dict[str, object]:
+    layout = product_style.get("layout_values") if isinstance(product_style, dict) else None
+    page_width = _snapshot_axis_value(layout, "page.width")
+    page_height = _snapshot_axis_value(layout, "page.height")
+    positions = product_style.get("graph_object_positions") if isinstance(product_style, dict) else None
+    if page_width is None or page_height is None or page_width <= 0 or page_height <= 0:
+        return {"ok": False, "status": "mismatch", "reason": "page_geometry_unavailable"}
+    if not isinstance(positions, dict):
+        return {"ok": False, "status": "mismatch", "reason": "graph_object_positions_unavailable"}
+    by_name = {str(name).casefold(): value for name, value in positions.items()}
+    checked: dict[str, dict[str, float]] = {}
+    failures: list[str] = []
+    for object_name in ("XB", "YL"):
+        raw = by_name.get(object_name.casefold())
+        if not isinstance(raw, dict):
+            failures.append(f"{object_name}: missing after save/reopen")
+            continue
+        geometry = {key: _finite_float(raw.get(key)) for key in ("left", "top", "width", "height")}
+        if any(value is None for value in geometry.values()):
+            failures.append(f"{object_name}: incomplete geometry after save/reopen")
+            continue
+        numeric = {key: float(value) for key, value in geometry.items() if value is not None}
+        checked[object_name] = numeric
+        if numeric["left"] < 0 or numeric["top"] < 0:
+            failures.append(f"{object_name}: outside page at negative coordinate")
+        if numeric["width"] <= 0 or numeric["height"] <= 0:
+            failures.append(f"{object_name}: invalid size")
+        if numeric["left"] + numeric["width"] > page_width + 1:
+            failures.append(f"{object_name}: outside page width")
+        if numeric["top"] + numeric["height"] > page_height + 1:
+            failures.append(f"{object_name}: outside page height")
+    return {
+        "ok": not failures,
+        "status": "matched" if not failures else "mismatch",
+        "message": (
+            "Adaptive XRD native axis-title objects remain inside the page after save/reopen."
+            if not failures
+            else "; ".join(failures)
+        ),
+        "page_width": page_width,
+        "page_height": page_height,
+        "objects": checked,
+    }
+
+
 def _remove_tauc_reference_candidate_guides(
     operations: object,
     graph_name: str,
@@ -6898,6 +7157,22 @@ def _export_saved_format_theme_product_with_origin(
         selected_oth_json = str(
             (style_execution_decision or {}).get("selected_mode") or ""
         ) == "oth-json"
+        xrd_adaptive_source_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        if selected_oth_json and product.product_key == "XRD":
+            xrd_adaptive_source_validation = _validate_adaptive_xrd_standard_card_headers(
+                headers,
+                plot_pairs,
+            )
+            if not xrd_adaptive_source_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(xrd_adaptive_source_validation.get("message")),
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_xrd_source_validation": xrd_adaptive_source_validation,
+                }
         operations.new_project()
         adaptive_xps_workbooks: dict[str, object] = {
             "ok": True,
@@ -7049,7 +7324,7 @@ def _export_saved_format_theme_product_with_origin(
         _apply_template_base_global_policies(operations, graph_name, product, style)
         data_axis_policy = (
             {"applied": False, "reason": "deferred_until_saved_snapshots_are_applied"}
-            if product.product_key in {"photocurrent", "UV-vis DRS", "Tauc"}
+            if product.product_key in {"photocurrent", "UV-vis DRS", "Tauc", "XRD"}
             else _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
         )
         saved_style_snapshot = _load_saved_style_snapshot(
@@ -7079,6 +7354,7 @@ def _export_saved_format_theme_product_with_origin(
         adaptive_uvvis = bool(
             selected_oth_json and product.product_key in {"UV-vis DRS", "Tauc"}
         )
+        adaptive_xrd = bool(selected_oth_json and product.product_key == "XRD")
         adaptive_snapshot_style_applied = bool(
             selected_oth_json
             and saved_style_snapshot
@@ -7091,15 +7367,32 @@ def _export_saved_format_theme_product_with_origin(
                 preserve_custom_rgb=product.product_key == "Mott-Schottky",
             )
         )
-        plot_sequence = _apply_external_reference_plot_sequence(
-            operations,
-            graph_name,
-            saved_style_snapshot
-            or (external_reference_preview.get("style_snapshot") if isinstance(external_reference_preview, dict) else {}),
-            product=product,
+        plot_sequence = (
+            {
+                "applied": False,
+                "reason": "adaptive_xrd_semantic_styles_replace_fixed_plot_sequence",
+            }
+            if adaptive_xrd
+            else _apply_external_reference_plot_sequence(
+                operations,
+                graph_name,
+                saved_style_snapshot
+                or (
+                    external_reference_preview.get("style_snapshot")
+                    if isinstance(external_reference_preview, dict)
+                    else {}
+                ),
+                product=product,
+            )
         )
         adaptive_plot_style_policy = (
-            _apply_adaptive_oth_json_plot_styles(
+            _apply_adaptive_xrd_standard_card_plot_styles(
+                operations,
+                graph_name,
+                headers,
+            )
+            if adaptive_xrd
+            else _apply_adaptive_oth_json_plot_styles(
                 operations,
                 graph_name,
                 saved_data_snapshot,
@@ -7123,7 +7416,7 @@ def _export_saved_format_theme_product_with_origin(
             }
         reviewed_plot_policy = (
             {"applied": False, "reason": "adaptive_route_uses_all_current_plots"}
-            if adaptive_cardinality or adaptive_uvvis
+            if adaptive_cardinality or adaptive_uvvis or adaptive_xrd
             else _apply_reviewed_template_plot_policy(
                 operations,
                 graph_name,
@@ -7133,6 +7426,36 @@ def _export_saved_format_theme_product_with_origin(
                 data_snapshot=saved_data_snapshot,
             )
         )
+        if adaptive_xrd:
+            data_axis_policy = _apply_embedded_snapshot_data_axis_range(
+                operations,
+                graph_name,
+                product,
+                reference_style_snapshot=saved_style_snapshot,
+            )
+            if not data_axis_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive XRD current-data axis range restoration failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_range_policy": data_axis_policy,
+                }
+            axis_title_result = _position_adaptive_xrd_axis_titles(
+                operations,
+                graph_name,
+                product.x_label,
+                product.y_label,
+                saved_style_snapshot,
+                style,
+            )
+            if not axis_title_result.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive XRD current axis-title restoration failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_title_policy": axis_title_result,
+                }
+            data_axis_policy["axis_title_policy"] = axis_title_result
         adaptive_mott_guide_policy = {
             "applied": False,
             "reason": "not_required_for_product_or_cardinality",
@@ -7255,6 +7578,22 @@ def _export_saved_format_theme_product_with_origin(
                     "template_format_plan": plan.to_dict(),
                     "legend_policy": legend_policy,
                 }
+        elif adaptive_xrd:
+            legend_policy = _apply_xrd_standard_card_legend_and_label(
+                operations,
+                graph_name,
+                product,
+                _plain_text_legend_entries(product),
+                style,
+                apply_reference_plot_style=False,
+            )
+            if not legend_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive XRD standard-card legend/label policy failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "legend_policy": legend_policy,
+                }
         elif adaptive_cardinality or adaptive_uvvis:
             legend_policy = _apply_adaptive_dynamic_legend_policy(
                 operations,
@@ -7335,9 +7674,9 @@ def _export_saved_format_theme_product_with_origin(
                 "applied": False,
                 "reason": "adaptive_oth_json_legend_already_finalized",
             }
-            if selected_oth_json and product.product_key in {"BET", "FTIR", "photocurrent", "UV-vis DRS", "Tauc"}
+            if selected_oth_json and product.product_key in {"BET", "FTIR", "photocurrent", "UV-vis DRS", "Tauc", "XRD"}
             else {"applied": False, "reason": "adaptive_cardinality_uses_dynamic_current_legend"}
-            if adaptive_cardinality or adaptive_uvvis
+            if adaptive_cardinality or adaptive_uvvis or adaptive_xrd
             else _finalize_reviewed_template_legend(
                 operations,
                 graph_name,
@@ -7424,6 +7763,37 @@ def _export_saved_format_theme_product_with_origin(
                 "available_graph_pages": graph_pages,
                 "product_style": product_style,
             }
+        adaptive_xrd_plot_style_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        adaptive_xrd_axis_title_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        if adaptive_xrd:
+            adaptive_xrd_axis_title_validation = _validate_xrd_axis_title_page_bounds(
+                product_style
+            )
+            if not adaptive_xrd_axis_title_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive XRD axis titles moved outside the page after save/reopen.",
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_xrd_axis_title_validation": adaptive_xrd_axis_title_validation,
+                }
+            adaptive_xrd_plot_style_validation = _validate_adaptive_xrd_plot_styles(
+                operations,
+                reopened_graph,
+                len(plot_pairs),
+            )
+            if not adaptive_xrd_plot_style_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive XRD native line/card styles changed after save/reopen.",
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_xrd_plot_style_validation": adaptive_xrd_plot_style_validation,
+                }
         tauc_guide_cleanup_validation: dict[str, object] = {
             "ok": True,
             "status": "not_required",
@@ -7455,6 +7825,7 @@ def _export_saved_format_theme_product_with_origin(
             "UV-vis DRS",
             "Tauc",
             "XPS_in_situ",
+            "XRD",
         }:
             current_data_snapshot = read_graph_data_snapshot(
                 operations,
@@ -7592,6 +7963,12 @@ def _export_saved_format_theme_product_with_origin(
                 len(plot_pairs),
             )
             if selected_oth_json and product.product_key == "Raman"
+            else _adaptive_xrd_standard_card_conformance_reference(
+                reference_style_snapshot,
+                len(plot_pairs),
+                product_style,
+            )
+            if selected_oth_json and product.product_key == "XRD"
             else _verified_otpu_conformance_reference(
                 product.product_key,
                 _adaptive_uvvis_conformance_reference(
@@ -7728,7 +8105,10 @@ def _export_saved_format_theme_product_with_origin(
             "render_refresh": render_refresh,
             "adaptive_oth_json_validation": adaptive_validation,
             "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
+            "adaptive_xrd_plot_style_validation": adaptive_xrd_plot_style_validation,
+            "adaptive_xrd_axis_title_validation": adaptive_xrd_axis_title_validation,
             "adaptive_xps_workbooks": adaptive_xps_workbooks,
+            "adaptive_xrd_source_validation": xrd_adaptive_source_validation,
             "bet_axis_titles": bet_product_axis_titles,
             "photocurrent_axis_titles": photocurrent_product_axis_titles,
             "current_data_validation": current_data_validation,
@@ -7753,7 +8133,10 @@ def _export_saved_format_theme_product_with_origin(
         "conformance": conformance,
         "adaptive_oth_json_validation": adaptive_validation,
         "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
+        "adaptive_xrd_plot_style_validation": adaptive_xrd_plot_style_validation,
+        "adaptive_xrd_axis_title_validation": adaptive_xrd_axis_title_validation,
         "adaptive_xps_workbooks": adaptive_xps_workbooks,
+        "adaptive_xrd_source_validation": xrd_adaptive_source_validation,
         "bet_axis_titles": bet_product_axis_titles,
         "photocurrent_axis_titles": photocurrent_product_axis_titles,
         "current_data_snapshot": current_data_snapshot,
@@ -7974,6 +8357,243 @@ def _xrd_standard_card_sample_color_sequence(colors: list[int]) -> tuple[int, ..
     return tuple(sequence)
 
 
+def _validate_adaptive_xrd_standard_card_headers(
+    headers: list[str],
+    plot_pairs: list[tuple[int, int]],
+) -> dict[str, object]:
+    """Validate the one-layer shared-X XRD+card adaptive input contract."""
+
+    failures: list[str] = []
+    if not headers or str(headers[0]).strip().casefold() != "two_theta_deg":
+        failures.append("adaptive XRD shared X header must be 'two_theta_deg'")
+    y_headers = [str(header).strip() for header in headers[1:]]
+    if not y_headers or any(not header for header in y_headers):
+        failures.append("adaptive XRD requires nonempty sample and reference-card headers")
+    expected_pairs = [(1, index) for index in range(2, len(headers) + 1)]
+    if plot_pairs != expected_pairs:
+        failures.append("adaptive XRD must plot every shared-X Y column in CSV order")
+    card_indices = [
+        index
+        for index, header in enumerate(y_headers, start=1)
+        if is_template_xrd_reference_stick_header(header)
+    ]
+    if len(card_indices) != 1:
+        failures.append(
+            "adaptive XRD requires exactly one reference-card header; "
+            "use XRD_no_card when no standard card is supplied"
+        )
+    elif card_indices[0] != len(y_headers):
+        failures.append("adaptive XRD reference-card header must be the final Y column")
+    sample_headers = [
+        header for header in y_headers if not is_template_xrd_reference_stick_header(header)
+    ]
+    if not sample_headers:
+        failures.append("adaptive XRD requires at least one sample column before the card")
+    if len({header.casefold() for header in sample_headers}) != len(sample_headers):
+        failures.append("adaptive XRD sample headers must be unique")
+    ok = not failures
+    return {
+        "ok": ok,
+        "status": "ready" if ok else "blocked",
+        "message": (
+            "Adaptive XRD has one final reference-card column and all current sample columns."
+            if ok
+            else "; ".join(failures)
+        ),
+        "failures": failures,
+        "sample_headers": sample_headers,
+        "reference_card_header": (
+            y_headers[card_indices[0] - 1] if len(card_indices) == 1 else ""
+        ),
+        "reference_card_count": len(card_indices),
+        "expected_plot_count": len(y_headers),
+    }
+
+
+def _apply_adaptive_xrd_standard_card_plot_styles(
+    operations: object,
+    graph_name: str,
+    headers: list[str],
+) -> dict[str, object]:
+    """Apply native sample-line/card-drop roles to the adaptive one-layer graph."""
+
+    validation = _validate_adaptive_xrd_standard_card_headers(
+        headers,
+        [(1, index) for index in range(2, len(headers) + 1)],
+    )
+    if not validation.get("ok"):
+        return {"applied": False, "reason": validation.get("message"), "validation": validation}
+    plot_names = operations._plot_names(graph_name) if hasattr(operations, "_plot_names") else []
+    styles = _adaptive_xrd_plot_style_specs(int(validation["expected_plot_count"]))
+    if len(plot_names) != len(styles):
+        return {
+            "applied": False,
+            "reason": "current_plot_count_does_not_match_xrd_card_role_mapping",
+            "expected_plot_count": len(styles),
+            "actual_plot_count": len(plot_names),
+        }
+    graph = quote_labtalk(graph_name)
+    for plot_name, spec in zip(plot_names, styles):
+        commands = " ".join(
+            f"set {plot_name} -{option} {_origin_number(value)};"
+            for option, value in dict(spec["style"]).items()
+        )
+        result = operations.run_labtalk(f'win -a "{graph}"; {commands}')
+        if not getattr(result, "ok", False):
+            return {
+                "applied": False,
+                "reason": "origin_xrd_adaptive_native_style_write_failed",
+                "plot_index": spec["plot_index"],
+                "plot_name": plot_name,
+            }
+    readback = _validate_adaptive_xrd_plot_styles(operations, graph_name, len(styles))
+    return {
+        **readback,
+        "applied": bool(readback.get("ok")),
+        "method": "adaptive_xrd_one_layer_native_sample_lines_and_reference_card_column_sticks",
+    }
+
+
+def _adaptive_xrd_plot_style_specs(plot_count: int) -> list[dict[str, object]]:
+    sample_count = max(0, plot_count - 1)
+    colors = [
+        XRD_STANDARD_CARD_ADAPTIVE_SAMPLE_COLORS[
+            (sample_count - index - 1) % len(XRD_STANDARD_CARD_ADAPTIVE_SAMPLE_COLORS)
+        ]
+        for index in range(sample_count)
+    ]
+    specs = [
+        {
+            "plot_index": index + 1,
+            "role": "sample_pattern",
+            "style": {"c": color, "cl": color, "w": 1500, "d": 0, "l": 1, "k": 0, "z": 9, "lh": 0, "lv": 0, "s": 1},
+        }
+        for index, color in enumerate(colors)
+    ]
+    if plot_count > 0:
+        specs.append(
+            {
+                "plot_index": plot_count,
+                "role": "reference_card_sticks",
+                "style": {
+                    "c": XRD_STANDARD_CARD_ADAPTIVE_CARD_COLOR,
+                    "cl": XRD_STANDARD_CARD_ADAPTIVE_CARD_COLOR,
+                    "w": 250,
+                    "d": 0,
+                    "l": 0,
+                    "k": 0,
+                    "z": 9,
+                    "lh": 0,
+                    "lv": 0,
+                    "pbc": XRD_STANDARD_CARD_ADAPTIVE_STICK_COLOR,
+                    "pfb": XRD_STANDARD_CARD_ADAPTIVE_STICK_COLOR,
+                    "pfc": XRD_STANDARD_CARD_ADAPTIVE_STICK_COLOR,
+                    "pbs": 0,
+                    "pbw": 0.5,
+                    "s": 1,
+                },
+            }
+        )
+    return specs
+
+
+def _validate_adaptive_xrd_plot_styles(
+    operations: object,
+    graph_name: str,
+    plot_count: int,
+) -> dict[str, object]:
+    plot_names = operations._plot_names(graph_name) if hasattr(operations, "_plot_names") else []
+    specs = _adaptive_xrd_plot_style_specs(plot_count)
+    if len(plot_names) != len(specs):
+        return {
+            "ok": False,
+            "status": "mismatch",
+            "message": "adaptive XRD plot count changed before native style readback",
+            "expected_plot_count": len(specs),
+            "actual_plot_count": len(plot_names),
+        }
+    plots: list[dict[str, object]] = []
+    failures: list[str] = []
+    for plot_name, spec in zip(plot_names, specs):
+        expected = dict(spec["style"])
+        values = _read_plot_style_options(
+            operations,
+            plot_name,
+            tuple(f"-{option}" for option in expected),
+        )
+        mismatches: list[str] = []
+        for option, expected_value in expected.items():
+            value = _finite_float(values.get(option))
+            if value is None:
+                mismatches.append(option)
+                continue
+            if not math.isclose(value, float(expected_value), rel_tol=0.0, abs_tol=1e-6):
+                mismatches.append(option)
+        if mismatches:
+            failures.append(f"plot {spec['plot_index']}: {', '.join(mismatches)}")
+        plots.append({**spec, "plot_name": plot_name, "readback": values, "mismatches": mismatches})
+    return {
+        "ok": not failures,
+        "status": "matched" if not failures else "mismatch",
+        "message": (
+            "Adaptive XRD native sample-line and reference-card column-stick styles match."
+            if not failures
+            else "; ".join(failures)
+        ),
+        "plot_count": len(plots),
+        "sample_count": max(0, len(plots) - 1),
+        "reference_card_plot_index": len(plots),
+        "plots": plots,
+    }
+
+
+def _adaptive_xrd_standard_card_conformance_reference(
+    style_snapshot: dict[str, object],
+    plot_count: int,
+    product_style: dict[str, object],
+) -> dict[str, object]:
+    """Create the explicit one-layer semantic comparison target for adaptive XRD."""
+
+    result = dict(style_snapshot)
+    sample_count = max(0, plot_count - 1)
+    specs = _adaptive_xrd_plot_style_specs(plot_count)
+    sample_colors = [int(dict(spec["style"])["c"]) for spec in specs[:-1]]
+    result.update(
+        {
+            "layer_count": 1,
+            "plot_count": plot_count,
+            "plot_colors": sample_colors + [XRD_STANDARD_CARD_ADAPTIVE_CARD_COLOR],
+            "plot_line_colors": sample_colors + [XRD_STANDARD_CARD_ADAPTIVE_CARD_COLOR],
+            "plot_line_widths": [
+                XRD_STANDARD_CARD_STICK_WIDTH
+            ] * sample_count + [250],
+            "marker_shapes": [0] * plot_count,
+            "marker_sizes": [9] * plot_count,
+            "plot_visibility": [1.0] * plot_count,
+        }
+    )
+    layout_values = dict(result.get("layout_values") or {})
+    current_layout = dict(product_style.get("layout_values") or {})
+    for field in (
+        "layer.y.from",
+        "layer.y.to",
+        "xb.x",
+        "xb.y",
+        "yl.x",
+        "yl.y",
+        "legend.x",
+        "legend.y",
+    ):
+        if field in current_layout:
+            layout_values[field] = current_layout[field]
+    layout_values["page.nlayers"] = 1.0
+    result["layout_values"] = layout_values
+    audit = dict(result.get("audit_numeric_values") or {})
+    audit["page.nlayers"] = 1.0
+    result["audit_numeric_values"] = audit
+    return result
+
+
 def _adaptive_oth_json_readback_validation(
     product: ProductContext,
     plot_pairs: list[tuple[int, int]],
@@ -8010,6 +8630,7 @@ def _adaptive_oth_json_readback_validation(
     requires_all_current_plots_visible = relaxed or product.product_key in {
         "UV-vis DRS",
         "Tauc",
+        "XRD",
     }
     if requires_all_current_plots_visible and not all_current_plots_visible:
         failures.append(
@@ -8025,6 +8646,7 @@ def _adaptive_oth_json_readback_validation(
         "UV-vis DRS",
         "Tauc",
         "XPS_in_situ",
+        "XRD",
     }
     current_data_match = bool(
         isinstance(current_data_validation, dict)
@@ -8033,6 +8655,24 @@ def _adaptive_oth_json_readback_validation(
     )
     if requires_current_data_match and not current_data_match:
         failures.append("reopened graph X/Y values do not match the current processed CSV")
+    xrd_structure: dict[str, object] = {"ok": True, "status": "not_required"}
+    if product.product_key == "XRD":
+        try:
+            layer_count = int(product_style.get("layer_count") or 0)
+        except (TypeError, ValueError):
+            layer_count = 0
+        xrd_structure = {
+            "ok": layer_count == 1 and actual == expected,
+            "status": "matched" if layer_count == 1 and actual == expected else "mismatch",
+            "expected_layer_count": 1,
+            "actual_layer_count": layer_count,
+            "expected_plot_count": expected,
+            "actual_plot_count": actual,
+        }
+        if layer_count != 1:
+            failures.append(
+                f"adaptive XRD must reopen as one layer; found {layer_count}"
+            )
     return {
         "ok": not failures,
         "product_key": product.product_key,
@@ -8055,6 +8695,7 @@ def _adaptive_oth_json_readback_validation(
             current_data_match if requires_current_data_match else None
         ),
         "current_data_validation": dict(current_data_validation or {}),
+        "xrd_adaptive_structure": xrd_structure,
     }
 
 
@@ -9958,26 +10599,11 @@ def _legacy_shared_x_pairs(
 
 
 def _xrd_plotted_y_headers(product: ProductContext, headers: list[str]) -> list[tuple[int, str]]:
-    records = [
+    return [
         (index, str(header).strip())
         for index, header in enumerate(headers[1:], start=1)
         if str(header).strip()
     ]
-    if product.product_key != "XRD" or not any(
-        is_template_xrd_reference_stick_header(header) for _index, header in records
-    ):
-        return records
-    sample_records = [
-        (index, header)
-        for index, header in records
-        if not is_template_xrd_reference_stick_header(header)
-    ]
-    card_records = [
-        (index, header)
-        for index, header in records
-        if is_template_xrd_reference_stick_header(header)
-    ]
-    return sample_records[:XRD_STANDARD_CARD_SAMPLE_LIMIT] + card_records[:1]
 
 
 def _apply_embedded_snapshot_data_axis_range(
@@ -10933,6 +11559,8 @@ def _apply_xrd_standard_card_legend_and_label(
     product: ProductContext,
     entries: list[str],
     style: ResolvedPlotStyle,
+    *,
+    apply_reference_plot_style: bool = True,
 ) -> dict[str, object]:
     try:
         headers, _rows = _read_processed_csv(product.processed_data)
@@ -10982,7 +11610,7 @@ def _apply_xrd_standard_card_legend_and_label(
         if is_template_xrd_reference_stick_header(header)
     ]
     reference_plot_style_results: list[dict[str, object]] = []
-    for plot_index in reference_plot_indices:
+    for plot_index in reference_plot_indices if apply_reference_plot_style else []:
         if 1 <= plot_index <= len(plot_names):
             plot_name = plot_names[plot_index - 1]
             commands = [
@@ -11069,6 +11697,7 @@ def _apply_xrd_standard_card_legend_and_label(
         "card_label_source": card_label_source,
         "existing_card_label_object": existing_card_label_policy,
         "legend_com_applied": legend_com_applied,
+        "reference_plot_style_applied": apply_reference_plot_style,
         "reference_plot_style": reference_plot_style_results,
     }
 

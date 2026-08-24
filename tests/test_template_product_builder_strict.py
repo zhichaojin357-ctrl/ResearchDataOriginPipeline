@@ -35,6 +35,8 @@ from src.core.template_product_builder import (
     _load_manifest_bound_otpu_replay_evidence,
     _position_template_axis_titles_outside_plot,
     _preferred_template_xps_graph_name,
+    _adaptive_oth_json_detached_acceptance,
+    _adaptive_oth_json_strict_readback_values,
     _relevant_strict_readback_values,
     _require_asset_only_style_integrity,
     _select_template_xps_template_for_product,
@@ -140,7 +142,15 @@ def _adaptive_oth_json_export_status(*, series_count: int = 2) -> dict[str, obje
             "plot_count": series_count,
             "plot_line_widths": [30.0] * series_count,
         },
-        "strict_style_readback": {"axis_title_visible": True},
+        "strict_style_readback": {
+            "font_family_arial": True,
+            "axis_title_font_size_36": True,
+            "axis_title_bold": True,
+            "axis_title_visible": True,
+            "axis_title_no_overlap": True,
+            "legend_no_frame": True,
+            "legend_bold": True,
+        },
         "conformance": conformance,
         "adaptive_oth_json_validation": validation,
         "tif_resolution_evidence": tif,
@@ -2299,6 +2309,45 @@ def test_template_base_readback_ignores_optional_font_size_and_legend_frame_requ
         "axis_title_visible": True,
         "axis_title_no_overlap": True,
     }
+
+
+def test_adaptive_oth_json_readback_requires_current_native_style_not_fixed_legend_geometry() -> None:
+    export_status = _adaptive_oth_json_export_status(series_count=2)
+    export_status["exemplar_style"] = {
+        "audit_numeric_values": {"legend.background": 1, "legend.bold": 0},
+    }
+    export_status["product_style"]["audit_numeric_values"] = {
+        "legend.background": 0,
+        "legend.bold": 1,
+    }
+
+    result = _adaptive_oth_json_detached_acceptance(export_status)
+
+    assert result["ok"] is True
+    assert result["reasons"] == []
+
+
+@pytest.mark.parametrize("failed_key", ["axis_title_visible", "legend_no_frame"])
+def test_adaptive_oth_json_readback_rejects_missing_current_native_style_gate(
+    failed_key: str,
+) -> None:
+    export_status = _adaptive_oth_json_export_status(series_count=2)
+    export_status["strict_style_readback"][failed_key] = False
+
+    result = _adaptive_oth_json_detached_acceptance(export_status)
+
+    assert result["ok"] is False
+    assert result["reasons"] == ["adaptive OTH+JSON strict style readback did not pass"]
+
+
+def test_adaptive_oth_json_readback_fails_when_required_gate_is_missing() -> None:
+    readback = dict(_adaptive_oth_json_export_status()["strict_style_readback"])
+    del readback["axis_title_bold"]
+
+    relevant = _adaptive_oth_json_strict_readback_values(readback)
+
+    assert relevant["axis_title_bold"] is None
+    assert all(relevant[key] is True for key in relevant if key != "axis_title_bold")
 
 
 def test_cached_style_readback_compares_reported_title_and_legend_style_to_exemplar() -> None:
