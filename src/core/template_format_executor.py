@@ -10,6 +10,7 @@ import traceback
 from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from pathlib import Path
+from statistics import median
 
 from src.core.file_utils import file_sha256
 from src.core.origin_style_assets import (
@@ -48,6 +49,7 @@ from src.origin.style_registry import (
     resolve_origin_runtime_style_asset,
 )
 from src.origin.style_mimic import (
+    _origin_color_value_for_labtalk,
     _origin_plot_color_for_labtalk,
     apply_style_snapshot,
     extract_style_snapshot,
@@ -6372,7 +6374,7 @@ def _validate_xrd_axis_title_page_bounds(product_style: dict[str, object]) -> di
         "ok": not failures,
         "status": "matched" if not failures else "mismatch",
         "message": (
-            "Adaptive XRD native axis-title objects remain inside the page after save/reopen."
+            "Adaptive native axis-title objects remain inside the page after save/reopen."
             if not failures
             else "; ".join(failures)
         ),
@@ -7669,6 +7671,247 @@ def _validate_adaptive_xps_non_in_situ_reopened_plot_styles(
     }
 
 
+def _validate_adaptive_epr_reopened_plot_styles(
+    reference_data: dict[str, object],
+    current_data: dict[str, object],
+    *,
+    expected_plot_count: int,
+) -> dict[str, object]:
+    """Validate the native EPR three-style cycle after save/reopen."""
+
+    reference_plots = sorted(
+        [dict(value) for value in reference_data.get("plots", []) if isinstance(value, dict)],
+        key=lambda value: (
+            int(value.get("layer_index") or 0),
+            int(value.get("plot_index") or 0),
+        ),
+    )
+    current_plots = sorted(
+        [dict(value) for value in current_data.get("plots", []) if isinstance(value, dict)],
+        key=lambda value: (
+            int(value.get("layer_index") or 0),
+            int(value.get("plot_index") or 0),
+        ),
+    )
+    reasons: list[str] = []
+    if str(reference_data.get("status") or "") != "ready" or len(reference_plots) != 3:
+        reasons.append("reviewed EPR snapshot does not contain the complete three-plot style cycle")
+    if expected_plot_count <= 0 or len(current_plots) != expected_plot_count or any(
+        int(plot.get("layer_index") or 0) != 1
+        or int(plot.get("plot_index") or 0) != plot_index
+        for plot_index, plot in enumerate(current_plots, start=1)
+    ):
+        reasons.append("adaptive EPR graph does not contain the expected one-layer current plot sequence")
+    style_fields = (
+        "color",
+        "line_color",
+        "line_width_origin_units",
+        "line_width_pt",
+        "line_style",
+        "symbol_shape",
+        "symbol_size",
+    )
+    compared: list[dict[str, object]] = []
+    if len(reference_plots) == 3 and len(current_plots) == expected_plot_count:
+        for plot_index, current_plot in enumerate(current_plots, start=1):
+            reference_plot = reference_plots[(plot_index - 1) % 3]
+            reference_style = dict(reference_plot.get("style") or {})
+            current_style = dict(current_plot.get("style") or {})
+            mismatches = [
+                field
+                for field in style_fields
+                if reference_style.get(field) != current_style.get(field)
+            ]
+            if mismatches:
+                reasons.append(
+                    f"adaptive EPR plot {plot_index} style differs: {', '.join(mismatches)}"
+                )
+            compared.append(
+                {
+                    "plot_index": plot_index,
+                    "style_cycle_index": (plot_index - 1) % 3 + 1,
+                    "matches": not mismatches,
+                    "mismatches": mismatches,
+                }
+            )
+    return {
+        "ok": not reasons,
+        "status": "matched" if not reasons else "mismatch",
+        "message": (
+            "Adaptive EPR graph preserves the reviewed native color and 3 pt line-style cycle."
+            if not reasons
+            else "; ".join(reasons)
+        ),
+        "expected_plot_count": expected_plot_count,
+        "current_plot_count": len(current_plots),
+        "plots": compared,
+        "reasons": reasons,
+    }
+
+
+def _validate_adaptive_epr_direct_labels(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    product_style: dict[str, object],
+) -> dict[str, object]:
+    entries = _plain_text_legend_entries(product)
+    names = [f"DL{index}" for index in range(1, len(entries) + 1)]
+    reader = getattr(operations, "read_graph_text_objects", None)
+    if not entries or not callable(reader):
+        return {
+            "ok": False,
+            "status": "blocked",
+            "message": "Adaptive EPR current labels or native object readback are unavailable.",
+        }
+    readback = reader(graph_name, names)
+    if not getattr(readback, "ok", False):
+        return {
+            "ok": False,
+            "status": "mismatch",
+            "message": getattr(readback, "message", "EPR native label readback failed"),
+        }
+    objects = [
+        dict(value)
+        for value in getattr(readback, "payload", {}).get("objects", [])
+        if isinstance(value, dict)
+    ]
+    expected_text = {
+        name: origin_bold_text(entry)
+        for name, entry in zip(names, entries)
+    }
+    failures: list[str] = []
+    actual_text = {str(value.get("name") or ""): str(value.get("text") or "") for value in objects}
+    if actual_text != expected_text:
+        failures.append("native direct-label text does not match the current EPR input labels")
+
+    layout = product_style.get("layout_values") if isinstance(product_style, dict) else None
+    page_width = _snapshot_axis_value(layout, "page.width")
+    page_height = _snapshot_axis_value(layout, "page.height")
+    positions = product_style.get("graph_object_positions")
+    position_names = {
+        str(name)
+        for name in positions
+        if isinstance(positions, dict) and re.fullmatch(r"DL\d+", str(name), flags=re.IGNORECASE)
+    }
+    if {name.casefold() for name in position_names} != {name.casefold() for name in names}:
+        failures.append("stale or missing EPR direct-label objects remain after save/reopen")
+    if page_width is None or page_height is None or page_width <= 0 or page_height <= 0:
+        failures.append("page bounds are unavailable for EPR label validation")
+    else:
+        for value in objects:
+            geometry = {
+                key: _finite_float(value.get(key))
+                for key in ("left", "top", "width", "height")
+            }
+            name = str(value.get("name") or "")
+            if any(number is None for number in geometry.values()):
+                failures.append(f"{name}: incomplete page geometry")
+                continue
+            left = float(geometry["left"])
+            top = float(geometry["top"])
+            width = float(geometry["width"])
+            height = float(geometry["height"])
+            if left < 0 or top < 0 or width <= 0 or height <= 0:
+                failures.append(f"{name}: invalid page geometry")
+            elif left + width > page_width + 1 or top + height > page_height + 1:
+                failures.append(f"{name}: outside the Origin page")
+    legend_show = _snapshot_axis_value(layout, "legend.show")
+    if legend_show is None or abs(legend_show) > 1e-9:
+        failures.append("EPR legend is visible even though native direct labels own the sample names")
+    return {
+        "ok": not failures,
+        "status": "matched" if not failures else "mismatch",
+        "message": (
+            "Adaptive EPR native direct labels contain only current sample names and remain inside the page."
+            if not failures
+            else "; ".join(failures)
+        ),
+        "entries": entries,
+        "object_names": names,
+        "objects": objects,
+        "failures": failures,
+    }
+
+
+def _validate_adaptive_epr_axis_bounds(
+    product_style: dict[str, object],
+    rows: list[list[object]],
+    plot_pairs: list[tuple[int, int]],
+    reference_style_snapshot: dict[str, object],
+) -> dict[str, object]:
+    series = _photocurrent_xy_series(rows, plot_pairs)
+    layout = product_style.get("layout_values") if isinstance(product_style, dict) else None
+    x_from = _snapshot_axis_value(layout, "layer.x.from")
+    x_to = _snapshot_axis_value(layout, "layer.x.to")
+    y_from = _snapshot_axis_value(layout, "layer.y.from")
+    y_to = _snapshot_axis_value(layout, "layer.y.to")
+    failures: list[str] = []
+    if len(series) != len(plot_pairs) or not series:
+        failures.append("current EPR X/Y series are unavailable")
+    if None in {x_from, x_to, y_from, y_to}:
+        failures.append("reopened EPR axis bounds are unavailable")
+    if not failures:
+        x_values = [value for values, _ in series for value in values]
+        y_values = [value for _, values in series for value in values]
+        x_low, x_high = sorted((float(x_from), float(x_to)))
+        y_low, y_high = sorted((float(y_from), float(y_to)))
+        x_tolerance = max((x_high - x_low) * 1e-9, 1e-12)
+        y_tolerance = max((y_high - y_low) * 1e-9, 1e-9)
+        if min(x_values) < x_low - x_tolerance or max(x_values) > x_high + x_tolerance:
+            failures.append("current EPR magnetic-field data are clipped by the reopened X axis")
+        if min(y_values) < y_low - y_tolerance or max(y_values) > y_high + y_tolerance:
+            failures.append("current EPR processed traces are clipped by the reopened Y axis")
+    if _snapshot_axis_value(layout, "layer.y.showLabels") != 0.0:
+        failures.append("reviewed EPR hidden Y tick-value style changed")
+    if _snapshot_axis_value(layout, "layer.x.showLabels") != 1.0:
+        failures.append("reviewed EPR visible X tick-value style changed")
+    page_bounds = _validate_xrd_axis_title_page_bounds(product_style)
+    if not page_bounds.get("ok"):
+        failures.append(str(page_bounds.get("message") or "EPR axis titles are outside the page"))
+    reference_positions = reference_style_snapshot.get("graph_object_positions")
+    current_positions = product_style.get("graph_object_positions")
+    for object_name in ("XB", "YL"):
+        expected = reference_positions.get(object_name) if isinstance(reference_positions, dict) else None
+        actual = current_positions.get(object_name) if isinstance(current_positions, dict) else None
+        if not isinstance(expected, dict) or not isinstance(actual, dict):
+            failures.append(f"reviewed EPR axis-title geometry is unavailable: {object_name}")
+            continue
+        mismatches = [
+            field
+            for field in ("left", "top", "width", "height")
+            if _finite_float(expected.get(field)) is None
+            or _finite_float(actual.get(field)) is None
+            or not math.isclose(
+                float(actual[field]),
+                float(expected[field]),
+                rel_tol=0.0,
+                abs_tol=1.0,
+            )
+        ]
+        if mismatches:
+            failures.append(
+                f"reviewed EPR axis-title page geometry changed for {object_name}: {', '.join(mismatches)}"
+            )
+    return {
+        "ok": not failures,
+        "status": "matched" if not failures else "mismatch",
+        "message": (
+            "Adaptive EPR axes contain every current processed point and preserve tick-label visibility."
+            if not failures
+            else "; ".join(failures)
+        ),
+        "axis_bounds": {
+            "x_from": x_from,
+            "x_to": x_to,
+            "y_from": y_from,
+            "y_to": y_to,
+        },
+        "axis_title_page_bounds": page_bounds,
+        "failures": failures,
+    }
+
+
 def _validate_verified_bet_current_data(
     rows: list[list[object]],
     xy_ranges: list[dict[str, int]],
@@ -7864,6 +8107,54 @@ def _export_saved_format_theme_product_with_origin(
                     "adaptive_xrd_source_validation": xrd_adaptive_source_validation,
                 }
         operations.new_project()
+        adaptive_epr_processing: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        if selected_oth_json and product.product_key == "EPR":
+            adaptive_epr_processing = _prepare_template_epr_origin_processed_workbook(
+                operations,
+                product,
+            )
+            if not adaptive_epr_processing.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(
+                        adaptive_epr_processing.get("message")
+                        or "Adaptive EPR Origin preprocessing failed."
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_epr_processing": adaptive_epr_processing,
+                }
+            try:
+                headers, rows = _read_processed_csv(product.processed_data)
+            except (OSError, ValueError) as exc:
+                return {
+                    "ok": False,
+                    "message": f"Adaptive EPR processed CSV could not be read: {exc}",
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_epr_processing": adaptive_epr_processing,
+                }
+            plot_pairs = _processed_csv_plot_pairs(product, headers)
+            if not plot_pairs:
+                return {
+                    "ok": False,
+                    "message": "Adaptive EPR Origin preprocessing produced no valid shared-X curves.",
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_epr_processing": adaptive_epr_processing,
+                }
+            reset_after_processing = operations.new_project()
+            if not getattr(reset_after_processing, "ok", False):
+                return {
+                    "ok": False,
+                    "message": getattr(
+                        reset_after_processing,
+                        "message",
+                        "Origin reset after adaptive EPR preprocessing failed",
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_epr_processing": adaptive_epr_processing,
+                }
         adaptive_xps_workbooks: dict[str, object] = {
             "ok": True,
             "status": "not_required",
@@ -7896,6 +8187,7 @@ def _export_saved_format_theme_product_with_origin(
         graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
         adaptive_plot_bounds: dict[tuple[int, int], tuple[int, int]] = {}
         if selected_oth_json and product.product_key in {
+            "EPR",
             "Raman",
             "UV-vis DRS",
             "Tauc",
@@ -8015,7 +8307,7 @@ def _export_saved_format_theme_product_with_origin(
         _apply_template_base_global_policies(operations, graph_name, product, style)
         data_axis_policy = (
             {"applied": False, "reason": "deferred_until_saved_snapshots_are_applied"}
-            if product.product_key in {"photocurrent", "UV-vis DRS", "Tauc", "XPS_non_in_situ", "XRD"}
+            if product.product_key in {"EPR", "photocurrent", "UV-vis DRS", "Tauc", "XPS_non_in_situ", "XRD"}
             else _apply_embedded_snapshot_data_axis_range(operations, graph_name, product)
         )
         saved_style_snapshot = _load_saved_style_snapshot(
@@ -8046,6 +8338,7 @@ def _export_saved_format_theme_product_with_origin(
             selected_oth_json and product.product_key in {"UV-vis DRS", "Tauc"}
         )
         adaptive_xrd = bool(selected_oth_json and product.product_key == "XRD")
+        adaptive_epr = bool(selected_oth_json and product.product_key == "EPR")
         adaptive_snapshot_style_applied = bool(
             selected_oth_json
             and saved_style_snapshot
@@ -8055,7 +8348,7 @@ def _export_saved_format_theme_product_with_origin(
                 saved_style_snapshot,
                 apply_default_font=False,
                 apply_axis_titles=True,
-                preserve_custom_rgb=product.product_key == "Mott-Schottky",
+                preserve_custom_rgb=product.product_key in {"Mott-Schottky", "EPR"},
             )
         )
         plot_sequence = (
@@ -8088,7 +8381,11 @@ def _export_saved_format_theme_product_with_origin(
                 graph_name,
                 saved_data_snapshot,
                 cycle_styles=adaptive_cardinality or adaptive_uvvis,
-                preserve_custom_rgb=product.product_key in {"Mott-Schottky", "XPS_non_in_situ"},
+                preserve_custom_rgb=product.product_key in {
+                    "Mott-Schottky",
+                    "XPS_non_in_situ",
+                    "EPR",
+                },
                 product_key=product.product_key,
             )
             if selected_oth_json
@@ -8096,18 +8393,18 @@ def _export_saved_format_theme_product_with_origin(
         )
         if (
             selected_oth_json
-            and product.product_key in {"XPS_in_situ", "XPS_non_in_situ"}
+            and product.product_key in {"EPR", "XPS_in_situ", "XPS_non_in_situ"}
             and not adaptive_plot_style_policy.get("applied")
         ):
             return {
                 "ok": False,
-                "message": "Adaptive XPS per-plot native style restoration failed.",
+                "message": f"Adaptive {product.product_key} per-plot native style restoration failed.",
                 "template_format_plan": plan.to_dict(),
                 "adaptive_plot_style_policy": adaptive_plot_style_policy,
             }
         reviewed_plot_policy = (
             {"applied": False, "reason": "adaptive_route_uses_all_current_plots"}
-            if adaptive_cardinality or adaptive_uvvis or adaptive_xrd
+            if adaptive_cardinality or adaptive_uvvis or adaptive_xrd or adaptive_epr
             else _apply_reviewed_template_plot_policy(
                 operations,
                 graph_name,
@@ -8229,6 +8526,37 @@ def _export_saved_format_theme_product_with_origin(
                 return {
                     "ok": False,
                     "message": "Adaptive XPS non-in-situ current annotation/legend policy failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "legend_policy": legend_policy,
+                }
+        elif adaptive_epr:
+            data_axis_policy = _apply_adaptive_epr_data_axis_range(
+                operations,
+                graph_name,
+                product,
+                reference_style_snapshot=saved_style_snapshot,
+                style=style,
+            )
+            if not data_axis_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive EPR current-data axis range failed.",
+                    "template_format_plan": plan.to_dict(),
+                    "axis_range_policy": data_axis_policy,
+                }
+            legend_policy = _apply_adaptive_epr_direct_labels(
+                operations,
+                graph_name,
+                product,
+                saved_style_snapshot,
+                rows,
+                plot_pairs,
+                data_axis_policy,
+            )
+            if not legend_policy.get("applied"):
+                return {
+                    "ok": False,
+                    "message": "Adaptive EPR native direct-label policy failed.",
                     "template_format_plan": plan.to_dict(),
                     "legend_policy": legend_policy,
                 }
@@ -8395,7 +8723,7 @@ def _export_saved_format_theme_product_with_origin(
                 "applied": False,
                 "reason": "adaptive_oth_json_legend_already_finalized",
             }
-            if selected_oth_json and product.product_key in {"BET", "FTIR", "photocurrent", "UV-vis DRS", "Tauc", "XRD"}
+            if selected_oth_json and product.product_key in {"BET", "EPR", "FTIR", "photocurrent", "UV-vis DRS", "Tauc", "XRD"}
             else {"applied": False, "reason": "adaptive_cardinality_uses_dynamic_current_legend"}
             if adaptive_cardinality or adaptive_uvvis or adaptive_xrd
             else _finalize_reviewed_template_legend(
@@ -8463,7 +8791,7 @@ def _export_saved_format_theme_product_with_origin(
                 reopened_graph,
                 source_label=product.origin_file.name,
                 graph_pages=graph_pages,
-                prefer_custom_rgb=product.product_key == "Mott-Schottky",
+                prefer_custom_rgb=product.product_key in {"Mott-Schottky", "EPR"},
             )
             product_style = snapshot.to_dict()
         except Exception as exc:
@@ -8540,6 +8868,7 @@ def _export_saved_format_theme_product_with_origin(
         }
         if selected_oth_json and product.product_key in {
             "BET",
+            "EPR",
             "Raman",
             "photocurrent",
             "Mott-Schottky",
@@ -8614,6 +8943,66 @@ def _export_saved_format_theme_product_with_origin(
                     "template_format_plan": plan.to_dict(),
                     "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
                 }
+        adaptive_epr_plot_style_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        adaptive_epr_direct_label_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        adaptive_epr_axis_validation: dict[str, object] = {
+            "ok": True,
+            "status": "not_required",
+        }
+        if adaptive_epr:
+            adaptive_epr_plot_style_validation = _validate_adaptive_epr_reopened_plot_styles(
+                saved_data_snapshot,
+                current_data_snapshot,
+                expected_plot_count=len(plot_pairs),
+            )
+            if not adaptive_epr_plot_style_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(
+                        adaptive_epr_plot_style_validation.get("message")
+                        or "Adaptive EPR native plot styles changed after save/reopen."
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_epr_plot_style_validation": adaptive_epr_plot_style_validation,
+                }
+            adaptive_epr_direct_label_validation = _validate_adaptive_epr_direct_labels(
+                operations,
+                reopened_graph,
+                product,
+                product_style,
+            )
+            if not adaptive_epr_direct_label_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(
+                        adaptive_epr_direct_label_validation.get("message")
+                        or "Adaptive EPR native direct labels changed after save/reopen."
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_epr_direct_label_validation": adaptive_epr_direct_label_validation,
+                }
+            adaptive_epr_axis_validation = _validate_adaptive_epr_axis_bounds(
+                product_style,
+                rows,
+                plot_pairs,
+                saved_style_snapshot,
+            )
+            if not adaptive_epr_axis_validation.get("ok"):
+                return {
+                    "ok": False,
+                    "message": str(
+                        adaptive_epr_axis_validation.get("message")
+                        or "Adaptive EPR current data are clipped after save/reopen."
+                    ),
+                    "template_format_plan": plan.to_dict(),
+                    "adaptive_epr_axis_validation": adaptive_epr_axis_validation,
+                }
         bet_product_axis_titles: dict[str, object] | None = None
         if selected_oth_json and product.product_key == "BET":
             bet_y_title_overlay = _read_adaptive_bet_y_title_overlay(
@@ -8685,7 +9074,14 @@ def _export_saved_format_theme_product_with_origin(
             else saved_style_snapshot
         )
         conformance_reference = (
-            _adaptive_raman_conformance_reference(
+            _adaptive_epr_conformance_reference(
+                reference_style_snapshot,
+                saved_data_snapshot,
+                len(plot_pairs),
+                product_style,
+            )
+            if selected_oth_json and product.product_key == "EPR"
+            else _adaptive_raman_conformance_reference(
                 reference_style_snapshot,
                 saved_data_snapshot,
                 len(plot_pairs),
@@ -8833,6 +9229,10 @@ def _export_saved_format_theme_product_with_origin(
             "render_refresh": render_refresh,
             "adaptive_oth_json_validation": adaptive_validation,
             "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
+            "adaptive_epr_processing": adaptive_epr_processing,
+            "adaptive_epr_plot_style_validation": adaptive_epr_plot_style_validation,
+            "adaptive_epr_direct_label_validation": adaptive_epr_direct_label_validation,
+            "adaptive_epr_axis_validation": adaptive_epr_axis_validation,
             "adaptive_xrd_plot_style_validation": adaptive_xrd_plot_style_validation,
             "adaptive_xrd_axis_title_validation": adaptive_xrd_axis_title_validation,
             "adaptive_xps_workbooks": adaptive_xps_workbooks,
@@ -8861,6 +9261,10 @@ def _export_saved_format_theme_product_with_origin(
         "conformance": conformance,
         "adaptive_oth_json_validation": adaptive_validation,
         "adaptive_xps_plot_style_validation": adaptive_xps_plot_style_validation,
+        "adaptive_epr_processing": adaptive_epr_processing,
+        "adaptive_epr_plot_style_validation": adaptive_epr_plot_style_validation,
+        "adaptive_epr_direct_label_validation": adaptive_epr_direct_label_validation,
+        "adaptive_epr_axis_validation": adaptive_epr_axis_validation,
         "adaptive_xrd_plot_style_validation": adaptive_xrd_plot_style_validation,
         "adaptive_xrd_axis_title_validation": adaptive_xrd_axis_title_validation,
         "adaptive_xps_workbooks": adaptive_xps_workbooks,
@@ -9356,6 +9760,7 @@ def _adaptive_oth_json_readback_validation(
         and all(value is not None and value > 0.5 for value in visibility)
     )
     requires_all_current_plots_visible = relaxed or product.product_key in {
+        "EPR",
         "UV-vis DRS",
         "Tauc",
         "XRD",
@@ -9368,6 +9773,7 @@ def _adaptive_oth_json_readback_validation(
         failures.append("fixed-cardinality OTH+JSON style conformance failed")
     requires_current_data_match = product.product_key in {
         "BET",
+        "EPR",
         "Raman",
         "photocurrent",
         "Mott-Schottky",
@@ -9402,6 +9808,22 @@ def _adaptive_oth_json_readback_validation(
             failures.append(
                 f"adaptive XRD must reopen as one layer; found {layer_count}"
             )
+    epr_structure: dict[str, object] = {"ok": True, "status": "not_required"}
+    if product.product_key == "EPR":
+        try:
+            layer_count = int(product_style.get("layer_count") or 0)
+        except (TypeError, ValueError):
+            layer_count = 0
+        epr_structure = {
+            "ok": layer_count == 1 and actual == expected,
+            "status": "matched" if layer_count == 1 and actual == expected else "mismatch",
+            "expected_layer_count": 1,
+            "actual_layer_count": layer_count,
+            "expected_plot_count": expected,
+            "actual_plot_count": actual,
+        }
+        if layer_count != 1:
+            failures.append(f"adaptive EPR must reopen as one layer; found {layer_count}")
     return {
         "ok": not failures,
         "product_key": product.product_key,
@@ -9425,6 +9847,7 @@ def _adaptive_oth_json_readback_validation(
         ),
         "current_data_validation": dict(current_data_validation or {}),
         "xrd_adaptive_structure": xrd_structure,
+        "epr_adaptive_structure": epr_structure,
     }
 
 
@@ -10192,7 +10615,12 @@ def _apply_reviewed_template_plot_styles(
             if value is None:
                 continue
             rendered: int | float = int(round(value)) if integer_value else value
-            commands.append(f"set {plot_name} {option} {_origin_number(rendered)};")
+            rendered_value = (
+                _origin_color_value_for_labtalk(rendered)
+                if preserve_custom_rgb and field == "line_color"
+                else _origin_number(rendered)
+            )
+            commands.append(f"set {plot_name} {option} {rendered_value};")
             restored[field] = rendered
         color = _finite_float(plot_style.get("color"))
         if color is not None:
@@ -10366,6 +10794,76 @@ def _adaptive_uvvis_conformance_reference(
         result[field] = [values[index % len(values)] for index in range(series_count)]
     result["plot_visibility"] = [1.0] * series_count
     result["plot_count"] = series_count
+    return result
+
+
+def _adaptive_epr_conformance_reference(
+    style_snapshot: dict[str, object],
+    data_snapshot: dict[str, object],
+    series_count: int,
+    product_style: dict[str, object],
+) -> dict[str, object]:
+    """Compare invariant EPR style while separately gating current data geometry."""
+
+    raw_plots = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
+    plots = [dict(value) for value in raw_plots if isinstance(value, dict)] if isinstance(raw_plots, list) else []
+    if len(plots) != 3 or series_count <= 0:
+        return dict(style_snapshot)
+    plots.sort(
+        key=lambda value: (
+            int(value.get("layer_index") or 0),
+            int(value.get("plot_index") or 0),
+        )
+    )
+    result = dict(style_snapshot)
+    style_fields = {
+        "plot_colors": "color",
+        "plot_line_colors": "line_color",
+        "plot_line_widths": "line_width_origin_units",
+        "marker_shapes": "symbol_shape",
+        "marker_sizes": "symbol_size",
+    }
+    for field, style_field in style_fields.items():
+        values = [
+            (plot.get("style") or {}).get(style_field)
+            if isinstance(plot.get("style"), dict)
+            else None
+            for plot in plots
+        ]
+        if any(value is None for value in values):
+            continue
+        result[field] = [values[index % 3] for index in range(series_count)]
+    result["plot_count"] = series_count
+    result["layer_count"] = 1
+    result["plot_visibility"] = [1.0] * series_count
+
+    current_layout = dict(product_style.get("layout_values") or {})
+    layout = dict(result.get("layout_values") or {})
+    for field in (
+        "layer.x.from",
+        "layer.x.to",
+        "layer.y.from",
+        "layer.y.to",
+        "xb.x",
+        "xb.y",
+        "yl.x",
+        "yl.y",
+        "legend.x",
+        "legend.y",
+        "legend.fsize",
+    ):
+        if field in current_layout:
+            layout[field] = current_layout[field]
+    result["layout_values"] = layout
+    audit = dict(result.get("audit_numeric_values") or {})
+    for field in (
+        "legend.x",
+        "legend.y",
+        "legend.fsize",
+    ):
+        if field in current_layout:
+            audit[field] = current_layout[field]
+    result["audit_numeric_values"] = audit
     return result
 
 
@@ -11503,6 +12001,280 @@ def _xrd_plotted_y_headers(product: ProductContext, headers: list[str]) -> list[
         for index, header in enumerate(headers[1:], start=1)
         if str(header).strip()
     ]
+
+
+def _apply_adaptive_epr_data_axis_range(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    *,
+    reference_style_snapshot: dict[str, object],
+    style: ResolvedPlotStyle,
+) -> dict[str, object]:
+    set_axis_range = getattr(operations, "set_axis_range", None)
+    if not callable(set_axis_range):
+        return {"applied": False, "reason": "set_axis_range_unavailable"}
+    try:
+        headers, rows = _read_processed_csv(product.processed_data)
+    except (OSError, ValueError) as exc:
+        return {"applied": False, "reason": f"epr_processed_data_unavailable: {exc}"}
+    pairs = _processed_csv_plot_pairs(product, headers)
+    series = _photocurrent_xy_series(rows, pairs)
+    if not pairs or len(series) != len(pairs):
+        return {"applied": False, "reason": "epr_current_xy_series_unavailable"}
+    x_values = [value for x_series, _ in series for value in x_series]
+    y_values = [value for _, y_series in series for value in y_series]
+    x_data_min, x_data_max = min(x_values), max(x_values)
+    y_data_min, y_data_max = min(y_values), max(y_values)
+    if x_data_max <= x_data_min or y_data_max <= y_data_min:
+        return {"applied": False, "reason": "epr_current_xy_bounds_invalid"}
+
+    layout = reference_style_snapshot.get("layout_values")
+    template_x_from = _snapshot_axis_value(layout, "layer.x.from")
+    template_x_to = _snapshot_axis_value(layout, "layer.x.to")
+    template_y_from = _snapshot_axis_value(layout, "layer.y.from")
+    template_y_to = _snapshot_axis_value(layout, "layer.y.to")
+    if None in {template_x_from, template_x_to, template_y_from, template_y_to}:
+        return {"applied": False, "reason": "epr_reference_axis_contract_unavailable"}
+    if template_x_to <= template_x_from or template_y_to <= template_y_from:
+        return {"applied": False, "reason": "epr_reference_axis_contract_invalid"}
+
+    x_span = x_data_max - x_data_min
+    x_padding = max(x_span * 0.02, 1e-9)
+    x_from = x_data_min - x_padding
+    x_to = x_data_max + x_padding
+    y_contract_contains_current = (
+        y_data_min >= float(template_y_from)
+        and y_data_max <= float(template_y_to)
+    )
+    if y_contract_contains_current:
+        y_from, y_to = float(template_y_from), float(template_y_to)
+        y_decision = "reviewed_range_preserved"
+    else:
+        y_span = y_data_max - y_data_min
+        y_padding = max(y_span * 0.08, 1.0)
+        y_from, y_to = y_data_min - y_padding, y_data_max + y_padding
+        y_decision = "current_data_padded"
+
+    result = set_axis_range(
+        graph_name,
+        x_min=x_from,
+        x_max=x_to,
+        y_min=y_from,
+        y_max=y_to,
+    )
+    if not getattr(result, "ok", False):
+        return {"applied": False, "reason": getattr(result, "message", "set_axis_range_failed")}
+
+    title_position = _position_adaptive_epr_axis_titles(
+        operations,
+        graph_name,
+        product.x_label,
+        product.y_label,
+        reference_style_snapshot,
+        style,
+    )
+    if not title_position.get("applied"):
+        return {
+            "applied": False,
+            "reason": "epr_axis_title_page_geometry_restore_failed",
+            "axis_title_policy": title_position,
+        }
+    return {
+        "applied": True,
+        "method": "current_epr_bounds_with_reviewed_y_range_when_nonclipping",
+        "range_changed": True,
+        "x_min": x_from,
+        "x_max": x_to,
+        "y_min": y_from,
+        "y_max": y_to,
+        "current_x_min": x_data_min,
+        "current_x_max": x_data_max,
+        "current_y_min": y_data_min,
+        "current_y_max": y_data_max,
+        "y_range_decision": y_decision,
+        "axis_title_policy": title_position,
+    }
+
+
+def _position_adaptive_epr_axis_titles(
+    operations: object,
+    graph_name: str,
+    x_label: str,
+    y_label: str,
+    style_snapshot: dict[str, object],
+    style: ResolvedPlotStyle,
+) -> dict[str, object]:
+    positioned = _position_adaptive_xrd_axis_titles(
+        operations,
+        graph_name,
+        x_label,
+        y_label,
+        style_snapshot,
+        style,
+    )
+    if not positioned.get("applied"):
+        return positioned
+    saved_positions = style_snapshot.get("graph_object_positions")
+    if not isinstance(saved_positions, dict):
+        return {"applied": False, "reason": "epr_reviewed_axis_title_geometry_missing"}
+    restored: dict[str, object] = {}
+    for object_name in ("XB", "YL"):
+        geometry = saved_positions.get(object_name)
+        if not isinstance(geometry, dict):
+            return {
+                "applied": False,
+                "reason": "epr_reviewed_axis_title_geometry_missing",
+                "object_name": object_name,
+            }
+        result = _restore_graph_object_geometry(
+            operations,
+            graph_name,
+            object_name,
+            geometry,
+        )
+        if not result.get("applied"):
+            return {
+                "applied": False,
+                "reason": "epr_reviewed_axis_title_geometry_restore_failed",
+                "object_name": object_name,
+                "geometry_restore": result,
+            }
+        restored[object_name] = result
+    refreshed = operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; doc -uw;'
+    )
+    if not getattr(refreshed, "ok", False):
+        return {"applied": False, "reason": "epr_axis_title_geometry_refresh_failed"}
+    return {
+        **positioned,
+        "method": "origin_native_axis_titles_with_exact_reviewed_epr_page_geometry",
+        "reviewed_geometry_restored": restored,
+    }
+
+
+def _apply_adaptive_epr_direct_labels(
+    operations: object,
+    graph_name: str,
+    product: ProductContext,
+    snapshot: dict[str, object],
+    rows: list[list[object]],
+    plot_pairs: list[tuple[int, int]],
+    axis_policy: dict[str, object],
+) -> dict[str, object]:
+    entries = [str(value).strip() for value in _plain_text_legend_entries(product)]
+    if not entries or any(not value for value in entries) or len(
+        {value.casefold() for value in entries}
+    ) != len(entries):
+        return {"applied": False, "reason": "epr_current_labels_must_be_nonempty_and_unique"}
+    if len(entries) != len(plot_pairs):
+        return {
+            "applied": False,
+            "reason": "epr_current_label_plot_count_mismatch",
+            "label_count": len(entries),
+            "plot_count": len(plot_pairs),
+        }
+    series = _photocurrent_xy_series(rows, plot_pairs)
+    if len(series) != len(plot_pairs):
+        return {"applied": False, "reason": "epr_current_xy_series_unavailable"}
+    contract = snapshot.get("adaptive_direct_label_contract")
+    if not isinstance(contract, dict):
+        return {"applied": False, "reason": "epr_direct_label_contract_missing"}
+    font_name = str(contract.get("font_name") or "Arial")
+    font_size = int(_finite_float(contract.get("font_size")) or 28)
+    specs: list[dict[str, object]] = []
+    positioning = ""
+    if len(entries) == int(contract.get("fixed_reference_count") or 0):
+        fixed_positions = contract.get("fixed_page_positions")
+        if not isinstance(fixed_positions, dict):
+            return {"applied": False, "reason": "epr_fixed_direct_label_positions_missing"}
+        for index, entry in enumerate(entries, start=1):
+            name = f"DL{index}"
+            geometry = fixed_positions.get(name)
+            if not isinstance(geometry, dict):
+                return {"applied": False, "reason": f"epr_fixed_direct_label_position_missing:{name}"}
+            left = _finite_float(geometry.get("left"))
+            top = _finite_float(geometry.get("top"))
+            if left is None or top is None:
+                return {"applied": False, "reason": f"epr_fixed_direct_label_position_invalid:{name}"}
+            specs.append(
+                {
+                    "name": name,
+                    "text": origin_bold_text(entry),
+                    "left": left,
+                    "top": top,
+                    "font_name": font_name,
+                    "font_size": font_size,
+                }
+            )
+        positioning = "reviewed_page_geometry_for_three_reference_roles"
+    else:
+        x_from = _finite_float(axis_policy.get("x_min"))
+        x_to = _finite_float(axis_policy.get("x_max"))
+        y_from = _finite_float(axis_policy.get("y_min"))
+        y_to = _finite_float(axis_policy.get("y_max"))
+        if None in {x_from, x_to, y_from, y_to} or x_to <= x_from or y_to <= y_from:
+            return {"applied": False, "reason": "epr_adaptive_axis_bounds_unavailable_for_labels"}
+        x_fraction = _finite_float(contract.get("variable_x_fraction")) or 0.82
+        y_offset_fraction = _finite_float(contract.get("variable_y_offset_fraction")) or 0.025
+        x_anchor = x_from + min(0.92, max(0.60, x_fraction)) * (x_to - x_from)
+        y_span = y_to - y_from
+        for index, (entry, (x_values, y_values)) in enumerate(zip(entries, series), start=1):
+            nearest_count = max(16, min(96, len(x_values) // 20))
+            nearest_indices = sorted(
+                range(len(x_values)),
+                key=lambda item: abs(x_values[item] - x_anchor),
+            )[:nearest_count]
+            label_y = median(y_values[item] for item in nearest_indices) + y_offset_fraction * y_span
+            label_y = min(y_to - 0.06 * y_span, max(y_from + 0.06 * y_span, label_y))
+            specs.append(
+                {
+                    "name": f"DL{index}",
+                    "text": origin_bold_text(entry),
+                    "x": x_anchor,
+                    "y": label_y,
+                    "font_name": font_name,
+                    "font_size": font_size,
+                }
+            )
+        positioning = "current_curve_nearest_x_median_layer_scale_anchor"
+    visibility_results = []
+    for index in range(1, len(entries) + 1):
+        result = operations.run_labtalk(
+            f'win -a "{quote_labtalk(graph_name)}"; layer.plot{index}.show=1;'
+        )
+        if not getattr(result, "ok", False):
+            return {"applied": False, "reason": f"epr_current_plot_visibility_failed:{index}"}
+        visibility_results.append(index)
+    replaced = operations.replace_graph_direct_labels(
+        graph_name,
+        specs,
+        remove_names=[f"DL{index}" for index in range(1, max(32, len(entries)) + 1)],
+        hide_legend=True,
+    )
+    if not getattr(replaced, "ok", False):
+        return {
+            "applied": False,
+            "reason": getattr(replaced, "message", "epr_native_direct_label_replace_failed"),
+        }
+    removed_auto_legend = operations.run_labtalk(
+        f'win -a "{quote_labtalk(graph_name)}"; '
+        "label -r Legend;"
+    )
+    if not getattr(removed_auto_legend, "ok", False):
+        return {"applied": False, "reason": "epr_auto_legend_remove_failed"}
+    return {
+        "applied": True,
+        "method": "origin_native_current_data_direct_labels_without_legend",
+        "positioning": positioning,
+        "entries": entries,
+        "object_names": [f"DL{index}" for index in range(1, len(entries) + 1)],
+        "all_current_plots_visible": True,
+        "visible_plot_indices": visibility_results,
+        "legend_hidden": True,
+        "auto_legend_removed_to_match_reviewed_epr_graph": True,
+        "native_objects": getattr(replaced, "payload", {}).get("objects", []),
+    }
 
 
 def _apply_xps_non_in_situ_data_axis_range(

@@ -1444,6 +1444,7 @@ def prepare_template_product(
             template,
             slug,
             compact_output=compact_output,
+            origin_style_mode=origin_style_mode,
         )
         extra.update(epr_extra)
         epr_overlay = epr_extra.get("epr_overlay") if isinstance(epr_extra.get("epr_overlay"), dict) else {}
@@ -3805,12 +3806,22 @@ def _create_template_epr_origin_processed_graph(operations: object, product: Pro
         return processed
     book_name = str(processed["book_name"])
     final_headers = [str(value) for value in processed["headers"]]
+    final_origin_columns = [int(value) for value in processed.get("final_origin_columns", [])]
+    if len(final_headers) < 2 or len(final_origin_columns) != len(final_headers):
+        return {"ok": False, "message": "EPR processed output columns are incomplete"}
     graph_name = safe_name(product.slug)[:24] or "TemplateGraph"
-    created = operations.create_graph(graph_name, book_name, "Sheet1", 1, 11, plot_type=product.plot_type)
+    created = operations.create_graph(
+        graph_name,
+        book_name,
+        "Sheet1",
+        final_origin_columns[0],
+        final_origin_columns[1],
+        plot_type=product.plot_type,
+    )
     if not getattr(created, "ok", False):
         return {"ok": False, "message": getattr(created, "message", "EPR Origin graph creation failed")}
     graph_name = str(created.payload["graph_name"])
-    for column_index in (12, 13):
+    for column_index in final_origin_columns[2:]:
         added = operations.add_plot_to_graph(graph_name, book_name, "Sheet1", 1, column_index, plot_type=product.plot_type)
         if not getattr(added, "ok", False):
             return {"ok": False, "message": getattr(added, "message", f"EPR plot add failed for column {column_index}")}
@@ -3841,9 +3852,9 @@ def _prepare_template_epr_origin_processed_workbook(operations: object, product:
     if not getattr(imported, "ok", False):
         return {"ok": False, "message": getattr(imported, "message", "EPR raw import failed")}
     book_name = str(imported.payload["book_name"])
-    labels = [str(value) for value in plan.get("labels", ["BC", "CWO", "BOBC"])]
-    if len(labels) != 3:
-        return {"ok": False, "message": f"EPR Origin processing expects 3 traces, got labels={labels}"}
+    labels = [str(value).strip() for value in plan.get("labels", [])]
+    if not labels or any(not label for label in labels) or len(set(label.casefold() for label in labels)) != len(labels):
+        return {"ok": False, "message": f"EPR Origin processing requires non-empty unique trace labels, got labels={labels}"}
     script = _template_epr_origin_processing_script(book_name, labels)
     executed = operations.run_labtalk(script)
     if not getattr(executed, "ok", False):
@@ -3852,49 +3863,51 @@ def _prepare_template_epr_origin_processed_workbook(operations: object, product:
     if not getattr(worksheet, "ok", False):
         return {"ok": False, "message": getattr(worksheet, "message", "EPR processed worksheet readback failed")}
     columns = worksheet.payload.get("columns", [])
-    if not isinstance(columns, list) or len(columns) < 13:
+    trace_count = len(labels)
+    raw_start = 2
+    baseline_start = raw_start + trace_count
+    smoothed_start = baseline_start + trace_count
+    final_start = smoothed_start + trace_count
+    final_origin_columns = [1, *range(final_start, final_start + trace_count)]
+    final_end = final_origin_columns[-1]
+    if not isinstance(columns, list) or len(columns) < final_end:
         return {"ok": False, "message": f"EPR processed worksheet has too few columns: {len(columns) if isinstance(columns, list) else 'unreadable'}"}
     final_headers = ["magnetic_field", *labels]
-    detail_headers = [
-        "magnetic_field",
-        f"{labels[0]}_raw",
-        f"{labels[0]}_baseline_corrected",
-        f"{labels[0]}_smoothed",
-        f"{labels[0]}_offset",
-        f"{labels[1]}_raw",
-        f"{labels[1]}_baseline_corrected",
-        f"{labels[1]}_smoothed",
-        f"{labels[1]}_offset",
-        f"{labels[2]}_raw",
-        f"{labels[2]}_baseline_corrected",
-        f"{labels[2]}_smoothed",
-        f"{labels[2]}_offset",
-    ]
-    _write_columns_csv(product.processed_data, final_headers, [columns[0], columns[10], columns[11], columns[12]])
+    detail_headers = ["magnetic_field"]
+    detail_columns: list[list[object]] = [columns[0]]
+    for index, label in enumerate(labels):
+        detail_headers.extend(
+            [
+                f"{label}_raw",
+                f"{label}_baseline_corrected",
+                f"{label}_smoothed",
+                f"{label}_offset",
+            ]
+        )
+        detail_columns.extend(
+            [
+                columns[raw_start - 1 + index],
+                columns[baseline_start - 1 + index],
+                columns[smoothed_start - 1 + index],
+                columns[final_start - 1 + index],
+            ]
+        )
+    _write_columns_csv(
+        product.processed_data,
+        final_headers,
+        [columns[column_index - 1] for column_index in final_origin_columns],
+    )
     detail_csv = _resolve_template_plan_path(plan_path, plan.get("origin_detail_csv")) if plan.get("origin_detail_csv") else (product.type_root / "processed_data" / "epr_origin_detail.csv")
     _write_columns_csv(
         detail_csv,
         detail_headers,
-        [
-            columns[0],
-            columns[1],
-            columns[4],
-            columns[7],
-            columns[10],
-            columns[2],
-            columns[5],
-            columns[8],
-            columns[11],
-            columns[3],
-            columns[6],
-            columns[9],
-            columns[12],
-        ],
+        detail_columns,
     )
     return {
         "ok": True,
         "headers": final_headers,
         "book_name": book_name,
+        "final_origin_columns": final_origin_columns,
         "origin_processing": {
             "required": True,
             "applied": True,
@@ -3907,6 +3920,10 @@ def _prepare_template_epr_origin_processed_workbook(operations: object, product:
             "normalization": plan.get("normalization"),
             "input_files": list(plan.get("input_files", [])),
             "labels": labels,
+            "trace_count": trace_count,
+            "final_headers": final_headers,
+            "final_origin_columns": final_origin_columns,
+            "detail_headers": detail_headers,
             "labtalk_script_written_to_workbook": True,
         },
     }
@@ -3940,7 +3957,7 @@ def _resolve_template_plan_path(plan_path: Path, value: object) -> Path:
     return (plan_path.parent / path).resolve()
 
 
-def _template_epr_origin_processing_script(book_name: str, labels: list[str]) -> str:
+def _template_epr_origin_processing_script_legacy_three_trace(book_name: str, labels: list[str]) -> str:
     safe_labels = [quote_labtalk(label) for label in labels]
     return (
         f'win -a "{quote_labtalk(book_name)}"; '
@@ -3984,6 +4001,96 @@ def _template_epr_origin_processing_script(book_name: str, labels: list[str]) ->
         "col(11)=col(8)+2*step; col(12)=col(9)+step; col(13)=col(10); "
         "wks.col14.hidden=1; wks.col15.hidden=1; wks.col16.hidden=1;"
     )
+
+
+def _template_epr_origin_processing_script(book_name: str, labels: list[str]) -> str:
+    """Build the Origin-native EPR transform for one or more aligned traces.
+
+    The three-trace product is a verified legacy contract: retaining its
+    LabTalk verbatim preserves its A/K/L/M workbook layout.  The adaptive
+    OTH+JSON route uses the same raw/baseline/smoothed/final column bands for
+    arbitrary trace counts, with the final traces vertically ordered from the
+    first current input at the top to the last at the bottom.
+    """
+
+    if len(labels) == 3:
+        return _template_epr_origin_processing_script_legacy_three_trace(book_name, labels)
+    if not labels:
+        raise ValueError("EPR Origin processing requires at least one trace label")
+    if any(not str(label).strip() for label in labels):
+        raise ValueError("EPR Origin processing labels must be non-empty")
+    if len({str(label).casefold() for label in labels}) != len(labels):
+        raise ValueError("EPR Origin processing labels must be unique")
+
+    trace_count = len(labels)
+    raw_start = 2
+    baseline_start = raw_start + trace_count
+    smoothed_start = baseline_start + trace_count
+    final_start = smoothed_start + trace_count
+    edge_start = final_start + trace_count
+    commands = [
+        f'win -a "{quote_labtalk(book_name)}"',
+        f"wks.nCols={1 + 5 * trace_count}",
+        'wks.col1.lname$="magnetic_field"',
+    ]
+    for index, label in enumerate(labels):
+        safe_label = quote_labtalk(str(label))
+        raw_col = raw_start + index
+        baseline_col = baseline_start + index
+        smoothed_col = smoothed_start + index
+        final_col = final_start + index
+        edge_col = edge_start + index
+        commands.extend(
+            [
+                f'wks.col{raw_col}.lname$="{safe_label}_raw"',
+                f'wks.col{baseline_col}.lname$="{safe_label}_baseline_corrected"',
+                f'wks.col{smoothed_col}.lname$="{safe_label}_smoothed"',
+                f'wks.col{final_col}.lname$="{safe_label}"',
+                f'wks.col{edge_col}.lname$="baseline_edge_{index + 1}"',
+            ]
+        )
+    commands.extend(
+        [
+            "int nrows=wks.maxRows",
+            "int edge=max(20, int(nrows*0.05))",
+            "if(edge*2>nrows) edge=max(1, int(nrows/2))",
+        ]
+    )
+    for index in range(trace_count):
+        raw_col = raw_start + index
+        edge_col = edge_start + index
+        commands.extend(
+            [
+                f"col({edge_col})=",
+                "for(ii=1; ii<=edge; ii++) { "
+                f"col({edge_col})[ii]=col({raw_col})[ii]; "
+                f"col({edge_col})[ii+edge]=col({raw_col})[nrows-edge+ii]; "
+                "}",
+                f"double base{index + 1}=median(col({edge_col}))",
+                f"col({baseline_start + index})=col({raw_col})-base{index + 1}",
+                f"smooth iy:=col({baseline_start + index}) method:=aav npts:=7 oy:=col({smoothed_start + index})",
+            ]
+        )
+    commands.append("dataset __template_epr_ranges")
+    commands.append(f"__template_epr_ranges.SetSize({trace_count})")
+    for index in range(trace_count):
+        smoothed_col = smoothed_start + index
+        commands.append(
+            f"__template_epr_ranges[{index + 1}]=max(col({smoothed_col}))-min(col({smoothed_col}))"
+        )
+    commands.extend(
+        [
+            "double medr=median(__template_epr_ranges)",
+            "double step=medr*0.85",
+            "if(step<=100) step=ceil(step/10)*10; else step=ceil(step/50)*50",
+        ]
+    )
+    for index in range(trace_count):
+        multiplier = trace_count - index - 1
+        commands.append(f"col({final_start + index})=col({smoothed_start + index})+{multiplier}*step")
+    for index in range(trace_count):
+        commands.append(f"wks.col{edge_start + index}.hidden=1")
+    return "; ".join(commands) + ";"
 
 
 def _write_columns_csv(path: Path, headers: list[str], columns: list[list[object]]) -> None:
@@ -4313,28 +4420,38 @@ def _build_template_epr_table(
     slug: str,
     *,
     compact_output: bool = False,
+    origin_style_mode: str = "auto",
 ) -> tuple[list[str], list[list[float | str | None]], dict[str, str], dict[str, object]]:
+    origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
     group_name = _select_template_epr_group(pairing, template)
-    reference_dir = _infer_template_epr_reference_dir(pairing.data_paths, group_name)
-    entries = DEFAULT_EPR_GROUPS[group_name]
-    traces = []
-    for label, file_name in entries:
-        path = reference_dir / file_name
-        if not path.is_file():
-            raise FileNotFoundError(f"EPR overlay input missing for {group_name}: {path}")
-        export = read_verified_jeol_export_series(path)
-        traces.append(
-            {
-                "label": label,
-                "file_name": file_name,
-                "path": path,
-                "x": export.x_values,
-                "y": export.y_values,
-                "field_unit": export.x_unit,
-                "field_axis_source": export.axis_source,
-                "raw_source": export.raw_source,
-            }
-        )
+    reference_dir: Path | None = None
+    if origin_style_mode == "oth-json":
+        traces = _template_explicit_epr_traces(pairing)
+        selected_group_rule = "explicit oth-json pairing.data_paths only; no neighbouring directory scan"
+        source_selection_mode = "explicit_pairing_adaptive_oth_json"
+    else:
+        reference_dir = _infer_template_epr_reference_dir(pairing.data_paths, group_name)
+        entries = DEFAULT_EPR_GROUPS[group_name]
+        traces = []
+        for label, file_name in entries:
+            path = reference_dir / file_name
+            if not path.is_file():
+                raise FileNotFoundError(f"EPR overlay input missing for {group_name}: {path}")
+            export = read_verified_jeol_export_series(path)
+            traces.append(
+                {
+                    "label": label,
+                    "file_name": file_name,
+                    "path": path,
+                    "x": export.x_values,
+                    "y": export.y_values,
+                    "field_unit": export.x_unit,
+                    "field_axis_source": export.axis_source,
+                    "raw_source": export.raw_source,
+                }
+            )
+        selected_group_rule = "template graph page takes priority over the single seed pairing file"
+        source_selection_mode = "reviewed_template_group_fixed_three_trace"
     _validate_template_epr_common_x([trace["x"] for trace in traces])
     field_units = {str(trace["field_unit"]) for trace in traces if str(trace["field_unit"]).strip()}
     if len(field_units) > 1:
@@ -4342,8 +4459,9 @@ def _build_template_epr_table(
     field_unit = next(iter(field_units), "G")
     sidecar_root = type_root / "debug" if compact_output else type_root / "processed_data"
     plan_root = type_root / "debug" if compact_output else type_root / "metadata"
-    raw_csv = sidecar_root / f"epr_{group_name.lower()}_overlay_origin_raw_input.csv"
-    detail_csv = sidecar_root / f"epr_{group_name.lower()}_overlay_origin_detail.csv"
+    file_token = group_name.lower() if origin_style_mode != "oth-json" else "adaptive"
+    raw_csv = sidecar_root / f"epr_{file_token}_overlay_origin_raw_input.csv"
+    detail_csv = sidecar_root / f"epr_{file_token}_overlay_origin_detail.csv"
     plan_path = plan_root / "epr_origin_processing_plan.json"
     final_csv = type_root / f"{slug}.csv" if compact_output else type_root / "processed_data" / f"{slug}.csv"
     raw_headers = ["magnetic_field", *[f"{trace['label']}_raw" for trace in traces]]
@@ -4352,14 +4470,30 @@ def _build_template_epr_table(
         for row_index, x_value in enumerate(traces[0]["x"])
     ]
     _write_csv(raw_csv, raw_headers, raw_rows)
+    trace_count = len(traces)
+    final_start = 3 * trace_count + 2
+    output_column_layout = {
+        "magnetic_field": 1,
+        "raw_columns": list(range(2, trace_count + 2)),
+        "baseline_corrected_columns": list(range(trace_count + 2, 2 * trace_count + 2)),
+        "smoothed_columns": list(range(2 * trace_count + 2, 3 * trace_count + 2)),
+        "final_offset_columns": list(range(final_start, final_start + trace_count)),
+        "baseline_edge_columns": list(range(4 * trace_count + 2, 5 * trace_count + 2)),
+    }
     processing_plan = {
         "processing_location": "Origin LabTalk workbook after raw data import",
         "raw_origin_input_csv": _template_plan_relative_path(plan_path, raw_csv),
         "origin_detail_csv": _template_plan_relative_path(plan_path, detail_csv),
         "final_product_processed_csv": _template_plan_relative_path(plan_path, final_csv),
         "group": group_name,
+        "origin_style_mode_requested": origin_style_mode,
+        "source_selection_mode": source_selection_mode,
+        "trace_count": trace_count,
         "input_files": [str(trace["path"]) for trace in traces],
         "labels": [str(trace["label"]) for trace in traces],
+        "raw_headers": raw_headers,
+        "final_headers": ["magnetic_field", *[str(trace["label"]) for trace in traces]],
+        "output_column_layout": output_column_layout,
         "field_unit": field_unit,
         "field_axis_sources": {str(trace["label"]): str(trace["field_axis_source"]) for trace in traces},
         "verified_raw_sources": {
@@ -4371,7 +4505,11 @@ def _build_template_epr_table(
         "smoothing": "Origin smooth X-Function, adjacent averaging, npts=7",
         "normalization": "none",
         "background_subtraction": "none",
-        "offset_rule": "Origin LabTalk median peak-to-peak range * 0.85 rounded to readable step; BC top, CWO middle, BOBC bottom",
+        "offset_rule": (
+            "Origin LabTalk median peak-to-peak range * 0.85 rounded to readable step; input trace order is top-to-bottom"
+            if origin_style_mode == "oth-json"
+            else "Origin LabTalk median peak-to-peak range * 0.85 rounded to readable step; BC top, CWO middle, BOBC bottom"
+        ),
         "review_policy": "processed in Origin for visualization/manual review only; no radical assignment or mechanism conclusion",
     }
     plan_path.parent.mkdir(parents=True, exist_ok=True)
@@ -4394,9 +4532,9 @@ def _build_template_epr_table(
     return headers, rows, labels, {
         "epr_overlay": {
             **processing_plan,
-            "selected_group_rule": "template graph page takes priority over the single seed pairing file",
+            "selected_group_rule": selected_group_rule,
             "template_graph_page": template.graph_page,
-            "reference_dir": str(reference_dir),
+            "reference_dir": str(reference_dir) if reference_dir is not None else "",
             "point_count": len(raw_rows),
             "x_min": min(traces[0]["x"]),
             "x_max": max(traces[0]["x"]),
@@ -4404,6 +4542,58 @@ def _build_template_epr_table(
             "forbidden_claims": ["no radical species assignment", "no mechanism conclusion"],
         }
     }
+
+
+def _template_explicit_epr_traces(pairing: TargetPairing) -> list[dict[str, object]]:
+    """Read only the EPR files the caller explicitly paired for adaptive mode."""
+
+    paths = _template_unique_paths(list(pairing.data_paths))
+    if not paths:
+        raise ValueError("EPR adaptive oth-json mode requires at least one explicitly paired source file")
+    traces: list[dict[str, object]] = []
+    used_labels: set[str] = set()
+    for index, path in enumerate(paths, start=1):
+        if not path.is_file():
+            raise ValueError(f"EPR adaptive oth-json pairing contains a missing source file: {path}")
+        try:
+            export = read_verified_jeol_export_series(path)
+        except Exception as exc:
+            raise ValueError(f"EPR adaptive oth-json pairing contains an unreadable EPR export: {path}") from exc
+        label = _template_epr_explicit_label(path, used_labels, index)
+        traces.append(
+            {
+                "label": label,
+                "file_name": path.name,
+                "path": path,
+                "x": export.x_values,
+                "y": export.y_values,
+                "field_unit": export.x_unit,
+                "field_axis_source": export.axis_source,
+                "raw_source": export.raw_source,
+            }
+        )
+    return traces
+
+
+def _template_epr_explicit_label(path: Path, used_labels: set[str], index: int) -> str:
+    """Derive a CSV/Origin-safe, non-empty and case-insensitively unique label."""
+
+    base = safe_name(path.stem) or f"trace_{index}"
+    condition_suffix = re.compile(
+        r"[-_](?:O3|OH)[-_](?:light\d*|dark(?:\d*|[-_]none)?)$",
+        flags=re.IGNORECASE,
+    )
+    sample_only = condition_suffix.sub("", base).strip("-_")
+    candidate = (sample_only or base)[:42] or f"trace_{index}"
+    if candidate.casefold() in used_labels:
+        candidate = base[:42] or f"trace_{index}"
+    suffix = 2
+    while candidate.casefold() in used_labels:
+        suffix_text = f"_{suffix}"
+        candidate = f"{base[: max(1, 42 - len(suffix_text))]}{suffix_text}"
+        suffix += 1
+    used_labels.add(candidate.casefold())
+    return candidate
 
 
 def _validate_template_epr_common_x(series: list[list[float]]) -> None:

@@ -41,6 +41,9 @@ class FakeGraphObject:
         self.Top = top
         self.Width = width
         self.Height = height
+        self.Attach = 0
+        self.X = 0
+        self.Y = 0
 
 
 class FakeGraphObjects:
@@ -144,6 +147,15 @@ class FakeOriginApp:
         for name in re.findall(r"label\s+-n\s+([A-Za-z0-9_]+)\s+-s", script):
             if not any(item.Name == name for item in self.graph_objects):
                 self.graph_objects.append(FakeGraphObject(name, "", 0, 0, 0, 0))
+        for item in self.graph_objects:
+            for attr, pattern in (
+                ("Attach", rf"{re.escape(item.Name)}\.attach=([-+0-9.eE]+)"),
+                ("X", rf"{re.escape(item.Name)}\.x=([-+0-9.eE]+)"),
+                ("Y", rf"{re.escape(item.Name)}\.y=([-+0-9.eE]+)"),
+            ):
+                match = re.search(pattern, script, flags=re.IGNORECASE)
+                if match:
+                    setattr(item, attr, float(match.group(1)))
         return True
 
     def PutWorksheet(self, target: str, values: list[float], row: int, col: int):
@@ -538,6 +550,58 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertIn("rdop_plain_legend.x=0.456", command_text)
         self.assertIn("rdop_plain_legend.y=20.074", command_text)
         self.assertEqual(result.payload["anchor_data"], {"x": 0.456, "y": 20.074})
+
+    def test_replace_graph_direct_labels_owns_only_named_native_text_objects(self):
+        app = FakeOriginApp()
+        app.graph_objects.extend(
+            [
+                FakeGraphObject("DL1", "old", 1, 2, 3, 4),
+                FakeGraphObject("DL3", "stale", 5, 6, 7, 8),
+            ]
+        )
+        ops = OriginOperations(app)
+
+        result = ops.replace_graph_direct_labels(
+            "Fig1",
+            [
+                {
+                    "name": "DL1",
+                    "text": r"\b(Sample A)",
+                    "left": 4611,
+                    "top": 982,
+                    "font_name": "Arial",
+                    "font_size": 28,
+                },
+                {
+                    "name": "DL2",
+                    "text": r"\b(Sample B)",
+                    "x": 332.0,
+                    "y": 400.0,
+                    "font_name": "Arial",
+                    "font_size": 28,
+                },
+            ],
+            remove_names=["DL1", "DL2", "DL3"],
+        )
+
+        self.assertTrue(result.ok, result.message)
+        labels = {
+            item.Name: item
+            for item in app.graph_objects
+            if item.Name.startswith("DL")
+        }
+        self.assertEqual(set(labels), {"DL1", "DL2"})
+        self.assertEqual(labels["DL1"].Text, r"\b(Sample A)")
+        self.assertEqual(labels["DL1"].Left, 4611)
+        self.assertEqual(labels["DL1"].Top, 982)
+        self.assertEqual(labels["DL1"].Attach, 1)
+        self.assertEqual(labels["DL2"].Text, r"\b(Sample B)")
+        self.assertEqual(labels["DL2"].Attach, 2)
+        self.assertEqual(labels["DL2"].X, 332)
+        self.assertEqual(labels["DL2"].Y, 400)
+        command_text = "\n".join(app.commands)
+        self.assertIn("legend.show=0", command_text)
+        self.assertNotIn("label -r Text", command_text)
 
     def test_graph_style_and_export_operations(self):
         app = FakeOriginApp()

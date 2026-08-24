@@ -129,9 +129,67 @@
     1.0,
     1.0
   ],
-  "graph_object_positions": {},
+  "graph_object_positions": {
+    "XB": {
+      "left": 1936,
+      "top": 4536,
+      "width": 2817,
+      "height": 338
+    },
+    "YL": {
+      "left": 720,
+      "top": 1320,
+      "width": 350,
+      "height": 2036
+    },
+    "DL1": {
+      "left": 4611,
+      "top": 982,
+      "width": 748,
+      "height": 296
+    },
+    "DL2": {
+      "left": 4181,
+      "top": 1680,
+      "width": 1256,
+      "height": 296
+    },
+    "DL3": {
+      "left": 4601,
+      "top": 2722,
+      "width": 823,
+      "height": 251
+    }
+  },
+  "adaptive_direct_label_contract": {
+    "object_prefix": "DL",
+    "fixed_reference_count": 3,
+    "fixed_page_positions": {
+      "DL1": {
+        "left": 4611,
+        "top": 982
+      },
+      "DL2": {
+        "left": 4181,
+        "top": 1680
+      },
+      "DL3": {
+        "left": 4601,
+        "top": 2722
+      }
+    },
+    "variable_positioning": "layer_scale_anchor_from_current_curve_nearest_x_median",
+    "variable_x_fraction": 0.82,
+    "variable_y_offset_fraction": 0.025,
+    "font_name": "Arial",
+    "font_size": 28,
+    "bold": true,
+    "legend_visible": false,
+    "current_text_only": true
+  },
   "warnings": [
     "Visible scientific annotations are not copied from the exemplar.",
+    "Only the reviewed DL1-DL3 geometry is retained; runtime label text must come from current EPR input labels.",
     "Series line width is later overridden by the product policy when required."
   ],
   "copied_visible_text": false,

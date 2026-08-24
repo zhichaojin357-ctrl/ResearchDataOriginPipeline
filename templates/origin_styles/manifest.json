@@ -533,6 +533,7 @@
       "status": "accepted",
       "graph_page": "EPR0601FULL",
       "format_theme": "format_themes/EPR.oth",
+      "format_theme_role": "adaptive_runtime",
       "preview_png": "",
       "reference_preview_png": "",
       "template_preview_comparison_png": "",
@@ -541,6 +542,7 @@
       "graph_template": "graph_templates/EPR.otpu",
       "binding_contract": "binding_contracts/EPR.json",
       "runtime_validation_evidence": "validation_evidence/EPR_verified_20260822.json",
+      "adaptive_runtime_validation_evidence": "validation_evidence/EPR_oth_json_adaptive_verified_20260825.json",
       "validation_plan": "validation_plans/EPR_verified_20260822.json",
       "style_snapshot": "snapshots/EPR.json",
       "data_snapshot": "data_snapshots/EPR.json",
@@ -577,6 +579,11 @@
           "sha256": "e0c0c1e24e57f06ae29b9649319dc9c5f211f75139433f18f3f0ed64cedb602a",
           "size_bytes": 3775
         },
+        "adaptive_runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "d3613318fb4f27f1165889f8e5c7713ffd5d273d1165f81ceb34c42c6fd97d73",
+          "size_bytes": 5261
+        },
         "validation_plan": {
           "kind": "json",
           "sha256": "7307a7e159ba7362d36e76ad9fb5b0b5e110d59a1407a0df0a36c49b2aee747e",
@@ -584,8 +591,8 @@
         },
         "style_snapshot": {
           "kind": "json",
-          "sha256": "1d8d903ed215a020a51e0b7583b20ecf14b18d2d27021eed479e1b58bf6c9a35",
-          "size_bytes": 3544
+          "sha256": "2913cb4c16165691798a69b0513ff474f41952a457e57fcd03e0a5a8e0634a44",
+          "size_bytes": 4771
         },
         "data_snapshot": {
           "kind": "json",

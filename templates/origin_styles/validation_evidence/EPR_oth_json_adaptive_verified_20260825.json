@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_detached_adaptive_oth_json_validation",
+  "product_key": "EPR",
+  "status": "accepted",
+  "generated_at": "2026-08-24T14:30:00+08:00",
+  "runtime_role": "adaptive_runtime",
+  "manual_preview_passed": true,
+  "manual_preview_note": "Primary-agent visual inspection confirmed two complete native Origin traces, short current-sample direct labels BC and BOBC, the reviewed color and 3 pt line-style cycle, complete bold Magnetic Field (mT) and Intensity (a.u.) titles, visible X tick labels, hidden Y tick values, no legend, no stale reference label, and no clipping or overlap.",
+  "asset": {
+    "kind": "oth_json",
+    "format_theme": "format_themes/EPR.oth",
+    "style_snapshot": "snapshots/EPR.json",
+    "data_snapshot": "data_snapshots/EPR.json",
+    "binding_contract": "binding_contracts/EPR.json",
+    "source_mode": "reviewed_theme_plus_native_origin_processing_and_explicit_style_object_replay"
+  },
+  "generation_boundary": {
+    "entrypoint": "Origin.Application",
+    "fresh_project": true,
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "one_to_one_exact_match_claim_allowed": false
+  },
+  "variable_cardinality_validation": {
+    "status": "accepted",
+    "evidence_location": "diagnostics/20260825_EPR_adaptive_oth_json_runtime/runs/20260825_14_template_format_products/products/EPR/metadata.json",
+    "origin_style_mode_requested": "oth-json",
+    "style_execution_mode": "variable_structure_oth_json",
+    "style_execution_reason_code": "explicit_adaptive_oth_json",
+    "current_series_count": 2,
+    "contract_series_count": 3,
+    "reopened_plot_count": 2,
+    "series_cardinality_relaxed": true,
+    "real_original_source_file_count": 2,
+    "current_labels": [
+      "BC",
+      "BOBC"
+    ],
+    "origin_processing": {
+      "applied": true,
+      "location": "native Origin workbook LabTalk",
+      "baseline_correction": "edge-region median baseline subtraction",
+      "smoothing": "Origin smooth X-Function adjacent averaging npts=7",
+      "normalization": "none",
+      "processed_csv_read_back_after_origin": true
+    },
+    "current_xy_values_match_reopened_graph": true,
+    "native_plot_style_readback": {
+      "status": "matched",
+      "matched_plots": 2,
+      "expected_plots": 2,
+      "line_width_pt": 3.0,
+      "reviewed_color_and_line_style_cycle": true,
+      "symbols_hidden": true
+    },
+    "native_direct_labels": {
+      "status": "matched",
+      "object_names": [
+        "DL1",
+        "DL2"
+      ],
+      "entries": [
+        "BC",
+        "BOBC"
+      ],
+      "current_text_only": true,
+      "inside_page": true,
+      "auto_legend_removed": true
+    },
+    "native_axis_titles": {
+      "status": "matched",
+      "x_title": "Magnetic Field (mT)",
+      "y_title": "Intensity (a.u.)",
+      "reviewed_page_geometry_restored": true,
+      "all_current_processed_points_inside_axis_bounds": true
+    },
+    "saved_reopened": true,
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true,
+    "pixel_comparison": {
+      "role": "not_an_acceptance_gate_for_variable_current_data",
+      "performed": false,
+      "one_to_one_exact_match": false
+    }
+  },
+  "generalization_contract": {
+    "status": "implementation_and_contract_validated",
+    "supported_series_cardinality": "one_or_more_aligned_current_EPR_traces",
+    "source_selection": "explicit pairing.data_paths only; no neighbouring-directory substitution",
+    "labels": "measurement-condition suffixes are removed when unambiguous and all labels remain case-insensitively unique",
+    "style_cycle": "reviewed native EPR plot styles cycle across current traces",
+    "fixed_three_trace_compatibility": "legacy A/K/L/M workbook layout and processing script preserved",
+    "targeted_tests": [
+      "tests/test_template_product_builder_strict.py::test_template_epr_explicit_oth_json_uses_only_four_paired_traces",
+      "tests/test_template_product_builder_strict.py::test_template_epr_explicit_labels_strip_measurement_condition_and_stay_unique",
+      "tests/test_template_product_builder_strict.py::test_template_epr_adaptive_four_trace_origin_columns_and_graph_are_dynamic",
+      "tests/test_template_format_executor.py::test_adaptive_epr_variable_count_uses_native_current_labels",
+      "tests/test_template_format_executor.py::test_adaptive_epr_reopened_styles_cycle_for_variable_curve_count"
+    ]
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.9689054726368,
+    "effective_dpi_y": 599.8374974608978,
+    "sensitive_metadata_scan": "pass"
+  },
+  "acceptance_note": "The independently verified EPR OTPU remains the exact fixed three-series route. OTH+JSON is the detached adaptive route for current EPR series counts. Both routes use native Origin objects; the adaptive route processes and plots only current input data, never loads the reference OPJU as a product base, and makes no pixel-exact claim for different current data."
+}

@@ -18,10 +18,13 @@ from src.core.template_format_executor import (
     TEMPLATE_FORMAT_SCOPE,
     TemplateFormatExecutorOptions,
     _adaptive_raman_conformance_reference,
+    _adaptive_epr_conformance_reference,
     _adaptive_series_count_conformance,
     _adaptive_oth_json_readback_validation,
     _adaptive_photocurrent_validation_ranges,
     _apply_embedded_snapshot_data_axis_range,
+    _apply_adaptive_epr_data_axis_range,
+    _apply_adaptive_epr_direct_labels,
     _apply_adaptive_bet_oth_json_text_policy,
     _apply_adaptive_dynamic_legend_policy,
     _apply_adaptive_xrd_standard_card_plot_styles,
@@ -82,6 +85,7 @@ from src.core.template_format_executor import (
     _validate_adaptive_xps_in_situ_reopened_plot_styles,
     _validate_xps_non_in_situ_reopened_plot_styles,
     _validate_adaptive_xps_non_in_situ_reopened_plot_styles,
+    _validate_adaptive_epr_reopened_plot_styles,
     _validate_photocurrent_axis_titles,
     _validate_bet_axis_titles,
     _update_verified_epr_label_objects,
@@ -4242,6 +4246,206 @@ def test_epr_verified_field_data_overrides_legacy_template_axis_range(tmp_path: 
 
     assert result["method"] == "epr_verified_field_bounds_after_legacy_style_geometry"
     assert ops.axis_calls == [{"x_min": 324.0011, "x_max": 333.9989, "y_min": None, "y_max": None}]
+
+
+def test_adaptive_epr_axis_contains_current_data_and_preserves_reviewed_y_range(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    processed = tmp_path / "epr_adaptive.csv"
+    processed.write_text(
+        "magnetic_field,Sample_A,Sample_B\n"
+        "324.0,900,300\n"
+        "334.0,850,-100\n",
+        encoding="utf-8",
+    )
+    product = replace(_product(tmp_path, processed), product_key="EPR")
+    ops = _FakeAxisOps()
+    monkeypatch.setattr(
+        "src.core.template_format_executor._position_adaptive_epr_axis_titles",
+        lambda *_args, **_kwargs: {"applied": True, "positions": {"XB": {}, "YL": {}}},
+    )
+    snapshot = {
+        "layout_values": {
+            "layer.x.from": 324.02,
+            "layer.x.to": 324.6,
+            "layer.y.from": -500,
+            "layer.y.to": 1300,
+            "xb.x": 324.3111093023256,
+            "xb.y": -805.0070721357849,
+            "yl.x": 323.9861468308253,
+            "yl.y": 400.2545968882603,
+        }
+    }
+
+    result = _apply_adaptive_epr_data_axis_range(
+        ops,
+        "EPR",
+        product,
+        reference_style_snapshot=snapshot,
+        style=ResolvedPlotStyle(),
+    )
+
+    assert result["applied"] is True
+    assert result["y_range_decision"] == "reviewed_range_preserved"
+    assert ops.axis_calls == [{"x_min": 323.8, "x_max": 334.2, "y_min": -500.0, "y_max": 1300.0}]
+    assert result["axis_title_policy"]["applied"] is True
+
+
+def test_adaptive_epr_variable_count_uses_native_current_labels(tmp_path: Path) -> None:
+    processed = tmp_path / "epr_adaptive.csv"
+    processed.write_text(
+        "magnetic_field,Sample_A,Sample_B\n"
+        "324.0,900,300\n"
+        "325.0,880,280\n"
+        "326.0,860,260\n",
+        encoding="utf-8",
+    )
+    product = replace(
+        _product(tmp_path, processed),
+        product_key="EPR",
+        legend_entries=["Sample_A", "Sample_B"],
+    )
+
+    class Ops:
+        def __init__(self) -> None:
+            self.commands: list[str] = []
+            self.labels: list[dict[str, object]] = []
+            self.remove_names: list[str] = []
+
+        def run_labtalk(self, command: str) -> OperationResult:
+            self.commands.append(command)
+            return OperationResult(True, "ok")
+
+        def replace_graph_direct_labels(
+            self,
+            _graph_name: str,
+            labels: list[dict[str, object]],
+            *,
+            remove_names: list[str],
+            hide_legend: bool,
+        ) -> OperationResult:
+            assert hide_legend is True
+            self.labels = labels
+            self.remove_names = remove_names
+            return OperationResult(True, "ok", {"objects": labels})
+
+    ops = Ops()
+    result = _apply_adaptive_epr_direct_labels(
+        ops,
+        "EPR",
+        product,
+        {
+            "adaptive_direct_label_contract": {
+                "fixed_reference_count": 3,
+                "variable_x_fraction": 0.82,
+                "variable_y_offset_fraction": 0.025,
+                "font_name": "Arial",
+                "font_size": 28,
+            }
+        },
+        [[324.0, 900.0, 300.0], [325.0, 880.0, 280.0], [326.0, 860.0, 260.0]],
+        [(1, 2), (1, 3)],
+        {"x_min": 323.8, "x_max": 326.2, "y_min": -500.0, "y_max": 1300.0},
+    )
+
+    assert result["applied"] is True
+    assert [value["name"] for value in ops.labels] == ["DL1", "DL2"]
+    assert [value["text"] for value in ops.labels] == [r"\b(Sample_A)", r"\b(Sample_B)"]
+    assert all("x" in value and "y" in value for value in ops.labels)
+    assert "DL3" in ops.remove_names and "DL32" in ops.remove_names
+    assert len(ops.commands) == 3
+    assert "label -r Legend" in ops.commands[-1]
+
+
+def test_adaptive_epr_reopened_styles_cycle_for_variable_curve_count() -> None:
+    styles = [
+        {"color": 10.0, "line_color": 10.0, "line_width_origin_units": 1500.0, "line_width_pt": 3.0, "line_style": 1.0, "symbol_shape": 0.0, "symbol_size": 9.0},
+        {"color": 20.0, "line_color": 20.0, "line_width_origin_units": 1500.0, "line_width_pt": 3.0, "line_style": 1.0, "symbol_shape": 0.0, "symbol_size": 9.0},
+        {"color": 30.0, "line_color": 30.0, "line_width_origin_units": 1500.0, "line_width_pt": 3.0, "line_style": 1.0, "symbol_shape": 0.0, "symbol_size": 9.0},
+    ]
+    reference = {
+        "status": "ready",
+        "plots": [
+            {"layer_index": 1, "plot_index": index, "style": style}
+            for index, style in enumerate(styles, start=1)
+        ],
+    }
+    current = {
+        "plots": [
+            {"layer_index": 1, "plot_index": index, "style": dict(styles[(index - 1) % 3])}
+            for index in range(1, 5)
+        ]
+    }
+
+    assert _validate_adaptive_epr_reopened_plot_styles(
+        reference,
+        current,
+        expected_plot_count=4,
+    )["ok"] is True
+    current["plots"][3]["style"]["line_width_pt"] = 2.0
+    rejected = _validate_adaptive_epr_reopened_plot_styles(
+        reference,
+        current,
+        expected_plot_count=4,
+    )
+    assert rejected["ok"] is False
+    assert "line_width_pt" in rejected["message"]
+
+
+def test_adaptive_epr_conformance_reference_cycles_styles_and_uses_current_data_geometry() -> None:
+    style = {
+        "plot_count": 3,
+        "layer_count": 1,
+        "plot_colors": [10, 20, 30],
+        "plot_line_colors": [10, 20, 30],
+        "plot_line_widths": [1500, 1500, 1500],
+        "marker_shapes": [0, 0, 0],
+        "marker_sizes": [9, 9, 9],
+        "plot_visibility": [1, 1, 1],
+        "layout_values": {
+            "layer.y.from": -500,
+            "layer.y.to": 1300,
+            "legend.x": 0,
+            "legend.y": 0,
+            "legend.fsize": 0,
+        },
+        "audit_numeric_values": {"legend.x": 0, "legend.y": 0, "legend.fsize": 0},
+    }
+    data = {
+        "plots": [
+            {
+                "layer_index": 1,
+                "plot_index": index,
+                "style": {
+                    "color": color,
+                    "line_color": color,
+                    "line_width_origin_units": 1500,
+                    "symbol_shape": 0,
+                    "symbol_size": 9,
+                },
+            }
+            for index, color in enumerate((10, 20, 30), start=1)
+        ]
+    }
+    current = {
+        "layout_values": {
+            "layer.y.from": -600,
+            "layer.y.to": 800,
+            "legend.x": 333,
+            "legend.y": 700,
+            "legend.fsize": 14,
+        }
+    }
+
+    result = _adaptive_epr_conformance_reference(style, data, 2, current)
+
+    assert result["plot_count"] == 2
+    assert result["plot_colors"] == [10, 20]
+    assert result["plot_line_widths"] == [1500, 1500]
+    assert result["plot_visibility"] == [1.0, 1.0]
+    assert result["layout_values"]["layer.y.from"] == -600
+    assert result["audit_numeric_values"]["legend.fsize"] == 14
 
 
 def test_xrd_standard_card_keeps_every_selected_sample_plus_card(tmp_path: Path) -> None:

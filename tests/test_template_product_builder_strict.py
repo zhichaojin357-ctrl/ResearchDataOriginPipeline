@@ -47,6 +47,9 @@ from src.core.template_product_builder import (
     _template_strict_visual_reasons,
     _validate_independent_style_replay_item,
     _template_epr_origin_processing_script,
+    _template_epr_explicit_label,
+    _prepare_template_epr_origin_processed_workbook,
+    _create_template_epr_origin_processed_graph,
     _write_template_per_type_report,
     _write_template_identity_origin_processing_plan,
     _write_template_origin_processing_plan,
@@ -1717,6 +1720,128 @@ def test_template_epr_finds_the_current_chinese_export_directory(
     assert selected == reference_dir
 
 
+def test_template_epr_explicit_oth_json_uses_only_four_paired_traces(tmp_path: Path) -> None:
+    selected_dir = tmp_path / "EPR" / "current"
+    selected_dir.mkdir(parents=True)
+    selected = [
+        selected_dir / "sample A.xlsx",
+        selected_dir / "sample_A.xlsx",
+        selected_dir / "third trace.xlsx",
+        selected_dir / "第四条曲线.xlsx",
+    ]
+    for index, path in enumerate(selected, start=1):
+        _write_epr_xlsx(path, [index, index + 1, index + 2, index + 3, index + 4])
+    # These are deliberately valid, nearby legacy group members.  The explicit
+    # adaptive route must not discover or substitute them.
+    for name in ("BC-OH-light2.xlsx", "CWO-OH-light2.xlsx", "BOBC-OH-light1.xlsx"):
+        _write_epr_xlsx(selected_dir / name, [999, 999, 999, 999, 999])
+    reference = tmp_path / "template.opju"
+    reference.write_bytes(b"placeholder")
+    pairing = TargetPairing("EPR", "EPR", "", "root", selected, "root", reference)
+    template = TemplateCandidate("EPR", reference, "unit", graph_page="ohG", plot_count=3)
+
+    product, extra = prepare_template_product(
+        tmp_path / "run",
+        pairing,
+        template,
+        origin_style_mode="oth-json",
+    )
+
+    overlay = extra["epr_overlay"]
+    assert overlay["source_selection_mode"] == "explicit_pairing_adaptive_oth_json"
+    assert overlay["selected_group_rule"].startswith("explicit oth-json pairing.data_paths")
+    assert overlay["input_files"] == [str(path) for path in selected]
+    assert overlay["trace_count"] == 4
+    assert overlay["labels"] == ["sample_A", "sample_A_2", "third_trace", "dataset"]
+    assert overlay["final_headers"] == ["magnetic_field", *overlay["labels"]]
+    assert overlay["output_column_layout"]["final_offset_columns"] == [14, 15, 16, 17]
+    assert product.pairing.data_paths == selected
+    assert all("BC-OH-light2.xlsx" not in value for value in overlay["input_files"])
+
+
+def test_template_epr_explicit_labels_strip_measurement_condition_and_stay_unique() -> None:
+    used: set[str] = set()
+
+    assert _template_epr_explicit_label(Path("BC-OH-light2.xlsx"), used, 1) == "BC"
+    assert _template_epr_explicit_label(Path("BOBC-O3-dark-none.xlsx"), used, 2) == "BOBC"
+    assert _template_epr_explicit_label(Path("BiCu-10.xlsx"), used, 3) == "BiCu-10"
+    assert _template_epr_explicit_label(Path("BC-OH-light1.xlsx"), used, 4) == "BC-OH-light1"
+
+
+def test_template_epr_adaptive_four_trace_origin_columns_and_graph_are_dynamic(tmp_path: Path) -> None:
+    selected_dir = tmp_path / "EPR" / "current"
+    selected_dir.mkdir(parents=True)
+    selected = [selected_dir / f"trace_{index}.xlsx" for index in range(1, 5)]
+    for index, path in enumerate(selected, start=1):
+        _write_epr_xlsx(path, [index, index + 1, index + 2, index + 3, index + 4])
+    reference = tmp_path / "template.opju"
+    reference.write_bytes(b"placeholder")
+    pairing = TargetPairing("EPR", "EPR", "", "root", selected, "root", reference)
+    template = TemplateCandidate("EPR", reference, "unit", graph_page="ohG", plot_count=3)
+    product, _extra = prepare_template_product(
+        tmp_path / "run",
+        pairing,
+        template,
+        origin_style_mode="oth-json",
+    )
+
+    class Result:
+        def __init__(self, *, payload: dict[str, object] | None = None) -> None:
+            self.ok = True
+            self.message = "ok"
+            self.payload = payload or {}
+
+    class Operations:
+        def __init__(self) -> None:
+            self.scripts: list[str] = []
+            self.graph_calls: list[tuple[int, int]] = []
+            self.added_columns: list[int] = []
+
+        def import_csv_to_worksheet(self, _path: Path, *, book_name: str) -> Result:
+            return Result(payload={"book_name": book_name})
+
+        def run_labtalk(self, script: str) -> Result:
+            self.scripts.append(script)
+            return Result()
+
+        def get_worksheet_data(self, _book_name: str, _sheet_name: str) -> Result:
+            return Result(payload={"columns": [[column * 10.0, column * 10.0 + 1.0] for column in range(1, 22)]})
+
+        def create_graph(self, _graph_name: str, _book_name: str, _sheet_name: str, x_col: int, y_col: int, *, plot_type: str) -> Result:
+            assert plot_type == "line"
+            self.graph_calls.append((x_col, y_col))
+            return Result(payload={"graph_name": "EPRGraph"})
+
+        def add_plot_to_graph(self, _graph_name: str, _book_name: str, _sheet_name: str, x_col: int, y_col: int, *, plot_type: str) -> Result:
+            assert x_col == 1
+            assert plot_type == "line"
+            self.added_columns.append(y_col)
+            return Result()
+
+    operations = Operations()
+    processed = _prepare_template_epr_origin_processed_workbook(operations, product)
+
+    assert processed["ok"] is True
+    assert processed["final_origin_columns"] == [1, 14, 15, 16, 17]
+    assert processed["origin_processing"]["detail_headers"] == [
+        "magnetic_field",
+        "trace_1_raw", "trace_1_baseline_corrected", "trace_1_smoothed", "trace_1_offset",
+        "trace_2_raw", "trace_2_baseline_corrected", "trace_2_smoothed", "trace_2_offset",
+        "trace_3_raw", "trace_3_baseline_corrected", "trace_3_smoothed", "trace_3_offset",
+        "trace_4_raw", "trace_4_baseline_corrected", "trace_4_smoothed", "trace_4_offset",
+    ]
+    assert "wks.nCols=21" in operations.scripts[-1]
+    assert "col(14)=col(10)+3*step" in operations.scripts[-1]
+    assert "col(17)=col(13)+0*step" in operations.scripts[-1]
+    assert "median(__template_epr_ranges)" in operations.scripts[-1]
+    assert product.processed_data.read_text(encoding="utf-8").splitlines()[0] == "magnetic_field,trace_1,trace_2,trace_3,trace_4"
+
+    created = _create_template_epr_origin_processed_graph(operations, product)
+    assert created["ok"] is True
+    assert operations.graph_calls[-1] == (1, 14)
+    assert operations.added_columns == [15, 16, 17]
+
+
 def test_template_bet_selects_one_material_each_from_coherent_cohort(tmp_path: Path) -> None:
     bet_root = tmp_path / "BET"
     seed = bet_root / "new_single" / "20260701-BOBC.XLS"
@@ -2231,6 +2356,7 @@ def test_template_epr_origin_processing_script_uses_origin_median_and_smooth() -
     script = _template_epr_origin_processing_script("EPRBook", ["BC", "CWO", "BOBC"])
 
     assert 'win -a "EPRBook"' in script
+    assert "wks.nCols=16" in script
     assert "median(col(14))" in script
     assert "smooth iy:=col(5) method:=aav npts:=7 oy:=col(8)" in script
     assert "smooth iy:=col(6) method:=aav npts:=7 oy:=col(9)" in script

@@ -2297,6 +2297,181 @@ class OriginOperations:
             },
         )
 
+    def replace_graph_direct_labels(
+        self,
+        graph_name: str,
+        labels: Iterable[dict[str, object]],
+        *,
+        remove_names: Iterable[str] = (),
+        hide_legend: bool = True,
+    ) -> OperationResult:
+        """Create current-data native Origin text labels and read them back.
+
+        Each label must provide ``name`` and ``text`` plus either page
+        coordinates (``left``/``top``) or layer data coordinates (``x``/``y``).
+        Only explicitly named objects are removed or replaced.
+        """
+
+        graph = quote_labtalk(graph_name)
+        normalized: list[dict[str, object]] = []
+        names: set[str] = set()
+        for raw in labels:
+            if not isinstance(raw, dict):
+                return OperationResult(False, "Every direct-label specification must be an object")
+            name = str(raw.get("name") or "").strip()
+            text = str(raw.get("text") or "").strip()
+            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,39}", name) is None:
+                return OperationResult(False, f"Invalid Origin graph-object name: {name!r}")
+            if name.casefold() in names:
+                return OperationResult(False, f"Duplicate Origin graph-object name: {name}")
+            if not text:
+                return OperationResult(False, f"Origin direct label {name} has empty text")
+            page_position = _finite_graph_label_pair(raw, "left", "top")
+            data_position = _finite_graph_label_pair(raw, "x", "y")
+            if (page_position is None) == (data_position is None):
+                return OperationResult(
+                    False,
+                    f"Origin direct label {name} requires exactly one position kind",
+                )
+            names.add(name.casefold())
+            normalized.append(
+                {
+                    **raw,
+                    "name": name,
+                    "text": text,
+                    "page_position": page_position,
+                    "data_position": data_position,
+                }
+            )
+
+        removals: list[str] = []
+        for raw_name in remove_names:
+            name = str(raw_name or "").strip()
+            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,39}", name) is None:
+                return OperationResult(False, f"Invalid removable graph-object name: {name!r}")
+            if name not in removals:
+                removals.append(name)
+
+        layer = self._graph_layer(graph_name, 1)
+        if layer is None:
+            return OperationResult(False, f"Graph layer not found: [{graph_name}]Layer1")
+        activated = self.run_labtalk(f'win -a "{graph}";')
+        if not activated.ok:
+            return OperationResult(False, f"Graph could not be activated: {graph_name}")
+        if hide_legend:
+            hidden = self.run_labtalk("legend.show=0;")
+            if not hidden.ok:
+                return OperationResult(False, "Origin graph legend could not be hidden")
+        for name in removals:
+            removed = self.run_labtalk(f"label -r {name};")
+            if not removed.ok:
+                return OperationResult(False, f"Origin graph object could not be removed: {name}")
+
+        for spec in normalized:
+            name = str(spec["name"])
+            created = self.run_labtalk(f'label -n {name} -s " ";')
+            if not created.ok:
+                return OperationResult(False, f"Origin direct label could not be created: {name}")
+            layer = self._graph_layer(graph_name, 1)
+            graph_object = _find_graph_object(layer, name) if layer is not None else None
+            if graph_object is None:
+                return OperationResult(False, f"Origin direct label was not readable: {name}")
+            try:
+                graph_object.Text = str(spec["text"])
+            except Exception as exc:
+                return OperationResult(False, f"Origin direct-label text write failed for {name}: {exc}")
+            font_name = str(spec.get("font_name") or "Arial")
+            font_size = int(spec.get("font_size") or 26)
+            color = int(spec.get("color") or 1)
+            styled = self.run_labtalk(
+                f"{name}.font=font({quote_labtalk(font_name)}); "
+                f"{name}.fsize={font_size}; "
+                f"{name}.color={'color(black)' if color == 1 else color};"
+            )
+            if not styled.ok:
+                return OperationResult(False, f"Origin direct-label style failed for {name}")
+            page_position = spec.get("page_position")
+            data_position = spec.get("data_position")
+            if isinstance(page_position, tuple):
+                attached = self.run_labtalk(f"{name}.attach=1;")
+                if not attached.ok:
+                    return OperationResult(False, f"Origin direct label could not attach to page: {name}")
+                try:
+                    graph_object.Left = float(page_position[0])
+                    graph_object.Top = float(page_position[1])
+                except Exception as exc:
+                    return OperationResult(False, f"Origin direct-label page positioning failed for {name}: {exc}")
+            elif isinstance(data_position, tuple):
+                positioned = self.run_labtalk(
+                    f"{name}.attach=2; "
+                    f"{name}.x={float(data_position[0]):.17g}; "
+                    f"{name}.y={float(data_position[1]):.17g};"
+                )
+                if not positioned.ok:
+                    return OperationResult(False, f"Origin direct-label data positioning failed for {name}")
+
+        readback = self.read_graph_text_objects(graph_name, [str(item["name"]) for item in normalized])
+        if not readback.ok:
+            return readback
+        expected_text = {str(item["name"]): str(item["text"]) for item in normalized}
+        actual = {
+            str(item.get("name") or ""): str(item.get("text") or "")
+            for item in readback.payload.get("objects", [])
+            if isinstance(item, dict)
+        }
+        if actual != expected_text:
+            return OperationResult(
+                False,
+                "Origin direct-label text readback did not match",
+                {"expected": expected_text, "actual": actual},
+            )
+        return OperationResult(
+            True,
+            "Origin native direct labels replaced and read back",
+            {
+                "graph_name": graph_name,
+                "removed_names": removals,
+                "objects": readback.payload.get("objects", []),
+                "legend_hidden": hide_legend,
+            },
+        )
+
+    def read_graph_text_objects(
+        self,
+        graph_name: str,
+        names: Iterable[str],
+    ) -> OperationResult:
+        requested = [str(value or "").strip() for value in names]
+        if any(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,39}", name) is None for name in requested):
+            return OperationResult(False, "Invalid Origin graph-object name requested")
+        if len({name.casefold() for name in requested}) != len(requested):
+            return OperationResult(False, "Duplicate Origin graph-object name requested")
+        layer = self._graph_layer(graph_name, 1)
+        if layer is None:
+            return OperationResult(False, f"Graph layer not found: [{graph_name}]Layer1")
+        infos = _graph_object_infos(layer)
+        records: list[dict[str, object]] = []
+        for name in requested:
+            matches = [
+                value
+                for value in infos
+                if str(value.get("name") or "").casefold() == name.casefold()
+            ]
+            if len(matches) != 1:
+                return OperationResult(
+                    False,
+                    f"Origin graph object {name} is missing or not unique",
+                    {"name": name, "match_count": len(matches)},
+                )
+            value = dict(matches[0])
+            value.pop("object", None)
+            records.append(value)
+        return OperationResult(
+            True,
+            "Origin graph text objects read back",
+            {"graph_name": graph_name, "objects": records},
+        )
+
     def _plot_names(self, graph_name: str) -> list[str]:
         names: list[str] = []
         for layer_index in range(1, self._graph_layer_count(graph_name) + 1):
@@ -2585,6 +2760,9 @@ def _graph_object_infos(layer: object) -> list[dict[str, object]]:
                 "top": _graph_object_float(graph_object, "Top"),
                 "width": _graph_object_float(graph_object, "Width"),
                 "height": _graph_object_float(graph_object, "Height"),
+                "attach": _graph_object_float(graph_object, "Attach"),
+                "x": _graph_object_float(graph_object, "X"),
+                "y": _graph_object_float(graph_object, "Y"),
             }
         )
     return infos
@@ -2602,6 +2780,23 @@ def _graph_object_float(graph_object: object, attr: str) -> float:
         return float(getattr(graph_object, attr))
     except Exception:
         return 0.0
+
+
+def _finite_graph_label_pair(
+    value: dict[str, object],
+    first: str,
+    second: str,
+) -> tuple[float, float] | None:
+    if first not in value and second not in value:
+        return None
+    try:
+        first_value = float(value[first])
+        second_value = float(value[second])
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(first_value) or not math.isfinite(second_value):
+        return None
+    return first_value, second_value
 
 
 def _find_legend_info(objects: list[dict[str, object]]) -> dict[str, object] | None:
