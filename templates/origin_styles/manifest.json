@@ -292,9 +292,10 @@
       "template_opju": "reference_opju/XRD.opju",
       "data_snapshot": "data_snapshots/XRD.json",
       "source_mode": "individually_regenerated_from_reviewed_reference_opju",
-      "format_theme_role": "adaptive_runtime_candidate",
+      "format_theme_role": "adaptive_runtime",
       "binding_contract": "binding_contracts/XRD.json",
       "runtime_validation_evidence": "validation_evidence/XRD_verified_20260823.json",
+      "adaptive_runtime_validation_evidence": "validation_evidence/XRD_oth_json_adaptive_verified_20260824.json",
       "validation_plan": "validation_plans/XRD_verified_20260823.json",
       "asset_kind": "otpu",
       "sha256": "a891cad5f30b377c4c811708fa1fc56d272e218932ff02ade4bc25406149ebe1",
@@ -327,6 +328,11 @@
           "kind": "json",
           "sha256": "8c902af03bd7b434123543fb166ef914bc11f3d4b427034b4c3fa3b00fc08b35",
           "size_bytes": 3799
+        },
+        "adaptive_runtime_validation_evidence": {
+          "kind": "json",
+          "sha256": "b17596012e68ca7619be634879ef9feb341da11178cd46180d74df6d8b7b977c",
+          "size_bytes": 4967
         },
         "validation_plan": {
           "kind": "json",

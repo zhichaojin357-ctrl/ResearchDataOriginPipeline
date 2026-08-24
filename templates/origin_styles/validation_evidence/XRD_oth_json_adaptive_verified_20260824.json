@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "origin_detached_adaptive_oth_json_current_data_validation",
+  "product_key": "XRD",
+  "status": "accepted",
+  "generated_at": "2026-08-24T21:00:00+08:00",
+  "runtime_role": "adaptive_runtime",
+  "asset": {
+    "kind": "oth_json",
+    "format_theme": "format_themes/XRD.oth",
+    "style_snapshot": "snapshots/XRD.json",
+    "data_snapshot": "data_snapshots/XRD.json",
+    "binding_contract": "binding_contracts/XRD.json",
+    "source_mode": "reviewed_theme_with_explicit_shared_x_sample_and_reference_card_roles"
+  },
+  "generation_boundary": {
+    "entrypoint": "Origin.Application",
+    "fresh_project": true,
+    "reference_opju_loaded_during_generation": false,
+    "reference_opju_used_as_product_base": false,
+    "automatic_error_fallback": false,
+    "one_to_one_exact_match_claim_allowed": false
+  },
+  "current_data_validation": {
+    "status": "accepted",
+    "origin_style_mode_requested": "auto",
+    "style_execution_mode": "variable_structure_oth_json",
+    "evidence_location": "runs/20260824_210000_XRD_card_adaptive_origin_12_template_format_products/products/XRD/metadata.json",
+    "source_pairing": "diagnostics/20260824_xrd_standard_card_adaptive_pairing.json",
+    "current_series_count": 2,
+    "sample_count": 1,
+    "reference_card_count": 1,
+    "reopened_plot_count": 2,
+    "current_plot_values_match_csv": true,
+    "saved_reopened": true,
+    "style_conformance": {
+      "status": "pass"
+    },
+    "native_style_readback": {
+      "status": "matched",
+      "sample_plot_type": "line",
+      "reference_card_plot_type": "column",
+      "sample_and_card_plot_styles_match": true,
+      "font_family_arial": true,
+      "axis_title_font_size_36": true,
+      "axis_title_bold": true,
+      "axis_title_visible": true,
+      "axis_title_no_overlap": true,
+      "legend_no_frame": true,
+      "legend_bold": true
+    },
+    "native_axis_title_bounds": {
+      "status": "matched",
+      "x_title": "2theta (degree)",
+      "y_title": "Intensity (a.u.)",
+      "page_attached": true,
+      "fully_inside_page_after_reopen": true
+    },
+    "native_tif_600dpi_verified": true,
+    "manual_preview_passed": true,
+    "manual_preview_note": "Primary-agent inspection confirmed one current sample curve, one native Origin column-stick reference card, current labels, bold visible axis titles, and no raster overlays or stale template labels.",
+    "preview_location": "runs/20260824_210000_XRD_card_adaptive_origin_12_template_format_products/products/XRD/XRD_BOBC_exemplar_template_format.png"
+  },
+  "variable_structure_support": {
+    "status": "implementation_and_contract_validated",
+    "origin_visual_run_scope": "one current sample plus one supplied reference card, limited per user request to control test scale",
+    "source_layout": "one shared two_theta_deg X column, one or more unique sample Y columns, and exactly one final reference-card Y column",
+    "semantic_guards": [
+      "every current sample column is plotted in source order",
+      "sample headers are nonempty and unique",
+      "exactly one reference-card header is required",
+      "the reference-card column must be the final Y column",
+      "every series has contiguous paired finite X/Y rows"
+    ],
+    "native_origin_construction": "one clean Origin layer with native sample line plots and one native column-stick reference-card plot",
+    "style_cycle": "reviewed XRD sample color sequence with a native Wine reference-card column style",
+    "targeted_tests": [
+      "tests/test_template_format_executor.py::test_xrd_standard_card_keeps_every_selected_sample_plus_card",
+      "tests/test_template_format_executor.py::test_adaptive_xrd_standard_card_requires_exactly_one_final_card_header",
+      "tests/test_template_format_executor.py::test_adaptive_xrd_standard_card_semantic_styles_write_and_read_back",
+      "tests/test_template_format_executor.py::test_adaptive_xrd_axis_titles_use_native_page_geometry_and_remain_in_bounds",
+      "tests/test_template_format_executor.py::test_adaptive_xrd_requires_current_data_and_one_layer_after_reopen"
+    ]
+  },
+  "tif_600dpi": {
+    "verified": true,
+    "requested_dpi": 600,
+    "page_width_origin_units": 6432.0,
+    "page_height_origin_units": 4923.0,
+    "width_px": 3859,
+    "height_px": 2953,
+    "expected_width_px": 3859,
+    "expected_height_px": 2954,
+    "tagged_dpi_x": 600.0,
+    "tagged_dpi_y": 600.0,
+    "effective_dpi_x": 599.968905472637,
+    "effective_dpi_y": 599.837497460898,
+    "sensitive_metadata_scan": "pass"
+  },
+  "acceptance_note": "XRD OTH+JSON is accepted as the detached adaptive route for current shared-X sample patterns with one supplied reference card. It uses only native Origin workbooks, plots, labels, OPJU save/reopen, and native export. The independently verified fixed OTPU remains the exact four-sample-plus-card zero-pixel route; this adaptive current-data route deliberately makes no one-to-one pixel claim."
+}

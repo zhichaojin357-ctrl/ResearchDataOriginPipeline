@@ -71,7 +71,8 @@ fallbacks. Runtime `.otpu` dispatch is manifest-driven. The current individually
 regenerated and independently validated products are BET, EIS, EPR, PL,
 photocurrent, Raman, FTIR, Mott-Schottky, UV-vis DRS, Tauc, XRD with a standard
 card, and the fixed nine-curve XRD no-card layout. BET, XRD no-card, Raman,
-photocurrent, FTIR, Mott-Schottky, UV-vis DRS, and Tauc also retain separately
+photocurrent, FTIR, Mott-Schottky, UV-vis DRS, Tauc, and XRD with a standard
+card also retain separately
 validated adaptive OTH+JSON routes for variable curve counts or current-data
 semantic identities.
 
@@ -160,6 +161,14 @@ semantic identities.
   replay changed zero decoded pixels, and the separate real-data PNG was
   inspected with one bold X title, one bold Y title, three current sample
   curves, and the current standard card.
+- Its separately accepted adaptive `.oth`+JSON route handles any positive
+  sample count followed by exactly one supplied reference-card column in one
+  clean Origin layer. The controlled current-data run plotted one real sample
+  and one native Origin column-stick card, matched every reopened X/Y value,
+  retained native bold page-attached axis titles after save/reopen, passed
+  style readback and native 600 dpi export, and loaded no reference OPJU. This
+  current-data validation deliberately makes no one-to-one pixel claim; the
+  fixed four-sample-plus-card `.otpu` remains the exact replay route.
 - XRD without a standard card now has two detached native-Origin paths:
   exactly nine curves use `XRD_no_card.otpu`; every other positive count uses
   `XRD_no_card.oth` plus the explicit style/label contract. Both same-data
