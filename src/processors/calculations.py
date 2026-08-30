@@ -1,8 +1,30 @@
 from __future__ import annotations
 
 import re
+from bisect import bisect_left
+from collections.abc import Callable
+from functools import lru_cache
 from math import isfinite
 from math import sqrt
+from typing import TypeVar, cast
+
+
+_T = TypeVar("_T")
+_CACHE_MISSING = object()
+
+
+def _cached_calculation(
+    cache: dict[str, object] | None,
+    key: str,
+    factory: Callable[[], _T],
+) -> _T:
+    if cache is None:
+        return factory()
+    cached = cache.get(key, _CACHE_MISSING)
+    if cached is _CACHE_MISSING:
+        cached = factory()
+        cache[key] = cached
+    return cast(_T, cached)
 
 
 def type_specific_results(
@@ -11,6 +33,7 @@ def type_specific_results(
     rows: list[dict[str, str]],
     *,
     xrd_peak_parameters: tuple[float, float] | None = None,
+    calculation_cache: dict[str, object] | None = None,
 ) -> dict:
     y_values = [y for _, y in numeric]
     if data_type == "XRD":
@@ -18,8 +41,17 @@ def type_specific_results(
         # Parameterised prominence/distance detection is reserved for the
         # explicit Jade phase-screening workflow.
         if xrd_peak_parameters is None:
-            return {"peak_position_candidates": local_peak_positions(numeric)}
-        peak_positions, peak_detection = xrd_peak_positions(numeric, xrd_peak_parameters=xrd_peak_parameters)
+            peak_positions = _cached_calculation(
+                calculation_cache,
+                "xrd_peak_positions_default",
+                lambda: local_peak_positions(numeric),
+            )
+            return {"peak_position_candidates": peak_positions}
+        peak_positions, peak_detection = _cached_calculation(
+            calculation_cache,
+            "xrd_peak_positions_parameterized",
+            lambda: xrd_peak_positions(numeric, xrd_peak_parameters=xrd_peak_parameters),
+        )
         return {
             "peak_position_candidates": peak_positions,
             "peak_detection": peak_detection,
@@ -29,15 +61,24 @@ def type_specific_results(
     if data_type == "EIS":
         return eis_results(numeric, rows)
     if data_type in {"PL", "FTIR", "Raman"}:
+        peak_positions = _cached_calculation(
+            calculation_cache,
+            "spectral_peak_positions",
+            lambda: local_peak_positions(numeric),
+        )
         result = {
-            "peak_position_candidates": local_peak_positions(numeric),
+            "peak_position_candidates": peak_positions,
             "peak_intensity_candidate": max(y_values) if y_values else None,
             "integral_area_candidate": trapezoid_area(numeric),
             **spectral_auxiliary_results(rows),
-            **spectral_package_results(numeric),
+            **spectral_package_results(numeric, calculation_cache=calculation_cache),
         }
         if data_type == "FTIR":
-            result["valley_position_candidates"] = local_valley_positions(numeric)
+            result["valley_position_candidates"] = _cached_calculation(
+                calculation_cache,
+                "spectral_valley_positions",
+                lambda: local_valley_positions(numeric),
+            )
         return result
     if data_type in {"photocurrent", "photocurrent_response"}:
         tail = y_values[-3:] if len(y_values) >= 3 else y_values
@@ -47,8 +88,13 @@ def type_specific_results(
             **photocurrent_results(rows, y_values),
         }
     if data_type == "XPS":
+        peak_positions = _cached_calculation(
+            calculation_cache,
+            "xps_peak_positions",
+            lambda: local_peak_positions(numeric),
+        )
         return {
-            "peak_position_candidates": local_peak_positions(numeric),
+            "peak_position_candidates": peak_positions,
             "area_candidate": trapezoid_area(numeric),
             "binding_energy_display": "descending",
             **xps_export_results(rows),
@@ -60,12 +106,28 @@ def type_specific_results(
         values = [record[1] for record in records] if records else y_values
         return {"best_condition_value_candidate": max(values) if values else None}
     if data_type == "BET":
-        isotherm = bet_isotherm_rows(rows)
-        pore_distribution = bet_pore_distribution_rows(rows)
-        summary = bet_summary_results(rows)
+        isotherm = _cached_calculation(
+            calculation_cache,
+            "bet_isotherm_rows",
+            lambda: bet_isotherm_rows(rows),
+        )
+        pore_distribution = _cached_calculation(
+            calculation_cache,
+            "bet_pore_distribution_rows",
+            lambda: bet_pore_distribution_rows(rows),
+        )
+        summary = _cached_calculation(
+            calculation_cache,
+            "bet_summary_results",
+            lambda: bet_summary_results(rows),
+        )
         result = {**summary}
         if isotherm:
-            adapter = bet_package_results(isotherm)
+            adapter = _cached_calculation(
+                calculation_cache,
+                "bet_package_results",
+                lambda: bet_package_results(isotherm),
+            )
             result["isotherm_points"] = int(adapter.get("isotherm_point_count") or len(isotherm))
             result["bet_table_kind_candidate"] = "isotherm"
             if adapter.get("pygaps_pointisotherm_constructed"):
@@ -132,14 +194,23 @@ def build_processed_table(
     rows: list[dict[str, str]],
     *,
     xrd_peak_parameters: tuple[float, float] | None = None,
+    calculation_cache: dict[str, object] | None = None,
 ) -> tuple[list[str], list[list[float | str | None]]]:
     if data_type == "XRD":
         if xrd_peak_parameters is None:
-            peak_positions = local_peak_positions(numeric)
+            peak_positions = _cached_calculation(
+                calculation_cache,
+                "xrd_peak_positions_default",
+                lambda: local_peak_positions(numeric),
+            )
         else:
-            peak_positions, _peak_detection = xrd_peak_positions(
-                numeric,
-                xrd_peak_parameters=xrd_peak_parameters,
+            peak_positions, _peak_detection = _cached_calculation(
+                calculation_cache,
+                "xrd_peak_positions_parameterized",
+                lambda: xrd_peak_positions(
+                    numeric,
+                    xrd_peak_parameters=xrd_peak_parameters,
+                ),
             )
         peaks = set(peak_positions)
         max_y = max((y for _, y in numeric), default=None)
@@ -172,10 +243,20 @@ def build_processed_table(
 
     if data_type in {"PL", "FTIR", "Raman"}:
         max_y = max((y for _, y in numeric), default=None)
-        valleys = set(local_valley_positions(numeric))
+        valleys = set(
+            _cached_calculation(
+                calculation_cache,
+                "spectral_valley_positions",
+                lambda: local_valley_positions(numeric),
+            )
+        )
         auxiliary_columns = spectral_auxiliary_columns(rows)
         auxiliary_headers = [f"{safe_column_name(key)}_optional" for key in auxiliary_columns]
-        baseline_records = spectral_package_baseline_records(numeric)
+        baseline_records = _cached_calculation(
+            calculation_cache,
+            "spectral_baseline_records",
+            lambda: spectral_package_baseline_records(numeric),
+        )
         baseline_headers = ["pybaselines_baseline_optional", "pybaselines_corrected_intensity_optional"] if baseline_records else []
         output = []
         for index, (x_value, y_value) in enumerate(numeric):
@@ -196,7 +277,12 @@ def build_processed_table(
         return photocurrent_processed_table(numeric, rows)
 
     if data_type == "XPS":
-        return xps_processed_table(numeric, rows)
+        peak_positions = _cached_calculation(
+            calculation_cache,
+            "xps_peak_positions",
+            lambda: local_peak_positions(numeric),
+        )
+        return xps_processed_table(numeric, rows, peak_positions=peak_positions)
 
     if data_type == "reaction_condition_screening":
         records = condition_screening_records(rows)
@@ -216,7 +302,7 @@ def build_processed_table(
         return lc_processed_table(rows)
 
     if data_type == "BET":
-        return bet_processed_table(rows)
+        return bet_processed_table(rows, calculation_cache=calculation_cache)
 
     if data_type == "EPR":
         max_abs = max((abs(y) for _, y in numeric), default=None)
@@ -517,7 +603,7 @@ def xps_numeric_curves(rows: list[dict[str, str]]) -> dict[str, list[float]]:
             continue
         values = []
         for row in rows:
-            value = first_numeric(row, [key])
+            value = _resolved_numeric(row, key)
             if value is not None:
                 values.append(float(value))
         if values:
@@ -528,8 +614,10 @@ def xps_numeric_curves(rows: list[dict[str, str]]) -> dict[str, list[float]]:
 def xps_processed_table(
     numeric: list[tuple[float, float]],
     rows: list[dict[str, str]],
+    *,
+    peak_positions: list[float] | None = None,
 ) -> tuple[list[str], list[list[float | str | None]]]:
-    peaks = set(local_peak_positions(numeric))
+    peaks = set(peak_positions if peak_positions is not None else local_peak_positions(numeric))
     if not rows:
         return (
             ["binding_energy_eV", "raw_intensity", "peak_candidate_flag"],
@@ -549,17 +637,17 @@ def xps_processed_table(
 
     output = []
     for row in rows:
-        binding = first_numeric(row, [binding_key]) if binding_key else None
-        raw = first_numeric(row, [raw_key]) if raw_key else None
+        binding = _resolved_numeric(row, binding_key) if binding_key else None
+        raw = _resolved_numeric(row, raw_key) if raw_key else None
         if binding is None or raw is None:
             continue
         record: list[float | str | None] = [binding, raw, 1 if binding in peaks else 0]
         if background_key:
-            record.append(first_numeric(row, [background_key]))
+            record.append(_resolved_numeric(row, background_key))
         if envelope_key:
-            record.append(first_numeric(row, [envelope_key]))
+            record.append(_resolved_numeric(row, envelope_key))
         for component in components:
-            record.append(first_numeric(row, [component]))
+            record.append(_resolved_numeric(row, component))
         output.append(record)
     if not output and numeric:
         return (
@@ -865,14 +953,31 @@ def lc_calibration_candidate(rows: list[dict[str, str]]) -> dict[str, float | in
     return candidate
 
 
-def bet_numeric(rows: list[dict[str, str]], fallback: list[tuple[float, float]]) -> list[tuple[float, float]]:
-    isotherm = bet_isotherm_rows(rows)
+def bet_numeric(
+    rows: list[dict[str, str]],
+    fallback: list[tuple[float, float]],
+    *,
+    calculation_cache: dict[str, object] | None = None,
+) -> list[tuple[float, float]]:
+    isotherm = _cached_calculation(
+        calculation_cache,
+        "bet_isotherm_rows",
+        lambda: bet_isotherm_rows(rows),
+    )
     if isotherm:
         return [(float(row[0]), float(row[1])) for row in isotherm if row[0] is not None and row[1] is not None]
-    pore_distribution = bet_pore_distribution_rows(rows)
+    pore_distribution = _cached_calculation(
+        calculation_cache,
+        "bet_pore_distribution_rows",
+        lambda: bet_pore_distribution_rows(rows),
+    )
     if pore_distribution:
         return [(float(row[0]), float(row[1])) for row in pore_distribution if row[0] is not None and row[1] is not None]
-    summary = bet_summary_results(rows)
+    summary = _cached_calculation(
+        calculation_cache,
+        "bet_summary_results",
+        lambda: bet_summary_results(rows),
+    )
     if summary and not fallback:
         return [(float(index + 1), value) for index, value in enumerate(summary.values())]
     return fallback
@@ -915,16 +1020,32 @@ def bet_metric_summary_results(rows: list[dict[str, str]], metric_key: str, valu
     return result
 
 
-def bet_processed_table(rows: list[dict[str, str]]) -> tuple[list[str], list[list[float | str | None]]]:
-    isotherm = bet_isotherm_rows(rows)
+def bet_processed_table(
+    rows: list[dict[str, str]],
+    *,
+    calculation_cache: dict[str, object] | None = None,
+) -> tuple[list[str], list[list[float | str | None]]]:
+    isotherm = _cached_calculation(
+        calculation_cache,
+        "bet_isotherm_rows",
+        lambda: bet_isotherm_rows(rows),
+    )
     if isotherm:
         return ["relative_pressure_p_p0", "adsorbed_volume", "desorption_volume_optional"], isotherm
 
-    pore_distribution = bet_pore_distribution_rows(rows)
+    pore_distribution = _cached_calculation(
+        calculation_cache,
+        "bet_pore_distribution_rows",
+        lambda: bet_pore_distribution_rows(rows),
+    )
     if pore_distribution:
         return ["pore_size_nm", "pore_volume_cm3_g"], pore_distribution
 
-    summary = bet_summary_results(rows)
+    summary = _cached_calculation(
+        calculation_cache,
+        "bet_summary_results",
+        lambda: bet_summary_results(rows),
+    )
     if summary and not any(matching_key(row, ["relative pressure", "p/p0", "p/p"]) for row in rows):
         headers = [
             "bet_surface_area_m2_g_candidate",
@@ -1065,15 +1186,15 @@ def _interpolated_y(points: list[tuple[float, float]], x_value: float) -> float 
         return points[0][1]
     if x_value >= points[-1][0]:
         return points[-1][1]
-    for left, right in zip(points, points[1:]):
-        x0, y0 = left
-        x1, y1 = right
-        if x0 <= x_value <= x1:
-            if x1 == x0:
-                return y0
-            ratio = (x_value - x0) / (x1 - x0)
-            return y0 + ratio * (y1 - y0)
-    return None
+    right_index = bisect_left(points, (x_value, float("-inf")))
+    if points[right_index][0] == x_value:
+        return points[right_index][1]
+    x0, y0 = points[right_index - 1]
+    x1, y1 = points[right_index]
+    if x1 == x0:
+        return y0
+    ratio = (x_value - x0) / (x1 - x0)
+    return y0 + ratio * (y1 - y0)
 
 
 def epr_extrema_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
@@ -1584,8 +1705,17 @@ def spectral_auxiliary_results(rows: list[dict[str, str]]) -> dict[str, bool]:
     return result
 
 
-def spectral_package_results(numeric: list[tuple[float, float]]) -> dict[str, str | bool]:
-    if spectral_package_baseline_records(numeric):
+def spectral_package_results(
+    numeric: list[tuple[float, float]],
+    *,
+    calculation_cache: dict[str, object] | None = None,
+) -> dict[str, str | bool]:
+    baseline_records = _cached_calculation(
+        calculation_cache,
+        "spectral_baseline_records",
+        lambda: spectral_package_baseline_records(numeric),
+    )
+    if baseline_records:
         return {
             "pybaselines_baseline_correction_available": True,
             "pybaselines_method": "asls_candidate",
@@ -1651,7 +1781,12 @@ def first_numeric(row: dict[str, str], needles: list[str]) -> float | None:
 
 
 def matching_key(row: dict[str, str], needles: list[str]) -> str | None:
-    for key in row:
+    return _matching_key_for_columns(tuple(row), tuple(needles))
+
+
+@lru_cache(maxsize=2048)
+def _matching_key_for_columns(columns: tuple[str, ...], needles: tuple[str, ...]) -> str | None:
+    for key in columns:
         normalized = key.lower().replace(" ", "")
         for needle in needles:
             normalized_needle = needle.lower().replace(" ", "")
@@ -1689,12 +1824,12 @@ def xps_component_columns(rows: list[dict[str, str]]) -> list[str]:
     components = []
     for key in rows[0]:
         normalized = key.lower().replace(" ", "")
-        if "component" in normalized and any(first_numeric(row, [key]) is not None for row in rows):
+        if "component" in normalized and any(_resolved_numeric(row, key) is not None for row in rows):
             components.append(key)
             continue
         if any(token in normalized for token in excluded):
             continue
-        if any(first_numeric(row, [key]) is not None for row in rows):
+        if any(_resolved_numeric(row, key) is not None for row in rows):
             components.append(key)
     return components
 
@@ -1709,8 +1844,8 @@ def xps_component_area_candidates(rows: list[dict[str, str]], components: list[s
     for component in components:
         numeric = []
         for row in rows:
-            binding = first_numeric(row, [binding_key])
-            intensity = first_numeric(row, [component])
+            binding = _resolved_numeric(row, binding_key)
+            intensity = _resolved_numeric(row, component)
             if binding is not None and intensity is not None:
                 numeric.append((binding, intensity))
         area = trapezoid_area(numeric)
@@ -1729,3 +1864,9 @@ def to_float(value: str) -> float | None:
     except (TypeError, ValueError):
         return None
     return parsed if isfinite(parsed) else None
+
+
+def _resolved_numeric(row: dict[str, str], key: str) -> float | None:
+    if key in row:
+        return to_float(row.get(key, ""))
+    return first_numeric(row, [key])

@@ -267,30 +267,58 @@ def _table_result_from_excel_grids(grids: dict[str, list[list[object]]], *, max_
 def _best_rows_from_grid(grid: list[list[object]], *, max_header_scan: int = 10) -> tuple[list[dict[str, str]], int, int, int, int]:
     if not grid:
         return [], 0, 0, 0, 0
-    scored = []
     max_header_scan = min(max_header_scan, len(grid))
-    for header_index in range(max_header_scan):
-        headers = _dedupe_headers([_header_value(value, index) for index, value in enumerate(grid[header_index])])
-        data_rows = []
-        for raw_row in grid[header_index + 1 :]:
-            if not raw_row or all(value is None or str(value).strip() == "" for value in raw_row):
-                continue
-            row = {
-                header: "" if value is None else str(value)
-                for header, value in zip(headers, raw_row)
-            }
-            data_rows.append(row)
-        numeric_rows = sum(1 for row in data_rows if any(_to_float(value) is not None for value in row.values()))
+    nonempty_rows = [
+        bool(raw_row) and not all(value is None or str(value).strip() == "" for value in raw_row)
+        for raw_row in grid
+    ]
+    numeric_mask = [
+        [_to_float(value) is not None for value in raw_row]
+        for raw_row in grid
+    ]
+    candidate_headers = [
+        _dedupe_headers([_header_value(value, index) for index, value in enumerate(grid[header_index])])
+        for header_index in range(max_header_scan)
+    ]
+    row_suffixes: dict[int, list[int]] = {}
+    for width in {len(headers) for headers in candidate_headers}:
+        suffix = [0] * (len(grid) + 1)
+        for row_index in range(len(grid) - 1, -1, -1):
+            suffix[row_index] = suffix[row_index + 1] + int(
+                nonempty_rows[row_index] and any(numeric_mask[row_index][:width])
+            )
+        row_suffixes[width] = suffix
+    maximum_width = max((len(headers) for headers in candidate_headers), default=0)
+    column_suffixes = [[False] * (len(grid) + 1) for _ in range(maximum_width)]
+    for column_index in range(maximum_width):
+        suffix = column_suffixes[column_index]
+        for row_index in range(len(grid) - 1, -1, -1):
+            suffix[row_index] = suffix[row_index + 1] or (
+                column_index < len(numeric_mask[row_index])
+                and numeric_mask[row_index][column_index]
+            )
+
+    scored = []
+    for header_index, headers in enumerate(candidate_headers):
+        data_start = header_index + 1
+        numeric_rows = row_suffixes[len(headers)][data_start]
         numeric_columns = sum(
-            1
-            for header in headers
-            if any(_to_float(row.get(header, "")) is not None for row in data_rows)
+            column_suffixes[column_index][data_start]
+            for column_index in range(len(headers))
         )
         header_bonus = _header_bonus(headers)
         score = numeric_rows * max(numeric_columns, 1) + header_bonus * 10 - _header_penalty(headers) * 5
-        scored.append((score, header_bonus, numeric_rows, numeric_columns, -header_index, data_rows, header_index))
+        scored.append((score, header_bonus, numeric_rows, numeric_columns, -header_index, headers, header_index))
     best = max(scored, key=lambda item: (item[0], item[1], item[2], item[3], item[4]))
-    return best[5], int(best[6]), int(best[2]), int(best[3]), int(best[1])
+    data_rows = [
+        {
+            header: "" if value is None else str(value)
+            for header, value in zip(best[5], grid[index])
+        }
+        for index in range(int(best[6]) + 1, len(grid))
+        if nonempty_rows[index]
+    ]
+    return data_rows, int(best[6]), int(best[2]), int(best[3]), int(best[1])
 
 
 def _best_header_row(frame):
@@ -298,23 +326,23 @@ def _best_header_row(frame):
     max_header_scan = min(20, len(frame.index))
     if max_header_scan == 0:
         return frame.copy(), 0, 0, 0, 0
+    # Numeric classification is independent of the candidate header row. Do
+    # it once instead of rescanning every remaining cell for every candidate.
+    numeric_mask = frame.map(lambda value: _to_float(value) is not None)
     for header_index in range(max_header_scan):
         header_values = list(frame.iloc[header_index].values)
         headers = _dedupe_headers([_header_value(value, index) for index, value in enumerate(header_values)])
-        data = frame.iloc[header_index + 1 :].copy()
-        data.columns = headers
-        data = data.dropna(how="all")
-        numeric_rows = sum(1 for _idx, row in data.iterrows() if any(_to_float(value) is not None for value in row))
-        numeric_columns = sum(
-            1
-            for column_index in range(len(data.columns))
-            if any(_to_float(value) is not None for value in data.iloc[:, column_index].tolist())
-        )
+        candidate_mask = numeric_mask.iloc[header_index + 1 :]
+        numeric_rows = int(candidate_mask.any(axis=1).sum())
+        numeric_columns = int(candidate_mask.any(axis=0).sum())
         header_bonus = _header_bonus(headers)
         score = numeric_rows * max(numeric_columns, 1) + header_bonus * 10 - _header_penalty(headers) * 5
-        scored.append((score, header_bonus, numeric_rows, numeric_columns, -header_index, data, header_index))
+        scored.append((score, header_bonus, numeric_rows, numeric_columns, -header_index, headers, header_index))
     best = max(scored, key=lambda item: (item[0], item[1], item[2], item[3], item[4]))
-    return best[5], int(best[6]), int(best[2]), int(best[3]), int(best[1])
+    data = frame.iloc[int(best[6]) + 1 :].copy()
+    data.columns = best[5]
+    data = data.dropna(how="all")
+    return data, int(best[6]), int(best[2]), int(best[3]), int(best[1])
 
 
 def _dedupe_headers(headers: list[str]) -> list[str]:
@@ -366,12 +394,13 @@ def _to_float(value: object) -> float | None:
 
 
 def read_text_with_fallback(path: Path) -> str:
+    raw = path.read_bytes()
     for encoding in ("utf-8-sig", "utf-8", "gb18030", "gbk", "cp936"):
         try:
-            return path.read_text(encoding=encoding)
+            return raw.decode(encoding)
         except UnicodeDecodeError:
             continue
-    return path.read_text(encoding="utf-8-sig", errors="replace")
+    return raw.decode("utf-8-sig", errors="replace")
 
 
 def _text_header_scan_limit(text: str) -> int:

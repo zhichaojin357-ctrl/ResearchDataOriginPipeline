@@ -8,6 +8,8 @@ from types import SimpleNamespace
 from PIL import Image
 import pytest
 
+import src.core.template_product_builder as template_product_builder
+import src.origin.style_registry as style_registry
 from src.core.epr_jeol import JeolEprExportSeries
 from src.core.file_utils import file_sha256
 from src.processors.eis import EisCleaningResult, EisPoint
@@ -258,7 +260,10 @@ def test_classify_template_xps_reference_root_uses_in_situ_reference_opjus(tmp_p
     assert all(item.path_score > 30 for item in classified)
 
 
-def test_classify_template_project_style_asset_candidates_use_saved_format_themes(tmp_path: Path) -> None:
+def test_classify_template_project_style_asset_candidates_use_saved_format_themes(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
     theme_dir = style_root / "format_themes"
@@ -281,9 +286,20 @@ def test_classify_template_project_style_asset_candidates_use_saved_format_theme
         ),
         encoding="utf-8",
     )
+    manifest_loads = 0
+    original_loader = template_product_builder.load_origin_style_manifest
+
+    def counted_loader(*args, **kwargs):
+        nonlocal manifest_loads
+        manifest_loads += 1
+        return original_loader(*args, **kwargs)
+
+    monkeypatch.setattr(template_product_builder, "load_origin_style_manifest", counted_loader)
+    monkeypatch.setattr(style_registry, "load_origin_style_manifest", counted_loader)
 
     candidates = classify_template_project_style_asset_candidates(project_root)
 
+    assert manifest_loads == 1
     assert len(candidates) == 1
     candidate = candidates[0]
     assert candidate.product_key == "BET"
@@ -463,6 +479,54 @@ def test_asset_only_builder_never_scans_external_template_roots(tmp_path: Path, 
     assert manifest["mode"] == "asset_only_no_origin"
     assert len(manifest["input_paths"]) == 2
     assert all("external_" not in value for value in manifest["input_paths"])
+
+
+def test_builder_reuses_template_scans_for_external_reference_preview(tmp_path: Path, monkeypatch) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    pairing = tmp_path / "pairing.json"
+    pairing.write_text("[]", encoding="utf-8")
+    f_drive_root = tmp_path / "f_drive"
+    xps_reference_root = tmp_path / "xps_reference"
+    xps_non_in_situ_root = tmp_path / "xps_non_in_situ"
+    for root in (f_drive_root, xps_reference_root, xps_non_in_situ_root):
+        root.mkdir()
+
+    scan_counts = {"f_drive": 0, "xps_reference": 0, "xps_non_in_situ": 0}
+
+    def scan_f_drive(root: Path) -> list[Path]:
+        assert root == f_drive_root
+        scan_counts["f_drive"] += 1
+        return []
+
+    def scan_optional(root: Path | None) -> list[Path]:
+        if root == xps_reference_root:
+            scan_counts["xps_reference"] += 1
+        elif root == xps_non_in_situ_root:
+            scan_counts["xps_non_in_situ"] += 1
+        else:
+            raise AssertionError(f"unexpected optional template root: {root}")
+        return []
+
+    monkeypatch.setattr(template_product_builder, "scan_template_f_drive_template_paths", scan_f_drive)
+    monkeypatch.setattr(template_product_builder, "scan_template_optional_template_paths", scan_optional)
+
+    result = run_template_product_builder_all_types(
+        project_root,
+        TemplateProductBuilderOptions(
+            pairing_path=pairing,
+            output_root=tmp_path / "out",
+            timestamp="20260824_230000",
+            f_drive_template_root=f_drive_root,
+            xps_reference_template_root=xps_reference_root,
+            xps_non_in_situ_template_root=xps_non_in_situ_root,
+            external_reference_preview_comparison=True,
+            only_type="BET",
+        ),
+    )
+
+    assert result["summary"]["product_count"] == 1
+    assert scan_counts == {"f_drive": 1, "xps_reference": 1, "xps_non_in_situ": 1}
 
 
 def test_asset_only_builder_requires_hash_verified_v2_manifest(tmp_path: Path) -> None:

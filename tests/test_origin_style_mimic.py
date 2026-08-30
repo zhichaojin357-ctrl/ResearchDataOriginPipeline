@@ -37,6 +37,7 @@ def test_extract_style_snapshot_reads_layout_and_plot_style_without_visible_text
     assert snapshot.plot_visibility == [1.0, 0.0]
     assert snapshot.copied_visible_text is False
     assert "phase labels" in FORBIDDEN_EXEMPLAR_TEXT_CATEGORIES
+    assert len(fake.variable_reads) == 76
 
 
 def test_extract_style_snapshot_prefers_main_graph_over_sparkline_pages(tmp_path: Path) -> None:
@@ -224,6 +225,7 @@ class _FakeStyleOps:
     ) -> None:
         self.labtalk_scripts: list[str] = []
         self.font_calls: list[str] = []
+        self.variable_reads: list[str] = []
         self.graph_pages = graph_pages or ["Graph1"]
         self.plot_names_by_graph = plot_names_by_graph or {"Graph1": ["Plot1", "Plot2"]}
         self.values_by_graph = values_by_graph or {}
@@ -296,6 +298,7 @@ class _FakeStyleOps:
         return _FakeResult()
 
     def get_labtalk_variable(self, name: str) -> _FakeResult:
+        self.variable_reads.append(name)
         graph_values = self.values_by_graph.get(self.active_graph, {})
         return _FakeResult(payload={"value": graph_values.get(name, self.values.get(name))})
 

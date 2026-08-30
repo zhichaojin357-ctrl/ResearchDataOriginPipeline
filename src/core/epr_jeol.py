@@ -9,8 +9,10 @@ import tempfile
 import warnings
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from openpyxl import Workbook, load_workbook
+if TYPE_CHECKING:
+    from openpyxl import Workbook
 
 from src.core.file_utils import (
     apply_safe_owned_directory_removal,
@@ -196,6 +198,8 @@ def write_data_xlsx(
     output_root: Path | None = None,
 ) -> None:
     """Write the skill-compatible data-only workbook: two columns and no header row."""
+    from openpyxl import Workbook
+
     safe_root = _standalone_jeol_output_root(path, output_root)
     safe_path = _ensure_file_target_available(
         path,
@@ -215,6 +219,8 @@ def write_data_xlsx(
 
 
 def read_xy_xlsx(path: Path) -> tuple[list[float], list[float]]:
+    from openpyxl import load_workbook
+
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
         worksheet = workbook.active
@@ -816,6 +822,8 @@ def write_compare_report(
     output_root: Path | None = None,
 ) -> None:
     """Write an optional comparison workbook against known JEOL Excel exports."""
+    from openpyxl import Workbook
+
     if not reference_dir.is_dir():
         raise FileNotFoundError(
             f"JEOL comparison reference directory not found: {reference_dir}"
@@ -1015,6 +1023,8 @@ def _save_workbook_atomically(
     output_root: Path,
     force: bool,
 ) -> None:
+    from openpyxl import load_workbook
+
     safe_target = _ensure_file_target_available(
         target,
         force=force,
@@ -1105,6 +1115,8 @@ def _validate_staged_jeol_package(
     *,
     stage_root: Path,
 ) -> None:
+    from openpyxl import load_workbook
+
     for path in paths:
         safe_path = ensure_safe_output_file_target(path, output_root=stage_root)
         if not safe_path.is_file() or safe_path.stat().st_size <= 0:

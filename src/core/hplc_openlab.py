@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+from collections import defaultdict
 from io import BytesIO
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -47,7 +48,6 @@ from src.core.project import (
 OPENLAB_DATA_TYPE = "HPLC/LC OpenLab raw data"
 PROCESSOR_NAME = "hplc_openlab_raw_exporter"
 IDENTITY_BOUNDARY = "unassigned_manual_mapping_required"
-_DATE_PREFIX = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})")
 _WAVELENGTH = re.compile(r"Wavelength\s*=\s*(?P<value>[0-9]+(?:\.[0-9]+)?)\s*nm", re.IGNORECASE)
 _INVALID_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]+')
 
@@ -1039,7 +1039,10 @@ def extract_hplc_openlab_dataset(input_root: Path, since: date) -> dict[str, Any
             if result_set_dir not in context_cache:
                 context_cache[result_set_dir] = _parse_result_set_context(result_set_dir)
             context = context_cache[result_set_dir]
-            metadata_probe = read_agilent_dx_metadata(dx_path)
+            # Selected files are fully CRC-checked by decode_agilent_dx below.
+            # The cutoff probe only needs the two required XML members, which
+            # are validated as they are read.
+            metadata_probe = read_agilent_dx_metadata(dx_path, verify_members=False)
             raw_metadata = dict(metadata_probe.get("metadata") or {})
             raw_file_info = context["injections_by_raw_file"].get(dx_path.name, {})
             acquisition, acquisition_source = _resolve_acquisition_datetime(
@@ -1090,9 +1093,12 @@ def extract_hplc_openlab_dataset(input_root: Path, since: date) -> dict[str, Any
         raise ValueError(f"No OpenLab acquisitions on or after {since.isoformat()} were found")
 
     selected.sort(key=lambda item: (item["_acquisition_sort"], item["source_relative"].casefold()))
+    result_set_members: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for item in selected:
+        result_set_members[item["_result_set_key"]].append(item)
     result_set_keys = sorted(
-        {item["_result_set_key"] for item in selected},
-        key=lambda key: min(item["_acquisition_sort"] for item in selected if item["_result_set_key"] == key),
+        set(result_set_members),
+        key=lambda key: result_set_members[key][0]["_acquisition_sort"],
     )
     result_set_ids = {key: f"R{index:02d}" for index, key in enumerate(result_set_keys, start=1)}
     raw_sheet_names = {key: f"Raw_{result_set_ids[key]}" for key in result_set_keys}
@@ -1125,8 +1131,7 @@ def extract_hplc_openlab_dataset(input_root: Path, since: date) -> dict[str, Any
 
     result_sets: list[dict[str, Any]] = []
     for result_set_key in result_set_keys:
-        members = [item for item in selected if item["_result_set_key"] == result_set_key]
-        members.sort(key=lambda item: item["_acquisition_sort"])
+        members = result_set_members[result_set_key]
         raw_sheet = raw_sheet_names[result_set_key]
         columns: list[dict[str, Any]] = []
         for injection in members:
@@ -2001,16 +2006,6 @@ def _summary_markdown(
             "",
         ]
     )
-
-
-def _date_from_filename(name: str) -> date | None:
-    match = _DATE_PREFIX.match(name)
-    if not match:
-        return None
-    try:
-        return date.fromisoformat(match.group("date"))
-    except ValueError:
-        return None
 
 
 def _parse_acquisition_datetime(value: object) -> datetime:

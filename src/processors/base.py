@@ -7,7 +7,6 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
 from src.core.file_utils import (
     lexical_absolute_path,
     prepare_safe_output_file_targets,
@@ -22,9 +21,16 @@ from src.core.project import (
 )
 from src.core.runtime_paths import resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
-from src.origin.adapter import export_plot, plan_origin_plot_output_paths
-from src.processors.calculations import build_processed_table, bet_numeric, condition_screening_numeric, epr_numeric, type_specific_results
+from src.processors.calculations import (
+    bet_numeric,
+    build_processed_table,
+    condition_screening_numeric,
+    epr_numeric,
+    lc_export_mode,
+    type_specific_results,
+)
 from src.processors.eis import (
+    EisMeasurementResult,
     eis_measured_plot_rows,
     read_eis_measurements,
 )
@@ -49,6 +55,18 @@ def safe_name(value: str) -> str:
     return cleaned.strip("_") or "dataset"
 
 
+def plan_origin_plot_output_paths(*args: object, **kwargs: object):
+    from src.origin.adapter import plan_origin_plot_output_paths as plan_paths
+
+    return plan_paths(*args, **kwargs)
+
+
+def export_plot(*args: object, **kwargs: object):
+    from src.origin.adapter import export_plot as export
+
+    return export(*args, **kwargs)
+
+
 def process_table_dataset(
     project_root: Path,
     classification: dict,
@@ -71,12 +89,19 @@ def process_table_dataset(
     ):
         raise ValueError(f"{data_type} is scan-only and must not be processed as experimental data.")
 
-    rows, input_warnings = _read_processor_rows(source_file, data_type)
-    numeric = coerce_numeric_rows(rows)
+    eis_measurement: EisMeasurementResult | None = None
+    if data_type == "EIS":
+        eis_measurement = read_eis_measurements(source_file)
+        rows, input_warnings = eis_measurement.source_rows, []
+        numeric: list[tuple[float, float]] = []
+    else:
+        rows, input_warnings = _read_processor_rows(source_file, data_type)
+        numeric = coerce_numeric_rows(rows)
+    calculation_cache: dict[str, object] = {}
     if not numeric and data_type == "reaction_condition_screening":
         numeric = condition_screening_numeric(rows)
     if data_type == "BET":
-        numeric = bet_numeric(rows, numeric)
+        numeric = bet_numeric(rows, numeric, calculation_cache=calculation_cache)
     if data_type == "EPR":
         numeric = epr_numeric(rows, numeric)
 
@@ -136,10 +161,23 @@ def process_table_dataset(
     xrd_phase_result: dict[str, object] | None = None
     processed_headers: list[str] = []
     if data_type == "HPLC/LC exported data":
-        key_results = type_specific_results(data_type, numeric, rows)
+        export_mode = lc_export_mode(rows)
+        key_results = {"lc_export_mode": export_mode}
+        if export_mode == "ambiguous":
+            key_results = type_specific_results(
+                data_type,
+                numeric,
+                rows,
+                calculation_cache=calculation_cache,
+            )
 
     if data_type == "HPLC/LC exported data" and key_results.get("lc_export_mode") == "ambiguous":
-        headers, processed_rows = build_processed_table(data_type, numeric, rows)
+        headers, processed_rows = build_processed_table(
+            data_type,
+            numeric,
+            rows,
+            calculation_cache=calculation_cache,
+        )
         processed_headers = headers
         with processed_csv.open("w", encoding="utf-8", newline="") as handle:
             writer = csv.writer(handle)
@@ -149,14 +187,17 @@ def process_table_dataset(
         origin_result = None
         status = "manual_review"
     elif data_type == "EIS":
-        headers, processed_rows, eis_results = _build_eis_measured_product(source_file)
+        assert eis_measurement is not None
+        headers, processed_rows, eis_results = _build_eis_measured_product(
+            source_file,
+            measurement=eis_measurement,
+        )
         processed_headers = headers
         with processed_csv.open("w", encoding="utf-8", newline="") as handle:
             writer = csv.writer(handle)
             writer.writerow(headers)
             writer.writerows(processed_rows)
-        key_results = dict(type_specific_results(data_type, numeric, rows))
-        key_results.update(eis_results)
+        key_results = dict(eis_results)
         warnings.extend(eis_results.get("eis_measurement", {}).get("warnings", []))
         warnings.append(
             "Equivalent-circuit fitting was not run: automatic circuit selection and fitting are blocked by claim policy."
@@ -210,11 +251,19 @@ def process_table_dataset(
             if data_type == "XRD" and xrd_phase_options is not None
             else None
         )
+        computed_results = type_specific_results(
+            data_type,
+            numeric,
+            rows,
+            xrd_peak_parameters=xrd_peak_parameters,
+            calculation_cache=calculation_cache,
+        )
         headers, processed_rows = build_processed_table(
             data_type,
             numeric,
             rows,
             xrd_peak_parameters=xrd_peak_parameters,
+            calculation_cache=calculation_cache,
         )
         processed_headers = headers
         y_values = [value for _, value in numeric]
@@ -225,14 +274,7 @@ def process_table_dataset(
             "y_min": min(y_values),
             "y_max": max(y_values),
         }
-        key_results.update(
-            type_specific_results(
-                data_type,
-                numeric,
-                rows,
-                xrd_peak_parameters=xrd_peak_parameters,
-            )
-        )
+        key_results.update(computed_results)
         if data_type == "XRD" and xrd_phase_options is not None:
             from src.core.xrd_jade import match_xrd_phases
 
@@ -380,8 +422,12 @@ def process_table_dataset(
     )
 
 
-def _build_eis_measured_product(source_file: Path) -> tuple[list[str], list[list[float | None]], dict[str, object]]:
-    measurement = read_eis_measurements(source_file)
+def _build_eis_measured_product(
+    source_file: Path,
+    *,
+    measurement: EisMeasurementResult | None = None,
+) -> tuple[list[str], list[list[float | None]], dict[str, object]]:
+    measurement = measurement or read_eis_measurements(source_file)
     headers = [
         "real_impedance_ohm",
         "neg_imag_impedance_ohm",
@@ -411,10 +457,13 @@ def _build_eis_measured_product(source_file: Path) -> tuple[list[str], list[list
 
 
 def _read_processor_rows(source_file: Path, data_type: str) -> tuple[list[dict[str, str]], list[str]]:
-    if data_type == "EPR" and looks_like_jeol_cwesr_file(source_file):
-        return decode_jeol_cacqu_rows(source_file), [
-            "Decoded JEOL JES-FA/JES-X3 cAcqu EPR raw file to field-intensity table; radical assignment remains blocked.",
-        ]
+    if data_type == "EPR":
+        from src.core.epr_jeol import decode_jeol_cacqu_rows, looks_like_jeol_cwesr_file
+
+        if looks_like_jeol_cwesr_file(source_file):
+            return decode_jeol_cacqu_rows(source_file), [
+                "Decoded JEOL JES-FA/JES-X3 cAcqu EPR raw file to field-intensity table; radical assignment remains blocked.",
+            ]
     if data_type == "XPS" and source_file.suffix.casefold() in {".vgd", ".vgp"}:
         from src.adapters import xps_vgd_reader_adapter
 

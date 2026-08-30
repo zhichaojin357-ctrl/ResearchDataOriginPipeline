@@ -211,8 +211,14 @@ def read_graph_style_snapshot(
             graph_pages=list(graph_pages or []),
             warnings=[f"Requested graph page could not be activated: {graph_page}"],
         )
-    layout_values = _read_numeric_fields(operations, STYLE_LAYOUT_FIELDS)
-    audit_numeric_values = _read_numeric_fields(operations, STYLE_AUDIT_NUMERIC_FIELDS)
+    numeric_fields = tuple(dict.fromkeys((*STYLE_LAYOUT_FIELDS, *STYLE_AUDIT_NUMERIC_FIELDS)))
+    numeric_values = _read_numeric_fields(operations, numeric_fields)
+    layout_values = {field: numeric_values[field] for field in STYLE_LAYOUT_FIELDS if field in numeric_values}
+    audit_numeric_values = {
+        field: numeric_values[field]
+        for field in STYLE_AUDIT_NUMERIC_FIELDS
+        if field in numeric_values
+    }
     audit_string_values = _read_string_fields(operations, STYLE_AUDIT_STRING_FIELDS)
     layer_count = int(audit_numeric_values.get("page.nlayers", 0))
     plot_names = _plot_names(operations, graph_page)

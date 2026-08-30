@@ -399,9 +399,10 @@ def resolve_origin_style_asset(
     manifest_path: Path | None = None,
     *,
     require_runtime_validation: bool = False,
+    loaded_manifest: dict[str, Any] | None = None,
 ) -> OriginStyleAsset | None:
     manifest_file = origin_style_manifest_path(project_root, manifest_path)
-    manifest = load_origin_style_manifest(project_root, manifest_file)
+    manifest = loaded_manifest if loaded_manifest is not None else load_origin_style_manifest(project_root, manifest_file)
     base = manifest_file.parent
     schema_version = int(manifest.get("schema_version", 1))
     requested = _style_key(product_key)
@@ -523,6 +524,8 @@ def resolve_origin_runtime_style_asset(
     project_root: Path,
     product_key: str,
     manifest_path: Path | None = None,
+    *,
+    loaded_manifest: dict[str, Any] | None = None,
 ) -> OriginStyleAsset | None:
     """Resolve a runtime asset without changing legacy OTH behavior.
 
@@ -536,6 +539,7 @@ def resolve_origin_runtime_style_asset(
         product_key,
         manifest_path,
         require_runtime_validation=False,
+        loaded_manifest=loaded_manifest,
     )
     if candidate is None:
         return candidate
@@ -546,6 +550,7 @@ def resolve_origin_runtime_style_asset(
         product_key,
         manifest_path,
         require_runtime_validation=True,
+        loaded_manifest=loaded_manifest,
     )
 
 

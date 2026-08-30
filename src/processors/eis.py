@@ -6,10 +6,7 @@ import re
 import statistics
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
-
-import numpy as np
-from scipy.optimize import least_squares
+from typing import Any, Iterable
 
 from src.core.table_reader import read_table_with_metadata
 
@@ -40,6 +37,7 @@ class EisMeasurementResult:
     column_transforms: dict[str, dict[str, object]] = field(default_factory=dict)
     source_format: str | None = None
     format_metadata: dict[str, object] = field(default_factory=dict)
+    source_rows: list[dict[str, str]] = field(default_factory=list, repr=False, compare=False)
 
     def to_metadata(self) -> dict[str, object]:
         magnitude_transform = self.column_transforms.get("impedance_magnitude_ohm", {})
@@ -294,6 +292,7 @@ def read_eis_measurements(path: Path) -> EisMeasurementResult:
         column_transforms=transforms,
         source_format=table.source_format if scribner_contract is not None else None,
         format_metadata=dict(table.format_metadata or {}) if scribner_contract is not None else {},
+        source_rows=table.rows,
     )
 
 
@@ -391,6 +390,9 @@ def draft_fit_eis_randles_cpe(points: list[EisPoint], *, fit_points: int = 240) 
             [(point.z_real_ohm, point.minus_z_imag_ohm) for point in ordered],
             warning="Fewer than 4 cleaned points with positive frequency; Randles-CPE fit not attempted.",
         )
+    import numpy as np
+    from scipy.optimize import least_squares
+
     ordered = sorted(fit_points_input, key=lambda item: float(item.frequency_hz or 0.0), reverse=True)
     freq = np.array([float(point.frequency_hz or 0.0) for point in ordered], dtype=float)
     z_real = np.array([point.z_real_ohm for point in ordered], dtype=float)
@@ -468,7 +470,15 @@ def _draft_fit_with_impedance_adapter(points: list[EisPoint], *, fit_points: int
     )
 
 
-def randles_cpe_impedance(frequency_hz: np.ndarray | list[float], rs: float, rct: float, q_value: float, n_value: float) -> np.ndarray:
+def randles_cpe_impedance(
+    frequency_hz: Iterable[float],
+    rs: float,
+    rct: float,
+    q_value: float,
+    n_value: float,
+) -> Any:
+    import numpy as np
+
     omega = 2 * np.pi * np.asarray(frequency_hz, dtype=float)
     admittance = (1.0 / rct) + q_value * np.power(1j * omega, n_value)
     return rs + 1.0 / admittance
@@ -582,7 +592,9 @@ def _remove_obvious_outliers(points: list[EisPoint]) -> tuple[list[EisPoint], li
     return cleaned, ignored
 
 
-def _randles_cpe_residual(params: np.ndarray, freq: np.ndarray, measured: np.ndarray, modulus: np.ndarray) -> np.ndarray:
+def _randles_cpe_residual(params: Any, freq: Any, measured: Any, modulus: Any) -> Any:
+    import numpy as np
+
     rs, rct, q_value, n_value = params
     predicted = randles_cpe_impedance(freq, float(rs), float(rct), float(q_value), float(n_value))
     real_residual = (predicted.real - measured.real) / modulus
@@ -590,13 +602,21 @@ def _randles_cpe_residual(params: np.ndarray, freq: np.ndarray, measured: np.nda
     return np.concatenate((real_residual, minus_imag_residual))
 
 
-def _randles_cpe_upper_bounds(z_real: np.ndarray, minus_z_imag: np.ndarray) -> np.ndarray:
+def _randles_cpe_upper_bounds(z_real: Any, minus_z_imag: Any) -> Any:
+    import numpy as np
+
     max_impedance = max(float(np.nanmax(np.abs(z_real))), float(np.nanmax(np.abs(minus_z_imag))), 1.0)
     span = max(float(np.nanmax(z_real) - np.nanmin(z_real)), 1.0)
     return np.array([max_impedance * 2.0, max(span * 10.0, max_impedance * 4.0), 1e3, 1.0], dtype=float)
 
 
-def _randles_cpe_initial_guesses(freq: np.ndarray, z_real: np.ndarray, minus_z_imag: np.ndarray) -> list[tuple[float, float, float, float]]:
+def _randles_cpe_initial_guesses(
+    freq: Any,
+    z_real: Any,
+    minus_z_imag: Any,
+) -> list[tuple[float, float, float, float]]:
+    import numpy as np
+
     rs_base = max(float(np.nanmin(z_real)), 1e-6)
     rct_base = max(float(np.nanmax(z_real) - np.nanmin(z_real)), 1e-6)
     peak_index = int(np.nanargmax(minus_z_imag))

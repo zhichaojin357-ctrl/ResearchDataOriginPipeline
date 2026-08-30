@@ -404,7 +404,12 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
         product_key = str(raw.get("product_key") or raw.get("data_type") or "")
         if product_key not in TEMPLATE_TARGET_TYPES:
             continue
-        asset = resolve_origin_runtime_style_asset(project_root, product_key, manifest_path)
+        asset = resolve_origin_runtime_style_asset(
+            project_root,
+            product_key,
+            manifest_path,
+            loaded_manifest=manifest,
+        )
         if asset is None:
             continue
         style_asset = asset.to_dict(project_root)
@@ -796,6 +801,9 @@ def run_template_product_builder_all_types(
     f_drive_root = local_style_root if options.asset_only else (options.f_drive_template_root or Path("F:/") / "\u8bfe\u9898" / "LL" / "\u68c0\u6d4b")
     xps_reference_root = local_style_root if options.asset_only else (options.xps_reference_template_root or roots.get("workspace_xps_reference") or (project_root.parent / "xps\u53c2\u8003\u56fe\u50cf"))
     xps_non_in_situ_root = None if options.asset_only else options.xps_non_in_situ_template_root
+    opju_paths: list[Path] | None = None
+    xps_reference_paths: list[Path] | None = None
+    xps_non_in_situ_paths: list[Path] | None = None
     if options.exemplar_driven:
         candidates = _build_pairing_template_candidates(pairings_by_key, target_types)
         template_source_root = options.pairing_path
@@ -819,12 +827,21 @@ def run_template_product_builder_all_types(
         template_source_root = f_drive_root
     external_reference_candidates: list[TemplateCandidate] = []
     if options.external_reference_preview_comparison and not options.exemplar_driven and not options.asset_only:
+        external_opju_paths = opju_paths
+        if external_opju_paths is None:
+            external_opju_paths = scan_template_f_drive_template_paths(f_drive_root) if f_drive_root.exists() else []
+        external_xps_reference_paths = xps_reference_paths
+        if external_xps_reference_paths is None:
+            external_xps_reference_paths = scan_template_optional_template_paths(xps_reference_root)
+        external_xps_non_in_situ_paths = xps_non_in_situ_paths
+        if external_xps_non_in_situ_paths is None:
+            external_xps_non_in_situ_paths = scan_template_optional_template_paths(xps_non_in_situ_root)
         external_reference_candidates = build_external_reference_candidate_pool(
-            scan_template_f_drive_template_paths(f_drive_root) if f_drive_root.exists() else [],
-            scan_template_optional_template_paths(xps_reference_root),
+            external_opju_paths,
+            external_xps_reference_paths,
             f_drive_root=f_drive_root,
             xps_reference_root=xps_reference_root,
-            xps_non_in_situ_paths=scan_template_optional_template_paths(xps_non_in_situ_root),
+            xps_non_in_situ_paths=external_xps_non_in_situ_paths,
             xps_non_in_situ_root=xps_non_in_situ_root,
             xps_reference_templates_for_all_xps=options.xps_reference_templates_for_all_xps,
             xps_templates_from_reference_only=options.xps_templates_from_reference_only,

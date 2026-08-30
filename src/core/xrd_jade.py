@@ -249,7 +249,21 @@ class JadeIndex:
         record = self.records[index]
         end = self.records[index + 1].rid_offset if index + 1 < self.record_count else len(self._rid)
         raw = self._rid[record.rid_offset:end]
-        decoded_peaks: list[dict[str, float | int]] = []
+        maximum = 0
+        selected_lines: list[tuple[float, float, int]] = []
+        bounded_window = x_min <= 180 and x_max >= 0 and x_min <= x_max
+        if bounded_window:
+            minimum_ratio = math.nextafter(
+                math.sin(math.radians(max(x_min, 0.0) / 2)),
+                -math.inf,
+            )
+            maximum_ratio = math.nextafter(
+                math.sin(math.radians(min(x_max, 180.0) / 2)),
+                math.inf,
+            )
+        else:
+            minimum_ratio = 1.0
+            maximum_ratio = 0.0
         for offset in range(0, len(raw), _J7_RID_RECORD_SIZE):
             d_spacing = struct.unpack_from("<f", raw, offset + 3)[0]
             intensity_raw = int(raw[offset + 7])
@@ -258,24 +272,25 @@ class JadeIndex:
             ratio = wavelength_angstrom / (2 * d_spacing)
             if not 0 < ratio <= 1:
                 continue
-            two_theta = 2 * math.degrees(math.asin(ratio))
-            decoded_peaks.append(
-                {
-                    "two_theta_deg": two_theta,
-                    "d_spacing_angstrom": d_spacing,
-                    "intensity_raw": intensity_raw,
-                }
-            )
-        if not decoded_peaks:
+            maximum = max(maximum, intensity_raw)
+            if minimum_ratio <= ratio <= maximum_ratio:
+                two_theta = 2 * math.degrees(math.asin(ratio))
+                if x_min <= two_theta <= x_max:
+                    selected_lines.append((two_theta, d_spacing, intensity_raw))
+        if maximum == 0 or not selected_lines:
             return []
         # A PDF/Jade relative intensity is defined against the strongest line in
         # the complete card, not merely the selected scan window.  Filtering
         # before normalization silently changes the rank/threshold of lines.
-        maximum = max(int(peak["intensity_raw"]) for peak in decoded_peaks)
-        peaks: list[dict[str, float | int]] = []
-        for peak in decoded_peaks:
-            if x_min <= float(peak["two_theta_deg"]) <= x_max:
-                peaks.append({**peak, "relative_intensity": 100 * int(peak["intensity_raw"]) / maximum})
+        peaks: list[dict[str, float | int]] = [
+            {
+                "two_theta_deg": two_theta,
+                "d_spacing_angstrom": d_spacing,
+                "intensity_raw": intensity_raw,
+                "relative_intensity": 100 * intensity_raw / maximum,
+            }
+            for two_theta, d_spacing, intensity_raw in selected_lines
+        ]
         return sorted(peaks, key=lambda peak: float(peak["two_theta_deg"]))
 
     def search(self, query: str, *, limit: int) -> list[dict[str, object]]:

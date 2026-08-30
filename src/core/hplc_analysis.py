@@ -940,10 +940,11 @@ def _choose_by_trend(
         return None, ""
     representative = members[0]
     time_h = float(representative["reaction_time_h"])
+    member_ids = {member["injection_id"] for member in members}
     neighbors = [
         item
         for item in all_records
-        if item["injection_id"] not in {member["injection_id"] for member in members}
+        if item["injection_id"] not in member_ids
         and item["quality"] == "正常"
         and item["quantifiable"]
         and item["experiment_batch"] == representative["experiment_batch"]

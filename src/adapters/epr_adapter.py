@@ -37,14 +37,25 @@ def process_or_analyze(
     microwave_frequency_ghz: Sequence[float | None] | None = None,
     magnetic_field_unit: object = None,
 ) -> dict[str, object]:
-    cwepr, cwepr_error = import_optional("cwepr")
-    eprpy, eprpy_error = import_optional("eprpy")
+    # These optional packages provide provenance only; candidate calculations do not call them.
+    cwepr_available = is_module_available("cwepr")
+    eprpy_available = is_module_available("eprpy")
+    cwepr_error = None
+    eprpy_error = None
+    if not cwepr_available:
+        _module, cwepr_error = import_optional("cwepr")
+    if not eprpy_available:
+        _module, eprpy_error = import_optional("eprpy")
     x_values = [float(value) for value in field]
     y_values = [float(value) for value in intensity]
     count = min(len(x_values), len(y_values))
     x_values = x_values[:count]
     y_values = y_values[:count]
-    fallback = None if cwepr is not None or eprpy is not None else f"cw-EPR packages unavailable: {cwepr_error}; {eprpy_error}"
+    fallback = (
+        None
+        if cwepr_available or eprpy_available
+        else f"cw-EPR packages unavailable: {cwepr_error}; {eprpy_error}"
+    )
     result: dict[str, object] = {
         "ok": bool(y_values),
         "point_count": count,
@@ -72,9 +83,9 @@ def process_or_analyze(
             )
             result["g_candidate_blocked_reason"] = blocked_reason
             result["warnings"] = [blocked_reason]
-    package = "cwepr" if cwepr is not None else "EPRpy" if eprpy is not None else "cwepr/EPRpy"
-    module = "cwepr" if cwepr is not None else "eprpy" if eprpy is not None else "cwepr/eprpy"
-    version = version_for("cwepr", "cwepr") if cwepr is not None else version_for("EPRpy", "eprpy")
+    package = "cwepr" if cwepr_available else "EPRpy" if eprpy_available else "cwepr/EPRpy"
+    module = "cwepr" if cwepr_available else "eprpy" if eprpy_available else "cwepr/eprpy"
+    version = version_for("cwepr", "cwepr") if cwepr_available else version_for("EPRpy", "eprpy")
     result["metadata_provenance"] = metadata_provenance(
         adapter="epr_adapter",
         package=package,

@@ -15,7 +15,6 @@ from src.core.hplc_openlab import (
     HplcOpenLabExportOptions,
     IDENTITY_BOUNDARY,
     _build_workbook_plan,
-    _date_from_filename,
     _metadata_payload,
     _parse_result_set_context,
     _parse_optional_rx_result,
@@ -425,11 +424,6 @@ def test_generic_process_does_not_send_unimplemented_native_spectra_to_table_rea
             _manifest_auxiliary_skip_reason(classification, Path(f"sample{suffix}"))
             == "native_reader_not_implemented"
         )
-
-
-def test_filename_date_helper_is_only_a_hint_and_parses_openlab_names():
-    assert _date_from_filename("2026-07-18 12-00-00.dx") == date(2026, 7, 18)
-    assert _date_from_filename("sample.dx") is None
 
 
 def test_workbook_plan_splits_by_top_level_batch_and_keeps_raw_points_out_of_excel(

@@ -39,10 +39,17 @@ class AgilentDxData:
     metadata: dict[str, Any]
 
 
-def read_agilent_dx_metadata(path: str | Path) -> dict[str, Any]:
+def read_agilent_dx_metadata(
+    path: str | Path,
+    *,
+    verify_members: bool = True,
+) -> dict[str, Any]:
     """Read only the OPC manifest and ACMD metadata; never require OpenLab or .rx/.pmx."""
     dx_path = Path(path)
-    root, content_types, member_names = _read_package_manifest(dx_path)
+    root, content_types, member_names = _read_package_manifest(
+        dx_path,
+        verify_members=verify_members,
+    )
     _validate_acmd_namespace(root, dx_path)
     metadata = _injection_metadata(root)
     datafiles = [
@@ -92,12 +99,15 @@ def decode_agilent_dx(path: str | Path) -> AgilentDxData:
 
 def _read_package_manifest(
     dx_path: Path,
+    *,
+    verify_members: bool = True,
 ) -> tuple[ET.Element, dict[str, str], tuple[str, ...]]:
     try:
         with ZipFile(dx_path) as archive:
-            corrupt_member = archive.testzip()
-            if corrupt_member:
-                raise ValueError(f"corrupt ZIP member: {corrupt_member}")
+            if verify_members:
+                corrupt_member = archive.testzip()
+                if corrupt_member:
+                    raise ValueError(f"corrupt ZIP member: {corrupt_member}")
             root = ET.fromstring(archive.read("injection.acmd"))
             content_types = _parse_content_types(archive.read("[Content_Types].xml"))
             names = tuple(archive.namelist())
