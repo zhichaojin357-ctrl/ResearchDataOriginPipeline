@@ -9,7 +9,7 @@ from pathlib import Path
 from src.core.file_utils import file_sha256 as _file_sha256
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.output_sanitizer import sanitize_report_payload as _sanitize_report_payload
-from src.core.project import report_path
+from src.core.project import report_path, project_config_scope
 from src.core.runtime_paths import resolve_locked_result_index, resolve_output_root, resolve_workspace_root
 
 
@@ -71,6 +71,7 @@ class ReviewedQueueOptions:
     processed_index: Path | None = None
 
 
+@project_config_scope()
 def run_reviewed_queue(project_root: Path, options: ReviewedQueueOptions) -> int:
     proposals = load_proposals(project_root, options.proposals)
     if options.write_template:
@@ -116,6 +117,7 @@ def write_decision_template(project_root: Path, proposals: list[dict], options: 
     return template_path
 
 
+@project_config_scope()
 def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: ReviewedQueueOptions) -> dict:
     if options.decisions is None:
         raise ValueError("A decisions CSV is required for reviewed-queue dry-run planning.")
@@ -125,6 +127,7 @@ def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: Revi
     decisions, duplicate_decision_ids = _decision_lookup(decision_rows)
     triage_items = _load_current_triage_items(project_root, options.triage_manifest, options.output_root)
     processed_hashes = _locked_result_processed_hashes(project_root, options.processed_index)
+    workspace_root = resolve_workspace_root(project_root, options.workspace_root)
     planned = []
     skipped = []
     blocked = []
@@ -153,7 +156,7 @@ def plan_reviewed_queue(project_root: Path, proposals: list[dict], options: Revi
             blocked.append({**base, "status": "BLOCKED_DECISION_METADATA_MISMATCH", "reason": "decision_row_does_not_match_proposal", "mismatches": mismatches})
             continue
 
-        block = _approval_block(project_root, proposal, decision, triage_items, processed_hashes, options.workspace_root)
+        block = _approval_block(project_root, proposal, decision, triage_items, processed_hashes, workspace_root)
         if block:
             blocked.append({**base, **block})
             continue

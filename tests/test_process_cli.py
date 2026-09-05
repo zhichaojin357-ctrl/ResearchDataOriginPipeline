@@ -114,9 +114,26 @@ class ProcessCliTest(unittest.TestCase):
             queue.parent.mkdir(parents=True, exist_ok=True)
             queue.write_text('{"items": []}', encoding="utf-8-sig")
 
-            code = run_process(project, raw, ProcessOptions(from_queue=queue, no_origin=True, force=True))
+            with patch("src.core.process.scan_raw_data", side_effect=AssertionError("queue processing must not scan")):
+                code = run_process(project, raw, ProcessOptions(from_queue=queue, no_origin=True, force=True))
 
             self.assertEqual(code, 0)
+
+    def test_cli_explicit_sources_processes_declared_type_without_scanning(self):
+        from src.cli import main
+
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            source = project / "sample.csv"
+            source.write_text("2theta,intensity\n10,1\n20,4\n", encoding="utf-8")
+            with patch("src.cli.Path.cwd", return_value=project), patch(
+                "src.core.process.scan_raw_data", side_effect=AssertionError("explicit sources must not scan")
+            ), patch("src.processors.base.export_plot", side_effect=AssertionError("Origin must not run")):
+                code = main(["process", "--source", str(source), "--only-type", "XRD", "--no-origin"])
+            self.assertEqual(code, 0)
+            summary = json.loads((default_output_root(project) / "reports" / "processing_summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["inventory_scope"], "explicit_sources")
+            self.assertEqual(summary["success_count"], 1)
 
     def test_cli_rejects_no_origin_with_origin_conflict(self):
         with tempfile.TemporaryDirectory() as tmp:

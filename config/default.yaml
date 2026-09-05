@@ -19,12 +19,15 @@ paths:
   triage_manifest: ../输出/reports/data_triage_manifest.json
   processing_queue: ../输出/reports/processing_queue.json
 triage:
+  # Descriptive compatibility policy, not runtime switches. For a different
+  # threshold use triage --min-confidence; the CLI default remains 0.75.
   enabled: true
   min_confidence: 0.75
   auto_process_decision: AUTO_PROCESS
   duplicate_policy: exact_hash_suppress_after_representative
   manual_review_policy: never_process_without_include_ambiguous
 processing_queue:
+  # Descriptive compatibility fields. Execution modes are chosen by CLI flags.
   no_origin_default: true
   include_ambiguous_default: false
   stale_hash_policy: skip

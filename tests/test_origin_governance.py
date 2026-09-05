@@ -134,15 +134,19 @@ def test_origin_governance_cli_help_documents_governance_command(project_root: P
 
 
 def test_reference_and_diagnostic_package_probe_does_not_import_module(monkeypatch):
-    imported: list[str] = []
+    from types import SimpleNamespace
+    from src.core import origin_governance
 
+    imported: list[str] = []
+    # Patch this module's import gateway, not the shared importlib module that
+    # pytest itself uses to resolve later monkeypatch targets and plugins.
     monkeypatch.setattr(
-        "src.core.origin_governance.importlib.import_module",
-        lambda module: imported.append(module),
-    )
-    monkeypatch.setattr(
-        "src.core.origin_governance.importlib.util.find_spec",
-        lambda module: object(),
+        origin_governance,
+        "importlib",
+        SimpleNamespace(
+            import_module=lambda module: imported.append(module),
+            util=SimpleNamespace(find_spec=lambda module: object()),
+        ),
     )
 
     result = _package_import_status(
@@ -215,21 +219,7 @@ def _write_minimal_validate_project(project: Path) -> None:
     for name in ["default.yaml", "plot_style.yaml", "sample_registry.yaml", "manual_overrides.yaml"]:
         (project / "config" / name).write_text("{}\n", encoding="utf-8")
     (project / "config" / "plot_style.yaml").write_text(
-        'format: "tif"\n'
-        "dpi: 600\n"
-        'default_graph_page: "Graph4"\n'
-        'automation_entrypoint: "Origin.Application"\n'
-        'avoid_entrypoint: "Origin.ApplicationSI"\n'
-        "axis_title_size: 36\n"
-        "x_tick_label_size: 28\n"
-        "y_tick_label_size: 36\n"
-        "legend_font_size: 26\n"
-        "annotation_font_size: 26\n"
-        "font_bold: true\n"
-        "Export PNG preview and visually inspect\n"
-        "explicit legend rows\n"
-        "line_width: 3\n"
-        "axis_line_width: 3\n",
+        (Path(__file__).resolve().parents[1] / "config" / "plot_style.yaml").read_text(encoding="utf-8"),
         encoding="utf-8",
     )
     (project / "config" / "claim_policy.yaml").write_text(

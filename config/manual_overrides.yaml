@@ -1,4 +1,7 @@
-﻿force_include_files: []
+﻿# Reserved compatibility schema; the current pipeline does not load this file.
+# Use the reviewed-queue workflow for approved manual classification decisions.
+# HPLC analysis overrides live in hplc_openlab_analysis.yaml and are active.
+force_include_files: []
 force_exclude_files: []
 force_data_type: {}
 force_processor: {}

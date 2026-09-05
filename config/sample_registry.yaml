@@ -1,3 +1,5 @@
+# Historical planning inventory, retained for compatibility; not a runtime
+# sample lookup. Supported processor types come from processor_registry.yaml.
 registry_status: planning_placeholder
 raw_data_scan:
   last_scan_report: docs/REAL_DATA_COMPATIBILITY_MATRIX.md

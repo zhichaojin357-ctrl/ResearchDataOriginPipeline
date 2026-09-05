@@ -9,6 +9,7 @@ from src.core.project import (
     ensure_output_path_separate_from_inputs,
     ensure_output_path_within_root,
     load_project_config,
+    project_config_scope,
 )
 from src.core.runtime_paths import resolve_output_root
 
@@ -27,6 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     process = subparsers.add_parser("process")
     process.add_argument("--input")
+    process.add_argument("--source", type=Path, action="append", help="explicit file to process directly with --only-type; repeat for multiple files; no directory scan")
     process.add_argument("--config", type=Path, help="explicit project config; defaults to optional config/default.yaml")
     process.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
     origin_mode = process.add_mutually_exclusive_group()
@@ -54,9 +56,9 @@ def build_parser() -> argparse.ArgumentParser:
     triage.add_argument("--output-root", type=Path, help="optional output root; defaults to local/env/default config")
     triage.add_argument("--only-type")
     triage.add_argument("--only-folder")
-    triage.add_argument("--min-confidence", type=float, default=0.75)
+    triage.add_argument("--min-confidence", type=float, default=0.75, help="classification threshold; this CLI option is the active override (default 0.75)")
     triage.add_argument("--explain", action="store_true")
-    triage.add_argument("--force-refresh", action="store_true")
+    triage.add_argument("--force-refresh", action="store_true", help="compatibility option; triage already refreshes all selected inputs on each run")
     triage.add_argument("--dry-run", action="store_true")
 
     origin_test = subparsers.add_parser("origin-test")
@@ -364,8 +366,10 @@ def build_parser() -> argparse.ArgumentParser:
     epr_overlay.add_argument("--report-md", type=Path)
 
     subparsers.add_parser("deps-audit")
-    subparsers.add_parser("validate")
+    validation = subparsers.add_parser("validate")
+    validation.add_argument("--scope", choices=("full", "runtime"), default="full", help="full includes historical outputs; runtime checks software/config/assets only")
     readiness = subparsers.add_parser("readiness", help="check current project artifacts and dry-run safety state")
+    readiness.add_argument("--scope", choices=("full", "runtime"), default="full", help="full includes historical jobs; runtime checks the matching runtime validation report")
     readiness.add_argument("--expected-locked-result-count", type=int, default=167)
     readiness.add_argument("--workspace-root", type=Path, help="workspace data root; defaults to config/env/autodetected project path")
     readiness.add_argument("--f-drive-backup", type=Path, help="optional stable raw backup path; defaults to config/env or detected F-drive path")
@@ -403,6 +407,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+@project_config_scope()
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     project_root = Path.cwd()
@@ -422,9 +427,16 @@ def main(argv: list[str] | None = None) -> int:
 
         config = _load_cli_project_config(project_root, args.config)
         input_path = Path(args.input) if args.input else configured_path(project_root, config, "paths", "raw_data", "input/raw_data")
-        _validate_input_directory(input_path)
+        if args.source:
+            if args.input:
+                raise ValueError("--source cannot be combined with --input; list the intended files explicitly.")
+            for source in args.source:
+                if not source.is_file():
+                    raise ValueError(f"Explicit source is not an existing file: {source}")
+        else:
+            _validate_input_directory(input_path)
         output_root = _resolve_cli_output_root(project_root, args)
-        ensure_output_path_separate_from_inputs(project_root, output_root, [input_path])
+        ensure_output_path_separate_from_inputs(project_root, output_root, args.source or [input_path])
         return run_process(
             project_root,
             input_path,
@@ -439,6 +451,7 @@ def main(argv: list[str] | None = None) -> int:
                 auto_select=args.auto_select,
                 include_ambiguous=args.include_ambiguous,
                 output_root=output_root,
+                sources=tuple(args.source or ()),
             ),
         )
     if args.command == "triage":
@@ -806,13 +819,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "validate":
         from src.core.validate import validate
 
-        return validate(project_root)
+        return validate(project_root, scope=args.scope)
     if args.command == "readiness":
         from src.core.readiness import ReadinessOptions, run_readiness
 
         return run_readiness(
             project_root,
             ReadinessOptions(
+                scope=args.scope,
                 expected_locked_result_count=args.expected_locked_result_count,
                 workspace_root=args.workspace_root,
                 f_drive_backup=args.f_drive_backup,

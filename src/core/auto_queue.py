@@ -8,7 +8,7 @@ from pathlib import Path
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.metadata import file_hash
 from src.core.output_sanitizer import render_output_path
-from src.core.project import ensure_write_path_allowed, report_path
+from src.core.project import ensure_write_path_allowed, report_path, project_config_scope
 from src.core.runtime_paths import resolve_output_root, resolve_locked_result_index, resolve_workspace_root
 
 
@@ -48,12 +48,14 @@ class AutoQueueOptions:
     only_type: str | None = None
 
 
+@project_config_scope()
 def run_auto_queue(project_root: Path, options: AutoQueueOptions) -> int:
     plan = plan_auto_queue(project_root, options)
     write_auto_queue_outputs(project_root, plan, options)
     return 1 if plan["summary"]["blocked_count"] else 0
 
 
+@project_config_scope()
 def plan_auto_queue(project_root: Path, options: AutoQueueOptions) -> dict:
     effective_output_root = options.output_root or resolve_output_root(project_root)
     queue_path = _resolve_existing(project_root, options.queue or _default_queue_path(project_root, effective_output_root))

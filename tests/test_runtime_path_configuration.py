@@ -259,6 +259,31 @@ def test_project_config_rejects_non_mapping_yaml_root(tmp_path: Path):
         load_project_config(tmp_path, Path("config/default.yaml"))
 
 
+def test_project_config_rejects_invalid_yaml_instead_of_silently_using_strings(tmp_path: Path):
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "default.yaml").write_text("triage:\n  min_confidence: [0.8\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="Invalid project YAML"):
+        load_project_config(tmp_path, None)
+
+
+def test_config_snapshot_reuses_reads_only_during_one_command(tmp_path: Path):
+    from src.core.project import project_config_scope
+    from src.core.runtime_paths import resolve_workspace_root
+
+    config = tmp_path / "config"
+    config.mkdir()
+    path = config / "default.yaml"
+    path.write_text("paths:\n  workspace_root: first\n", encoding="utf-8")
+    with project_config_scope():
+        assert resolve_workspace_root(tmp_path) == tmp_path / "first"
+        path.write_text("paths:\n  workspace_root: second\n", encoding="utf-8")
+        assert resolve_workspace_root(tmp_path) == tmp_path / "first"
+    assert resolve_workspace_root(tmp_path) == tmp_path / "second"
+    with patch("src.core.runtime_paths.load_project_config", side_effect=AssertionError("explicit path must short circuit config")):
+        assert resolve_workspace_root(tmp_path, tmp_path / "explicit") == tmp_path / "explicit"
+
+
 def test_xps_default_discovery_reads_configured_sample_dirs(tmp_path: Path):
     bobc_dir = tmp_path / "xps" / "bobc"
     cwo_dir = tmp_path / "xps" / "cwo"

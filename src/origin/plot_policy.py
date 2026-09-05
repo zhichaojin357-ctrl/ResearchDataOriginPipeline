@@ -583,10 +583,11 @@ def _bool_value(value: Any) -> bool:
     return str(value).strip().casefold() in {"1", "true", "yes", "on"}
 
 
-def validate_graph4_style_config(path: Path) -> Graph4FixedStyle:
-    if not path.exists():
-        return GRAPH4_FIXED_STYLE
-    config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
+def validate_graph4_style_config(path: Path, *, config: dict | None = None) -> Graph4FixedStyle:
+    if config is None:
+        if not path.exists():
+            return GRAPH4_FIXED_STYLE
+        config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
     expected = {
         "line_width": GRAPH4_FIXED_STYLE.line_width,
         "axis_line_width": GRAPH4_FIXED_STYLE.axis_line_width,

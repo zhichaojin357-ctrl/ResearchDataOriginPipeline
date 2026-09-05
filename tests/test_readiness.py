@@ -10,6 +10,70 @@ from openpyxl import Workbook
 
 from src.core.project import default_output_root
 from src.core.readiness import ReadinessOptions, run_readiness
+from src.core.readiness import _validation_report_status
+from src.core.validate import _validation_input_fingerprints
+
+
+def _write_structured_validation(project: Path, *, scope: str = "full", failure: bool = False) -> Path:
+    path = default_output_root(project) / "reports" / "validation_report.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    checks = [
+        {"name": name, "status": "pass"}
+        for name in ("deferred_registry_semantics", "ppt_forbidden_paths", "kinetics_processor_paths")
+    ]
+    if failure:
+        checks.append({"name": "tif_export_config", "status": "fail"})
+    path.write_text(json.dumps({
+        "report": "validation", "schema_version": 1, "scope": scope,
+        "checks": checks, "summary": {"failures": int(failure)},
+        "inputs": _validation_input_fingerprints(project),
+    }), encoding="utf-8")
+    return path
+
+
+def test_readiness_uses_structured_results_before_markdown_and_keeps_failures(tmp_path: Path):
+    report_path = _write_structured_validation(tmp_path)
+    markdown = report_path.with_suffix(".md")
+    markdown.write_text("# 任意翻译后的报告\n## Failures\n旧报告内容\n", encoding="utf-8")
+    assert _validation_report_status(tmp_path, markdown)[0] is True
+    _write_structured_validation(tmp_path, failure=True)
+    _write_passing_validation_report(markdown)
+    passed, detail = _validation_report_status(tmp_path, markdown)
+    assert passed is False
+    assert "tif_export_config" in detail
+    report_path.write_text("{invalid", encoding="utf-8")
+    assert _validation_report_status(tmp_path, markdown)[0] is False
+
+
+def test_readiness_detects_changed_and_removed_inputs_without_mtime_heuristics(tmp_path: Path):
+    config = tmp_path / "config" / "plot_style.yaml"
+    config.parent.mkdir()
+    config.write_text("line_width: 3\n", encoding="utf-8")
+    previous_times = config.stat()
+    report_path = _write_structured_validation(tmp_path)
+    config.write_text("line_width: 4\n", encoding="utf-8")
+    os.utime(config, ns=(previous_times.st_atime_ns, previous_times.st_mtime_ns))
+    assert _validation_report_status(tmp_path, report_path.with_suffix(".md"))[0] is False
+    config.unlink()
+    assert _validation_report_status(tmp_path, report_path.with_suffix(".md"))[0] is False
+
+
+def test_runtime_readiness_excludes_history_and_cannot_claim_full_release(tmp_path: Path):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    _write_active_entry_docs(project)
+    (project.parent / "GroupMeetingAutoPPT").mkdir()
+    (project / "presentation.pptx").write_bytes(b"user presentation")
+    path = _write_structured_validation(project, scope="runtime")
+    assert run_readiness(project, ReadinessOptions(scope="runtime", strict_artifacts=True)) == 0
+    report = json.loads((path.parent / "readiness_report.json").read_text(encoding="utf-8"))
+    assert report["scope"] == "runtime"
+    assert report["summary"]["scope_ready"] is True
+    assert report["summary"]["release_ready"] is False
+    statuses = {check["name"]: check["status"] for check in report["checks"]}
+    assert statuses["historical_artifacts"] == "skip"
+    assert statuses["legacy_project_path"] == "skip"
+    assert "locked_result_index_count" not in statuses
+    assert _validation_report_status(project, path.with_suffix(".md"), scope="full")[0] is False
 
 
 def test_readiness_passes_with_current_required_artifacts(tmp_path: Path):
@@ -735,6 +799,8 @@ def _write_active_entry_docs(project: Path) -> None:
     docs.mkdir(parents=True, exist_ok=True)
     (docs / "REAL_DATA_INTAKE_GUIDE.md").write_text("ResearchDataOriginPipeline intake guide\n", encoding="utf-8")
     (docs / "REAL_DATA_COMPATIBILITY_MATRIX.md").write_text("ResearchDataOriginPipeline compatibility matrix\n", encoding="utf-8")
+    for name in ("CURRENT_STATUS.md", "PROJECT_INDEX.md"):
+        (docs / name).write_text("ResearchDataOriginPipeline current runtime document\n", encoding="utf-8")
 
 
 def _write_index(path: Path, hashes: list[str]) -> None:

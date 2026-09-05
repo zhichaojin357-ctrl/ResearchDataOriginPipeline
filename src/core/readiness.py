@@ -28,6 +28,7 @@ class ReadinessOptions:
     desktop_review_xlsx: Path | None = None
     report_json: Path | None = None
     report_md: Path | None = None
+    scope: str = "full"
 
 
 def run_readiness(project_root: Path, options: ReadinessOptions) -> int:
@@ -37,11 +38,59 @@ def run_readiness(project_root: Path, options: ReadinessOptions) -> int:
 
 
 def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dict:
+    if options.scope not in {"full", "runtime"}:
+        raise ValueError(f"unknown readiness scope: {options.scope}")
     checks: list[dict] = []
-    workspace_root = resolve_workspace_root(project_root, options.workspace_root)
-    f_drive_backup = resolve_optional_f_drive_backup(project_root, options.f_drive_backup)
     output_root = resolve_output_root(project_root)
     reports = output_root / "reports"
+    if options.scope == "full":
+        _add_historical_readiness_checks(project_root, output_root, checks, options)
+    else:
+        for name, detail in (
+            ("historical_artifacts", "Locked package, workspace copy, backups, review queues and generated dashboards are outside runtime scope."),
+            ("legacy_project_path", "Neighbouring historical projects are outside runtime scope."),
+            ("user_presentation_files", "User presentation files are outside runtime scope; source PPT feature paths are checked below."),
+        ):
+            checks.append({"name": name, "status": "skip", "detail": detail})
+    active_docs_ok, active_docs_detail, active_docs_generated_only = _active_project_name_status(
+        project_root, include_generated=options.scope == "full",
+    )
+    _add_check(
+        checks, "active_project_name_references_current", active_docs_ok, active_docs_detail,
+        fail_status="warning" if active_docs_generated_only and not options.strict_artifacts else "fail",
+    )
+    validation_report = reports / "validation_report.md"
+    validation_ok, validation_detail = _validation_report_status(project_root, validation_report, scope=options.scope)
+    _add_check(checks, "validation_report_current", validation_ok, validation_detail)
+    forbidden_paths = [project_root / "src" / "ppt", project_root / "templates" / "ppt"]
+    if options.scope == "full":
+        forbidden_paths.extend([project_root / "ppt_layout.yaml", project_root / "slide_plan.json", project_root / "presentation.pptx"])
+    found_forbidden = [path for path in forbidden_paths if path.exists()]
+    _add_check(checks, "ppt_forbidden_paths_absent", not found_forbidden, ", ".join(str(path) for path in found_forbidden) or "none")
+    failures = sum(1 for check in checks if check["status"] == "fail")
+    warnings = sum(1 for check in checks if check["status"] == "warning")
+    report = {
+        "report": "readiness", "scope": options.scope,
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "summary": {
+            "checks": len(checks), "failures": failures, "warnings": warnings,
+            "skipped": sum(1 for check in checks if check["status"] == "skip"),
+            "ready": failures == 0,
+            "scope_ready": failures == 0 and warnings == 0,
+            "release_ready": options.scope == "full" and failures == 0 and warnings == 0,
+        },
+        "checks": checks,
+    }
+    _sanitize_check_details(project_root, report)
+    return report
+
+
+def _add_historical_readiness_checks(
+    project_root: Path, output_root: Path, checks: list[dict], options: ReadinessOptions,
+) -> None:
+    reports = output_root / "reports"
+    workspace_root = resolve_workspace_root(project_root, options.workspace_root)
+    f_drive_backup = resolve_optional_f_drive_backup(project_root, options.f_drive_backup)
     package = resolve_locked_result_package(project_root, options.locked_result_package)
 
     _add_artifact_check(
@@ -64,15 +113,6 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
     if options.check_legacy_project_path:
         old_project = project_root.parent / "GroupMeetingAutoPPT"
         _add_check(checks, "old_project_path_absent", not old_project.exists(), str(old_project))
-    active_docs_ok, active_docs_detail, active_docs_generated_only = _active_project_name_status(project_root)
-    _add_check(
-        checks,
-        "active_project_name_references_current",
-        active_docs_ok,
-        active_docs_detail,
-        fail_status="warning" if active_docs_generated_only and not options.strict_artifacts else "fail",
-    )
-
     index = package / "index.csv"
     index_rows = _csv_row_count(index)
     _add_artifact_check(
@@ -190,10 +230,6 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
         artifacts_present=origin_batch_plan.is_file(),
     )
 
-    validation_report = reports / "validation_report.md"
-    validation_ok, validation_detail = _validation_report_status(project_root, validation_report)
-    _add_check(checks, "validation_report_current", validation_ok, validation_detail)
-
     stale_summary_terms = [
         "Post-rule/post-AI manual review CSV",
         "Manual review rows after AI-assisted recognition",
@@ -233,33 +269,6 @@ def build_readiness_report(project_root: Path, options: ReadinessOptions) -> dic
         artifacts_present=dashboard_path.exists(),
     )
 
-    forbidden_paths = [
-        project_root / "src" / "ppt",
-        project_root / "templates" / "ppt",
-        project_root / "ppt_layout.yaml",
-        project_root / "slide_plan.json",
-        project_root / "presentation.pptx",
-    ]
-    found_forbidden = [path for path in forbidden_paths if path.exists()]
-    _add_check(checks, "ppt_forbidden_paths_absent", not found_forbidden, ", ".join(str(path) for path in found_forbidden) or "none")
-
-    failures = sum(1 for check in checks if check["status"] == "fail")
-    warnings = sum(1 for check in checks if check["status"] == "warning")
-    report = {
-        "report": "readiness",
-        "created_at": datetime.now().isoformat(timespec="seconds"),
-        "summary": {
-            "checks": len(checks),
-            "failures": failures,
-            "warnings": warnings,
-            "ready": failures == 0,
-            "release_ready": failures == 0 and warnings == 0,
-        },
-        "checks": checks,
-    }
-    _sanitize_check_details(project_root, report)
-    return report
-
 
 def _sanitize_check_details(project_root: Path, report: dict) -> None:
     parent = project_root.parent
@@ -289,9 +298,12 @@ def _readiness_markdown(report: dict) -> str:
         "# Readiness Report",
         "",
         f"- Created at: {report['created_at']}",
+        f"- Scope: {report['scope']}",
         f"- Checks: {summary['checks']}",
         f"- Failures: {summary['failures']}",
         f"- Warnings: {summary['warnings']}",
+        f"- Skipped: {summary['skipped']}",
+        f"- Scope ready (no failures or warnings): {str(summary['scope_ready']).lower()}",
         f"- Operationally ready (warnings allowed): {str(summary['ready']).lower()}",
         f"- Release ready (no failures or warnings): {str(summary['release_ready']).lower()}",
         "",
@@ -371,7 +383,10 @@ def _contains_any(path: Path, patterns: list[str]) -> bool:
     return any(pattern in text for pattern in patterns)
 
 
-def _validation_report_status(project_root: Path, path: Path) -> tuple[bool, str]:
+def _validation_report_status(project_root: Path, path: Path, *, scope: str = "full") -> tuple[bool, str]:
+    json_path = path.with_suffix(".json")
+    if json_path.is_file():
+        return _structured_validation_report_status(project_root, json_path, scope=scope)
     if not path.is_file() or path.stat().st_size == 0:
         return False, f"missing or empty: {path}"
     text = path.read_text(encoding="utf-8")
@@ -399,6 +414,38 @@ def _validation_report_status(project_root: Path, path: Path) -> tuple[bool, str
     return True, str(path)
 
 
+
+def _structured_validation_report_status(project_root: Path, path: Path, *, scope: str) -> tuple[bool, str]:
+    from src.core.validate import _validation_input_fingerprints
+
+    try:
+        report = _load_json(path)
+    except (OSError, ValueError) as exc:
+        return False, f"invalid structured validation report: {path}: {exc}"
+    if report.get("report") != "validation" or report.get("schema_version") != 1:
+        return False, f"unsupported structured validation report: {path}"
+    report_scope = report.get("scope")
+    if report_scope not in {"full", "runtime"} or (scope == "full" and report_scope != "full"):
+        return False, f"validation report scope {report_scope!r} does not cover {scope} readiness"
+    checks = report.get("checks")
+    if not isinstance(checks, list) or not checks or any(not isinstance(check, dict) or check.get("status") not in {"pass", "fail", "skip"} for check in checks):
+        return False, f"invalid structured validation checks: {path}"
+    required = {"deferred_registry_semantics", "ppt_forbidden_paths", "kinetics_processor_paths"}
+    passed = {check.get("name") for check in checks if check["status"] == "pass"}
+    if required - passed:
+        return False, "validation report missing required passing checks: " + ", ".join(sorted(required - passed))
+    failed = [str(check.get("name", "unknown")) for check in checks if check["status"] == "fail"]
+    if failed or report.get("summary", {}).get("failures") != 0:
+        return False, "structured validation report contains failures: " + ", ".join(failed)
+    recorded_inputs = report.get("inputs")
+    if not isinstance(recorded_inputs, dict):
+        return False, f"validation report missing input fingerprints: {path}"
+    current_inputs = _validation_input_fingerprints(project_root)
+    changed = sorted(name for name in recorded_inputs.keys() | current_inputs.keys() if recorded_inputs.get(name) != current_inputs.get(name))
+    if changed:
+        return False, "validation report differs from current validation inputs: " + ", ".join(changed[:5])
+    return True, f"{path} (scope={report_scope}; structured checks and input fingerprints)"
+
 def _validation_inputs_newer_than_report(project_root: Path, report: Path) -> list[Path]:
     report_mtime = report.stat().st_mtime
     candidates = [
@@ -416,7 +463,7 @@ def _validation_inputs_newer_than_report(project_root: Path, report: Path) -> li
     return [path for path in candidates if path.is_file() and path.stat().st_mtime > report_mtime + 1e-6]
 
 
-def _active_project_name_status(project_root: Path) -> tuple[bool, str, bool]:
+def _active_project_name_status(project_root: Path, *, include_generated: bool = True) -> tuple[bool, str, bool]:
     active_docs = [
         project_root / "README.md",
         project_root / "PROJECT_STATUS.md",
@@ -424,8 +471,15 @@ def _active_project_name_status(project_root: Path) -> tuple[bool, str, bool]:
         project_root / "AGENT_HANDOFF.md",
         project_root / "docs" / "REAL_DATA_INTAKE_GUIDE.md",
         project_root / "docs" / "REAL_DATA_COMPATIBILITY_MATRIX.md",
-        resolve_output_root(project_root) / "review_dashboard" / "index.md",
     ]
+    if include_generated:
+        active_docs.append(resolve_output_root(project_root) / "review_dashboard" / "index.md")
+    else:
+        active_docs = [
+            project_root / "README.md",
+            project_root / "docs" / "CURRENT_STATUS.md",
+            project_root / "docs" / "PROJECT_INDEX.md",
+        ]
     stale_patterns = [
         "GroupMeetingAutoPPT",
     ]

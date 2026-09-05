@@ -15,7 +15,10 @@ from src.core.image_artifacts import (
 )
 from src.origin.adapter import (
     BetCombinedSource,
-    _export_tif_with_originpro,
+    reexport_tif_from_reopened_opju,
+    material_color_report_batch,
+    _record_material_color_assignments,
+    _validate_helper_tif_export,
     _ensure_tif_600_dpi,
     _bet_material_display_name,
     _write_material_color_report,
@@ -32,6 +35,96 @@ from src.origin.adapter import (
 )
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE
 from src.core.project import default_output_root
+
+
+def _fake_helper_artifacts(job, *, opju: bytes = b"opju", png: bytes = b"png preview"):
+    from PIL import Image
+
+    job.origin_file.write_bytes(opju)
+    job.preview_png.write_bytes(png)
+    Image.new("RGB", (60, 60), "white").save(job.figure_tif, format="TIFF", dpi=(600, 600))
+    evidence = {
+        "graph_page": job.page_name,
+        "tif_file": job.figure_tif.name,
+        "reopened_opju": True,
+        "project_identity_cleared": True,
+        "page_width_origin_units": 100,
+        "page_height_origin_units": 100,
+        "dpi": 600,
+    }
+    return SimpleNamespace(
+        returncode=0,
+        stdout="ORIGIN_TIF_EXPORT=" + json.dumps(evidence) + '\nORIGIN_STAGE_TIMINGS={"startup": 1.2, "reopen": 0.1}\n',
+        stderr="",
+    )
+
+
+def test_origin_job_reads_plot_style_once(tmp_path, monkeypatch):
+    project_root = _temp_project(str(tmp_path))
+    config = project_root / "config" / "plot_style.yaml"
+    config.parent.mkdir(exist_ok=True)
+    config.write_text('font_family: Arial\nline_width: 3\norigin_template:\n  default_graph_page: Graph4\n', encoding="utf-8")
+    data = project_root / "processed.csv"
+    data.write_text("x,y\n0,1\n", encoding="utf-8")
+    original = Path.read_text
+    reads = []
+
+    def read_text(path, *args, **kwargs):
+        if path == config:
+            reads.append(path)
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", read_text)
+    job = build_origin_plot_job(project_root, "one_read", data, "x", "y", "XRD")
+    assert job.font_family == "Arial"
+    assert job.reference_graph == "Graph4"
+    assert reads == [config]
+
+
+def test_helper_tif_evidence_requires_reopen_identity_and_matching_output(tmp_path):
+    project_root = _temp_project(str(tmp_path))
+    data = project_root / "processed.csv"
+    data.write_text("x,y\n0,1\n", encoding="utf-8")
+    job = build_origin_plot_job(project_root, "evidence", data, "x", "y", "XRD")
+    for path in (job.origin_file, job.preview_png, job.figure_tif):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    completed = _fake_helper_artifacts(job)
+    record = json.loads(completed.stdout.splitlines()[0].split("=", 1)[1])
+    import pytest
+
+    for change in (
+        {"reopened_opju": False}, {"project_identity_cleared": False},
+        {"tif_file": "other.tif"}, {"graph_page": "OtherGraph"}, {"dpi": 300},
+    ):
+        with pytest.raises(RuntimeError):
+            _validate_helper_tif_export(job, "ORIGIN_TIF_EXPORT=" + json.dumps(record | change))
+    with pytest.raises(RuntimeError, match="one reopened"):
+        _validate_helper_tif_export(job, completed.stdout + completed.stdout)
+    # A valid record still has to match the actual image, not just its DPI tags.
+    with pytest.raises(TifResolutionValidationError):
+        _validate_helper_tif_export(job, "ORIGIN_TIF_EXPORT=" + json.dumps(record | {"page_width_origin_units": 1000}))
+
+
+def test_material_color_batch_flushes_successful_progress_once_on_error(tmp_path):
+    import pytest
+    project_root = _temp_project(str(tmp_path))
+    first = {"dataset_id": "first", "curve_index": 1}
+    second = {"dataset_id": "second", "curve_index": 1}
+    with patch("src.origin.adapter._write_material_color_report") as write:
+        with pytest.raises(RuntimeError, match="later export failed"):
+            with material_color_report_batch(project_root):
+                _record_material_color_assignments(project_root, (first,))
+                with material_color_report_batch(project_root):
+                    _record_material_color_assignments(project_root, (second,))
+                write.assert_not_called()
+                raise RuntimeError("later export failed")
+        assert write.call_count == 1
+        assert write.call_args.args[1] == (first, second)
+        _record_material_color_assignments(project_root, (first,))
+        assert write.call_count == 2  # Single-export callers still publish immediately.
+        with material_color_report_batch(project_root):
+            pass
+        assert write.call_count == 2
 
 
 class _FakeOperationResult:
@@ -406,7 +499,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
                         "legend_font_size: 26",
                         "annotation_font_size: 26",
                         "font_bold: true",
-                        f'  reference_search_pattern: "{str(project_root / "refs" / "CWO+BOBC+reference.opju")}"',
+                        f'reference_search_pattern: "{str(project_root / "refs" / "CWO+BOBC+reference.opju")}"',
                     ]
                 ),
                 encoding="utf-8",
@@ -995,7 +1088,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             self.assertFalse(result.ok)
             self.assertIn("PNG preview", result.message)
 
-    def test_export_plot_uses_originpro_tif_fallback_when_labtalk_tif_is_missing(self) -> None:
+    def test_export_plot_requires_helper_tif_evidence_without_starting_second_origin(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = _temp_project(tmpdir)
             data = project_root / "processed.csv"
@@ -1004,20 +1097,18 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             def fake_run(job):
                 job.origin_file.write_text("opju", encoding="utf-8")
                 job.preview_png.write_bytes(b"png preview")
-                return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+                return SimpleNamespace(returncode=0, stdout="", stderr="")
 
-            def fake_tif_export(job):
-                job.figure_tif.write_text("tif", encoding="utf-8")
+            with patch("src.origin.adapter.check_origin_available", return_value=(True, "ok")), patch(
+                "src.origin.adapter._wait_for_no_origin_process", return_value=True
+            ), patch("src.origin.adapter._run_origin_job", side_effect=fake_run), patch(
+                "src.origin.adapter.reexport_tif_from_reopened_opju"
+            ) as reopen:
+                result = export_plot(project_root, "missing_tif_evidence", data, "x", "y", "XRD")
 
-            with patch("src.origin.adapter.check_origin_available", return_value=(True, "ok")):
-                with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
-                    with patch("src.origin.adapter._run_origin_job", side_effect=fake_run):
-                        with patch("src.origin.adapter._export_tif_with_originpro", side_effect=fake_tif_export):
-                            result = export_plot(project_root, "fallback_tif", data, "x", "y", "XRD")
-
-            self.assertTrue(result.ok)
-            self.assertIsNotNone(result.figure_tif)
-            self.assertTrue(result.figure_tif.exists())
+            self.assertFalse(result.ok)
+            self.assertIn("TIF export record", result.message)
+            reopen.assert_not_called()
 
     def test_tif_compatibility_validator_rejects_retagged_low_resolution_without_resampling(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1090,7 +1181,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
             with patch.dict(sys.modules, {"originpro": fake_originpro}):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
-                    evidence = _export_tif_with_originpro(job)
+                    evidence = reexport_tif_from_reopened_opju(job.origin_file, job.page_name, job.figure_tif)
 
             self.assertEqual((evidence.width_px, evidence.height_px), expected_size)
             export_command = next(command for command in commands if command.startswith("expGraph"))
@@ -1144,7 +1235,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
                         RuntimeError,
                         "Origin lifecycle finalization failed.*simulated exit failure",
                     ):
-                        _export_tif_with_originpro(job)
+                        reexport_tif_from_reopened_opju(job.origin_file, job.page_name, job.figure_tif)
 
     def test_originpro_tif_export_fails_when_origin_remains_after_exit_wait(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1188,7 +1279,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
                         RuntimeError,
                         "Origin process remained after the bounded exit wait",
                     ):
-                        _export_tif_with_originpro(job)
+                        reexport_tif_from_reopened_opju(job.origin_file, job.page_name, job.figure_tif)
 
     def test_originpro_tif_export_replaces_stale_helper_tif(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1230,7 +1321,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
             with patch.dict(sys.modules, {"originpro": fake_originpro}):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
-                    evidence = _export_tif_with_originpro(job)
+                    evidence = reexport_tif_from_reopened_opju(job.origin_file, job.page_name, job.figure_tif)
 
             self.assertEqual(saw_missing_before_export, [True])
             self.assertEqual((evidence.width_px, evidence.height_px), expected_size)
@@ -1266,7 +1357,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             with patch.dict(sys.modules, {"originpro": fake_originpro}):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
                     with self.assertRaisesRegex(RuntimeError, "did not clear the in-memory project identity"):
-                        _export_tif_with_originpro(job)
+                        reexport_tif_from_reopened_opju(job.origin_file, job.page_name, job.figure_tif)
 
             self.assertEqual(job.figure_tif.read_bytes(), b"preserve-on-guard-failure")
             self.assertNotIn("expGraph", "\n".join(commands))
@@ -1279,15 +1370,12 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             write_origin_error(project_root, "old failure")
 
             def fake_run(job):
-                job.origin_file.write_text("opju", encoding="utf-8")
-                job.figure_tif.write_text("tif", encoding="utf-8")
-                job.preview_png.write_bytes(b"png preview")
-                return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+                return _fake_helper_artifacts(job)
 
             with patch("src.origin.adapter.check_origin_available", return_value=(True, "ok")):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
                     with patch("src.origin.adapter._run_origin_job", side_effect=fake_run):
-                        with patch("src.origin.adapter._export_tif_with_originpro"):
+                        with patch("src.origin.adapter.reexport_tif_from_reopened_opju", side_effect=AssertionError("must not start another Origin")):
                             result = export_plot(project_root, "clear_stale", data, "x", "y", "XRD")
 
             self.assertTrue(result.ok)
@@ -1301,19 +1389,14 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             data.write_text("x,y\n0,1\n", encoding="utf-8")
 
             def fake_run(job):
-                job.origin_file.write_text("opju", encoding="utf-8")
+                completed = _fake_helper_artifacts(job)
                 job.figure_tif.write_bytes(b"")
-                job.preview_png.write_bytes(b"png preview")
-                return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+                return completed
 
             with patch("src.origin.adapter.check_origin_available", return_value=(True, "ok")):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
                     with patch("src.origin.adapter._run_origin_job", side_effect=fake_run):
-                        with patch(
-                            "src.origin.adapter._export_tif_with_originpro",
-                            side_effect=RuntimeError("TIF native resolution validation failed"),
-                        ):
-                            result = export_plot(project_root, "empty_tif", data, "x", "y", "XRD")
+                        result = export_plot(project_root, "empty_tif", data, "x", "y", "XRD")
 
             self.assertFalse(result.ok)
             self.assertIn("TIF", result.message)
@@ -1338,17 +1421,12 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
                 self.assertFalse(job.origin_file.exists())
                 self.assertFalse(job.figure_tif.exists())
                 self.assertFalse(job.preview_png.exists())
-                job.origin_file.write_text("new opju", encoding="utf-8")
-                job.preview_png.write_bytes(b"new png")
-                return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
-
-            def fake_tif_export(job):
-                job.figure_tif.write_text("new tif", encoding="utf-8")
+                return _fake_helper_artifacts(job, opju=b"new opju", png=b"new png")
 
             with patch("src.origin.adapter.check_origin_available", return_value=(True, "ok")):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
                     with patch("src.origin.adapter._run_origin_job", side_effect=fake_run):
-                        with patch("src.origin.adapter._export_tif_with_originpro", side_effect=fake_tif_export):
+                        with patch("src.origin.adapter.reexport_tif_from_reopened_opju", side_effect=AssertionError("must not start another Origin")):
                             result = export_plot(
                                 project_root,
                                 "stale_outputs",
@@ -1361,7 +1439,8 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
             self.assertTrue(result.ok)
             self.assertEqual(stale_job.origin_file.read_text(encoding="utf-8"), "new opju")
-            self.assertEqual(stale_job.figure_tif.read_text(encoding="utf-8"), "new tif")
+            self.assertGreater(stale_job.figure_tif.stat().st_size, 0)
+            self.assertEqual(result.tif_resolution_evidence.width_px, 60)
             self.assertEqual(stale_job.preview_png.read_bytes(), b"new png")
 
 

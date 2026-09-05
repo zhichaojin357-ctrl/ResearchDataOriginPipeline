@@ -14,6 +14,7 @@ from src.core.project import (
     default_output_root,
     ensure_output_path_separate_from_inputs,
     load_json_compatible_yaml,
+    project_config_scope,
     output_dir,
     registry_path,
 )
@@ -114,6 +115,7 @@ class TriageOptions:
     output_root: Path | None = None
 
 
+@project_config_scope()
 def run_triage(project_root: Path, input_path: Path, options: TriageOptions | None = None) -> dict:
     options = options or TriageOptions()
     ensure_output_path_separate_from_inputs(
@@ -128,10 +130,10 @@ def run_triage(project_root: Path, input_path: Path, options: TriageOptions | No
     for path in sorted(input_path.rglob("*")) if input_path.exists() else []:
         if not path.is_file():
             continue
+        if options.only_folder and _norm_path(options.only_folder) not in _norm_path(str(path.relative_to(input_path))):
+            continue
         item = _triage_file(project_root, input_path, path, entries, options)
         if options.only_type and _norm(item["data_type_candidate"]) != _norm(options.only_type):
-            continue
-        if options.only_folder and _norm_path(options.only_folder) not in _norm_path(item["relative_path"]):
             continue
         items.append(item)
 
@@ -290,14 +292,13 @@ def _numeric_column_count(rows: list[dict[str, str]]) -> int:
         return 0
     count = 0
     for header in rows[0]:
-        values = []
         for row in rows:
             try:
-                values.append(float(str(row.get(header, "")).strip()))
+                float(str(row.get(header, "")).strip())
             except ValueError:
                 continue
-        if values:
             count += 1
+            break
     return count
 
 
