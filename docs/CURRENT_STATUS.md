@@ -10,6 +10,17 @@ The latest broad code audit remains
 the newer runtime state after the Origin style-route work and XRD data-module
 merge.
 
+## Optimization branch awaiting workstation acceptance
+
+`codex/optimize-pipeline-preserve-plots` implements input / asset reuse,
+algorithmic search improvements, Origin readback batching, a single generic
+export session, and impact-based validation. See
+[OPTIMIZATION_HANDOFF.md](OPTIMIZATION_HANDOFF.md) for the implementation map,
+executed checks, known environment failures, and copyable workstation tests.
+Native Windows / Origin output comparisons are still pending. The earlier
+asset and full-regression results below are historical evidence and do not
+establish visual acceptance of this branch.
+
 ## Runtime scope
 
 `config/processor_registry.yaml` currently declares 15 supported pipeline
