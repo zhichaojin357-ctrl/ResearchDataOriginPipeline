@@ -149,6 +149,55 @@ def test_sequence_and_result_rerun_suffixes_are_positive_rerun_evidence(config: 
     assert analysis.normalize_hplc_name(second["result_name"]) == "RESULT-A"
 
 
+def test_repeat_groups_reuse_sequence_comparison_and_exclude_distant_dates(config, monkeypatch):
+    records = []
+    for result_set, acquired in (
+        ("A", "2026-07-18T10:00:00+08:00"),
+        ("B", "2026-07-19T10:00:00+08:00"),
+        ("C", "2026-08-19T10:00:00+08:00"),
+    ):
+        for index, sample in enumerate(("Catalyst 1H", "Catalyst 2H", "Catalyst 3H"), 1):
+            record = _repeat_record(
+                f"{result_set}{index}", sample,
+                acquired=acquired, result_set_id=result_set, sequence_order=index,
+            )
+            record["result_set_folder"] = f"result-{result_set}"
+            records.append(record)
+    comparisons = []
+    original = analysis.SequenceMatcher
+
+    def counted(*args, **kwargs):
+        comparisons.append((args[1], args[2]))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(analysis, "SequenceMatcher", counted)
+    groups, evidence, edges, uncertain = analysis._assign_repeat_groups(records, config)
+
+    assert len(comparisons) == 1
+    assert len(evidence) == 3
+    assert [(edge["left"], edge["right"]) for edge in edges] == [
+        ("A1", "B1"), ("A2", "B2"), ("A3", "B3"),
+    ]
+    assert all(groups[f"A{i}"] == groups[f"B{i}"] for i in range(1, 4))
+    assert all(f"C{i}" not in groups for i in range(1, 4))
+    assert uncertain == []
+
+
+def test_attach_analysis_preserves_default_copy_and_allows_owned_dataset(config, monkeypatch):
+    monkeypatch.setattr(analysis, "load_hplc_analysis_config", lambda _root: config)
+    monkeypatch.setattr(analysis, "analyze_hplc_openlab_dataset", lambda _data, _config: {"ok": True})
+    source = {"raw_sheets": [{"signal": [1.0, 2.0]}], "scientific_boundary": {"existing": True}}
+
+    copied = analysis.attach_hplc_analysis(source, Path("."))
+    assert "analysis" not in source
+    assert copied["raw_sheets"] is not source["raw_sheets"]
+    assert source["scientific_boundary"] == {"existing": True}
+
+    owned = analysis.attach_hplc_analysis(source, Path("."), copy_dataset=False)
+    assert owned is source
+    assert owned == copied
+
+
 def test_second_and_third_batches_are_hard_boundaries_and_conflicts_are_flagged(config: dict):
     second, second_conflict, second_values = analysis.detect_batch_marker("Batch 2")
     third, third_conflict, third_values = analysis.detect_batch_marker("Batch 3")

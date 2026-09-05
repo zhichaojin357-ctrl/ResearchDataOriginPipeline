@@ -813,6 +813,65 @@ const batchPlanByName = new Map(
   dataset.workbook_plan.batch_workbooks.map((item) => [item.batch_folder, item]),
 );
 
+function appendIndexValue(index, key, value) {
+  let values = index.get(key);
+  if (!values) {
+    values = [];
+    index.set(key, values);
+  }
+  values.push(value);
+}
+
+function buildWorkbookIndexes() {
+  const batches = new Map();
+  const resultSetsByPlan = new Map();
+  const plansByResultSet = new Map();
+  const peaksByResultSetAndInjection = new Map();
+  function batchIndex(batchFolder) {
+    let batch = batches.get(batchFolder);
+    if (!batch) {
+      batch = { injections: [], injectionsByResultSet: new Map(), peakCount: 0 };
+      batches.set(batchFolder, batch);
+    }
+    return batch;
+  }
+  for (const plan of dataset.workbook_plan.batch_workbooks) {
+    batchIndex(plan.batch_folder);
+    resultSetsByPlan.set(plan, []);
+    for (const resultSetId of new Set(plan.result_set_ids)) {
+      appendIndexValue(plansByResultSet, resultSetId, plan);
+    }
+  }
+  // Scan source arrays in order so indexes retain the previous filter ordering.
+  for (const resultSet of dataset.result_sets) {
+    for (const plan of plansByResultSet.get(resultSet.result_set_id) || []) {
+      resultSetsByPlan.get(plan).push(resultSet);
+    }
+  }
+  for (const injection of dataset.injections) {
+    const batch = batchIndex(injection.batch_folder);
+    batch.injections.push(injection);
+    appendIndexValue(batch.injectionsByResultSet, injection.result_set_id, injection);
+  }
+  for (const peak of dataset.peaks) {
+    batchIndex(peak.batch_folder).peakCount += 1;
+    let peaksByInjection = peaksByResultSetAndInjection.get(peak.result_set_id);
+    if (!peaksByInjection) {
+      peaksByInjection = new Map();
+      peaksByResultSetAndInjection.set(peak.result_set_id, peaksByInjection);
+    }
+    appendIndexValue(peaksByInjection, peak.injection_id, peak);
+  }
+  for (const peaksByInjection of peaksByResultSetAndInjection.values()) {
+    for (const peaks of peaksByInjection.values()) {
+      peaks.sort((left, right) => Number(left.peak_ordinal) - Number(right.peak_ordinal));
+    }
+  }
+  return { batches, resultSetsByPlan, peaksByResultSetAndInjection };
+}
+
+const workbookIndexes = buildWorkbookIndexes();
+
 function summaryWorkbook() {
   const workbook = Workbook.create();
   const usage = workbook.worksheets.add("使用说明");
@@ -942,15 +1001,9 @@ function summaryWorkbook() {
 
 function batchWorkbook(batchPlan) {
   const workbook = Workbook.create();
-  const batchInjections = dataset.injections.filter(
-    (item) => item.batch_folder === batchPlan.batch_folder,
-  );
-  const resultSets = dataset.result_sets.filter(
-    (item) => batchPlan.result_set_ids.includes(item.result_set_id),
-  );
-  const batchPeaks = dataset.peaks.filter(
-    (item) => item.batch_folder === batchPlan.batch_folder,
-  );
+  const batch = workbookIndexes.batches.get(batchPlan.batch_folder);
+  const batchInjections = batch.injections;
+  const resultSets = workbookIndexes.resultSetsByPlan.get(batchPlan);
   const firstAcquisition = batchInjections[0]?.acquisition_local || "";
   const lastAcquisition = batchInjections.at(-1)?.acquisition_local || "";
 
@@ -962,7 +1015,7 @@ function batchWorkbook(batchPlan) {
     ["首次采集", firstAcquisition.replace("T", " ")],
     ["末次采集", lastAcquisition.replace("T", " ")],
     ["进样数", batchInjections.length],
-    ["OpenLab 原积分峰数", batchPeaks.length],
+    ["OpenLab 原积分峰数", batch.peakCount],
     ["方法", uniqueText(batchInjections.map((item) => methodText(item)))],
     ["原始信号", "已完整解码和校验，但按简洁输出要求不在 Excel 中逐点列出。"],
     ["人工复核", "所有峰身份、积分边界及后续定量结论均需人工复核。"],
@@ -1036,20 +1089,11 @@ function batchWorkbook(batchPlan) {
   for (const resultSet of resultSets) {
     const sheetName = `${resultSet.result_set_id}_峰面积`;
     const sheet = workbook.worksheets.add(sheetName);
-    const resultSetInjections = batchInjections.filter(
-      (item) => item.result_set_id === resultSet.result_set_id,
-    );
-    const peaksByInjection = new Map();
-    for (const peak of dataset.peaks.filter(
-      (item) => item.result_set_id === resultSet.result_set_id,
-    )) {
-      const peaks = peaksByInjection.get(peak.injection_id) || [];
-      peaks.push(peak);
-      peaksByInjection.set(peak.injection_id, peaks);
-    }
+    const resultSetInjections = batch.injectionsByResultSet.get(resultSet.result_set_id) || [];
+    const peaksByInjection = workbookIndexes.peaksByResultSetAndInjection
+      .get(resultSet.result_set_id) || new Map();
     const peakRows = resultSetInjections.map((injection) => {
-      const peaks = (peaksByInjection.get(injection.injection_id) || [])
-        .sort((left, right) => Number(left.peak_ordinal) - Number(right.peak_ordinal));
+      const peaks = peaksByInjection.get(injection.injection_id) || [];
       return [
         injection.batch_folder,
         injection.result_set_folder,

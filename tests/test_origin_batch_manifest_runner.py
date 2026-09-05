@@ -214,10 +214,21 @@ def test_manifest_runner_execute_with_origin_exports_planned_items(tmp_path: Pat
 
     monkeypatch.setattr("src.core.origin_batch.export_plot", fake_export_plot)
 
+    from src.core import origin_batch
+    original_validate = origin_batch.validate_tif_physical_resolution
+    validated_paths: list[Path] = []
+
+    def record_validation(path: Path, **kwargs):
+        validated_paths.append(path)
+        return original_validate(path, **kwargs)
+
+    monkeypatch.setattr(origin_batch, "validate_tif_physical_resolution", record_validation)
+
     code = run_origin_batch(test_project, OriginBatchOptions(manifest=package / "index.csv", execute=True, with_origin=True))
 
     assert code == 0
     assert calls and calls[0]["dataset_id"] == "XPS_item"
+    assert validated_paths == [package / "figures_tif" / "XPS" / "item.tif"]
     assert calls[0]["force"] is True
     assert (package / "origin_files" / "XPS" / "item.opju").read_bytes() == b"opju"
     assert stale_plot_input.read_text(encoding="utf-8") == "stale"
@@ -590,3 +601,48 @@ def _sha256(path: Path) -> str:
     import hashlib
 
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_source_index_hashes_each_candidate_once_and_preserves_first_match(tmp_path: Path, monkeypatch):
+    from src.core import origin_batch
+
+    source = tmp_path / "selected_source_data"
+    source.mkdir()
+    first, duplicate, last = (source / name for name in ("a.csv", "b.csv", "c.csv"))
+    first.write_bytes(b"same")
+    duplicate.write_bytes(b"same")
+    last.write_bytes(b"last")
+    real_hash = origin_batch._file_sha256
+    reads: list[Path] = []
+
+    def counted_hash(path: Path):
+        reads.append(path)
+        return real_hash(path)
+
+    monkeypatch.setattr(origin_batch, "_file_sha256", counted_hash)
+    index = origin_batch._PackageSourceIndex(tmp_path)
+    assert index.find(real_hash(first)) == first
+    assert reads == [first]  # A single early match does not hash the whole tree.
+    assert index.find(real_hash(last)) == last
+    assert index.find(real_hash(first)) == first
+    assert index.find("not-present") is None
+    assert reads == [first, duplicate, last]
+
+
+def test_source_index_rechecks_selected_content_before_export(tmp_path: Path):
+    from src.core import origin_batch
+
+    source = tmp_path / "selected_source_data" / "data.csv"
+    source.parent.mkdir()
+    source.write_bytes(b"before")
+    expected = origin_batch._file_sha256(source)
+    index = origin_batch._PackageSourceIndex(tmp_path)
+    assert index.find(expected) == source
+    source.write_bytes(b"after")
+    result = origin_batch._check_source_hash(
+        tmp_path / "project", tmp_path, {}, expected,
+        source_index=index, verify_selected=True,
+    )
+    assert result["ok"] is False
+    assert result["reason"] == "source_hash_mismatch"
+    assert origin_batch._PackageSourceIndex(tmp_path).find(expected) is None

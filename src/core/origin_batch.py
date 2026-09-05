@@ -17,7 +17,12 @@ from src.core.file_utils import (
     plan_safe_owned_directory_removal,
 )
 from src.core.image_artifacts import validate_tif_physical_resolution
-from src.core.manifest_schema import schema_mismatch_message
+from src.core.manifest_schema import (
+    ORIGIN_BATCH_REQUIRED_COLUMNS,
+    ORIGIN_STATUS_ALIASES,
+    SOURCE_LOCATOR_COLUMNS,
+    schema_mismatch_message,
+)
 from src.core.output_sanitizer import sanitize_report_payload as _sanitize_report_payload
 from src.core.project import (
     default_output_root,
@@ -49,19 +54,33 @@ ORIGIN_OUTPUT_SUFFIXES = {
     "preview_png": {".png"},
 }
 INPUT_ARTIFACT_FIELDS = ("processed_csv", "metadata")
-REQUIRED_MANIFEST_HEADERS = {
-    "result_id",
-    "data_type",
-    "source_hash",
-    "processed_csv",
-    "metadata",
-    "origin_file",
-    "figure_tif",
-    "preview_png",
-    "qc_status",
-}
-ORIGIN_STATUS_HEADERS = {"origin_status", "origin_export_status"}
-SOURCE_LOCATOR_HEADERS = {"source_file", "source_copy", "selected_source_copy", "selected_source_data"}
+REQUIRED_MANIFEST_HEADERS = ORIGIN_BATCH_REQUIRED_COLUMNS
+ORIGIN_STATUS_HEADERS = ORIGIN_STATUS_ALIASES
+SOURCE_LOCATOR_HEADERS = SOURCE_LOCATOR_COLUMNS
+
+
+class _PackageSourceIndex:
+    """Lazy, ordered source lookup owned by one planning or execution phase."""
+
+    def __init__(self, package_root: Path) -> None:
+        self.source_root = package_root / "selected_source_data"
+        self._paths = None
+        self._matches: dict[str, Path] = {}
+
+    def find(self, expected_hash: str) -> Path | None:
+        expected = expected_hash.lower()
+        if expected in self._matches:
+            return self._matches[expected]
+        if self._paths is None:
+            self._paths = iter(sorted(self.source_root.rglob("*"))) if self.source_root.is_dir() else iter(())
+        for path in self._paths:
+            if not path.is_file():
+                continue
+            digest = _file_sha256(path).lower()
+            self._matches.setdefault(digest, path)
+            if digest == expected:
+                return self._matches[digest]
+        return None
 
 
 @dataclass(frozen=True)
@@ -109,6 +128,7 @@ def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
     planned = []
     skipped = []
     blocked = []
+    source_index = _PackageSourceIndex(package_root)
 
     for row_number, row in enumerate(rows, start=2):
         result_id = row.get("result_id") or f"row_{row_number}"
@@ -147,7 +167,7 @@ def plan_origin_batch(project_root: Path, options: OriginBatchOptions) -> dict:
             blocked.append({**base_item, "reason": "source_hash_missing"})
             continue
 
-        source_check = _check_source_hash(project_root, package_root, row, source_hash)
+        source_check = _check_source_hash(project_root, package_root, row, source_hash, source_index=source_index)
         if not source_check["ok"]:
             blocked.append({**base_item, **source_check})
             continue
@@ -224,12 +244,15 @@ def execute_origin_batch_exports(project_root: Path, options: OriginBatchOptions
     package_root = manifest_path.parent.absolute()
     rows = _read_manifest_rows(manifest_path)
     planned_rows = {int(item["row_number"]) for item in plan.get("planned_items", [])}
+    # Planning may precede execution by hours. Never reuse its content evidence.
+    source_index = _PackageSourceIndex(package_root)
     _validate_origin_batch_global_ownership(
         project_root,
         manifest_path,
         package_root,
         rows,
         planned_rows,
+        source_index=source_index,
     )
     exported: list[dict[str, object]] = []
     failures: list[dict[str, object]] = []
@@ -242,7 +265,10 @@ def execute_origin_batch_exports(project_root: Path, options: OriginBatchOptions
             path_errors, artifacts = _resolve_artifact_paths(package_root, row)
             if path_errors:
                 raise ValueError(f"artifact path validation failed: {path_errors}")
-            source_check = _check_source_hash(project_root, package_root, row, row.get("source_hash", "").strip())
+            source_check = _check_source_hash(
+                project_root, package_root, row, row.get("source_hash", "").strip(),
+                source_index=source_index, verify_selected=True,
+            )
             if not source_check.get("ok"):
                 raise ValueError(str(source_check.get("reason") or "source hash check failed"))
             processed_csv = artifacts["processed_csv"]
@@ -289,16 +315,9 @@ def execute_origin_batch_exports(project_root: Path, options: OriginBatchOptions
                         "Origin export reported success without native TIFF "
                         "resolution evidence."
                     )
-                staged_tif_evidence = validate_tif_physical_resolution(
-                    Path(origin_result.figure_tif),
-                    page_width_origin_units=float(
-                        source_evidence.page_width_origin_units
-                    ),
-                    page_height_origin_units=float(
-                        source_evidence.page_height_origin_units
-                    ),
-                    dpi=int(source_evidence.requested_dpi),
-                )
+                # The exporter has already decoded this unchanged staging TIFF.
+                # The published copy is still independently checked below.
+                staged_tif_evidence = source_evidence
                 _publish_origin_artifact_package(
                     (
                         (Path(origin_result.origin_file), artifacts["origin_file"]),
@@ -328,6 +347,7 @@ def execute_origin_batch_exports(project_root: Path, options: OriginBatchOptions
                     "figure_tif": str(artifacts["figure_tif"]),
                     "preview_png": str(artifacts["preview_png"]),
                     "tif_resolution_evidence": tif_evidence.as_dict(),
+                    "stage_timings_seconds": getattr(origin_result, "stage_timings_seconds", None) or {},
                 }
             )
         except Exception as exc:
@@ -820,6 +840,8 @@ def _validate_origin_batch_global_ownership(
     package_root: Path,
     rows: list[dict[str, str]],
     planned_rows: set[int],
+    *,
+    source_index: _PackageSourceIndex | None = None,
 ) -> None:
     row_artifacts: dict[int, dict[str, Path]] = {}
     protected_inputs: list[tuple[str, Path]] = [("manifest", manifest_path)]
@@ -839,6 +861,7 @@ def _validate_origin_batch_global_ownership(
             package_root,
             row,
             str(row.get("source_hash") or "").strip(),
+            source_index=source_index,
         )
         source_checked = str(source_check.get("source_path_checked") or "").strip()
         if source_checked:
@@ -898,7 +921,10 @@ def _validate_origin_batch_global_ownership(
                     )
 
 
-def _check_source_hash(project_root: Path, package_root: Path, row: dict[str, str], expected_hash: str) -> dict:
+def _check_source_hash(
+    project_root: Path, package_root: Path, row: dict[str, str], expected_hash: str,
+    *, source_index: _PackageSourceIndex | None = None, verify_selected: bool = False,
+) -> dict:
     source_copy_value = (row.get("source_copy") or row.get("selected_source_copy") or row.get("selected_source_data") or "").strip()
     if source_copy_value:
         source_copy = Path(source_copy_value)
@@ -923,8 +949,19 @@ def _check_source_hash(project_root: Path, package_root: Path, row: dict[str, st
             }
         return {"ok": True, "source_copy": source_copy_value, "source_path_checked": str(source_path)}
 
-    packaged_source = _find_package_source_copy_by_hash(package_root, expected_hash)
+    packaged_source = (
+        source_index.find(expected_hash) if source_index is not None
+        else _find_package_source_copy_by_hash(package_root, expected_hash)
+    )
     if packaged_source is not None:
+        if verify_selected:
+            actual_hash = _file_sha256(packaged_source)
+            if actual_hash.lower() != expected_hash.lower():
+                return {
+                    "ok": False, "reason": "source_hash_mismatch",
+                    "source_copy": str(packaged_source.relative_to(package_root).as_posix()),
+                    "expected_hash": expected_hash, "actual_hash": actual_hash,
+                }
         return {
             "ok": True,
             "source_copy": str(packaged_source.relative_to(package_root).as_posix()),
@@ -961,14 +998,7 @@ def _check_source_hash(project_root: Path, package_root: Path, row: dict[str, st
 
 
 def _find_package_source_copy_by_hash(package_root: Path, expected_hash: str) -> Path | None:
-    source_root = package_root / "selected_source_data"
-    if not source_root.is_dir():
-        return None
-    expected = expected_hash.lower()
-    for path in sorted(source_root.rglob("*")):
-        if path.is_file() and _file_sha256(path).lower() == expected:
-            return path
-    return None
+    return _PackageSourceIndex(package_root).find(expected_hash)
 
 
 def _missing_or_empty(paths: dict[str, Path], fields: tuple[str, ...]) -> list[str]:

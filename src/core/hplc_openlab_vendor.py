@@ -86,16 +86,15 @@ def resolve_bundled_openlab_vendor_assets() -> BundledOpenLabVendorAssets:
     cache_root = _LOCAL_RUNTIME_CACHE.resolve()
     cache_root.mkdir(parents=True, exist_ok=True)
     runtime_root = cache_root / f"agilent_openlab_processing_2_5_{archive_sha256[:12]}"
-    if runtime_root.exists():
-        _validate_extracted_runtime(runtime_root, manifest)
-    else:
+    if not runtime_root.exists():
         staging = Path(tempfile.mkdtemp(prefix=".agilent-openlab-extract-", dir=cache_root)).resolve()
         try:
             _extract_bundled_runtime(archive_path, staging, manifest)
             try:
                 os.replace(staging, runtime_root)
             except FileExistsError:
-                _validate_extracted_runtime(runtime_root, manifest)
+                # Another caller populated the cache; validate its final payload below.
+                pass
         finally:
             if staging.exists():
                 shutil.rmtree(staging)

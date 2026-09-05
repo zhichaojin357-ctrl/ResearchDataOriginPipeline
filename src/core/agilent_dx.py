@@ -167,7 +167,7 @@ def _decode_integrable_signal(
         dtype="<f8",
         count=number_of_values,
         offset=SIGNAL179_HEADER_SIZE,
-    ).copy()
+    )
     slope = _required_float(signal, "Slope", dx_path)
     values = raw_values * slope
     time_start_ms = _required_float(signal, "TimeStart", dx_path)

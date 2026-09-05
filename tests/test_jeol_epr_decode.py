@@ -101,6 +101,22 @@ def expected_first_aggregation_center(*, raw_points: int = 65536, export_points:
 
 
 class JeolEprDecodeTest(unittest.TestCase):
+    def test_prepared_export_releases_raw_channels_after_aggregation(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "CWO-OH-light1"
+            write_synthetic_jeol_cacqu(source)
+            plan = epr_jeol._JeolEprExportPlan(
+                root, source, source.name, root / "signal.xlsx", root / "metadata.json",
+            )
+            prepared = epr_jeol._prepare_jeol_export(plan)
+
+            self.assertFalse(hasattr(prepared, "decoded"))
+            self.assertEqual(prepared.header.data_length, 65536)
+            self.assertEqual(prepared.x_values[0], expected_first_aggregation_center())
+            self.assertEqual(prepared.y_values, [7.5] * DEFAULT_EXPORT_POINTS)
+            self.assertEqual(prepared.source_sha256_before, prepared.source_sha256_after)
+
     def _processed_rows(self, root: Path, metadata: dict) -> list[dict[str, str]]:
         with _artifact_path(root, metadata["processed_data"]).open(encoding="utf-8") as handle:
             return list(csv.DictReader(handle))
