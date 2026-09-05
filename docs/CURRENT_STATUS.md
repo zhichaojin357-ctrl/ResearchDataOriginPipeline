@@ -135,15 +135,18 @@ Latest final verification on 2026-08-24:
   warnings are missing or stale operational queue/review artifacts. No rule
   was weakened to make the report green.
 
-Run final validation once after a coherent change batch, rather than repeating
-full-suite or Origin tests after every low-risk documentation edit:
+Follow the impact-based validation matrix in `AGENTS.md` section 10. During
+development run the affected tests and compare the affected data or figures.
+Run the full suite and applicable project checks once before integrating a
+complete optimization batch, not after every small commit. Record unrelated
+pre-existing failures without expanding the task to fix them:
 
 ```powershell
-D:\Python\python.exe -m pytest
-D:\Python\python.exe run.py validate
-D:\Python\python.exe run.py readiness --no-desktop-review-xlsx
+python -m pytest
+python run.py validate
+python run.py readiness --no-desktop-review-xlsx
 ```
 
-The two readiness commands must run in that order. Plot-format changes also
+The validate and readiness commands must run in that order. Plot-format changes also
 require the affected formal Origin run and actual PNG inspection; data-only or
 documentation-only changes do not.
