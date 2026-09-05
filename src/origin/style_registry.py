@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import re
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -52,6 +54,50 @@ ADAPTIVE_CANDIDATE_FORMAT_THEME_ROLES = frozenset(
         "quarantined_nonruntime",
     }
 )
+
+
+_asset_reads: ContextVar[tuple[dict[Path, Any], dict[Path, str]] | None] = ContextVar(
+    "origin_style_asset_reads", default=None
+)
+
+
+@contextmanager
+def origin_style_asset_read_scope():
+    """Share read-only asset inputs for one product batch, never across runs.
+
+    Product exporters keep their final source-hash checks outside this cache.
+    Harvest and asset mutation workflows do not enter this scope.
+    """
+    if _asset_reads.get() is not None:
+        yield
+        return
+    token = _asset_reads.set(({}, {}))
+    try:
+        yield
+    finally:
+        _asset_reads.reset(token)
+
+
+def read_origin_style_json(path: Path) -> Any:
+    source = Path(path)
+    cache = _asset_reads.get()
+    if cache is None:
+        return json.loads(source.read_text(encoding="utf-8"))
+    payloads = cache[0]
+    if source not in payloads:
+        payloads[source] = json.loads(source.read_text(encoding="utf-8"))
+    return payloads[source]
+
+
+def origin_style_file_sha256(path: Path) -> str:
+    source = Path(path)
+    cache = _asset_reads.get()
+    if cache is None:
+        return file_sha256(source)
+    hashes = cache[1]
+    if source not in hashes:
+        hashes[source] = file_sha256(source)
+    return hashes[source]
 
 
 @dataclass(frozen=True)
@@ -135,7 +181,7 @@ def load_origin_style_manifest(project_root: Path, manifest_path: Path | None = 
     path = origin_style_manifest_path(project_root, manifest_path)
     if not path.exists():
         return {"schema_version": 1, "assets": []}
-    loaded = json.loads(path.read_text(encoding="utf-8"))
+    loaded = read_origin_style_json(path)
     if not isinstance(loaded, dict):
         raise ValueError(f"Origin style manifest must be a JSON object: {path}")
     try:
@@ -225,7 +271,7 @@ def validate_origin_style_asset_integrity(
             path = resolved_files.get(field)
             if path is not None:
                 try:
-                    payload = json.loads(path.read_text(encoding="utf-8"))
+                    payload = read_origin_style_json(path)
                     if not isinstance(payload, dict):
                         raise ValueError("root is not an object")
                 except (OSError, json.JSONDecodeError, ValueError) as exc:
@@ -318,7 +364,7 @@ def _validate_v2_style_asset_entry(
     style_snapshot = resolved_files.get("style_snapshot")
     if style_snapshot is not None:
         try:
-            payload = json.loads(style_snapshot.read_text(encoding="utf-8"))
+            payload = read_origin_style_json(style_snapshot)
         except (OSError, json.JSONDecodeError):
             payload = {}
         for manifest_field, snapshot_field in (
@@ -339,7 +385,7 @@ def _validate_v2_style_asset_entry(
 
     source_opju = resolved_files.get("template_opju")
     source_hash = str(asset.get("source_opju_hash") or "").strip().casefold()
-    if source_opju is not None and source_hash and source_hash != file_sha256(source_opju):
+    if source_opju is not None and source_hash and source_hash != origin_style_file_sha256(source_opju):
         failures.append("source_opju_hash mismatch")
 
 
@@ -353,7 +399,7 @@ def _validate_recorded_file(
     digest = str(expected_hash or "").strip().casefold()
     if not re.fullmatch(r"[0-9a-f]{64}", digest):
         failures.append(f"{label} sha256 is missing or malformed")
-    elif digest != file_sha256(path):
+    elif digest != origin_style_file_sha256(path):
         failures.append(f"{label} sha256 mismatch")
     try:
         size = int(expected_size)
@@ -366,7 +412,7 @@ def _validate_recorded_file(
 
 def _validate_xrd_data_snapshot(path: Path, failures: list[str]) -> None:
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_origin_style_json(path)
     except (OSError, json.JSONDecodeError):
         return
     layers = payload.get("layers") if isinstance(payload, dict) else None
@@ -476,23 +522,23 @@ def resolve_origin_style_asset(
                 continue
             if runtime_kind == "otpu" and (
                 not runtime_relative
-                or file_sha256(runtime_asset).casefold() != runtime_sha256
+                or origin_style_file_sha256(runtime_asset).casefold() != runtime_sha256
                 or style_snapshot is None
-                or file_sha256(style_snapshot).casefold() != snapshot_sha256
+                or origin_style_file_sha256(style_snapshot).casefold() != snapshot_sha256
                 or (
                     required_theme_sha256
                     and (
                         format_theme is None
-                        or file_sha256(format_theme).casefold()
+                        or origin_style_file_sha256(format_theme).casefold()
                         != required_theme_sha256
                         or required_theme_sha256 != theme_sha256
                     )
                 )
                 or binding_contract is None
-                or file_sha256(binding_contract).casefold()
+                or origin_style_file_sha256(binding_contract).casefold()
                 != str(validation.get("binding_contract_sha256") or "").casefold()
                 or validation_evidence is None
-                or file_sha256(validation_evidence).casefold()
+                or origin_style_file_sha256(validation_evidence).casefold()
                 != str(validation.get("evidence_sha256") or "").casefold()
             ):
                 continue
@@ -534,6 +580,8 @@ def resolve_origin_runtime_style_asset(
     an OTPU can run only after the exact asset/evidence binding passes.
     """
 
+    if loaded_manifest is None:
+        loaded_manifest = load_origin_style_manifest(project_root, manifest_path)
     candidate = resolve_origin_style_asset(
         project_root,
         product_key,
@@ -627,7 +675,7 @@ def resolve_origin_adaptive_style_asset(
         invalid_json = False
         for field in ("style_snapshot", "data_snapshot"):
             try:
-                payload = json.loads(paths[field].read_text(encoding="utf-8"))
+                payload = read_origin_style_json(paths[field])
             except (OSError, json.JSONDecodeError):
                 invalid_json = True
                 break
@@ -721,7 +769,7 @@ def _adaptive_integrity_record_matches(
     if manifest_path is None or manifest_path.resolve() != path.resolve():
         return False
     digest = str(record.get("sha256") or "").strip().casefold()
-    if re.fullmatch(r"[0-9a-f]{64}", digest) is None or file_sha256(path) != digest:
+    if re.fullmatch(r"[0-9a-f]{64}", digest) is None or origin_style_file_sha256(path) != digest:
         return False
     try:
         size = int(record.get("size_bytes"))

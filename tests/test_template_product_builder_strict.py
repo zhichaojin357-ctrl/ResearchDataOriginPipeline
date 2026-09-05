@@ -842,7 +842,7 @@ def test_template_xps_fill_baseline_is_masked_to_component_valid_points() -> Non
     assert rows[1][6] is None
 
 
-def test_template_writes_template_vs_generated_preview_comparison(tmp_path: Path) -> None:
+def test_template_writes_template_vs_generated_preview_comparison(tmp_path: Path, monkeypatch) -> None:
     reference = tmp_path / "BET" / "reference_exports" / "BET_reference.png"
     generated = tmp_path / "BET" / "figures_preview" / "BET_preview.png"
     metadata = tmp_path / "BET" / "metadata" / "BET.json"
@@ -851,6 +851,14 @@ def test_template_writes_template_vs_generated_preview_comparison(tmp_path: Path
     metadata.parent.mkdir(parents=True)
     Image.new("RGB", (16, 12), "white").save(reference)
     Image.new("RGB", (16, 12), "black").save(generated)
+    opened_paths = []
+    image_open = Image.open
+
+    def counted_open(path, *args, **kwargs):
+        opened_paths.append(path)
+        return image_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Image, "open", counted_open)
     metadata.write_text(
         json.dumps(
             {
@@ -883,7 +891,9 @@ def test_template_writes_template_vs_generated_preview_comparison(tmp_path: Path
     assert (tmp_path / "reports" / "template_preview_comparison.md").exists()
     assert audit["ready_count"] == 1
     assert audit["items"][0]["side_by_side_png"] == "reports/template_preview_comparisons/BET_template_vs_generated.png"
-    assert audit["items"][0]["preview_rms"] > 0
+    assert audit["items"][0]["preview_rms"] == 255.0
+    assert opened_paths.count(reference) == 1
+    assert opened_paths.count(generated) == 1
     assert audit["items"][0]["template_plot_count"] == 3
     assert audit["items"][0]["product_plot_count"] == 1
     assert audit["items"][0]["plot_count_delta"] == -2
@@ -1480,7 +1490,8 @@ def test_validated_otpu_does_not_require_runtime_reference_preview(tmp_path: Pat
     assert product["status"] == "accepted"
 
 
-def test_template_raman_uses_only_explicit_independent_pairs_without_interpolation(tmp_path: Path) -> None:
+def test_template_raman_uses_only_explicit_independent_pairs_without_interpolation(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr("src.core.template_product_builder._template_candidate_files", lambda *args: pytest.fail("explicit Raman sources must not trigger a discarded directory scan"))
     data_root = tmp_path / "raman"
     data_root.mkdir()
     first = data_root / "BOBC.txt"
@@ -1956,7 +1967,8 @@ def test_template_pl_selects_only_requested_scan_family_and_material_labels(tmp_
     assert len(set(built["headers"])) == len(built["headers"])
 
 
-def test_template_pl_explicit_oth_json_uses_only_paired_current_curves(tmp_path: Path) -> None:
+def test_template_pl_explicit_oth_json_uses_only_paired_current_curves(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr("src.core.template_product_builder._template_candidate_files", lambda *args: pytest.fail("explicit PL sources must not trigger a discarded directory scan"))
     root = tmp_path / "PL" / "bobc+cwo+bc"
     root.mkdir(parents=True)
     paths = [root / f"{index}-EX-em640nm.txt" for index in range(1, 4)]
@@ -2266,7 +2278,9 @@ def test_template_ftir_auto_two_series_uses_explicit_subset_contract_order_and_n
 def test_template_photocurrent_oth_json_preserves_explicit_series_count_and_does_not_scan_neighbours(
     tmp_path: Path,
     series_count: int,
+    monkeypatch,
 ) -> None:
+    monkeypatch.setattr("src.core.template_product_builder._template_candidate_files", lambda *args: pytest.fail("explicit photocurrent sources must not trigger a discarded directory scan"))
     root = tmp_path / "photocurrent"
     paths = [
         root / "CWO" / "2-(OCP).txt",

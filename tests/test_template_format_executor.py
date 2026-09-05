@@ -11,6 +11,8 @@ from types import SimpleNamespace
 import pytest
 
 from src.cli import main
+from src.core.template_inputs import template_input_scope
+from src.origin.style_registry import origin_style_asset_read_scope
 from src.core.template_product_common import ProductContext, TargetPairing
 from src.core.template_format_executor import (
     FINAL_TEMPLATE_STYLE_OVERRIDE,
@@ -1041,9 +1043,11 @@ def test_verified_epr_workbook_adapter_reuses_shared_origin_transform(
     assert calls == [operations, product]
 
 
+@pytest.mark.parametrize("mutate_template_during_export", [False, True])
 def test_verified_epr_export_validates_the_csv_reread_after_origin_transform(
     tmp_path: Path,
     monkeypatch,
+    mutate_template_during_export: bool,
 ) -> None:
     product, _headers, _rows, contract_path = _verified_epr_product_and_table(tmp_path)
     template = tmp_path / "EPR.otpu"
@@ -1098,6 +1102,8 @@ def test_verified_epr_export_validates_the_csv_reread_after_origin_transform(
 
     def validate(_key: str, rows: list[list[object]], *_args: object) -> dict[str, object]:
         captured["rows"] = rows
+        if mutate_template_during_export:
+            template.write_bytes(b"changed while exporting")
         return {"ok": True, "status": "matched"}
 
     def native_tif(_ops: object, _graph_name: str, path: Path, **_kwargs: object) -> dict[str, object]:
@@ -1116,11 +1122,14 @@ def test_verified_epr_export_validates_the_csv_reread_after_origin_transform(
 
     runtime = tmp_path / "runtime"
     runtime.mkdir()
-    result = _export_verified_graph_template_product_with_origin(
-        Ops(), product, ResolvedPlotStyle(line_width_pt=3.0), asset, runtime_dir=runtime
-    )
+    with origin_style_asset_read_scope(), template_input_scope():
+        result = _export_verified_graph_template_product_with_origin(
+            Ops(), product, ResolvedPlotStyle(line_width_pt=3.0), asset, runtime_dir=runtime
+        )
 
-    assert result["ok"] is True
+    assert result["ok"] is (not mutate_template_during_export)
+    if mutate_template_during_export:
+        assert "OTPU source changed during Origin execution" in result["message"]
     assert captured["rows"] == transformed_rows
 
 
@@ -5068,9 +5077,15 @@ def test_mott_candidate_guides_recover_reviewed_common_linear_window() -> None:
 
     assert candidate["linear_interval_candidate"] == [0.15, 0.25]
     assert candidate["linear_fit_point_count"] == 3
-    assert abs(float(candidate["shared_x_intercept_candidate"]) - (-1.04)) < 0.01
-    assert len(candidate["constrained_slopes"]) == 3
-    assert min(candidate["constrained_r_squared"]) > 0.98
+    # Full-precision baseline from the reviewed data: no fitting formula or
+    # floating-point evaluation order may change during preparation refactors.
+    assert candidate["shared_x_intercept_candidate"] == -1.040673375074791
+    assert candidate["constrained_slopes"] == [
+        1316902770.681847, 1451898359.0528266, 1591859154.530034,
+    ]
+    assert candidate["constrained_r_squared"] == [
+        0.982756087496892, 0.999586596837406, 0.9906692855423053,
+    ]
 
 
 def _verified_raman_product_and_table(
@@ -7030,7 +7045,10 @@ def test_auto_style_route_uses_otpu_for_exact_fixed_binding(tmp_path: Path, monk
     )
     exact, adaptive = _dual_mode_assets(tmp_path)
     monkeypatch.setattr("src.core.template_format_executor.resolve_origin_runtime_style_asset", lambda *_a, **_k: exact)
-    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_adaptive_style_asset", lambda *_a, **_k: adaptive)
+    def unexpected_adaptive_resolution(*_args, **_kwargs):
+        pytest.fail("A matching fixed OTPU route must not resolve the unused adaptive asset")
+
+    monkeypatch.setattr("src.core.template_format_executor.resolve_origin_adaptive_style_asset", unexpected_adaptive_resolution)
 
     decision, selected = _resolve_origin_style_execution_route(tmp_path, product, requested_mode="auto")
 

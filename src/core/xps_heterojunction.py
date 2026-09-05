@@ -211,35 +211,38 @@ def load_xps_fit_workbooks(sample_files: dict[str, list[Path]]) -> tuple[list[Xp
             except Exception as exc:
                 manual_review.append({"sample": sample, "source_file": source_file.name, "reason": "workbook_open_failed", "error": str(exc)})
                 continue
-            for sheet_name in workbook.sheet_names:
-                region = _region_from_sheet(sheet_name)
-                if not region:
-                    continue
-                try:
-                    frame = pd.read_excel(source_file, sheet_name=sheet_name, header=None)
-                    record = _extract_sheet_record(sample, source_file, sheet_name, region, frame)
-                except Exception as exc:
-                    manual_review.append(
-                        {
-                            "sample": sample,
-                            "source_file": source_file.name,
-                            "sheet_name": sheet_name,
-                            "reason": "sheet_parse_failed",
-                            "error": str(exc),
-                        }
-                    )
-                    continue
-                if record is None:
-                    manual_review.append(
-                        {
-                            "sample": sample,
-                            "source_file": source_file.name,
-                            "sheet_name": sheet_name,
-                            "reason": "fit_columns_not_recognized",
-                        }
-                    )
-                    continue
-                records.append(record)
+            try:
+                for sheet_name in workbook.sheet_names:
+                    region = _region_from_sheet(sheet_name)
+                    if not region:
+                        continue
+                    try:
+                        frame = workbook.parse(sheet_name=sheet_name, header=None)
+                        record = _extract_sheet_record(sample, source_file, sheet_name, region, frame)
+                    except Exception as exc:
+                        manual_review.append(
+                            {
+                                "sample": sample,
+                                "source_file": source_file.name,
+                                "sheet_name": sheet_name,
+                                "reason": "sheet_parse_failed",
+                                "error": str(exc),
+                            }
+                        )
+                        continue
+                    if record is None:
+                        manual_review.append(
+                            {
+                                "sample": sample,
+                                "source_file": source_file.name,
+                                "sheet_name": sheet_name,
+                                "reason": "fit_columns_not_recognized",
+                            }
+                        )
+                        continue
+                    records.append(record)
+            finally:
+                workbook.close()
     return records, manual_review
 
 

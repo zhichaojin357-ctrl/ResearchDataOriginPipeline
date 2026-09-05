@@ -124,7 +124,26 @@ def test_uvvis_legacy_only_type_alias_expands_to_two_products(tmp_path: Path) ->
     )
 
 
-def test_uvvis_drs_and_tauc_preserve_each_explicit_source_grid(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "source_rows",
+    [
+        [[4.0, 7.0], [0.0, -2.0], [1.0, 8.0], [1.0, 9.0], [2.3, 0.1]],
+        [[0.0, 10.0], [0.5e-12, 20.0], [1.5e-12, 30.0], [3e-12, 40.0]],
+        [[1.0, 0.0]],
+        [],
+    ],
+)
+def test_shared_x_cursor_preserves_legacy_interpolation_exactly(source_rows) -> None:
+    from src.core.template_product_tables import interpolate_sorted_grid
+
+    points = template_product_builder._numeric_xy_points(source_rows)
+    grid = sorted({-1.0, 0.0, 0.25e-12, 0.75e-12, 1.25e-12, 2e-12, 0.4, 1.0, 1.2, 2.3, 3.8, 4.0, 5.0, *[x for x, _y in points]})
+    expected = [template_product_builder._interpolated_series_y(points, x) for x in grid]
+
+    assert list(interpolate_sorted_grid(points, grid)) == expected
+
+
+def test_uvvis_drs_and_tauc_preserve_each_explicit_source_grid(tmp_path: Path, monkeypatch) -> None:
     first = tmp_path / "sample_A.csv"
     second = tmp_path / "sample_B.csv"
     first.write_text("wavelength,absorbance\n200,0.1\n300,0.2\n", encoding="utf-8")
@@ -140,16 +159,27 @@ def test_uvvis_drs_and_tauc_preserve_each_explicit_source_grid(tmp_path: Path) -
         template_path,
     )
     tauc_pairing = replace(drs_pairing, product_key="Tauc", data_type="Tauc")
+    read_paths = []
+    read_table = template_product_builder.read_table
+
+    def counted_read(path):
+        read_paths.append(path)
+        return read_table(path)
+
+    monkeypatch.setattr(template_product_builder, "read_table", counted_read)
+    processed_cache = {}
 
     drs = _build_template_uvvis_table(
         drs_pairing,
         TemplateCandidate("UV-vis DRS", template_path, "unit", graph_page="Graph1", plot_count=6),
         origin_style_mode="auto",
+        processed_cache=processed_cache,
     )
     tauc = _build_template_uvvis_table(
         tauc_pairing,
         TemplateCandidate("Tauc", template_path, "unit", graph_page="Graph2", plot_count=3),
         origin_style_mode="auto",
+        processed_cache=processed_cache,
     )
 
     assert drs["headers"] == [
@@ -171,6 +201,7 @@ def test_uvvis_drs_and_tauc_preserve_each_explicit_source_grid(tmp_path: Path) -
     assert tauc["alignment"]["source_signal_mode"] == "absorbance"
     assert drs["alignment"]["interpolation"] == "not_applied"
     assert tauc["alignment"]["interpolation"] == "not_applied"
+    assert read_paths == [first, second]
 
 
 def test_uvvis_drs_rejects_mixed_absorbance_and_reflectance(tmp_path: Path) -> None:
@@ -1472,7 +1503,10 @@ def test_template_eis_overlay_selects_exact_real_source_family_for_template_coun
     reference = reference_dir / "2eis20260202.opju"
     reference.write_bytes(b"opju")
 
+    cleaned_paths = []
+
     def fake_clean(path: Path) -> EisCleaningResult:
+        cleaned_paths.append(path)
         base = float(sum(ord(char) for char in path.stem) % 10 + 1)
         points = [
             EisPoint(1, 1000.0, base * 1000.0, base * 500.0),
@@ -1519,6 +1553,7 @@ def test_template_eis_overlay_selects_exact_real_source_family_for_template_coun
     assert extra["eis_cleaning"]["plotted_source_count"] == 8
     assert extra["eis_overlay"]["visible_plot_indices"] == [3, 4, 5]
     assert extra["eis_overlay"]["visible_series_labels"] == ["b3", "b7", "b9-2z"]
+    assert all(cleaned_paths.count(source_dir / f"{name}.txt") == 1 for name in names)
     assert (tmp_path / "run" / "EIS" / "debug" / "eis_cleaning_and_fit_metadata.json").is_file()
 
 

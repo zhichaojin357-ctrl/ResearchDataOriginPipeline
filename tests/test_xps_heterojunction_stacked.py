@@ -46,14 +46,25 @@ def _write_xps_workbook(path: Path, sheets: dict[str, list[str]]) -> None:
             frame.to_excel(writer, sheet_name=sheet_name, header=False, index=False)
 
 
-def test_load_xps_fit_workbooks_extracts_fit_components_and_metadata(tmp_path: Path) -> None:
+def test_load_xps_fit_workbooks_extracts_fit_components_and_metadata(tmp_path: Path, monkeypatch) -> None:
     bobc = tmp_path / "BOBCfit.xlsx"
-    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"], "O1s Scan": ["O1s", "O1s Scan A"]})
+    opened_workbooks = []
+    excel_file = pd.ExcelFile
+
+    def counted_open(path, *args, **kwargs):
+        opened_workbooks.append(path)
+        return excel_file(path, *args, **kwargs)
+
+    monkeypatch.setattr(pd, "ExcelFile", counted_open)
+    monkeypatch.setattr(pd, "read_excel", lambda *args, **kwargs: pytest.fail("sheets must reuse the already open workbook"))
 
     records, manual_review = load_xps_fit_workbooks({"BOBC": [bobc]})
 
     assert manual_review == []
-    assert len(records) == 1
+    assert len(records) == 2
+    assert opened_workbooks == [bobc]
+    assert records[1].element == "O"
     record = records[0]
     assert record.sample == "BOBC"
     assert record.element == "Bi"
@@ -87,6 +98,50 @@ def test_build_comparison_plan_uses_heterojunction_binary_pairs_and_splits_oxyge
     assert "XPS_O_BOBC_CWO_BC_stacked" not in names
     assert all([item.sample_a, item.sample_b] in [["BOBC", "BC"], ["CWO", "BC"]] for item in plan.comparisons)
     assert plan.manual_review == []
+
+
+@pytest.mark.parametrize("product_key", ["XPS_in_situ", "XPS_non_in_situ"])
+@pytest.mark.parametrize("compact_output", [False, True])
+def test_template_xps_preparation_reuses_selected_workbook_records(
+    tmp_path: Path, monkeypatch, product_key: str, compact_output: bool
+) -> None:
+    import csv
+
+    import src.core.template_product_builder as builder
+    import src.core.template_product_common as common
+
+    names = ["BOBCfit.xlsx", "BC Dark.xlsx", "BC Light.xlsx"] if product_key == "XPS_in_situ" else ["BOBCfit.xlsx", "BCfit.xlsx"]
+    paths = [tmp_path / name for name in names]
+    for path in paths:
+        _write_xps_workbook(path, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A", "Bi4f Scan B"]})
+    pairing = common.TargetPairing(product_key, product_key, "", "test", paths, "test", tmp_path / "reference.json")
+    expected_headers, expected_rows, expected_labels = common._build_processed_plot_table(
+        pairing, xps_component_fill_mode="template_line_fill"
+    )
+    loads = []
+    load_workbooks = builder.load_xps_fit_workbooks
+
+    def counted_load(sample_files):
+        loads.append(sample_files)
+        return load_workbooks(sample_files)
+
+    monkeypatch.setattr(builder, "load_xps_fit_workbooks", counted_load)
+    monkeypatch.setattr(common, "load_xps_fit_workbooks", lambda *args: pytest.fail("table and Origin plan must share selected XPS records"))
+    product, extra = builder.prepare_template_product(
+        tmp_path / "run",
+        pairing,
+        builder.TemplateCandidate(product_key, pairing.reference_opju, "embedded_template_snapshot", plot_count=len(expected_headers) - 1),
+        xps_smooth_gradient_fill=True,
+        compact_output=compact_output,
+    )
+
+    with product.processed_data.open(encoding="utf-8", newline="") as handle:
+        written = list(csv.reader(handle))
+    assert written == [expected_headers, *[["" if value is None else str(value) for value in row] for row in expected_rows]]
+    assert product.graph_title == expected_labels["title"]
+    assert extra["origin_processing"]["source_files"] == [str(path) for path in paths]
+    assert len(loads) == 1
+    assert bool(list(product.type_root.rglob("*_origin_raw_input.csv"))) is (not compact_output)
 
 
 def test_build_comparison_plan_reports_missing_bc_instead_of_guessing(tmp_path: Path) -> None:

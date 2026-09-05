@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import median
 
-from src.core.epr_jeol import read_verified_jeol_export_series
+from src.core.epr_jeol import JeolEprExportSeries, read_verified_jeol_export_series
 from src.core.file_utils import (
     apply_safe_owned_directory_removal,
     ensure_safe_output_file_target,
@@ -124,10 +124,12 @@ def run_epr_overlay(project_root: Path, options: EprOverlayOptions) -> int:
         )
         for group_name in selected_groups
     }
+    series_cache: dict[Path, JeolEprExportSeries] = {}
     input_paths = _validated_epr_input_paths(
         reference_dir,
         selected_groups,
         background=options.background,
+        series_cache=series_cache,
     )
     for group_name in selected_groups:
         _prevalidate_epr_group_semantics(
@@ -136,6 +138,7 @@ def run_epr_overlay(project_root: Path, options: EprOverlayOptions) -> int:
             normalize=options.normalize,
             smooth_window=options.smooth_window,
             background=options.background,
+            series_cache=series_cache,
         )
     if options.with_origin:
         origin_ok, origin_message = check_origin_available()
@@ -177,6 +180,7 @@ def run_epr_overlay(project_root: Path, options: EprOverlayOptions) -> int:
             background=options.background,
             _output_plan=plans[group_name],
             _preflight_complete=True,
+            _series_cache=series_cache,
         )
         rows.append(result)
 
@@ -216,7 +220,9 @@ def build_epr_condition_overlay(
     output_root: Path | None = None,
     _output_plan: EprOverlayOutputPlan | None = None,
     _preflight_complete: bool = False,
+    _series_cache: dict[Path, JeolEprExportSeries] | None = None,
 ) -> dict:
+    series_cache = {} if _series_cache is None else _series_cache
     entries = DEFAULT_EPR_GROUPS[group_name]
     background_map = _background_map(background, group_name)
     traces = []
@@ -224,7 +230,7 @@ def build_epr_condition_overlay(
         path = reference_dir / file_name
         if not path.is_file():
             raise FileNotFoundError(f"EPR overlay input missing for {group_name}: {path}")
-        export = read_verified_jeol_export_series(path)
+        export = _read_epr_export(path, series_cache)
         x_values, y_values = export.x_values, export.y_values
         if len(x_values) < 2:
             raise ValueError(f"EPR overlay input needs at least two points, got {len(x_values)} rows in {path}")
@@ -234,7 +240,7 @@ def build_epr_condition_overlay(
             background_path = reference_dir / background_map[label]
             if not background_path.is_file():
                 raise FileNotFoundError(f"EPR background file missing for {label}: {background_path}")
-            background_export = read_verified_jeol_export_series(background_path)
+            background_export = _read_epr_export(background_path, series_cache)
             background_x, background_y = background_export.x_values, background_export.y_values
             if export.x_unit and background_export.x_unit and export.x_unit != background_export.x_unit:
                 raise ValueError(
@@ -923,11 +929,25 @@ def _plan_epr_overlay_outputs(
     )
 
 
+def _read_epr_export(
+    path: Path,
+    series_cache: dict[Path, JeolEprExportSeries] | None,
+) -> JeolEprExportSeries:
+    """Reuse verified, read-only input series within one overlay invocation."""
+    if series_cache is None:
+        return read_verified_jeol_export_series(path)
+    key = path.resolve()
+    if key not in series_cache:
+        series_cache[key] = read_verified_jeol_export_series(path)
+    return series_cache[key]
+
+
 def _validated_epr_input_paths(
     reference_dir: Path,
     groups: list[str],
     *,
     background: str | None,
+    series_cache: dict[Path, JeolEprExportSeries] | None = None,
 ) -> tuple[Path, ...]:
     paths: list[Path] = []
     for group_name in groups:
@@ -941,7 +961,7 @@ def _validated_epr_input_paths(
     for path in verified_paths:
         if not path.is_file():
             raise FileNotFoundError(f"EPR overlay input missing: {path}")
-        series = read_verified_jeol_export_series(path)
+        series = _read_epr_export(path, series_cache)
         if series.raw_source is not None:
             raw_sources.append(series.raw_source)
     return tuple(dict.fromkeys((*verified_paths, *raw_sources)))
@@ -1053,12 +1073,13 @@ def _prevalidate_epr_group_semantics(
     normalize: bool,
     smooth_window: int,
     background: str | None,
+    series_cache: dict[Path, JeolEprExportSeries] | None = None,
 ) -> None:
     background_map = _background_map(background, group_name)
     grids: list[list[float]] = []
     units: set[str] = set()
     for label, file_name in DEFAULT_EPR_GROUPS[group_name]:
-        export = read_verified_jeol_export_series(reference_dir / file_name)
+        export = _read_epr_export(reference_dir / file_name, series_cache)
         if len(export.x_values) < 2:
             raise ValueError(
                 f"EPR overlay input needs at least two points: {file_name}"
@@ -1069,8 +1090,9 @@ def _prevalidate_epr_group_semantics(
         grids.append(list(export.x_values))
         background_name = background_map.get(label)
         if background_name:
-            background_export = read_verified_jeol_export_series(
-                reference_dir / background_name
+            background_export = _read_epr_export(
+                reference_dir / background_name,
+                series_cache,
             )
             if (
                 export.x_unit

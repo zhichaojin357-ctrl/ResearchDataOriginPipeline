@@ -474,7 +474,17 @@ def test_epr_overlay_command_preflights_report_before_group_outputs(tmp_path: Pa
     assert not (output_base / "processed_data" / "EPR" / "epr_oh_overlay_processed.csv").exists()
 
 
-def test_epr_overlay_command_atomically_replaces_hardlinked_report_on_force(tmp_path: Path) -> None:
+def test_epr_overlay_command_atomically_replaces_hardlinked_report_on_force(tmp_path: Path, monkeypatch) -> None:
+    import src.core.epr_overlay as epr_overlay
+
+    read_paths = []
+    read_export = epr_overlay.read_verified_jeol_export_series
+
+    def counted_read(path):
+        read_paths.append(path)
+        return read_export(path)
+
+    monkeypatch.setattr(epr_overlay, "read_verified_jeol_export_series", counted_read)
     project = tmp_path / "project"
     project.mkdir()
     ref = tmp_path / "refs"
@@ -498,6 +508,7 @@ def test_epr_overlay_command_atomically_replaces_hardlinked_report_on_force(tmp_
     assert hardlink_source.read_text(encoding="utf-8") == '{"preserve": true}\n'
     assert json.loads(report.read_text(encoding="utf-8"))["command"] == "epr-overlay"
     assert os.stat(hardlink_source).st_ino != os.stat(report).st_ino
+    assert sorted(path.name for path in read_paths) == ["BC-OH-light2.xlsx", "BOBC-OH-light1.xlsx", "CWO-OH-light2.xlsx"]
 
 
 def test_epr_overlay_commit_rolls_back_all_previous_files_when_second_install_fails(
