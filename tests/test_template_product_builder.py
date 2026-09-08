@@ -1259,7 +1259,8 @@ def test_pairing_path_repairs_single_opju_mojibake_basename(tmp_path: Path) -> N
     real.parent.mkdir(parents=True)
     real.write_bytes(b"opju")
 
-    resolved = _resolve_pairing_path(tmp_path, r"XRD\CWO+BOBC\CWO+BOBC+깃엥.opju")
+    unresolved = Path("XRD") / "CWO+BOBC" / "CWO+BOBC+깃엥.opju"
+    resolved = _resolve_pairing_path(tmp_path, str(unresolved))
 
     assert resolved == real
 

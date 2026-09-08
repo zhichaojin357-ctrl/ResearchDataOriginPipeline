@@ -2894,12 +2894,29 @@ def _read_plot_style_properties(
         options.append("-cse")
     values: dict[str, float] = {}
     variable = "__rdop_plot_style_value"
-    for option in options:
+    variables = [f"{variable}_{index}" for index in range(len(options))]
+    # Initialize the entire group first: an unsupported property must never
+    # reuse a value from the preceding curve, even if Origin continues execution.
+    script = " ".join(f"{name}=nan;" for name in variables)
+    script += " " + " ".join(
+        f"get {dataset} {option} {name};"
+        for option, name in zip(options, variables)
+    )
+    try:
+        result = operations.run_labtalk(script)
+        batch_ok = bool(getattr(result, "ok", False))
+    except Exception:
+        batch_ok = False
+    for option, name in zip(options, variables):
         try:
-            result = operations.run_labtalk(f"{variable}=nan; get {dataset} {option} {variable};")
-            if not getattr(result, "ok", False):
-                continue
-            read = operations.get_labtalk_variable(variable)
+            if not batch_ok:
+                # Some bridges stop a command group at an unsupported property.
+                # Retain the established per-property readback in that case.
+                name = variable
+                result = operations.run_labtalk(f"{name}=nan; get {dataset} {option} {name};")
+                if not getattr(result, "ok", False):
+                    continue
+            read = operations.get_labtalk_variable(name)
             safe = _json_safe_value(getattr(read, "payload", {}).get("value"))
         except Exception:
             continue

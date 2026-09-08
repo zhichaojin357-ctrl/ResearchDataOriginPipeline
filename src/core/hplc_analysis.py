@@ -754,7 +754,10 @@ class _UnionFind:
     def __init__(self, values: Iterable[str], acquisition_dates: dict[str, date]):
         self.parent = {value: value for value in values}
         self.members = {value: {value} for value in values}
-        self.acquisition_dates = acquisition_dates
+        self.date_spans = {
+            value: (acquisition_dates[value], acquisition_dates[value])
+            for value in self.members
+        }
 
     def find(self, value: str) -> str:
         parent = self.parent[value]
@@ -767,13 +770,17 @@ class _UnionFind:
         right_root = self.find(right)
         if left_root == right_root:
             return True
-        combined = self.members[left_root] | self.members[right_root]
-        dates = [self.acquisition_dates[item] for item in combined]
-        if (max(dates) - min(dates)).days > maximum_days:
+        left_start, left_end = self.date_spans[left_root]
+        right_start, right_end = self.date_spans[right_root]
+        start, end = min(left_start, right_start), max(left_end, right_end)
+        if (end - start).days > maximum_days:
             return False
+        combined = self.members[left_root] | self.members[right_root]
         self.parent[right_root] = left_root
         self.members[left_root] = combined
         self.members.pop(right_root, None)
+        self.date_spans[left_root] = (start, end)
+        self.date_spans.pop(right_root)
         return True
 
 
@@ -877,14 +884,18 @@ def _assign_repeat_groups(
         group_id = f"RG{index:03d}"
         for member in members:
             group_by_injection[member] = group_id
-        evidence = [
-            reason
-            for edge in edge_evidence
-            if edge["left"] in members and edge["right"] in members
-            for reason in edge["evidence"]
-        ]
+        evidence_by_group[group_id] = []
+    # Index after manual exclusions, retaining the original edge/evidence order.
+    for edge in edge_evidence:
+        group_id = group_by_injection.get(edge["left"])
+        if group_id is not None and group_by_injection.get(edge["right"]) == group_id:
+            evidence_by_group[group_id].extend(edge["evidence"])
+    for index, members in enumerate(components, start=1):
+        group_id = f"RG{index:03d}"
+        evidence = evidence_by_group[group_id]
+        member_set = set(members)
         for override_id, override_injections in override_members.items():
-            if set(override_injections) & set(members):
+            if member_set.intersection(override_injections):
                 evidence.append(f"人工覆盖重打组：{override_id}")
         evidence_by_group[group_id] = list(dict.fromkeys(evidence))
     return group_by_injection, evidence_by_group, edge_evidence, uncertain

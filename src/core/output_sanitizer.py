@@ -6,7 +6,9 @@ from pathlib import Path
 
 ASSISTANT_TRACE_PATTERN = re.compile(r"(?i)(codex|codexdata|\.codex|openai|chatgpt)")
 WINDOWS_ABSOLUTE_PATTERN = re.compile(r"^[A-Za-z]:[\\/]")
-UNC_ABSOLUTE_PATTERN = re.compile(r"^[\\/]{2}[^\\/]+[\\/][^\\/]+")
+POSIX_TEXT_PATH_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9_:/])/(?!/)[^/\r\n;|]+/[^;\r\n|]+"
+)
 
 
 def render_output_path(
@@ -19,7 +21,8 @@ def render_output_path(
     """Render a path for output metadata/reports without local machine prefixes."""
     if path is None:
         return None
-    value = Path(str(path))
+    text = str(path).replace("\\", "/")
+    value = Path(text)
     if not str(value):
         return ""
 
@@ -30,6 +33,9 @@ def render_output_path(
         roots.append(("output", output_root))
 
     for prefix, root in roots:
+        if WINDOWS_ABSOLUTE_PATTERN.match(text) and not value.is_absolute():
+            # A Windows drive path is not relative to the POSIX process cwd.
+            break
         try:
             relative = value.resolve().relative_to(root.resolve()).as_posix()
             if relative == ".":
@@ -38,8 +44,7 @@ def render_output_path(
         except (OSError, ValueError):
             continue
 
-    text = str(path).replace("\\", "/")
-    if WINDOWS_ABSOLUTE_PATTERN.match(text) or UNC_ABSOLUTE_PATTERN.match(text):
+    if WINDOWS_ABSOLUTE_PATTERN.match(text) or text.startswith("/"):
         return f"{external_prefix}/{value.name}"
     return text
 
@@ -55,7 +60,8 @@ def scrub_output_text(text: object, *, project_root: Path | None = None, output_
             rendered = rendered.replace(root_text + "/", "")
             rendered = rendered.replace(root_text, ".")
     rendered = re.sub(r"(?<![A-Za-z0-9_])[A-Za-z]:/[^\r\n;|]+", _external_text_path, rendered)
-    rendered = re.sub(r"(?<![A-Za-z0-9_])//[^/\r\n;|]+/[^;\r\n|]+", _external_text_path, rendered)
+    rendered = re.sub(r"(?<![A-Za-z0-9_:])//[^/\r\n;|]+/[^;\r\n|]+", _external_text_path, rendered)
+    rendered = POSIX_TEXT_PATH_PATTERN.sub(_external_text_path, rendered)
     return ASSISTANT_TRACE_PATTERN.sub("local", rendered)
 
 
@@ -79,7 +85,8 @@ def contains_local_absolute_path(value: object) -> bool:
     text = str(value).replace("\\", "/")
     return bool(
         re.search(r"(?:^|[\s\"'`=:\[])[A-Za-z]:/", text)
-        or re.search(r"(?:^|[\s\"'`=:\[])/{2}[^/]+/[^/]+", text)
+        or re.search(r"(?<![A-Za-z0-9_:])//[^/]+/[^/]+", text)
+        or POSIX_TEXT_PATH_PATTERN.search(text)
     )
 
 

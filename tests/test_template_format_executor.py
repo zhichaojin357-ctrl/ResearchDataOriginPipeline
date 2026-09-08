@@ -6300,6 +6300,8 @@ def _verified_xps_in_situ_product_and_table(
 def test_xps_in_situ_verified_binding_and_workbook_preserve_reviewed_native_topology(
     tmp_path: Path,
 ) -> None:
+    from src.core.template_format_executor import _read_processed_csv
+
     product, headers, rows, contract = _verified_xps_in_situ_product_and_table(tmp_path)
     binding = _prepare_verified_xps_in_situ_otpu_binding(
         product,
@@ -6344,7 +6346,15 @@ def test_xps_in_situ_verified_binding_and_workbook_preserve_reviewed_native_topo
             return OperationResult(True, "metadata")
 
     operations = WorkbookOps()
-    result = _populate_verified_otpu_workbook(operations, product, headers, rows, binding)
+    with template_input_scope():
+        cached_headers, cached_rows = _read_processed_csv(product.processed_data)
+        result = _populate_verified_otpu_workbook(
+            operations, product, cached_headers, cached_rows, binding,
+        )
+        output_headers, output_rows = _read_processed_csv(product.processed_data)
+    assert cached_rows == rows  # Normalization must not mutate its input table.
+    assert output_headers == headers
+    assert output_rows != rows  # The cache must expose the rewritten CSV.
     assert result["ok"] is True
     assert result["book_names"] == ["Book2", "Book3", "Book4"]
     assert all(len(columns) == 6 for columns in operations.data.values())
@@ -6359,6 +6369,12 @@ def test_xps_in_situ_verified_binding_and_workbook_preserve_reviewed_native_topo
     assert max(operations.data["Book4"][1]) == pytest.approx(1.0)
     assert operations.data["Book2"][2][0] > operations.data["Book2"][2][-1]
     assert operations.data["Book2"][3][0] < operations.data["Book2"][3][-1]
+    for workbook in binding["workbooks"]:
+        expected_columns = [
+            [row[source_index] for row in output_rows]
+            for source_index in workbook["source_indices"]
+        ]
+        assert operations.data[workbook["book_name"]] == expected_columns
 
 
 def test_xps_in_situ_verified_binding_rejects_nonshared_fill_baseline(

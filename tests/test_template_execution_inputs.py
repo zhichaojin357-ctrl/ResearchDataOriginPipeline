@@ -91,6 +91,32 @@ def test_binding_contract_load_is_scoped_to_one_product(tmp_path: Path, monkeypa
     assert loads == [path, path]
 
 
+def test_failed_export_does_not_reuse_inputs_in_next_job(tmp_path: Path, monkeypatch) -> None:
+    processed = tmp_path / "processed.csv"
+    snapshot = tmp_path / "snapshot.json"
+    processed.write_text("X,Y\n1,2\n", encoding="utf-8")
+    snapshot.write_text('{"version": 1}', encoding="utf-8")
+    product = SimpleNamespace(processed_data=processed)
+
+    def export(current, _style, **_kwargs):
+        _headers, rows = executor._read_processed_csv(current.processed_data)
+        style = executor._load_json_object(snapshot)
+        if rows[0][1] == 2:
+            raise ValueError("Origin export failed after preparation")
+        return {"ok": True, "y": rows[0][1], "snapshot": style}
+
+    monkeypatch.setattr(executor, "_export_template_base_product_with_origin_impl", export)
+    with pytest.raises(ValueError, match="Origin export failed"):
+        executor.export_template_base_product_with_origin(product, object())
+    assert template_inputs.current_template_inputs() is None
+
+    processed.write_text("X,Y\n1,7\n", encoding="utf-8")
+    snapshot.write_text('{"version": 2}', encoding="utf-8")
+    assert executor.export_template_base_product_with_origin(product, object()) == {
+        "ok": True, "y": 7.0, "snapshot": {"version": 2},
+    }
+
+
 def test_asset_reads_share_nested_scope_and_end_hash_still_reads_source(tmp_path: Path, monkeypatch) -> None:
     path = tmp_path / "snapshot.json"
     path.write_text('{"version": 1}', encoding="utf-8")

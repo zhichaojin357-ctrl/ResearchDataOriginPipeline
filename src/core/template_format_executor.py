@@ -4998,11 +4998,9 @@ def _populate_verified_otpu_workbook(
         transformed = _transform_verified_xps_in_situ_rows(headers, rows, binding)
         if not transformed.get("ok"):
             return transformed
-        transformed_rows = [
-            list(value)
-            for value in transformed.get("rows", [])
-            if isinstance(value, list)
-        ]
+        # The transform already owns a new table; writing it and constructing
+        # Origin columns do not mutate those rows.
+        transformed_rows = transformed["rows"]
         if len(transformed_rows) != len(rows):
             return {
                 "ok": False,

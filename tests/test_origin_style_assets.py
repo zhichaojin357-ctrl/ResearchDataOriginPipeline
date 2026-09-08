@@ -2826,45 +2826,66 @@ def test_export_replay_graph_rejects_unverified_project_identity_without_leak(tm
     assert not (product_dir / "project_asset.tif").exists()
 
 
-def test_plot_style_readback_reuses_aliases_and_clears_missing_properties() -> None:
+@pytest.mark.parametrize("batch_supported", [False, True])
+@pytest.mark.parametrize("prefer_custom_rgb", [False, True])
+def test_plot_style_readback_reuses_aliases_and_clears_missing_properties(
+    batch_supported, prefer_custom_rgb,
+) -> None:
     from src.core.origin_style_assets import PLOT_STYLE_READBACK_OPTIONS, _read_plot_style_properties
     from src.origin.operations import OperationResult
 
     class StyleOps:
         def __init__(self):
-            self.value = 999.0
+            self.variables = {}
             self.queries = []
             self.reads = 0
+            self.calls = 0
 
         def run_labtalk(self, script):
-            initialization, query = script.split(";", 1)
-            assert initialization.endswith("=nan")
-            self.value = math.nan
-            _get, dataset, option, _variable = query.strip().rstrip(";").split()
-            assert dataset == "Book1_B"
-            self.queries.append(option)
-            if option != "-z":
-                self.value = float(len(option))
+            self.calls += 1
+            if script.count("get ") > 1 and not batch_supported:
+                return OperationResult(False, "unsupported grouped query")
+            for command in script.rstrip(";").split(";"):
+                command = command.strip()
+                if command.endswith("=nan"):
+                    self.variables[command[:-4]] = math.nan
+                    continue
+                _get, dataset, option, variable = command.split()
+                assert dataset == "Book1_B"
+                self.queries.append(option)
+                if option != "-z":
+                    self.variables[variable] = 30847682.0 if option == "-cse" else float(len(option))
             return OperationResult(True, "ok")
 
-        def get_labtalk_variable(self, _name):
+        def get_labtalk_variable(self, name):
             self.reads += 1
-            return OperationResult(True, "ok", {"value": self.value})
+            return OperationResult(True, "ok", {"value": self.variables[name]})
 
     operations = StyleOps()
-    style = _read_plot_style_properties(operations, "Book1_B")
-    assert style == {
+    # Simulate values left by a preceding curve. Missing -z must still disappear.
+    operations.variables = {f"__rdop_plot_style_value_{index}": 999.0 for index in range(19)}
+    style = _read_plot_style_properties(operations, "Book1_B", prefer_custom_rgb=prefer_custom_rgb)
+    expected = {
         key: float(len(option))
         for key, option in PLOT_STYLE_READBACK_OPTIONS.items()
         if option != "-z"
     }
+    if prefer_custom_rgb:
+        expected["color"] = 30847682.0
+    assert style == expected
     assert style["fill_area"] == style["fill_above_color"]
     assert style["fill_color"] == style["fill_above_pattern_color"]
-    assert len(operations.queries) == operations.reads == 18
-    assert len(set(operations.queries)) == 18
+    option_count = 19 if prefer_custom_rgb else 18
+    assert len(operations.queries) == operations.reads == option_count
+    assert len(set(operations.queries)) == option_count
+    assert operations.calls == (1 if batch_supported else option_count + 1)
 
 
-def test_graph_snapshot_mask_blocks_match_individual_reader_and_cache_only_one_snapshot() -> None:
+@pytest.mark.parametrize("row_from,row_to", [(1, 700), (510, 700), (700, 700)])
+@pytest.mark.parametrize("truncate_tail", [False, True])
+def test_graph_snapshot_mask_blocks_match_individual_reader_and_cache_only_one_snapshot(
+    row_from, row_to, truncate_tail,
+) -> None:
     import re
     from src.core.origin_style_assets import read_graph_data_snapshot
     from src.origin.operations import OperationResult
@@ -2885,7 +2906,7 @@ def test_graph_snapshot_mask_blocks_match_individual_reader_and_cache_only_one_s
                 "plot_dataset_names": ["Book1_B", "Book1_C"],
                 "plot_mappings": [
                     {"plot_index": index, "x_dataset": "Book1_A", "y_dataset": dataset,
-                     "row_from": 1, "row_to": 700}
+                     "row_from": row_from, "row_to": row_to}
                     for index, dataset in enumerate(("Book1_B", "Book1_C"), 1)
                 ],
             })
@@ -2901,6 +2922,8 @@ def test_graph_snapshot_mask_blocks_match_individual_reader_and_cache_only_one_s
                 dataset = re.search(r"ismasked\(rdmi,([^)]*)\)", script).group(1)
                 self.blocks.append((dataset, start, stop))
                 self.variables["rdmask$"] = "".join("1" if row in self.masks[dataset] else "0" for row in range(start, stop + 1))
+                if truncate_tail and stop == row_to:
+                    self.variables["rdmask$"] = self.variables["rdmask$"][:-1]
                 return OperationResult(True, "ok")
             match = re.fullmatch(r"__rdop_mask_state=ismasked\((\d+),([^)]*)\);", script)
             if match:
@@ -2922,11 +2945,15 @@ def test_graph_snapshot_mask_blocks_match_individual_reader_and_cache_only_one_s
     actual = read_graph_data_snapshot(batched, "Graph1")
     expected = read_graph_data_snapshot(individual, "Graph1")
     assert actual == expected
-    assert actual["plots"][0]["y_masked_rows"] == [1, 512, 513, 700]
-    assert actual["plots"][1]["y_masked_rows"] == [512, 700]
+    assert actual["plots"][0]["y_masked_rows"] == [row for row in (1, 512, 513, 700) if row_from <= row <= row_to]
+    assert actual["plots"][1]["y_masked_rows"] == [row for row in (512, 700) if row_from <= row <= row_to]
     assert batched.count_reads == {"Book1_A": 1, "Book1_B": 1, "Book1_C": 1}
-    assert batched.blocks == [("Book1_B", 1, 512), ("Book1_B", 513, 700), ("Book1_C", 1, 512), ("Book1_C", 513, 700)]
+    assert batched.blocks == [
+        (dataset, start, min(start + 511, row_to))
+        for dataset in ("Book1_B", "Book1_C")
+        for start in range(row_from, row_to + 1, 512)
+    ]
     batched.masks["Book1_B"].remove(513)
     later = read_graph_data_snapshot(batched, "Graph1")
-    assert later["plots"][0]["y_masked_rows"] == [1, 512, 700]
+    assert later["plots"][0]["y_masked_rows"] == [row for row in (1, 512, 700) if row_from <= row <= row_to]
     assert batched.count_reads["Book1_A"] == 2

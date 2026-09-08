@@ -198,6 +198,33 @@ def test_attach_analysis_preserves_default_copy_and_allows_owned_dataset(config,
     assert owned == copied
 
 
+def test_repeat_groups_keep_full_date_span_and_filter_removed_member_evidence(config):
+    configured = deepcopy(config)
+    configured["repeat_rules"]["maximum_automatic_day_gap"] = 1
+    configured["manual_overrides"]["repeat_group_by_injection"] = {
+        "A": "confirmed", "B": "", "C": "confirmed",
+    }
+    records = [
+        _repeat_record(
+            name, "Catalyst 1H", acquired=f"2026-07-{day:02d}T10:00:00+08:00",
+            sequence_order=index,
+        )
+        for index, (name, day) in enumerate((("A", 18), ("B", 19), ("C", 19), ("D", 20)), 1)
+    ]
+
+    groups, evidence, edges, uncertain = analysis._assign_repeat_groups(records, configured)
+
+    assert groups == {"A": "RG001", "C": "RG001"}
+    assert [(edge["left"], edge["right"]) for edge in edges] == [
+        ("A", "B"), ("A", "C"), ("B", "C"),
+    ]
+    retained_edge = next(edge for edge in edges if (edge["left"], edge["right"]) == ("A", "C"))
+    assert evidence == {
+        "RG001": list(dict.fromkeys([*retained_edge["evidence"], "人工覆盖重打组：confirmed"]))
+    }
+    assert uncertain == []
+
+
 def test_second_and_third_batches_are_hard_boundaries_and_conflicts_are_flagged(config: dict):
     second, second_conflict, second_values = analysis.detect_batch_marker("Batch 2")
     third, third_conflict, third_values = analysis.detect_batch_marker("Batch 3")

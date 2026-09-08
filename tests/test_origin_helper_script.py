@@ -118,6 +118,28 @@ Write-Output ('TEST_RESULT=' + (@{Commands=@($app.Commands.ToArray()); Puts=@($a
     assert any(command.startswith("wcol(1)") for command in commands) is reject_put
 
 
+def test_helper_single_row_keeps_double_arrays_and_chinese_headers(tmp_path):
+    result = _run_helper_functions(tmp_path, r'''
+$app = [pscustomobject]@{ Commands=(New-Object 'System.Collections.Generic.List[string]'); Puts=(New-Object 'System.Collections.Generic.List[object]') }
+$app | Add-Member ScriptMethod Execute { param($command) $this.Commands.Add($command); return $true }
+$app | Add-Member ScriptMethod PutWorksheet {
+  param($target, $values, $row, $column)
+  $this.Puts.Add(@{ Target=$target; Type=$values.GetType().FullName; Values=@($values); Row=$row; Column=$column })
+  return $true
+}
+$rows = @([pscustomobject]@{'波长'='455'; '强度'='1.2345678901234567'})
+Initialize-OriginDataWorkbook $app 'Book1' '光谱.csv' @('波长','强度') $rows 2
+Write-Output ('TEST_RESULT=' + (@{Commands=@($app.Commands.ToArray()); Puts=@($app.Puts.ToArray())} | ConvertTo-Json -Depth 6 -Compress))
+''')
+    assert result["Puts"] == [
+        {"Target": "[Book1]Data", "Type": "System.Double[]", "Values": [455.0], "Row": 0, "Column": 0},
+        {"Target": "[Book1]Data", "Type": "System.Double[]", "Values": [1.2345678901234567], "Row": 0, "Column": 1},
+    ]
+    assert 'wks.col1.lname$="波长"; wks.col1.comment$="";' in result["Commands"]
+    assert 'wks.col2.lname$="强度"; wks.col2.comment$="";' in result["Commands"]
+    assert not any(command.startswith("wcol(") for command in result["Commands"])
+
+
 @pytest.mark.parametrize("load_ok", [False, True])
 def test_helper_reopens_saved_project_and_exports_in_same_session(tmp_path, load_ok):
     result = _run_helper_functions(tmp_path, r'''

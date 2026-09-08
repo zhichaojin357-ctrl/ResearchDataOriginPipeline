@@ -16,6 +16,7 @@ from src.core.xps_heterojunction import (
     XpsHeterojunctionOptions,
     _comparison_peak_details,
     _comparison_x_axis_range,
+    _csv_plot_inputs,
     _stacked_plot_rows,
     build_comparison_plan,
     load_xps_fit_workbooks,
@@ -25,6 +26,7 @@ from src.core.xps_heterojunction import (
     _build_direct_origin_xps_script,
     _cleanup_failed_renderer_origin,
     _export_origin_for_comparison,
+    _run_xps_origin_renderer,
     _terminate_owned_origin_processes,
     _validated_origin_artifacts,
 )
@@ -836,6 +838,58 @@ def test_direct_origin_xps_generated_script_compiles(tmp_path: Path) -> None:
     assert '"owned_origin_pids"' in script
     assert '"remaining_owned_pids"' in script
     assert "Origin lifecycle finalization failed; product acceptance is blocked" in script
+    assert "powershell" not in script.casefold()
+
+    # Exercise the generated startup, including the shared process query,
+    # without importing Origin or permitting a user's open instance to be used.
+    with patch("src.origin.operations.origin_process_ids", return_value={4242}):
+        with pytest.raises(RuntimeError, match="Origin was already running"):
+            exec(script.split("import originpro as op", 1)[0], {})
+    lifecycle = json.loads((tmp_path / "origin_lifecycle.json").read_text(encoding="utf-8"))
+    assert lifecycle["baseline_origin_pids"] == [4242]
+    assert lifecycle["owned_origin_pids"] == []
+
+
+def test_xps_renderer_imports_shared_runtime_from_external_job_directory(tmp_path: Path, monkeypatch) -> None:
+    job_script = tmp_path / "job.py"
+    job_script.write_text(
+        "from src.origin import operations\nprint(operations.__file__)\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    result = _run_xps_origin_renderer(job_script)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip().endswith("operations.py")
+
+
+@pytest.mark.parametrize(
+    ("contents", "expected_x", "expected_bounds"),
+    [
+        ("x,A measured,A fill upper 1\n1,,1000\n2,3,-2000\n3,5,9999\n", [1.0, 2.0, 3.0], (3.0, 5.0)),
+        ("x,A measured,A fill upper 1\n1,nan,1000\n2,,-2000\n3,inf,9999\n", [1.0, 2.0, 3.0], (-2000.0, 9999.0)),
+        ("x,A component,B component\n1,2,\n2,,7\n3,5,\n", [1.0, 2.0, 3.0], (2.0, 7.0)),
+        ("x,A measured,B Envelope\n,,7\n1,2\n\n2,-3,nan\n", [1.0, 2.0], (-3.0, 7.0)),
+    ],
+)
+def test_xps_plot_inputs_preserve_visible_range_and_missing_value_fallback(
+    tmp_path: Path, monkeypatch, contents: str, expected_x: list[float], expected_bounds: tuple[float, float],
+) -> None:
+    path = tmp_path / "plot.csv"
+    path.write_text(contents, encoding="utf-8")
+    original_open = Path.open
+    opened = []
+
+    def counted_open(target, *args, **kwargs):
+        if target == path:
+            opened.append(target)
+        return original_open(target, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", counted_open)
+    header, x_values, bounds = _csv_plot_inputs(path)
+    assert header == contents.splitlines()[0].split(",")
+    assert x_values == expected_x
+    assert bounds == expected_bounds
+    assert opened == [path]
 
 
 def test_xps_origin_export_reopens_saved_opju_for_native_tif(tmp_path: Path) -> None:
@@ -1092,22 +1146,22 @@ def test_xps_failed_renderer_never_terminates_unowned_origin_pid(tmp_path: Path)
     terminate.assert_not_called()
 
 
-def test_xps_origin_cleanup_command_targets_only_proven_owned_pids() -> None:
-    completed = SimpleNamespace(returncode=0, stdout="", stderr="")
-
+def test_xps_origin_cleanup_targets_only_proven_owned_pids() -> None:
     with patch(
-        "src.core.xps_heterojunction.subprocess.run",
-        return_value=completed,
-    ) as run:
+        "src.origin.operations._terminate_owned_origin_processes",
+        return_value={"ok": True, "failures": []},
+    ) as terminate:
         _terminate_owned_origin_processes({5151, 4242})
+    terminate.assert_called_once_with({5151, 4242})
 
-    command = run.call_args.args[0]
-    assert command[:3] == ["powershell", "-NoProfile", "-Command"]
-    script = command[3]
-    assert "$ids = @(4242,5151)" in script
-    assert "Get-Process -Id $ids" in script
-    assert "ProcessName -like 'Origin*'" in script
-    assert "Get-Process -Name Origin*" not in script
+
+def test_xps_origin_cleanup_retains_shared_runtime_failure() -> None:
+    with patch(
+        "src.origin.operations._terminate_owned_origin_processes",
+        return_value={"ok": False, "failures": [{"pid": 5151, "error": "access denied"}]},
+    ):
+        with pytest.raises(RuntimeError, match="Task-owned Origin cleanup failed.*5151.*access denied"):
+            _terminate_owned_origin_processes({5151})
 
 
 def _minimal_origin_export_case(
