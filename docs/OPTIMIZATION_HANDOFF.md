@@ -1,12 +1,19 @@
 # 优化分支：电脑端测试与应用交接
 
+**二轮复查入口：[OPTIMIZATION_SECOND_REVIEW.md](OPTIMIZATION_SECOND_REVIEW.md)。**
+本轮已补查跨平台报告路径、进程快照、PowerShell helper、HPLC 与 XPS，
+并在完整 Windows 仓库运行 CI。快照换行字节按既有 manifest 哈希恢复，
+未通过修改验收哈希消除失败。最新测试状态以二轮报告为准；本文件第 5 节
+是首轮环境记录，其中的失败、缺文件及未运行 Windows 状态已不能代表现状。
+**真实 Origin 出图和优化前后同路线视觉比较仍待电脑端完成。**
+
 本次目标：减少重复扫描、解析、内存复制及 Origin 通信，保持同一输入、同一作图路线的结果。代码已实现并提交到工作分支；**Windows / Origin 视觉验收尚未完成，不应直接当作已验收版本合并。**
 
 - 分支：`codex/optimize-pipeline-preserve-plots`
 - 本次比较起点：`3ded88689af1a9168a47aaeb6e4c860a2e575191`。这个提交只用于本次前后对比，不是永久运行基线。
 - 采用一个分支、按职责拆提交。数据准备与两种绘图方式共用接口，拆成两个长期分支会重复修改这些接口。应用完整分支，测试按下表分组。
 - `.otpu` 固定路线和 `.oth + JSON` 自适应路线均保留；未更换模板资产、颜色、字体、拟合区间、插值公式或科学评分方法。
-- 没有修改原始数据、模板资产、依赖版本或 `master`。真实环境验证后再决定合并。
+- 第二轮仅恢复 24 份样式 / 数据 JSON 的原始换行字节，使其重新匹配既有 manifest 哈希；样式字段和数据内容不变。原始数据、原生模板文件、manifest 与 `master` 均不变，具体恢复证据见顶部链接。真实环境验证后再决定合并。
 
 ## 1. 先读这一段
 
@@ -68,6 +75,29 @@ PNG 导出在合并后的通用路线中移到了保存重开之后，导出参�
 以下命令在仓库根目录执行，使用电脑已有项目 Python 环境。单元测试默认禁止真实 Origin；PowerShell 模拟测试需要 Windows，但不依赖实际图形效果。
 
 只修一组时先运行该组。整批收尾直接完整测试一次，不需要再把所有组重复一遍。
+
+### 二轮新增或补强的定向检查
+
+这些命令用于修改相应模块后的快速回归；完整测试已覆盖它们时不再逐组重复。
+
+| 范围 | 本轮重点 | 电脑端仍需补验 |
+|---|---|---|
+| 报告路径 | POSIX / Windows / UNC 路径、路径空格、已知根相对路径；保留 URL 和科学单位 | 在本机真实输入运行报告，核对来源追踪不丢失 |
+| 进程快照 | 枚举、结构和异常；Windows 真实 Toolhelp 读取当前 Python 进程 | Origin 正常退出；已有用户实例不被接管或关闭 |
+| PowerShell helper | 单实例保存重开、批量写列及失败回退、输出根约束 | 真实 COM 写入后的点数与数值，重开后的 PNG / 原生 TIFF |
+| HPLC | 重打分组维护日期范围、一次整理组内证据；保留人工排除和证据顺序 | 现有 HPLC 重打分组、Excel 内容 / 格式 |
+| XPS | 一次读取 CSV 供多图层使用；专用子进程复用统一进程管理 | `xps-heterojunction-stacked` 同输入前后数据 / 图形；正常退出和已有 Origin 拒绝 |
+
+```powershell
+python -m pytest -q tests/test_output_sanitizer.py tests/test_powershell_helpers.py tests/test_project_contracts.py tests/test_reviewed_queue.py tests/test_triage_and_process_queue_validation.py tests/test_xrd_overlay.py
+python -m pytest -q tests/test_origin_process_snapshot.py tests/test_origin_operations.py
+python -m pytest -q tests/test_origin_helper_script.py tests/test_origin_adapter.py tests/test_hplc_calibration_origin_script.py
+python -m pytest -q tests/test_hplc_analysis.py tests/test_hplc_openlab.py tests/test_hplc_openlab_vendor_runtime.py tests/test_xps_heterojunction_stacked.py tests/test_xps_no_artifact_contracts.py
+```
+
+Windows CI 的通过只覆盖其中可自动执行的代码、PowerShell 及进程测试。
+它没有安装、启动 Origin，也没有替代第 4 节的实际图形验收。具体本轮修改与
+最终各环境测试证据见二轮报告，不沿用首轮失败数字判断当前版本。
 
 **T1：扫描、配置、队列、项目验收与临时目录**
 
@@ -132,6 +162,18 @@ python run.py readiness --scope runtime --no-desktop-review-xlsx
 git worktree add ..\ResearchDataOriginPipeline-before-opt 3ded88689af1a9168a47aaeb6e4c860a2e575191
 ```
 
+**比较起点也存在同样的 24 份 JSON 换行失配。** 如果基线因此被正式资产
+校验拒绝，不修改 manifest、阈值或校验代码。可以在这个隔离基线工作区中，
+仅应用二轮报告列出的同一批 24 份 JSON 原始字节恢复及对应 `.gitattributes`
+规则，再运行原 manifest 的完整性检查。不要把优化后的 Python / PowerShell
+代码复制到基线。
+
+记录基线提交、这一步预处理的文件清单和资产哈希，并确认两边使用的资产
+SHA256 完全相同、各自的正式完整性检查通过。随后比较“相同资产下的旧代码
+与新代码”。这样既能运行原代码，也不会用更换样式或放宽校验掩盖差异。
+24 份文件的内容等价及原哈希恢复证据见
+[二轮报告第 1 节](OPTIMIZATION_SECOND_REVIEW.md#1-模板完整性失败的真正原因)。
+
 电脑端 Codex 应读取本机现有 pairing、配置、用户样式及已核验模板位置，分别在基线与优化分支使用同一个环境、输入和配置。新工作树的本机配置不会自动继承，需要明确传入或使用同样的本机设置。
 
 正式模板命令示例，变量必须取现有真实输入；前后各执行一次，只替换输出目录：
@@ -172,7 +214,10 @@ OPJU 文件字节可能含保存时间等变化，不要求整个工程文件哈
 
 分别记录同一环境的首次启动及后续运行；对比相同输入。模板路线尚无同等粒度的完整计时字段，可记录正式命令总时长。局部插值或 COM 调用次数减少不能换算成整个项目的提速百分比。
 
-## 5. 本次已执行的验证及未完成项
+## 5. 首轮历史记录（已被二轮报告更新）
+
+以下数字和环境限制仅记录首轮执行时的状态；当前通过 / 失败 / 跳过及
+资产完整性结果以 [二轮报告](OPTIMIZATION_SECOND_REVIEW.md) 为准。
 
 执行环境为 Linux，未安装 Windows / Origin；通过 GitHub 文本快照获取源码。本地未能取得仓库中的 61 个二进制文件（14 OTPU、13 OPJU、33 PNG、1 vendor ZIP）。远程提交基于原始完整 Git tree 构造，**没有删除这些资产**。
 
