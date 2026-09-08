@@ -1,4 +1,5 @@
 name: Optimization regression (Windows, no Origin)
+# Acceptance batch: second review, 2026-09-08.
 
 on:
   # Run a complete batch explicitly by changing this workflow on this branch.
@@ -43,6 +44,11 @@ jobs:
         env:
           RESEARCH_PIPELINE_OUTPUT_ROOT: ${{ runner.temp }}/pipeline-regression/runtime
         run: python run.py readiness --scope runtime --no-desktop-review-xlsx
+      - name: Show validation evidence in the job log
+        if: ${{ always() }}
+        run: |
+          Get-Content "${{ runner.temp }}/pipeline-regression/runtime/reports/validation_report.json"
+          Get-Content "${{ runner.temp }}/pipeline-regression/runtime/reports/readiness_report.json"
       - name: Preserve actual test and validation reports
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

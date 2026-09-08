@@ -1,3 +1,8 @@
 templates/origin_styles/*.json text eol=lf
 templates/origin_styles/**/*.json text eol=lf
 templates/origin_styles/format_themes/*.oth binary
+
+# Accepted snapshot hashes bind exact bytes, including historical mixed line endings.
+# Keep text diffs but disable automatic EOL conversion on checkout and commit.
+templates/origin_styles/snapshots/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+templates/origin_styles/data_snapshots/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
