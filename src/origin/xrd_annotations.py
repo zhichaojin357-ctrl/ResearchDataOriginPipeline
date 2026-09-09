@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from src.origin.operations import quote_labtalk
+from src.origin.operations import quote_labtalk, update_native_legend
 
 
 def apply_xrd_standard_card_annotations(
@@ -11,15 +11,7 @@ def apply_xrd_standard_card_annotations(
     graph_name: str,
     annotation_contract: object,
 ) -> dict[str, object]:
-    """Recreate current-data XRD labels omitted by Origin graph templates.
-
-    Origin's ``template_saveas`` preserves the reviewed multi-layer plot
-    holders but omits the two free graph objects used by the reviewed XRD
-    Graph4: the separately overlaid top-series legend row and the reference
-    card caption.  Their geometry and formatting therefore live in the
-    reviewed binding contract, while their text remains tied to the current
-    explicitly bound series.
-    """
+    """Restore the native top-series legend and current reference-card caption."""
 
     contract = annotation_contract if isinstance(annotation_contract, dict) else {}
     if not contract:
@@ -50,18 +42,33 @@ def apply_xrd_standard_card_annotations(
     top_text_contract = top_series.get("text")
     if top_layer_index is None or not isinstance(line_contract, dict) or not isinstance(top_text_contract, dict):
         return {"applied": False, "reason": "top_series_contract_invalid"}
-    top_line = _create_reviewed_line(
-        operations,
-        graph_name,
-        top_layer_index,
-        line_contract,
+    # The reviewed XRD binding places the top sample in Layer3, plot1.
+    # Its former free line/text pair is replaced by Origin's linked legend.
+    top_legend = update_native_legend(
+        operations, graph_name, [str(top_text_contract.get("rich_text") or "")],
+        plot_indices=[1], layer_index=3,
     )
-    top_text = _create_reviewed_text(
-        operations,
-        graph_name,
-        top_layer_index,
-        top_text_contract,
-    )
+    if not top_legend.ok:
+        return {"applied": False, "reason": "top_series_native_legend_failed"}
+    legend = _graph_object(_graph_layer(operations, graph_name, 3), "Legend")
+    main_legend = _graph_object(_graph_layer(operations, graph_name, 1), "Legend")
+    try:
+        for prop, value in (("font", top_text_contract["font"]),
+                            ("fsize", top_text_contract["font_size"]),
+                            ("color", top_text_contract["color"]),
+                            ("background", 0), ("border", 0), ("frame", 0)):
+            legend.SetNumProp(prop, value)
+        legend.Left = main_legend.Left
+        legend.Top = _finite_number(top_text_contract["top"])
+        legend.Show = 1
+    except Exception:
+        return {"applied": False, "reason": "top_series_native_legend_style_failed"}
+    for old_name in (line_contract.get("name"), top_text_contract.get("name"), "Line", "Text"):
+        name = _safe_object_name(old_name)
+        if name:
+            operations.run_labtalk(
+                f'win -a "{quote_labtalk(graph_name)}"; layer -s {top_layer_index}; label -r {name};'
+            )
 
     reference_card = contract.get("reference_card")
     if not isinstance(reference_card, dict):
@@ -85,13 +92,12 @@ def apply_xrd_standard_card_annotations(
     operations.run_labtalk(
         f'win -a "{quote_labtalk(graph_name)}"; draw -uwi;'
     )
-    applied = bool(top_line and top_text and card_text and getattr(refreshed, "ok", False))
+    applied = bool(top_legend.ok and card_text and getattr(refreshed, "ok", False))
     return {
         "applied": applied,
-        "method": "reviewed_binding_contract_graph_objects",
-        "hidden_layer_legends": hidden_layers,
-        "top_series_line": top_line,
-        "top_series_text": top_text,
+        "method": "native_legend_and_reference_card_caption",
+        "hidden_layer_legends": [index for index in hidden_layers if index != 3],
+        "top_series_native_legend": top_legend.payload,
         "reference_card_text": card_text,
         "refresh_ok": bool(getattr(refreshed, "ok", False)),
     }
@@ -194,57 +200,6 @@ def _create_reviewed_text(
     except Exception:
         return False
     return str(getattr(graph_object, "Text", "") or "") == rich_text
-
-
-def _create_reviewed_line(
-    operations: object,
-    graph_name: str,
-    layer_index: int,
-    contract: dict[str, object],
-) -> bool:
-    name = _safe_object_name(contract.get("name"))
-    if not name:
-        return False
-    try:
-        x1 = _finite_number(contract.get("x1"))
-        y1 = _finite_number(contract.get("y1"))
-        x2 = _finite_number(contract.get("x2"))
-        y2 = _finite_number(contract.get("y2"))
-    except (TypeError, ValueError):
-        return False
-    graph = quote_labtalk(graph_name)
-    created = operations.run_labtalk(
-        f'win -a "{graph}"; layer -s {int(layer_index)}; label -r {name}; '
-        f'draw -n {name} -l {{{x1:g},{y1:g},{x2:g},{y2:g}}};'
-    )
-    if not getattr(created, "ok", False):
-        return False
-    layer = _graph_layer(operations, graph_name, layer_index)
-    graph_object = _graph_object(layer, name)
-    if graph_object is None:
-        return False
-    for prop, value in (
-        ("color", _finite_number(contract.get("color"))),
-        ("linewidth", _finite_number(contract.get("line_width"))),
-        ("linetype", _finite_number(contract.get("line_type"))),
-        ("arrowBeginShape", 1),
-        ("arrowEndShape", 1),
-        ("show", 1),
-    ):
-        try:
-            graph_object.SetNumProp(prop, value)
-        except Exception:
-            pass
-    operations.run_labtalk(
-        f'win -a "{graph}"; layer -s {int(layer_index)}; '
-        f"{name}.attach=2; {name}.x1={x1:.15g}; {name}.y1={y1:.15g}; "
-        f"{name}.x2={x2:.15g}; {name}.y2={y2:.15g}; {name}.show=1;"
-    )
-    try:
-        graph_object.Show = 1
-    except Exception:
-        return False
-    return True
 
 
 def _graph_layer(operations: object, graph_name: str, layer_index: int) -> Any:

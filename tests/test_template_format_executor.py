@@ -40,7 +40,6 @@ from src.core.template_format_executor import (
     _apply_mott_schottky_source_masks,
     _export_verified_graph_template_product_with_origin,
     _export_external_reference_preview_if_requested,
-    _apply_nonoverlap_plain_legend_anchor,
     _apply_reviewed_template_plot_policy,
     _apply_saved_template_legend_anchor,
     _apply_template_base_global_policies,
@@ -72,11 +71,11 @@ from src.core.template_format_executor import (
     _apply_verified_uvvis_fixed_visibility,
     _processed_csv_plot_pairs,
     _refresh_graph_for_export,
-    _replace_eis_dynamic_legend_with_static_rich_text,
+    _update_eis_native_legend,
+    _validate_reopened_adaptive_eis_legend,
     _remove_tauc_reference_candidate_guides,
     _validate_tauc_reference_guides_removed,
     _resolve_origin_style_execution_route,
-    _select_plain_legend_anchor,
     _saved_theme_reference_policy,
     _set_origin_graph_object_text,
     _strip_raster_metadata,
@@ -108,7 +107,6 @@ from src.core.template_format_executor import (
     _xrd_direct_label_positions,
     _xrd_plain_label_text,
     _xrd_standard_card_keeps_line_sample_legend,
-    _xrd_standard_card_legend_rows,
     apply_template_base_data_replacement,
     build_template_product_builder_options,
     export_template_base_product_with_origin,
@@ -181,6 +179,20 @@ def _write_style_manifest(style_root: Path, entry: dict[str, object]) -> None:
     (style_root / "manifest.json").write_text(
         json.dumps({"schema_version": 2, "assets": [entry]}),
         encoding="utf-8",
+    )
+
+
+def _mock_native_legend(monkeypatch, captured):
+    """Isolate executor routing; native COM behavior is tested in operations tests."""
+    def update(operations, graph_name, entries, *, plot_indices=None):
+        indices = list(plot_indices) if plot_indices is not None else list(range(1, len(entries) + 1))
+        captured.update(entries=list(entries), plot_indices=indices, graph_name=graph_name)
+        return OperationResult(True, "native legend updated", {"plot_indices": indices})
+
+    monkeypatch.setattr("src.core.template_format_executor.update_native_legend", update)
+    monkeypatch.setattr(
+        "src.core.template_format_executor.avoid_native_legend_overlap",
+        lambda *_args, **_kwargs: OperationResult(True, "layout verified"),
     )
 
 
@@ -340,23 +352,6 @@ class _FakeCachedStyleOps:
     def set_legend(self, *_args: object, **_kwargs: object) -> OperationResult:
         return OperationResult(True, "legend")
 
-    def replace_legend_with_plain_text_labels(
-        self,
-        graph_name: str,
-        entries: list[str],
-        font_name: str = "Arial",
-        font_size: int = 26,
-        max_entries: int = 12,
-        prefer_existing_text: bool = False,
-    ) -> OperationResult:
-        selected = [str(entry) for entry in entries[:max_entries]]
-        source = "existing" if prefer_existing_text else "entries"
-        self.commands.append(f"plain_legend:{source}:{graph_name}:{font_name}:{font_size}:{'|'.join(selected)}")
-        return OperationResult(
-            True,
-            "plain legend",
-            {"created_labels": [f"rdop_plain_legend_{index}" for index in range(1, len(selected) + 1)]},
-        )
 
     def run_labtalk(self, command: str) -> OperationResult:
         self.commands.append(command)
@@ -1119,6 +1114,13 @@ def test_verified_epr_export_validates_the_csv_reread_after_origin_transform(
     monkeypatch.setattr("src.core.template_format_executor._validate_verified_current_data", validate)
     monkeypatch.setattr("src.core.template_format_executor._export_native_tif_with_physical_validation", native_tif)
     monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
+    layout_calls: list[str] = []
+
+    def layout(_operations: object, graph_name: str) -> OperationResult:
+        layout_calls.append(graph_name)
+        return OperationResult(True, "layout verified")
+
+    monkeypatch.setattr("src.core.template_format_executor.avoid_native_legend_overlap", layout)
 
     runtime = tmp_path / "runtime"
     runtime.mkdir()
@@ -1128,6 +1130,7 @@ def test_verified_epr_export_validates_the_csv_reread_after_origin_transform(
         )
 
     assert result["ok"] is (not mutate_template_during_export)
+    assert layout_calls == ["EPR0601FULL"]
     if mutate_template_during_export:
         assert "OTPU source changed during Origin execution" in result["message"]
     assert captured["rows"] == transformed_rows
@@ -1530,6 +1533,9 @@ def test_verified_pl_post_plot_order_and_legend_helper_fail_closed(
 
 
 def test_verified_pl_legend_preserves_template_line_sample_spacing(monkeypatch) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     captured: dict[str, object] = {}
 
     def write_text(
@@ -1559,12 +1565,8 @@ def test_verified_pl_legend_preserves_template_line_sample_spacing(monkeypatch) 
     )
 
     assert result["applied"] is True
-    assert captured == {
-        "operations": operations,
-        "graph_name": "EXJF",
-        "object_name": "Legend",
-        "text": "\\l(1)\\b( BOBC)\r\n\\l(2)\\b( CWO)\r\n\\l(3)\\b( BC)",
-    }
+    assert native == {"graph_name": "EXJF", "entries": ["BOBC", "CWO", "BC"], "plot_indices": [1, 2, 3]}
+    assert captured == {}
 
 
 def test_verified_pl_conformance_allows_only_current_legend_text() -> None:
@@ -2047,6 +2049,9 @@ def test_adaptive_bet_text_policy_restores_reviewed_titles_legend_size_and_curre
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     processed = tmp_path / "bet.csv"
     processed.write_text("x,y\n0,1\n", encoding="utf-8")
     product = replace(
@@ -2089,8 +2094,8 @@ def test_adaptive_bet_text_policy_restores_reviewed_titles_legend_size_and_curre
     assert result["font_size"] == 36
     assert written["XB"] == r"\b(Relative Pressure (P/Po))"
     assert written["YL"] == r"\b(Quantity Adsorbed (cm3/g STP))"
-    assert r"\l(1)\b( BOBC (Adsorption))" in written["Legend"]
-    assert r"\l(2)\b( BOBC (Desorption))" in written["Legend"]
+    assert native["entries"] == ["BOBC (Adsorption)", "BOBC (Desorption)"]
+    assert "Legend" not in written
 
 
 def test_bet_axis_title_hard_gate_rejects_internal_csv_headers() -> None:
@@ -2241,6 +2246,9 @@ def test_photocurrent_axis_title_hard_gate_accepts_only_reviewed_scientific_titl
 def test_verified_photocurrent_legend_uses_only_current_sample_labels(
     monkeypatch,
 ) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     captured: dict[str, str] = {}
 
     def set_text(_ops, _graph, _name, value):
@@ -2260,9 +2268,8 @@ def test_verified_photocurrent_legend_uses_only_current_sample_labels(
 
     assert result["applied"] is True
     assert result["entries"] == labels
-    assert all(label in captured["text"] for label in labels)
-    assert "BOBr" not in captured["text"]
-    assert "CuWO" not in captured["text"]
+    assert native["entries"] == labels
+    assert captured == {}
 
 
 @pytest.mark.parametrize(
@@ -2735,6 +2742,10 @@ def test_verified_photocurrent_export_reports_reference_line_and_bold_policies(
         native_tif,
     )
     monkeypatch.setattr("src.core.template_format_executor._strip_raster_metadata", lambda *_args, **_kwargs: "")
+    monkeypatch.setattr(
+        "src.core.template_format_executor.avoid_native_legend_overlap",
+        lambda *_args, **_kwargs: OperationResult(True, "layout verified"),
+    )
 
     runtime = tmp_path / "runtime"
     runtime.mkdir()
@@ -3191,6 +3202,9 @@ def test_verified_ftir_style_uses_otpu_only_and_exact_reference_legend(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     product, _headers, _rows, _contract_path = _verified_ftir_product_and_table(tmp_path)
     captured: dict[str, str] = {}
 
@@ -3225,15 +3239,13 @@ def test_verified_ftir_style_uses_otpu_only_and_exact_reference_legend(
     assert result["format_theme_applied"] is False
     assert result["style_snapshot_applied"] is False
     assert result["legend_policy"]["line_samples_preserved"] is True
-    assert captured == {
-        "graph_name": "Graph3",
-        "object_name": "Legend",
-        "text": (
-            "\\l(1)\\b(\\i( )\\c1(BiOBr)\\-(\\c1(0.5))\\c1(Cl)\\-(\\c1(0.5)))\r\n"
-            "\\l(2)\\b(\\i( )CuWO\\-(4))\r\n"
-            "\\l(3)\\b(\\i( )BiCu-10)"
-        ),
-    }
+    assert native["graph_name"] == "Graph3"
+    assert native["plot_indices"] == [1, 2, 3]
+    assert native["entries"] == [
+        r"\b(\i( )\c1(BiOBr)\-(\c1(0.5))\c1(Cl)\-(\c1(0.5)))",
+        r"\b(\i( )CuWO\-(4))", r"\b(\i( )BiCu-10)",
+    ]
+    assert captured == {}
     theme = tmp_path / "FTIR.oth"
     theme.write_bytes(b"not-runtime")
     assert _apply_verified_otpu_post_plot_style(
@@ -3343,6 +3355,8 @@ def _saved_bet_theme_project(tmp_path: Path) -> Path:
 
 
 def test_export_template_base_uses_project_format_theme_when_reference_opju_missing(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
     theme = style_root / "format_themes" / "BET.oth"
@@ -3472,6 +3486,9 @@ def test_export_template_base_blocks_acceptance_when_runtime_cleanup_fails(
 
 
 def test_export_template_base_prefers_project_format_theme_over_reference_opju(tmp_path: Path, monkeypatch) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
     theme = style_root / "format_themes" / "BET.oth"
@@ -3502,13 +3519,16 @@ def test_export_template_base_prefers_project_format_theme_over_reference_opju(t
     assert "xb.fsize=36" not in commands
     assert "label -s -xb \\b(Relative Pressure);" in commands
     assert "label -s -yl \\b(Quantity Adsorbed);" in commands
-    assert "plain_legend:entries:BET_template:Arial:22:Adsorption|Desorption" in commands
+    assert native["entries"] == ["Adsorption", "Desorption"]
+    assert "plain_legend:" not in commands
     assert "label -n rdop_plain_legend_1 -s \\b(Adsorption);" not in commands
     assert "legend.text$" not in commands
     assert "\\l(1)" not in commands
 
 
 def test_saved_format_theme_exports_only_after_save_reload_and_readback(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     project_root = _saved_bet_theme_project(tmp_path)
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a,b\n0,10,20\n1,11,21\n", encoding="utf-8")
@@ -3552,6 +3572,8 @@ def test_saved_format_theme_exports_only_after_save_reload_and_readback(tmp_path
 
 
 def test_saved_format_theme_conformance_uses_real_snapshot_comparison(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     project_root = _saved_bet_theme_project(tmp_path)
     snapshot_path = project_root / "templates" / "origin_styles" / "snapshots" / "BET.json"
     snapshot_path.parent.mkdir(parents=True)
@@ -3622,6 +3644,8 @@ def test_saved_format_theme_conformance_uses_real_snapshot_comparison(tmp_path: 
 
 
 def test_saved_format_theme_blocks_merely_tagged_nonphysical_tiff(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     class WrongPixelCountOps(_FakeCachedStyleOps):
         def export_graph(self, graph_name: str, path: Path, export_format: str, **_kwargs: object) -> OperationResult:
             if export_format.casefold() in {"tif", "tiff"}:
@@ -3664,6 +3688,8 @@ def test_saved_format_theme_blocks_merely_tagged_nonphysical_tiff(tmp_path: Path
 
 
 def test_saved_format_theme_reload_failure_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     class ReloadFailureOps(_FakeCachedStyleOps):
         def load_project(self, path: Path) -> OperationResult:
             self.loaded_paths.append(Path(path))
@@ -3688,6 +3714,8 @@ def test_saved_format_theme_reload_failure_blocks_export_and_copy(tmp_path: Path
 
 
 def test_saved_format_theme_page_list_failure_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     class PageListFailureOps(_FakeCachedStyleOps):
         def list_worksheets(self) -> OperationResult:
             self.events.append("list_pages")
@@ -3711,6 +3739,8 @@ def test_saved_format_theme_page_list_failure_blocks_export_and_copy(tmp_path: P
 
 
 def test_saved_format_theme_missing_reopened_graph_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     class MissingGraphOps(_FakeCachedStyleOps):
         def list_worksheets(self) -> OperationResult:
             self.events.append("list_pages")
@@ -3737,6 +3767,8 @@ def test_saved_format_theme_missing_reopened_graph_blocks_export_and_copy(tmp_pa
 
 
 def test_saved_format_theme_ambiguous_reopened_graph_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     class AmbiguousGraphOps(_FakeCachedStyleOps):
         def list_worksheets(self) -> OperationResult:
             self.events.append("list_pages")
@@ -3770,6 +3802,8 @@ def test_saved_format_theme_ambiguous_reopened_graph_blocks_export_and_copy(tmp_
 
 
 def test_saved_format_theme_reopened_readback_failure_blocks_export_and_copy(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     project_root = _saved_bet_theme_project(tmp_path)
     processed = tmp_path / "processed.csv"
     processed.write_text("x,a\n0,10\n1,11\n", encoding="utf-8")
@@ -3793,6 +3827,8 @@ def test_saved_format_theme_reopened_readback_failure_blocks_export_and_copy(tmp
 
 
 def test_export_template_base_uses_project_format_theme_for_exemplar_driven(tmp_path: Path, monkeypatch) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     project_root = tmp_path / "project"
     style_root = project_root / "templates" / "origin_styles"
     theme = style_root / "format_themes" / "BET.oth"
@@ -3838,6 +3874,9 @@ def test_export_template_base_uses_project_format_theme_for_exemplar_driven(tmp_
 
 
 def test_export_template_base_photocurrent_falls_back_when_template_workbook_is_locked(tmp_path: Path, monkeypatch) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     class LockedTemplateOps(_FakeCachedStyleOps):
         def replace_template_workbook_columns(self, _workbook_columns: dict[str, dict[int, list[float]]]) -> OperationResult:
             raise RuntimeError("simulated PutWorksheet memory lock")
@@ -3887,7 +3926,8 @@ def test_export_template_base_photocurrent_falls_back_when_template_workbook_is_
     assert product.figure_tif.exists()
     assert product.preview_png.exists()
     commands = "\n".join(fake.commands)
-    assert "plain_legend:entries:photocurrent_BOBC_exempl:Arial:26:BOBC|CWO|BiCu-10" in commands
+    assert native["entries"] == ["BOBC", "CWO", "BiCu-10"]
+    assert "plain_legend:" not in commands
     assert "label -n rdop_plain_legend_1 -s \\b(BOBC);" not in commands
     assert "legend.text$" not in commands
     assert "\\l(" not in commands
@@ -4113,6 +4153,8 @@ def test_asset_only_uses_project_reference_opju_only_as_independent_evidence(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    _mock_native_legend(monkeypatch, {})
+
     project = tmp_path / "project"
     style_root = project / "templates" / "origin_styles"
     theme = style_root / "format_themes" / "BET.oth"
@@ -4573,46 +4615,6 @@ def test_xrd_standard_card_keeps_every_selected_sample_plus_card(tmp_path: Path)
     ]
 
 
-def test_plain_legend_anchor_avoids_data_dense_top_right_corner(tmp_path: Path) -> None:
-    processed = tmp_path / "dense_top_right.csv"
-    processed.write_text(
-        "\n".join(
-            [
-                "x,y1,y2",
-                "0,0,0",
-                "6,2,1",
-                "7,7,8",
-                "8,8,9",
-                "9,9,10",
-                "10,10,9",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    product = replace(
-        _product(tmp_path, processed),
-        legend_entries=["BOBC", "CWO"],
-    )
-    ops = _FakeAxisOps()
-
-    policy = _apply_nonoverlap_plain_legend_anchor(ops, "Graph1", product, product.legend_entries)
-
-    assert policy["applied"] is True
-    assert policy["corner"] != "top-right"
-    assert policy["point_count"] > 0
-    assert any("legend -r; legend.show=1" in command for command in ops.commands)
-
-
-def test_plain_legend_anchor_prefers_upper_blank_space_over_bottom_corners() -> None:
-    anchor = _select_plain_legend_anchor(
-        ["BiOBr", "CuWO4", "BiCu-10"],
-        [(0.20, 0.15), (0.40, 0.25), (0.65, 0.18), (0.85, 0.30)],
-    )
-
-    assert str(anchor["corner"]).startswith("top")
-
-
 def test_saved_template_legend_anchor_preserves_fraction_after_axis_change() -> None:
     ops = _FakeAxisOps()
     snapshot = {
@@ -4998,7 +5000,10 @@ def test_preserved_line_sample_legend_is_formatted_without_removing_line_samples
     assert "legend.show=0" not in joined
 
 
-def test_reviewed_eis_plot_policy_restores_template_visibility_legend_and_axis_titles(tmp_path: Path) -> None:
+def test_reviewed_eis_plot_policy_restores_template_visibility_legend_and_axis_titles(tmp_path: Path, monkeypatch) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     class PlotOps(_FakeAxisOps):
         def _plot_names(self, _graph_name: str) -> list[str]:
             return [f"Plot{index}" for index in range(1, 9)]
@@ -5050,8 +5055,8 @@ def test_reviewed_eis_plot_policy_restores_template_visibility_legend_and_axis_t
     assert "layer.plot1.show=0" in joined
     assert "layer.plot3.show=1" in joined
     assert "layer.plot8.show=0" in joined
-    assert r"\l(3)\b(BiOBr\-(0.5)Cl\-(0.5))" in joined
-    assert r"\l(4)\b(CuWO\-(4))" in joined
+    assert native["plot_indices"] == [3, 4, 5]
+    assert native["entries"] == ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"]
     assert "label -s -xb" in joined
     assert "label -s -yl" in joined
     assert "set Plot1 -wp 0.5" in joined
@@ -5183,6 +5188,165 @@ def test_verified_raman_binding_preserves_source_order_and_two_layer_mapping(
         rows,
         contract_path=contract,
     )["ok"] is True
+
+
+def test_verified_raman_labels_use_native_legends_and_restore_distributed_layout(
+    monkeypatch,
+) -> None:
+    class GraphObject:
+        def __init__(self, name: str, geometry: tuple[int, int, int, int], seed: int) -> None:
+            self.Name = name
+            self.Left, self.Top, self.Width, self.Height = geometry
+            self.properties = {
+                "font": 100 + seed,
+                "fsize": 20 + seed,
+                "color": 300 + seed,
+                "bold": 1,
+                "background": 0,
+                "border": 0,
+                "frame": 0,
+                "fill": 0,
+                "fillColor": 400 + seed,
+                "borderColor": 500 + seed,
+                "lineWidth": 600 + seed,
+            }
+
+        @property
+        def Text(self) -> str:
+            raise AssertionError("Raman labels must not read or assign GraphObject.Text")
+
+        @Text.setter
+        def Text(self, _value: str) -> None:
+            raise AssertionError("Raman labels must not assign GraphObject.Text")
+
+        def GetNumProp(self, name: str) -> object:
+            return self.properties[name]
+
+        def SetNumProp(self, name: str, value: object) -> None:
+            self.properties[name] = value
+
+    class GraphObjects:
+        def __init__(self, objects: list[GraphObject]) -> None:
+            self.objects = objects
+
+        @property
+        def Count(self) -> int:
+            return len(self.objects)
+
+        def __getitem__(self, name: str) -> GraphObject:
+            for graph_object in self.objects:
+                if graph_object.Name.casefold() == name.casefold():
+                    return graph_object
+            raise KeyError(name)
+
+        def Item(self, index: int) -> GraphObject:
+            return self.objects[index]
+
+        def remove(self, name: str) -> None:
+            self.objects[:] = [
+                graph_object
+                for graph_object in self.objects
+                if graph_object.Name.casefold() != name.casefold()
+            ]
+
+    class Layer:
+        def __init__(self, objects: list[GraphObject]) -> None:
+            self.GraphObjects = GraphObjects(objects)
+
+    layer1 = Layer([
+        GraphObject("Legend", (101, 102, 103, 104), 1),
+        GraphObject("Text1", (201, 202, 203, 204), 2),
+        GraphObject("Text", (301, 302, 303, 304), 3),
+        GraphObject("Line1", (401, 402, 403, 404), 4),
+    ])
+    layer2 = Layer([])
+    layers = {1: layer1, 2: layer2}
+    original = {
+        (1, "Legend"): ((101, 102, 103, 104), dict(layer1.GraphObjects["Legend"].properties)),
+        (1, "Text1"): ((201, 202, 203, 204), dict(layer1.GraphObjects["Text1"].properties)),
+        (1, "Text"): ((301, 302, 303, 304), dict(layer1.GraphObjects["Text"].properties)),
+        (1, "Line1"): ((401, 402, 403, 404), dict(layer1.GraphObjects["Line1"].properties)),
+    }
+
+    class App:
+        def FindGraphLayer(self, reference: str) -> Layer | None:
+            if reference in {"[Graph2]Layer1", "[Graph2]1", "Graph2"}:
+                return layer1
+            if reference in {"[Graph2]Layer2", "[Graph2]2"}:
+                return layer2
+            return None
+
+    commands: list[str] = []
+
+    class Ops:
+        app = App()
+
+        def run_labtalk(self, command: str) -> OperationResult:
+            commands.append(command)
+            layer_match = re.search(r"layer -s (\d+)", command)
+            layer_index = int(layer_match.group(1)) if layer_match else 1
+            remove_match = re.search(r"label -r ([A-Za-z0-9_]+);", command)
+            if remove_match:
+                layers[layer_index].GraphObjects.remove(remove_match.group(1))
+            rename_match = re.search(r'legend\.name\$="([A-Za-z0-9_]+)";', command)
+            if rename_match:
+                layers[layer_index].GraphObjects["Legend"].Name = rename_match.group(1)
+            return OperationResult(True, "ok")
+
+    native_calls: list[dict[str, object]] = []
+
+    def native_legend(
+        _operations: object,
+        _graph_name: str,
+        entries: list[str],
+        *,
+        plot_indices: list[int],
+        layer_index: int,
+    ) -> OperationResult:
+        native_calls.append({
+            "entries": list(entries),
+            "plot_indices": list(plot_indices),
+            "layer_index": layer_index,
+        })
+        collection = layers[layer_index].GraphObjects
+        try:
+            collection["Legend"]
+        except KeyError:
+            collection.objects.append(GraphObject("Legend", (0, 0, 1000, 100), 99))
+        return OperationResult(True, "native")
+
+    monkeypatch.setattr("src.core.template_format_executor.update_native_legend", native_legend)
+
+    result = _update_verified_raman_label_objects(
+        Ops(),
+        "Graph2",
+        ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-30"],
+    )
+
+    assert result["applied"] is True
+    assert result["method"] == "origin_native_distributed_raman_legends"
+    assert native_calls == [
+        {"entries": ["BiCu-30"], "plot_indices": [2], "layer_index": 1},
+        {"entries": ["CuWO4"], "plot_indices": [1], "layer_index": 2},
+        {"entries": ["BiOBr0.5Cl0.5"], "plot_indices": [1], "layer_index": 1},
+    ]
+    assert set(graph_object.Name for graph_object in layer1.GraphObjects.objects) == {"Legend", "Text"}
+    assert set(graph_object.Name for graph_object in layer2.GraphObjects.objects) == {"Text1"}
+    for object_name in ("Legend", "Text"):
+        geometry, properties = original[(1, object_name)]
+        graph_object = layer1.GraphObjects[object_name]
+        assert (graph_object.Left, graph_object.Top, graph_object.Width, graph_object.Height) == geometry
+        assert graph_object.properties == properties
+    row_geometry, row_properties = original[(1, "Text1")]
+    line_geometry, _line_properties = original[(1, "Line1")]
+    layer2_legend = layer2.GraphObjects["Text1"]
+    assert layer2_legend.Left == line_geometry[0]
+    assert layer2_legend.Top == row_geometry[1] + (row_geometry[3] - 100) / 2
+    assert layer2_legend.properties == row_properties
+    assert any('legend.name$="Text";' in command for command in commands)
+    assert any('legend.name$="Text1";' in command for command in commands)
+    assert any("layer -s 1; label -r Line1;" in command for command in commands)
+    assert not any("\\l(" in command for command in commands)
 
 
 def test_verified_raman_workbook_copies_all_six_columns_without_transform(
@@ -5455,7 +5619,10 @@ def test_adaptive_mott_masks_each_current_y_column_without_masking_numeric_zero(
     assert operations.masks == [(2, [1]), (3, [1])]
 
 
-def test_reviewed_mott_policy_draws_data_dependent_candidate_guides(tmp_path: Path) -> None:
+def test_reviewed_mott_policy_draws_data_dependent_candidate_guides(tmp_path: Path, monkeypatch) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     data_snapshot_path = Path(__file__).parents[1] / "templates" / "origin_styles" / "data_snapshots" / "Mott_Schottky.json"
     data_snapshot = json.loads(data_snapshot_path.read_text(encoding="utf-8"))
     plots = data_snapshot["plots"]
@@ -5506,7 +5673,7 @@ def test_reviewed_mott_policy_draws_data_dependent_candidate_guides(tmp_path: Pa
     assert guides["manual_check_required"] is True
     assert guides["annotation"] == "-1.04 V"
     assert policy["legend_font_size"] == 28
-    assert "legend.fsize=28" in joined
+    assert native["plot_indices"] == [1, 2, 3]
     assert "draw -n rdop_mott_fit_1 -w 3 -d 1 -l" in joined
     assert "rdop_mott_fit_1.color=color(128,128,128)" in joined
     assert "label -a" not in joined
@@ -5553,7 +5720,10 @@ def test_origin_graph_object_text_reassignment_refreshes_cached_legend() -> None
     assert graph_object.Text == text
 
 
-def test_reviewed_legend_com_text_is_refreshed_after_legend_formatting(tmp_path: Path) -> None:
+def test_reviewed_legend_com_text_is_refreshed_after_legend_formatting(tmp_path: Path, monkeypatch) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     class GraphObject:
         Text = "Sheet1"
 
@@ -5601,14 +5771,14 @@ def test_reviewed_legend_com_text_is_refreshed_after_legend_formatting(tmp_path:
     )
 
     assert policy["legend_com_text_refreshed_after_formatting"] is True
-    assert graph_object.Text == (
-        r"\l(3)\b(BiOBr\-(0.5)Cl\-(0.5))" "\r\n"
-        r"\l(4)\b(CuWO\-(4))" "\r\n"
-        r"\l(5)\b(BiCu-10)"
-    )
+    assert native["plot_indices"] == [3, 4, 5]
+    assert native["entries"] == ["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"]
 
 
-def test_eis_final_legend_uses_static_rich_text_at_template_position(tmp_path: Path) -> None:
+def test_eis_final_legend_uses_native_object_at_template_position(tmp_path: Path, monkeypatch) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     class GraphObject:
         def __init__(self, name: str, text: str = "") -> None:
             self.Name = name
@@ -5664,7 +5834,7 @@ def test_eis_final_legend_uses_static_rich_text_at_template_position(tmp_path: P
         legend_entries=["BiOBr0.5Cl0.5", "CuWO4", "BiCu-10"],
     )
 
-    policy = _replace_eis_dynamic_legend_with_static_rich_text(
+    policy = _update_eis_native_legend(
         Ops(),
         "Graph1",
         product,
@@ -5672,18 +5842,71 @@ def test_eis_final_legend_uses_static_rich_text_at_template_position(tmp_path: P
         ResolvedPlotStyle(font_family="Arial", legend_font_size=22),
     )
 
-    static = objects["rdop_reviewed_legend"]
     assert policy["applied"] is True
     assert policy["font_size"] == 28
-    assert objects["Legend"].Show == 0
-    assert static.Left == 2641
-    assert static.Top == 870
-    assert static.props["fsize"] == 28
-    assert "BiOBr" in static.Text
-    assert "Sheet1" not in static.Text
+    assert objects["Legend"].Show == 1
+    assert objects["Legend"].Left == 2641
+    assert objects["Legend"].Top == 870
+    assert "rdop_reviewed_legend" not in objects
+    assert native["plot_indices"] == [3, 4, 5]
 
 
-def test_xrd_standard_card_legend_uses_multiline_line_sample_entries(tmp_path: Path) -> None:
+@pytest.mark.parametrize("in_situ", [True, False])
+def test_variable_xps_native_legend_selects_only_measured_plot_mappings(tmp_path, monkeypatch, in_situ):
+    import src.core.template_format_executor as executor
+
+    labels = ["Current A", "Current B"] if in_situ else ["Current A", "Current B", "Current C"]
+    if in_situ:
+        headers = [header for label in labels for header in [f"{label}_binding_energy_eV", *(f"{label}_y{i}" for i in range(7))]]
+        expected_indices = [1, 8]
+        apply_policy = executor._apply_adaptive_xps_in_situ_text_policy
+    else:
+        headers = ["binding_energy_eV", *(f"{label}{suffix}" for label in labels for suffix in executor.VERIFIED_XPS_NON_IN_SITU_ROLE_SUFFIXES)]
+        expected_indices = [7, 16, 25]
+        apply_policy = executor._apply_adaptive_xps_non_in_situ_text_policy
+    processed = tmp_path / "xps.csv"
+    processed.write_text(",".join(headers) + "\n" + ",".join("1" for _ in headers) + "\n", encoding="utf-8")
+    product = _product(tmp_path, processed)
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+    monkeypatch.setattr(executor, "_restore_adaptive_xps_native_graph_objects", lambda *_a, **_k: {"applied": True})
+    monkeypatch.setattr(executor, "_style_graph_object", lambda *_a, **_k: True)
+    operations = _FakeAxisOps()
+    result = apply_policy(operations, "Graph1", product, ResolvedPlotStyle(), {}, {})
+    assert result["applied"] is True
+    assert native["entries"] == labels
+    assert native["plot_indices"] == expected_indices
+    assert not any("legend.text" in command.lower() or re.search(r"layer\.plot\d+\.show\s*=", command) for command in operations.commands)
+
+
+def test_reopened_eis_legend_requires_native_tokens_and_current_mapped_names() -> None:
+    legend = SimpleNamespace(Name="Legend", Text=r"\l(1) %(1)" + "\r\n" + r"\l(2) %(2)", Show=1)
+    objects = SimpleNamespace(Count=1, Item=lambda _index: legend)
+    layer = SimpleNamespace(GraphObjects=objects)
+    labels = [r"\b(A)", r"\b(B)"]
+    state = {"index": 0}
+    app = SimpleNamespace(
+        FindGraphLayer=lambda _name: layer,
+        LTStr=lambda _name: labels[state["index"]],
+    )
+
+    def run(command):
+        state["index"] = int(re.search(r"!(\d+);", command).group(1)) - 1
+        return OperationResult(True, "ok")
+
+    ops = SimpleNamespace(app=app, run_labtalk=run)
+    assert _validate_reopened_adaptive_eis_legend(ops, "Graph1", ["A", "B"])["ok"] is True
+    labels[1] = r"\b(Old sample)"
+    assert _validate_reopened_adaptive_eis_legend(ops, "Graph1", ["A", "B"])["ok"] is False
+    labels[1] = r"\b(B)"
+    legend.Text = r"\l(1) A" + "\r\n" + r"\l(2) B"
+    assert _validate_reopened_adaptive_eis_legend(ops, "Graph1", ["A", "B"])["ok"] is False
+
+
+def test_xrd_standard_card_legend_uses_multiline_line_sample_entries(tmp_path: Path, monkeypatch) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     processed = tmp_path / "xrd_card.csv"
     processed.write_text(
         "two_theta_deg,BOBC,BOBC600,CWO_PDF_04-009-8466_JCPDS_card_sticks\n"
@@ -5708,7 +5931,9 @@ def test_xrd_standard_card_legend_uses_multiline_line_sample_entries(tmp_path: P
 
     joined = "\n".join(ops.commands)
     assert policy["sample_legend_entries"] == [r"\b(BOBC)", r"\b(BOBC\-(600))"]
-    assert r"\l(1)\b(BOBC)%(CRLF)\l(2)\b(BOBC\-(600))" in joined
+    assert native["plot_indices"] == [1, 2]
+    assert native["entries"] == [r"\b(BOBC)", r"\b(BOBC\-(600))"]
+    assert "legend.text$" not in joined
     assert "legend.show=1" in joined
     assert "layer.plot3.color=color(181,91,0)" in joined
     assert "set Book_D -cl color(181,91,0)" in joined
@@ -6193,19 +6418,6 @@ def test_independent_reference_preview_rejects_missing_requested_graph_page(
     assert result["graph_page"] == "MissingGraph"
     assert result["available_graph_pages"] == ["Graph4"]
     assert "does not exist" in str(result["message"])
-
-
-def test_xrd_standard_card_legend_keeps_template_vertical_entries() -> None:
-    entries = [rf"\l({index})\b(Sample {index})" for index in range(1, 5)]
-
-    rows = _xrd_standard_card_legend_rows(entries)
-
-    assert rows == [
-        r"\l(1)\b(Sample 1)",
-        r"\l(2)\b(Sample 2)",
-        r"\l(3)\b(Sample 3)",
-        r"\l(4)\b(Sample 4)",
-    ]
 
 
 def _product(tmp_path: Path, processed: Path) -> ProductContext:
@@ -7161,6 +7373,9 @@ def test_explicit_oth_json_blocks_unpaired_numeric_source(tmp_path: Path, monkey
 
 
 def test_adaptive_eis_legend_uses_all_current_series_not_fixed_visible_slots(tmp_path: Path, monkeypatch) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     processed = tmp_path / "eis.csv"
     processed.write_text("x,y\n0,1\n", encoding="utf-8")
     product = replace(
@@ -7195,7 +7410,8 @@ def test_adaptive_eis_legend_uses_all_current_series_not_fixed_visible_slots(tmp
 
     assert policy["visible_plot_indices"] == [1, 2, 3, 4]
     assert policy["entries"] == ["A", "B", "C", "D"]
-    assert "\\l(4)" in str(captured["text"])
+    assert native["plot_indices"] == [1, 2, 3, 4]
+    assert captured == {}
     assert policy["line_samples_preserved"] is True
     assert policy["font_size"] == 28
     assert policy["all_current_plots_visible"] is True
@@ -7209,6 +7425,9 @@ def test_adaptive_photocurrent_legend_restores_snapshot_format_and_current_entri
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     processed = tmp_path / "photocurrent.csv"
     processed.write_text("x,y\n0,1\n", encoding="utf-8")
     product = replace(
@@ -7269,8 +7488,8 @@ def test_adaptive_photocurrent_legend_restores_snapshot_format_and_current_entri
 
     assert policy["applied"] is True
     assert policy["entries"] == ["BOBC", "CWO"]
-    assert "\\l(1)\\b( BOBC)" in str(captured["text"])
-    assert "\\l(2)\\b( CWO)" in str(captured["text"])
+    assert native["entries"] == ["BOBC", "CWO"]
+    assert "text" not in captured
     assert policy["font_size"] == 14
     assert policy["bold"] == 0
     assert policy["background"] == 1
@@ -7284,6 +7503,9 @@ def test_adaptive_photocurrent_supports_arbitrary_current_series_count_and_label
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    native = {}
+    _mock_native_legend(monkeypatch, native)
+
     labels = ["Current A", "Current B", "Current C", "Current D"]
     headers = [
         header
@@ -7338,8 +7560,9 @@ def test_adaptive_photocurrent_supports_arbitrary_current_series_count_and_label
 
     assert result["applied"] is True
     assert result["entries"] == labels
-    assert "\\l(4)" in captured["text"]
-    assert all(label in captured["text"] for label in labels)
+    assert native["plot_indices"] == [1, 2, 3, 4]
+    assert native["entries"] == labels
+    assert captured == {}
 
 
 def test_oth_json_asset_only_never_loads_reference_opju() -> None:

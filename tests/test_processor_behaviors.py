@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.core.project import default_output_root
+import src.core.table_reader as table_reader
 from src.core.table_reader import TableReadResult, _configure_excel_for_safe_read, coerce_numeric_rows, read_table, read_table_with_metadata
 from src.processors.base import _origin_axis_titles, process_table_dataset
 from src.processors.calculations import mott_schottky_numeric
@@ -76,6 +77,25 @@ class ProcessorBehaviorTest(unittest.TestCase):
             numeric = coerce_numeric_rows(rows)
 
             self.assertEqual(numeric, [(0.1, 5.0), (0.2, 7.0)])
+
+    def test_numeric_column_fallback_stops_after_first_two_numeric_columns(self):
+        rows = [
+            {"label": "first", "first": "1", "second": "3", "later": "late-one"},
+            {"label": "second", "first": "2", "second": "4", "later": "late-two"},
+        ]
+        original_to_float = table_reader._to_float
+        parsed_values: list[object] = []
+
+        def counted_to_float(value: object) -> float | None:
+            parsed_values.append(value)
+            return original_to_float(value)
+
+        with patch("src.core.table_reader._to_float", side_effect=counted_to_float):
+            numeric = coerce_numeric_rows(rows)
+
+        self.assertEqual(numeric, [(1.0, 3.0), (2.0, 4.0)])
+        self.assertNotIn("late-one", parsed_values)
+        self.assertNotIn("late-two", parsed_values)
 
     def test_text_reader_detects_instrument_metadata_header_before_numeric_rows(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -76,7 +76,7 @@ from src.origin.embedded_template_snapshots import (
     embedded_template_path,
     embedded_template_snapshot_dict,
 )
-from src.origin.operations import connect_origin, quote_labtalk
+from src.origin.operations import avoid_native_legend_overlap, connect_origin, quote_labtalk
 from src.origin.style_registry import (
     load_origin_style_manifest,
     origin_style_asset_read_scope,
@@ -2259,8 +2259,8 @@ def _build_template_xy_multisource_table(
         ]
     if pairing.product_key == "Mott-Schottky":
         labels["legend_entries"] = [
-            f"{label}Hz BiOBr0.5Cl0.5"
-            for label, _values in series
+            _template_mott_schottky_legend_label(path, label)
+            for (label, _values), path in zip(series, used_files, strict=True)
         ]
     if pairing.product_key in {"Raman", "photocurrent"}:
         # Both reviewed products bind independent adjacent X/Y pairs.  Keep
@@ -2936,6 +2936,12 @@ def _template_mott_schottky_rows(path: Path) -> list[list[float | str | None]]:
     if len(numeric) < 2:
         raise ValueError(f"Mott-Schottky source does not contain a validated potential/1-C-squared pair: {path}")
     return [[potential, one_over_c2] for potential, one_over_c2 in numeric]
+
+
+def _template_mott_schottky_legend_label(path: Path, fallback: str) -> str:
+    """Use only the selected source filename; never invent a material or frequency."""
+    label = path.stem.replace("_", " ").strip()
+    return label or str(fallback).replace("_", " ").strip()
 
 
 def _template_xy_labels(product_key: str) -> tuple[str, str, dict[str, str]]:
@@ -3687,6 +3693,14 @@ def _export_template_product_with_origin_connected(
                 style=style,
             )
         product.origin_file.parent.mkdir(parents=True, exist_ok=True)
+        legend_layout = avoid_native_legend_overlap(operations, graph_name)
+        if not getattr(legend_layout, "ok", False):
+            return {
+                "ok": False,
+                "message": getattr(legend_layout, "message", "native legend layout failed"),
+                "exemplar_style": exemplar_style,
+                "native_legend_layout": getattr(legend_layout, "payload", {}),
+            }
         saved = operations.save_project(product.origin_file)
         if not saved.ok:
             return {"ok": False, "message": saved.message, "exemplar_style": exemplar_style}

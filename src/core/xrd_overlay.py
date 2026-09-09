@@ -23,7 +23,7 @@ from src.origin.adapter import (
     write_origin_error,
     write_origin_success,
 )
-from src.origin.operations import OriginOperations, connect_origin, origin_process_ids, quote_labtalk
+from src.origin.operations import OriginOperations, avoid_native_legend_overlap, connect_origin, origin_process_ids, quote_labtalk, update_native_legend
 from src.origin.text_format import origin_bold_text
 from src.origin.xrd_annotations import apply_xrd_standard_card_annotations
 
@@ -382,6 +382,9 @@ def _build_fresh_xrd_overlay_with_operations(
             + str(annotations.get("reason") or annotations)
         )
 
+    legend_layout = avoid_native_legend_overlap(operations, "Graph4")
+    if not legend_layout.ok:
+        raise RuntimeError(f"XRD native legend layout failed: {legend_layout.message}")
     saved = operations.save_project(artifacts.origin_file)
     if not saved.ok or not artifacts.origin_file.is_file():
         raise RuntimeError(f"Origin did not save fresh XRD OPJU: {saved.message}")
@@ -410,6 +413,7 @@ def _build_fresh_xrd_overlay_with_operations(
         "png_export": png.payload,
         "tif_export": tif,
         "annotation_status": annotations,
+        "legend_layout": legend_layout.payload,
     }
 
 
@@ -626,6 +630,11 @@ def _apply_xrd_native_text_and_axes(operations: OriginOperations, graph_name: st
     layer = operations._graph_layer(graph_name, 1)
     if layer is None:
         raise RuntimeError("fresh XRD OTPU Layer1 is unavailable for the native legend")
+    generated = update_native_legend(
+        operations, graph_name, [BOBC_LABEL, CWO_LABEL], plot_indices=[2, 1],
+    )
+    if not generated.ok:
+        raise RuntimeError(f"fresh XRD native legend generation failed: {generated.message}")
     try:
         legend = layer.GraphObjects["Legend"]
     except Exception:
@@ -633,7 +642,6 @@ def _apply_xrd_native_text_and_axes(operations: OriginOperations, graph_name: st
     if legend is None:
         raise RuntimeError("fresh XRD OTPU does not contain its native Layer1 legend holder")
     try:
-        legend.Text = "\\l(2)\\b( BiOBr\\-(0.5)Cl\\-(0.5))\r\n\\l(1)\\b( CuWO\\-(4))"
         legend.Left = XRD_SAMPLE_LEGEND_LEFT
         legend.Top = XRD_SAMPLE_LEGEND_TOP + XRD_SAMPLE_LEGEND_ROW_STEP
         legend.Width = XRD_SAMPLE_LEGEND_WIDTH

@@ -72,6 +72,23 @@ def test_origin_helper_enforces_unframed_or_hidden_legends() -> None:
     ) in text
 
 
+def test_origin_helper_finalizes_native_legend_layout_once_per_page_before_save() -> None:
+    text = _helper_text()
+
+    assert "function Invoke-NativeLegendLayoutFinalizer(" in text
+    assert "native_legend_layout.c" in text
+    assert 'run.LoadOC("' in text
+    assert '",16);' in text
+    assert "rdop_place_legends()" in text
+    assert "$layoutResult -ne 1 -and $layoutResult -ne 2" in text
+    assert "Native legend layout failed for $PageName" in text
+    assert text.count("Invoke-NativeLegendLayoutFinalizer $app $pageName") == 1
+    finalizer_index = text.index("Invoke-NativeLegendLayoutFinalizer $app $pageName")
+    assert_index = text.index("Assert-GraphPageValid $app $pageName", finalizer_index - 500)
+    save_index = text.index("$app.Save($OutputOpju)")
+    assert assert_index < finalizer_index < save_index
+
+
 def _run_helper_functions(tmp_path: Path, body: str) -> dict:
     """Run real helper functions with a fake COM object; no Origin is started."""
     shell = shutil.which("powershell") or shutil.which("pwsh")
@@ -97,18 +114,33 @@ def _run_helper_functions(tmp_path: Path, body: str) -> dict:
     return json.loads(next(line[len(prefix):] for line in completed.stdout.splitlines() if line.startswith(prefix)))
 
 
+@pytest.mark.parametrize("independent", [False, True])
+def test_native_legend_labels_follow_actual_y_columns(tmp_path, independent):
+    result = _run_helper_functions(tmp_path, r'''
+$app = [pscustomobject]@{ Commands = (New-Object 'System.Collections.Generic.List[string]') }
+$app | Add-Member ScriptMethod Execute { param($command) $this.Commands.Add($command); return $true }
+$pairs = PAIRS
+Set-OriginSeriesLabels $app @('b3', 'Draft fit') $pairs
+Write-Output ('TEST_RESULT=' + (@{Commands=@($app.Commands.ToArray()); Bold=(Format-BoldText '\l(1) %(1)')} | ConvertTo-Json -Compress))
+'''.replace("PAIRS", "@([pscustomobject]@{X=1;Y=2},[pscustomobject]@{X=3;Y=4})" if independent else "@()"))
+    second = 4 if independent else 3
+    assert result["Commands"] == [r'wks.col2.lname$="\b(b3)";', f'wks.col{second}.lname$="\\b(Draft fit)";']
+    assert result["Bold"] == r"\b(\l(1) %(1))"
+
+
 @pytest.mark.parametrize("reject_put", [False, True])
 def test_helper_writes_complete_numeric_columns_and_preserves_mixed_cells(tmp_path, reject_put):
     result = _run_helper_functions(tmp_path, r'''
 $app = [pscustomobject]@{ Commands = (New-Object 'System.Collections.Generic.List[string]'); Puts = (New-Object 'System.Collections.Generic.List[object]'); RejectPut = REJECT_PUT }
 $app | Add-Member ScriptMethod Execute { param($command) $this.Commands.Add($command); return $true }
+$app | Add-Member ScriptMethod LTStr { param($name) return 'Book1' }
 $app | Add-Member ScriptMethod PutWorksheet {
   param($target, $values, $row, $column)
   $this.Puts.Add(@{ Target=$target; Values=@($values); Row=$row; Column=$column })
   return (-not $this.RejectPut)
 }
 $rows = @([pscustomobject]@{X='0'; Y='1'; Text='first'}, [pscustomobject]@{X='1.2345678901234567'; Y=''; Text=''}, [pscustomobject]@{X='2'; Y='3'; Text='third'})
-Initialize-OriginDataWorkbook $app 'Book1' 'sample.csv' @('X','Y','Text') $rows 3
+Initialize-OriginDataWorkbook $app 'RequestedLongName' 'sample.csv' @('X','Y','Text') $rows 3
 Write-Output ('TEST_RESULT=' + (@{Commands=@($app.Commands.ToArray()); Puts=@($app.Puts.ToArray())} | ConvertTo-Json -Depth 6 -Compress))
 '''.replace("REJECT_PUT", "$true" if reject_put else "$false"))
     assert result["Puts"] == [{"Target": "[Book1]sample", "Values": [0.0, 1.2345678901234567, 2.0], "Row": 0, "Column": 0}]
@@ -123,6 +155,7 @@ def test_helper_single_row_keeps_double_arrays_and_chinese_headers(tmp_path):
     result = _run_helper_functions(tmp_path, r'''
 $app = [pscustomobject]@{ Commands=(New-Object 'System.Collections.Generic.List[string]'); Puts=(New-Object 'System.Collections.Generic.List[object]') }
 $app | Add-Member ScriptMethod Execute { param($command) $this.Commands.Add($command); return $true }
+$app | Add-Member ScriptMethod LTStr { param($name) return 'Book1' }
 $app | Add-Member ScriptMethod PutWorksheet {
   param($target, $values, $row, $column)
   $this.Puts.Add(@{ Target=$target; Type=$values.GetType().FullName; Values=@($values); Row=$row; Column=$column })

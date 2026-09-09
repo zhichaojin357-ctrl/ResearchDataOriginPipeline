@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import time
@@ -145,7 +146,16 @@ GENERIC_SERIES_LABELS = {
     "current",
     "photocurrent_ua",
     "one_over_c_squared",
+    "neg_imag_impedance",
+    "neg_imag_impedance_ohm",
     "raw_intensity",
+    "absorbance",
+    "reflectance",
+    "transmittance",
+    "current_density",
+    "current_density_ua_cm2_optional",
+    "response",
+    "pore_volume_cm3_g",
 }
 NON_PLOT_COLUMN_TOKENS = (
     "candidate",
@@ -881,15 +891,19 @@ def _is_eis_fit_header(normalized_header: list[str]) -> bool:
     ]
 
 
-def _series_labels(raw_labels: tuple[str, ...], dataset_id: str, source_file: Path | None) -> tuple[str, ...]:
-    source = _source_label(source_file, dataset_id)
+def _series_labels(raw_labels: tuple[str, ...], dataset_id: str, source_file: Path | None, data_type: str) -> tuple[str, ...]:
+    sample_id = dataset_id
+    if source_file is None:
+        type_slug = re.sub(r"[^A-Za-z0-9_.-]+", "_", data_type.strip()).strip("_")
+        for prefix in (f"{data_type}_", f"{type_slug}_"):
+            if dataset_id.casefold().startswith(prefix.casefold()):
+                sample_id = dataset_id[len(prefix):] or dataset_id
+                break
+    source = _source_label(source_file, sample_id)
     raw_labels = tuple(_pretty_series_label(label) for label in raw_labels)
     normalized = [label.strip().lower() for label in raw_labels]
-    if len(raw_labels) == 1 and normalized[0] in GENERIC_SERIES_LABELS:
-        return (source,)
-    if normalized and all(label in GENERIC_SERIES_LABELS for label in normalized):
-        return tuple(f"{source} {label}" for label in raw_labels)
-    return raw_labels
+    return tuple(source if label in GENERIC_SERIES_LABELS else raw
+                 for raw, label in zip(raw_labels, normalized))
 
 
 def _pretty_series_label(label: str) -> str:
@@ -1200,7 +1214,7 @@ def build_origin_plot_job(
         labels = ("Measured", "Draft Randles-CPE fit")
     else:
         raw_labels = tuple(label.strip() for label in header[1:] if label.strip()) or ("Signal",)
-        labels = _series_labels(raw_labels, dataset_id, source_file)
+        labels = _series_labels(raw_labels, dataset_id, source_file, data_type)
     expected_label_count = len(xy_column_pairs) if xy_column_pairs else column_count - 1
     if len(labels) != expected_label_count:
         labels = tuple(f"Series {index}" for index in range(1, expected_label_count + 1))
@@ -1349,8 +1363,9 @@ def reexport_tif_from_reopened_opju(
     figure_tif: Path,
     *,
     dpi: int = 600,
+    preview_png: Path | None = None,
 ) -> TifResolutionEvidence:
-    """Reopen the final OPJU read-only, export its graph natively, and validate DPI.
+    """Reopen an isolated final-OPJU copy, export its graph natively, and validate DPI.
 
     Any helper-produced TIFF is deliberately replaced.  Keeping an existing file
     would allow a stale or merely retagged raster to pass as evidence for the
@@ -1363,6 +1378,27 @@ def reexport_tif_from_reopened_opju(
         requested_figure_tif,
         output_root=requested_figure_tif.parent,
     )
+    resolved_preview_png: Path | None = None
+    preview_width: int | None = None
+    if preview_png is not None:
+        requested_preview_png = Path(preview_png)
+        resolved_preview_png = ensure_safe_output_file_target(
+            requested_preview_png,
+            output_root=requested_preview_png.parent,
+        )
+        if not resolved_preview_png.is_file() or resolved_preview_png.stat().st_size == 0:
+            raise RuntimeError("Existing PNG preview is missing or empty before reopened-OPJU export.")
+        try:
+            from PIL import Image
+
+            with Image.open(resolved_preview_png) as preview_image:
+                preview_width = int(preview_image.width)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Could not read existing PNG preview dimensions before reopened-OPJU export: {exc}"
+            ) from exc
+        if preview_width <= 0:
+            raise RuntimeError("Existing PNG preview has no usable pixel width.")
     if not origin_file.is_file() or origin_file.stat().st_size == 0:
         raise RuntimeError(f"Final OPJU is missing or empty before TIFF export: {origin_file}")
     if not graph_page.strip():
@@ -1375,67 +1411,82 @@ def reexport_tif_from_reopened_opju(
 
     import originpro as op
 
-    try:
-        op.set_show(False)
-        if not op.open(str(origin_file), readonly=True, asksave=False):
-            raise RuntimeError(f"Failed to load final OPJU for TIFF export: {origin_file}")
-        graph = op.find_graph(graph_page)
-        if graph is None:
-            raise RuntimeError(f"Final OPJU did not contain graph page {graph_page}")
-        graph.activate()
-        page_width = float(op.lt_float("page.width"))
-        page_height = float(op.lt_float("page.height"))
-        expected_width, _expected_height = expected_raster_pixels(
-            page_width,
-            page_height,
-            dpi=dpi,
-        )
-        graph.lt_exec("doc -rn; doc -s;")
-        project_path = str(op.get_lt_str("%X") or "").strip()
-        project_name = str(op.get_lt_str("%G") or "").strip()
-        if project_path or project_name.casefold() != "untitled":
-            raise RuntimeError(
-                "Origin did not clear the in-memory project identity before TIFF export; "
-                "the final OPJU was left unchanged and no product TIFF was written."
-            )
-        graph.activate()
-        figure_tif.parent.mkdir(parents=True, exist_ok=True)
-        if figure_tif.exists():
-            figure_tif.unlink()
-        folder = quote_labtalk(to_origin_path(figure_tif.parent))
-        filename = quote_labtalk(figure_tif.stem)
-        graph.lt_exec(
-            f'expGraph type:=tif path:="{folder}" filename:="{filename}" '
-            f"overwrite:=replace sysopts:=0 tr.Margin:=2 "
-            f"tr1.Unit:=2 tr1.Width:={expected_width} "
-            f"tr2.TIF.dotsperinch:={dpi};"
-        )
-        if not figure_tif.exists() or figure_tif.stat().st_size == 0:
-            raise RuntimeError("Origin expGraph did not create the TIF output.")
-        return validate_tif_physical_resolution(
-            figure_tif,
-            page_width_origin_units=page_width,
-            page_height_origin_units=page_height,
-            dpi=dpi,
-        )
-    finally:
-        exit_error = ""
+    figure_tif.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".origin-reopen-", dir=figure_tif.parent) as temporary_dir:
+        reopened_copy = Path(temporary_dir) / origin_file.name
+        shutil.copy2(origin_file, reopened_copy)
         try:
-            op.exit()
-        except Exception as exc:
-            exit_error = f"{type(exc).__name__}: {exc}"
-        origin_stopped = _wait_for_no_origin_process()
-        if exit_error or not origin_stopped:
-            details = []
-            if exit_error:
-                details.append(f"originpro exit raised {exit_error}")
-            if not origin_stopped:
-                details.append("Origin process remained after the bounded exit wait")
-            raise RuntimeError(
-                "Origin lifecycle finalization failed after reopened-OPJU TIFF export; "
-                "the export must not be accepted: "
-                + "; ".join(details)
+            op.set_show(False)
+            if not op.open(str(reopened_copy), readonly=False, asksave=False):
+                raise RuntimeError(f"Failed to load isolated final OPJU copy for TIFF export: {origin_file}")
+            graph = op.find_graph(graph_page)
+            if graph is None:
+                raise RuntimeError(f"Final OPJU did not contain graph page {graph_page}")
+            graph.activate()
+            page_width = float(op.lt_float("page.width"))
+            page_height = float(op.lt_float("page.height"))
+            expected_width, _expected_height = expected_raster_pixels(
+                page_width,
+                page_height,
+                dpi=dpi,
             )
+            graph.lt_exec("doc -rn; doc -s;")
+            project_path = str(op.get_lt_str("%X") or "").strip()
+            project_name = str(op.get_lt_str("%G") or "").strip()
+            if project_path or project_name.casefold() != "untitled":
+                raise RuntimeError(
+                    "Origin did not clear the in-memory project identity before TIFF export; "
+                    "the final OPJU was left unchanged and no product TIFF was written."
+                )
+            graph.activate()
+            if figure_tif.exists():
+                figure_tif.unlink()
+            folder = quote_labtalk(to_origin_path(figure_tif.parent))
+            filename = quote_labtalk(figure_tif.stem)
+            graph.lt_exec(
+                f'expGraph type:=tif path:="{folder}" filename:="{filename}" '
+                f"overwrite:=replace sysopts:=0 tr.Margin:=2 "
+                f"tr1.Unit:=2 tr1.Width:={expected_width} "
+                f"tr2.TIF.dotsperinch:={dpi};"
+            )
+            if not figure_tif.exists() or figure_tif.stat().st_size == 0:
+                raise RuntimeError("Origin expGraph did not create the TIF output.")
+            if resolved_preview_png is not None and preview_width is not None:
+                if resolved_preview_png.exists():
+                    resolved_preview_png.unlink()
+                preview_folder = quote_labtalk(to_origin_path(resolved_preview_png.parent))
+                preview_filename = quote_labtalk(resolved_preview_png.stem)
+                graph.lt_exec(
+                    f'expGraph type:=png path:="{preview_folder}" filename:="{preview_filename}" '
+                    f"overwrite:=replace sysopts:=0 tr.Margin:=2 "
+                    f"tr1.Unit:=2 tr1.Width:={preview_width};"
+                )
+                if not resolved_preview_png.exists() or resolved_preview_png.stat().st_size == 0:
+                    raise RuntimeError("Origin expGraph did not create the final PNG preview output.")
+            return validate_tif_physical_resolution(
+                figure_tif,
+                page_width_origin_units=page_width,
+                page_height_origin_units=page_height,
+                dpi=dpi,
+            )
+        finally:
+            exit_error = ""
+            try:
+                op.exit()
+            except Exception as exc:
+                exit_error = f"{type(exc).__name__}: {exc}"
+            origin_stopped = _wait_for_no_origin_process()
+            if exit_error or not origin_stopped:
+                details = []
+                if exit_error:
+                    details.append(f"originpro exit raised {exit_error}")
+                if not origin_stopped:
+                    details.append("Origin process remained after the bounded exit wait")
+                raise RuntimeError(
+                    "Origin lifecycle finalization failed after reopened-OPJU TIFF export; "
+                    "the export must not be accepted: "
+                    + "; ".join(details)
+                )
 
 
 def _ensure_tif_600_dpi(
@@ -1535,6 +1586,7 @@ def export_plot(
             job.page_name,
             job.figure_tif,
             dpi=600,
+            preview_png=job.preview_png,
         )
         stage_timings = _helper_stage_timings(completed.stdout)
         stage_timings.update({

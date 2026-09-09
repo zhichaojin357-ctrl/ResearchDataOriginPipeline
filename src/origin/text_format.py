@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 
 
-_CHEMICAL_TOKEN = re.compile(r"\b[A-Za-z][A-Za-z0-9()]*\b")
-_SUBSCRIPT_DIGITS = re.compile(r"(?<=[A-Za-z)])(\d+)")
+_CHEMICAL_TOKEN = re.compile(r"\b[A-Za-z][A-Za-z0-9().]*\b")
+_SUBSCRIPT_STOICHIOMETRY = re.compile(r"(?<=[A-Za-z)])(\d+(?:\.\d+)?)")
 _ELEMENTS = {
     "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne",
     "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar",
@@ -28,7 +28,7 @@ def origin_chemical_subscripts(text: object) -> str:
             return token
         if not _looks_like_formula_token(token):
             return token
-        return _SUBSCRIPT_DIGITS.sub(r"\\-(\1)", token)
+        return _SUBSCRIPT_STOICHIOMETRY.sub(r"\\-(\1)", token)
 
     return _CHEMICAL_TOKEN.sub(replace_token, value)
 
@@ -43,7 +43,7 @@ def origin_bold_text(text: object) -> str:
 def _looks_like_formula_token(token: str) -> bool:
     if token.casefold() in {"xrd", "epr", "xps", "pl", "ftir", "raman"}:
         return False
-    stripped = re.sub(r"\d+", "", token)
+    stripped = re.sub(r"[\d.]+", "", token)
     if not any(ch.isupper() for ch in stripped):
         return False
     return _can_parse_formula_letters(stripped.replace("(", "").replace(")", ""))

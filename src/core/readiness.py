@@ -132,7 +132,12 @@ def _add_historical_readiness_checks(
         options,
         artifacts_present=result_summary.exists(),
     )
-    summary_ok, summary_detail = _locked_result_summary_status(index, result_summary, options.expected_locked_result_count)
+    summary_ok, summary_detail = _locked_result_summary_status(
+        index,
+        result_summary,
+        options.expected_locked_result_count,
+        index_rows=index_rows,
+    )
     _add_artifact_check(
         checks,
         "locked_result_result_summary_matches_index",
@@ -353,11 +358,18 @@ def _load_json(path: Path) -> dict:
     return payload if isinstance(payload, dict) else {}
 
 
-def _locked_result_summary_status(index_path: Path, summary_path: Path, expected_count: int) -> tuple[bool, str]:
+def _locked_result_summary_status(
+    index_path: Path,
+    summary_path: Path,
+    expected_count: int,
+    *,
+    index_rows: int | None = None,
+) -> tuple[bool, str]:
     if not index_path.is_file() or not summary_path.is_file():
         return False, f"missing index or summary: {index_path}; {summary_path}"
     try:
-        index_rows = _csv_row_count(index_path)
+        if index_rows is None:
+            index_rows = _csv_row_count(index_path)
         summary = _load_json(summary_path)
     except Exception as exc:
         return False, f"failed to read locked result package summary/index: {exc}"

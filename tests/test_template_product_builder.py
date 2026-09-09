@@ -1179,6 +1179,43 @@ def test_all_template_target_modes_include_mott() -> None:
     assert TEMPLATE_EXEMPLAR_DRIVEN_TARGET_TYPES == TEMPLATE_TARGET_TYPES
 
 
+def test_mott_schottky_legends_use_selected_source_filenames_without_fixed_material(tmp_path: Path) -> None:
+    data_dir = tmp_path / "mott"
+    data_dir.mkdir()
+    cuwo4 = data_dir / "CuWO4_500Hz.csv"
+    tio2 = data_dir / "TiO2_n-type_1kHz.csv"
+    for source in (cuwo4, tio2):
+        source.write_text(
+            "Potential/V,C/F\n-0.2,0.0001\n-0.1,0.0002\n",
+            encoding="utf-8",
+        )
+    pairing = TargetPairing(
+        product_key="Mott-Schottky",
+        data_type="Mott-Schottky",
+        xps_subtype="",
+        data_root_label="project_data",
+        data_paths=[cuwo4, tio2],
+        opju_root_label="origin_manual_save",
+        reference_opju=tmp_path / "template.opju",
+    )
+    template = TemplateCandidate(
+        product_key="Mott-Schottky",
+        path=pairing.reference_opju,
+        source="pairing_plan_exemplar",
+        plot_count=2,
+    )
+
+    built = template_product_builder._build_template_xy_multisource_table(
+        pairing,
+        template,
+    )
+
+    assert built is not None
+    assert built["labels"]["legend_entries"] == ["TiO2 n-type 1kHz", "CuWO4 500Hz"]
+    assert all("BiOBr0.5Cl0.5" not in label for label in built["labels"]["legend_entries"])
+    assert all("Mott-Schottky" not in label for label in built["labels"]["legend_entries"])
+
+
 def test_template_validation_prioritizes_product_keys_present_in_candidates() -> None:
     root = Path("F:/template_root")
     candidates = [
@@ -1659,6 +1696,7 @@ def test_ordinary_template_origin_export_imports_every_y_column(tmp_path: Path, 
     class FakeOriginOps:
         def __init__(self) -> None:
             self.y_columns: list[int] = []
+            self.finalization_calls: list[str] = []
 
         def new_project(self) -> OperationResult:
             return OperationResult(True, "ok")
@@ -1706,6 +1744,7 @@ def test_ordinary_template_origin_export_imports_every_y_column(tmp_path: Path, 
             return OperationResult(True, "ok")
 
         def save_project(self, path: Path) -> OperationResult:
+            self.finalization_calls.append("save")
             path.write_bytes(b"opju")
             return OperationResult(True, "ok")
 
@@ -1732,6 +1771,11 @@ def test_ordinary_template_origin_export_imports_every_y_column(tmp_path: Path, 
     monkeypatch.setattr(builder, "apply_style_snapshot", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(builder, "read_graph_style_snapshot", lambda *_args, **_kwargs: snapshot)
     monkeypatch.setattr(builder, "compare_style_snapshots", lambda *_args, **_kwargs: FakeConformance())
+    def layout(_operations, graph_name: str) -> OperationResult:
+        operations.finalization_calls.append(f"layout:{graph_name}")
+        return OperationResult(True, "layout verified")
+
+    monkeypatch.setattr(builder, "avoid_native_legend_overlap", layout)
 
     result = builder.export_template_product_with_origin(product, ResolvedPlotStyle())
 
@@ -1739,12 +1783,25 @@ def test_ordinary_template_origin_export_imports_every_y_column(tmp_path: Path, 
     assert operations.y_columns == list(range(2, len(headers) + 1))
     assert result["tif_resolution_evidence"]["width_px"] == 60
     assert result["tif_resolution_evidence"]["effective_dpi_x"] == 600.0
+    assert operations.finalization_calls == ["layout:Graph1", "save"]
 
     operations.close = lambda: OperationResult(False, "Origin still running")
     close_failure = builder.export_template_product_with_origin(product, ResolvedPlotStyle())
     assert close_failure["ok"] is False
     assert close_failure["failure_stage"] == "origin_close"
     assert "Origin still running" in str(close_failure["message"])
+
+    save_count = operations.finalization_calls.count("save")
+    operations.close = lambda: OperationResult(True, "closed")
+    monkeypatch.setattr(
+        builder,
+        "avoid_native_legend_overlap",
+        lambda *_args, **_kwargs: OperationResult(False, "legend overlap"),
+    )
+    layout_failure = builder.export_template_product_with_origin(product, ResolvedPlotStyle())
+    assert layout_failure["ok"] is False
+    assert layout_failure["message"] == "legend overlap"
+    assert operations.finalization_calls.count("save") == save_count
 
 
 def test_native_tif_export_resets_identity_after_readback_and_reactivates_graph(tmp_path: Path) -> None:

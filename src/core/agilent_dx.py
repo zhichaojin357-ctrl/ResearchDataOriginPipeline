@@ -76,11 +76,19 @@ def decode_agilent_dx(path: str | Path) -> AgilentDxData:
             root = ET.fromstring(archive.read("injection.acmd"))
             content_types = _parse_content_types(archive.read("[Content_Types].xml"))
             _validate_acmd_namespace(root, dx_path)
+            payload_members: dict[tuple[str, str], list[str]] = {}
+            for name in archive.namelist():
+                key = (
+                    name.rsplit(".", 1)[-1].casefold(),
+                    Path(name).stem.casefold(),
+                )
+                payload_members.setdefault(key, []).append(name)
             signals = tuple(
                 _decode_integrable_signal(
                     archive=archive,
                     signal=signal,
                     content_types=content_types,
+                    payload_members=payload_members,
                     dx_path=dx_path,
                 )
                 for signal in _signal_elements(root)
@@ -125,6 +133,7 @@ def _decode_integrable_signal(
     archive: ZipFile,
     signal: ET.Element,
     content_types: dict[str, str],
+    payload_members: dict[tuple[str, str], list[str]],
     dx_path: Path,
 ) -> AgilentDxSignal:
     encoding = _child_text(signal, "Encoding")
@@ -139,12 +148,7 @@ def _decode_integrable_signal(
     if not extension:
         raise ValueError(f".dx content types do not map encoding {encoding!r}: {dx_path}")
     trace_id = _child_text(signal, "TraceId")
-    candidates = [
-        name
-        for name in archive.namelist()
-        if name.rsplit(".", 1)[-1].casefold() == extension.casefold()
-        and Path(name).stem.casefold() == trace_id.casefold()
-    ]
+    candidates = payload_members.get((extension.casefold(), trace_id.casefold()), [])
     if len(candidates) != 1:
         raise ValueError(
             f"integrable signal {trace_id!r} maps to {len(candidates)} payload members: {dx_path}"

@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.core.metadata import file_hash
-from src.core.process import ProcessOptions, _write_processing_summary, run_process
+from src.core.process import ProcessOptions, _write_processing_summary, _write_review_dashboard, run_process
 from src.core.triage import TriageOptions, run_triage
 from src.core.project import default_output_root
 
@@ -351,9 +351,10 @@ class Phase12MixedTriageTest(unittest.TestCase):
             }
             manifest = {"classifications": []}
 
-            _write_processing_summary(project, manifest, [metadata], [])
+            returned_summary = _write_processing_summary(project, manifest, [metadata], [])
 
             summary = json.loads((default_output_root(project) / "reports" / "processing_summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(returned_summary, summary)
             self.assertEqual(
                 summary["missing_artifacts"],
                 [
@@ -363,6 +364,32 @@ class Phase12MixedTriageTest(unittest.TestCase):
                     }
                 ],
             )
+
+    def test_review_dashboard_uses_in_memory_processing_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            reports = default_output_root(project) / "reports"
+            reports.mkdir(parents=True)
+            (reports / "processing_summary.json").write_text("not valid json", encoding="utf-8")
+            summary = {
+                "inventory_scope": "selected_queue",
+                "total_dataset_count": 1,
+                "success_count": 1,
+                "failure_count": 0,
+                "skipped_auxiliary_count": 0,
+                "deferred_count": 0,
+                "reference_literature_count": 0,
+                "processor_stats": {"EIS": {"success": 1, "failure": 0}},
+                "missing_artifacts": [],
+                "manual_check_required": [],
+                "forbidden_claims": [],
+            }
+
+            _write_review_dashboard(project, {"classifications": []}, [], [], summary=summary)
+
+            dashboard = (default_output_root(project) / "review_dashboard" / "index.md").read_text(encoding="utf-8")
+            self.assertIn("Inventory scope: selected_queue", dashboard)
+            self.assertIn("EIS: success 1, failure 0", dashboard)
 
     def test_queue_processing_keeps_same_stem_files_from_overwriting_outputs(self):
         with tempfile.TemporaryDirectory() as tmp:

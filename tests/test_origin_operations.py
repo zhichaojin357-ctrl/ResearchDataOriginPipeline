@@ -7,7 +7,7 @@ from unittest import mock
 from pathlib import Path
 import re
 
-from src.origin.operations import OriginOperations, connect_origin, normalize_export_path, safe_origin_name
+from src.origin.operations import OriginOperations, avoid_native_legend_overlap, connect_origin, normalize_export_path, safe_origin_name, update_native_legend
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE
 
 
@@ -108,6 +108,13 @@ class FakeOriginApp:
 
     def Execute(self, script: str):
         self.commands.append(script)
+        translation = re.search(r"page\.legendtranslationmode\s*=\s*(\d+)", script)
+        if translation:
+            self.ltvars["page.legendtranslationmode"] = int(translation.group(1))
+        if script.startswith("legendupdate "):
+            indices = [index for index in (1, 2) if self.Evaluate(f"layer.plot{index}.show") > 0.5]
+            self.graph_objects[0].Text = "\r\n".join(f"\\l({index}) %({index})" for index in indices)
+            return True
         if script == "doc -rn; doc -s;":
             self.ltstrs["%X"] = ""
             self.ltstrs["%G"] = "UNTITLED"
@@ -134,6 +141,11 @@ class FakeOriginApp:
                 (Path(template_folder) / f"{template_name}.otpu").write_bytes(b"fake graph template")
         if "run.LoadOC" in script:
             self.ltvars["__rdop_theme_load_err"] = 0.0
+            self.ltvars["__rdop_legend_compile"] = 0.0
+        if 'run -oc {__rdop_legend_ok=rdop_native_legend(' in script:
+            selection = re.search(r'rdop_native_legend\("([\d,]+)"\)', script).group(1)
+            self.graph_objects[0].Text = "\r\n".join(f"\\l({index}) %({index},@LA)" for index in selection.split(","))
+            self.ltvars["__rdop_legend_ok"] = 1.0
         if "__rdop_theme_copy_ok=0" in script:
             self.ltvars["__rdop_theme_copy_ok"] = 0.0
         if "CopyFormat()" in script:
@@ -181,6 +193,9 @@ class FakeOriginApp:
             return self.ltstrs[name]
         return "hello"
 
+    def Evaluate(self, name: str):
+        return self.ltvars.get(name, 1.0)
+
     def LTVar(self, name: str):
         if name in self.ltvars:
             return self.ltvars[name]
@@ -213,6 +228,149 @@ def _quoted_args(value: str) -> list[str]:
 
 
 class OriginOperationsSmokeTest(unittest.TestCase):
+    def test_native_layout_propagates_native_outcomes_without_text_or_style_writes(self):
+        class LayoutApp(FakeOriginApp):
+            outcome = 1
+
+            def Execute(self, script):
+                result = super().Execute(script)
+                if "rdop_place_legends()" in script:
+                    self.ltvars["__rdop_legend_layout"] = self.outcome
+                    self.ltvars["__rdop_legends_checked"] = 3
+                    self.ltvars["__rdop_legends_moved"] = 2 if self.outcome == 2 else 0
+                return result
+
+        for status in (1, 2, 0, -1):
+            with self.subTest(status=status):
+                app = LayoutApp()
+                app.outcome = status
+                result = avoid_native_legend_overlap(OriginOperations(app), "Fig1")
+                self.assertEqual(result.ok, status in (1, 2))
+                self.assertEqual(result.payload["legends_checked"], 3)
+                self.assertEqual(result.payload["legends_moved"], 2 if status == 2 else 0)
+                commands = "\n".join(app.commands)
+                self.assertIn(r"\scripts\origin\native_legend_layout.c", commands)
+                self.assertIn("run -oc {__rdop_legend_layout=rdop_place_legends();}", commands)
+                for forbidden in (".Text=", ".text$=", ".show=", ".fsize=", ".width=", ".height="):
+                    self.assertNotIn(forbidden, commands)
+
+    def test_native_layout_stops_on_compile_failure_or_invalid_target(self):
+        class FailedCompileApp(FakeOriginApp):
+            def Execute(self, script):
+                result = super().Execute(script)
+                if "run.LoadOC" in script:
+                    self.ltvars["__rdop_legend_compile"] = 1
+                return result
+
+        app = FailedCompileApp()
+        self.assertFalse(avoid_native_legend_overlap(OriginOperations(app), "Fig1").ok)
+        self.assertFalse(any("rdop_place_legends()" in command for command in app.commands))
+        app = FakeOriginApp()
+        self.assertFalse(avoid_native_legend_overlap(OriginOperations(app), "Fig1;new").ok)
+        self.assertEqual(app.commands, [])
+
+    def test_native_legend_uses_mapped_visible_y_labels_and_preserves_anchor(self):
+        app = FakeOriginApp()
+        app.ltvars["layer.plot1.show"] = 0
+        legend = app.graph_objects[0]
+        before = (legend.Left, legend.Top)
+        result = update_native_legend(OriginOperations(app), "Fig1", ["Sample A"], plot_indices=[2])
+        self.assertTrue(result.ok)
+        self.assertEqual(legend.Text, r"\l(2) %(2)")
+        self.assertEqual((legend.Left, legend.Top), before)
+        commands = "\n".join(app.commands)
+        self.assertIn("range -wy __rdop_legend_y=[Fig1]1!2", commands)
+        self.assertNotIn("[Fig1]1!1", commands)
+        self.assertIn(r'__rdop_legend_y[L]$="\b(Sample A)"', commands)
+        self.assertNotIn(r"\\b(Sample A)", commands)
+        self.assertNotIn("legend.text", commands.lower())
+
+    def test_native_legend_overrides_old_comment_translation_with_long_names(self):
+        app = FakeOriginApp()
+        app.ltvars["page.legendtranslationmode"] = 0
+        app.graph_objects[0].Text = r"\l(1) Old comment" + "\r\n" + r"\l(2) Old comment"
+        result = update_native_legend(OriginOperations(app), "Fig1", ["Current A", "Current B"])
+        self.assertTrue(result.ok)
+        self.assertEqual(app.Evaluate("page.legendtranslationmode"), 4)
+        self.assertEqual(app.graph_objects[0].Text, r"\l(1) %(1)" + "\r\n" + r"\l(2) %(2)")
+        self.assertEqual(result.payload["entries"], [r"\b(Current A)", r"\b(Current B)"])
+
+    def test_native_legend_uses_requested_layer_and_preserves_rich_column_markup(self):
+        app = FakeOriginApp()
+        app.ltvars["layer.plot1.show"] = 0
+        layer = FakeLayer(app)
+        requested = []
+
+        def find_layer(reference):
+            requested.append(reference)
+            return layer if reference == "[Fig1]2" else None
+
+        app.FindGraphLayer = find_layer
+        label = r"\b(\i( )\c1(CuWO)\-(4))"
+        result = update_native_legend(
+            OriginOperations(app), "Fig1", [label], plot_indices=[2], layer_index=2,
+        )
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload["layer_index"], 2)
+        self.assertEqual(requested, ["[Fig1]2"])
+        commands = "\n".join(app.commands)
+        self.assertIn("layer -s 2;", commands)
+        self.assertIn("range -wy __rdop_legend_y=[Fig1]2!2;", commands)
+        self.assertIn(f'__rdop_legend_y[L]$="{label}";', commands)
+        self.assertNotIn(r"\\b(", commands)
+        self.assertNotIn("[Fig1]1!", commands)
+
+    def test_native_legend_subsets_and_reorders_without_hiding_plots(self):
+        for indices in ([1], [2, 1]):
+            with self.subTest(indices=indices):
+                app = FakeOriginApp()
+                before = [app.Evaluate(f"layer.plot{index}.show") for index in (1, 2)]
+                result = update_native_legend(OriginOperations(app), "Fig1", [f"Sample {index}" for index in indices], plot_indices=indices)
+                self.assertTrue(result.ok)
+                self.assertEqual(result.payload["method"], "origin_native_legend_subset")
+                self.assertEqual(app.graph_objects[0].Text, "\r\n".join(f"\\l({index}) %({index},@LA)" for index in indices))
+                self.assertEqual([app.Evaluate(f"layer.plot{index}.show") for index in (1, 2)], before)
+                commands = "\n".join(app.commands)
+                self.assertNotRegex(commands, r"layer\.plot\d+\.show\s*=")
+                self.assertNotIn("legend.text", commands.lower())
+                self.assertIn('run -oc {__rdop_legend_ok=rdop_native_legend(', commands)
+                self.assertIn(r"\scripts\origin\native_legend.c", commands)
+                self.assertNotIn(r"\\scripts", commands)
+
+    def test_native_legend_subset_compile_failure_precedes_metadata_writes(self):
+        class FailedCompileApp(FakeOriginApp):
+            def Execute(self, script):
+                result = super().Execute(script)
+                if "run.LoadOC" in script:
+                    self.ltvars["__rdop_legend_compile"] = 1
+                return result
+
+        app = FailedCompileApp()
+        result = update_native_legend(OriginOperations(app), "Fig1", ["Sample A"], plot_indices=[1])
+        self.assertFalse(result.ok)
+        self.assertIn("did not compile", result.message)
+        self.assertFalse(any("range -wy" in command or "rdop_native_legend(" in command for command in app.commands))
+
+    def test_native_legend_rejects_hidden_plot_before_metadata_writes(self):
+        app = FakeOriginApp()
+        app.ltvars["layer.plot1.show"] = 0
+        result = update_native_legend(OriginOperations(app), "Fig1", ["Sample A"], plot_indices=[1])
+        self.assertFalse(result.ok)
+        self.assertIn("not visible", result.message)
+        self.assertFalse(any("range -wy" in command or "legendupdate" in command for command in app.commands))
+
+    def test_native_legend_subset_requires_successful_origin_result(self):
+        class FailedSubsetApp(FakeOriginApp):
+            def Execute(self, script):
+                result = super().Execute(script)
+                if "rdop_native_legend(" in script:
+                    self.ltvars["__rdop_legend_ok"] = 0
+                return result
+
+        result = update_native_legend(OriginOperations(FailedSubsetApp()), "Fig1", ["Sample A"], plot_indices=[1])
+        self.assertFalse(result.ok)
+        self.assertIn("subset operation failed", result.message)
+
     def test_project_and_labtalk_operations(self):
         app = FakeOriginApp()
         ops = OriginOperations(app)
@@ -485,71 +643,8 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertEqual(replaced.payload["updated_columns"][0]["write_mode"], "chunked_512")
         self.assertGreater(len(app.putworksheet_calls), 2)
 
-    def test_replace_legend_with_plain_text_labels_removes_template_line_samples(self):
-        app = FakeOriginApp()
-        ops = OriginOperations(app)
 
-        result = ops.replace_legend_with_plain_text_labels("Fig1", ["BOBC", "BiCu-10"], font_name="Arial", font_size=26)
 
-        self.assertTrue(result.ok)
-        names = [item.Name for item in app.graph_objects]
-        self.assertNotIn("Legend", names)
-        self.assertNotIn("Line", names)
-        self.assertIn("Text", names)
-        self.assertIn("LineOutside", names)
-        labels = {item.Name: item for item in app.graph_objects if item.Name == "Text" or item.Name.startswith("rdop_plain_legend_")}
-        self.assertEqual(labels["Text"].Text, r"\b(BOBC)")
-        self.assertEqual(labels["rdop_plain_legend_2"].Text, r"\b(BiCu-10)")
-        self.assertEqual(labels["Text"].Left, 4111)
-        self.assertEqual(labels["Text"].Top, 587)
-        self.assertEqual(labels["rdop_plain_legend_2"].Left, 4111)
-        self.assertEqual(labels["rdop_plain_legend_2"].Top, 847)
-        command_text = "\n".join(app.commands)
-        self.assertIn("label -r Legend", command_text)
-        self.assertIn("label -r Line", command_text)
-        self.assertNotIn("label -r Text", command_text)
-        self.assertNotIn('label -n rdop_plain_legend_1 -s " "', command_text)
-        self.assertIn('label -n rdop_plain_legend_2 -s " "', command_text)
-        self.assertNotIn("label -n rdop_plain_legend_1 -s \\b(BOBC)", command_text)
-
-    def test_replace_legend_with_plain_text_labels_can_reuse_template_text(self):
-        app = FakeOriginApp()
-        ops = OriginOperations(app)
-
-        result = ops.replace_legend_with_plain_text_labels(
-            "Fig1",
-            ["Fallback A", "Fallback B"],
-            font_name="Arial",
-            font_size=26,
-            prefer_existing_text=True,
-        )
-
-        self.assertTrue(result.ok)
-        labels = {item.Name: item for item in app.graph_objects if item.Name == "Text" or item.Name.startswith("rdop_plain_legend_")}
-        self.assertEqual(labels["Text"].Text, r"\b(Old)")
-        self.assertEqual(labels["rdop_plain_legend_2"].Text, r"\b(A)")
-        self.assertEqual(result.payload["text_source"], "existing_legend")
-
-    def test_replace_legend_with_plain_text_labels_uses_native_legend_data_anchor(self):
-        app = FakeOriginApp()
-        app.graph_objects = [
-            FakeGraphObject("Legend", "\\l(1)\\b(A)\r\n\\l(2)\\b(B)", 100, 200, 500, 300),
-            FakeGraphObject("Line", "", 120, 220, 80, 10),
-        ]
-        app.ltvars["legend.x"] = 0.456
-        app.ltvars["legend.y"] = 20.074
-        ops = OriginOperations(app)
-
-        result = ops.replace_legend_with_plain_text_labels("Fig1", ["BOBC", "CWO"], font_name="Arial", font_size=26)
-
-        self.assertTrue(result.ok)
-        labels = {item.Name: item for item in app.graph_objects if item.Name.startswith("rdop_plain_legend")}
-        self.assertEqual(list(labels), ["rdop_plain_legend"])
-        self.assertEqual(labels["rdop_plain_legend"].Text, "\\b(BOBC)\r\n\\b(CWO)")
-        command_text = "\n".join(app.commands)
-        self.assertIn("rdop_plain_legend.x=0.456", command_text)
-        self.assertIn("rdop_plain_legend.y=20.074", command_text)
-        self.assertEqual(result.payload["anchor_data"], {"x": 0.456, "y": 20.074})
 
     def test_replace_graph_direct_labels_owns_only_named_native_text_objects(self):
         app = FakeOriginApp()
@@ -652,7 +747,8 @@ class OriginOperationsSmokeTest(unittest.TestCase):
         self.assertIn("legend.font = font(Arial)", command_text)
         self.assertIn("legend.bold = 1", command_text)
         self.assertIn("legend.color = color(black)", command_text)
-        self.assertIn("legend.text$ = \\l(1) \\b(A)\n\\l(2) \\b(B);", command_text)
+        self.assertIn("legendupdate dest:=layer update:=reconstruct mode:=lname hide:=1", command_text)
+        self.assertNotIn("legend.text$ =", command_text)
         self.assertNotIn("legend.text1$", command_text)
         self.assertIn("legend.background = 0", command_text)
         self.assertIn("legend.border = 0", command_text)

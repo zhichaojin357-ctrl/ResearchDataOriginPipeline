@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import src.core.agilent_dx as agilent_dx
 from src.core.agilent_dx import (
     DX_DECODER_NAME,
     DX_DECODER_VERSION,
@@ -163,6 +164,41 @@ def test_decodes_signal179_with_slope_minutes_and_compatibility_shape(tmp_path: 
     np.testing.assert_allclose(signal.data[:, 0], [2.5, 5.0, 7.5])
     assert DX_DECODER_NAME == "project-native-agilent-openlab-dx"
     assert DX_DECODER_VERSION == "1.0.0"
+
+
+def test_decoder_builds_one_casefolded_payload_member_index_per_package(tmp_path: Path, monkeypatch):
+    path = _write_dx(
+        tmp_path,
+        acmd=_acmd(
+            _signal_xml(trace_id="trace-1", channel="first"),
+            _signal_xml(trace_id="trace-2", channel="second"),
+        ),
+        content_types=_content_types(),
+        payloads=(
+            ("Signals/TRACE-1.S179", _signal179_payload([1.0, 2.0, 3.0])),
+            ("Signals/trace-2.s179", _signal179_payload([4.0, 5.0, 6.0])),
+        ),
+    )
+    original_namelist = agilent_dx.ZipFile.namelist
+    calls = 0
+
+    def counted_namelist(archive):
+        nonlocal calls
+        calls += 1
+        return original_namelist(archive)
+
+    monkeypatch.setattr(agilent_dx.ZipFile, "namelist", counted_namelist)
+
+    result = decode_agilent_dx(path)
+
+    assert calls == 1
+    assert [signal.trace_id for signal in result.datafiles] == ["trace-1", "trace-2"]
+    assert [signal.source_member for signal in result.datafiles] == [
+        "Signals/TRACE-1.S179",
+        "Signals/trace-2.s179",
+    ]
+    np.testing.assert_allclose(result.datafiles[0].data[:, 0], [2.5, 5.0, 7.5])
+    np.testing.assert_allclose(result.datafiles[1].data[:, 0], [10.0, 12.5, 15.0])
 
 
 def test_nonintegrable_telemetry_is_not_decoded_or_validated(tmp_path: Path):

@@ -206,7 +206,8 @@ function Initialize-OriginDataWorkbook($app, [string]$BookName, [string]$Display
     $escapedHeader = Escape-OriginText $header
     $app.Execute('wks.col' + $i + '.lname$="' + $escapedHeader + '"; wks.col' + $i + '.comment$="";') | Out-Null
   }
-  $target = '[' + $BookName + ']' + $sheetName
+  # newbook may use BookName as a long name; COM requires the actual short name.
+  $target = '[' + [string]$app.LTStr('%H') + ']' + $sheetName
   for ($colIndex = 1; $colIndex -le $ColumnCount; $colIndex++) {
     if (($colIndex - 1) -ge $Headers.Count) { continue }
     $name = [string]$Headers[$colIndex - 1]
@@ -289,16 +290,14 @@ function Format-ChemicalFormulaSubscripts([string]$Text) {
   })
 }
 
-function New-LegendText([array]$Labels, [bool]$IncludeLineSamples = $true) {
-  $rows = New-Object System.Collections.Generic.List[string]
+function Set-OriginSeriesLabels($app, [array]$Labels, [array]$XYPairs = @()) {
   for ($i = 0; $i -lt $Labels.Count; $i++) {
-    if ($IncludeLineSamples) {
-      $rows.Add('\l(' + ($i + 1) + ')\b( ' + (Format-LegendLabel $Labels[$i]) + ')')
-    } else {
-      $rows.Add('\b(' + (Format-LegendLabel $Labels[$i]) + ')')
+    $column = if ($XYPairs.Count -gt 0) { [int]$XYPairs[$i].Y } else { $i + 2 }
+    $name = Escape-OriginText (Format-BoldText (Format-LegendLabel $Labels[$i]))
+    if (-not $app.Execute('wks.col' + $column + '.lname$="' + $name + '";')) {
+      throw "Could not set plotted column $column sample label."
     }
   }
-  return ($rows -join "`r`n`r`n")
 }
 
 function Add-DirectCurveLabels($app, [string]$PageName, [array]$Labels, $Style, [string]$DataFile, [int]$ColumnCount, [array]$XYPairs = @()) {
@@ -637,14 +636,12 @@ function Apply-ReferenceStyle($app, [string]$PageName, [array]$Labels, $Style, $
     $app.Execute('legend.show=0;') | Out-Null
   } else {
     if (-not $legend) {
-      $app.Execute('legend;') | Out-Null
+      $app.Execute('legendupdate dest:=layer update:=reconstruct mode:=lname; page.legendtranslationmode=4;') | Out-Null
       $legend = Get-GraphObjectByName $layer 'Legend'
     }
   }
   if ($showLegend -and $legend) {
     try { $legend.Show = 1 } catch {}
-    $includeLegendLineSamples = Convert-ToBoolean (Get-GroupValue $Group 'LegendLineSamples' $true) $true
-    $legend.Text = New-LegendText $Labels $includeLegendLineSamples
     $legend.Left = [int]$Style.LegendLeft
     $legend.Top = [int]$Style.LegendTop
     $legend.Width = [int]$Style.LegendWidth
@@ -813,6 +810,25 @@ function Apply-PlotPolicy($app, [string]$PageName, $Group) {
   }
 }
 
+$script:NativeLegendLayoutCompiled = $false
+function Invoke-NativeLegendLayoutFinalizer($app, [string]$PageName) {
+  if (-not $script:NativeLegendLayoutCompiled) {
+    $nativeSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'native_legend_layout.c'))
+    $app.Execute('__rdop_legend_compile=run.LoadOC("' + (Escape-OriginText $nativeSource) + '",16);') | Out-Null
+    $compileResult = [int]$app.LTVar('__rdop_legend_compile')
+    if ($compileResult -ne 0) {
+      throw "Native legend layout compile failed for $PageName (run.LoadOC result: $compileResult)."
+    }
+    $script:NativeLegendLayoutCompiled = $true
+  }
+  $safePageName = Escape-OriginText $PageName
+  $app.Execute('win -a "' + $safePageName + '"; __rdop_legend_layout=0; run -oc {__rdop_legend_layout=rdop_place_legends();};') | Out-Null
+  $layoutResult = [int]$app.LTVar('__rdop_legend_layout')
+  if ($layoutResult -ne 1 -and $layoutResult -ne 2) {
+    throw "Native legend layout failed for $PageName (rdop_place_legends result: $layoutResult)."
+  }
+}
+
 function Assert-ValidOutput([string]$Path) {
   Require-File $Path
   $item = Get-Item -LiteralPath $Path
@@ -858,8 +874,9 @@ function Assert-GraphPageValid($app, [string]$PageName, [int]$ExpectedPlots, [ar
       if (-not $txt) {
         throw "Visible legend text is missing on ${PageName}."
       }
-      if ($txt -match '%\(') {
-        throw "Legend still contains Origin placeholders on $PageName`: $txt"
+      # Native legend substitutions stay linked to the plotted columns.
+      if ([regex]::Matches($txt, '%\(\d+\)').Count -ne $ExpectedPlots) {
+        throw "Legend is not linked to all $ExpectedPlots plots on ${PageName}: $txt"
       }
       foreach ($property in @('background', 'border', 'frame', 'fill', 'lineWidth')) {
         try {
@@ -1006,8 +1023,6 @@ try {
     $template = Join-Path $templateDir ($templateName + '.otpu')
     Remove-Item -LiteralPath $template -Force -ErrorAction SilentlyContinue
     $app.Execute('template_saveas pg:=' + $ReferenceGraph + ' category:="ResearchDataOrigin" template:="' + $templateName + '" filepath:="' + (To-OriginPath $templateDir) + '" emf:=0 bmp:=1 loadsys:=0;') | Out-Null
-    Sanitize-ProjectPages $app
-    $app.Save($referenceWorkingCopy) | Out-Null
     if (-not (Test-Path -LiteralPath $template)) {
       Write-Output ("REFERENCE_TEMPLATE_SAVE_FAILED_USING_EXTRACTED_STYLE=" + $template)
       $template = $null
@@ -1048,6 +1063,7 @@ try {
     $dataFileName = [System.IO.Path]::GetFileName($dataFile)
     $dataBookName = Convert-ToSafeOriginName ([System.IO.Path]::GetFileNameWithoutExtension($dataFile)) 'Data'
     Initialize-OriginDataWorkbook $app $dataBookName $dataFileName $table.Headers $table.Rows $cols
+    Set-OriginSeriesLabels $app $currentLabels $xyPairs
     $stageSeconds.data_import += $phaseClock.Elapsed.TotalSeconds
     $phaseClock.Restart()
     if ($xyPairs.Count -gt 0) {
@@ -1072,7 +1088,9 @@ try {
     } else {
       $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(1,2:' + $cols + ') plot:=' + $plotType + ' ogl:=[<new name:="' + $pageName + '">];') | Out-Null
     }
-    $app.Execute('legendupdate mode:=lname;') | Out-Null
+    if (-not $app.Execute('legendupdate dest:=layer update:=reconstruct mode:=lname; page.legendtranslationmode=4;')) {
+      throw "Native legend update failed for $pageName."
+    }
     Clear-TemplateResidue $app $pageName $currentLabels
     Apply-ReferenceStyle $app $pageName $currentLabels $referenceStyle $group
     Apply-PlotPolicy $app $pageName $group
@@ -1080,6 +1098,7 @@ try {
     Apply-ReferenceStyle $app $pageName $currentLabels $referenceStyle $group
     Apply-PlotPolicy $app $pageName $group
     Assert-GraphPageValid $app $pageName $expectedPlotCount $currentLabels $group
+    Invoke-NativeLegendLayoutFinalizer $app $pageName
     $stageSeconds.graph_style += $phaseClock.Elapsed.TotalSeconds
   }
 

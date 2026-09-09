@@ -138,9 +138,10 @@ def coerce_numeric_rows(rows: list[dict[str, str]]) -> list[tuple[float, float]]
     if x_key == y_key or x_key is None or y_key is None:
         numeric_columns = []
         for column in columns:
-            values = [_to_float(row.get(column, "")) for row in rows]
-            if any(value is not None for value in values):
+            if any(_to_float(row.get(column, "")) is not None for row in rows):
                 numeric_columns.append(column)
+                if len(numeric_columns) == 2:
+                    break
         if len(numeric_columns) < 2:
             return []
         x_key, y_key = numeric_columns[0], numeric_columns[1]

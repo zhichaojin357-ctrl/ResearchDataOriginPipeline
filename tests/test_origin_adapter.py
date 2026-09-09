@@ -32,6 +32,7 @@ from src.origin.adapter import (
     write_origin_error,
     write_origin_success,
     _run_origin_job,
+    _series_labels,
 )
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE
 from src.core.project import default_output_root
@@ -47,10 +48,11 @@ def _fake_helper_artifacts(job, *, opju: bytes = b"opju", png: bytes = b"png pre
     )
 
 
-def _fake_tif_reexport(origin_file, graph_page, figure_tif, *, dpi):
+def _fake_tif_reexport(origin_file, graph_page, figure_tif, *, dpi, preview_png=None):
     from PIL import Image
 
     assert origin_file.is_file() and graph_page
+    assert preview_png is None or preview_png.is_file()
     Image.new("RGB", (60, 60), "white").save(figure_tif, format="TIFF", dpi=(dpi, dpi))
     return validate_tif_physical_resolution(
         figure_tif, page_width_origin_units=100, page_height_origin_units=100, dpi=dpi,
@@ -77,6 +79,31 @@ def test_origin_job_reads_plot_style_once(tmp_path, monkeypatch):
     assert job.font_family == "Arial"
     assert job.reference_graph == "Graph4"
     assert reads == [config]
+
+
+def test_common_measurement_fields_use_sample_labels_across_data_types():
+    cases = {
+        "EIS": "neg_imag_impedance",
+        "FTIR": "transmittance",
+        "UV-vis DRS": "reflectance",
+        "photocurrent_response": "current_density_uA_cm2_optional",
+        "Raman": "intensity",
+        "PL": "intensity",
+        "XRD": "intensity",
+        "XPS": "raw_intensity",
+        "EPR": "intensity",
+        "Mott-Schottky": "one_over_c_squared",
+        "HPLC/LC exported data": "response",
+        "BET": "pore_volume_cm3_g",
+    }
+    for data_type, field in cases.items():
+        type_slug = data_type.replace(" ", "_").replace("/", "_")
+        assert _series_labels((field,), f"{type_slug}_b3", None, data_type) == ("b3",)
+        assert _series_labels((field,), f"{type_slug}_b3", Path("original-sample.txt"), data_type) == ("original-sample",)
+    assert _series_labels(("Sample A", "Sample B"), "EIS_batch", None, "EIS") == ("Sample A", "Sample B")
+    assert _series_labels(("signal", "intensity"), "Raman_b3", None, "Raman") == ("b3", "b3")
+    assert _series_labels(("signal", "Sample B"), "Raman_b3", None, "Raman") == ("b3", "Sample B")
+    assert _series_labels(("Measured", "Draft fit"), "EIS_b3", None, "EIS") == ("Measured", "Draft fit")
 
 
 def test_material_color_batch_flushes_successful_progress_once_on_error(tmp_path):
@@ -260,7 +287,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             script = build_origin_invocation_script(job)
 
             self.assertEqual(job.plot_csv.read_text(encoding="utf-8").splitlines()[0], "magnetic_field,intensity")
-            self.assertEqual(job.labels, ("epr oh dark",))
+            self.assertEqual(job.labels, ("oh dark",))
             self.assertTrue(job.plot_policy.y_axis_visible)
             self.assertFalse(job.plot_policy.y_ticks_visible)
             self.assertFalse(job.plot_policy.y_tick_values_visible)
@@ -271,17 +298,28 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = _temp_project(tmpdir)
             data = project_root / "eis.csv"
-            data.write_text("real_impedance,neg_imag_impedance,residual\n1,2,0.1\n", encoding="utf-8")
+            data.write_text("real_impedance,neg_imag_impedance_ohm,residual\n1,2,0.1\n", encoding="utf-8")
 
             job = build_origin_plot_job(project_root, "eis_nyquist", data, "Z'", "-Z''", "EIS")
             script = build_origin_invocation_script(job)
 
             self.assertEqual(job.plot_type_code, "202")
             self.assertEqual(job.plot_policy.plot_primitive, "line+symbol")
-            self.assertEqual(job.plot_csv.read_text(encoding="utf-8").splitlines()[0], "real_impedance,neg_imag_impedance")
+            self.assertEqual(job.plot_csv.read_text(encoding="utf-8").splitlines()[0], "real_impedance,neg_imag_impedance_ohm")
+            self.assertEqual(job.labels, ("nyquist",))
             self.assertIn("PlotType = '202'", script)
             self.assertIn("MarkerMode = 'markers_preferred'", script)
             self.assertIn("ShowYTickValues = $true", script)
+
+    def test_eis_generic_column_uses_sample_name_without_type_prefix(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = _temp_project(tmpdir)
+            data = project_root / "processed.csv"
+            data.write_text("real_impedance,neg_imag_impedance_ohm\n1,2\n", encoding="utf-8")
+            for source, expected in ((None, "b3"), (project_root / "b3.txt", "b3"), (project_root / "EIS_b3.txt", "EIS b3")):
+                with self.subTest(source=source):
+                    job = build_origin_plot_job(project_root, "EIS_b3", data, "Z'", "-Z''", "EIS", source_file=source)
+                    self.assertEqual(job.labels, (expected,))
 
     def test_eis_fit_csv_plots_cleaned_points_and_draft_fit_curve(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -392,7 +430,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             job = build_origin_plot_job(project_root, "Raman_BOBC", data, "Raman Shift (cm-1)", "Intensity (a.u.)", "Raman")
 
             self.assertEqual(job.plot_csv.read_text(encoding="utf-8").splitlines()[0], "x,intensity")
-            self.assertEqual(job.labels, ("Raman BOBC",))
+            self.assertEqual(job.labels, ("BOBC",))
 
     def test_xrd_plot_uses_raw_pattern_only_not_reference_card_or_phase_columns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1082,7 +1120,11 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
             self.assertTrue(result.ok)
             reopen.assert_called_once_with(
-                result.origin_file, result.figure_tif.stem, result.figure_tif, dpi=600,
+                result.origin_file,
+                result.figure_tif.stem,
+                result.figure_tif,
+                dpi=600,
+                preview_png=result.preview_png,
             )
             self.assertIn("tif_reopen_export", result.stage_timings_seconds)
 
@@ -1126,7 +1168,13 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             job = build_origin_plot_job(project_root, "dynamic_page", data, "x", "y", "XRD")
             job.origin_file.parent.mkdir(parents=True, exist_ok=True)
             job.origin_file.write_text("opju", encoding="utf-8")
+            job.preview_png.parent.mkdir(parents=True, exist_ok=True)
+            preview_size = (333, 210)
+            from PIL import Image
+
+            Image.new("RGB", preview_size, "black").save(job.preview_png, format="PNG")
             commands: list[str] = []
+            opened_paths: list[tuple[Path, bool, bool]] = []
             expected_size = expected_raster_pixels(7000.0, 5000.0, dpi=600)
 
             class FakeGraph:
@@ -1135,20 +1183,27 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
                 def lt_exec(self, command: str) -> None:
                     commands.append(command)
-                    if not command.startswith("expGraph"):
+                    if "type:=tif" in command:
+                        Image.new("RGB", expected_size, "white").save(
+                            job.figure_tif,
+                            format="TIFF",
+                            dpi=(600, 600),
+                        )
                         return
-                    from PIL import Image
+                    if "type:=png" in command:
+                        Image.new("RGB", preview_size, "white").save(job.preview_png, format="PNG")
 
-                    Image.new("RGB", expected_size, "white").save(
-                        job.figure_tif,
-                        format="TIFF",
-                        dpi=(600, 600),
-                    )
+            def open_copy(path: str, *, readonly: bool, asksave: bool) -> bool:
+                copied_path = Path(path)
+                opened_paths.append((copied_path, readonly, asksave))
+                self.assertNotEqual(copied_path, job.origin_file)
+                self.assertEqual(copied_path.read_bytes(), job.origin_file.read_bytes())
+                return True
 
             fake_graph = FakeGraph()
             fake_originpro = SimpleNamespace(
                 set_show=lambda _visible: None,
-                open=lambda *_args, **_kwargs: True,
+                open=open_copy,
                 find_graph=lambda _name: fake_graph,
                 lt_float=lambda formula: 7000.0 if formula == "page.width" else 5000.0,
                 get_lt_str=lambda register: "" if register == "%X" else "UNTITLED",
@@ -1157,7 +1212,12 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
 
             with patch.dict(sys.modules, {"originpro": fake_originpro}):
                 with patch("src.origin.adapter._wait_for_no_origin_process", return_value=True):
-                    evidence = reexport_tif_from_reopened_opju(job.origin_file, job.page_name, job.figure_tif)
+                    evidence = reexport_tif_from_reopened_opju(
+                        job.origin_file,
+                        job.page_name,
+                        job.figure_tif,
+                        preview_png=job.preview_png,
+                    )
 
             self.assertEqual((evidence.width_px, evidence.height_px), expected_size)
             export_command = next(command for command in commands if command.startswith("expGraph"))
@@ -1165,6 +1225,12 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             self.assertIn("tr2.TIF.dotsperinch:=600", export_command)
             self.assertIn("sysopts:=0", export_command)
             self.assertIn("tr.Margin:=2", export_command)
+            preview_command = next(command for command in commands if "type:=png" in command)
+            self.assertIn("tr1.Width:=333", preview_command)
+            self.assertEqual(Image.open(job.preview_png).size, preview_size)
+            self.assertEqual(opened_paths[0][1:], (False, False))
+            self.assertFalse(opened_paths[0][0].exists())
+            self.assertEqual(job.origin_file.read_bytes(), b"opju")
             self.assertEqual(commands[0], "activate")
             self.assertEqual(commands[1], "doc -rn; doc -s;")
             self.assertEqual(commands[2], "activate")
@@ -1178,6 +1244,7 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             job.origin_file.parent.mkdir(parents=True, exist_ok=True)
             job.origin_file.write_text("opju", encoding="utf-8")
             expected_size = expected_raster_pixels(7000.0, 5000.0, dpi=600)
+            opened_paths: list[Path] = []
 
             class FakeGraph:
                 def activate(self) -> None:
@@ -1196,9 +1263,15 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
             def fail_exit() -> None:
                 raise RuntimeError("simulated exit failure")
 
+            def open_copy(path: str, *, readonly: bool, asksave: bool) -> bool:
+                self.assertFalse(readonly)
+                self.assertFalse(asksave)
+                opened_paths.append(Path(path))
+                return True
+
             fake_originpro = SimpleNamespace(
                 set_show=lambda _visible: None,
-                open=lambda *_args, **_kwargs: True,
+                open=open_copy,
                 find_graph=lambda _name: FakeGraph(),
                 lt_float=lambda formula: 7000.0 if formula == "page.width" else 5000.0,
                 get_lt_str=lambda register: "" if register == "%X" else "UNTITLED",
@@ -1212,6 +1285,9 @@ class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
                         "Origin lifecycle finalization failed.*simulated exit failure",
                     ):
                         reexport_tif_from_reopened_opju(job.origin_file, job.page_name, job.figure_tif)
+
+            self.assertEqual(len(opened_paths), 1)
+            self.assertFalse(opened_paths[0].exists())
 
     def test_originpro_tif_export_fails_when_origin_remains_after_exit_wait(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

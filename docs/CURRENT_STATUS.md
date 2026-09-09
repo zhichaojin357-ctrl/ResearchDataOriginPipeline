@@ -1,6 +1,10 @@
 # Current Status
 
-Latest integration evidence: [OPTIMIZATION_WORKSTATION_ACCEPTANCE.md](OPTIMIZATION_WORKSTATION_ACCEPTANCE.md).
+Latest legend/export maintenance: [NATIVE_LEGEND_ACCEPTANCE.md](NATIVE_LEGEND_ACCEPTANCE.md).
+All formal product paths now use native linked legends and final placement checks.
+This intentionally changes incorrect legend content/placement, not curve or axis styling.
+
+Earlier integration evidence: [OPTIMIZATION_WORKSTATION_ACCEPTANCE.md](OPTIMIZATION_WORKSTATION_ACCEPTANCE.md).
 This records native Origin comparisons on the workstation, the LabTalk
 readback fix found during those checks, and the exact limits of the review.
 The earlier [second review](OPTIMIZATION_SECOND_REVIEW.md) records the incoming

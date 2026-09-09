@@ -8,6 +8,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
+import src.core.readiness as readiness_module
 from src.core.project import default_output_root
 from src.core.readiness import ReadinessOptions, run_readiness
 from src.core.readiness import _validation_report_status
@@ -127,6 +128,25 @@ def test_readiness_passes_with_current_required_artifacts(tmp_path: Path):
     assert report["summary"]["ready"] is True
     assert report["summary"]["release_ready"] is True
     assert {check["status"] for check in report["checks"]} == {"pass"}
+
+
+def test_readiness_counts_locked_index_once_per_report(tmp_path: Path, monkeypatch):
+    project = tmp_path / "ResearchDataOriginPipeline"
+    f_backup = tmp_path / "fake_f_backup"
+    _write_minimal_ready_project(project, f_backup)
+    index = default_output_root(project) / "locked_origin_results_20260531_041538" / "index.csv"
+    original_row_count = readiness_module._csv_row_count
+    locked_index_reads: list[Path] = []
+
+    def count_rows(path: Path) -> int:
+        if path.resolve() == index.resolve():
+            locked_index_reads.append(path)
+        return original_row_count(path)
+
+    monkeypatch.setattr(readiness_module, "_csv_row_count", count_rows)
+
+    assert run_readiness(project, ReadinessOptions(expected_locked_result_count=1, f_drive_backup=f_backup)) == 0
+    assert locked_index_reads == [index]
 
 
 def test_readiness_portable_mode_warns_for_missing_generated_history(tmp_path: Path):

@@ -421,11 +421,11 @@ def test_template_mott_auto_five_series_builder_output_satisfies_fixed_binding(
     assert built is not None
     assert built["alignment"]["style_execution_mode_selected"] == "otpu"
     assert built["labels"]["legend_entries"] == [
-        "1500Hz BiOBr0.5Cl0.5",
-        "2000Hz BiOBr0.5Cl0.5",
-        "2500Hz BiOBr0.5Cl0.5",
-        "3000Hz BiOBr0.5Cl0.5",
-        "3500Hz BiOBr0.5Cl0.5",
+        "1500",
+        "2000",
+        "2500",
+        "3000",
+        "3500",
     ]
     product = ProductContext(
         product_key="Mott-Schottky",

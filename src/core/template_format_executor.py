@@ -77,7 +77,7 @@ from src.core.template_product_builder import (
 )
 from src.origin.conformance import compare_style_snapshots
 from src.origin.embedded_template_snapshots import embedded_template_snapshot
-from src.origin.operations import connect_origin, quote_labtalk
+from src.origin.operations import avoid_native_legend_overlap, connect_origin, quote_labtalk, update_native_legend
 from src.origin.style_registry import (
     origin_style_asset_read_scope,
     origin_style_file_sha256,
@@ -1675,12 +1675,7 @@ def _export_template_base_product_with_origin_impl(
                         "reason": "xrd_standard_card_keeps_template_line_sample_legend",
                     }
                 else:
-                    legend_anchor_policy = _apply_nonoverlap_plain_legend_anchor(
-                        operations,
-                        graph_name,
-                        product,
-                        legend_entries,
-                    )
+                    legend_anchor_policy = {"applied": False, "reason": "native_legend_layout_deferred"}
                     if product.product_key == "XRD":
                         xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(
                             operations,
@@ -1690,12 +1685,11 @@ def _export_template_base_product_with_origin_impl(
                             style,
                         )
                     else:
-                        _replace_legend_with_plain_text_labels(
+                        _update_template_native_legend(
                             operations,
                             graph_name,
                             legend_entries,
                             style,
-                            prefer_existing_text=False,
                         )
                         xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(
                             operations,
@@ -1709,11 +1703,19 @@ def _export_template_base_product_with_origin_impl(
                     entries=legend_entries,
                     anchor_policy=legend_anchor_policy,
                     xrd_plain_label_policy=xrd_plain_label_policy,
-                    line_samples_removed=not xrd_keep_line_legend,
+                    line_samples_removed=product.product_key == "XRD" and not xrd_keep_line_legend,
                     preserved_line_sample_policy=preserved_legend_policy if xrd_keep_line_legend else None,
                     xrd_card_label_policy=xrd_card_label_policy if xrd_keep_line_legend else None,
                     xrd_standard_card_reference_sticks_present=xrd_keep_line_legend,
                 )
+            legend_layout = avoid_native_legend_overlap(operations, graph_name)
+            if not getattr(legend_layout, "ok", False):
+                return {
+                    "ok": False,
+                    "message": getattr(legend_layout, "message", "native legend layout failed"),
+                    "exemplar_style": exemplar_style,
+                    "native_legend_layout": getattr(legend_layout, "payload", {}),
+                }
             saved = operations.save_project(runtime_origin)
             if not getattr(saved, "ok", False):
                 return {"ok": False, "message": getattr(saved, "message", "project save failed"), "exemplar_style": exemplar_style}
@@ -2170,7 +2172,7 @@ def _export_template_snapshot_fallback_product_with_origin(
             "reason": "xrd_standard_card_keeps_template_line_sample_legend",
         }
     else:
-        legend_anchor_policy = _apply_nonoverlap_plain_legend_anchor(operations, graph_name, product, legend_entries)
+        legend_anchor_policy = {"applied": False, "reason": "native_legend_layout_deferred"}
         if product.product_key == "XRD":
             xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(
                 operations,
@@ -2180,12 +2182,11 @@ def _export_template_snapshot_fallback_product_with_origin(
                 style,
             )
         else:
-            _replace_legend_with_plain_text_labels(
+            _update_template_native_legend(
                 operations,
                 graph_name,
                 legend_entries,
                 style,
-                prefer_existing_text=False,
             )
             xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(operations, graph_name, product, legend_entries, style)
     plot_sequence = _apply_external_reference_plot_sequence(
@@ -2196,6 +2197,16 @@ def _export_template_snapshot_fallback_product_with_origin(
     )
     operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; title.show=0;')
 
+    legend_layout = avoid_native_legend_overlap(operations, graph_name)
+    if not getattr(legend_layout, "ok", False):
+        return {
+            "ok": False,
+            "message": getattr(legend_layout, "message", "native legend layout failed"),
+            "template_format_plan": plan.to_dict(),
+            "template_base_replacement": replacement_failure,
+            "exemplar_style": exemplar_snapshot.to_dict(),
+            "native_legend_layout": getattr(legend_layout, "payload", {}),
+        }
     saved = operations.save_project(runtime_origin)
     if not getattr(saved, "ok", False):
         return {
@@ -2318,7 +2329,7 @@ def _export_template_snapshot_fallback_product_with_origin(
                 entries=legend_entries,
                 anchor_policy=legend_anchor_policy,
                 xrd_plain_label_policy=xrd_plain_label_policy,
-                line_samples_removed=not xrd_keep_line_legend,
+                line_samples_removed=product.product_key == "XRD" and not xrd_keep_line_legend,
                 preserved_line_sample_policy=preserved_legend_policy if xrd_keep_line_legend else None,
                 xrd_card_label_policy=xrd_card_label_policy if xrd_keep_line_legend else None,
                 xrd_standard_card_reference_sticks_present=xrd_keep_line_legend,
@@ -2536,6 +2547,14 @@ def _export_verified_graph_template_product_with_origin(
             "post_plot_style": post_plot_style,
         }
     render_refresh = _refresh_graph_for_export(operations, graph_name)
+    legend_layout = avoid_native_legend_overlap(operations, graph_name)
+    if not getattr(legend_layout, "ok", False):
+        return {
+            "ok": False,
+            "message": getattr(legend_layout, "message", "native legend layout failed"),
+            "template_format_plan": plan_payload,
+            "native_legend_layout": getattr(legend_layout, "payload", {}),
+        }
     saved = operations.save_project(runtime_origin)
     if not getattr(saved, "ok", False) or not runtime_origin.is_file():
         return {
@@ -6035,12 +6054,11 @@ def _update_verified_uvvis_fixed_legend(
             "visible_plot_indices": list(visible_indices),
             "label_count": len(labels),
         }
-    rows = [
-        f"\\l({index})\\b({_reviewed_template_legend_rich_text(labels[index - 1])})"
-        for index in visible_indices
-    ]
-    text = "\r\n".join(rows)
-    written = _set_origin_graph_object_text(operations, graph_name, "Legend", text)
+    written = update_native_legend(
+        operations, graph_name,
+        [labels[index - 1] for index in visible_indices],
+        plot_indices=visible_indices,
+    ).ok
     return {
         "applied": bool(written),
         "method": "current_labels_for_reviewed_visible_plot_indices",
@@ -6606,15 +6624,9 @@ def _apply_verified_otpu_post_plot_style(
                 "visibility_policy": visibility_policy,
             }
         if same_data.get("matches"):
-            strings = reference_style.get("audit_string_values")
-            strings = strings if isinstance(strings, dict) else {}
-            legend_text = str(strings.get("legend.text$") or "")
-            legend_restored = bool(legend_text) and _set_origin_graph_object_text(
-                operations,
-                graph_name,
-                "Legend",
-                legend_text,
-            )
+            legend_restored = _update_verified_uvvis_fixed_legend(
+                operations, graph_name, product,
+            ).get("applied", False)
             if not legend_restored:
                 return {
                     "ok": False,
@@ -7920,7 +7932,7 @@ def _export_saved_format_theme_product_with_origin(
                 str(value).strip() for value in product.legend_entries
                 if str(value).strip()
             ]
-            legend_policy = _replace_eis_dynamic_legend_with_static_rich_text(
+            legend_policy = _update_eis_native_legend(
                 operations,
                 graph_name,
                 product,
@@ -8171,6 +8183,14 @@ def _export_saved_format_theme_product_with_origin(
             )
         )
         render_refresh = _refresh_graph_for_export(operations, graph_name)
+        legend_layout = avoid_native_legend_overlap(operations, graph_name)
+        if not getattr(legend_layout, "ok", False):
+            return {
+                "ok": False,
+                "message": getattr(legend_layout, "message", "native legend layout failed"),
+                "template_format_plan": plan.to_dict(),
+                "native_legend_layout": getattr(legend_layout, "payload", {}),
+            }
         saved = operations.save_project(runtime_origin)
         if not getattr(saved, "ok", False):
             return {"ok": False, "message": getattr(saved, "message", "project save failed"), "template_format_plan": plan.to_dict()}
@@ -9728,25 +9748,9 @@ def _apply_adaptive_xps_in_situ_text_policy(
         if getattr(result, "ok", False):
             removed.append(object_name)
     measured_plot_indices = [1 + sample_index * 7 for sample_index in range(sample_count)]
-    legend_rows = [
-        f"\\l({plot_index})\\b({_reviewed_template_legend_rich_text(label)})"
-        for plot_index, label in zip(measured_plot_indices, sample_labels)
-    ]
-    legend_text = "%(CRLF)".join(legend_rows)
     legend_font_size = _reviewed_template_legend_font_size(style_snapshot, style)
-    legend_font_name = quote_labtalk(style.font_family or "Arial")
-    shown = operations.run_labtalk(
-        f'win -a "{graph}"; legend.show=1; '
-        f'legend.text$="{_quote_origin_rich_text(legend_text)}"; '
-        f'legend.font$="{legend_font_name}"; '
-        f"legend.fsize={legend_font_size}; legend.bold=1; "
-        "legend.background=0; legend.border=0; legend.fill=0;"
-    )
-    com_text = _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        "\r\n".join(legend_rows),
+    native_legend = update_native_legend(
+        operations, graph_name, sample_labels, plot_indices=measured_plot_indices,
     )
     _style_graph_object(
         operations,
@@ -9757,7 +9761,9 @@ def _apply_adaptive_xps_in_situ_text_policy(
         color=1,
     )
     return {
-        "applied": bool(getattr(shown, "ok", False)) and bool(com_text),
+        "applied": native_legend.ok,
+        "native_legend": native_legend.payload,
+        "native_legend_message": native_legend.message,
         "method": "native_xps_variable_sample_legend",
         "sample_count": sample_count,
         "sample_labels": sample_labels,
@@ -9835,25 +9841,9 @@ def _apply_adaptive_xps_non_in_situ_text_policy(
         if getattr(result, "ok", False):
             removed.append(object_name)
     measured_plot_indices = [7 + sample_index * 9 for sample_index in range(sample_count)]
-    legend_rows = [
-        f"\\l({plot_index})\\b({_reviewed_template_legend_rich_text(label)})"
-        for plot_index, label in zip(measured_plot_indices, sample_labels)
-    ]
-    legend_text = "%(CRLF)".join(legend_rows)
     legend_font_size = _reviewed_template_legend_font_size(style_snapshot, style)
-    legend_font_name = quote_labtalk(style.font_family or "Arial")
-    shown = operations.run_labtalk(
-        f'win -a "{graph}"; legend.show=1; '
-        f'legend.text$="{_quote_origin_rich_text(legend_text)}"; '
-        f'legend.font$="{legend_font_name}"; '
-        f"legend.fsize={legend_font_size}; legend.bold=1; "
-        "legend.background=0; legend.border=0; legend.fill=0;"
-    )
-    com_text = _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        "\r\n".join(legend_rows),
+    native_legend = update_native_legend(
+        operations, graph_name, sample_labels, plot_indices=measured_plot_indices,
     )
     _style_graph_object(
         operations,
@@ -9864,7 +9854,9 @@ def _apply_adaptive_xps_non_in_situ_text_policy(
         color=1,
     )
     return {
-        "applied": bool(getattr(shown, "ok", False)) and bool(com_text),
+        "applied": native_legend.ok,
+        "native_legend": native_legend.payload,
+        "native_legend_message": native_legend.message,
         "method": "native_xps_non_in_situ_variable_sample_legend",
         "sample_count": sample_count,
         "sample_labels": sample_labels,
@@ -9926,24 +9918,10 @@ def _apply_reviewed_template_plot_policy(
             "visible_indices": list(visible_indices),
             "legend_entries": entries,
         }
-    legend_rows = [
-        f"\\l({plot_index})\\b({_reviewed_template_legend_rich_text(label)})"
-        for plot_index, label in zip(visible_indices, entries)
-    ]
-    legend_text = "%(CRLF)".join(legend_rows)
     legend_font_size = _reviewed_template_legend_font_size(snapshot, style)
-    operations.run_labtalk(
-        f'win -a "{graph}"; legend.show=1; legend.text$="{_quote_origin_rich_text(legend_text)}"; '
-        f'legend.font$="{quote_labtalk(style.font_family or "Arial")}"; '
-        f"legend.fsize={legend_font_size}; legend.bold=1; "
-        "legend.background=0; legend.border=0; legend.fill=0;"
-    )
-    legend_com_text_refreshed = _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        "\r\n".join(legend_rows),
-    )
+    legend_com_text_refreshed = update_native_legend(
+        operations, graph_name, entries, plot_indices=visible_indices,
+    ).ok
     _style_graph_object(
         operations,
         graph_name,
@@ -9960,7 +9938,7 @@ def _apply_reviewed_template_plot_policy(
         else {"applied": False, "reason": "not_required_for_product"}
     )
     return {
-        "applied": True,
+        "applied": legend_com_text_refreshed,
         "visible_indices": list(visible_indices),
         "hidden_indices": [index for index in range(1, len(plot_names) + 1) if index not in visible_indices],
         "legend_entries": entries,
@@ -9981,6 +9959,16 @@ def _reviewed_template_legend_rich_text(label: object) -> str:
     )
 
 
+def _ftir_native_legend_labels(entries: list[str] | tuple[str, ...]) -> list[str]:
+    """Preserve reviewed inline column-label formatting for native legends."""
+    reviewed = {
+        "BiOBr0.5Cl0.5": r"\b(\i( )\c1(BiOBr)\-(\c1(0.5))\c1(Cl)\-(\c1(0.5)))",
+        "CuWO4": r"\b(\i( )CuWO\-(4))",
+        "BiCu-10": r"\b(\i( )BiCu-10)",
+    }
+    return [reviewed.get(str(label), origin_bold_text(label)) for label in entries]
+
+
 def _refresh_reviewed_template_legend_com_text(
     operations: object,
     graph_name: str,
@@ -9992,19 +9980,12 @@ def _refresh_reviewed_template_legend_com_text(
     entries = _plain_text_legend_entries(product)
     if len(entries) != len(visible_indices):
         return False
-    rows = [
-        f"\\l({plot_index})\\b({_reviewed_template_legend_rich_text(label)})"
-        for plot_index, label in zip(visible_indices, entries)
-    ]
-    return _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        "\r\n".join(rows),
-    )
+    return update_native_legend(
+        operations, graph_name, entries, plot_indices=visible_indices,
+    ).ok
 
 
-def _replace_eis_dynamic_legend_with_static_rich_text(
+def _update_eis_native_legend(
     operations: object,
     graph_name: str,
     product: ProductContext,
@@ -10060,80 +10041,25 @@ def _replace_eis_dynamic_legend_with_static_rich_text(
                     "plot_index": plot_index,
                 }
             visibility_commands.append(command)
-    app = getattr(operations, "app", None)
-    if app is None:
-        return {"applied": False, "reason": "no_origin_app"}
-    try:
-        layer = app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(f"[{graph_name}]1") or app.FindGraphLayer(graph_name)
-    except Exception:
-        return {"applied": False, "reason": "graph_layer_unavailable"}
-    if not layer:
-        return {"applied": False, "reason": "graph_layer_unavailable"}
-    dynamic_legend = _find_origin_graph_object(layer, "Legend")
-    if dynamic_legend is None:
-        return {"applied": False, "reason": "dynamic_legend_unavailable"}
-    try:
-        left = int(dynamic_legend.Left)
-        top = int(dynamic_legend.Top)
-        dynamic_legend.Show = 0
-        dynamic_legend.SetNumProp("show", 0)
-    except Exception:
-        return {"applied": False, "reason": "dynamic_legend_hide_failed"}
-
-    object_name = "rdop_reviewed_legend"
-    graph = quote_labtalk(graph_name)
-    operations.run_labtalk(f'win -a "{graph}"; label -r {object_name};')
-    created = operations.run_labtalk(f'win -a "{graph}"; label -n {object_name} "x";')
-    static_legend = _find_origin_graph_object(layer, object_name)
-    if static_legend is None:
-        return {
-            "applied": False,
-            "reason": "static_legend_creation_failed",
-            "labtalk_created": bool(getattr(created, "ok", False)),
-        }
-    rows = [
-        f"\\l({plot_index})\\b({_reviewed_template_legend_rich_text(label)})"
-        for plot_index, label in zip(visible_indices, entries)
-    ]
+    updated = update_native_legend(
+        operations, graph_name, entries, plot_indices=visible_indices,
+    )
     font_size = _reviewed_template_legend_font_size(snapshot, style)
-    try:
-        dynamic_legend.Text = "\r\n".join(rows)
-    except Exception:
-        return {"applied": False, "reason": "dynamic_legend_text_refresh_failed"}
-    try:
-        static_legend.Text = "\r\n".join(rows)
-        static_legend.Left = left
-        static_legend.Top = top
-    except Exception:
-        return {"applied": False, "reason": "static_legend_text_or_position_failed"}
-    font_code = _origin_font_code(app, style.font_family or "Arial")
-    for prop, value in (
-        ("font", font_code),
-        ("fsize", font_size),
-        ("bold", 1),
-        ("color", 1),
-        ("background", 0),
-        ("border", 0),
-        ("frame", 0),
-        ("fill", 0),
-        ("show", 1),
-    ):
-        try:
-            static_legend.SetNumProp(prop, value)
-        except Exception:
-            pass
+    if updated.ok:
+        _style_graph_object(
+            operations, graph_name, "Legend",
+            font_name=style.font_family or "Arial", font_size=font_size, color=1,
+        )
     return {
-        "applied": str(getattr(static_legend, "Text", "") or "") == "\r\n".join(rows),
-        "method": "static_rich_text_legend_with_template_line_samples",
-        "dynamic_legend_hidden": True,
-        "object_name": object_name,
+        "applied": updated.ok,
+        "method": "origin_legendupdate_long_name",
+        "object_name": "Legend",
         "entries": entries,
         "visible_plot_indices": list(visible_indices),
         "all_current_plots_visible": bool(force_current_visibility),
         "visibility_commands": visibility_commands,
         "font_size": font_size,
-        "left": left,
-        "top": top,
+        "message": updated.message,
     }
 
 
@@ -10143,64 +10069,50 @@ def _validate_reopened_adaptive_eis_legend(
     entries: list[str],
 ) -> dict[str, object]:
     app = getattr(operations, "app", None)
-    if app is None or not entries:
-        return {
-            "ok": False,
-            "status": "blocked",
-            "message": "Adaptive EIS legend readback is unavailable.",
-        }
-    try:
-        layer = (
-            app.FindGraphLayer(f"[{graph_name}]Layer1")
-            or app.FindGraphLayer(f"[{graph_name}]1")
-            or app.FindGraphLayer(graph_name)
-        )
-    except Exception:
-        layer = None
-    if not layer:
-        return {
-            "ok": False,
-            "status": "blocked",
-            "message": "Adaptive EIS reopened graph layer is unavailable.",
-        }
-    dynamic = _find_origin_graph_object(layer, "Legend")
-    static = _find_origin_graph_object(layer, "rdop_reviewed_legend")
-    expected_rows = [
-        f"\\l({index})\\b({_reviewed_template_legend_rich_text(label)})"
-        for index, label in enumerate(entries, start=1)
-    ]
-    expected_text = "\r\n".join(expected_rows)
-    actual_text = str(getattr(static, "Text", "") or "") if static is not None else ""
-    try:
-        dynamic_visible = float(getattr(dynamic, "Show", 0) or 0) > 0.5
-    except (TypeError, ValueError):
-        dynamic_visible = True
-    try:
-        static_visible = float(getattr(static, "Show", 0) or 0) > 0.5
-    except (TypeError, ValueError):
-        static_visible = False
     reasons: list[str] = []
-    if static is None:
-        reasons.append("static native EIS legend object is missing")
-    elif actual_text != expected_text:
-        reasons.append("static native EIS legend text or line-sample mapping differs")
-    if dynamic is None or dynamic_visible:
-        reasons.append("dynamic Origin legend was not retained as a hidden source object")
-    if not static_visible:
-        reasons.append("static native EIS legend is hidden")
+    actual_text = ""
+    labels: list[str] = []
+    visible = False
+    try:
+        if app is None or not entries:
+            raise ValueError("Origin app or current entries are unavailable")
+        layer = (app.FindGraphLayer(f"[{graph_name}]Layer1")
+                 or app.FindGraphLayer(f"[{graph_name}]1")
+                 or app.FindGraphLayer(graph_name))
+        legend = _find_origin_graph_object(layer, "Legend")
+        if legend is None:
+            raise ValueError("native Origin legend is missing")
+        actual_text = str(legend.Text or "")
+        visible = float(legend.Show) > 0.5
+        if _find_origin_graph_object(layer, "rdop_reviewed_legend") is not None:
+            reasons.append("obsolete separate EIS legend overlay remains")
+        symbols = [int(value) for value in re.findall(r"\\l\((\d+)\)", actual_text, flags=re.I)]
+        substitutions = [int(value) for value in re.findall(r"%\((\d+)\)", actual_text)]
+        expected_indices = list(range(1, len(entries) + 1))
+        if symbols != expected_indices or substitutions != expected_indices:
+            reasons.append("native legend curve-to-column substitutions differ")
+        for index in expected_indices:
+            read = operations.run_labtalk(
+                f'range -wy __rdop_legend_y=[{graph_name}]1!{index}; '
+                '__rdop_legend_label$=__rdop_legend_y[L]$;'
+            )
+            if not read.ok:
+                raise ValueError("mapped Y long-name readback failed")
+            labels.append(str(app.LTStr("__rdop_legend_label$") or ""))
+        if labels != [origin_bold_text(entry) for entry in entries]:
+            reasons.append("mapped Y labels differ from current sample names")
+        if not visible:
+            reasons.append("native Origin legend is hidden")
+    except Exception as exc:
+        reasons.append(str(exc))
     return {
         "ok": not reasons,
         "status": "matched" if not reasons else "mismatch",
-        "message": (
-            "Adaptive EIS reopened native line-sample legend matches current curves."
-            if not reasons
-            else "; ".join(reasons)
-        ),
+        "message": "Native EIS legend and mapped sample labels match." if not reasons else "; ".join(reasons),
         "entries": entries,
-        "expected_text": expected_text,
         "actual_text": actual_text,
-        "dynamic_legend_hidden": dynamic is not None and not dynamic_visible,
-        "static_legend_visible": static_visible,
+        "mapped_y_long_names": labels,
+        "native_legend_visible": visible,
         "reasons": reasons,
     }
 
@@ -10224,7 +10136,7 @@ def _finalize_reviewed_template_legend(
     style: ResolvedPlotStyle,
 ) -> dict[str, object]:
     if product.product_key == "EIS":
-        return _replace_eis_dynamic_legend_with_static_rich_text(
+        return _update_eis_native_legend(
             operations,
             graph_name,
             product,
@@ -10234,7 +10146,7 @@ def _finalize_reviewed_template_legend(
     if product.product_key in REVIEWED_TEMPLATE_VISIBLE_PLOTS:
         return {
             "applied": _refresh_reviewed_template_legend_com_text(operations, graph_name, product),
-            "method": "dynamic_legend_com_text_refresh",
+            "method": "origin_legendupdate_long_name",
         }
     return {"applied": False, "reason": "not_required_for_product"}
 
@@ -10716,14 +10628,10 @@ def _apply_adaptive_dynamic_legend_policy(
                 "plot_index": index,
             }
         visibility_commands.append(command)
-    rows = [
-        f"\\l({index})\\b({_reviewed_template_legend_rich_text(label)})"
-        for index, label in enumerate(entries, start=1)
-    ]
-    text = "\r\n".join(rows)
-    written = bool(rows) and _set_origin_graph_object_text(
-        operations, graph_name, "Legend", text
-    )
+    written = update_native_legend(
+        operations, graph_name, entries,
+        plot_indices=range(1, len(entries) + 1),
+    ).ok
     font_size = _reviewed_template_legend_font_size(snapshot, style)
     preserved = _format_preserved_line_sample_legend(
         operations,
@@ -10825,17 +10733,10 @@ def _apply_adaptive_bet_oth_json_text_policy(
         )
         for label in _plain_text_legend_entries(product)
     ]
-    rows = [
-        f"\\l({index})\\b( {_reviewed_template_legend_rich_text(label)})"
-        for index, label in enumerate(entries, start=1)
-    ]
-    text = "\r\n".join(rows)
-    legend_written = bool(rows) and _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        text,
-    )
+    legend_written = update_native_legend(
+        operations, graph_name, entries,
+        plot_indices=range(1, len(entries) + 1),
+    ).ok
     font_size = _reviewed_template_legend_font_size(snapshot, style)
     preserved = _format_preserved_line_sample_legend(
         operations,
@@ -10867,7 +10768,7 @@ def _apply_adaptive_bet_oth_json_text_policy(
         "y_title_rotation_restored": bool(getattr(orientation, "ok", False)),
         "adaptive_y_title": adaptive_y_title,
         "entries": entries,
-        "rich_text": text,
+        "native_legend": True,
         "line_samples_preserved": True,
         "font_size": font_size,
         "preserved_line_sample_policy": preserved,
@@ -11060,29 +10961,10 @@ def _apply_adaptive_ftir_oth_json_text_policy(
             str(headers[y_col - 1])[: -len("_transmittance")]
             for _x_col, y_col in pairs
         ]
-    reviewed_legend_bodies = {
-        "BiOBr0.5Cl0.5": r"\b(\i( )\c1(BiOBr)\-(\c1(0.5))\c1(Cl)\-(\c1(0.5)))",
-        "CuWO4": r"\b(\i( )CuWO\-(4))",
-        "BiCu-10": r"\b(\i( )BiCu-10)",
-    }
-    legend_bodies = [
-        reviewed_legend_bodies.get(
-            label,
-            "\\b(" + _reviewed_template_legend_rich_text(label) + ")",
-        )
-        for label in entries
-    ]
-    rows = [
-        f"\\l({index}){body}"
-        for index, body in enumerate(legend_bodies, start=1)
-    ]
-    text = "\r\n".join(rows)
-    written = bool(rows) and _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        text,
-    )
+    written = update_native_legend(
+        operations, graph_name, _ftir_native_legend_labels(entries),
+        plot_indices=range(1, len(entries) + 1),
+    ).ok
     legend_font_size = _reviewed_template_legend_font_size(snapshot, style)
     preserved = _format_preserved_line_sample_legend(
         operations,
@@ -11094,7 +10976,7 @@ def _apply_adaptive_ftir_oth_json_text_policy(
         "applied": written,
         "method": "adaptive_ftir_dynamic_rich_text_legend_with_line_samples",
         "entries": entries,
-        "rich_text": text,
+        "native_legend": True,
         "line_samples_preserved": True,
         "font_size": legend_font_size,
         "old_sample_names_removed": True,
@@ -11127,17 +11009,10 @@ def _apply_adaptive_photocurrent_oth_json_text_policy(
         }
     _apply_exemplar_axis_title_text(operations, graph_name, snapshot)
     entries = _plain_text_legend_entries(product)
-    rows = [
-        f"\\l({index})\\b( {_reviewed_template_legend_rich_text(label)})"
-        for index, label in enumerate(entries, start=1)
-    ]
-    text = "\r\n".join(rows)
-    written = bool(rows) and _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        text,
-    )
+    written = update_native_legend(
+        operations, graph_name, entries,
+        plot_indices=range(1, len(entries) + 1),
+    ).ok
     layout = snapshot.get("layout_values") if isinstance(snapshot, dict) else {}
     if not isinstance(layout, dict):
         layout = {}
@@ -11215,7 +11090,7 @@ def _apply_adaptive_photocurrent_oth_json_text_policy(
         "applied": written and (bool(getattr(labtalk, "ok", False)) or com_style),
         "method": "adaptive_photocurrent_dynamic_snapshot_legend_with_line_samples",
         "entries": entries,
-        "rich_text": text,
+        "native_legend": True,
         "line_samples_preserved": True,
         "font_name": font_name,
         "font_size": font_size,
@@ -11424,7 +11299,7 @@ def _apply_cached_style_rich_text_policies(
         snapshot or {},
     )
     if not anchor_policy.get("applied"):
-        anchor_policy = _apply_nonoverlap_plain_legend_anchor(operations, graph_name, product, entries)
+        anchor_policy = {"applied": False, "reason": "native_legend_layout_deferred"}
     if product.product_key == "XRD":
         xrd_plain_label_policy = _apply_xrd_template_plain_legend_labels(
             operations,
@@ -11441,13 +11316,13 @@ def _apply_cached_style_rich_text_policies(
             line_samples_removed=True,
             xrd_standard_card_reference_sticks_present=False,
         )
-    _replace_legend_with_plain_text_labels(
+    _update_template_native_legend(
         operations,
         graph_name,
         entries,
         style,
     )
-    return _plain_text_legend_policy(product, entries=entries, anchor_policy=anchor_policy, line_samples_removed=True)
+    return _plain_text_legend_policy(product, entries=entries, anchor_policy=anchor_policy, line_samples_removed=False)
 
 
 def _apply_exemplar_axis_title_text(operations: object, graph_name: str, exemplar_snapshot: object) -> None:
@@ -12641,136 +12516,19 @@ def _restore_graph_object_geometry(
     }
 
 
-def _apply_nonoverlap_plain_legend_anchor(
-    operations: object,
-    graph_name: str,
-    product: ProductContext,
-    entries: list[str],
-) -> dict[str, object]:
-    if product.product_key == "EIS" or not entries:
-        if hasattr(operations, "run_labtalk"):
-            operations.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; legend.show=0;')
-        return {"applied": False, "visible": False, "reason": "legend_hidden_or_empty"}
-    if not hasattr(operations, "run_labtalk"):
-        return {"applied": False, "visible": True, "reason": "run_labtalk_unavailable"}
-    try:
-        headers, rows = _read_processed_csv(product.processed_data)
-        points = _normalized_plot_points(product, headers, rows)
-    except Exception as exc:
-        points = []
-        error = str(exc)
-    else:
-        error = ""
-    anchor = _select_plain_legend_anchor(entries, points)
-    operations.run_labtalk(
-        f'win -a "{quote_labtalk(graph_name)}"; '
-        "legend -r; legend.show=1; "
-        f"legend.x = layer.x.from + {anchor['x_fraction']:.6g} * (layer.x.to - layer.x.from); "
-        f"legend.y = layer.y.from + {anchor['y_fraction']:.6g} * (layer.y.to - layer.y.from);"
-    )
-    return {
-        "applied": True,
-        "visible": True,
-        "method": "data_sparse_corner_anchor_before_plain_text_replacement",
-        "corner": anchor["corner"],
-        "x_fraction": anchor["x_fraction"],
-        "y_fraction": anchor["y_fraction"],
-        "occupancy_score": anchor["score"],
-        "point_count": len(points),
-        "error": error,
-    }
-
-
-def _normalized_plot_points(product: ProductContext, headers: list[str], rows: list[list[object]]) -> list[tuple[float, float]]:
-    pairs = _processed_csv_plot_pairs(product, headers)
-    raw_points: list[tuple[float, float]] = []
-    for x_col, y_col in pairs:
-        x_index = x_col - 1
-        y_index = y_col - 1
-        for row in rows:
-            if x_index >= len(row) or y_index >= len(row):
-                continue
-            try:
-                x_value = float(row[x_index])
-                y_value = float(row[y_index])
-            except (TypeError, ValueError):
-                continue
-            if math.isfinite(x_value) and math.isfinite(y_value):
-                raw_points.append((x_value, y_value))
-    if not raw_points:
-        return []
-    x_values = [point[0] for point in raw_points]
-    y_values = [point[1] for point in raw_points]
-    x_min, x_max = min(x_values), max(x_values)
-    y_min, y_max = min(y_values), max(y_values)
-    x_span = x_max - x_min
-    y_span = y_max - y_min
-    if x_span <= 0 or y_span <= 0:
-        return []
-    return [((x - x_min) / x_span, (y - y_min) / y_span) for x, y in raw_points]
-
-
-def _select_plain_legend_anchor(entries: list[str], points: list[tuple[float, float]]) -> dict[str, object]:
-    longest = max((len(str(entry)) for entry in entries), default=8)
-    box_width = min(0.38, max(0.18, longest * 0.018))
-    box_height = min(0.34, max(0.10, len(entries) * 0.075))
-    candidates = [
-        ("top-right", 0.60, 0.88),
-        ("top-left", 0.07, 0.88),
-        ("bottom-right", 0.60, 0.25),
-        ("bottom-left", 0.07, 0.25),
-    ]
-    scored: list[tuple[float, str, float, float]] = []
-    for corner, x_fraction, y_fraction in candidates:
-        x0 = x_fraction
-        x1 = min(1.0, x_fraction + box_width)
-        y1 = y_fraction
-        y0 = max(0.0, y_fraction - box_height)
-        expanded_x0 = max(0.0, x0 - 0.035)
-        expanded_x1 = min(1.0, x1 + 0.035)
-        expanded_y0 = max(0.0, y0 - 0.035)
-        expanded_y1 = min(1.0, y1 + 0.035)
-        overlap = sum(1 for x, y in points if expanded_x0 <= x <= expanded_x1 and expanded_y0 <= y <= expanded_y1)
-        distance_penalty = 0.0
-        if points:
-            nearest = min(
-                _distance_to_box(x, y, expanded_x0, expanded_x1, expanded_y0, expanded_y1)
-                for x, y in points
-            )
-            distance_penalty = max(0.0, 0.12 - nearest)
-        bottom_penalty = 100.0 if corner.startswith("bottom") else 0.0
-        score = overlap + distance_penalty + bottom_penalty
-        scored.append((score, corner, x_fraction, y_fraction))
-    score, corner, x_fraction, y_fraction = min(scored, key=lambda item: (item[0], 0 if item[1] == "top-right" else 1))
-    return {"corner": corner, "x_fraction": x_fraction, "y_fraction": y_fraction, "score": score}
-
-
-def _distance_to_box(x: float, y: float, x0: float, x1: float, y0: float, y1: float) -> float:
-    dx = 0.0 if x0 <= x <= x1 else min(abs(x - x0), abs(x - x1))
-    dy = 0.0 if y0 <= y <= y1 else min(abs(y - y0), abs(y - y1))
-    return math.sqrt(dx * dx + dy * dy)
-
-
-def _replace_legend_with_plain_text_labels(
+def _update_template_native_legend(
     operations: object,
     graph_name: str,
     entries: list[str],
     style: ResolvedPlotStyle,
-    *,
-    prefer_existing_text: bool = False,
 ) -> None:
-    replace_legend = getattr(operations, "replace_legend_with_plain_text_labels", None)
-    if not callable(replace_legend):
-        raise RuntimeError("Origin operation replace_legend_with_plain_text_labels is unavailable.")
-    result = replace_legend(
-        graph_name,
-        entries,
-        font_name=style.font_family,
-        font_size=int(style.legend_font_size),
-        prefer_existing_text=prefer_existing_text,
-    )
+    result = update_native_legend(operations, graph_name, entries)
     if not getattr(result, "ok", False):
-        raise RuntimeError(getattr(result, "message", "plain-text legend replacement failed"))
+        raise RuntimeError(getattr(result, "message", "native legend update failed"))
+    _style_graph_object(
+        operations, graph_name, "Legend", font_name=style.font_family,
+        font_size=int(style.legend_font_size), color=1,
+    )
 
 
 def _apply_xrd_template_plain_legend_labels(
@@ -12940,15 +12698,18 @@ def _apply_xrd_standard_card_legend_and_label(
     labels = entries[: len(sample_headers)] if entries else [header.replace("_", " ") for header in sample_headers]
     labels = [_xrd_plain_label_text(label) for label in labels]
     graph = quote_labtalk(graph_name)
-    legend_entries = [f"\\l({index}){label}" for index, label in enumerate(labels, start=1)]
     max_label_len = max((_plain_label_for_length(label) for label in labels), key=len, default="")
     legend_x = max(58.0, 66.0 - max(0, len(max_label_len) - 8) * 1.2)
     legend_y = _xrd_standard_card_legend_y(product)
-    legend_rows = _xrd_standard_card_legend_rows(legend_entries)
-    legend_text = "%(CRLF)".join(legend_rows)
+    sample_plot_indices = [
+        index for index, (_csv_index, header) in enumerate(plotted_headers, start=1)
+        if not is_template_xrd_reference_stick_header(header)
+    ]
+    native_legend = update_native_legend(
+        operations, graph_name, labels, plot_indices=sample_plot_indices,
+    )
     commands = [
         f'win -a "{graph}"; legend.show=1;',
-        f'legend.text$="{_quote_origin_rich_text(legend_text)}";',
         f"legend.x={legend_x:g}; legend.y={legend_y:g};",
         f'legend.font$="{quote_labtalk(style.font_family or "Arial")}"; legend.fsize={int(style.legend_font_size or 26)}; legend.bold=1;',
         "legend.background=0; legend.border=0; legend.fill=0;",
@@ -13046,7 +12807,9 @@ def _apply_xrd_standard_card_legend_and_label(
             card_label_source = "created_graph_object"
             operations.run_labtalk(f'win -a "{graph}"; rdop_xrd_card_label.color=color(181,91,0);')
     return {
-        "applied": bool(legend_com_applied and (not card_label or card_label_applied)),
+        "applied": bool(native_legend.ok and legend_com_applied and (not card_label or card_label_applied)),
+        "native_legend": native_legend.payload,
+        "native_legend_message": native_legend.message,
         "method": "xrd_standard_card_sample_legend_plus_card_label",
         "sample_legend_entries": labels,
         "reference_card_headers": card_headers,
@@ -13240,10 +13003,6 @@ def _xrd_standard_card_legend_y(product: ProductContext) -> float:
         return 6.6
     span = max(y_max - y_min, 1.0)
     return y_max + max(0.95, span * 0.21)
-
-
-def _xrd_standard_card_legend_rows(entries: list[str]) -> list[str]:
-    return list(entries)
 
 
 def _xrd_standard_card_label_y(product: ProductContext) -> float:
@@ -13467,16 +13226,10 @@ def _update_verified_pl_legend(
         or len({label.casefold() for label in labels}) != len(labels)
     ):
         return {"applied": False, "reason": "pl_legend_requires_nonempty_unique_current_values"}
-    rows = [
-        f"\\l({index})\\b( {_reviewed_template_legend_rich_text(label)})"
-        for index, label in enumerate(labels, start=1)
-    ]
-    if not _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        "\r\n".join(rows),
-    ):
+    if not update_native_legend(
+        operations, graph_name, labels,
+        plot_indices=range(1, len(labels) + 1),
+    ).ok:
         return {"applied": False, "reason": "pl_legend_com_text_write_failed"}
     return {
         "applied": True,
@@ -13492,7 +13245,7 @@ def _update_verified_raman_label_objects(
     graph_name: str,
     entries: list[str],
 ) -> dict[str, object]:
-    """Replace Raman's three distributed native label objects in source order."""
+    """Rebuild Raman's distributed labels as native, linked Origin legends."""
 
     labels = [str(value).strip() for value in entries]
     if (
@@ -13505,67 +13258,138 @@ def _update_verified_raman_label_objects(
             "reason": "raman_labels_require_three_nonempty_unique_values",
         }
     app = getattr(operations, "app", None)
-    if app is None:
+    if app is None or not hasattr(operations, "run_labtalk"):
         return {"applied": False, "reason": "no_origin_app"}
-    try:
-        layer = (
-            app.FindGraphLayer(f"[{graph_name}]Layer1")
-            or app.FindGraphLayer(f"[{graph_name}]1")
-            or app.FindGraphLayer(graph_name)
-        )
-    except Exception:
-        return {"applied": False, "reason": "graph_layer_unavailable"}
-    if not layer:
+
+    def _layer(layer_index: int) -> object | None:
+        references = [f"[{graph_name}]Layer{layer_index}", f"[{graph_name}]{layer_index}"]
+        if layer_index == 1:
+            references.append(graph_name)
+        for reference in references:
+            try:
+                candidate = app.FindGraphLayer(reference)
+            except Exception:
+                continue
+            if candidate is not None:
+                return candidate
+        return None
+
+    layer1 = _layer(1)
+    layer2 = _layer(2)
+    if layer1 is None or layer2 is None:
         return {"applied": False, "reason": "graph_layer_unavailable"}
 
-    top_label = (
-        r"\l(1)\b(\c33518175(\c1( BiOBr)\-(\c1(0.5))\c1(Cl)\-(\c1(0.5))))"
-        if labels[0] == "BiOBr0.5Cl0.5"
-        else f"\\l(1)\\b( {_reviewed_template_legend_rich_text(labels[0])})"
-    )
-    object_text = {
-        "Legend": top_label,
-        "Text1": f"\\b(           {_reviewed_template_legend_rich_text(labels[1])})",
-        "Text": f"\\l(2)\\b( {_reviewed_template_legend_rich_text(labels[2])})",
+    def _snapshot(object_name: str, *, with_style: bool = True) -> dict[str, object] | None:
+        graph_object = _find_unique_origin_graph_object(layer1, object_name)
+        if graph_object is None:
+            return None
+        try:
+            geometry = {
+                key: getattr(graph_object, attribute)
+                for key, attribute in (
+                    ("left", "Left"), ("top", "Top"),
+                    ("width", "Width"), ("height", "Height"),
+                )
+            }
+            properties = {
+                property_name: graph_object.GetNumProp(property_name)
+                for property_name in (
+                    "font", "fsize", "color", "bold", "background", "border", "frame",
+                    "fill", "fillColor", "borderColor", "lineWidth",
+                )
+            } if with_style else {}
+        except Exception:
+            return None
+        return {"geometry": geometry, "properties": properties}
+
+    snapshots = {
+        "Legend": _snapshot("Legend"),
+        "Text1": _snapshot("Text1"),
+        "Text": _snapshot("Text"),
+        "Line1": _snapshot("Line1", with_style=False),
     }
-    readback: dict[str, str] = {}
-    for object_name, text in object_text.items():
+    if any(snapshot is None for snapshot in snapshots.values()):
+        return {"applied": False, "reason": "required_raman_label_missing_or_unreadable"}
+
+    def _restore(
+        layer: object,
+        object_name: str,
+        snapshot: dict[str, object],
+        *,
+        left: object | None = None,
+        centered_top: object | None = None,
+    ) -> bool:
         graph_object = _find_unique_origin_graph_object(layer, object_name)
         if graph_object is None:
-            return {
-                "applied": False,
-                "reason": "required_raman_label_missing_or_not_unique",
-                "object_name": object_name,
-            }
+            return False
+        geometry = snapshot["geometry"]
         try:
-            graph_object.Text = text
-            actual = str(getattr(graph_object, "Text", "") or "")
+            graph_object.Left = geometry["left"] if left is None else left
+            graph_object.Top = geometry["top"] if centered_top is None else centered_top
+            if left is None:
+                graph_object.Width = geometry["width"]
+                graph_object.Height = geometry["height"]
+            for property_name, value in snapshot["properties"].items():
+                graph_object.SetNumProp(property_name, value)
         except Exception:
-            return {
-                "applied": False,
-                "reason": "raman_label_write_or_readback_failed",
-                "object_name": object_name,
-            }
-        if actual != text:
-            return {
-                "applied": False,
-                "reason": "raman_label_readback_mismatch",
-                "object_name": object_name,
-                "expected": text,
-                "actual": actual,
-            }
-        readback[object_name] = actual
+            return False
+        return True
+
+    def _remove(layer_index: int, object_name: str) -> bool:
+        return bool(getattr(operations.run_labtalk(
+            f'win -a "{quote_labtalk(graph_name)}"; layer -s {layer_index}; '
+            f'label -r {quote_labtalk(object_name)};'
+        ), "ok", False))
+
+    def _native(layer_index: int, plot_index: int, label: str, target_name: str) -> bool:
+        generated = update_native_legend(
+            operations, graph_name, [label], plot_indices=[plot_index], layer_index=layer_index,
+        )
+        if not getattr(generated, "ok", False):
+            return False
+        renamed = operations.run_labtalk(
+            f'win -a "{quote_labtalk(graph_name)}"; layer -s {layer_index}; '
+            f'legend.name$="{quote_labtalk(target_name)}";'
+        )
+        return bool(getattr(renamed, "ok", False))
+
+    legend_snapshot = snapshots["Legend"]
+    text1_snapshot = snapshots["Text1"]
+    text_snapshot = snapshots["Text"]
+    line_snapshot = snapshots["Line1"]
+    assert all(value is not None for value in (legend_snapshot, text1_snapshot, text_snapshot, line_snapshot))
+
+    if not _remove(1, "Text") or not _native(1, 2, labels[2], "Text"):
+        return {"applied": False, "reason": "raman_native_legend_generation_failed"}
+    if not _restore(layer1, "Text", text_snapshot):
+        return {"applied": False, "reason": "raman_native_legend_layout_restore_failed"}
+
+    if not _remove(1, "Text1") or not _remove(1, "Line1") or not _native(2, 1, labels[1], "Text1"):
+        return {"applied": False, "reason": "raman_native_legend_generation_failed"}
+    row_geometry = text1_snapshot["geometry"]
+    sample_geometry = line_snapshot["geometry"]
+    layer2_legend = _find_unique_origin_graph_object(layer2, "Text1")
+    if layer2_legend is None:
+        return {"applied": False, "reason": "raman_native_legend_layout_restore_failed"}
+    centered_top = row_geometry["top"] + (row_geometry["height"] - layer2_legend.Height) / 2
+    if not _restore(layer2, "Text1", text1_snapshot, left=sample_geometry["left"], centered_top=centered_top):
+        return {"applied": False, "reason": "raman_native_legend_layout_restore_failed"}
+
+    if not update_native_legend(
+        operations, graph_name, [labels[0]], plot_indices=[1], layer_index=1,
+    ).ok or not _restore(layer1, "Legend", legend_snapshot):
+        return {"applied": False, "reason": "raman_native_legend_generation_failed"}
     return {
         "applied": True,
-        "method": "template_distributed_label_objects_current_bold_rich_text",
+        "method": "origin_native_distributed_raman_legends",
         "entries": labels,
-        "objects": readback,
         "source_order_to_template_objects": {
-            "1": "Legend/plot1",
-            "2": "Text1/Line1/layer2_plot1",
-            "3": "Text/plot2",
+            "1": "Legend/layer1_plot1",
+            "2": "Text1/Line1(layer1)->layer2_plot1",
+            "3": "Text/layer1_plot2",
         },
-        "native_line_samples_preserved": True,
+        "native_legends": True,
+        "manual_line_removed": True,
     }
 
 
@@ -13584,17 +13408,10 @@ def _update_verified_photocurrent_legend(
             "applied": False,
             "reason": "photocurrent_legend_requires_three_nonempty_unique_current_labels",
         }
-    rows = [
-        f"\\l({index})\\b( {_reviewed_template_legend_rich_text(label)})"
-        for index, label in enumerate(labels, start=1)
-    ]
-    text = "\r\n".join(rows)
-    if not _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        text,
-    ):
+    if not update_native_legend(
+        operations, graph_name, labels,
+        plot_indices=range(1, len(labels) + 1),
+    ).ok:
         return {
             "applied": False,
             "reason": "photocurrent_legend_com_text_write_failed",
@@ -13603,7 +13420,7 @@ def _update_verified_photocurrent_legend(
         "applied": True,
         "method": "template_legend_current_bold_rich_text",
         "entries": labels,
-        "rich_text": text,
+        "native_legend": True,
         "line_samples_preserved": True,
         "old_sample_names_removed": True,
     }
@@ -13620,24 +13437,16 @@ def _update_verified_ftir_legend(
             "applied": False,
             "reason": "ftir_legend_requires_exact_reviewed_series_labels",
         }
-    rows = [
-        r"\l(1)\b(\i( )\c1(BiOBr)\-(\c1(0.5))\c1(Cl)\-(\c1(0.5)))",
-        r"\l(2)\b(\i( )CuWO\-(4))",
-        r"\l(3)\b(\i( )BiCu-10)",
-    ]
-    text = "\r\n".join(rows)
-    if not _set_origin_graph_object_text(
-        operations,
-        graph_name,
-        "Legend",
-        text,
-    ):
+    if not update_native_legend(
+        operations, graph_name, _ftir_native_legend_labels(labels),
+        plot_indices=range(1, len(labels) + 1),
+    ).ok:
         return {"applied": False, "reason": "ftir_legend_com_text_write_failed"}
     return {
         "applied": True,
         "method": "template_legend_exact_reference_rich_text",
         "entries": list(labels),
-        "rich_text": text,
+        "native_legend": True,
         "line_samples_preserved": True,
     }
 
@@ -13661,8 +13470,7 @@ def _set_origin_graph_object_text(
     if graph_object is None:
         return False
     try:
-        # Reassigning the same text is intentional: Origin can retain a stale
-        # rendered legend even after the LabTalk text value has changed.
+        # Refresh native annotation rendering after a LabTalk text change.
         graph_object.Text = text
     except Exception:
         return False

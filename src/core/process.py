@@ -151,8 +151,22 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
     )
     _write_processing_skipped_auxiliary(project_root, skipped_auxiliary, output_root=options.output_root)
     _write_processing_failures(project_root, failures, output_root=options.output_root)
-    _write_processing_summary(project_root, manifest, results, failures, skipped_auxiliary=skipped_auxiliary, output_root=options.output_root)
-    _write_review_dashboard(project_root, manifest, results, failures, output_root=options.output_root)
+    summary = _write_processing_summary(
+        project_root,
+        manifest,
+        results,
+        failures,
+        skipped_auxiliary=skipped_auxiliary,
+        output_root=options.output_root,
+    )
+    _write_review_dashboard(
+        project_root,
+        manifest,
+        results,
+        failures,
+        output_root=options.output_root,
+        summary=summary,
+    )
     return 2 if failures else 0
 
 
@@ -628,7 +642,7 @@ def _write_processing_summary(
     *,
     skipped_auxiliary: list[dict] | None = None,
     output_root: Path | None = None,
-) -> None:
+) -> dict:
     skipped_auxiliary = skipped_auxiliary or []
     type_stats: dict[str, dict[str, int]] = {}
     result_sources = set()
@@ -714,6 +728,7 @@ def _write_processing_summary(
     for item in skipped_auxiliary:
         lines.append(f"- {item['source_file']}: {item['skip_reason']}")
     report_path(project_root, "processing_summary.md", output_root=output_root).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return summary
 
 
 def _artifact_missing(project_root: Path, metadata: dict, name: str, *, output_root: Path | None = None) -> bool:
@@ -737,8 +752,17 @@ def _artifact_missing(project_root: Path, metadata: dict, name: str, *, output_r
     return not path.exists()
 
 
-def _write_review_dashboard(project_root: Path, manifest: dict, results: list[dict], failures: list[dict], *, output_root: Path | None = None) -> None:
-    summary = json.loads(report_path(project_root, "processing_summary.json", output_root=output_root).read_text(encoding="utf-8"))
+def _write_review_dashboard(
+    project_root: Path,
+    manifest: dict,
+    results: list[dict],
+    failures: list[dict],
+    *,
+    output_root: Path | None = None,
+    summary: dict | None = None,
+) -> None:
+    if summary is None:
+        summary = json.loads(report_path(project_root, "processing_summary.json", output_root=output_root).read_text(encoding="utf-8"))
     dashboard = output_dir(project_root, "review_dashboard", output_root=output_root)
     triage_manifest = _load_report_json(project_root, "data_triage_manifest.json", output_root=output_root)
     processing_queue = _load_report_json(project_root, "processing_queue.json", output_root=output_root)

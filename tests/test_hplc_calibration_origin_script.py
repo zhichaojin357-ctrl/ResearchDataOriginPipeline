@@ -635,6 +635,47 @@ def test_hplc_calibration_script_preserves_three_template_pages_and_locked_style
     assert "layer.y.showLabels=1" in text
 
 
+def test_hplc_calibration_uses_native_long_name_and_comment_legend_metadata() -> None:
+    text = _script_text()
+
+    assert "$safeSubstance = Escape-OriginText $Substance" in text
+    assert "$legendLongName = '\\b(' + $safeSubstance + ')'" in text
+    assert "wks.col2.lname$=\"' + $legendLongName + '\";" in text
+    assert "function Set-CalibrationLegendMetadata(" in text
+    assert "range -wy __hplc_plot_y=[" in text
+    assert '__hplc_plot_y[C]$="' in text
+    assert 'rdop_native_legend_format("@(@LA@LC)")' in text
+    assert "Set-CalibrationLegendMetadata $App $PageName $slope $intercept $r2" in text
+    assert "Set-CalibrationStatisticsAnnotation(" not in text
+    assert "HplcFitStatistics" not in text
+    assert "legend.text" not in text.lower()
+    assert "\\l(1)" not in text
+    set_legend = text[text.index("function Set-Legend("):text.index("function Set-CalibrationLegendMetadata(")]
+    assert ".Text =" not in set_legend
+
+
+def test_hplc_finalizes_native_legend_layout_after_prepared_and_final_graph_style() -> None:
+    text = _script_text()
+
+    assert "function Invoke-NativeLegendLayoutFinalizer(" in text
+    assert "native_legend_layout.c" in text
+    assert 'run.LoadOC("' in text
+    assert '",16);' in text
+    assert "rdop_place_legends()" in text
+    assert "$layoutResult -ne 1 -and $layoutResult -ne 2" in text
+    assert "Native legend layout failed for $PageName" in text
+    assert "native_legend.c" in text
+
+    original_export = text.index("$templateOriginalPreviewMap[$s.Page] = Export-GraphPng")
+    prepared_finalizer = text.index("Invoke-NativeLegendLayoutFinalizer $app $s.TemplateGraph")
+    prepared_export = text.index("$templatePreviewMap[$s.Page] = Export-GraphPng")
+    sanitize = text.index("Sanitize-ProjectPages $app")
+    final_graph_finalizer = text.index("Invoke-NativeLegendLayoutFinalizer $app $s.Page", sanitize)
+    save_index = text.index("$app.Save($outputOpju)")
+    assert original_export < prepared_finalizer < prepared_export
+    assert sanitize < final_graph_finalizer < save_index
+
+
 def test_hplc_final_exports_are_read_back_from_the_reopened_opju() -> None:
     text = _script_text()
 

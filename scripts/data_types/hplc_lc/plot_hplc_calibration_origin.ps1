@@ -620,7 +620,7 @@ function Wait-ForOutputFile([string]$Path, [int]$TimeoutSeconds = 20) {
 }
 
 function Get-OriginProcessIds() {
-  return @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | ForEach-Object { [int]$_.Id })
+  return @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | Where-Object { $_.Threads.Count -gt 0 } | ForEach-Object { [int]$_.Id })
 }
 
 function Get-OriginProcessIdsStartedByScript([int[]]$BeforePids) {
@@ -630,14 +630,14 @@ function Get-OriginProcessIdsStartedByScript([int[]]$BeforePids) {
   while ((Get-Date) -lt $deadline) {
     $owned = @(
       Get-Process -Name Origin* -ErrorAction SilentlyContinue |
-      Where-Object { -not $known.ContainsKey([int]$_.Id) } |
+      Where-Object { $_.Threads.Count -gt 0 -and -not $known.ContainsKey([int]$_.Id) } |
       ForEach-Object { [int]$_.Id }
     )
     if ($owned.Count -gt 0) {
       Start-Sleep -Milliseconds 500
       $stabilized = @(
         Get-Process -Name Origin* -ErrorAction SilentlyContinue |
-        Where-Object { -not $known.ContainsKey([int]$_.Id) } |
+        Where-Object { $_.Threads.Count -gt 0 -and -not $known.ContainsKey([int]$_.Id) } |
         ForEach-Object { [int]$_.Id }
       )
       if ($stabilized.Count -eq 1) { return $stabilized }
@@ -954,32 +954,22 @@ function Assert-HplcYAxisStyle($App, [string]$PageName, [int]$ExpectedYDivideBy)
 function Set-Legend(
   $App,
   [string]$PageName,
-  [string]$Substance,
-  [double]$Slope,
-  [double]$Intercept,
-  [double]$R2,
   [int]$LegendLeft,
   [int]$LegendTop,
   [int]$LegendWidth,
   [int]$LegendHeight
 ) {
   $App.Execute('win -a ' + $PageName + ';') | Out-Null
+  $App.Execute('legend.font$="Arial"; legend.fsize=26; legend.bold=1; legend.border=0; legend.frame=0; legend.fill=0;') | Out-Null
   $layer = $App.FindGraphLayer($PageName)
   if (-not $layer) { $layer = $App.FindGraphLayer($PageName + '!1') }
   if (-not $layer) { return }
-
-  $rows = @(
-    ('\l(1) \b( ' + $Substance + ')'),
-    ('\b(y = ' + $Slope.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + 'x + ' + $Intercept.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + ')'),
-    ('\b(R\+(2) = ' + $R2.ToString('0.000000', [Globalization.CultureInfo]::InvariantCulture) + ')')
-  )
 
   for ($i = 0; $i -lt $layer.GraphObjects.Count; $i++) {
     $obj = $layer.GraphObjects.Item($i)
     $name = ''
     try { $name = $obj.Name } catch {}
     if ($name -eq 'Legend') {
-      $obj.Text = ($rows -join "`r`n")
       try {
         $obj.Left = $LegendLeft
         $obj.Top = $LegendTop
@@ -987,6 +977,46 @@ function Set-Legend(
         $obj.Height = $LegendHeight
       } catch {}
     }
+  }
+}
+
+function Set-CalibrationLegendMetadata(
+  $App,
+  [string]$PageName,
+  [double]$Slope,
+  [double]$Intercept,
+  [double]$R2
+) {
+  $comment = @(
+    '',
+    ('\b(y = ' + $Slope.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + 'x + ' + $Intercept.ToString('0.0000', [Globalization.CultureInfo]::InvariantCulture) + ')'),
+    ('\b(R\+(2) = ' + $R2.ToString('0.000000', [Globalization.CultureInfo]::InvariantCulture) + ')')
+  ) -join '%(CRLF)'
+  $safeComment = Escape-OriginText $comment
+  $App.Execute('win -a ' + $PageName + '; range -wy __hplc_plot_y=[' + $PageName + ']1!1; __hplc_plot_y[C]$="' + $safeComment + '";') | Out-Null
+  $nativeSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../origin/native_legend.c'))
+  $App.Execute('__hplc_compile=run.LoadOC("' + (Escape-OriginText $nativeSource) + '",16);') | Out-Null
+  if ($App.LTVar('__hplc_compile') -ne 0) { throw 'Origin native legend operation did not compile.' }
+  $App.Execute('__hplc_legend_ok=0; run -oc {__hplc_legend_ok=rdop_native_legend_format("@(@LA@LC)")};') | Out-Null
+  if ($App.LTVar('__hplc_legend_ok') -ne 1) { throw 'Origin did not generate the calibration legend.' }
+}
+
+$script:NativeLegendLayoutCompiled = $false
+function Invoke-NativeLegendLayoutFinalizer($App, [string]$PageName) {
+  if (-not $script:NativeLegendLayoutCompiled) {
+    $nativeSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../origin/native_legend_layout.c'))
+    $App.Execute('__rdop_legend_compile=run.LoadOC("' + (Escape-OriginText $nativeSource) + '",16);') | Out-Null
+    $compileResult = [int]$App.LTVar('__rdop_legend_compile')
+    if ($compileResult -ne 0) {
+      throw "Native legend layout compile failed for $PageName (run.LoadOC result: $compileResult)."
+    }
+    $script:NativeLegendLayoutCompiled = $true
+  }
+  $safePageName = Escape-OriginText $PageName
+  $App.Execute('win -a "' + $safePageName + '"; __rdop_legend_layout=0; run -oc {__rdop_legend_layout=rdop_place_legends();};') | Out-Null
+  $layoutResult = [int]$App.LTVar('__rdop_legend_layout')
+  if ($layoutResult -ne 1 -and $layoutResult -ne 2) {
+    throw "Native legend layout failed for $PageName (rdop_place_legends result: $layoutResult)."
   }
 }
 
@@ -1050,14 +1080,16 @@ function Set-OriginWorksheetColumn($App, [int]$ColumnIndex, [double[]]$Values) {
   }
 }
 
-function Initialize-OriginCalibrationWorksheet($App, [string]$BookName, [string]$DisplayName, [int]$RowCount) {
+function Initialize-OriginCalibrationWorksheet($App, [string]$BookName, [string]$DisplayName, [string]$Substance, [int]$RowCount) {
   $sheetName = Convert-ToSafeOriginName ([System.IO.Path]::GetFileNameWithoutExtension($DisplayName)) 'Data'
   $App.Execute('newbook name:="' + $BookName + '";') | Out-Null
   $safeDisplayName = Escape-OriginText $DisplayName
+  $safeSubstance = Escape-OriginText $Substance
+  $legendLongName = '\b(' + $safeSubstance + ')'
   $App.Execute('page.longname$="' + $safeDisplayName + '"; page.comments$=""; page.comment$="";') | Out-Null
   $App.Execute('wks.name$="' + $sheetName + '"; wks.longname$="' + $safeDisplayName + '"; wks.comments$=""; wks.comment$=""; wks.ncols=3; wks.nrows=' + $RowCount + ';') | Out-Null
   $App.Execute('wks.col1.type=4; wks.col2.type=1; wks.col3.type=1;') | Out-Null
-  $App.Execute('wks.col1.lname$="Concentration_mM"; wks.col2.lname$="Measured"; wks.col3.lname$="Origin_Linear_Fit";') | Out-Null
+  $App.Execute('wks.col1.lname$="Concentration_mM"; wks.col2.lname$="' + $legendLongName + '"; wks.col3.lname$="Origin_Linear_Fit";') | Out-Null
   $App.Execute('wks.col1.comment$=""; wks.col2.comment$=""; wks.col3.comment$="";') | Out-Null
 }
 
@@ -1096,7 +1128,7 @@ function Import-And-PlotCalibration(
   if ($Concentrations.Count -ne $Measured.Count) {
     throw "HPLC calibration series length mismatch on $PageName"
   }
-  Initialize-OriginCalibrationWorksheet $App $bookName $dataFileName $Concentrations.Count
+  Initialize-OriginCalibrationWorksheet $App $bookName $dataFileName $Substance $Concentrations.Count
   Set-OriginWorksheetColumn $App 1 $Concentrations
   Set-OriginWorksheetColumn $App 2 $Measured
   $App.Execute('fitlr iy:=(1,2) oy:=(1,3);') | Out-Null
@@ -1114,11 +1146,12 @@ function Import-And-PlotCalibration(
   $App.Execute('axis -ps Y A 3; axis -ps Y L 1; layer.y.showAxes=3; layer.y.showLabels=1; layer.y.opposite=1; layer.y.showopposite=1; layer.y.label.dir=1; layer.y.label.rotate=0; layer.y.label.pt=22; layer.y.label.bold=1; layer.y.ticks=2; layer.y.tickthickness=3; layer.y.ticklength=8; layer.y.label.divideBy=' + $YDivideBy + '; layer.y2.ticks=0; layer.x.thickness=3; layer.y.thickness=3; layer.y2.thickness=3; doc -e DY {set %C -c color(255,128,0);};') | Out-Null
   $App.Execute('label -xb "\b(' + $XTitle + ')"; label -yl "' + $YTitle + '";') | Out-Null
   Apply-HplcYAxisStyle $App $PageName $YDivideBy $YTitle
-  $App.Execute('legendupdate mode:=lname; doc -e DY {set %C -sx 0; set %C -sy 0; set %C -sxs 1; set %C -sys 1; set %C -lw 3; set %C -z 7;};') | Out-Null
+  $App.Execute('doc -e DY {set %C -sx 0; set %C -sy 0; set %C -sxs 1; set %C -sys 1; set %C -lw 3; set %C -z 7;};') | Out-Null
+  Set-CalibrationLegendMetadata $App $PageName $slope $intercept $r2
   Sanitize-Graph $App $PageName
   Set-HplcTextObjectBounds $App $PageName 'XB' $XTitleLeft $XTitleTop $XTitleWidth $XTitleHeight
   Set-HplcTextObjectBounds $App $PageName 'YL' $YTitleLeft $YTitleTop $YTitleWidth $YTitleHeight
-  Set-Legend $App $PageName $Substance $slope $intercept $r2 $LegendLeft $LegendTop $LegendWidth $LegendHeight
+  Set-Legend $App $PageName $LegendLeft $LegendTop $LegendWidth $LegendHeight
   Apply-HplcYAxisStyle $App $PageName $YDivideBy $YTitle
   Set-HplcTextObjectBounds $App $PageName 'XB' $XTitleLeft $XTitleTop $XTitleWidth $XTitleHeight
   Set-HplcTextObjectBounds $App $PageName 'YL' $YTitleLeft $YTitleTop $YTitleWidth $YTitleHeight
@@ -1501,6 +1534,14 @@ try {
       Export-GraphTif $app $s.TemplateGraph $templateOriginalTifDir ($s.Page + '_template_original') $ExportDpi | Out-Null
     }
     Apply-HplcYAxisStyle $app $s.TemplateGraph $s.YDivideBy $s.YTitle
+    # Keep the untouched export above; the comparison uses the requested native legend policy.
+    $app.Execute('range -wy __hplc_reference_y=[' + $s.TemplateGraph + ']1!1; fitlr iy:=__hplc_reference_y; __hplc_reference_y[L]$="\b(' + (Escape-OriginText $s.Name) + ')";') | Out-Null
+    $referenceSlope = [double]$app.Evaluate('fitlr.b')
+    $referenceIntercept = [double]$app.Evaluate('fitlr.a')
+    $referenceR = [double]$app.Evaluate('fitlr.r')
+    Set-CalibrationLegendMetadata $app $s.TemplateGraph $referenceSlope $referenceIntercept ($referenceR * $referenceR)
+    Set-Legend $app $s.TemplateGraph $s.LegendLeft $s.LegendTop $s.LegendWidth $s.LegendHeight
+    Invoke-NativeLegendLayoutFinalizer $app $s.TemplateGraph
     if ($ExportTemplateComparison) {
       $templatePreviewMap[$s.Page] = Export-GraphPng $app $s.TemplateGraph $templatePreviewDir ($s.Page + '_template')
       Export-GraphTif $app $s.TemplateGraph $templateTifDir ($s.Page + '_template') $ExportDpi | Out-Null
@@ -1528,6 +1569,9 @@ try {
   }
 
   Sanitize-ProjectPages $app
+  foreach ($s in $series) {
+    Invoke-NativeLegendLayoutFinalizer $app $s.Page
+  }
   $app.Save($outputOpju) | Out-Null
   Wait-ForOutputFile $outputOpju
   $app.NewProject() | Out-Null
@@ -1614,6 +1658,7 @@ $metadataPayload = [ordered]@{
   template_expected_preview_png = if ($ExportTemplateComparison) { @($series | ForEach-Object { To-RunRelativePath $templatePreviewMap[$_.Page] $OutputDir }) } else { @() }
   template_comparison_report = if ($ExportTemplateComparison) { To-RunRelativePath $comparisonReport $OutputDir } else { $null }
   template_comparison_exact_pixel_match = if ($ExportTemplateComparison) { $comparisonExact } else { $null }
+  template_comparison_preparation = @('existing HPLC Y-axis policy', 'native Long Name and fit-comment legend; original legend layout is retained in template_original_preview')
   template_source = [ordered]@{
     filename = [System.IO.Path]::GetFileName($templateOpjuPath)
     sha256_before = $templateHashBefore
