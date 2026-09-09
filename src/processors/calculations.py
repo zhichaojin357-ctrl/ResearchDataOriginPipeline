@@ -389,30 +389,30 @@ def eis_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) 
 
 
 def lc_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -> dict:
-    mode = classify_hplc_lc_exported_table(rows)
+    # Processor rows are already normalized by the table reader. Public table
+    # adapters retain their DataFrame/iterable conversion at their boundary.
+    mode = lc_export_mode(rows)
     result = {
         "lc_export_mode": mode,
     }
     if mode == "ambiguous":
-        review = build_hplc_lc_manual_review_reason(rows)
         result.update(
             {
-                "lc_manual_review_required": review["manual_review_required"],
-                "lc_missing_fields": review["missing_fields"],
+                "lc_manual_review_required": True,
+                "lc_missing_fields": lc_missing_fields(rows),
                 "lc_plot_intent": build_hplc_lc_plot_intent(mode),
             }
         )
         return result
 
     if mode == "calibration_curve":
-        candidate = extract_hplc_lc_calibration_candidate(rows)
+        candidate = lc_calibration_candidate(rows)
         result.update(
             {
-                "lc_plot_intent": candidate["plot_intent"],
+                "lc_plot_intent": build_hplc_lc_plot_intent(mode),
                 "lc_calibration_candidate": {
-                    key: value
-                    for key, value in candidate.items()
-                    if key not in {"candidate", "mode", "plot_intent", "requires_manual_mapping"}
+                    **candidate,
+                    "forbidden_claims": hplc_lc_forbidden_candidate_claims(),
                 },
             }
         )
@@ -421,18 +421,17 @@ def lc_results(numeric: list[tuple[float, float]], rows: list[dict[str, str]]) -
     result["retention_time_range"] = [numeric[0][0], numeric[-1][0]] if numeric else []
     if mode == "peak_table":
         areas = column_values(rows, ["area", "peak area"])
-        candidate = extract_hplc_lc_peak_table_candidate(rows)
         result.update(
             {
                 "peak_area_total_candidate": sum(areas) if areas else None,
-                "lc_candidate_peaks": candidate["peaks"],
+                "lc_candidate_peaks": lc_candidate_peak_rows(rows),
                 "lc_requires_manual_calibration": True,
                 "lc_quantification_boundary": "requires_manual_calibration",
-                "lc_plot_intent": candidate["plot_intent"],
+                "lc_plot_intent": build_hplc_lc_plot_intent(mode),
             }
         )
     else:
-        result["lc_plot_intent"] = extract_hplc_lc_chromatogram_candidate(rows)["plot_intent"]
+        result["lc_plot_intent"] = build_hplc_lc_plot_intent(mode)
     blocked_reason = lc_quantification_blocked_reason(rows)
     if blocked_reason:
         result["lc_quantification_blocked_reason"] = blocked_reason
@@ -589,8 +588,20 @@ def xps_package_results(rows: list[dict[str, str]]) -> dict:
         return {}
     from src.adapters import xps_lmfitxps_adapter
 
-    result = xps_lmfitxps_adapter.process_or_analyze(xps_numeric_curves(rows))
+    result = xps_lmfitxps_adapter.summarize_curve_labels(xps_numeric_curve_labels(rows))
     return result if result.get("ok") else {}
+
+
+def xps_numeric_curve_labels(rows: list[dict[str, str]]) -> list[str]:
+    """Find the nonempty numeric curves without materializing their values."""
+    if not rows:
+        return []
+    binding_key = matching_key(rows[0], ["binding energy", "bindingenergy"])
+    return [
+        key for key in rows[0]
+        if key != binding_key
+        and any(_resolved_numeric(row, key) is not None for row in rows)
+    ]
 
 
 def xps_numeric_curves(rows: list[dict[str, str]]) -> dict[str, list[float]]:
@@ -1517,6 +1528,14 @@ def scipy_peak_positions(numeric: list[tuple[float, float]]) -> list[float]:
     result = peak_detection_adapter.process_or_analyze(x_values, y_values)
     if result.get("candidate_peaks"):
         return [float(item["x"]) for item in result["candidate_peaks"]]
+    if (
+        result.get("ok")
+        and result.get("fallback_reason") is None
+        and result.get("metadata_provenance", {}).get("method") == "scipy.signal.find_peaks"
+    ):
+        # A successful empty result is final for SciPy; local_peak_positions
+        # still applies its existing neighbour fallback where required.
+        return []
     try:
         from scipy.signal import find_peaks
     except Exception:

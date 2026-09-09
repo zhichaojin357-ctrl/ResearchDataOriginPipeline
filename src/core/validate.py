@@ -5,6 +5,7 @@ import json
 import os
 import stat
 from pathlib import Path
+from datetime import datetime
 from typing import Iterator
 
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
@@ -16,83 +17,51 @@ from src.core.project import (
     claim_policy_path,
     ensure_output_structure,
     load_json_compatible_yaml,
+    read_project_yaml,
     registry_path,
     report_path,
 )
 from src.core.runtime_paths import resolve_workspace_root
 from src.core.runtime_paths import resolve_output_root
 from src.origin.adapter import ORIGIN_DISABLE_ENV_VARS, check_origin_available
-from src.origin.plot_policy import all_plot_policies, validate_graph4_style_config
+from src.origin.plot_policy import GRAPH4_FIXED_STYLE, all_plot_policies
 from src.origin.style_registry import validate_origin_style_asset_integrity
 
 
-def validate(project_root: Path) -> int:
+def validate(project_root: Path, *, scope: str = "full") -> int:
+    if scope not in {"full", "runtime"}:
+        raise ValueError(f"unknown validation scope: {scope}")
     output_root = resolve_output_root(project_root)
     ensure_output_structure(project_root, output_root=output_root)
-    failures = []
-    lines = ["# Validation Report", ""]
+    checks: list[dict] = []
+    notes: list[str] = []
+
+    def record(name: str, label: str, passed: bool, detail: str = "", *, skip: bool = False) -> None:
+        checks.append({"name": name, "label": label, "status": "skip" if skip else "pass" if passed else "fail", "detail": detail})
 
     dep_code, _ = dependency_audit(project_root)
-    lines.append(f"- Dependency audit: {'pass' if dep_code == 0 else 'fail'}")
-    if dep_code:
-        failures.append("missing core dependencies")
-
+    record("dependencies", "Dependency audit", dep_code == 0, "missing core dependencies" if dep_code else "")
     origin_ok, origin_message = check_origin_available()
     origin_disabled = any(f"{env_var}=1" in origin_message for env_var in ORIGIN_DISABLE_ENV_VARS)
-    origin_status = "pass" if origin_ok else "skip" if origin_disabled else "fail"
-    lines.append(f"- Origin callability: {origin_status} ({origin_message})")
-    if not origin_ok and not origin_disabled:
-        failures.append("Origin unavailable")
+    record("origin_callability", "Origin callability", origin_ok, origin_message, skip=not origin_ok and origin_disabled)
 
-    missing_output_dirs = [
-        name for name in REQUIRED_OUTPUT_DIRS if not (output_root / name).is_dir()
-    ]
-    lines.append(f"- Required output directories: {'pass' if not missing_output_dirs else 'fail'}")
-    if missing_output_dirs:
-        failures.append("missing output directories: " + ", ".join(missing_output_dirs))
-
+    missing_output_dirs = [name for name in REQUIRED_OUTPUT_DIRS if not (output_root / name).is_dir()]
+    record("output_directories", "Required output directories", not missing_output_dirs, ", ".join(missing_output_dirs))
     registry = load_json_compatible_yaml(registry_path(project_root))
     claim = load_json_compatible_yaml(claim_policy_path(project_root))
-    required_config_files = [
-        "default.yaml",
-        "processor_registry.yaml",
-        "claim_policy.yaml",
-        "plot_style.yaml",
-        "sample_registry.yaml",
-        "manual_overrides.yaml",
-    ]
+    required_config_files = ["default.yaml", "processor_registry.yaml", "claim_policy.yaml", "plot_style.yaml", "sample_registry.yaml", "manual_overrides.yaml"]
     missing_config = [name for name in required_config_files if not (project_root / "config" / name).exists()]
-    lines.append(f"- Required config files: {'pass' if not missing_config else 'fail'}")
-    if missing_config:
-        failures.append("missing required config files: " + ", ".join(missing_config))
-
-    lines.append(f"- Processor registry entries: {len(registry['entries'])}")
+    record("config_files", "Required config files", not missing_config, ", ".join(missing_config))
+    notes.append(f"Processor registry entries: {len(registry['entries'])}")
     supported_entries = [entry for entry in registry["entries"] if entry["supported_in_pipeline"]]
-    lines.append(f"- Pipeline-supported entries: {len(supported_entries)}")
+    notes.append(f"Pipeline-supported entries: {len(supported_entries)}")
     registry_summary_failures = _processor_registry_summary_failures(registry)
-    lines.append(
-        f"- Processor registry supported summary: "
-        f"{'pass' if not registry_summary_failures else 'fail'}"
-    )
-    if registry_summary_failures:
-        for failure in registry_summary_failures:
-            lines.append(f"  - {failure}")
-        failures.append("processor registry supported summary drift")
+    record("registry_supported_summary", "Processor registry supported summary", not registry_summary_failures, ("processor registry supported summary drift; " + "; ".join(registry_summary_failures)) if registry_summary_failures else "")
     required_registry_fields = set(registry.get("required_fields", [])) | {
-        "folder_name",
-        "inferred_data_type",
-        "supported_in_pipeline",
-        "selected_processor",
-        "special_handling",
+        "folder_name", "inferred_data_type", "supported_in_pipeline", "selected_processor", "special_handling",
     }
-    incomplete_registry_entries = [
-        entry.get("folder_name", "<unknown>")
-        for entry in registry["entries"]
-        if not required_registry_fields.issubset(entry)
-    ]
-    lines.append(f"- Processor registry required fields: {'pass' if not incomplete_registry_entries else 'fail'}")
-    if incomplete_registry_entries:
-        failures.append("registry entries missing required fields")
+    incomplete_registry_entries = [entry.get("folder_name", "<unknown>") for entry in registry["entries"] if not required_registry_fields.issubset(entry)]
+    record("registry_required_fields", "Processor registry required fields", not incomplete_registry_entries, ", ".join(incomplete_registry_entries))
 
     deferred_requirements = {
         "SEM_image_data": {"folder_name": "SEM"},
@@ -104,14 +73,9 @@ def validate(project_root: Path) -> int:
     deferred_failures = []
     deferred_seen = []
     for inferred_type, expected in deferred_requirements.items():
-        matches = [
-            entry
-            for entry in registry["entries"]
-            if entry.get("inferred_data_type") == inferred_type
-            and (not expected.get("folder_name") or entry.get("folder_name") == expected["folder_name"])
-        ]
+        matches = [entry for entry in registry["entries"] if entry.get("inferred_data_type") == inferred_type and entry.get("folder_name") == expected["folder_name"]]
         if not matches:
-            deferred_failures.append(f"{expected.get('folder_name', inferred_type)} missing")
+            deferred_failures.append(f"{expected['folder_name']} missing")
             continue
         entry = matches[0]
         deferred_seen.append(f"{entry.get('folder_name')}={inferred_type}")
@@ -121,167 +85,146 @@ def validate(project_root: Path) -> int:
             deferred_failures.append(f"{entry.get('folder_name')} special_handling must be scan_only")
         if entry.get("selected_processor") != "none":
             deferred_failures.append(f"{entry.get('folder_name')} {inferred_type} selected_processor must be none")
-    lines.append(f"- Deferred/reference registry semantics: {'pass' if not deferred_failures else 'fail'}")
-    if deferred_seen:
-        lines.append("  - " + ", ".join(deferred_seen))
-    if deferred_failures:
-        for failure in deferred_failures:
-            lines.append(f"  - {failure}")
-        failures.append("deferred/reference registry semantics invalid")
+    record("deferred_registry_semantics", "Deferred/reference registry semantics", not deferred_failures, "; ".join(deferred_failures or deferred_seen))
 
-    forbidden = ["src/ppt", "templates/ppt", "ppt_layout.yaml", "slide_plan.json", "presentation.pptx"]
+    forbidden = ["src/ppt", "templates/ppt"]
+    if scope == "full":
+        forbidden.extend(["ppt_layout.yaml", "slide_plan.json", "presentation.pptx"])
     found = [path for path in forbidden if (project_root / path).exists()]
-    lines.append(f"- PPT forbidden paths: {'pass' if not found else 'fail'}")
-    if found:
-        failures.append("PPT forbidden paths exist")
-
-    presentation_artifacts = []
-    scan_roots = [project_root]
-    allowed_source_roots = _allowed_source_artifact_roots(project_root)
-    if output_root.resolve() != project_root.resolve() and not _is_under_or_equal(output_root.resolve(), project_root.resolve()):
-        scan_roots.append(output_root)
-    for scan_root in scan_roots:
-        if not scan_root.exists():
-            continue
-        presentation_artifacts.extend(
-            path
-            for path in _iter_files_without_link_descent(scan_root)
-            if not _is_allowed_source_artifact(path, allowed_source_roots)
-            and (
-                path.suffix.lower() in {".ppt", ".pptx"}
-                or path.name == "slide_plan.json"
-                or path.name == "ppt_layout.yaml"
-                or path.name == "presentation.pptx"
-            )
-        )
-    lines.append(f"- Forbidden presentation artifacts: {'pass' if not presentation_artifacts else 'fail'}")
-    if presentation_artifacts:
+    record("ppt_forbidden_paths", "PPT forbidden paths", not found, ", ".join(found))
+    if scope == "full":
+        presentation_artifacts = []
+        scan_roots = [project_root]
+        allowed_source_roots = _allowed_source_artifact_roots(project_root)
+        if not _is_under_or_equal(output_root.resolve(), project_root.resolve()):
+            scan_roots.append(output_root)
+        for scan_root in scan_roots:
+            if scan_root.exists():
+                presentation_artifacts.extend(
+                    path for path in _iter_files_without_link_descent(scan_root)
+                    if not _is_allowed_source_artifact(path, allowed_source_roots)
+                    and (path.suffix.lower() in {".ppt", ".pptx"} or path.name in {"slide_plan.json", "ppt_layout.yaml"})
+                )
         rendered = ", ".join(render_output_path(path, project_root=project_root, output_root=output_root) or str(path) for path in presentation_artifacts)
-        lines.append(f"  - {rendered}")
-        failures.append("forbidden presentation artifacts exist")
+        record("presentation_artifacts", "Forbidden presentation artifacts", not presentation_artifacts, rendered)
+    else:
+        record("presentation_artifacts", "Forbidden presentation artifacts", False, "outside runtime scope: user and historical output files", skip=True)
 
     kinetics_files = [
-        path
-        for path in (project_root / "src").rglob("*")
-        if path.is_file()
-        and any(
-            component.lower() in {"kinetics", "kinetic", "kinetics_processor", "kinetic_processor"}
-            or component.lower().startswith(("kinetics_", "kinetic_"))
-            for component in path.relative_to(project_root).parts
-        )
+        path for path in (project_root / "src").rglob("*") if path.is_file()
+        and any(component.lower() in {"kinetics", "kinetic", "kinetics_processor", "kinetic_processor"} or component.lower().startswith(("kinetics_", "kinetic_")) for component in path.relative_to(project_root).parts)
     ]
-    lines.append(f"- Kinetics processor paths: {'pass' if not kinetics_files else 'fail'}")
-    if kinetics_files:
-        rendered = ", ".join(str(path.relative_to(project_root)) for path in kinetics_files)
-        lines.append(f"  - {rendered}")
-        failures.append("kinetics processor path exists")
+    record("kinetics_processor_paths", "Kinetics processor paths", not kinetics_files, ", ".join(str(path.relative_to(project_root)) for path in kinetics_files))
 
-    plot_style = project_root / "config" / "plot_style.yaml"
-    text = plot_style.read_text(encoding="utf-8")
-    tif_config_pass = 'format: "tif"' in text and "dpi: 600" in text
-    lines.append(f"- TIF export config: {'pass' if tif_config_pass else 'fail'}")
-    if not tif_config_pass:
-        failures.append("TIF export config invalid")
+    style = read_project_yaml(project_root / "config" / "plot_style.yaml")
+    export = style.get("export", {})
+    template = style.get("origin_template", {})
+    record("tif_export_config", "TIF export config", export.get("format") == "tif" and export.get("dpi") == 600, "format=tif; dpi=600 required")
     origin_contract_checks = {
-        "Graph4 reference page": 'default_graph_page: "Graph4"' in text,
-        "Origin.Application automation": 'automation_entrypoint: "Origin.Application"' in text,
-        "avoid Origin.ApplicationSI": 'avoid_entrypoint: "Origin.ApplicationSI"' in text,
-        "PNG preview inspection": "Export PNG preview and visually inspect" in text,
-        "explicit bold legend rows": "explicit legend rows" in text,
-        "legend has no frame or fill": "legend_border: 0" in text and "legend_frame: 0" in text and "legend_fill: 0" in text,
-        "chemical formula subscripts": "chemical_formula_subscripts: true" in text,
-        "line width 3": "line_width: 3" in text and "axis_line_width: 3" in text,
-        "axis title size 36": "axis_title_size: 36" in text,
-        "X tick label size 28": "x_tick_label_size: 28" in text,
-        "Y tick label size 36": "y_tick_label_size: 36" in text,
-        "legend font size 26": "legend_font_size: 26" in text,
-        "annotation font size 26": "annotation_font_size: 26" in text,
-        "bold font enabled": "font_bold: true" in text,
+        "graph4_reference_page": ("Graph4 reference page", template.get("default_graph_page") == "Graph4"),
+        "origin_application": ("Origin.Application automation", template.get("automation_entrypoint") == "Origin.Application"),
+        "avoid_application_si": ("avoid Origin.ApplicationSI", template.get("avoid_entrypoint") == "Origin.ApplicationSI"),
+        "legend_no_frame_fill": ("legend has no frame or fill", all(style.get(key) == 0 for key in ("legend_border", "legend_frame", "legend_fill"))),
+        "chemical_subscripts": ("chemical formula subscripts", style.get("chemical_formula_subscripts") is True),
+        "line_width": ("line width 3", style.get("line_width") == 3 and style.get("axis_line_width") == 3),
+        "axis_title_size": ("axis title size 36", style.get("axis_title_size") == 36),
+        "x_tick_size": ("X tick label size 28", style.get("x_tick_label_size") == 28),
+        "y_tick_size": ("Y tick label size 36", style.get("y_tick_label_size") == 36),
+        "legend_font_size": ("legend font size 26", style.get("legend_font_size") == 26),
+        "annotation_font_size": ("annotation font size 26", style.get("annotation_font_size") == 26),
+        "bold_font": ("bold font enabled", style.get("font_bold") is True),
     }
-    for label, passed in origin_contract_checks.items():
-        lines.append(f"- Origin contract {label}: {'pass' if passed else 'fail'}")
-    failed_origin_contracts = [label for label, passed in origin_contract_checks.items() if not passed]
-    try:
-        validate_graph4_style_config(plot_style)
-        lines.append("- Origin Graph4 fixed style values: pass")
-    except ValueError as exc:
-        lines.append(f"- Origin Graph4 fixed style values: fail ({exc})")
-        failed_origin_contracts.append("Graph4 fixed style values")
-    if failed_origin_contracts:
-        failures.append("Origin plotting contract invalid: " + ", ".join(failed_origin_contracts))
+    for name, (label, passed) in origin_contract_checks.items():
+        record(f"origin_contract_{name}", f"Origin contract {label}", passed)
+    fixed_keys = ("line_width", "axis_line_width", "axis_title_size", "x_tick_label_size", "y_tick_label_size", "legend_font_size", "annotation_font_size")
+    fixed_style_ok = all(style.get(key) == getattr(GRAPH4_FIXED_STYLE, key) for key in fixed_keys) and style.get("font_bold") is True
+    record("graph4_fixed_style", "Origin Graph4 fixed style values", fixed_style_ok)
+    for name, label in (("png_inspection", "PNG preview inspection"), ("explicit_legend_rows", "explicit bold legend rows")):
+        record(name, f"Origin contract {label}", False, "verified on generated Origin products; instruction wording is not visual evidence", skip=True)
 
     style_integrity = validate_origin_style_asset_integrity(project_root)
-    lines.append(
-        f"- Origin style asset integrity: {'pass' if style_integrity['ok'] else 'fail'} "
-        f"(schema v{style_integrity['schema_version']}, assets={style_integrity['asset_count']})"
-    )
-    for warning in style_integrity.get("warnings", [])[:5]:
-        lines.append(f"  - warning: {warning}")
     style_failures = [str(value) for value in style_integrity.get("failures", [])]
+    detail = f"schema v{style_integrity['schema_version']}, assets={style_integrity['asset_count']}"
     if style_failures:
-        for failure in style_failures[:10]:
-            lines.append(f"  - {failure}")
-        if len(style_failures) > 10:
-            lines.append(f"  - ... {len(style_failures) - 10} more")
-        failures.append("Origin style asset integrity invalid")
+        detail += "; " + "; ".join(style_failures)
+    record("origin_style_asset_integrity", "Origin style asset integrity", style_integrity["ok"], detail)
+    notes.extend(f"Origin style asset warning: {warning}" for warning in style_integrity.get("warnings", []))
 
     origin_governance_files = {
         "snapshot_md": output_root / "reports" / "origin_plotting_skill_snapshot.md",
         "snapshot_json": output_root / "reports" / "origin_plotting_skill_snapshot.json",
         "journal_index": output_root / "reports" / "journal_ready_index.csv",
     }
-    generated_origin_governance_files = {
-        name: path
-        for name, path in origin_governance_files.items()
-        if name != "snapshot_md"
-    }
-    if any(path.exists() for path in generated_origin_governance_files.values()):
+    if scope == "runtime":
+        record("origin_governance_files", "Origin governance plotting governance files", False, "outside runtime scope: historical generated artifacts", skip=True)
+    elif any(path.exists() for name, path in origin_governance_files.items() if name != "snapshot_md"):
         missing_origin_governance = [name for name, path in origin_governance_files.items() if not path.exists()]
-        lines.append(f"- Origin governance plotting governance files: {'pass' if not missing_origin_governance else 'fail'}")
-        if missing_origin_governance:
-            failures.append("missing Origin governance plotting governance files: " + ", ".join(missing_origin_governance))
-        else:
+        record("origin_governance_files", "Origin governance plotting governance files", not missing_origin_governance, ", ".join(missing_origin_governance))
+        if not missing_origin_governance:
             snapshot = json.loads(origin_governance_files["snapshot_json"].read_text(encoding="utf-8"))
             skill_hash = snapshot.get("skill_sha256")
             snapshot_text = origin_governance_files["snapshot_md"].read_text(encoding="utf-8")
             hash_ok = bool(skill_hash) and skill_hash in snapshot_text
-            lines.append(f"- Origin governance plotting skill SHA256 recorded: {'pass' if hash_ok else 'fail'}")
-            if not hash_ok:
-                failures.append("Origin governance plotting skill SHA256 not recorded consistently")
+            record("origin_governance_snapshot_hash", "Origin governance plotting skill SHA256 recorded", hash_ok)
             with origin_governance_files["journal_index"].open(encoding="utf-8-sig", newline="") as handle:
                 reader = csv.DictReader(handle)
                 headers = set(reader.fieldnames or [])
                 rows = list(reader)
             missing_columns = sorted(REQUIRED_JOURNAL_INDEX_COLUMNS - headers)
-            lines.append(f"- Origin governance journal-ready index columns: {'pass' if not missing_columns else 'fail'}")
-            if missing_columns:
-                failures.append("Origin governance journal-ready index missing columns: " + ", ".join(missing_columns))
+            record("origin_governance_index_columns", "Origin governance journal-ready index columns", not missing_columns, ", ".join(missing_columns))
             if rows:
-                skill_column_ok = all(row.get("plotting_skill_sha256") == skill_hash for row in rows)
-                lines.append(f"- Origin governance journal-ready index skill hash: {'pass' if skill_column_ok else 'fail'}")
-                if not skill_column_ok:
-                    failures.append("Origin governance journal-ready index contains inconsistent plotting skill hashes")
+                record("origin_governance_index_hash", "Origin governance journal-ready index skill hash", all(row.get("plotting_skill_sha256") == skill_hash for row in rows))
                 policy_field_failures = _origin_governance_journal_policy_field_failures(rows)
-                lines.append(
-                    f"- Origin governance journal-ready index policy values: "
-                    f"{'pass' if not policy_field_failures else 'fail'}"
-                )
-                if policy_field_failures:
-                    for failure in policy_field_failures[:10]:
-                        lines.append(f"  - {failure}")
-                    if len(policy_field_failures) > 10:
-                        lines.append(f"  - ... {len(policy_field_failures) - 10} more")
-                    failures.append("Origin governance journal-ready index policy values invalid")
+                record("origin_governance_policy_values", "Origin governance journal-ready index policy values", not policy_field_failures, "; ".join(policy_field_failures))
     else:
-        lines.append("- Origin governance plotting governance files: not checked (no generated output artifacts)")
-    lines.append("- max_threads = 5")
-    lines.append("- max_depth = 1")
-    lines.append(f"- Claim policy forbidden claims: {len(claim.get('forbidden_claims', []))}")
-
-    if failures:
-        lines.extend(["", "## Failures", *[f"- {failure}" for failure in failures]])
-    report_path(project_root, "validation_report.md", output_root=output_root).write_text("\n".join(lines) + "\n", encoding="utf-8")
+        record("origin_governance_files", "Origin governance plotting governance files", False, "no generated output artifacts", skip=True)
+    notes.extend(["max_threads = 5", "max_depth = 1", f"Claim policy forbidden claims: {len(claim.get('forbidden_claims', []))}"])
+    failures = [check for check in checks if check["status"] == "fail"]
+    report = {
+        "report": "validation", "schema_version": 1, "scope": scope,
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "summary": {"checks": len(checks), "failures": len(failures), "skipped": sum(check["status"] == "skip" for check in checks)},
+        "checks": checks, "notes": notes, "inputs": _validation_input_fingerprints(project_root),
+        "origin_visual_verified": False,
+    }
+    report_path(project_root, "validation_report.json", output_root=output_root).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    report_path(project_root, "validation_report.md", output_root=output_root).write_text(_validation_markdown(report), encoding="utf-8")
     return 1 if failures else 0
+
+
+def _validation_markdown(report: dict) -> str:
+    lines = ["# Validation Report", "", f"- Scope: {report['scope']}", "- Origin visual results: not verified", ""]
+    for check in report["checks"]:
+        status = "not checked" if check["status"] == "skip" else check["status"]
+        suffix = f" ({check['detail']})" if check["status"] == "skip" and check["detail"] else ""
+        lines.append(f"- {check['label']}: {status}{suffix}")
+        if check["detail"] and check["status"] != "skip":
+            lines.append(f"  - {check['detail']}")
+    lines.extend(f"- {note}" for note in report["notes"])
+    failures = [check for check in report["checks"] if check["status"] == "fail"]
+    if failures:
+        lines.extend(["", "## Failures", *[f"- {check['label'].lower()}: {check['detail']}" for check in failures]])
+    return "\n".join(lines) + "\n"
+
+
+def _validation_input_fingerprints(project_root: Path) -> dict[str, dict[str, int]]:
+    """Track ordinary file changes; asset integrity is verified separately."""
+    candidates = []
+    for directory in ("src", "config", "scripts"):
+        root = project_root / directory
+        if root.is_dir():
+            candidates.extend(path for path in _iter_files_without_link_descent(root) if path.suffix.lower() in {".py", ".yaml", ".yml", ".json", ".ps1", ".toml"})
+    candidates.extend(path for path in (project_root / "requirements.txt", project_root / "pyproject.toml") if path.is_file())
+    style_manifest = project_root / "templates" / "origin_styles" / "manifest.json"
+    if style_manifest.is_file():
+        candidates.append(style_manifest)
+    inputs = {}
+    for path in sorted(candidates):
+        info = path.stat()
+        inputs[path.relative_to(project_root).as_posix()] = {
+            "mtime_ns": info.st_mtime_ns, "size_bytes": info.st_size,
+        }
+    return inputs
 
 
 def _iter_files_without_link_descent(root: Path) -> Iterator[Path]:

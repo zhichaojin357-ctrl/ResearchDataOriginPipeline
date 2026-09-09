@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import contextmanager
+from contextvars import ContextVar
 import csv
 import hashlib
 import json
@@ -22,7 +24,7 @@ from src.core.image_artifacts import (
     validate_tif_physical_resolution,
 )
 from src.core.project import (
-    _parse_simple_yaml,
+    read_project_yaml,
     default_output_root,
     ensure_write_path_allowed,
     output_dir,
@@ -32,7 +34,7 @@ from src.core.powershell_helpers import ps_array as _ps_array
 from src.core.powershell_helpers import ps_int_array as _ps_int_array
 from src.core.powershell_helpers import ps_quote as _ps_quote
 from src.core.runtime_paths import resolve_origin_helper, resolve_origin_reference_pattern
-from src.origin.operations import connect_origin, quote_labtalk, to_origin_path
+from src.origin.operations import connect_origin, origin_process_ids, quote_labtalk, to_origin_path
 from src.origin.plot_policy import Graph4FixedStyle, PlotPolicy, all_plot_policies, get_plot_policy, validate_graph4_style_config
 
 
@@ -50,6 +52,7 @@ class OriginResult:
     preview_png: Path | None
     message: str
     tif_resolution_evidence: TifResolutionEvidence | None = None
+    stage_timings_seconds: dict[str, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -397,11 +400,14 @@ def write_origin_success(project_root: Path, *, output_root: Path | None = None)
     )
 
 
-def _read_plot_style_value(project_root: Path, key: str, default: str) -> str:
+def _load_plot_style_config(project_root: Path) -> dict:
     path = project_root / "config" / "plot_style.yaml"
     if not path.exists():
-        return default
-    config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
+        return {}
+    return read_project_yaml(path)
+
+
+def _plot_style_value(config: dict, key: str, default: str) -> str:
     if key in config:
         return str(config[key])
     origin_template = config.get("origin_template", {})
@@ -607,14 +613,15 @@ def build_bet_combined_origin_job(
                 column_count=len(labels) + 1,
             )
         )
+    style_config = _load_plot_style_config(project_root)
     return BetCombinedOriginJob(
         dataset_id=dataset_id,
         origin_file=origin_dir / f"{safe_origin_file_name(dataset_id)}.opju",
         preview_dir=preview_dir,
-        helper_script=resolve_origin_helper(project_root),
-        reference_graph=_read_plot_style_value(project_root, "default_graph_page", "Graph4"),
-        automation_entrypoint=_read_plot_style_value(project_root, "automation_entrypoint", "Origin.Application"),
-        avoid_entrypoint=_read_plot_style_value(project_root, "avoid_entrypoint", "Origin.ApplicationSI"),
+        helper_script=resolve_origin_helper(project_root, plot_style_config=style_config),
+        reference_graph=_plot_style_value(style_config, "default_graph_page", "Graph4"),
+        automation_entrypoint=_plot_style_value(style_config, "automation_entrypoint", "Origin.Application"),
+        avoid_entrypoint=_plot_style_value(style_config, "avoid_entrypoint", "Origin.ApplicationSI"),
         groups=tuple(groups),
     )
 
@@ -1052,6 +1059,56 @@ def _write_material_color_report(
     )
 
 
+@dataclass
+class _MaterialColorBatch:
+    project_root: Path
+    output_root: Path
+    assignments: dict[tuple[str, int], dict[str, object]]
+
+
+_material_color_batch: ContextVar[_MaterialColorBatch | None] = ContextVar(
+    "material_color_batch", default=None
+)
+
+
+@contextmanager
+def material_color_report_batch(project_root: Path, output_root: Path | None = None):
+    """Write one cumulative report on exit, including any completed exports."""
+
+    batch = _MaterialColorBatch(
+        Path(project_root).resolve(), _origin_output_base(project_root, output_root), {}
+    )
+    active = _material_color_batch.get()
+    if active is not None and (active.project_root, active.output_root) == (batch.project_root, batch.output_root):
+        yield
+        return
+    token = _material_color_batch.set(batch)
+    try:
+        yield
+    finally:
+        _material_color_batch.reset(token)
+        if batch.assignments:
+            _write_material_color_report(
+                project_root, tuple(batch.assignments.values()), output_root=batch.output_root
+            )
+
+
+def _record_material_color_assignments(
+    project_root: Path,
+    assignments: tuple[dict[str, object], ...],
+    *,
+    output_root: Path | None = None,
+) -> None:
+    batch = _material_color_batch.get()
+    if batch is None or (batch.project_root, batch.output_root) != (
+        Path(project_root).resolve(), _origin_output_base(project_root, output_root)
+    ):
+        _write_material_color_report(project_root, assignments, output_root=output_root)
+        return
+    for item in assignments:
+        batch.assignments[(str(item["dataset_id"]), int(item["curve_index"]))] = item
+
+
 def _sanitize_report_payload(value: object) -> object:
     if isinstance(value, Path):
         return render_output_path(value)
@@ -1150,11 +1207,12 @@ def build_origin_plot_job(
     color_assignments = _color_assignments(dataset_id, data_type, labels, source_file, processed_csv)
     curve_colors = tuple(int(item["origin_ocolor"]) for item in color_assignments)
 
-    reference_search_pattern = resolve_origin_reference_pattern(project_root)
-    refresh_reference_style = _read_plot_style_value(project_root, "refresh_reference_style", "false").casefold() == "true"
-    fixed_style = validate_graph4_style_config(project_root / "config" / "plot_style.yaml")
-    line_width = float(_read_plot_style_value(project_root, "line_width", str(fixed_style.line_width)))
-    axis_line_width = float(_read_plot_style_value(project_root, "axis_line_width", str(fixed_style.axis_line_width)))
+    style_config = _load_plot_style_config(project_root)
+    reference_search_pattern = resolve_origin_reference_pattern(project_root, plot_style_config=style_config)
+    refresh_reference_style = _plot_style_value(style_config, "refresh_reference_style", "false").casefold() == "true"
+    fixed_style = validate_graph4_style_config(project_root / "config" / "plot_style.yaml", config=style_config)
+    line_width = float(_plot_style_value(style_config, "line_width", str(fixed_style.line_width)))
+    axis_line_width = float(_plot_style_value(style_config, "axis_line_width", str(fixed_style.axis_line_width)))
     if line_width != fixed_style.line_width or axis_line_width != fixed_style.axis_line_width:
         raise ValueError("Origin Graph4 contract requires line_width and axis_line_width to be 3.")
     plot_policy = get_plot_policy(data_type)
@@ -1170,13 +1228,13 @@ def build_origin_plot_job(
         figure_tif=paths.figure_tif,
         preview_png=paths.preview_png,
         job_script=paths.job_script,
-        helper_script=resolve_origin_helper(project_root),
+        helper_script=resolve_origin_helper(project_root, plot_style_config=style_config),
         reference_opju=_resolve_reference_opju(project_root, reference_search_pattern) if refresh_reference_style else None,
         reference_search_pattern=reference_search_pattern,
-        reference_graph=_read_plot_style_value(project_root, "default_graph_page", "Graph4"),
-        automation_entrypoint=_read_plot_style_value(project_root, "automation_entrypoint", "Origin.Application"),
-        avoid_entrypoint=_read_plot_style_value(project_root, "avoid_entrypoint", "Origin.ApplicationSI"),
-        font_family=_read_plot_style_value(project_root, "font_family", "Arial"),
+        reference_graph=_plot_style_value(style_config, "default_graph_page", "Graph4"),
+        automation_entrypoint=_plot_style_value(style_config, "automation_entrypoint", "Origin.Application"),
+        avoid_entrypoint=_plot_style_value(style_config, "avoid_entrypoint", "Origin.ApplicationSI"),
+        font_family=_plot_style_value(style_config, "font_family", "Arial"),
         line_width=line_width,
         axis_line_width=axis_line_width,
         plot_type_code=plot_policy.origin_plot_code,
@@ -1230,7 +1288,14 @@ def build_origin_invocation_script(job: OriginPlotJob) -> str:
         "-Groups $groups -Headless -CloseOrigin",
         "$originCloseDeadline = (Get-Date).AddSeconds(30)",
         "do {",
-        "  $runningOrigin = Get-Process -Name Origin* -ErrorAction SilentlyContinue",
+        "  $runningOrigin = @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | Where-Object {",
+        "    try {",
+        "      $threads = $_.Threads",
+        "      if ($null -eq $threads) { $true } else { @($threads).Count -gt 0 }",
+        "    } catch {",
+        "      $true",
+        "    }",
+        "  })",
         "  if (-not $runningOrigin) { break }",
         "  Start-Sleep -Milliseconds 500",
         "} while ((Get-Date) -lt $originCloseDeadline)",
@@ -1258,20 +1323,24 @@ def _run_origin_job(job: OriginPlotJob) -> subprocess.CompletedProcess[str]:
 
 
 def _wait_for_no_origin_process(timeout_seconds: float = 5.0) -> bool:
-    deadline = time.time() + timeout_seconds
-    while time.time() < deadline:
-        running = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", "Get-Process -Name Origin* -ErrorAction SilentlyContinue"],
-            text=True,
-            capture_output=True,
-            timeout=10,
-        )
-        if running.returncode:
+    deadline = time.monotonic() + max(0.0, timeout_seconds)
+    while True:
+        try:
+            if not origin_process_ids():
+                return True
+        except RuntimeError:
             return False
-        if not running.stdout.strip():
-            return True
+        if time.monotonic() >= deadline:
+            return False
         time.sleep(0.5)
-    return False
+
+
+def _helper_stage_timings(stdout: str) -> dict[str, float]:
+    prefix = "ORIGIN_STAGE_TIMINGS="
+    for line in stdout.splitlines():
+        if line.startswith(prefix):
+            return {key: float(value) for key, value in json.loads(line[len(prefix):]).items()}
+    return {}
 
 
 def reexport_tif_from_reopened_opju(
@@ -1369,17 +1438,6 @@ def reexport_tif_from_reopened_opju(
             )
 
 
-def _export_tif_with_originpro(job: OriginPlotJob) -> TifResolutionEvidence:
-    """Compatibility wrapper for the generic Origin plot job."""
-
-    return reexport_tif_from_reopened_opju(
-        job.origin_file,
-        job.page_name,
-        job.figure_tif,
-        dpi=600,
-    )
-
-
 def _ensure_tif_600_dpi(
     path: Path,
     fixed_style: Graph4FixedStyle = Graph4FixedStyle(),
@@ -1421,6 +1479,7 @@ def export_plot(
         return OriginResult(False, None, None, None, message)
     job: OriginPlotJob | None = None
     try:
+        prepare_started = time.perf_counter()
         prepare_safe_output_file_targets(
             (
                 paths.plot_csv,
@@ -1451,7 +1510,9 @@ def export_plot(
             source_file=source_file,
             output_root=output_root,
         )
+        helper_started = time.perf_counter()
         completed = _run_origin_job(job)
+        helper_finished = time.perf_counter()
         if completed.returncode:
             details = (completed.stderr or completed.stdout or "Origin helper failed").strip()
             write_origin_error(project_root, f"{dataset_id}: {details}", output_root=output_root)
@@ -1468,8 +1529,20 @@ def export_plot(
             message = "PNG preview was empty; visual verification evidence is missing."
             write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
-        tif_resolution_evidence = _export_tif_with_originpro(job)
-        _write_material_color_report(project_root, job.color_assignments, output_root=output_root)
+        tif_export_started = time.perf_counter()
+        tif_resolution_evidence = reexport_tif_from_reopened_opju(
+            job.origin_file,
+            job.page_name,
+            job.figure_tif,
+            dpi=600,
+        )
+        stage_timings = _helper_stage_timings(completed.stdout)
+        stage_timings.update({
+            "python_prepare": helper_started - prepare_started,
+            "helper_process": helper_finished - helper_started,
+            "tif_reopen_export": time.perf_counter() - tif_export_started,
+        })
+        _record_material_color_assignments(project_root, job.color_assignments, output_root=output_root)
         return OriginResult(
             True,
             job.origin_file,
@@ -1477,6 +1550,7 @@ def export_plot(
             job.preview_png,
             "Origin export succeeded with reopened-OPJU native 600 dpi validation",
             tif_resolution_evidence,
+            stage_timings,
         )
     except Exception as exc:
         write_origin_error(project_root, f"{dataset_id}: {exc}", output_root=output_root)

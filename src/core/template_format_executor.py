@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import heapq
 import json
 import math
 import re
@@ -13,6 +14,39 @@ from pathlib import Path
 from statistics import median
 
 from src.core.file_utils import file_sha256
+from src.core.template_inputs import (
+    current_template_inputs,
+    invalidate_processed_table,
+    load_template_binding_contracts,
+    template_input_scope,
+)
+from src.core.template_style_validation import (
+    REVIEWED_TEMPLATE_VISIBLE_PLOTS,
+    _adaptive_eis_style_cycle_snapshot,
+    _validate_adaptive_eis_reopened_plot_styles,
+    _validate_adaptive_epr_reopened_plot_styles,
+    _validate_adaptive_reopened_plot_style_cycle,
+    _validate_adaptive_xps_in_situ_reopened_plot_styles,
+    _validate_adaptive_xps_non_in_situ_reopened_plot_styles,
+    _validate_raman_reopened_plot_styles,
+    _validate_xps_in_situ_reopened_plot_styles,
+    _validate_xps_non_in_situ_reopened_plot_styles,
+    _xps_non_in_situ_adaptive_plot_format_contracts,
+)
+from src.core.template_numeric import (
+    _finite_float,
+    _finite_numeric_value,
+    _linear_fit,
+    _mott_schottky_candidate_guides,
+    _padded_axis_bounds,
+    _paired_numeric_row_bounds,
+    _photocurrent_axis_series_match,
+    _photocurrent_reference_xy_series,
+    _photocurrent_xy_series,
+    _shared_x_contiguous_y_series,
+    _shared_x_intercept_fit,
+    _validate_verified_current_data,
+)
 from src.core.origin_style_assets import (
     compare_graph_data_snapshots,
     read_graph_data_snapshot,
@@ -45,6 +79,9 @@ from src.origin.conformance import compare_style_snapshots
 from src.origin.embedded_template_snapshots import embedded_template_snapshot
 from src.origin.operations import connect_origin, quote_labtalk
 from src.origin.style_registry import (
+    origin_style_asset_read_scope,
+    origin_style_file_sha256,
+    read_origin_style_json,
     resolve_origin_adaptive_style_asset,
     resolve_origin_runtime_style_asset,
 )
@@ -56,7 +93,6 @@ from src.origin.style_mimic import (
     read_graph_style_snapshot,
 )
 from src.origin.template_binding import (
-    load_template_binding_contracts,
     validate_template_source_bindings,
 )
 from src.origin.template_format import (
@@ -85,10 +121,6 @@ XRD_STANDARD_CARD_ADAPTIVE_STICK_COLOR = 11
 XRD_STANDARD_CARD_STICK_COLOR_EXPR = "color(181,91,0)"
 XRD_STANDARD_CARD_STICK_WIDTH = 1500
 XRD_STANDARD_CARD_STICK_WIDTH_PT = 3
-REVIEWED_TEMPLATE_VISIBLE_PLOTS = {
-    "EIS": (3, 4, 5),
-    "Mott-Schottky": (1, 2, 3),
-}
 VERIFIED_GRAPH_TEMPLATE_PRODUCTS = {
     "BET",
     "EIS",
@@ -223,19 +255,20 @@ def run_template_format_executor(project_root: Path, options: TemplateFormatExec
         raise ValueError("--asset-only and --exemplar-driven are mutually exclusive")
     _normalize_origin_style_mode(options.origin_style_mode)
     options = _with_default_xps_non_in_situ_template_root(project_root, options)
-    result = run_template_product_builder_all_types(
-        project_root,
-        build_template_product_builder_options(options),
-        origin_exporter=lambda product, style: export_template_base_product_with_origin(
-            product,
-            style,
-            project_root=project_root,
-            prefer_project_style_asset=not options.exemplar_driven,
-            preserve_exemplar_style=options.exemplar_driven,
-            asset_only=options.asset_only,
-            origin_style_mode=options.origin_style_mode,
-        ),
-    )
+    with origin_style_asset_read_scope():
+        result = run_template_product_builder_all_types(
+            project_root,
+            build_template_product_builder_options(options),
+            origin_exporter=lambda product, style: export_template_base_product_with_origin(
+                product,
+                style,
+                project_root=project_root,
+                prefer_project_style_asset=not options.exemplar_driven,
+                preserve_exemplar_style=options.exemplar_driven,
+                asset_only=options.asset_only,
+                origin_style_mode=options.origin_style_mode,
+            ),
+        )
     _write_template_format_docs(project_root, Path(str(result["run_root"])), result)
     summary = dict(result.get("summary", {}))
     summary["success_count"] = int(summary.get("accepted_count", 0))
@@ -680,7 +713,6 @@ def _strict_adaptive_source_validation(
         failures.append(f"adaptive source layout is unsupported: {layout!r}")
 
     for series_index, (x_index, y_index) in enumerate(source_pairs, start=1):
-        states: list[bool] = []
         for row in rows:
             x_value = _finite_numeric_value(row[x_index]) if x_index < len(row) else None
             y_value = _finite_numeric_value(row[y_index]) if y_index < len(row) else None
@@ -690,17 +722,13 @@ def _strict_adaptive_source_validation(
                         f"series {series_index} contains Y data without its shared X value"
                     )
                     break
-                states.append(y_value is not None)
             else:
                 if (x_value is None) != (y_value is None):
                     failures.append(f"series {series_index} contains an unpaired X or Y value")
                     break
-                states.append(x_value is not None)
         bounds = _paired_numeric_row_bounds(rows, x_index, y_index)
         if bounds is None:
             failures.append(f"series {series_index} has no contiguous finite X/Y run")
-        elif any(states[bounds[1] :]):
-            failures.append(f"series {series_index} contains data after a blank tail")
     return {
         "ok": not failures,
         "status": "ready" if not failures else "invalid",
@@ -786,21 +814,35 @@ def _resolve_origin_style_execution_route(
             legacy_oth_asset = exact_asset
         exact_asset = None
 
-    try:
-        adaptive_asset = resolve_origin_adaptive_style_asset(
-            project_root,
-            product.product_key,
-            allow_candidate=mode == "oth-json",
-        )
-    except (OSError, ValueError) as exc:
-        if mode == "oth-json":
+    adaptive_asset = None
+    adaptive_resolved = False
+    adaptive_error = ""
+
+    def get_adaptive_asset():
+        nonlocal adaptive_asset, adaptive_resolved, adaptive_error
+        if not adaptive_resolved:
+            adaptive_resolved = True
+            try:
+                adaptive_asset = resolve_origin_adaptive_style_asset(
+                    project_root,
+                    product.product_key,
+                    allow_candidate=mode == "oth-json",
+                )
+            except (OSError, ValueError) as exc:
+                adaptive_error = str(exc)
+        return adaptive_asset
+
+    # A matching fixed binding has no dependency on the adaptive candidate.
+    if mode == "oth-json" or (mode == "auto" and exact_asset is None):
+        get_adaptive_asset()
+        if mode == "oth-json" and adaptive_error:
             return (
                 _style_execution_decision(
                     product,
                     requested_mode=mode,
                     selected_mode="blocked",
                     reason_code="adaptive_asset_registry_invalid",
-                    message=str(exc),
+                    message=adaptive_error,
                     current_series_count=current_count,
                     contract_series_count=0,
                     asset=None,
@@ -809,7 +851,6 @@ def _resolve_origin_style_execution_route(
                 ),
                 None,
             )
-        adaptive_asset = None
 
     contract_asset = exact_asset or adaptive_asset
     contract, contract_error = _binding_contract_for_asset(
@@ -895,7 +936,7 @@ def _resolve_origin_style_execution_route(
                 ),
                 None,
             )
-        complete, message = _adaptive_asset_complete(adaptive_asset)
+        complete, message = _adaptive_asset_complete(get_adaptive_asset())
         if not complete:
             return (
                 _style_execution_decision(
@@ -969,7 +1010,7 @@ def _resolve_origin_style_execution_route(
         )
 
     if exact_asset is None:
-        complete, _message = _adaptive_asset_complete(adaptive_asset)
+        complete, _message = _adaptive_asset_complete(get_adaptive_asset())
         if complete:
             if not xps_non_in_situ_bi4f_scope:
                 return (
@@ -1076,7 +1117,7 @@ def _resolve_origin_style_execution_route(
                     rows,
                     [(x_col - 1, y_col - 1) for x_col, y_col in plot_pairs],
                 )
-                adaptive_complete, adaptive_error = _adaptive_asset_complete(adaptive_asset)
+                adaptive_complete, adaptive_error = _adaptive_asset_complete(get_adaptive_asset())
                 if source_validation.get("ok") and adaptive_complete:
                     return (
                         _style_execution_decision(
@@ -1177,7 +1218,7 @@ def _resolve_origin_style_execution_route(
             ),
             None,
         )
-    complete, adaptive_error = _adaptive_asset_complete(adaptive_asset)
+    complete, adaptive_error = _adaptive_asset_complete(get_adaptive_asset())
     if not complete:
         return (
             _style_execution_decision(
@@ -1348,15 +1389,16 @@ def export_template_base_product_with_origin(
     origin_style_mode: str = "auto",
 ) -> dict[str, object]:
     try:
-        return _export_template_base_product_with_origin_impl(
-            product,
-            style,
-            project_root=project_root,
-            prefer_project_style_asset=prefer_project_style_asset,
-            preserve_exemplar_style=preserve_exemplar_style,
-            asset_only=asset_only,
-            origin_style_mode=origin_style_mode,
-        )
+        with origin_style_asset_read_scope(), template_input_scope():
+            return _export_template_base_product_with_origin_impl(
+                product,
+                style,
+                project_root=project_root,
+                prefer_project_style_asset=prefer_project_style_asset,
+                preserve_exemplar_style=preserve_exemplar_style,
+                asset_only=asset_only,
+                origin_style_mode=origin_style_mode,
+            )
     except _OriginLifecycleFailure as exc:
         return {
             "ok": False,
@@ -1415,12 +1457,12 @@ def _export_template_base_product_with_origin_impl(
         with tempfile.TemporaryDirectory(prefix="rdop_origin_", dir=neutral_root, ignore_cleanup_errors=True) as runtime_text:
             runtime = Path(runtime_text)
             runtime_cleanup_path = runtime
-            project_template_opju = _project_local_template_opju_for_product(product, style_asset)
-            reference_source = project_template_opju or product.reference_opju_copy
+            reference_source = product.reference_opju_copy
             runtime_reference = runtime / reference_source.name
             plan_opju: Path | None = None
             if (
                 not asset_only
+                and (style_asset is None or style_asset.runtime_asset_kind not in {"otpu", "oth_json"})
                 and reference_source.suffix.casefold() in {".opju", ".opj"}
                 and reference_source.is_file()
             ):
@@ -1453,7 +1495,7 @@ def _export_template_base_product_with_origin_impl(
             plan = build_template_format_plan(
                 product.product_key,
                 opju_path=plan_opju,
-                style_package_path=None if project_template_opju is not None else (style_asset.format_theme_path if style_asset else None),
+                style_package_path=style_asset.format_theme_path if style_asset else None,
                 graph_page=style_asset.graph_page if style_asset else (embedded_snapshot.graph_page if embedded_snapshot is not None else ""),
                 reference_preview_png=runtime_reference_png,
                 product_preview_png=runtime_preview_png,
@@ -1971,12 +2013,6 @@ def _can_use_template_snapshot_fallback(product: ProductContext) -> bool:
     return embedded_template_snapshot(product.product_key) is not None
 
 
-def _project_local_template_opju_for_product(product: ProductContext, style_asset: object | None) -> Path | None:
-    # A saved project-local OPJU is kept as an extraction/recovery asset, but it
-    # should not be the default product base unless a future manifest explicitly
-    # opts into exact workbook-template replacement. Current XRD card products
-    # vary in series count, so the clean graph + saved format theme path is safer.
-    return None
 
 
 def _export_template_snapshot_fallback_product_with_origin(
@@ -2316,7 +2352,7 @@ def _export_verified_graph_template_product_with_origin(
             "ok": False,
             "message": "Verified graph-template export received an unsupported or missing runtime asset.",
         }
-    if file_sha256(template_path) != template_sha256:
+    if origin_style_file_sha256(template_path) != template_sha256:
         return {
             "ok": False,
             "message": "Verified graph-template asset hash changed before Origin execution.",
@@ -2440,9 +2476,10 @@ def _export_verified_graph_template_product_with_origin(
             "template_format_plan": plan_payload,
             "template_binding": binding,
         }
-    # EPR starts from raw data and intentionally overwrites processed_data only
-    # after its approved Origin transform.  All later validation must therefore
-    # read the transformed CSV rather than retain the pre-transform rows.
+    # EPR writes through the shared Origin processor; XPS writes through
+    # _write_processed_csv below.  Later readback must use the transformed data.
+    if product.product_key == "EPR":
+        invalidate_processed_table(product.processed_data)
     _validation_headers, validation_rows = _read_processed_csv(product.processed_data)
     book_name = str(workbook["book_name"])
     created = operations.create_graph_from_xy_pairs_template(
@@ -2777,6 +2814,10 @@ def _prepare_verified_otpu_binding(
     *,
     contract_path: str | Path | None = None,
 ) -> dict[str, object]:
+    cache = current_template_inputs()
+    cache_key = (id(product), str(contract_path or ""))
+    if cache is not None and cache_key in cache.bindings:
+        return cache.bindings[cache_key]
     preparers = {
         "BET": _prepare_verified_bet_otpu_binding,
         "EIS": _prepare_verified_eis_otpu_binding,
@@ -2799,12 +2840,15 @@ def _prepare_verified_otpu_binding(
                 f"Verified OTPU runtime dispatch is not implemented for {product.product_key}."
             ),
         }
-    return prepare(
+    result = prepare(
         product,
         headers,
         rows,
         contract_path=contract_path,
     )
+    if cache is not None:
+        cache.bindings[cache_key] = result
+    return result
 
 
 def _verified_otpu_conformance_reference(
@@ -4447,7 +4491,6 @@ def _prepare_verified_photocurrent_otpu_binding(
 
     xy_ranges: list[dict[str, int]] = []
     for pair_index, (x_index, y_index) in enumerate(((0, 1), (2, 3), (4, 5))):
-        paired_states: list[bool] = []
         for row in rows:
             x_value = _finite_numeric_value(row[x_index])
             y_value = _finite_numeric_value(row[y_index])
@@ -4459,7 +4502,6 @@ def _prepare_verified_photocurrent_otpu_binding(
                         "unpaired X or Y value."
                     ),
                 }
-            paired_states.append(x_value is not None)
         bounds = _paired_numeric_row_bounds(rows, x_index, y_index)
         if bounds is None or bounds[0] != 1:
             return {
@@ -4470,14 +4512,6 @@ def _prepare_verified_photocurrent_otpu_binding(
                 ),
             }
         row_from, row_to = bounds
-        if any(paired_states[row_to:]):
-            return {
-                "ok": False,
-                "message": (
-                    f"Photocurrent source pair {pair_index + 1} contains finite data "
-                    "after its blank tail begins."
-                ),
-            }
         x_col, y_col = VERIFIED_PHOTOCURRENT_DESTINATION_PAIRS[pair_index]
         xy_ranges.append(
             {
@@ -4625,7 +4659,6 @@ def _prepare_verified_ftir_otpu_binding(
         zip(((0, 1), (2, 3), (4, 5)), destination_pairs),
         start=1,
     ):
-        paired_states: list[bool] = []
         for row in rows:
             x_value = _finite_numeric_value(row[source_x])
             y_value = _finite_numeric_value(row[source_y])
@@ -4634,7 +4667,6 @@ def _prepare_verified_ftir_otpu_binding(
                     "ok": False,
                     "message": f"FTIR source pair {pair_index} contains an unpaired X or Y value.",
                 }
-            paired_states.append(x_value is not None)
         bounds = _paired_numeric_row_bounds(rows, source_x, source_y)
         if bounds is None or bounds[0] != 1:
             return {
@@ -4645,11 +4677,6 @@ def _prepare_verified_ftir_otpu_binding(
                 ),
             }
         row_from, row_to = bounds
-        if any(paired_states[row_to:]):
-            return {
-                "ok": False,
-                "message": f"FTIR source pair {pair_index} contains data after its blank tail begins.",
-            }
         xy_ranges.append(
             {
                 "x_col": x_col,
@@ -4971,11 +4998,9 @@ def _populate_verified_otpu_workbook(
         transformed = _transform_verified_xps_in_situ_rows(headers, rows, binding)
         if not transformed.get("ok"):
             return transformed
-        transformed_rows = [
-            list(value)
-            for value in transformed.get("rows", [])
-            if isinstance(value, list)
-        ]
+        # The transform already owns a new table; writing it and constructing
+        # Origin columns do not mutate those rows.
+        transformed_rows = transformed["rows"]
         if len(transformed_rows) != len(rows):
             return {
                 "ok": False,
@@ -7029,26 +7054,6 @@ def _bet_template_legend_label(label: str, *, is_desorption: bool) -> str:
     return f"{material} ({branch})"
 
 
-def _paired_numeric_row_bounds(
-    rows: list[list[object]],
-    x_index: int,
-    y_index: int,
-) -> tuple[int, int] | None:
-    valid_rows = [
-        row_index
-        for row_index, row in enumerate(rows, start=1)
-        if x_index < len(row)
-        and y_index < len(row)
-        and _finite_numeric_value(row[x_index]) is not None
-        and _finite_numeric_value(row[y_index]) is not None
-    ]
-    if not valid_rows:
-        return None
-    if valid_rows != list(range(valid_rows[0], valid_rows[-1] + 1)):
-        return None
-    return min(valid_rows), max(valid_rows)
-
-
 def _apply_mott_schottky_source_masks(
     operations: object,
     book_name: str,
@@ -7094,719 +7099,6 @@ def _apply_mott_schottky_source_masks(
         "zero_tolerance_v": 1.0e-8,
         "series": applied,
     }
-
-
-def _finite_numeric_value(value: object) -> float | None:
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    return number if math.isfinite(number) else None
-
-
-def _validate_verified_current_data(
-    product_key: str,
-    rows: list[list[object]],
-    xy_ranges: list[dict[str, object]],
-    graph_snapshot: dict[str, object],
-) -> dict[str, object]:
-    plots = [
-        dict(plot)
-        for plot in graph_snapshot.get("plots", [])
-        if isinstance(plot, dict)
-    ]
-    reasons: list[str] = []
-    if str(graph_snapshot.get("status") or "") != "ready":
-        reasons.append("reopened graph data snapshot is not ready")
-    if len(plots) != len(xy_ranges):
-        reasons.append(
-            f"reopened graph has {len(plots)} plots; expected {len(xy_ranges)}"
-        )
-    for index, expected in enumerate(xy_ranges):
-        if index >= len(plots):
-            break
-        plot = plots[index]
-        source_x_index = int(expected.get("source_x_index", expected["x_col"] - 1))
-        source_y_index = int(expected.get("source_y_index", expected["y_col"] - 1))
-        source_row_from = int(expected.get("source_row_from", expected["row_from"]))
-        source_row_to = int(expected.get("source_row_to", expected["row_to"]))
-        expected_x_raw = [
-            _finite_numeric_value(rows[row_index - 1][source_x_index])
-            for row_index in range(source_row_from, source_row_to + 1)
-        ]
-        expected_y_raw = [
-            _finite_numeric_value(rows[row_index - 1][source_y_index])
-            for row_index in range(source_row_from, source_row_to + 1)
-        ]
-        actual_x_raw = [
-            _finite_numeric_value(value)
-            for value in list(plot.get("x_values") or [])
-        ]
-        actual_y_raw = [
-            _finite_numeric_value(value)
-            for value in list(plot.get("y_values") or [])
-        ]
-        if any(value is None for value in expected_x_raw + expected_y_raw):
-            reasons.append(f"plot {index + 1} expected CSV range contains a nonfinite X/Y value")
-            continue
-        if any(value is None for value in actual_x_raw + actual_y_raw):
-            reasons.append(f"plot {index + 1} reopened X/Y range contains a nonfinite value")
-            continue
-        expected_x = [float(value) for value in expected_x_raw if value is not None]
-        expected_y = [float(value) for value in expected_y_raw if value is not None]
-        actual_x = [float(value) for value in actual_x_raw if value is not None]
-        actual_y = [float(value) for value in actual_y_raw if value is not None]
-        if actual_x != expected_x:
-            reasons.append(f"plot {index + 1} X values differ from processed CSV")
-        if actual_y != expected_y:
-            reasons.append(f"plot {index + 1} Y values differ from processed CSV")
-        if (
-            int(plot.get("plot_row_from") or 0) != expected["row_from"]
-            or int(plot.get("plot_row_to") or 0) != expected["row_to"]
-        ):
-            reasons.append(f"plot {index + 1} displayed row range differs")
-        expected_x_letter = str(expected.get("expected_x_col_letter") or "")
-        expected_y_letter = str(expected.get("expected_y_col_letter") or "")
-        if expected_x_letter and str(plot.get("x_col_letter") or "").upper() != expected_x_letter:
-            reasons.append(f"plot {index + 1} X dataset column differs")
-        if expected_y_letter and str(plot.get("y_col_letter") or "").upper() != expected_y_letter:
-            reasons.append(f"plot {index + 1} Y dataset column differs")
-        if expected_x_letter and str(plot.get("x_mapping_source") or "") != "graph_plot_mapping":
-            reasons.append(f"plot {index + 1} lacks explicit graph X mapping readback")
-        if "expected_y_masked_rows" in expected:
-            expected_masked_rows = [
-                int(value) for value in list(expected.get("expected_y_masked_rows") or [])
-            ]
-            actual_masked_rows = [
-                int(value) for value in list(plot.get("y_masked_rows") or [])
-            ]
-            if str(plot.get("mask_readback_status") or "") != "ready":
-                reasons.append(f"plot {index + 1} lacks native mask-state readback")
-            elif actual_masked_rows != expected_masked_rows:
-                reasons.append(f"plot {index + 1} Y masked rows differ")
-    return {
-        "ok": not reasons,
-        "status": "matched" if not reasons else "mismatch",
-        "message": (
-            f"Reopened {product_key} graph contains the exact processed CSV X/Y values "
-            "and displayed row ranges."
-            if not reasons
-            else "; ".join(reasons)
-        ),
-        "expected_plot_count": len(xy_ranges),
-        "actual_plot_count": len(plots),
-        "reasons": reasons,
-    }
-
-
-def _validate_raman_reopened_plot_styles(
-    reference_data: dict[str, object] | None,
-    current_data: dict[str, object],
-) -> dict[str, object]:
-    """Audit Raman plot styles per layer, avoiding flattened layer-1 readback."""
-
-    if not isinstance(reference_data, dict) or str(reference_data.get("status") or "") != "ready":
-        return {
-            "ok": False,
-            "status": "blocked",
-            "message": "Reviewed Raman per-layer data snapshot is unavailable.",
-        }
-    reference_plots = {
-        (int(plot.get("layer_index") or 0), int(plot.get("plot_index") or 0)): dict(plot)
-        for plot in reference_data.get("plots", [])
-        if isinstance(plot, dict)
-    }
-    current_plots = {
-        (int(plot.get("layer_index") or 0), int(plot.get("plot_index") or 0)): dict(plot)
-        for plot in current_data.get("plots", [])
-        if isinstance(plot, dict)
-    }
-    reasons: list[str] = []
-    expected_keys = {(1, 1), (1, 2), (2, 1)}
-    if set(reference_plots) != expected_keys:
-        reasons.append("reviewed Raman snapshot does not contain the expected 2-layer/3-plot structure")
-    if set(current_plots) != expected_keys:
-        reasons.append("reopened Raman graph does not contain the expected 2-layer/3-plot structure")
-    style_fields = (
-        "color",
-        "line_color",
-        "line_width_origin_units",
-        "line_width_pt",
-        "line_style",
-        "symbol_shape",
-        "symbol_size",
-    )
-    compared: list[dict[str, object]] = []
-    for key in sorted(expected_keys):
-        reference_plot = reference_plots.get(key)
-        current_plot = current_plots.get(key)
-        if reference_plot is None or current_plot is None:
-            continue
-        reference_style = dict(reference_plot.get("style") or {})
-        current_style = dict(current_plot.get("style") or {})
-        mismatches = [
-            field
-            for field in style_fields
-            if reference_style.get(field) != current_style.get(field)
-        ]
-        if mismatches:
-            reasons.append(
-                f"Raman layer {key[0]} plot {key[1]} style differs: {', '.join(mismatches)}"
-            )
-        compared.append(
-            {
-                "layer_index": key[0],
-                "plot_index": key[1],
-                "reference_style": {
-                    field: reference_style.get(field) for field in style_fields
-                },
-                "current_style": {
-                    field: current_style.get(field) for field in style_fields
-                },
-                "matches": not mismatches,
-            }
-        )
-    return {
-        "ok": not reasons,
-        "status": "matched" if not reasons else "mismatch",
-        "message": (
-            "Reopened Raman graph preserves all reviewed per-layer curve styles."
-            if not reasons
-            else "; ".join(reasons)
-        ),
-        "plots": compared,
-        "reasons": reasons,
-    }
-
-
-def _validate_xps_in_situ_reopened_plot_styles(
-    reference_data: dict[str, object] | None,
-    current_data: dict[str, object],
-) -> dict[str, object]:
-    """Audit all native XPS lines, fills, and zero-width helper curves after reopen."""
-
-    if not isinstance(reference_data, dict) or str(reference_data.get("status") or "") != "ready":
-        return {
-            "ok": False,
-            "status": "blocked",
-            "message": "Reviewed XPS in-situ per-plot data snapshot is unavailable.",
-        }
-    reference_plots = {
-        (int(plot.get("layer_index") or 0), int(plot.get("plot_index") or 0)): dict(plot)
-        for plot in reference_data.get("plots", [])
-        if isinstance(plot, dict)
-    }
-    current_plots = {
-        (int(plot.get("layer_index") or 0), int(plot.get("plot_index") or 0)): dict(plot)
-        for plot in current_data.get("plots", [])
-        if isinstance(plot, dict)
-    }
-    expected_keys = {(1, index) for index in range(1, 22)}
-    reasons: list[str] = []
-    if set(reference_plots) != expected_keys:
-        reasons.append("reviewed XPS in-situ snapshot does not contain the expected 1-layer/21-plot structure")
-    if set(current_plots) != expected_keys:
-        reasons.append("reopened XPS in-situ graph does not contain the expected 1-layer/21-plot structure")
-    style_fields = (
-        "color",
-        "line_color",
-        "line_width_origin_units",
-        "line_width_pt",
-        "line_style",
-        "symbol_shape",
-        "symbol_size",
-        "fill_area",
-        "fill_color",
-        "border_color",
-        "border_width",
-    )
-    compared: list[dict[str, object]] = []
-    for key in sorted(expected_keys):
-        reference_plot = reference_plots.get(key)
-        current_plot = current_plots.get(key)
-        if reference_plot is None or current_plot is None:
-            continue
-        reference_style = dict(reference_plot.get("style") or {})
-        current_style = dict(current_plot.get("style") or {})
-        mismatches = [
-            field
-            for field in style_fields
-            if reference_style.get(field) != current_style.get(field)
-        ]
-        if mismatches:
-            reasons.append(
-                f"XPS in-situ plot {key[1]} style differs: {', '.join(mismatches)}"
-            )
-        compared.append(
-            {
-                "layer_index": key[0],
-                "plot_index": key[1],
-                "reference_style": {
-                    field: reference_style.get(field) for field in style_fields
-                },
-                "current_style": {
-                    field: current_style.get(field) for field in style_fields
-                },
-                "matches": not mismatches,
-            }
-        )
-    return {
-        "ok": not reasons,
-        "status": "matched" if not reasons else "mismatch",
-        "message": (
-            "Reopened XPS in-situ graph preserves all 21 reviewed native line/fill/helper styles."
-            if not reasons
-            else "; ".join(reasons)
-        ),
-        "plots": compared,
-        "reasons": reasons,
-    }
-
-
-def _validate_xps_non_in_situ_reopened_plot_styles(
-    reference_data: dict[str, object] | None,
-    current_data: dict[str, object],
-) -> dict[str, object]:
-    """Audit the reviewed nine-role native XPS style cycle after save/reopen."""
-
-    if not isinstance(reference_data, dict) or str(reference_data.get("status") or "") != "ready":
-        return {
-            "ok": False,
-            "status": "blocked",
-            "message": "Reviewed XPS non-in-situ per-plot data snapshot is unavailable.",
-        }
-    reference_plots = sorted(
-        [dict(value) for value in reference_data.get("plots", []) if isinstance(value, dict)],
-        key=lambda value: (
-            int(value.get("layer_index") or 0),
-            int(value.get("plot_index") or 0),
-        ),
-    )
-    current_plots = sorted(
-        [dict(value) for value in current_data.get("plots", []) if isinstance(value, dict)],
-        key=lambda value: (
-            int(value.get("layer_index") or 0),
-            int(value.get("plot_index") or 0),
-        ),
-    )
-    reasons: list[str] = []
-    if len(reference_plots) != 18:
-        reasons.append("reviewed XPS non-in-situ snapshot does not contain 18 plots")
-    if len(current_plots) != 18 or any(
-        int(plot.get("layer_index") or 0) != 1
-        or int(plot.get("plot_index") or 0) != plot_index
-        for plot_index, plot in enumerate(current_plots, start=1)
-    ):
-        reasons.append("reopened XPS non-in-situ graph does not contain the expected one-layer 18-plot sequence")
-    style_fields = (
-        "color",
-        "line_color",
-        "line_width_origin_units",
-        "line_width_pt",
-        "line_style",
-        "symbol_shape",
-        "symbol_size",
-        "fill_enabled",
-        "fill_mode",
-        "fill_above_color",
-        "fill_below_color",
-        "fill_above_pattern_color",
-        "fill_below_pattern_color",
-        "fill_above_pattern",
-        "fill_below_pattern",
-        "fill_transparency",
-    )
-    compared: list[dict[str, object]] = []
-    if len(reference_plots) == 18 and len(current_plots) == 18:
-        expected_native_formats = _xps_non_in_situ_adaptive_plot_format_contracts(18)
-        for plot_index, (reference_plot, current_plot) in enumerate(
-            zip(reference_plots, current_plots),
-            start=1,
-        ):
-            reference_style = dict(reference_plot.get("style") or {})
-            current_style = dict(current_plot.get("style") or {})
-            fields = tuple(field for field in style_fields if field in reference_style)
-            mismatches = [
-                field
-                for field in fields
-                if reference_style.get(field) != current_style.get(field)
-            ]
-            expected_native = expected_native_formats[plot_index - 1]
-            mismatches.extend(
-                field
-                for field in (
-                    "fill_enabled",
-                    "fill_mode",
-                    "fill_above_color",
-                    "fill_below_color",
-                )
-                if current_style.get(field) != float(expected_native[field])
-                and field not in mismatches
-            )
-            if mismatches:
-                reasons.append(
-                    f"XPS non-in-situ plot {plot_index} style differs: {', '.join(mismatches)}"
-                )
-            compared.append(
-                {
-                    "plot_index": plot_index,
-                    "role_index": (plot_index - 1) % 9 + 1,
-                    "matches": not mismatches,
-                    "mismatches": mismatches,
-                }
-            )
-    return {
-        "ok": not reasons,
-        "status": "matched" if not reasons else "mismatch",
-        "message": (
-            "Reopened XPS non-in-situ graph preserves the reviewed native nine-role line/fill style cycle."
-            if not reasons
-            else "; ".join(reasons)
-        ),
-        "plots": compared,
-        "reasons": reasons,
-    }
-
-
-def _validate_adaptive_xps_in_situ_reopened_plot_styles(
-    reference_data: dict[str, object],
-    current_data: dict[str, object],
-    *,
-    expected_plot_count: int,
-) -> dict[str, object]:
-    """Validate each adaptive XPS plot against its seven-role native style cycle."""
-
-    if (
-        not isinstance(reference_data, dict)
-        or str(reference_data.get("status") or "") != "ready"
-        or expected_plot_count <= 0
-        or expected_plot_count % 7 != 0
-    ):
-        return {
-            "ok": False,
-            "status": "blocked",
-            "message": "Adaptive XPS in-situ style validation lacks a complete reviewed role cycle.",
-        }
-    reference_plots = sorted(
-        [dict(value) for value in reference_data.get("plots", []) if isinstance(value, dict)],
-        key=lambda value: (
-            int(value.get("layer_index") or 0),
-            int(value.get("plot_index") or 0),
-        ),
-    )
-    current_plots = sorted(
-        [dict(value) for value in current_data.get("plots", []) if isinstance(value, dict)],
-        key=lambda value: (
-            int(value.get("layer_index") or 0),
-            int(value.get("plot_index") or 0),
-        ),
-    )
-    reasons: list[str] = []
-    if len(reference_plots) != 21:
-        reasons.append("reviewed XPS in-situ snapshot does not contain 21 plots")
-    if len(current_plots) != expected_plot_count or any(
-        int(plot.get("layer_index") or 0) != 1
-        or int(plot.get("plot_index") or 0) != plot_index
-        for plot_index, plot in enumerate(current_plots, start=1)
-    ):
-        reasons.append(
-            "adaptive XPS in-situ reopened graph does not contain the expected one-layer plot sequence"
-        )
-    style_fields = (
-        "color",
-        "line_color",
-        "line_width_origin_units",
-        "line_width_pt",
-        "line_style",
-        "symbol_shape",
-        "symbol_size",
-        "fill_area",
-        "fill_color",
-        "border_color",
-        "border_width",
-    )
-    compared: list[dict[str, object]] = []
-    if len(reference_plots) == 21 and len(current_plots) == expected_plot_count:
-        for plot_index, current_plot in enumerate(current_plots, start=1):
-            reference_plot = reference_plots[(plot_index - 1) % 7]
-            reference_style = dict(reference_plot.get("style") or {})
-            current_style = dict(current_plot.get("style") or {})
-            mismatches = [
-                field
-                for field in style_fields
-                if reference_style.get(field) != current_style.get(field)
-            ]
-            if mismatches:
-                reasons.append(
-                    f"adaptive XPS plot {plot_index} role style differs: {', '.join(mismatches)}"
-                )
-            compared.append(
-                {
-                    "plot_index": plot_index,
-                    "role_index": (plot_index - 1) % 7 + 1,
-                    "matches": not mismatches,
-                    "mismatches": mismatches,
-                }
-            )
-    return {
-        "ok": not reasons,
-        "status": "matched" if not reasons else "mismatch",
-        "message": (
-            "Adaptive XPS in-situ graph preserves the reviewed seven-role native style cycle."
-            if not reasons
-            else "; ".join(reasons)
-        ),
-        "expected_plot_count": expected_plot_count,
-        "current_plot_count": len(current_plots),
-        "plots": compared,
-        "reasons": reasons,
-    }
-
-
-def _validate_adaptive_xps_non_in_situ_reopened_plot_styles(
-    reference_data: dict[str, object],
-    current_data: dict[str, object],
-    *,
-    expected_plot_count: int,
-) -> dict[str, object]:
-    """Validate every adaptive non-in-situ XPS plot against its nine-role cycle."""
-
-    if (
-        not isinstance(reference_data, dict)
-        or str(reference_data.get("status") or "") != "ready"
-        or expected_plot_count <= 0
-        or expected_plot_count % 9 != 0
-    ):
-        return {
-            "ok": False,
-            "status": "blocked",
-            "message": "Adaptive XPS non-in-situ style validation lacks a complete reviewed role cycle.",
-        }
-    reference_plots = sorted(
-        [dict(value) for value in reference_data.get("plots", []) if isinstance(value, dict)],
-        key=lambda value: (
-            int(value.get("layer_index") or 0),
-            int(value.get("plot_index") or 0),
-        ),
-    )
-    current_plots = sorted(
-        [dict(value) for value in current_data.get("plots", []) if isinstance(value, dict)],
-        key=lambda value: (
-            int(value.get("layer_index") or 0),
-            int(value.get("plot_index") or 0),
-        ),
-    )
-    reasons: list[str] = []
-    if len(reference_plots) != 18:
-        reasons.append("reviewed XPS non-in-situ snapshot does not contain 18 plots")
-    if len(current_plots) != expected_plot_count or any(
-        int(plot.get("layer_index") or 0) != 1
-        or int(plot.get("plot_index") or 0) != plot_index
-        for plot_index, plot in enumerate(current_plots, start=1)
-    ):
-        reasons.append(
-            "adaptive XPS non-in-situ reopened graph does not contain the expected one-layer plot sequence"
-        )
-    style_fields = (
-        "color",
-        "line_color",
-        "line_width_origin_units",
-        "line_width_pt",
-        "line_style",
-        "symbol_shape",
-        "symbol_size",
-        "fill_enabled",
-        "fill_mode",
-        "fill_above_color",
-        "fill_below_color",
-        "fill_above_pattern_color",
-        "fill_below_pattern_color",
-        "fill_above_pattern",
-        "fill_below_pattern",
-        "fill_transparency",
-    )
-    compared: list[dict[str, object]] = []
-    if len(reference_plots) == 18 and len(current_plots) == expected_plot_count:
-        expected_native_formats = _xps_non_in_situ_adaptive_plot_format_contracts(
-            expected_plot_count
-        )
-        for plot_index, current_plot in enumerate(current_plots, start=1):
-            reference_plot = reference_plots[(plot_index - 1) % 9]
-            reference_style = dict(reference_plot.get("style") or {})
-            current_style = dict(current_plot.get("style") or {})
-            fields = tuple(field for field in style_fields if field in reference_style)
-            mismatches = [
-                field
-                for field in fields
-                if reference_style.get(field) != current_style.get(field)
-            ]
-            expected_native = expected_native_formats[plot_index - 1]
-            mismatches.extend(
-                field
-                for field in (
-                    "fill_enabled",
-                    "fill_mode",
-                    "fill_above_color",
-                    "fill_below_color",
-                )
-                if current_style.get(field) != float(expected_native[field])
-                and field not in mismatches
-            )
-            if mismatches:
-                reasons.append(
-                    f"adaptive XPS non-in-situ plot {plot_index} role style differs: {', '.join(mismatches)}"
-                )
-            compared.append(
-                {
-                    "plot_index": plot_index,
-                    "role_index": (plot_index - 1) % 9 + 1,
-                    "matches": not mismatches,
-                    "mismatches": mismatches,
-                }
-            )
-    return {
-        "ok": not reasons,
-        "status": "matched" if not reasons else "mismatch",
-        "message": (
-            "Adaptive XPS non-in-situ graph preserves the reviewed nine-role native style cycle."
-            if not reasons
-            else "; ".join(reasons)
-        ),
-        "expected_plot_count": expected_plot_count,
-        "current_plot_count": len(current_plots),
-        "plots": compared,
-        "reasons": reasons,
-    }
-
-
-def _validate_adaptive_reopened_plot_style_cycle(
-    reference_data: dict[str, object],
-    current_data: dict[str, object],
-    *,
-    product_key: str,
-    reference_plot_count: int,
-    expected_plot_count: int,
-) -> dict[str, object]:
-    """Validate a reviewed native plot-style cycle after save/reopen."""
-
-    reference_plots = sorted(
-        [dict(value) for value in reference_data.get("plots", []) if isinstance(value, dict)],
-        key=lambda value: (
-            int(value.get("layer_index") or 0),
-            int(value.get("plot_index") or 0),
-        ),
-    )
-    current_plots = sorted(
-        [dict(value) for value in current_data.get("plots", []) if isinstance(value, dict)],
-        key=lambda value: (
-            int(value.get("layer_index") or 0),
-            int(value.get("plot_index") or 0),
-        ),
-    )
-    reasons: list[str] = []
-    if (
-        str(reference_data.get("status") or "") != "ready"
-        or len(reference_plots) != reference_plot_count
-    ):
-        reasons.append(
-            f"reviewed {product_key} snapshot does not contain the complete "
-            f"{reference_plot_count}-plot style cycle"
-        )
-    if expected_plot_count <= 0 or len(current_plots) != expected_plot_count or any(
-        int(plot.get("layer_index") or 0) != 1
-        or int(plot.get("plot_index") or 0) != plot_index
-        for plot_index, plot in enumerate(current_plots, start=1)
-    ):
-        reasons.append(
-            f"adaptive {product_key} graph does not contain the expected one-layer current plot sequence"
-        )
-    style_fields = (
-        "color",
-        "line_color",
-        "line_width_origin_units",
-        "line_width_pt",
-        "line_style",
-        "symbol_shape",
-        "symbol_size",
-    )
-    compared: list[dict[str, object]] = []
-    if (
-        len(reference_plots) == reference_plot_count
-        and len(current_plots) == expected_plot_count
-    ):
-        for plot_index, current_plot in enumerate(current_plots, start=1):
-            reference_plot = reference_plots[
-                (plot_index - 1) % reference_plot_count
-            ]
-            reference_style = dict(reference_plot.get("style") or {})
-            current_style = dict(current_plot.get("style") or {})
-            mismatches = [
-                field
-                for field in style_fields
-                if reference_style.get(field) != current_style.get(field)
-            ]
-            if mismatches:
-                reasons.append(
-                    f"adaptive {product_key} plot {plot_index} style differs: "
-                    f"{', '.join(mismatches)}"
-                )
-            compared.append(
-                {
-                    "plot_index": plot_index,
-                    "style_cycle_index": (plot_index - 1) % reference_plot_count + 1,
-                    "matches": not mismatches,
-                    "mismatches": mismatches,
-                    "expected_style": {
-                        field: reference_style.get(field) for field in style_fields
-                    },
-                    "current_style": {
-                        field: current_style.get(field) for field in style_fields
-                    },
-                }
-            )
-    return {
-        "ok": not reasons,
-        "status": "matched" if not reasons else "mismatch",
-        "message": (
-            f"Adaptive {product_key} graph preserves the reviewed native plot-style cycle."
-            if not reasons
-            else "; ".join(reasons)
-        ),
-        "expected_plot_count": expected_plot_count,
-        "current_plot_count": len(current_plots),
-        "plots": compared,
-        "reasons": reasons,
-    }
-
-
-def _validate_adaptive_epr_reopened_plot_styles(
-    reference_data: dict[str, object],
-    current_data: dict[str, object],
-    *,
-    expected_plot_count: int,
-) -> dict[str, object]:
-    return _validate_adaptive_reopened_plot_style_cycle(
-        reference_data,
-        current_data,
-        product_key="EPR",
-        reference_plot_count=3,
-        expected_plot_count=expected_plot_count,
-    )
-
-
-def _validate_adaptive_eis_reopened_plot_styles(
-    reference_data: dict[str, object],
-    current_data: dict[str, object],
-    *,
-    expected_plot_count: int,
-) -> dict[str, object]:
-    return _validate_adaptive_reopened_plot_style_cycle(
-        _adaptive_eis_style_cycle_snapshot(reference_data),
-        current_data,
-        product_key="EIS",
-        reference_plot_count=len(REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]),
-        expected_plot_count=expected_plot_count,
-    )
 
 
 def _validate_adaptive_epr_direct_labels(
@@ -8186,6 +7478,7 @@ def _export_saved_format_theme_product_with_origin(
                     "template_format_plan": plan.to_dict(),
                     "adaptive_epr_processing": adaptive_epr_processing,
                 }
+            invalidate_processed_table(product.processed_data)
             try:
                 headers, rows = _read_processed_csv(product.processed_data)
             except (OSError, ValueError) as exc:
@@ -10250,10 +9543,8 @@ def _load_json_object(path: str | Path | None) -> dict[str, object]:
     if path is None:
         return {}
     source = Path(path)
-    if not source.is_file():
-        return {}
     try:
-        loaded = json.loads(source.read_text(encoding="utf-8"))
+        loaded = read_origin_style_json(source)
     except (OSError, json.JSONDecodeError):
         return {}
     return loaded if isinstance(loaded, dict) else {}
@@ -10294,17 +9585,20 @@ def _restore_adaptive_xps_native_graph_objects(
     style_snapshot: dict[str, object],
     *,
     expected_names: list[str],
+    restore_names: set[str] | None = None,
 ) -> dict[str, object]:
     records = style_snapshot.get("adaptive_native_graph_objects")
     if not isinstance(records, list):
         return {"applied": False, "reason": "adaptive_native_graph_objects_missing"}
     if [str(value.get("name") or "") for value in records if isinstance(value, dict)] != expected_names:
         return {"applied": False, "reason": "adaptive_native_graph_objects_incomplete"}
+    if any(not isinstance(record, dict) for record in records):
+        return {"applied": False, "reason": "adaptive_native_graph_object_malformed"}
+    if restore_names is not None:
+        records = [record for record in records if record["name"] in restore_names]
     graph = quote_labtalk(graph_name)
     restored: list[str] = []
     for record in records:
-        if not isinstance(record, dict):
-            return {"applied": False, "reason": "adaptive_native_graph_object_malformed"}
         object_name = str(record["name"])
         operations.run_labtalk(f'win -a "{graph}"; label -r {object_name};')
         created = operations.run_labtalk(
@@ -10361,7 +9655,7 @@ def _restore_adaptive_xps_native_graph_objects(
             }
         restored.append(object_name)
     return {
-        "applied": len(restored) == len(expected_names),
+        "applied": len(restored) == len(records),
         "method": "project_local_json_to_native_origin_graph_objects",
         "object_names": restored,
     }
@@ -10395,6 +9689,7 @@ def _apply_adaptive_xps_in_situ_text_policy(
         graph_name,
         style_snapshot,
         expected_names=["Text", *(f"Text{index}" for index in range(1, 10))],
+        restore_names=None if sample_count == 3 else {"Text"},
     )
     if not native_objects.get("applied"):
         return {
@@ -10504,6 +9799,7 @@ def _apply_adaptive_xps_non_in_situ_text_policy(
         graph_name,
         style_snapshot,
         expected_names=object_names,
+        restore_names=None if sample_count == 2 else set(),
     )
     if not native_objects.get("applied"):
         return {
@@ -11054,37 +10350,6 @@ def _apply_reviewed_template_plot_styles(
     }
 
 
-def _adaptive_eis_style_cycle_snapshot(
-    data_snapshot: dict[str, object],
-) -> dict[str, object]:
-    """Return the three reviewed visible EIS marker styles in display order."""
-    raw_plots = data_snapshot.get("plots") if isinstance(data_snapshot, dict) else None
-    plots = [dict(value) for value in raw_plots if isinstance(value, dict)] if isinstance(raw_plots, list) else []
-    by_index = {
-        int(plot.get("plot_index") or 0): plot
-        for plot in plots
-        if int(plot.get("layer_index") or 0) == 1
-    }
-    visible = [
-        by_index[index]
-        for index in REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]
-        if index in by_index
-    ]
-    if len(visible) != len(REVIEWED_TEMPLATE_VISIBLE_PLOTS["EIS"]):
-        return {
-            **dict(data_snapshot or {}),
-            "status": "invalid",
-            "plot_count": 0,
-            "plots": [],
-        }
-    return {
-        **data_snapshot,
-        "status": "ready",
-        "plot_count": len(visible),
-        "plots": visible,
-    }
-
-
 def _apply_adaptive_oth_json_plot_styles(
     operations: object,
     graph_name: str,
@@ -11164,34 +10429,6 @@ def _apply_adaptive_oth_json_plot_styles(
             getattr(native_formats, "payload", {}) or {}
         ),
     }
-
-
-def _xps_non_in_situ_adaptive_plot_format_contracts(
-    plot_count: int,
-) -> list[dict[str, object]]:
-    role_cycle = (
-        (1, 9, 30972633, 30972633),
-        (0, 0, 1, 2),
-        (0, 0, 1, 2),
-        (1, 9, 25540850, 25540850),
-        (0, 0, 1, 2),
-        (0, 0, 1, 2),
-        (0, 0, 1, 2),
-        (0, 0, 1, 2),
-        (0, 0, 1, 2),
-    )
-    return [
-        {
-            "layer_index": 1,
-            "plot_index": plot_index,
-            "fill_enabled": role[0],
-            "fill_mode": role[1],
-            "fill_above_color": role[2],
-            "fill_below_color": role[3],
-        }
-        for plot_index in range(1, plot_count + 1)
-        for role in (role_cycle[(plot_index - 1) % len(role_cycle)],)
-    ]
 
 
 def _adaptive_uvvis_conformance_reference(
@@ -12109,152 +11346,6 @@ def _apply_mott_schottky_candidate_guides(
     }
 
 
-def _mott_schottky_candidate_guides(
-    headers: list[str],
-    rows: list[list[object]],
-    *,
-    series_count: int,
-) -> dict[str, object]:
-    if series_count < 1 or len(headers) < series_count + 1:
-        return {}
-    numeric: list[tuple[float, list[float]]] = []
-    for row in rows:
-        if len(row) < series_count + 1:
-            continue
-        x_value = _finite_float(row[0])
-        y_values = [_finite_float(value) for value in row[1 : series_count + 1]]
-        if x_value is None or any(value is None for value in y_values):
-            continue
-        numeric.append((x_value, [float(value) for value in y_values if value is not None]))
-    numeric.sort(key=lambda item: item[0])
-    if len(numeric) < 5 or any(numeric[index][0] >= numeric[index + 1][0] for index in range(len(numeric) - 1)):
-        return {}
-
-    x_values = [item[0] for item in numeric]
-    series = [[item[1][series_index] for item in numeric] for series_index in range(series_count)]
-    rising_end = min(max(range(len(values)), key=values.__getitem__) for values in series)
-    window_size = 3
-    if rising_end + 1 < window_size:
-        return {}
-
-    candidates: list[tuple[tuple[float, float], int, list[dict[str, float]]]] = []
-    for start in range(0, rising_end - window_size + 2):
-        stop = start + window_size
-        x_window = x_values[start:stop]
-        fits = [_linear_fit(x_window, values[start:stop]) for values in series]
-        if any(not fit or float(fit["slope"]) <= 0 for fit in fits):
-            continue
-        minimum_r_squared = min(float(fit["r_squared"]) for fit in fits)
-        mean_r_squared = sum(float(fit["r_squared"]) for fit in fits) / len(fits)
-        candidates.append(((minimum_r_squared, mean_r_squared), start, fits))
-    if not candidates:
-        return {}
-    _score, start, independent_fits = max(candidates, key=lambda item: item[0])
-    stop = start + window_size
-    x_window = x_values[start:stop]
-    y_windows = [values[start:stop] for values in series]
-    shared = _shared_x_intercept_fit(x_window, y_windows, full_x_span=x_values[-1] - x_values[0])
-    if not shared or min(float(value) for value in shared.get("r_squared", [])) < 0.98:
-        return {}
-
-    next_index = stop if stop <= rising_end else stop - 1
-    guide_x_end = x_values[next_index]
-    return {
-        "series_headers": headers[1 : series_count + 1],
-        "linear_interval_candidate": [x_window[0], x_window[-1]],
-        "linear_fit_point_count": window_size,
-        "independent_linear_fits": independent_fits,
-        "shared_x_intercept_candidate": shared["x_intercept"],
-        "constrained_slopes": shared["slopes"],
-        "constrained_r_squared": shared["r_squared"],
-        "guide_x_end": guide_x_end,
-        "data_x_span": x_values[-1] - x_values[0],
-        "visible_y_max": max(max(values) for values in series),
-    }
-
-
-def _linear_fit(x_values: list[float], y_values: list[float]) -> dict[str, float]:
-    if len(x_values) != len(y_values) or len(x_values) < 2:
-        return {}
-    mean_x = sum(x_values) / len(x_values)
-    mean_y = sum(y_values) / len(y_values)
-    denominator = sum((value - mean_x) ** 2 for value in x_values)
-    if denominator <= 0:
-        return {}
-    slope = sum((x_value - mean_x) * (y_value - mean_y) for x_value, y_value in zip(x_values, y_values)) / denominator
-    intercept = mean_y - slope * mean_x
-    total = sum((value - mean_y) ** 2 for value in y_values)
-    residual = sum((y_value - (slope * x_value + intercept)) ** 2 for x_value, y_value in zip(x_values, y_values))
-    r_squared = 1.0 if total <= 0 else 1.0 - residual / total
-    return {"slope": slope, "intercept": intercept, "r_squared": r_squared}
-
-
-def _shared_x_intercept_fit(
-    x_values: list[float],
-    y_series: list[list[float]],
-    *,
-    full_x_span: float,
-) -> dict[str, object]:
-    if len(x_values) < 3 or full_x_span <= 0 or any(len(values) != len(x_values) for values in y_series):
-        return {}
-    upper = x_values[0] - max(full_x_span * 1e-6, abs(x_values[-1] - x_values[0]) * 0.01)
-    lower = x_values[0] - 5.0 * full_x_span
-    grid_count = 4000
-    step = (upper - lower) / grid_count
-
-    def evaluate(x_intercept: float) -> tuple[float, list[float], list[float]]:
-        offsets = [x_value - x_intercept for x_value in x_values]
-        denominator = sum(value * value for value in offsets)
-        if denominator <= 0:
-            return math.inf, [], []
-        slopes: list[float] = []
-        r_squared_values: list[float] = []
-        objective = 0.0
-        for values in y_series:
-            slope = sum(offset * y_value for offset, y_value in zip(offsets, values)) / denominator
-            if slope <= 0:
-                return math.inf, [], []
-            residual = sum((y_value - slope * offset) ** 2 for offset, y_value in zip(offsets, values))
-            mean_y = sum(values) / len(values)
-            total = sum((y_value - mean_y) ** 2 for y_value in values)
-            if total <= 0:
-                return math.inf, [], []
-            objective += residual / total
-            slopes.append(slope)
-            r_squared_values.append(1.0 - residual / total)
-        return objective, slopes, r_squared_values
-
-    best_index = -1
-    best: tuple[float, list[float], list[float]] = (math.inf, [], [])
-    for index in range(grid_count + 1):
-        candidate = evaluate(lower + index * step)
-        if candidate[0] < best[0]:
-            best = candidate
-            best_index = index
-    if best_index <= 0 or best_index >= grid_count:
-        return {}
-
-    left = lower + (best_index - 1) * step
-    right = lower + (best_index + 1) * step
-    for _ in range(50):
-        first = left + (right - left) / 3.0
-        second = right - (right - left) / 3.0
-        if evaluate(first)[0] <= evaluate(second)[0]:
-            right = second
-        else:
-            left = first
-    x_intercept = (left + right) / 2.0
-    objective, slopes, r_squared_values = evaluate(x_intercept)
-    if not math.isfinite(objective) or not slopes:
-        return {}
-    return {
-        "x_intercept": x_intercept,
-        "slopes": slopes,
-        "r_squared": r_squared_values,
-        "normalized_residual_objective": objective,
-    }
-
-
 def _snapshot_axis_value(layout: object, key: str) -> float | None:
     if not isinstance(layout, dict):
         return None
@@ -12267,14 +11358,6 @@ def _snapshot_axis_span(layout: object, prefix: str, *, fallback: float) -> floa
     if start is not None and stop is not None and stop > start:
         return stop - start
     return max(fallback, 1.0)
-
-
-def _finite_float(value: object) -> float | None:
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    return number if math.isfinite(number) else None
 
 
 def _origin_number(value: object) -> str:
@@ -12742,10 +11825,11 @@ def _apply_adaptive_epr_direct_labels(
         y_span = y_to - y_from
         for index, (entry, (x_values, y_values)) in enumerate(zip(entries, series), start=1):
             nearest_count = max(16, min(96, len(x_values) // 20))
-            nearest_indices = sorted(
+            nearest_indices = heapq.nsmallest(
+                nearest_count,
                 range(len(x_values)),
-                key=lambda item: abs(x_values[item] - x_anchor),
-            )[:nearest_count]
+                key=lambda item: (abs(x_values[item] - x_anchor), item),
+            )
             label_y = median(y_values[item] for item in nearest_indices) + y_offset_fraction * y_span
             label_y = min(y_to - 0.06 * y_span, max(y_from + 0.06 * y_span, label_y))
             specs.append(
@@ -13395,150 +12479,6 @@ def _apply_bet_data_axis_range(
         "series_count": len(current_series),
         "axis_titles_recentered": True,
     }
-
-
-
-def _padded_axis_bounds(min_value: float, max_value: float, *, zero_floor: bool = False) -> tuple[float, float]:
-    if max_value <= min_value:
-        span = max(abs(max_value), abs(min_value), 1.0)
-    else:
-        span = max_value - min_value
-    pad = max(span * 0.08, 1e-9)
-    lower = min_value - pad
-    upper = max_value + pad
-    if zero_floor and min_value >= 0:
-        lower = 0.0
-    return lower, upper
-
-
-def _photocurrent_xy_series(
-    rows: list[list[object]],
-    pairs: list[tuple[int, int]],
-) -> list[tuple[list[float], list[float]]]:
-    """Return strict contiguous finite X/Y runs for each processed photocurrent pair."""
-    series: list[tuple[list[float], list[float]]] = []
-    for x_column, y_column in pairs:
-        x_index = x_column - 1
-        y_index = y_column - 1
-        x_values: list[float] = []
-        y_values: list[float] = []
-        finite_run_ended = False
-        for row in rows:
-            x_value = _finite_numeric_value(row[x_index]) if x_index < len(row) else None
-            y_value = _finite_numeric_value(row[y_index]) if y_index < len(row) else None
-            if x_value is None and y_value is None:
-                if x_values:
-                    finite_run_ended = True
-                continue
-            if x_value is None or y_value is None or finite_run_ended:
-                return []
-            x_values.append(float(x_value))
-            y_values.append(float(y_value))
-        if not x_values or len(x_values) != len(y_values):
-            return []
-        series.append((x_values, y_values))
-    return series
-
-
-def _shared_x_contiguous_y_series(
-    rows: list[list[object]],
-    pairs: list[tuple[int, int]],
-) -> list[tuple[list[float], list[float]]]:
-    """Return contiguous shared-X series while allowing different Y run lengths."""
-    series: list[tuple[list[float], list[float]]] = []
-    for x_column, y_column in pairs:
-        x_index = x_column - 1
-        y_index = y_column - 1
-        bounds = _paired_numeric_row_bounds(rows, x_index, y_index)
-        if bounds is None:
-            return []
-        first_row, last_row = bounds
-        x_values: list[float] = []
-        y_values: list[float] = []
-        for row_index, row in enumerate(rows, start=1):
-            x_value = _finite_numeric_value(row[x_index]) if x_index < len(row) else None
-            y_value = _finite_numeric_value(row[y_index]) if y_index < len(row) else None
-            if y_value is not None and x_value is None:
-                return []
-            if first_row <= row_index <= last_row:
-                if x_value is None or y_value is None:
-                    return []
-                x_values.append(float(x_value))
-                y_values.append(float(y_value))
-            elif y_value is not None:
-                return []
-        if not x_values or len(x_values) != len(y_values):
-            return []
-        series.append((x_values, y_values))
-    return series
-
-
-def _photocurrent_reference_xy_series(
-    snapshot: dict[str, object] | None,
-) -> list[tuple[list[float], list[float]]]:
-    if not isinstance(snapshot, dict):
-        return []
-    plots = snapshot.get("plots")
-    if not isinstance(plots, list) or not plots:
-        return []
-    series: list[tuple[list[float], list[float]]] = []
-    for plot in plots:
-        if not isinstance(plot, dict):
-            return []
-        raw_x = plot.get("x_values")
-        raw_y = plot.get("y_values")
-        if not isinstance(raw_x, list) or not isinstance(raw_y, list) or len(raw_x) != len(raw_y):
-            return []
-        x_values: list[float] = []
-        y_values: list[float] = []
-        finite_run_ended = False
-        for raw_x_value, raw_y_value in zip(raw_x, raw_y):
-            x_value = _finite_numeric_value(raw_x_value)
-            y_value = _finite_numeric_value(raw_y_value)
-            if x_value is None and y_value is None:
-                if x_values:
-                    finite_run_ended = True
-                continue
-            if x_value is None or y_value is None or finite_run_ended:
-                return []
-            x_values.append(float(x_value))
-            y_values.append(float(y_value))
-        if not x_values:
-            return []
-        series.append((x_values, y_values))
-    return series
-
-
-def _photocurrent_axis_series_match(
-    current: list[tuple[list[float], list[float]]],
-    reference: list[tuple[list[float], list[float]]],
-    *,
-    axis: str,
-) -> bool:
-    if axis not in {"x", "y"} or len(current) != len(reference):
-        return False
-    axis_index = 0 if axis == "x" else 1
-    reference_values = [value for series in reference for value in series[axis_index]]
-    if not reference_values:
-        return False
-    reference_span = max(reference_values) - min(reference_values)
-    absolute_tolerance = max(abs(reference_span) * 1e-12, 1e-15)
-    for current_series, reference_series in zip(current, reference):
-        current_values = current_series[axis_index]
-        expected_values = reference_series[axis_index]
-        if len(current_values) != len(expected_values):
-            return False
-        if any(
-            not math.isclose(
-                actual,
-                expected,
-                rel_tol=1e-9,
-                abs_tol=absolute_tolerance,
-            )
-            for actual, expected in zip(current_values, expected_values)
-        ):
-            return False
-    return True
 
 
 def _apply_saved_template_legend_anchor(
@@ -14917,8 +13857,8 @@ def _strip_raster_metadata(path: Path, *, dpi: int) -> str:
             fmt = image.format or path.suffix.lstrip(".").upper()
             image.load()
             clean = Image.new(image.mode, image.size)
-            pixel_data = image.get_flattened_data() if hasattr(image, "get_flattened_data") else image.getdata()
-            clean.putdata(list(pixel_data))
+            # Copy the native pixel buffer without millions of Python pixel tuples.
+            clean.paste(image)
             clean.info.clear()
             tmp = path.with_name(f"{path.stem}.stripped{path.suffix}")
             save_kwargs: dict[str, object] = {"dpi": (dpi, dpi)}
@@ -14984,6 +13924,9 @@ def _template_base_xps_fill_intent(product: ProductContext, replacement: dict[st
 
 
 def _read_processed_csv(path: Path) -> tuple[list[str], list[list[object]]]:
+    cache = current_template_inputs()
+    if cache is not None and path in cache.tables:
+        return cache.tables[path]
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.reader(handle)
         rows = [row for row in reader if any(str(cell).strip() for cell in row)]
@@ -14993,7 +13936,10 @@ def _read_processed_csv(path: Path) -> tuple[list[str], list[list[object]]]:
     data_rows: list[list[object]] = []
     for row in rows[1:]:
         data_rows.append([_coerce_csv_cell(cell) for cell in row])
-    return headers, data_rows
+    result = headers, data_rows
+    if cache is not None:
+        cache.tables[path] = result
+    return result
 
 
 def _write_processed_csv(
@@ -15015,6 +13961,7 @@ def _write_processed_csv(
                     for value in row
                 ]
             )
+    invalidate_processed_table(path)
 
 
 def _coerce_csv_cell(value: object) -> object:
@@ -15033,7 +13980,7 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
     products = result.get("products") if isinstance(result.get("products"), list) else []
     summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
     payload = {
-        "policy": "Template-format products default to an isolated copy of the reviewed pairing-plan OPJU and replace only its mapped worksheet data; detached .oth/.otpu assets remain quarantined unless independently validated.",
+        "policy": "Each product records its selected Origin route. Verified fixed bindings use the accepted OTPU asset; adaptive bindings use the accepted OTH+JSON bundle. Explicit exemplar-driven mode uses an isolated reference OPJU copy. Asset registry, data, style and export acceptance gates remain required.",
         "one_to_one_policy": "No product may claim one-to-one replication unless reference and generated graphs use identical per-plot X/Y data and mappings, then pass save/reopen readback, native 600 dpi export, exact decoded-pixel comparison, and manual preview.",
         "summary": summary,
         "products": products,
@@ -15045,9 +13992,11 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
     lines = [
         "# Template-format product executor",
         "",
-        "- Default Origin source: a task-local copy of the reviewed OPJU selected by the pairing plan.",
-        "- Data rule: only explicitly mapped worksheet columns may be replaced; graph objects and style are not globally rewritten.",
-        "- Detached-asset rule: `.oth` and `.otpu` are not runtime fallbacks unless a fresh-project, same-data replay has independently passed.",
+        "- Origin route: each product below reports the actual selected route and decision; skipped or blocked exports do not claim a completed route.",
+        "- Fixed route: a verified `.otpu` asset with the matching fixed data-binding contract.",
+        "- Adaptive route: the accepted `.oth` + JSON bundle and the current product's validated data bindings.",
+        "- Explicit exemplar-driven mode: an isolated reference OPJU copy with mapped worksheet replacement.",
+        "- Asset rule: registry validation and the existing data, style and export acceptance gates apply to the selected route.",
         "- Exactness rule: compare only graphs built from identical per-plot X/Y data and mappings; one-to-one replication is not claimed until save/reopen readback, native 600 dpi export, zero decoded-pixel difference, and manual preview all pass.",
         "- Style rule: line width, fonts, axes, layers, plot types, legend geometry, and other graph formatting are compared with the selected exemplar rather than forced to global constants.",
         "",
@@ -15057,4 +14006,15 @@ def _write_template_format_docs(project_root: Path, run_root: Path, result: dict
         f"- Blocked count: {summary.get('blocked_count', '')}",
         f"- Failed count: {summary.get('failed_count', '')}",
     ]
+    for product in products:
+        if not isinstance(product, dict):
+            continue
+        decision = product.get("origin_style_decision")
+        decision = decision if isinstance(decision, dict) else {}
+        selected_mode = decision.get("selected_mode") or product.get("template_format_mode") or "not executed"
+        reason = str(decision.get("reason_code") or "")
+        lines.append(
+            f"- {product.get('product_key') or product.get('type') or 'Product'}: "
+            f"{selected_mode}" + (f" ({reason})" if reason else "")
+        )
     (reports / "template_format_executor_summary.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")

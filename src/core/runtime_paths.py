@@ -10,7 +10,7 @@ from src.core.output_sanitizer import render_output_path
 from src.core.project import default_output_root
 from src.core.project import ensure_write_path_allowed
 from src.core.project import load_project_config
-from src.core.project import _parse_simple_yaml
+from src.core.project import read_project_yaml
 
 
 DEFAULT_LOCKED_RESULT_PACKAGE_NAME = Path("locked_origin_results_20260531_041538")
@@ -187,36 +187,30 @@ def resolve_locked_result_index(project_root: Path, override: str | Path | None 
 
 
 def resolve_workspace_root(project_root: Path, override: str | Path | None = None) -> Path:
-    value = _first_nonempty(
-        str(override) if override is not None else None,
-        os.environ.get(WORKSPACE_ROOT_ENV),
-        _config_value(project_root, "paths", "workspace_root"),
-        _config_value(project_root, "paths", "current_workspace_copy"),
-        _config_value(project_root, "paths", "workspace_source_copy"),
-    )
+    value = _first_nonempty(str(override) if override is not None else None, os.environ.get(WORKSPACE_ROOT_ENV))
+    if not value:
+        config = load_project_config(project_root, Path("config/default.yaml"))
+        value = _first_nonempty(*(_mapping_value(config, "paths", key) for key in ("workspace_root", "current_workspace_copy", "workspace_source_copy")))
     return resolve_project_path(project_root, value or LEGACY_WORKSPACE_ROOT)
 
 
 def resolve_optional_f_drive_backup(project_root: Path, override: str | Path | None = None) -> Path | None:
-    value = _first_nonempty(
-        str(override) if override is not None else None,
-        os.environ.get(F_DRIVE_BACKUP_ENV),
-        _config_value(project_root, "paths", "f_drive_backup"),
-        _config_value(project_root, "paths", "stable_raw_backup"),
-    )
+    value = _first_nonempty(str(override) if override is not None else None, os.environ.get(F_DRIVE_BACKUP_ENV))
+    if not value:
+        config = load_project_config(project_root, Path("config/default.yaml"))
+        value = _first_nonempty(*(_mapping_value(config, "paths", key) for key in ("f_drive_backup", "stable_raw_backup")))
     if value:
         return resolve_project_path(project_root, value)
     return None
 
 
-def resolve_origin_helper(project_root: Path, override: str | Path | None = None) -> Path:
-    value = _first_nonempty(
-        str(override) if override is not None else None,
-        os.environ.get(ORIGIN_HELPER_ENV),
-        _plot_style_value(project_root, "helper_script"),
-        _config_value(project_root, "origin_template", "helper_script"),
-        _config_value(project_root, "paths", "origin_helper_script"),
-    )
+def resolve_origin_helper(project_root: Path, override: str | Path | None = None, *, plot_style_config: dict | None = None) -> Path:
+    value = _first_nonempty(str(override) if override is not None else None, os.environ.get(ORIGIN_HELPER_ENV))
+    if not value:
+        value = _plot_style_value(project_root, "helper_script", config=plot_style_config)
+    if not value:
+        config = load_project_config(project_root, Path("config/default.yaml"))
+        value = _first_nonempty(_mapping_value(config, "origin_template", "helper_script"), _mapping_value(config, "paths", "origin_helper_script"))
     if value:
         return resolve_project_path(project_root, value)
     project_helper = resolve_project_path(project_root, LEGACY_ORIGIN_HELPER)
@@ -226,15 +220,13 @@ def resolve_origin_helper(project_root: Path, override: str | Path | None = None
     return repo_helper if repo_helper.exists() else project_helper
 
 
-def resolve_origin_reference_pattern(project_root: Path, override: str | None = None) -> str:
-    value = _first_nonempty(
-        override,
-        os.environ.get(ORIGIN_REFERENCE_PATTERN_ENV),
-        _plot_style_value(project_root, "reference_search_pattern"),
-        _plot_style_value(project_root, "default_reference_project"),
-        _config_value(project_root, "origin_template", "reference_search_pattern"),
-        _config_value(project_root, "origin_template", "default_reference_project"),
-    )
+def resolve_origin_reference_pattern(project_root: Path, override: str | None = None, *, plot_style_config: dict | None = None) -> str:
+    value = _first_nonempty(override, os.environ.get(ORIGIN_REFERENCE_PATTERN_ENV))
+    if not value:
+        value = _plot_style_value(project_root, "reference_search_pattern", config=plot_style_config) or _plot_style_value(project_root, "default_reference_project", config=plot_style_config)
+    if not value:
+        config = load_project_config(project_root, Path("config/default.yaml"))
+        value = _first_nonempty(_mapping_value(config, "origin_template", "reference_search_pattern"), _mapping_value(config, "origin_template", "default_reference_project"))
     return str(value or LEGACY_ORIGIN_REFERENCE_PATTERN)
 
 
@@ -249,16 +241,21 @@ def _latest_existing_dir_with_index(parent: Path, pattern: str) -> Path | None:
 
 def _config_value(project_root: Path, section: str, key: str) -> str | None:
     config = load_project_config(project_root, Path("config/default.yaml"))
+    return _mapping_value(config, section, key)
+
+
+def _mapping_value(config: dict, section: str, key: str) -> str | None:
     value = config.get(section, {}).get(key) if isinstance(config.get(section), dict) else None
     text = str(value).strip() if value is not None else ""
     return text or None
 
 
-def _plot_style_value(project_root: Path, key: str) -> str | None:
-    path = project_root / "config" / "plot_style.yaml"
-    if not path.exists():
-        return None
-    config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
+def _plot_style_value(project_root: Path, key: str, *, config: dict | None = None) -> str | None:
+    if config is None:
+        path = project_root / "config" / "plot_style.yaml"
+        if not path.exists():
+            return None
+        config = read_project_yaml(path)
     value = config.get(key)
     if value is None and isinstance(config.get("origin_template"), dict):
         value = config["origin_template"].get(key)
@@ -280,8 +277,4 @@ def _resolve_config_path(project_root: Path, path: Path) -> Path:
 def _config_file_value(path: Path, section: str, key: str) -> str | None:
     if not path.exists():
         return None
-    config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
-    section_value = config.get(section)
-    value = section_value.get(key) if isinstance(section_value, dict) else None
-    text = str(value).strip() if value is not None else ""
-    return text or None
+    return _mapping_value(read_project_yaml(path), section, key)

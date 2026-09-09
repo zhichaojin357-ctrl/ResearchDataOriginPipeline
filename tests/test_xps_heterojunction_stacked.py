@@ -16,6 +16,7 @@ from src.core.xps_heterojunction import (
     XpsHeterojunctionOptions,
     _comparison_peak_details,
     _comparison_x_axis_range,
+    _csv_plot_inputs,
     _stacked_plot_rows,
     build_comparison_plan,
     load_xps_fit_workbooks,
@@ -25,6 +26,7 @@ from src.core.xps_heterojunction import (
     _build_direct_origin_xps_script,
     _cleanup_failed_renderer_origin,
     _export_origin_for_comparison,
+    _run_xps_origin_renderer,
     _terminate_owned_origin_processes,
     _validated_origin_artifacts,
 )
@@ -46,14 +48,25 @@ def _write_xps_workbook(path: Path, sheets: dict[str, list[str]]) -> None:
             frame.to_excel(writer, sheet_name=sheet_name, header=False, index=False)
 
 
-def test_load_xps_fit_workbooks_extracts_fit_components_and_metadata(tmp_path: Path) -> None:
+def test_load_xps_fit_workbooks_extracts_fit_components_and_metadata(tmp_path: Path, monkeypatch) -> None:
     bobc = tmp_path / "BOBCfit.xlsx"
-    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"]})
+    _write_xps_workbook(bobc, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A"], "O1s Scan": ["O1s", "O1s Scan A"]})
+    opened_workbooks = []
+    excel_file = pd.ExcelFile
+
+    def counted_open(path, *args, **kwargs):
+        opened_workbooks.append(path)
+        return excel_file(path, *args, **kwargs)
+
+    monkeypatch.setattr(pd, "ExcelFile", counted_open)
+    monkeypatch.setattr(pd, "read_excel", lambda *args, **kwargs: pytest.fail("sheets must reuse the already open workbook"))
 
     records, manual_review = load_xps_fit_workbooks({"BOBC": [bobc]})
 
     assert manual_review == []
-    assert len(records) == 1
+    assert len(records) == 2
+    assert opened_workbooks == [bobc]
+    assert records[1].element == "O"
     record = records[0]
     assert record.sample == "BOBC"
     assert record.element == "Bi"
@@ -87,6 +100,50 @@ def test_build_comparison_plan_uses_heterojunction_binary_pairs_and_splits_oxyge
     assert "XPS_O_BOBC_CWO_BC_stacked" not in names
     assert all([item.sample_a, item.sample_b] in [["BOBC", "BC"], ["CWO", "BC"]] for item in plan.comparisons)
     assert plan.manual_review == []
+
+
+@pytest.mark.parametrize("product_key", ["XPS_in_situ", "XPS_non_in_situ"])
+@pytest.mark.parametrize("compact_output", [False, True])
+def test_template_xps_preparation_reuses_selected_workbook_records(
+    tmp_path: Path, monkeypatch, product_key: str, compact_output: bool
+) -> None:
+    import csv
+
+    import src.core.template_product_builder as builder
+    import src.core.template_product_common as common
+
+    names = ["BOBCfit.xlsx", "BC Dark.xlsx", "BC Light.xlsx"] if product_key == "XPS_in_situ" else ["BOBCfit.xlsx", "BCfit.xlsx"]
+    paths = [tmp_path / name for name in names]
+    for path in paths:
+        _write_xps_workbook(path, {"Bi4f Scan": ["Bi4f", "Bi4f Scan A", "Bi4f Scan B"]})
+    pairing = common.TargetPairing(product_key, product_key, "", "test", paths, "test", tmp_path / "reference.json")
+    expected_headers, expected_rows, expected_labels = common._build_processed_plot_table(
+        pairing, xps_component_fill_mode="template_line_fill"
+    )
+    loads = []
+    load_workbooks = builder.load_xps_fit_workbooks
+
+    def counted_load(sample_files):
+        loads.append(sample_files)
+        return load_workbooks(sample_files)
+
+    monkeypatch.setattr(builder, "load_xps_fit_workbooks", counted_load)
+    monkeypatch.setattr(common, "load_xps_fit_workbooks", lambda *args: pytest.fail("table and Origin plan must share selected XPS records"))
+    product, extra = builder.prepare_template_product(
+        tmp_path / "run",
+        pairing,
+        builder.TemplateCandidate(product_key, pairing.reference_opju, "embedded_template_snapshot", plot_count=len(expected_headers) - 1),
+        xps_smooth_gradient_fill=True,
+        compact_output=compact_output,
+    )
+
+    with product.processed_data.open(encoding="utf-8", newline="") as handle:
+        written = list(csv.reader(handle))
+    assert written == [expected_headers, *[["" if value is None else str(value) for value in row] for row in expected_rows]]
+    assert product.graph_title == expected_labels["title"]
+    assert extra["origin_processing"]["source_files"] == [str(path) for path in paths]
+    assert len(loads) == 1
+    assert bool(list(product.type_root.rglob("*_origin_raw_input.csv"))) is (not compact_output)
 
 
 def test_build_comparison_plan_reports_missing_bc_instead_of_guessing(tmp_path: Path) -> None:
@@ -781,6 +838,58 @@ def test_direct_origin_xps_generated_script_compiles(tmp_path: Path) -> None:
     assert '"owned_origin_pids"' in script
     assert '"remaining_owned_pids"' in script
     assert "Origin lifecycle finalization failed; product acceptance is blocked" in script
+    assert "powershell" not in script.casefold()
+
+    # Exercise the generated startup, including the shared process query,
+    # without importing Origin or permitting a user's open instance to be used.
+    with patch("src.origin.operations.origin_process_ids", return_value={4242}):
+        with pytest.raises(RuntimeError, match="Origin was already running"):
+            exec(script.split("import originpro as op", 1)[0], {})
+    lifecycle = json.loads((tmp_path / "origin_lifecycle.json").read_text(encoding="utf-8"))
+    assert lifecycle["baseline_origin_pids"] == [4242]
+    assert lifecycle["owned_origin_pids"] == []
+
+
+def test_xps_renderer_imports_shared_runtime_from_external_job_directory(tmp_path: Path, monkeypatch) -> None:
+    job_script = tmp_path / "job.py"
+    job_script.write_text(
+        "from src.origin import operations\nprint(operations.__file__)\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    result = _run_xps_origin_renderer(job_script)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip().endswith("operations.py")
+
+
+@pytest.mark.parametrize(
+    ("contents", "expected_x", "expected_bounds"),
+    [
+        ("x,A measured,A fill upper 1\n1,,1000\n2,3,-2000\n3,5,9999\n", [1.0, 2.0, 3.0], (3.0, 5.0)),
+        ("x,A measured,A fill upper 1\n1,nan,1000\n2,,-2000\n3,inf,9999\n", [1.0, 2.0, 3.0], (-2000.0, 9999.0)),
+        ("x,A component,B component\n1,2,\n2,,7\n3,5,\n", [1.0, 2.0, 3.0], (2.0, 7.0)),
+        ("x,A measured,B Envelope\n,,7\n1,2\n\n2,-3,nan\n", [1.0, 2.0], (-3.0, 7.0)),
+    ],
+)
+def test_xps_plot_inputs_preserve_visible_range_and_missing_value_fallback(
+    tmp_path: Path, monkeypatch, contents: str, expected_x: list[float], expected_bounds: tuple[float, float],
+) -> None:
+    path = tmp_path / "plot.csv"
+    path.write_text(contents, encoding="utf-8")
+    original_open = Path.open
+    opened = []
+
+    def counted_open(target, *args, **kwargs):
+        if target == path:
+            opened.append(target)
+        return original_open(target, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", counted_open)
+    header, x_values, bounds = _csv_plot_inputs(path)
+    assert header == contents.splitlines()[0].split(",")
+    assert x_values == expected_x
+    assert bounds == expected_bounds
+    assert opened == [path]
 
 
 def test_xps_origin_export_reopens_saved_opju_for_native_tif(tmp_path: Path) -> None:
@@ -1037,22 +1146,22 @@ def test_xps_failed_renderer_never_terminates_unowned_origin_pid(tmp_path: Path)
     terminate.assert_not_called()
 
 
-def test_xps_origin_cleanup_command_targets_only_proven_owned_pids() -> None:
-    completed = SimpleNamespace(returncode=0, stdout="", stderr="")
-
+def test_xps_origin_cleanup_targets_only_proven_owned_pids() -> None:
     with patch(
-        "src.core.xps_heterojunction.subprocess.run",
-        return_value=completed,
-    ) as run:
+        "src.origin.operations._terminate_owned_origin_processes",
+        return_value={"ok": True, "failures": []},
+    ) as terminate:
         _terminate_owned_origin_processes({5151, 4242})
+    terminate.assert_called_once_with({5151, 4242})
 
-    command = run.call_args.args[0]
-    assert command[:3] == ["powershell", "-NoProfile", "-Command"]
-    script = command[3]
-    assert "$ids = @(4242,5151)" in script
-    assert "Get-Process -Id $ids" in script
-    assert "ProcessName -like 'Origin*'" in script
-    assert "Get-Process -Name Origin*" not in script
+
+def test_xps_origin_cleanup_retains_shared_runtime_failure() -> None:
+    with patch(
+        "src.origin.operations._terminate_owned_origin_processes",
+        return_value={"ok": False, "failures": [{"pid": 5151, "error": "access denied"}]},
+    ):
+        with pytest.raises(RuntimeError, match="Task-owned Origin cleanup failed.*5151.*access denied"):
+            _terminate_owned_origin_processes({5151})
 
 
 def _minimal_origin_export_case(

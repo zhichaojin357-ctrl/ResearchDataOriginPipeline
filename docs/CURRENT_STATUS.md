@@ -1,14 +1,33 @@
 # Current Status
 
+Latest integration evidence: [OPTIMIZATION_WORKSTATION_ACCEPTANCE.md](OPTIMIZATION_WORKSTATION_ACCEPTANCE.md).
+This records native Origin comparisons on the workstation, the LabTalk
+readback fix found during those checks, and the exact limits of the review.
+The earlier [second review](OPTIMIZATION_SECOND_REVIEW.md) records the incoming
+branch and snapshot-byte restoration, not the current visual acceptance.
+
 This repository is the maintained runtime pipeline. The active path is
 `run.py -> src/cli.py -> src/core / src/processors / src/origin`. Historical
 commits and old generated assets are evidence only; current behavior is defined
 by the working tree, registry, manifest, validators, and current run reports.
 
-The latest broad code audit remains
+An earlier broad code audit is
 [CODEBASE_AUDIT_2026-07-31.md](CODEBASE_AUDIT_2026-07-31.md). This file records
 the newer runtime state after the Origin style-route work and XRD data-module
 merge.
+
+## Optimization integration
+
+`codex/optimize-pipeline-preserve-plots` implements input / asset reuse,
+algorithmic search improvements, Origin readback batching, and impact-based
+validation. The proposed single generic export session was not retained:
+workstation checks found a PNG non-regression failure. See
+[OPTIMIZATION_HANDOFF.md](OPTIMIZATION_HANDOFF.md) for the implementation map,
+copyable workstation tests, and the initial test record. See the workstation
+report above for actual same-input comparisons and known pre-existing limits.
+The earlier
+asset and full-regression results below are historical evidence and do not
+establish visual acceptance of this branch.
 
 ## Runtime scope
 
@@ -135,15 +154,18 @@ Latest final verification on 2026-08-24:
   warnings are missing or stale operational queue/review artifacts. No rule
   was weakened to make the report green.
 
-Run final validation once after a coherent change batch, rather than repeating
-full-suite or Origin tests after every low-risk documentation edit:
+Follow the impact-based validation matrix in `AGENTS.md` section 10. During
+development run the affected tests and compare the affected data or figures.
+Run the full suite and applicable project checks once before integrating a
+complete optimization batch, not after every small commit. Record unrelated
+pre-existing failures without expanding the task to fix them:
 
 ```powershell
-D:\Python\python.exe -m pytest
-D:\Python\python.exe run.py validate
-D:\Python\python.exe run.py readiness --no-desktop-review-xlsx
+python -m pytest
+python run.py validate
+python run.py readiness --no-desktop-review-xlsx
 ```
 
-The two readiness commands must run in that order. Plot-format changes also
+The validate and readiness commands must run in that order. Plot-format changes also
 require the affected formal Origin run and actual PNG inspection; data-only or
 documentation-only changes do not.

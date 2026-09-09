@@ -52,7 +52,7 @@ class Classification:
         }
 
 
-def _matching_folders(raw_root: Path, entry: dict) -> list[Path]:
+def _matching_folders(raw_root: Path, entry: dict, directories: list[Path] | None = None) -> list[Path]:
     if not raw_root.exists():
         return []
     matches: list[Path] = []
@@ -67,8 +67,8 @@ def _matching_folders(raw_root: Path, entry: dict) -> list[Path]:
     if exact.exists() and exact.is_dir():
         matches.append(exact)
     normalized_keywords = [_normalize_path_segment(str(keyword)) for keyword in entry.get("folder_keywords", [])]
-    for child in raw_root.rglob("*"):
-        if not child.is_dir() or child == exact:
+    for child in directories if directories is not None else raw_root.rglob("*"):
+        if (directories is None and not child.is_dir()) or child == exact:
             continue
         name = _normalize_path_segment(child.name)
         if any(keyword and _keyword_matches(keyword, name) for keyword in normalized_keywords):
@@ -96,10 +96,14 @@ def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | N
     input_path = input_path.absolute()
     classifications: list[Classification] = []
     all_files = []
+    directories: list[Path] = []
+    files_by_ancestor: dict[Path, list[Path]] = {}
 
     if input_path.exists():
         for file_path in input_path.rglob("*"):
-            if file_path.is_file():
+            if file_path.is_dir():
+                directories.append(file_path)
+            elif file_path.is_file():
                 all_files.append(
                     {
                         "path": str(file_path),
@@ -108,20 +112,32 @@ def scan_raw_data(project_root: Path, input_path: Path, *, output_root: Path | N
                         "size": file_path.stat().st_size,
                     }
                 )
+                for ancestor in file_path.parents:
+                    files_by_ancestor.setdefault(ancestor, []).append(file_path)
+                    if ancestor == input_path:
+                        break
 
     classified_paths: set[str] = set()
     matched_folders_by_entry: dict[int, list[Path]] = {}
     file_candidates: dict[str, list[tuple[tuple[int, int, int, int, int], int, Path]]] = {}
     unsupported_candidates: dict[str, list[tuple[tuple[int, int, int, int, int], int, dict]]] = {}
     for entry_index, entry in enumerate(entries):
-        folders = _matching_folders(input_path, entry)
+        folders = _matching_folders(input_path, entry, directories)
         matched_folders_by_entry[entry_index] = folders
         if folders:
             allowed = {ext.lower() for ext in entry.get("extensions", [])}
+            entry_seen: set[Path] = set()
             for folder in folders:
-                for path in folder.rglob("*"):
-                    if not path.is_file():
+                # A matched directory symlink is a separately requested root
+                # in the legacy scanner; preserve its traversal behavior.
+                linked_folder = folder.is_symlink()
+                paths = folder.rglob("*") if linked_folder else files_by_ancestor.get(folder, [])
+                for path in paths:
+                    if linked_folder and not path.is_file():
                         continue
+                    if path in entry_seen:
+                        continue
+                    entry_seen.add(path)
                     score = _entry_path_score(input_path, path, entry, entry_index)
                     if score[0] <= 0:
                         continue

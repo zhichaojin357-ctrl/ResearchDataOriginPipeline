@@ -609,6 +609,8 @@ def _rerun_evidence(
     right: dict[str, Any],
     result_profiles: dict[str, dict[str, Any]],
     config: dict[str, Any],
+    *,
+    sequence_similarities: dict[tuple[str, str], tuple[float, float]] | None = None,
 ) -> list[str]:
     same_sample = left["normalized_sample_name"] == right["normalized_sample_name"]
     same_supported_base = left["sample_identity_base"] == right["sample_identity_base"]
@@ -662,18 +664,27 @@ def _rerun_evidence(
         evidence.append("数据文件名或目录含明确重打标记")
 
     if left["result_set_id"] != right["result_set_id"]:
-        left_profile = result_profiles.get(left["result_set_id"], {})
-        right_profile = result_profiles.get(right["result_set_id"], {})
-        left_samples = set(left_profile.get("samples", []))
-        right_samples = set(right_profile.get("samples", []))
-        ordered_similarity = SequenceMatcher(
-            None,
-            left_profile.get("samples", []),
-            right_profile.get("samples", []),
-            autojunk=False,
-        ).ratio()
-        union = left_samples | right_samples
-        set_similarity = len(left_samples & right_samples) / len(union) if union else 0.0
+        # Keep the pair ordered: SequenceMatcher can resolve matching ties
+        # differently when its two input sequences are reversed.
+        pair = (left["result_set_id"], right["result_set_id"])
+        cached = sequence_similarities.get(pair) if sequence_similarities is not None else None
+        if cached is None:
+            left_profile = result_profiles.get(pair[0], {})
+            right_profile = result_profiles.get(pair[1], {})
+            left_samples = set(left_profile.get("samples", []))
+            right_samples = set(right_profile.get("samples", []))
+            ordered_similarity = SequenceMatcher(
+                None,
+                left_profile.get("samples", []),
+                right_profile.get("samples", []),
+                autojunk=False,
+            ).ratio()
+            union = left_samples | right_samples
+            set_similarity = len(left_samples & right_samples) / len(union) if union else 0.0
+            if sequence_similarities is not None:
+                sequence_similarities[pair] = (ordered_similarity, set_similarity)
+        else:
+            ordered_similarity, set_similarity = cached
         similarity = max(ordered_similarity, set_similarity)
         same_sequence = bool(
             left["normalized_sequence_name"]
@@ -743,7 +754,10 @@ class _UnionFind:
     def __init__(self, values: Iterable[str], acquisition_dates: dict[str, date]):
         self.parent = {value: value for value in values}
         self.members = {value: {value} for value in values}
-        self.acquisition_dates = acquisition_dates
+        self.date_spans = {
+            value: (acquisition_dates[value], acquisition_dates[value])
+            for value in self.members
+        }
 
     def find(self, value: str) -> str:
         parent = self.parent[value]
@@ -756,13 +770,17 @@ class _UnionFind:
         right_root = self.find(right)
         if left_root == right_root:
             return True
-        combined = self.members[left_root] | self.members[right_root]
-        dates = [self.acquisition_dates[item] for item in combined]
-        if (max(dates) - min(dates)).days > maximum_days:
+        left_start, left_end = self.date_spans[left_root]
+        right_start, right_end = self.date_spans[right_root]
+        start, end = min(left_start, right_start), max(left_end, right_end)
+        if (end - start).days > maximum_days:
             return False
+        combined = self.members[left_root] | self.members[right_root]
         self.parent[right_root] = left_root
         self.members[left_root] = combined
         self.members.pop(right_root, None)
+        self.date_spans[left_root] = (start, end)
+        self.date_spans.pop(right_root)
         return True
 
 
@@ -783,6 +801,7 @@ def _assign_repeat_groups(
         {item["injection_id"]: item["acquisition_date"] for item in groupable},
     )
     profiles = _result_profiles(records)
+    sequence_similarities: dict[tuple[str, str], tuple[float, float]] = {}
     edge_evidence: list[dict[str, Any]] = []
     uncertain: list[dict[str, Any]] = []
     maximum_gap = int(config["repeat_rules"]["maximum_automatic_day_gap"])
@@ -792,17 +811,23 @@ def _assign_repeat_groups(
     for candidates in grouped_by_name.values():
         candidates.sort(key=lambda item: item["acquisition_local"])
         for left_index, left in enumerate(candidates):
-            for right in candidates[left_index + 1 :]:
+            for right_index in range(left_index + 1, len(candidates)):
+                right = candidates[right_index]
                 gap = abs((left["acquisition_date"] - right["acquisition_date"]).days)
                 if gap > maximum_gap:
-                    continue
+                    # ISO acquisition timestamps are sorted above, so later
+                    # records cannot re-enter this left record's date window.
+                    break
                 if not _repeat_hard_boundary_compatible(
                     left,
                     right,
                     maximum_days=maximum_gap,
                 ):
                     continue
-                evidence = _rerun_evidence(left, right, profiles, config)
+                evidence = _rerun_evidence(
+                    left, right, profiles, config,
+                    sequence_similarities=sequence_similarities,
+                )
                 if evidence and union.union_within_span(
                     left["injection_id"], right["injection_id"], maximum_gap
                 ):
@@ -859,14 +884,18 @@ def _assign_repeat_groups(
         group_id = f"RG{index:03d}"
         for member in members:
             group_by_injection[member] = group_id
-        evidence = [
-            reason
-            for edge in edge_evidence
-            if edge["left"] in members and edge["right"] in members
-            for reason in edge["evidence"]
-        ]
+        evidence_by_group[group_id] = []
+    # Index after manual exclusions, retaining the original edge/evidence order.
+    for edge in edge_evidence:
+        group_id = group_by_injection.get(edge["left"])
+        if group_id is not None and group_by_injection.get(edge["right"]) == group_id:
+            evidence_by_group[group_id].extend(edge["evidence"])
+    for index, members in enumerate(components, start=1):
+        group_id = f"RG{index:03d}"
+        evidence = evidence_by_group[group_id]
+        member_set = set(members)
         for override_id, override_injections in override_members.items():
-            if set(override_injections) & set(members):
+            if member_set.intersection(override_injections):
                 evidence.append(f"人工覆盖重打组：{override_id}")
         evidence_by_group[group_id] = list(dict.fromkeys(evidence))
     return group_by_injection, evidence_by_group, edge_evidence, uncertain
@@ -2169,10 +2198,12 @@ def analyze_hplc_openlab_dataset(
 def attach_hplc_analysis(
     dataset: dict[str, Any],
     project_root: Path,
+    *,
+    copy_dataset: bool = True,
 ) -> dict[str, Any]:
-    """Attach analysis without changing or re-running the existing decoder."""
+    """Attach analysis, copying by default; owned pipeline datasets may opt out."""
     config = load_hplc_analysis_config(project_root)
-    updated = deepcopy(dataset)
+    updated = deepcopy(dataset) if copy_dataset else dataset
     updated["analysis"] = analyze_hplc_openlab_dataset(updated, config)
     updated["analysis_config"] = {
         key: value for key, value in config.items() if key != "manual_overrides"

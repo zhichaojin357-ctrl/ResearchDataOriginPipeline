@@ -15,8 +15,10 @@ from src.core.project import (
     ensure_output_path_separate_from_inputs,
     output_dir,
     report_path,
+    project_config_scope,
 )
 from src.core.runtime_paths import resolve_locked_result_index
+from src.origin.adapter import material_color_report_batch
 
 
 @dataclass(frozen=True)
@@ -31,20 +33,23 @@ class ProcessOptions:
     auto_select: bool = False
     include_ambiguous: bool = False
     output_root: Path | None = None
+    sources: tuple[Path, ...] = ()
 
 
+@project_config_scope()
 def run_process(project_root: Path, input_path: Path, options: ProcessOptions | None = None) -> int:
     options = _normalize_origin_mode(options or ProcessOptions())
     _validate_process_mode(options)
     ensure_output_path_separate_from_inputs(
         project_root,
         options.output_root or default_output_root(project_root),
-        [input_path],
+        list(options.sources) if options.sources else [input_path],
     )
+    triage_result = None
     if options.auto_select and options.from_queue is None:
         from src.core.triage import TriageOptions, run_triage
 
-        run_triage(
+        triage_result = run_triage(
             project_root,
             input_path,
             TriageOptions(only_type=options.only_type, only_folder=options.only_folder, output_root=options.output_root),
@@ -73,47 +78,57 @@ def run_process(project_root: Path, input_path: Path, options: ProcessOptions | 
             include_ambiguous=options.include_ambiguous,
             output_root=options.output_root,
         )
-    manifest = scan_raw_data(project_root, input_path, output_root=options.output_root)
     results: list[dict] = []
     failures: list[dict] = []
 
     skipped_auxiliary: list[dict] = []
-    if options.from_queue is not None:
-        work_items = _selected_queue_items(project_root, input_path, options)
+    if options.sources:
+        work_items = _direct_work_items(project_root, options)
+        manifest = {"classifications": [], "inventory_scope": "explicit_sources"}
+    elif options.from_queue is not None:
+        work_items = _selected_queue_items(
+            project_root, input_path, options,
+            queue_payload=triage_result["queue"] if triage_result is not None else None,
+        )
+        # The vetted queue is the inventory for this run. Do not rescan files
+        # outside it merely to populate whole-directory report statistics.
+        manifest = {"classifications": [], "inventory_scope": "selected_queue"}
     else:
+        manifest = scan_raw_data(project_root, input_path, output_root=options.output_root)
         work_items, skipped_auxiliary = _work_items_from_manifest(manifest, options, project_root=project_root)
 
-    for classification, source, triage_data in work_items:
-        if triage_data and triage_data.get("stale_queue_item"):
-            failure = _failure_from_queue_validation(classification, source, triage_data, project_root=project_root, output_root=options.output_root)
-            failures.append(failure)
-            if options.fail_fast:
-                break
-            continue
-        if not classification["supported_in_pipeline"]:
-            continue
-        try:
-            metadata = process_table_dataset(
-                project_root,
-                classification,
-                source,
-                no_origin=options.no_origin,
-                force=options.force,
-                triage=triage_data,
-                output_root=options.output_root,
-            )
-            results.append(metadata)
-            if metadata["processing_status"] not in {"success", "processed_no_origin"}:
-                failures.append(_failure_from_metadata(metadata, "processing"))
+    with material_color_report_batch(project_root, output_root=options.output_root):
+        for classification, source, triage_data in work_items:
+            if triage_data and triage_data.get("stale_queue_item"):
+                failure = _failure_from_queue_validation(classification, source, triage_data, project_root=project_root, output_root=options.output_root)
+                failures.append(failure)
                 if options.fail_fast:
                     break
-        except Exception as exc:
-            failure = _failure_from_exception(classification, source, exc, triage_data, project_root=project_root, output_root=options.output_root)
-            failures.append(failure)
-            if options.fail_fast:
+                continue
+            if not classification["supported_in_pipeline"]:
+                continue
+            try:
+                metadata = process_table_dataset(
+                    project_root,
+                    classification,
+                    source,
+                    no_origin=options.no_origin,
+                    force=options.force,
+                    triage=triage_data,
+                    output_root=options.output_root,
+                )
+                results.append(metadata)
+                if metadata["processing_status"] not in {"success", "processed_no_origin"}:
+                    failures.append(_failure_from_metadata(metadata, "processing"))
+                    if options.fail_fast:
+                        break
+            except Exception as exc:
+                failure = _failure_from_exception(classification, source, exc, triage_data, project_root=project_root, output_root=options.output_root)
+                failures.append(failure)
+                if options.fail_fast:
+                    break
+            if failures and options.fail_fast:
                 break
-        if failures and options.fail_fast:
-            break
 
     successes = [item for item in results if item["processing_status"] in {"success", "processed_no_origin"}]
     origin_successes = [item for item in results if item["processing_status"] == "success"]
@@ -219,18 +234,50 @@ def _normalize_origin_mode(options: ProcessOptions) -> ProcessOptions:
 
 
 def _validate_process_mode(options: ProcessOptions) -> None:
+    if options.sources:
+        if not options.only_type:
+            raise ValueError("--source requires --only-type for direct processing.")
+        if options.from_queue is not None or options.auto_select or options.only_folder:
+            raise ValueError("--source cannot be combined with queue selection or --only-folder.")
     if options.auto_select and options.with_origin:
         raise ValueError("--auto-select cannot be combined with --with-origin; build and review an explicit queue first.")
     if options.auto_select and options.from_queue is not None:
         raise ValueError("--auto-select cannot be combined with --from-queue; use one queue source explicitly.")
 
 
-def _selected_queue_items(project_root: Path, input_path: Path, options: ProcessOptions) -> list[tuple[dict, Path, dict]]:
+def _direct_work_items(project_root: Path, options: ProcessOptions) -> list[tuple[dict, Path, None]]:
+    from src.core.project import load_json_compatible_yaml, registry_path
+
+    entries = load_json_compatible_yaml(registry_path(project_root))["entries"]
+    classification = next(
+        (entry for entry in entries if _normalize(entry["inferred_data_type"]) == _normalize(options.only_type or "")),
+        None,
+    )
+    if classification is None or not classification.get("supported_in_pipeline"):
+        raise ValueError(f"Direct processing requires a supported registry data type: {options.only_type}")
+    if str(classification.get("special_handling", "")).startswith("dedicated_"):
+        raise ValueError(f"Use the dedicated command for {options.only_type}: {classification['special_handling']}")
+    allowed = {str(extension).casefold() for extension in classification.get("extensions", [])}
+    selected = []
+    for source in options.sources:
+        source = source if source.is_absolute() else project_root / source
+        if not source.is_file():
+            raise ValueError(f"Explicit source is not an existing file: {source}")
+        reason = _manifest_auxiliary_skip_reason(classification, source)
+        if source.suffix.casefold() not in allowed or reason:
+            raise ValueError(f"Explicit source is not a supported {options.only_type} input: {source} ({reason or 'extension mismatch'})")
+        selected.append((classification, source, None))
+    return selected
+
+
+def _selected_queue_items(
+    project_root: Path, input_path: Path, options: ProcessOptions, *, queue_payload: dict | None = None,
+) -> list[tuple[dict, Path, dict]]:
     from src.core.metadata import file_hash
     from src.core.project import load_json_compatible_yaml, registry_path
 
     queue_path = options.from_queue if options.from_queue.is_absolute() else project_root / options.from_queue
-    queue = json.loads(queue_path.read_text(encoding="utf-8-sig"))
+    queue = queue_payload if queue_payload is not None else json.loads(queue_path.read_text(encoding="utf-8-sig"))
     if not isinstance(queue, dict):
         raise ValueError(f"queue JSON must be an object with an items list: {queue_path}")
     queue_items = queue.get("items", [])
@@ -626,6 +673,7 @@ def _write_processing_summary(
         1 for item in results if item["processing_status"] not in {"success", "processed_no_origin"}
     ) + len(exception_failures)
     summary = {
+        "inventory_scope": manifest.get("inventory_scope", "input_directory"),
         "total_dataset_count": len(results) + len(exception_failures),
         "success_count": sum(1 for item in results if item["processing_status"] in {"success", "processed_no_origin"}),
         "failure_count": failed_dataset_count,
@@ -644,6 +692,7 @@ def _write_processing_summary(
     lines = [
         "# Processing Summary",
         "",
+        f"- Inventory scope: {summary['inventory_scope']}",
         f"- Total datasets: {summary['total_dataset_count']}",
         f"- Success count: {summary['success_count']}",
         f"- Failure count: {summary['failure_count']}",
@@ -696,6 +745,7 @@ def _write_review_dashboard(project_root: Path, manifest: dict, results: list[di
     lines = [
         "# Review Dashboard",
         "",
+        f"- Inventory scope: {summary.get('inventory_scope', 'input_directory')}",
         f"- Total datasets: {summary['total_dataset_count']}",
         f"- Success count: {summary['success_count']}",
         f"- Failure count: {summary['failure_count']}",

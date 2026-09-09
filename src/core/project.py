@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+_CONFIG_READS: ContextVar[dict[Path, dict] | None] = ContextVar("project_config_reads", default=None)
 REQUIRED_OUTPUT_DIRS = (
     "origin_files",
     "figures_tif",
@@ -96,7 +99,14 @@ def report_path(project_root: Path, name: str, *, output_root: Path | None = Non
 def load_json_compatible_yaml(path: Path):
     import json
 
-    return json.loads(path.read_text(encoding="utf-8"))
+    cache = _CONFIG_READS.get()
+    key = path.resolve()
+    if cache is not None and key in cache:
+        return cache[key]
+    config = json.loads(path.read_text(encoding="utf-8"))
+    if cache is not None:
+        cache[key] = config
+    return config
 
 
 def ensure_output_structure(project_root: Path, *, output_root: Path | None = None) -> None:
@@ -111,10 +121,34 @@ def load_project_config(project_root: Path, config_path: Path | None) -> dict:
     if not path.exists():
         config: dict = {}
     else:
-        config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
+        config = read_project_yaml(path)
     local_path = project_root / "config" / "local.yaml"
     if local_path.exists() and local_path != path:
-        config = _deep_merge(config, _parse_simple_yaml(local_path.read_text(encoding="utf-8")))
+        config = _deep_merge(config, read_project_yaml(local_path))
+    return config
+
+
+@contextmanager
+def project_config_scope():
+    """Reuse parsed configuration within one command, never across commands."""
+    if _CONFIG_READS.get() is not None:
+        yield
+        return
+    token = _CONFIG_READS.set({})
+    try:
+        yield
+    finally:
+        _CONFIG_READS.reset(token)
+
+
+def read_project_yaml(path: Path) -> dict:
+    cache = _CONFIG_READS.get()
+    key = path.resolve()
+    if cache is not None and key in cache:
+        return cache[key]
+    config = _parse_simple_yaml(path.read_text(encoding="utf-8"))
+    if cache is not None:
+        cache[key] = config
     return config
 
 
@@ -133,8 +167,8 @@ def _parse_simple_yaml(text: str) -> dict:
         repaired = _escape_double_quoted_windows_paths(text)
         try:
             loaded = yaml.safe_load(repaired)
-        except yaml.YAMLError:
-            return _parse_legacy_simple_yaml(text)
+        except yaml.YAMLError as exc:
+            raise ValueError(f"Invalid project YAML configuration: {exc}") from exc
     if loaded is None:
         return {}
     if not isinstance(loaded, dict):
@@ -153,35 +187,6 @@ def _escape_double_quoted_windows_paths(text: str) -> str:
         return f'{match.group("prefix")}"{escaped}"{match.group("suffix")}'
 
     return pattern.sub(replace, text)
-
-
-def _parse_legacy_simple_yaml(text: str) -> dict:
-    result: dict[str, object] = {}
-    current_section: str | None = None
-    for raw_line in text.splitlines():
-        line = raw_line.split("#", 1)[0].rstrip()
-        if not line.strip():
-            continue
-        if not line.startswith((" ", "\t")) and line.endswith(":"):
-            current_section = line[:-1].strip()
-            result[current_section] = {}
-            continue
-        if ":" not in line:
-            continue
-        key, value = line.split(":", 1)
-        key = key.strip()
-        parsed: object = value.strip().strip('"')
-        if parsed == "true":
-            parsed = True
-        elif parsed == "false":
-            parsed = False
-        if raw_line.startswith((" ", "\t")) and current_section:
-            section = result.setdefault(current_section, {})
-            if isinstance(section, dict):
-                section[key] = parsed
-        else:
-            result[key] = parsed
-    return result
 
 
 def _deep_merge(base: dict, override: dict) -> dict:

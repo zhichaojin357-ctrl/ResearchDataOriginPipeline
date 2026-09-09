@@ -329,12 +329,16 @@ def _best_header_row(frame):
     # Numeric classification is independent of the candidate header row. Do
     # it once instead of rescanning every remaining cell for every candidate.
     numeric_mask = frame.map(lambda value: _to_float(value) is not None)
+    numeric_values = numeric_mask.to_numpy()
+    numeric_row_suffix = numeric_values.any(axis=1)[::-1].cumsum()[::-1]
+    last_numeric_rows = len(frame.index) - 1 - numeric_values[::-1].argmax(axis=0)
+    last_numeric_rows[~numeric_values.any(axis=0)] = -1
     for header_index in range(max_header_scan):
         header_values = list(frame.iloc[header_index].values)
         headers = _dedupe_headers([_header_value(value, index) for index, value in enumerate(header_values)])
-        candidate_mask = numeric_mask.iloc[header_index + 1 :]
-        numeric_rows = int(candidate_mask.any(axis=1).sum())
-        numeric_columns = int(candidate_mask.any(axis=0).sum())
+        data_start = header_index + 1
+        numeric_rows = int(numeric_row_suffix[data_start]) if data_start < len(frame.index) else 0
+        numeric_columns = int((last_numeric_rows >= data_start).sum())
         header_bonus = _header_bonus(headers)
         score = numeric_rows * max(numeric_columns, 1) + header_bonus * 10 - _header_penalty(headers) * 5
         scored.append((score, header_bonus, numeric_rows, numeric_columns, -header_index, headers, header_index))

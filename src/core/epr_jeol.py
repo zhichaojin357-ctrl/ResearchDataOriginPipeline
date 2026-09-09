@@ -77,7 +77,7 @@ class _JeolEprExportPlan:
 @dataclass(frozen=True)
 class _PreparedJeolEprExport:
     plan: _JeolEprExportPlan
-    decoded: JeolEprDecodeResult
+    header: JeolEprHeader
     x_values: list[float]
     y_values: list[float]
     source_sha256_before: str
@@ -472,7 +472,7 @@ def _export_data_with_metadata(
                 source_key=plan.source_key,
                 source_sha256_before=item.source_sha256_before,
                 source_sha256_after=item.source_sha256_after,
-                decoded=item.decoded,
+                header=item.header,
                 destination=staged_destination,
                 output_root=stage_root,
                 exported_point_count=len(item.x_values),
@@ -666,7 +666,7 @@ def _prepare_jeol_export(plan: _JeolEprExportPlan) -> _PreparedJeolEprExport:
         )
     return _PreparedJeolEprExport(
         plan=plan,
-        decoded=decoded,
+        header=decoded.header,
         x_values=[round(value, 4) for value in x_values_raw],
         y_values=[round(value, 3) for value in y_values_raw],
         source_sha256_before=source_hash_before,
@@ -729,7 +729,7 @@ def _write_jeol_decode_metadata(
     source_key: str,
     source_sha256_before: str,
     source_sha256_after: str,
-    decoded: JeolEprDecodeResult,
+    header: JeolEprHeader,
     destination: Path,
     output_root: Path,
     exported_point_count: int,
@@ -746,7 +746,7 @@ def _write_jeol_decode_metadata(
     rendered_destination = published_destination or destination
     rendered_metadata_path = published_metadata_path or metadata_path
     rendered_output_root = published_output_root or output_root
-    raw_point_count = decoded.header.data_length
+    raw_point_count = header.data_length
     aggregation_factor = raw_point_count // exported_point_count
     source_key_digest = hashlib.sha256(source_key.encode("utf-8")).hexdigest()[:16]
     payload = {
@@ -765,7 +765,7 @@ def _write_jeol_decode_metadata(
             "sha256_after": source_sha256_after,
             "size_bytes": source.stat().st_size,
         },
-        "jeol_header": asdict(decoded.header),
+        "jeol_header": asdict(header),
         "decode": {
             "channel": "CH1",
             "raw_point_count": raw_point_count,

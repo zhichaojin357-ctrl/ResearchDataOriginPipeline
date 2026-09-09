@@ -9,7 +9,6 @@ from src.core.image_artifacts import (
     TifResolutionValidationError,
     _metadata_text_contains_local_path,
     _metadata_text_values,
-    ensure_tif_600_dpi_metadata,
     expected_raster_pixels,
     validate_tif_physical_resolution,
 )
@@ -188,38 +187,6 @@ def test_sanitize_report_payload_recurses_through_nested_values(tmp_path: Path) 
     assert cleaned["path"] == "input/raw_data/sample.csv"
     assert cleaned["items"][0] == "reports/plan.json"
     assert cleaned["items"][1]["keep"] == 3
-
-
-def test_ensure_tif_600_dpi_metadata_updates_dpi_without_changing_pixels(tmp_path: Path) -> None:
-    from PIL import Image
-
-    path = tmp_path / "figure.tif"
-    Image.new("RGB", (10, 8), "white").save(path, format="TIFF", dpi=(300, 300))
-
-    ensure_tif_600_dpi_metadata(path)
-
-    with Image.open(path) as image:
-        assert image.size == (10, 8)
-        assert image.getpixel((0, 0)) == (255, 255, 255)
-        assert tuple(round(value) for value in image.info.get("dpi", (0, 0))) == (600, 600)
-
-
-def test_ensure_tif_600_dpi_metadata_fails_closed_when_pillow_is_unavailable(tmp_path: Path, monkeypatch) -> None:
-    import builtins
-
-    path = tmp_path / "figure.tif"
-    path.write_bytes(b"tiff-placeholder")
-    original_import = builtins.__import__
-
-    def fail_pillow_import(name: str, *args, **kwargs):
-        if name == "PIL" or name.startswith("PIL."):
-            raise ImportError("Pillow unavailable")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", fail_pillow_import)
-
-    with pytest.raises(RuntimeError, match="Pillow"):
-        ensure_tif_600_dpi_metadata(path)
 
 
 def test_validate_tif_physical_resolution_returns_read_only_evidence(tmp_path: Path) -> None:

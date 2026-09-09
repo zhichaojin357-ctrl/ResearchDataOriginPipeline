@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import tempfile
 from pathlib import Path
 
@@ -18,16 +17,19 @@ def project_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+@pytest.fixture
+def tmp_path(tmp_path: Path) -> Path:
+    # Production outputs are siblings of the project. Keep that sibling inside
+    # this test's directory instead of sharing the pytest session's output root.
+    project = tmp_path / "work"
+    project.mkdir()
+    return project
+
+
 @pytest.fixture(autouse=True)
-def isolate_external_output_roots(tmp_path_factory: pytest.TempPathFactory):
-    roots = {
-        Path(tempfile.gettempdir()) / "\u8f93\u51fa",
-        tmp_path_factory.getbasetemp() / "\u8f93\u51fa",
-    }
-    for root in roots:
-        if root.exists():
-            shutil.rmtree(root, ignore_errors=True)
-    yield
-    for root in roots:
-        if root.exists():
-            shutil.rmtree(root, ignore_errors=True)
+def isolate_external_output_roots(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    temporary_root = tmp_path.parent / "temp"
+    temporary_root.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(temporary_root))
+    for name in ("TMPDIR", "TEMP", "TMP"):
+        monkeypatch.setenv(name, str(temporary_root))

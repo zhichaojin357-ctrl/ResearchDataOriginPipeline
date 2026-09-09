@@ -12,7 +12,8 @@ from unittest.mock import patch
 from src.cli import build_parser
 from src.core.metadata import write_metadata
 from src.core.project import default_output_root, REQUIRED_OUTPUT_DIRS
-from src.core.validate import _is_link_or_junction, _iter_files_without_link_descent
+from src.core.validate import _is_link_or_junction, _iter_files_without_link_descent, validate
+from src.core.project import read_project_yaml
 from src.scanner.scanner import scan_raw_data
 
 
@@ -137,7 +138,7 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertEqual(Path(manifest["scan_root"]), Path("custom_raw"))
             self.assertFalse(Path(manifest["scan_root"]).is_absolute())
             self.assertEqual(len(manifest["unclassified_files"]), 1)
-            self.assertEqual(manifest["unclassified_files"][0]["relative_path"], "unknown_folder\\mystery.csv")
+            self.assertEqual(Path(manifest["unclassified_files"][0]["relative_path"]), Path("unknown_folder") / "mystery.csv")
             self.assertFalse(Path(manifest["unclassified_files"][0]["path"]).is_absolute())
             unclassified = default_output_root(project) / "unclassified" / "unclassified_manifest.json"
             self.assertTrue(unclassified.exists())
@@ -203,7 +204,7 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertEqual(len(xrd["folder_paths"]), 2)
             self.assertEqual(len(xrd["files"]), 2)
             self.assertEqual(len(manifest["unsupported_files_in_known_folders"]), 1)
-            self.assertEqual(manifest["unsupported_files_in_known_folders"][0]["relative_path"], "batch2\\my_XRD_export\\note.unsupported")
+            self.assertEqual(Path(manifest["unsupported_files_in_known_folders"][0]["relative_path"]), Path("batch2") / "my_XRD_export" / "note.unsupported")
 
     def test_scan_assigns_overlapping_keyword_folders_to_most_specific_classification(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -614,6 +615,40 @@ class Phase1ContractsTest(unittest.TestCase):
         self.assertIn("legend has no frame or fill", text)
         self.assertIn("line width 3", text)
 
+    def test_runtime_validate_checks_semantic_style_values_and_excludes_historical_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            config = project / "config"
+            config.mkdir()
+            for name in ("default.yaml", "processor_registry.yaml", "claim_policy.yaml", "plot_style.yaml", "sample_registry.yaml", "manual_overrides.yaml"):
+                (config / name).write_text((ROOT / "config" / name).read_text(encoding="utf-8"), encoding="utf-8")
+            install_minimal_v1_style_assets(project)
+            style_path = config / "plot_style.yaml"
+            style = read_project_yaml(style_path)
+            style["origin_template"]["validation_required"] = ["导出 PNG 后检查曲线和图例。"]
+            # JSON is valid YAML; key ordering, quotes and instruction language
+            # do not change the settings passed to Origin.
+            style_path.write_text(json.dumps(style, ensure_ascii=False), encoding="utf-8")
+            reports = default_output_root(project) / "reports"
+            reports.mkdir(parents=True, exist_ok=True)
+            (reports / "draft_presentation.pptx").write_bytes(b"user presentation")
+            (reports / "origin_plotting_skill_snapshot.json").write_text("{}", encoding="utf-8")
+            with patch("src.core.validate.dependency_audit", return_value=(0, {})):
+                self.assertEqual(validate(project, scope="runtime"), 0)
+            result = json.loads((reports / "validation_report.json").read_text(encoding="utf-8"))
+            statuses = {check["name"]: check["status"] for check in result["checks"]}
+            self.assertEqual(result["scope"], "runtime")
+            self.assertEqual(statuses["origin_style_asset_integrity"], "pass")
+            self.assertEqual(statuses["presentation_artifacts"], "skip")
+            self.assertEqual(statuses["origin_governance_files"], "skip")
+            self.assertFalse(result["origin_visual_verified"])
+            style["line_width"] = 30
+            style_path.write_text(json.dumps(style), encoding="utf-8")
+            with patch("src.core.validate.dependency_audit", return_value=(0, {})):
+                self.assertEqual(validate(project, scope="runtime"), 1)
+            result = json.loads((reports / "validation_report.json").read_text(encoding="utf-8"))
+            self.assertIn("origin_contract_line_width", {check["name"] for check in result["checks"] if check["status"] == "fail"})
+
     def test_validate_rejects_forbidden_presentation_outputs_outside_exact_paths(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
@@ -656,9 +691,10 @@ class Phase1ContractsTest(unittest.TestCase):
             copied_raw_ppt.write_text("copied raw source file", encoding="utf-8")
             install_minimal_v1_style_assets(project)
 
-            result = run_cli("validate", cwd=project)
-
-            self.assertEqual(result.returncode, 0)
+            # This test exercises source-artifact policy, independently of
+            # whether the host has Windows COM and the scientific packages.
+            with patch("src.core.validate.dependency_audit", return_value=(0, {})):
+                self.assertEqual(validate(project), 0)
             report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
             self.assertIn("Forbidden presentation artifacts: pass", report)
 
@@ -719,7 +755,7 @@ class Phase1ContractsTest(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             report = (default_output_root(project) / "reports" / "validation_report.md").read_text(encoding="utf-8")
             self.assertIn("Kinetics processor paths: fail", report)
-            self.assertIn("src\\processors\\kinetics\\__init__.py", report)
+            self.assertIn(str(Path("src") / "processors" / "kinetics" / "__init__.py"), report)
 
     def test_validate_rejects_deferred_registry_entries_with_processors(self):
         with tempfile.TemporaryDirectory() as tmp:

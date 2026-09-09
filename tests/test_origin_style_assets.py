@@ -1361,7 +1361,7 @@ def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
 
     class FakeOriginOps:
         def __init__(self) -> None:
-            self.variables = {"__rdop_plot_style_value": float("nan")}
+            self.variables = {"rdopps": float("nan")}
             self.layer_names = {
                 1: ["Book2_B", "Book2_D", "Book2_F"],
                 2: ["Book2_H"],
@@ -1414,13 +1414,13 @@ def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
 
         def run_labtalk(self, script: str) -> OperationResult:
             stripped = script.strip()
-            if stripped == "__rdop_plot_style_value=nan;":
-                self.variables["__rdop_plot_style_value"] = float("nan")
-                return OperationResult(True, "ok")
+            if stripped.startswith("rdopps=nan;"):
+                self.variables["rdopps"] = float("nan")
+                stripped = stripped.split(";", 1)[1].strip()
             parts = stripped.rstrip(";").split()
-            if len(parts) == 4 and parts[0] == "get" and parts[3] == "__rdop_plot_style_value":
+            if len(parts) == 4 and parts[0] == "get" and parts[3] == "rdopps":
                 value = self.styles.get((parts[1], parts[2]), float("nan"))
-                self.variables["__rdop_plot_style_value"] = value
+                self.variables["rdopps"] = value
                 return OperationResult(True, "ok")
             return OperationResult(False, "unsupported")
 
@@ -1802,11 +1802,18 @@ def test_graph_data_snapshot_scans_past_empty_middle_layer() -> None:
     from src.origin.operations import OperationResult
 
     class FakeOriginOps:
+        def __init__(self):
+            self.visited_layers = []
+
+        def get_graph_layer_count(self, _graph_name):
+            return OperationResult(True, "ok", {"layer_count": 3})
+
         def get_graph_plot_dataset_names(
             self,
             _graph_name: str,
             layer_index: int = 1,
         ) -> OperationResult:
+            self.visited_layers.append(layer_index)
             if layer_index == 1:
                 return OperationResult(
                     True,
@@ -1853,7 +1860,9 @@ def test_graph_data_snapshot_scans_past_empty_middle_layer() -> None:
                 {"columns": [[1.0, 2.0], [10.0 + offset, 20.0 + offset]]},
             )
 
-    snapshot = read_graph_data_snapshot(FakeOriginOps(), "Graph1", max_layers=4)
+    operations = FakeOriginOps()
+    snapshot = read_graph_data_snapshot(operations, "Graph1", max_layers=4)
+    assert operations.visited_layers == [1, 2, 3]
 
     assert snapshot["status"] == "ready"
     assert [item["layer_index"] for item in snapshot["layers"]] == [1, 3]
@@ -2815,3 +2824,139 @@ def test_export_replay_graph_rejects_unverified_project_identity_without_leak(tm
     assert "private" not in result["message"]
     assert exported_formats == ["png"]
     assert not (product_dir / "project_asset.tif").exists()
+
+
+@pytest.mark.parametrize("batch_supported", [False, True])
+@pytest.mark.parametrize("prefer_custom_rgb", [False, True])
+def test_plot_style_readback_reuses_aliases_and_clears_missing_properties(
+    batch_supported, prefer_custom_rgb,
+) -> None:
+    from src.core.origin_style_assets import PLOT_STYLE_READBACK_OPTIONS, _read_plot_style_properties
+    from src.origin.operations import OperationResult
+
+    class StyleOps:
+        def __init__(self):
+            self.variables = {}
+            self.queries = []
+            self.reads = 0
+            self.calls = 0
+
+        def run_labtalk(self, script):
+            self.calls += 1
+            if script.count("get ") > 1 and not batch_supported:
+                return OperationResult(False, "unsupported grouped query")
+            for command in script.rstrip(";").split(";"):
+                command = command.strip()
+                if command.endswith("=nan"):
+                    variable = command[:-4]
+                    assert variable.isalnum() and len(variable) <= 23
+                    self.variables[variable] = math.nan
+                    continue
+                _get, dataset, option, variable = command.split()
+                assert dataset == "Book1_B"
+                assert variable.isalnum() and len(variable) <= 23
+                self.queries.append(option)
+                if option != "-z":
+                    self.variables[variable] = 30847682.0 if option == "-cse" else float(len(option))
+            return OperationResult(True, "ok")
+
+        def get_labtalk_variable(self, name):
+            self.reads += 1
+            return OperationResult(True, "ok", {"value": self.variables[name]})
+
+    operations = StyleOps()
+    # Simulate values left by a preceding curve. Missing -z must still disappear.
+    operations.variables = {f"rdopps{index}": 999.0 for index in range(19)}
+    style = _read_plot_style_properties(operations, "Book1_B", prefer_custom_rgb=prefer_custom_rgb)
+    expected = {
+        key: float(len(option))
+        for key, option in PLOT_STYLE_READBACK_OPTIONS.items()
+        if option != "-z"
+    }
+    if prefer_custom_rgb:
+        expected["color"] = 30847682.0
+    assert style == expected
+    assert style["fill_area"] == style["fill_above_color"]
+    assert style["fill_color"] == style["fill_above_pattern_color"]
+    option_count = 19 if prefer_custom_rgb else 18
+    assert len(operations.queries) == operations.reads == option_count
+    assert len(set(operations.queries)) == option_count
+    assert operations.calls == (1 if batch_supported else option_count + 1)
+
+
+@pytest.mark.parametrize("row_from,row_to", [(1, 700), (510, 700), (700, 700)])
+@pytest.mark.parametrize("truncate_tail", [False, True])
+def test_graph_snapshot_mask_blocks_match_individual_reader_and_cache_only_one_snapshot(
+    row_from, row_to, truncate_tail,
+) -> None:
+    import re
+    from src.core.origin_style_assets import read_graph_data_snapshot
+    from src.origin.operations import OperationResult
+
+    class MaskOps:
+        def __init__(self, *, block_supported):
+            self.block_supported = block_supported
+            self.variables = {}
+            self.count_reads = {}
+            self.blocks = []
+            self.masks = {"Book1_A": set(), "Book1_B": {1, 512, 513, 700}, "Book1_C": {512, 700}}
+
+        def get_graph_layer_count(self, _graph):
+            return OperationResult(True, "ok", {"layer_count": 1})
+
+        def get_graph_plot_dataset_names(self, _graph, layer_index=1):
+            return OperationResult(True, "ok", {
+                "plot_dataset_names": ["Book1_B", "Book1_C"],
+                "plot_mappings": [
+                    {"plot_index": index, "x_dataset": "Book1_A", "y_dataset": dataset,
+                     "row_from": row_from, "row_to": row_to}
+                    for index, dataset in enumerate(("Book1_B", "Book1_C"), 1)
+                ],
+            })
+
+        def get_worksheet_data(self, _book, _sheet):
+            return OperationResult(True, "ok", {"columns": [list(range(700))] * 3})
+
+        def run_labtalk(self, script):
+            if script.startswith("string rdmask$"):
+                if not self.block_supported:
+                    return OperationResult(False, "loop unsupported")
+                start, stop = map(int, re.search(r"for\(rdmi=(\d+);rdmi<=(\d+)", script).groups())
+                dataset = re.search(r"ismasked\(rdmi,([^)]*)\)", script).group(1)
+                self.blocks.append((dataset, start, stop))
+                self.variables["rdmask$"] = "".join("1" if row in self.masks[dataset] else "0" for row in range(start, stop + 1))
+                if truncate_tail and stop == row_to:
+                    self.variables["rdmask$"] = self.variables["rdmask$"][:-1]
+                return OperationResult(True, "ok")
+            match = re.fullmatch(r"__rdop_mask_state=ismasked\((\d+),([^)]*)\);", script)
+            if match:
+                row, dataset = int(match.group(1)), match.group(2)
+                if row == 0:
+                    self.count_reads[dataset] = self.count_reads.get(dataset, 0) + 1
+                    state = len(self.masks[dataset])
+                else:
+                    state = int(row in self.masks[dataset])
+                self.variables["__rdop_mask_state"] = state
+                return OperationResult(True, "ok")
+            return OperationResult(False, "unsupported")
+
+        def get_labtalk_variable(self, name):
+            return OperationResult(True, "ok", {"value": self.variables.get(name)})
+
+    batched = MaskOps(block_supported=True)
+    individual = MaskOps(block_supported=False)
+    actual = read_graph_data_snapshot(batched, "Graph1")
+    expected = read_graph_data_snapshot(individual, "Graph1")
+    assert actual == expected
+    assert actual["plots"][0]["y_masked_rows"] == [row for row in (1, 512, 513, 700) if row_from <= row <= row_to]
+    assert actual["plots"][1]["y_masked_rows"] == [row for row in (512, 700) if row_from <= row <= row_to]
+    assert batched.count_reads == {"Book1_A": 1, "Book1_B": 1, "Book1_C": 1}
+    assert batched.blocks == [
+        (dataset, start, min(start + 511, row_to))
+        for dataset in ("Book1_B", "Book1_C")
+        for start in range(row_from, row_to + 1, 512)
+    ]
+    batched.masks["Book1_B"].remove(513)
+    later = read_graph_data_snapshot(batched, "Graph1")
+    assert later["plots"][0]["y_masked_rows"] == [row for row in (1, 512, 700) if row_from <= row <= row_to]
+    assert batched.count_reads["Book1_A"] == 2

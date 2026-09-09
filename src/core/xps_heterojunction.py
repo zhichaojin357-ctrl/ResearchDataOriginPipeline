@@ -28,6 +28,7 @@ from src.origin.adapter import (
     reexport_tif_from_reopened_opju,
     write_origin_error,
 )
+from src.origin import operations as origin_operations
 
 
 ELEMENT_REGION_RE = re.compile(r"(?P<element>[A-Z][a-z]?)(?P<orbital>\d+[spdf])", re.IGNORECASE)
@@ -211,35 +212,38 @@ def load_xps_fit_workbooks(sample_files: dict[str, list[Path]]) -> tuple[list[Xp
             except Exception as exc:
                 manual_review.append({"sample": sample, "source_file": source_file.name, "reason": "workbook_open_failed", "error": str(exc)})
                 continue
-            for sheet_name in workbook.sheet_names:
-                region = _region_from_sheet(sheet_name)
-                if not region:
-                    continue
-                try:
-                    frame = pd.read_excel(source_file, sheet_name=sheet_name, header=None)
-                    record = _extract_sheet_record(sample, source_file, sheet_name, region, frame)
-                except Exception as exc:
-                    manual_review.append(
-                        {
-                            "sample": sample,
-                            "source_file": source_file.name,
-                            "sheet_name": sheet_name,
-                            "reason": "sheet_parse_failed",
-                            "error": str(exc),
-                        }
-                    )
-                    continue
-                if record is None:
-                    manual_review.append(
-                        {
-                            "sample": sample,
-                            "source_file": source_file.name,
-                            "sheet_name": sheet_name,
-                            "reason": "fit_columns_not_recognized",
-                        }
-                    )
-                    continue
-                records.append(record)
+            try:
+                for sheet_name in workbook.sheet_names:
+                    region = _region_from_sheet(sheet_name)
+                    if not region:
+                        continue
+                    try:
+                        frame = workbook.parse(sheet_name=sheet_name, header=None)
+                        record = _extract_sheet_record(sample, source_file, sheet_name, region, frame)
+                    except Exception as exc:
+                        manual_review.append(
+                            {
+                                "sample": sample,
+                                "source_file": source_file.name,
+                                "sheet_name": sheet_name,
+                                "reason": "sheet_parse_failed",
+                                "error": str(exc),
+                            }
+                        )
+                        continue
+                    if record is None:
+                        manual_review.append(
+                            {
+                                "sample": sample,
+                                "source_file": source_file.name,
+                                "sheet_name": sheet_name,
+                                "reason": "fit_columns_not_recognized",
+                            }
+                        )
+                        continue
+                    records.append(record)
+            finally:
+                workbook.close()
     return records, manual_review
 
 
@@ -747,11 +751,17 @@ def _export_origin_for_comparison(
 
 
 def _run_xps_origin_renderer(job_script: Path) -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    module_root = str(Path(__file__).resolve().parents[2])
+    environment["PYTHONPATH"] = os.pathsep.join(
+        value for value in (module_root, environment.get("PYTHONPATH", "")) if value
+    )
     return subprocess.run(
         [sys.executable, str(job_script)],
         text=True,
         capture_output=True,
         timeout=600,
+        env=environment,
     )
 
 
@@ -783,40 +793,7 @@ def _assert_origin_ready_before_xps_output_preflight() -> None:
 
 
 def _origin_process_ids() -> set[int]:
-    try:
-        completed = subprocess.run(
-            [
-                "powershell",
-                "-NoProfile",
-                "-Command",
-                "Get-Process -Name Origin* -ErrorAction SilentlyContinue | "
-                "Select-Object -ExpandProperty Id",
-            ],
-            text=True,
-            capture_output=True,
-            timeout=10,
-        )
-    except Exception as exc:
-        raise RuntimeError(f"Origin process query failed: {type(exc).__name__}: {exc}") from exc
-    if completed.returncode:
-        details = (completed.stderr or completed.stdout or "").strip()
-        raise RuntimeError(
-            "Origin process query returned a non-zero exit code"
-            + (f": {details}" if details else "")
-        )
-    pids: set[int] = set()
-    for line in completed.stdout.splitlines():
-        value = line.strip()
-        if not value:
-            continue
-        try:
-            pid = int(value)
-        except ValueError as exc:
-            raise RuntimeError(f"Origin process query returned an invalid PID: {value!r}") from exc
-        if pid <= 0:
-            raise RuntimeError(f"Origin process query returned an invalid PID: {pid}")
-        pids.add(pid)
-    return pids
+    return origin_operations.origin_process_ids()
 
 
 def _read_origin_lifecycle_file(path: Path) -> dict[str, Any] | None:
@@ -920,35 +897,9 @@ def _cleanup_failed_renderer_origin(
 
 
 def _terminate_owned_origin_processes(owned_pids: set[int]) -> None:
-    safe_pids = sorted({int(pid) for pid in owned_pids if int(pid) > 0})
-    if not safe_pids:
-        return
-    pid_list = ",".join(str(pid) for pid in safe_pids)
-    try:
-        completed = subprocess.run(
-            [
-                "powershell",
-                "-NoProfile",
-                "-Command",
-                f"$ids = @({pid_list}); "
-                "$owned = Get-Process -Id $ids -ErrorAction SilentlyContinue | "
-                "Where-Object { $_.ProcessName -like 'Origin*' }; "
-                "if ($owned) { $owned | Stop-Process -Force -ErrorAction Stop }",
-            ],
-            text=True,
-            capture_output=True,
-            timeout=30,
-        )
-    except Exception as exc:
-        raise RuntimeError(
-            f"Task-owned Origin cleanup failed: {type(exc).__name__}: {exc}"
-        ) from exc
-    if completed.returncode:
-        details = (completed.stderr or completed.stdout or "").strip()
-        raise RuntimeError(
-            "Task-owned Origin cleanup returned a non-zero exit code"
-            + (f": {details}" if details else "")
-        )
+    result = origin_operations._terminate_owned_origin_processes(owned_pids)
+    if not result["ok"]:
+        raise RuntimeError(f"Task-owned Origin cleanup failed: {result['failures']}")
 
 
 def _wait_for_origin_pids_exit(
@@ -1096,11 +1047,9 @@ def _build_direct_origin_xps_script(
     page_name: str,
     peak_details: list[dict[str, Any]],
 ) -> str:
-    header = _csv_header(plot_csv)
-    x_values = _csv_x_values(plot_csv)
+    header, x_values, (y_min, y_max) = _csv_plot_inputs(plot_csv)
     x_from, x_to = _comparison_x_axis_range(comparison, x_values)
     x_span = abs(x_from - x_to)
-    y_min, y_max = _csv_display_y_range(plot_csv, header)
     y_pad = max((y_max - y_min) * 0.28, 0.28)
     payload = {
         "plot_csv": str(plot_csv),
@@ -1125,9 +1074,10 @@ def _build_direct_origin_xps_script(
 import csv
 import json
 import re
-import subprocess
 import sys
 import time
+
+from src.origin.operations import origin_process_ids
 
 payload = json.loads({json.dumps(json.dumps(payload, ensure_ascii=False))})
 
@@ -1177,37 +1127,6 @@ def set_label_style(label, size, color=1):
     label.set_float("fsize", size)
     label.set_int("bold", 1)
     label.set_int("color", color)
-
-
-def origin_process_ids():
-    completed = subprocess.run(
-        [
-            "powershell",
-            "-NoProfile",
-            "-Command",
-            "Get-Process -Name Origin* -ErrorAction SilentlyContinue | "
-            "Select-Object -ExpandProperty Id",
-        ],
-        text=True,
-        capture_output=True,
-        timeout=10,
-    )
-    if completed.returncode:
-        details = (completed.stderr or completed.stdout or "").strip()
-        raise RuntimeError(
-            "Origin process query failed"
-            + ((": " + details) if details else "")
-        )
-    pids = set()
-    for line in completed.stdout.splitlines():
-        value = line.strip()
-        if not value:
-            continue
-        pid = int(value)
-        if pid <= 0:
-            raise RuntimeError("Origin process query returned an invalid PID")
-        pids.add(pid)
-    return pids
 
 
 def write_origin_lifecycle(lifecycle):
@@ -1573,60 +1492,46 @@ def _safe_origin_page_name(value: str) -> str:
     return f"{base}_{digest}"[:24]
 
 
-def _csv_header(path: Path) -> list[str]:
-    with path.open(encoding="utf-8", newline="") as handle:
-        return next(csv.reader(handle))
+def _csv_plot_inputs(path: Path) -> tuple[list[str], list[float], tuple[float, float]]:
+    """Read the header, X values and existing visible-Y range in one pass."""
+    x_values: list[float] = []
+    visible_bounds: tuple[float, float] | None = None
+    fallback_bounds: tuple[float, float] | None = None
 
+    def extend_bounds(bounds, values):
+        for value in values:
+            if value is not None:
+                bounds = (value, value) if bounds is None else (min(bounds[0], value), max(bounds[1], value))
+        return bounds
 
-def _csv_x_values(path: Path) -> list[float]:
-    values: list[float] = []
     with path.open(encoding="utf-8", newline="") as handle:
         reader = csv.reader(handle)
-        next(reader, None)
+        header = next(reader)
+        visible_indices = [
+            index
+            for index, label in enumerate(header)
+            if index > 0 and (label.endswith(" measured") or label.endswith(" Envelope"))
+        ]
         for row in reader:
-            if row:
-                value = _to_float(row[0])
-                if value is not None:
-                    values.append(value)
-    if not values:
+            if not row:
+                continue
+            x_value = _to_float(row[0])
+            if x_value is not None:
+                x_values.append(x_value)
+            visible_bounds = extend_bounds(
+                visible_bounds,
+                (_to_float(row[index]) for index in visible_indices if index < len(row)),
+            )
+            # Once any visible value exists, the historical fallback to all Y
+            # columns cannot be taken; do not parse hundreds of fill columns.
+            if visible_bounds is None:
+                fallback_bounds = extend_bounds(fallback_bounds, (_to_float(cell) for cell in row[1:]))
+    if not x_values:
         raise ValueError(f"No X values found in Origin plot CSV: {path}")
-    return values
-
-
-def _csv_y_range(path: Path) -> tuple[float, float]:
-    values: list[float] = []
-    with path.open(encoding="utf-8", newline="") as handle:
-        reader = csv.reader(handle)
-        next(reader, None)
-        for row in reader:
-            for cell in row[1:]:
-                value = _to_float(cell)
-                if value is not None:
-                    values.append(value)
-    if not values:
+    bounds = visible_bounds if visible_bounds is not None else fallback_bounds
+    if bounds is None:
         raise ValueError(f"No Y values found in Origin plot CSV: {path}")
-    return min(values), max(values)
-
-
-def _csv_display_y_range(path: Path, header: list[str]) -> tuple[float, float]:
-    visible_indices = [
-        index
-        for index, label in enumerate(header)
-        if index > 0 and (label.endswith(" measured") or label.endswith(" Envelope"))
-    ]
-    values: list[float] = []
-    with path.open(encoding="utf-8", newline="") as handle:
-        reader = csv.reader(handle)
-        next(reader, None)
-        for row in reader:
-            for index in visible_indices:
-                if index < len(row):
-                    value = _to_float(row[index])
-                    if value is not None:
-                        values.append(value)
-    if not values:
-        return _csv_y_range(path)
-    return min(values), max(values)
+    return header, x_values, bounds
 
 
 def _nice_step(span: float) -> float:

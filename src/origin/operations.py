@@ -4,13 +4,13 @@ import csv
 import gc
 import math
 import re
-import subprocess
 import time
 from dataclasses import dataclass, field
 from numbers import Integral
 from pathlib import Path
 from typing import Any, Iterable
 
+from src.origin.process_snapshot import windows_process_snapshot
 from src.origin.plot_policy import GRAPH4_FIXED_STYLE, Graph4FixedStyle
 from src.origin.text_format import origin_bold_text, origin_chemical_subscripts
 
@@ -177,47 +177,17 @@ def connect_origin(entrypoint: str = "Origin.Application", *, visible: bool = Fa
 def origin_process_ids() -> set[int]:
     """Return running Origin-family PIDs, failing closed if inspection fails."""
 
-    completed = subprocess.run(
-        [
-            "powershell",
-            "-NoProfile",
-            "-Command",
-            "$originProcesses = Get-Process -Name Origin* -ErrorAction SilentlyContinue; "
-            "foreach ($originProcess in $originProcesses) { "
-            "try { "
-            "if (@($originProcess.Threads).Count -gt 0) { $originProcess.Id } "
-            "} catch { $originProcess.Id } "
-            "}",
-        ],
-        text=True,
-        capture_output=True,
-        timeout=10,
-    )
-    if completed.returncode:
-        details = (completed.stderr or completed.stdout or "PowerShell query failed").strip()
+    try:
+        records = windows_process_snapshot()
+    except Exception as exc:
         raise RuntimeError(
-            "Could not inspect existing Origin processes safely: " + details
-        )
-
-    pids: set[int] = set()
-    for line in completed.stdout.splitlines():
-        value = line.strip()
-        if not value:
-            continue
-        try:
-            pid = int(value)
-        except ValueError as exc:
-            raise RuntimeError(
-                "Could not inspect existing Origin processes safely: "
-                f"unexpected process identifier {value!r}"
-            ) from exc
-        if pid <= 0:
-            raise RuntimeError(
-                "Could not inspect existing Origin processes safely: "
-                f"invalid process identifier {pid}"
-            )
-        pids.add(pid)
-    return pids
+            "Could not inspect existing Origin processes safely: " + str(exc)
+        ) from exc
+    return {
+        process_id
+        for process_id, name, thread_count in records
+        if name.casefold().startswith("origin") and thread_count > 0
+    }
 
 
 def _wait_for_new_origin_process_ids(
@@ -250,39 +220,37 @@ def _wait_for_owned_origin_exit(
 
 
 def _terminate_owned_origin_processes(owned_pids: set[int]) -> dict[str, object]:
-    """Force-close only PIDs captured from this isolated Origin session."""
+    """Force-close only captured PIDs which still identify an Origin process."""
 
     requested = sorted({int(pid) for pid in owned_pids if int(pid) > 0})
     terminated: list[int] = []
     failures: list[dict[str, object]] = []
-    for process_id in requested:
-        script = (
-            f"$originPid = {process_id}; "
-            "$originProcess = Get-Process -Id $originPid -ErrorAction SilentlyContinue; "
-            "if ($null -eq $originProcess) { exit 0 }; "
-            "if ($originProcess.ProcessName -notlike 'Origin*') { exit 3 }; "
-            "Stop-Process -Id $originPid -Force -ErrorAction Stop"
-        )
+    if requested:
         try:
-            completed = subprocess.run(
-                ["powershell", "-NoProfile", "-Command", script],
-                text=True,
-                capture_output=True,
-                timeout=10,
-            )
+            import win32api
+
+            current_names = {pid: name for pid, name, _threads in windows_process_snapshot()}
         except Exception as exc:
-            failures.append({"pid": process_id, "error": str(exc)})
-            continue
-        if completed.returncode == 0:
-            terminated.append(process_id)
+            failures = [{"pid": pid, "error": str(exc)} for pid in requested]
         else:
-            failures.append(
-                {
-                    "pid": process_id,
-                    "returncode": completed.returncode,
-                    "error": (completed.stderr or completed.stdout or "termination failed").strip(),
-                }
-            )
+            for process_id in requested:
+                name = current_names.get(process_id)
+                if name is None:
+                    terminated.append(process_id)
+                    continue
+                if not name.casefold().startswith("origin"):
+                    failures.append({"pid": process_id, "error": "PID no longer identifies an Origin process"})
+                    continue
+                try:
+                    handle = win32api.OpenProcess(0x0001, False, process_id)  # PROCESS_TERMINATE
+                    try:
+                        win32api.TerminateProcess(handle, 1)
+                    finally:
+                        handle.Close()
+                except Exception as exc:
+                    failures.append({"pid": process_id, "error": str(exc)})
+                else:
+                    terminated.append(process_id)
     return {
         "ok": not failures,
         "requested_pids": requested,
@@ -1169,64 +1137,10 @@ class OriginOperations:
                 }
             )
 
-        plot_format_option_map = PLOT_FORMAT_OPTION_MAP
-        normalized_plot_formats: list[dict[str, object]] = []
-        plot_format_targets: set[tuple[int, int]] = set()
-        for raw_format in plot_format_contracts or ():
-            if not isinstance(raw_format, dict):
-                return OperationResult(
-                    False,
-                    "Every native plot-format contract must be an object",
-                )
-            try:
-                layer_index = int(raw_format.get("layer_index"))
-                plot_index = int(raw_format.get("plot_index"))
-            except (TypeError, ValueError):
-                return OperationResult(
-                    False,
-                    "Native plot-format layer and plot indices must be numeric",
-                )
-            if layer_index < 1 or plot_index < 1:
-                return OperationResult(
-                    False,
-                    "Native plot-format layer and plot indices must be positive",
-                )
-            target = (layer_index, plot_index)
-            if target in plot_format_targets:
-                return OperationResult(
-                    False,
-                    "Native plot-format contract contains a duplicate layer/plot target",
-                )
-            values: dict[str, float] = {}
-            for key in plot_format_option_map:
-                if key not in raw_format:
-                    continue
-                try:
-                    value = float(raw_format[key])
-                except (TypeError, ValueError, OverflowError):
-                    return OperationResult(
-                        False,
-                        f"Native plot-format value is nonnumeric: {key}",
-                    )
-                if not math.isfinite(value):
-                    return OperationResult(
-                        False,
-                        f"Native plot-format value must be finite: {key}",
-                    )
-                values[key] = value
-            if not values:
-                return OperationResult(
-                    False,
-                    "Native plot-format contract contains no supported properties",
-                )
-            plot_format_targets.add(target)
-            normalized_plot_formats.append(
-                {
-                    "layer_index": layer_index,
-                    "plot_index": plot_index,
-                    **values,
-                }
-            )
+        normalized_formats = _normalize_plot_format_contracts(plot_format_contracts)
+        if not normalized_formats.ok:
+            return normalized_formats
+        normalized_plot_formats = normalized_formats.payload["plot_format_contracts"]
 
         activated = self.run_labtalk(f'win -a "{quote_labtalk(safe_book)}"; layer -s 1;')
         if not activated.ok:
@@ -1450,7 +1364,7 @@ class OriginOperations:
                     },
                 )
 
-        format_result = self.apply_graph_plot_format_contracts(
+        format_result = self._apply_normalized_plot_format_contracts(
             safe_graph,
             normalized_plot_formats,
         )
@@ -1699,66 +1613,21 @@ class OriginOperations:
         even when the rest of the OTPU style remains intact.
         """
 
-        safe_graph = safe_origin_name(graph_name, "Graph")
-        normalized: list[dict[str, object]] = []
-        targets: set[tuple[int, int]] = set()
-        for raw_format in plot_format_contracts or ():
-            if not isinstance(raw_format, dict):
-                return OperationResult(
-                    False,
-                    "Every native plot-format contract must be an object",
-                )
-            try:
-                layer_index = int(raw_format.get("layer_index"))
-                plot_index = int(raw_format.get("plot_index"))
-            except (TypeError, ValueError):
-                return OperationResult(
-                    False,
-                    "Native plot-format layer and plot indices must be numeric",
-                )
-            if layer_index < 1 or plot_index < 1:
-                return OperationResult(
-                    False,
-                    "Native plot-format layer and plot indices must be positive",
-                )
-            target = (layer_index, plot_index)
-            if target in targets:
-                return OperationResult(
-                    False,
-                    "Native plot-format contract contains a duplicate layer/plot target",
-                )
-            values: dict[str, float] = {}
-            for key in PLOT_FORMAT_OPTION_MAP:
-                if key not in raw_format:
-                    continue
-                try:
-                    value = float(raw_format[key])
-                except (TypeError, ValueError, OverflowError):
-                    return OperationResult(
-                        False,
-                        f"Native plot-format value is nonnumeric: {key}",
-                    )
-                if not math.isfinite(value):
-                    return OperationResult(
-                        False,
-                        f"Native plot-format value must be finite: {key}",
-                    )
-                values[key] = value
-            if not values:
-                return OperationResult(
-                    False,
-                    "Native plot-format contract contains no supported properties",
-                )
-            targets.add(target)
-            normalized.append(
-                {
-                    "layer_index": layer_index,
-                    "plot_index": plot_index,
-                    **values,
-                }
-            )
+        result = _normalize_plot_format_contracts(plot_format_contracts)
+        if not result.ok:
+            return result
+        return self._apply_normalized_plot_format_contracts(
+            safe_origin_name(graph_name, "Graph"),
+            result.payload["plot_format_contracts"],
+        )
 
+    def _apply_normalized_plot_format_contracts(
+        self,
+        safe_graph: str,
+        normalized: list[dict[str, object]],
+    ) -> OperationResult:
         readback: list[dict[str, object]] = []
+        active_layer_index: int | None = None
         for contract in normalized:
             layer_index = int(contract["layer_index"])
             plot_index = int(contract["plot_index"])
@@ -1779,19 +1648,22 @@ class OriginOperations:
                 for key, value in contract.items()
                 if key in PLOT_FORMAT_OPTION_MAP
             }
-            activated = self.run_labtalk(
-                f'win -a "{quote_labtalk(safe_graph)}"; layer -s {layer_index};'
-            )
-            if not activated.ok:
-                return OperationResult(
-                    False,
-                    "Origin native plot-format target layer could not be activated",
-                    {
-                        "graph_name": safe_graph,
-                        "layer_index": layer_index,
-                        "plot_index": plot_index,
-                    },
+            if active_layer_index != layer_index:
+                activated = self.run_labtalk(
+                    f'win -a "{quote_labtalk(safe_graph)}"; layer -s {layer_index};'
                 )
+                if not activated.ok:
+                    return OperationResult(
+                        False,
+                        "Origin native plot-format target layer could not be activated",
+                        {
+                            "graph_name": safe_graph,
+                            "layer_index": layer_index,
+                            "plot_index": plot_index,
+                        },
+                    )
+                active_layer_index = layer_index
+
             commands = " ".join(
                 f"set {plot_name} -{PLOT_FORMAT_OPTION_MAP[key]} "
                 f"{_origin_plot_contract_value(key, value)};"
@@ -2484,6 +2356,21 @@ class OriginOperations:
             names.extend(str(data_plots.Item(index).Name) for index in range(data_plots.Count))
         return names
 
+    def get_graph_layer_count(self, graph_name: str) -> OperationResult:
+        activated = self.run_labtalk(
+            f'win -a "{quote_labtalk(graph_name)}"; __rdop_page_nlayers=page.nlayers;'
+        )
+        if not activated.ok:
+            return OperationResult(False, f"Could not activate graph: {graph_name}")
+        try:
+            value = float(self.app.LTVar("__rdop_page_nlayers"))
+            count = int(value)
+        except (TypeError, ValueError, OverflowError):
+            return OperationResult(False, "Graph layer count was not numeric")
+        if count <= 0 or count != value:
+            return OperationResult(False, "Graph layer count must be a positive integer")
+        return OperationResult(True, "Graph layer count read", {"layer_count": count})
+
     def _graph_layer_count(self, graph_name: str) -> int:
         try:
             self.run_labtalk(f'win -a "{quote_labtalk(graph_name)}"; __rdop_page_nlayers=page.nlayers;')
@@ -2713,6 +2600,70 @@ class OriginOperations:
         )
 
 
+def _normalize_plot_format_contracts(
+    plot_format_contracts: Iterable[dict[str, object]] | None,
+) -> OperationResult:
+    """Validate a caller's native plot formats once, before any Origin writes."""
+    normalized_plot_formats: list[dict[str, object]] = []
+    plot_format_targets: set[tuple[int, int]] = set()
+    for raw_format in plot_format_contracts or ():
+        if not isinstance(raw_format, dict):
+            return OperationResult(
+                False,
+                "Every native plot-format contract must be an object",
+            )
+        try:
+            layer_index = int(raw_format.get("layer_index"))
+            plot_index = int(raw_format.get("plot_index"))
+        except (TypeError, ValueError):
+            return OperationResult(
+                False,
+                "Native plot-format layer and plot indices must be numeric",
+            )
+        if layer_index < 1 or plot_index < 1:
+            return OperationResult(
+                False,
+                "Native plot-format layer and plot indices must be positive",
+            )
+        target = (layer_index, plot_index)
+        if target in plot_format_targets:
+            return OperationResult(
+                False,
+                "Native plot-format contract contains a duplicate layer/plot target",
+            )
+        values: dict[str, float] = {}
+        for key in PLOT_FORMAT_OPTION_MAP:
+            if key not in raw_format:
+                continue
+            try:
+                value = float(raw_format[key])
+            except (TypeError, ValueError, OverflowError):
+                return OperationResult(
+                    False,
+                    f"Native plot-format value is nonnumeric: {key}",
+                )
+            if not math.isfinite(value):
+                return OperationResult(
+                    False,
+                    f"Native plot-format value must be finite: {key}",
+                )
+            values[key] = value
+        if not values:
+            return OperationResult(
+                False,
+                "Native plot-format contract contains no supported properties",
+            )
+        plot_format_targets.add(target)
+        normalized_plot_formats.append(
+            {
+                "layer_index": layer_index,
+                "plot_index": plot_index,
+                **values,
+            }
+        )
+    return OperationResult(True, "Plot-format contracts normalized", {"plot_format_contracts": normalized_plot_formats})
+
+
 def _legend_text_from_entries(entries: list[str]) -> str:
     lines = []
     for index, entry in enumerate(entries, start=1):
@@ -2727,27 +2678,36 @@ def _legend_entry_text(entry: object) -> str:
     return str(text).replace(";", ",").replace("\r", " ").replace("\n", " ").strip()
 
 
-def _graph_object_infos(layer: object) -> list[dict[str, object]]:
+def _iter_graph_objects(layer: object) -> Iterable[object]:
     collection = getattr(layer, "GraphObjects", None)
     if collection is None:
-        return []
+        return
     try:
         count = int(getattr(collection, "Count", 0))
     except Exception:
-        return []
+        return
     if count <= 0:
-        return []
-    base_index = 0
+        return
     try:
-        collection.Item(0)
+        first = collection.Item(0)
+        base_index = 0
     except Exception:
         base_index = 1
-    infos: list[dict[str, object]] = []
-    for offset in range(count):
         try:
-            graph_object = collection.Item(offset + base_index)
+            first = collection.Item(1)
+        except Exception:
+            return
+    yield first
+    for offset in range(1, count):
+        try:
+            yield collection.Item(offset + base_index)
         except Exception:
             continue
+
+
+def _graph_object_infos(layer: object) -> list[dict[str, object]]:
+    infos: list[dict[str, object]] = []
+    for graph_object in _iter_graph_objects(layer):
         name = str(getattr(graph_object, "Name", "") or "")
         if not name:
             continue
@@ -2769,9 +2729,20 @@ def _graph_object_infos(layer: object) -> list[dict[str, object]]:
 
 
 def _find_graph_object(layer: object, name: str) -> object | None:
-    for info in _graph_object_infos(layer):
-        if str(info.get("name", "")).casefold() == name.casefold():
-            return info.get("object")
+    collection = getattr(layer, "GraphObjects", None)
+    requested = name.casefold()
+    if collection is not None:
+        try:
+            graph_object = collection.Item(name)
+            if str(getattr(graph_object, "Name", "")).casefold() == requested:
+                return graph_object
+        except Exception:
+            pass
+    # Older COM collections do not support named lookup. Only read names;
+    # geometry and text are unnecessary when locating a newly created object.
+    for graph_object in _iter_graph_objects(layer):
+        if str(getattr(graph_object, "Name", "") or "").casefold() == requested:
+            return graph_object
     return None
 
 

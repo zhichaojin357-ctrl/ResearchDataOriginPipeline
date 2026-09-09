@@ -1,0 +1,59 @@
+name: Optimization regression (Windows, no Origin)
+# Acceptance batch: second review, 2026-09-08.
+
+on:
+  # Run a complete batch explicitly by changing this workflow on this branch.
+  # Ordinary source/document commits do not automatically repeat the full suite.
+  push:
+    branches: [codex/optimize-pipeline-preserve-plots]
+    paths: ['.github/workflows/optimization-regression.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      RESEARCHDATAORIGINPIPELINE_DISABLE_ORIGIN: '1'
+      GROUPMEETINGAUTOPPT_DISABLE_ORIGIN: '1'
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install test dependencies in the runner
+        run: |
+          python -m pip install -r requirements.txt pytest pytest-subtests pyGAPS impedance
+          python -m pip freeze
+      - name: Full regression without Origin
+        run: python -m pytest -q --tb=short --junitxml="${{ runner.temp }}/pipeline-regression/pytest.xml"
+      - name: Runtime validation
+        if: ${{ always() }}
+        env:
+          RESEARCH_PIPELINE_OUTPUT_ROOT: ${{ runner.temp }}/pipeline-regression/runtime
+        run: python run.py validate --scope runtime
+      - name: Runtime readiness
+        if: ${{ always() }}
+        env:
+          RESEARCH_PIPELINE_OUTPUT_ROOT: ${{ runner.temp }}/pipeline-regression/runtime
+        run: python run.py readiness --scope runtime --no-desktop-review-xlsx
+      - name: Show validation evidence in the job log
+        if: ${{ always() }}
+        run: |
+          Get-Content "${{ runner.temp }}/pipeline-regression/runtime/reports/validation_report.json"
+          Get-Content "${{ runner.temp }}/pipeline-regression/runtime/reports/readiness_report.json"
+      - name: Preserve actual test and validation reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-no-origin-regression
+          path: ${{ runner.temp }}/pipeline-regression/
+          if-no-files-found: warn
+          retention-days: 14

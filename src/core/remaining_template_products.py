@@ -26,8 +26,13 @@ REMAINING_TARGET_PRODUCT_KEYS = (
     "FTIR",
 )
 
-def load_remaining_pairings(pairing_path: Path, root_map: dict[str, Path]) -> list[TargetPairing]:
-    items = _load_pairing_items(pairing_path)
+def load_remaining_pairings(
+    pairing_path: Path,
+    root_map: dict[str, Path],
+    *,
+    items: list[dict[str, Any]] | None = None,
+) -> list[TargetPairing]:
+    items = _load_pairing_items(pairing_path) if items is None else items
     selected: list[TargetPairing] = []
     seen: set[str] = set()
     for item in items:

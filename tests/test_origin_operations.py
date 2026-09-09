@@ -1427,70 +1427,59 @@ class OriginOperationsSmokeTest(unittest.TestCase):
                 connect_origin(isolated=True)
 
     def test_origin_process_ids_fails_closed_when_inspection_fails(self):
-        completed = type(
-            "Completed",
-            (),
-            {
-                "returncode": 1,
-                "stderr": "inspection unavailable",
-                "stdout": "",
-            },
-        )()
         with mock.patch(
-            "src.origin.operations.subprocess.run",
-            return_value=completed,
+            "src.origin.operations.windows_process_snapshot",
+            side_effect=OSError("inspection unavailable"),
         ):
-            with self.assertRaisesRegex(
-                RuntimeError,
-                "Could not inspect existing Origin processes safely",
-            ):
-                from src.origin.operations import origin_process_ids
+            from src.origin.operations import origin_process_ids
 
+            with self.assertRaisesRegex(RuntimeError, "Could not inspect existing Origin processes safely"):
                 origin_process_ids()
 
     def test_origin_process_ids_filters_only_confirmed_zero_thread_residue(self):
-        completed = type(
-            "Completed",
-            (),
-            {
-                "returncode": 0,
-                "stderr": "",
-                "stdout": "8123\n",
-            },
-        )()
         with mock.patch(
-            "src.origin.operations.subprocess.run",
-            return_value=completed,
-        ) as run:
+            "src.origin.operations.windows_process_snapshot",
+            return_value=[(8123, "Origin64.exe", 5), (8456, "Origin64.exe", 0), (42, "python.exe", 3)],
+        ):
             from src.origin.operations import origin_process_ids
 
             self.assertEqual(origin_process_ids(), {8123})
 
-        command = run.call_args.args[0]
-        self.assertIn("@($originProcess.Threads).Count -gt 0", command[-1])
-        self.assertIn("catch { $originProcess.Id }", command[-1])
+    def test_terminate_owned_processes_refuses_a_pid_which_is_no_longer_origin(self):
+        from src.origin.operations import _terminate_owned_origin_processes
 
-    def test_origin_process_ids_fails_closed_on_unparseable_output(self):
-        completed = type(
-            "Completed",
-            (),
-            {
-                "returncode": 0,
-                "stderr": "",
-                "stdout": "8123\nnot-a-pid\n",
-            },
-        )()
-        with mock.patch(
-            "src.origin.operations.subprocess.run",
-            return_value=completed,
+        api = mock.Mock()
+        with (
+            mock.patch("src.origin.operations.windows_process_snapshot", return_value=[(8123, "Origin64.exe", 5), (8456, "editor.exe", 2)]),
+            mock.patch.dict("sys.modules", {"win32api": api}),
         ):
-            with self.assertRaisesRegex(
-                RuntimeError,
-                "unexpected process identifier",
-            ):
-                from src.origin.operations import origin_process_ids
+            result = _terminate_owned_origin_processes({8123, 8456})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["terminated_pids"], [8123])
+        api.OpenProcess.assert_called_once_with(0x0001, False, 8123)
+        api.TerminateProcess.assert_called_once_with(api.OpenProcess.return_value, 1)
+        api.OpenProcess.return_value.Close.assert_called_once()
 
-                origin_process_ids()
+    def test_named_graph_object_lookup_does_not_read_geometry(self):
+        from src.origin.operations import _find_graph_object
+
+        class NameOnly:
+            Name = "Label1"
+
+            @property
+            def Left(self):
+                raise AssertionError("Name lookup must not read geometry")
+
+        target = NameOnly()
+        layer = mock.Mock(GraphObjects=FakeGraphObjects([target]))
+        self.assertIs(_find_graph_object(layer, "label1"), target)
+
+    def test_graph_layer_count_uses_current_page_readback(self):
+        app = FakeOriginApp()
+        app.ltvars["__rdop_page_nlayers"] = 3.0
+        result = OriginOperations(app).get_graph_layer_count("Graph4")
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload["layer_count"], 3)
 
 
 if __name__ == "__main__":

@@ -571,7 +571,7 @@ def test_openlab_export_commits_vendor_manifest_and_reprocessed_dataset_together
 
     monkeypatch.setattr("src.core.hplc_openlab.extract_hplc_openlab_dataset", fake_extract)
     monkeypatch.setattr("src.core.hplc_openlab.reprocess_openlab_with_vendor_method", fake_reprocess)
-    monkeypatch.setattr("src.core.hplc_openlab.attach_hplc_analysis", lambda payload, _root: payload)
+    monkeypatch.setattr("src.core.hplc_openlab.attach_hplc_analysis", lambda payload, _root, **_kwargs: payload)
     monkeypatch.setattr("src.core.hplc_openlab._run_workbook_builder", lambda **kwargs: _write_complete_fake_openlab_package(kwargs))
 
     result = run_hplc_openlab_export(

@@ -117,8 +117,13 @@ def build_default_root_map(project_root: Path) -> dict[str, Path]:
     }
 
 
-def load_target_pairings(pairing_path: Path, root_map: dict[str, Path]) -> list[TargetPairing]:
-    items = _load_pairing_items(pairing_path)
+def load_target_pairings(
+    pairing_path: Path,
+    root_map: dict[str, Path],
+    *,
+    items: list[dict[str, Any]] | None = None,
+) -> list[TargetPairing]:
+    items = _load_pairing_items(pairing_path) if items is None else items
     selected: list[TargetPairing] = []
     seen: set[str] = set()
     for item in items:
@@ -275,6 +280,7 @@ def _build_processed_plot_table(
     pairing: TargetPairing,
     *,
     xps_component_fill_mode: str = "plain",
+    xps_records: list[XpsFitRecord] | None = None,
 ) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
     if pairing.product_key == "BET":
         rows = read_table(pairing.data_paths[0])
@@ -306,9 +312,9 @@ def _build_processed_plot_table(
             "notes": "Y-axis ticks and numeric labels are hidden by default for EPR overlays.",
         }
     if pairing.product_key == "XPS_in_situ":
-        return _build_xps_in_situ_table(pairing.data_paths, component_fill_mode=xps_component_fill_mode)
+        return _build_xps_in_situ_table(pairing.data_paths, component_fill_mode=xps_component_fill_mode, selected_records=xps_records)
     if pairing.product_key == "XPS_non_in_situ":
-        return _build_xps_non_in_situ_table(pairing.data_paths, component_fill_mode=xps_component_fill_mode)
+        return _build_xps_non_in_situ_table(pairing.data_paths, component_fill_mode=xps_component_fill_mode, selected_records=xps_records)
     raise ValueError(f"Unsupported product key: {pairing.product_key}")
 
 
@@ -316,16 +322,20 @@ def _build_xps_in_situ_table(
     paths: list[Path],
     *,
     component_fill_mode: str = "plain",
+    selected_records: list[XpsFitRecord] | None = None,
 ) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
-    sample_files = _xps_in_situ_sample_files(paths)
-    records, manual_review = load_xps_fit_workbooks(sample_files)
-    selected = _select_best_records(records)
-    wanted_samples = ("BOBC", "BC Dark", "BC Light")
-    common_elements = sorted(set.intersection(*(set(key[1] for key in selected if key[0] == sample) for sample in wanted_samples)))
-    if not common_elements:
-        raise ValueError(f"No complete in-situ XPS element found for BOBC/Dark/Light; manual_review={manual_review}")
-    element = "Bi" if "Bi" in common_elements else common_elements[0]
-    table_records = [selected[(sample, element)] for sample in wanted_samples]
+    if selected_records is None:
+        sample_files = _xps_in_situ_sample_files(paths)
+        records, manual_review = load_xps_fit_workbooks(sample_files)
+        selected = _select_best_records(records)
+        wanted_samples = ("BOBC", "BC Dark", "BC Light")
+        common_elements = sorted(set.intersection(*(set(key[1] for key in selected if key[0] == sample) for sample in wanted_samples)))
+        if not common_elements:
+            raise ValueError(f"No complete in-situ XPS element found for BOBC/Dark/Light; manual_review={manual_review}")
+        element = "Bi" if "Bi" in common_elements else common_elements[0]
+        selected_records = [selected[(sample, element)] for sample in wanted_samples]
+    table_records = selected_records
+    element = table_records[0].element
     headers, rows = _xps_records_to_offset_table(
         table_records,
         include_envelope=True,
@@ -352,15 +362,18 @@ def _build_xps_non_in_situ_table(
     paths: list[Path],
     *,
     component_fill_mode: str = "plain",
+    selected_records: list[XpsFitRecord] | None = None,
 ) -> tuple[list[str], list[list[float | str | None]], dict[str, str]]:
-    sample_files = _xps_non_in_situ_sample_files(paths)
-    records, manual_review = load_xps_fit_workbooks(sample_files)
-    plan = build_comparison_plan(records, manual_review, XpsHeterojunctionOptions(output_dir=Path("_unused"), with_origin=False))
-    if not plan.comparisons:
-        raise ValueError(f"No non-in-situ XPS comparison was planned; manual_review={plan.manual_review}")
-    comparison = next((item for item in plan.comparisons if item.name == "XPS_Bi_BOBC_vs_BC_stacked"), plan.comparisons[0])
+    if selected_records is None:
+        sample_files = _xps_non_in_situ_sample_files(paths)
+        records, manual_review = load_xps_fit_workbooks(sample_files)
+        plan = build_comparison_plan(records, manual_review, XpsHeterojunctionOptions(output_dir=Path("_unused"), with_origin=False))
+        if not plan.comparisons:
+            raise ValueError(f"No non-in-situ XPS comparison was planned; manual_review={plan.manual_review}")
+        comparison = next((item for item in plan.comparisons if item.name == "XPS_Bi_BOBC_vs_BC_stacked"), plan.comparisons[0])
+        selected_records = [comparison.record_a, comparison.record_b]
     headers, rows = _xps_records_to_offset_table(
-        [comparison.record_a, comparison.record_b],
+        selected_records,
         include_envelope=True,
         include_components=True,
         component_fill_mode=component_fill_mode,
@@ -369,7 +382,7 @@ def _build_xps_non_in_situ_table(
     return headers, rows, {
         "x_label": "Binding Energy (eV)",
         "y_label": "Intensity (a.u.)",
-        "title": f"XPS non-in-situ {comparison.element} exemplar",
+        "title": f"XPS non-in-situ {selected_records[0].element} exemplar",
         "plot_type": "line",
         "x_descending": "true",
         "y_ticks": "false",

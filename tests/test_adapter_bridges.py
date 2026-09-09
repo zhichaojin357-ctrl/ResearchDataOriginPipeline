@@ -76,6 +76,31 @@ def test_processor_peak_bridge_falls_back_without_adapter_candidates(monkeypatch
     assert peaks == []
 
 
+def test_successful_empty_scipy_result_is_not_recomputed(monkeypatch):
+    from scipy import signal
+
+    calls = []
+    original = signal.find_peaks
+
+    def counted(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(signal, "find_peaks", counted)
+    assert local_peak_positions([(0.0, 0.0), (1.0, 1.0), (2.0, 2.0)]) == []
+    assert len(calls) == 1
+
+
+def test_xps_label_summary_matches_full_curves_with_empty_and_delayed_values():
+    from src.processors.calculations import xps_numeric_curves, xps_package_results
+
+    rows = [
+        {"binding energy": "165", "raw intensity": "10", "C1s A": "", "Residuals": "0", "empty": ""},
+        {"binding energy": "164", "raw intensity": "12", "C1s A": "4", "Residuals": "1", "empty": ""},
+    ]
+    assert xps_package_results(rows) == xps_lmfitxps_adapter.process_or_analyze(xps_numeric_curves(rows))
+
+
 def test_processor_baseline_bridge_uses_adapter_corrected_signal(monkeypatch):
     def fake_process_or_analyze(x_values, y_values, **kwargs):
         assert kwargs["lam"] == 1e5
@@ -242,7 +267,7 @@ def test_xps_export_results_are_sourced_from_lmfitxps_adapter(monkeypatch):
             "metadata_provenance": {"adapter": "xps_lmfitxps_adapter"},
         }
 
-    monkeypatch.setattr(xps_lmfitxps_adapter, "process_or_analyze", fake_process)
+    monkeypatch.setattr(xps_lmfitxps_adapter, "summarize_curve_labels", fake_process)
 
     result = xps_export_results(
         [

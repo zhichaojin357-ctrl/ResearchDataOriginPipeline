@@ -138,7 +138,7 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
 
     planning_dataset = extract_hplc_openlab_dataset(input_root, options.since)
     if "analysis" not in planning_dataset:
-        planning_dataset = attach_hplc_analysis(planning_dataset, project_root)
+        planning_dataset = attach_hplc_analysis(planning_dataset, project_root, copy_dataset=False)
     planning_dataset["workbook_plan"] = _build_workbook_plan(planning_dataset, workbook_path)
     workbook_paths = _planned_workbook_paths(
         output_root,
@@ -280,7 +280,7 @@ def run_hplc_openlab_export(project_root: Path, options: HplcOpenLabExportOption
                 vendor_result,
                 source_root_name=input_root.name,
             )
-            dataset = attach_hplc_analysis(dataset, project_root)
+            dataset = attach_hplc_analysis(dataset, project_root, copy_dataset=False)
             dataset["workbook_plan"] = _build_workbook_plan(dataset, workbook_path)
             vendor_workbook_paths = _planned_workbook_paths(
                 output_root,

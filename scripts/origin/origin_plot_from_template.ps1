@@ -206,13 +206,39 @@ function Initialize-OriginDataWorkbook($app, [string]$BookName, [string]$Display
     $escapedHeader = Escape-OriginText $header
     $app.Execute('wks.col' + $i + '.lname$="' + $escapedHeader + '"; wks.col' + $i + '.comment$="";') | Out-Null
   }
-  for ($rowIndex = 0; $rowIndex -lt $Rows.Count; $rowIndex++) {
-    $rowNumber = $rowIndex + 1
-    $row = $Rows[$rowIndex]
-    for ($colIndex = 1; $colIndex -le $ColumnCount; $colIndex++) {
-      if (($colIndex - 1) -ge $Headers.Count) { continue }
-      $name = [string]$Headers[$colIndex - 1]
-      Set-OriginWorksheetCell $app $colIndex $rowNumber ([string]$row.$name)
+  $target = '[' + $BookName + ']' + $sheetName
+  for ($colIndex = 1; $colIndex -le $ColumnCount; $colIndex++) {
+    if (($colIndex - 1) -ge $Headers.Count) { continue }
+    $name = [string]$Headers[$colIndex - 1]
+    $numericValues = New-Object System.Collections.Generic.List[double]
+    $completeNumericColumn = $Rows.Count -gt 0
+    foreach ($row in $Rows) {
+      $value = [string]$row.$name
+      if ([string]::IsNullOrWhiteSpace($value)) { $completeNumericColumn = $false; break }
+      try {
+        $number = [double]::Parse($value, [Globalization.CultureInfo]::InvariantCulture)
+        if ([double]::IsNaN($number) -or [double]::IsInfinity($number)) {
+          $completeNumericColumn = $false
+          break
+        }
+        $numericValues.Add($number) | Out-Null
+      } catch {
+        $completeNumericColumn = $false
+        break
+      }
+    }
+    if ($completeNumericColumn) {
+      # COM accepts a SAFEARRAY with zero-based starting row/column.
+      # https://docs.originlab.com/com/classes/application/putworksheet/
+      $written = $false
+      try { $written = [bool]$app.PutWorksheet($target, $numericValues.ToArray(), 0, ($colIndex - 1)) } catch {}
+      if ($written) { continue }
+      Write-Output ('WORKSHEET_COLUMN_FALLBACK=' + $colIndex)
+    }
+    # Preserve the existing blank/text/nonfinite handling for mixed columns.
+    for ($rowIndex = 0; $rowIndex -lt $Rows.Count; $rowIndex++) {
+      $row = $Rows[$rowIndex]
+      Set-OriginWorksheetCell $app $colIndex ($rowIndex + 1) ([string]$row.$name)
     }
   }
 }
@@ -869,6 +895,9 @@ function Assert-GraphPageValid($app, [string]$PageName, [int]$ExpectedPlots, [ar
 }
 
 $app = $null
+$runClock = [System.Diagnostics.Stopwatch]::StartNew()
+$phaseClock = [System.Diagnostics.Stopwatch]::StartNew()
+$stageSeconds = [ordered]@{ startup = 0.0; data_import = 0.0; graph_style = 0.0; save = 0.0; image_export = 0.0; shutdown = 0.0; total = 0.0 }
 
 try {
   $AllowedOutputRoot = Get-FullPath $AllowedOutputRoot
@@ -919,7 +948,14 @@ try {
     }
   }
   if (-not $AllowRunningOrigin) {
-    $runningOrigin = Get-Process -Name Origin* -ErrorAction SilentlyContinue
+    $runningOrigin = @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | Where-Object {
+      try {
+        $threads = $_.Threads
+        if ($null -eq $threads) { $true } else { @($threads).Count -gt 0 }
+      } catch {
+        $true
+      }
+    })
     if ($runningOrigin) {
       throw "Origin is already running. Close it or rerun with -AllowRunningOrigin after confirming no unsaved work will be affected."
     }
@@ -947,8 +983,10 @@ try {
     $templateDirCreatedByThisRun = $true
   }
 
+  $phaseClock.Restart()
   $app = New-Object -ComObject Origin.Application
   $app.Visible = if ($Headless) { 0 } else { 1 }
+  $stageSeconds.startup = $phaseClock.Elapsed.TotalSeconds
 
   $referenceStyle = New-CachedGraph4Style
   $template = $null
@@ -1002,6 +1040,7 @@ try {
       throw "Label count ($($currentLabels.Count)) must match plot count ($expectedPlotCount) for $pageName."
     }
 
+    $phaseClock.Restart()
     $table = Read-DelimitedTable $dataFile
     if ($table.Headers.Count -lt $cols) {
       throw "Data file column count is smaller than requested ColumnCount for $pageName."
@@ -1009,6 +1048,8 @@ try {
     $dataFileName = [System.IO.Path]::GetFileName($dataFile)
     $dataBookName = Convert-ToSafeOriginName ([System.IO.Path]::GetFileNameWithoutExtension($dataFile)) 'Data'
     Initialize-OriginDataWorkbook $app $dataBookName $dataFileName $table.Headers $table.Rows $cols
+    $stageSeconds.data_import += $phaseClock.Elapsed.TotalSeconds
+    $phaseClock.Restart()
     if ($xyPairs.Count -gt 0) {
       foreach ($pair in $xyPairs) {
         $app.Execute('wks.col' + [int]$pair.X + '.type=4; wks.col' + [int]$pair.Y + '.type=1;') | Out-Null
@@ -1039,6 +1080,7 @@ try {
     Apply-ReferenceStyle $app $pageName $currentLabels $referenceStyle $group
     Apply-PlotPolicy $app $pageName $group
     Assert-GraphPageValid $app $pageName $expectedPlotCount $currentLabels $group
+    $stageSeconds.graph_style += $phaseClock.Elapsed.TotalSeconds
   }
 
   $currentExistingOutputs = @($plannedOutputs | Where-Object { Test-Path -LiteralPath $_ })
@@ -1050,15 +1092,19 @@ try {
     Remove-Item -LiteralPath $target -Force
   }
 
+  $phaseClock.Restart()
   Sanitize-ProjectPages $app
   $app.Save($OutputOpju) | Out-Null
   Assert-ValidOutput $OutputOpju
+  $stageSeconds.save = $phaseClock.Elapsed.TotalSeconds
 
+  $phaseClock.Restart()
   foreach ($group in $Groups) {
     $pageName = [string](Get-GroupValue $group 'PageName')
     $app.Execute('win -a ' + $pageName + '; expGraph type:=png path:="' + (To-OriginPath $ExportDir) + '" filename:="' + $pageName + '" overwrite:=replace;') | Out-Null
     Assert-PngOutput $ExportDir $pageName
   }
+  $stageSeconds.image_export = $phaseClock.Elapsed.TotalSeconds
 
   Write-Output ("SAVED=" + (Split-Path -Leaf $OutputOpju))
   Write-Output ("EXPORT_DIR=" + (Split-Path -Leaf $ExportDir))
@@ -1081,7 +1127,11 @@ try {
   }
 }
 finally {
+  $phaseClock.Restart()
   if ($CloseOrigin -and $app) {
     try { $app.Exit() | Out-Null } catch {}
   }
+  $stageSeconds.shutdown = $phaseClock.Elapsed.TotalSeconds
+  $stageSeconds.total = $runClock.Elapsed.TotalSeconds
+  Write-Output ('ORIGIN_STAGE_TIMINGS=' + ($stageSeconds | ConvertTo-Json -Compress))
 }

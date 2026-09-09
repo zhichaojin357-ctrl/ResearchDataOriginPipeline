@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 from src.adapters.common import import_optional, is_module_available, metadata_provenance, version_for
@@ -28,13 +28,18 @@ def capabilities() -> dict[str, object]:
 
 
 def process_or_analyze(curves: Mapping[str, Sequence[float]]) -> dict[str, Any]:
+    return summarize_curve_labels(curves)
+
+
+def summarize_curve_labels(curve_labels: Iterable[str]) -> dict[str, Any]:
+    """Summarize already identified curve labels; no fit needs signal arrays."""
     module, error = import_optional(MODULE)
-    labels = [str(label) for label in curves]
+    labels = [str(label) for label in curve_labels]
     components = [label for label in labels if not _is_non_component_curve(label)]
     residuals = [label for label in labels if "residual" in label.casefold()]
     fallback_reason = None if module is not None else f"{PACKAGE} unavailable: {error}"
     return {
-        "ok": bool(curves),
+        "ok": bool(labels),
         "component_count": len(components),
         "component_labels": components,
         "residual_labels_excluded": residuals,

@@ -2067,7 +2067,16 @@ def read_graph_data_snapshot(
     plots: list[dict[str, object]] = []
     layers: list[dict[str, object]] = []
     worksheet_cache: dict[tuple[str, int], dict[str, object]] = {}
-    for layer_index in range(1, max_layers + 1):
+    mask_cache: dict[tuple[str, int, int], dict[str, object]] = {}
+    layer_limit = max_layers
+    count_reader = getattr(operations, "get_graph_layer_count", None)
+    if callable(count_reader):
+        count_result = count_reader(graph_page)
+        if getattr(count_result, "ok", False):
+            layer_limit = min(max_layers, int(count_result.payload["layer_count"]))
+        else:
+            layer_limit = 0
+    for layer_index in range(1, layer_limit + 1):
         result = operations.get_graph_plot_dataset_names(graph_page, layer_index=layer_index)
         if not getattr(result, "ok", False):
             continue
@@ -2094,6 +2103,7 @@ def read_graph_data_snapshot(
                 sheet_name=sheet_name,
                 explicit_mapping=explicit_plot_mappings.get((plot_index, dataset)),
                 prefer_custom_rgb=prefer_custom_rgb,
+                mask_cache=mask_cache,
             )
             plots.append(plot_record)
             layer_plots.append(plot_record)
@@ -2278,6 +2288,7 @@ def _graph_plot_data_record(
     sheet_name: str,
     explicit_mapping: dict[str, object] | None = None,
     prefer_custom_rgb: bool = False,
+    mask_cache: dict[tuple[str, int, int], dict[str, object]] | None = None,
 ) -> dict[str, object]:
     parsed = parse_origin_dataset_reference(dataset)
     base = {
@@ -2423,12 +2434,14 @@ def _graph_plot_data_record(
         x_dataset,
         row_from=plot_row_from,
         row_to=plot_row_to,
+        cache=mask_cache,
     )
     y_masks = _read_dataset_mask_rows(
         operations,
         dataset,
         row_from=plot_row_from,
         row_to=plot_row_to,
+        cache=mask_cache,
     )
     x_masked_rows = list(x_masks.get("masked_rows", []))
     y_masked_rows = list(y_masks.get("masked_rows", []))
@@ -2489,26 +2502,92 @@ def _read_dataset_mask_rows(
     *,
     row_from: int,
     row_to: int,
+    cache: dict[tuple[str, int, int], dict[str, object]] | None = None,
+) -> dict[str, object]:
+    # The cache belongs to one immutable graph readback; no result survives a
+    # save/reopen, worksheet replacement, or another snapshot.
+    key = (dataset, int(row_from), int(row_to))
+    if cache is not None and key in cache:
+        return cache[key]
+    result = _read_dataset_mask_rows_uncached(
+        operations, dataset, row_from=row_from, row_to=row_to,
+    )
+    if cache is not None and result.get("status") == "ready":
+        cache[key] = result
+    return result
+
+
+def _read_dataset_mask_rows_uncached(
+    operations: object,
+    dataset: str,
+    *,
+    row_from: int,
+    row_to: int,
 ) -> dict[str, object]:
     if parse_origin_dataset_reference(dataset) is None:
         return {"status": "unavailable", "masked_rows": []}
     variable = "__rdop_mask_state"
     try:
-        counted = operations.run_labtalk(
-            f"{variable}=ismasked(0,{dataset});"
-        )
+        counted = operations.run_labtalk(f"{variable}=ismasked(0,{dataset});")
         if not getattr(counted, "ok", False):
             return {"status": "unavailable", "masked_rows": []}
-        raw_count = getattr(
-            operations.get_labtalk_variable(variable),
-            "payload",
-            {},
-        ).get("value")
+        raw_count = operations.get_labtalk_variable(variable).payload.get("value")
         count = int(round(float(raw_count)))
     except (AttributeError, TypeError, ValueError, OverflowError):
         return {"status": "unavailable", "masked_rows": []}
     if count <= 0:
         return {"status": "ready", "masked_rows": [], "dataset_mask_count": 0}
+    masked_rows = _read_mask_rows_in_blocks(
+        operations, dataset, row_from=row_from, row_to=row_to,
+    )
+    if masked_rows is None:
+        # Preserve the existing reader for older COM/LabTalk bridges. A failed
+        # block is never accepted as an all-unmasked range.
+        masked_rows = _read_mask_rows_individually(
+            operations, dataset, row_from=row_from, row_to=row_to,
+        )
+    if masked_rows is None:
+        return {"status": "unavailable", "masked_rows": []}
+    return {"status": "ready", "masked_rows": masked_rows, "dataset_mask_count": count}
+
+
+def _read_mask_rows_in_blocks(
+    operations: object,
+    dataset: str,
+    *,
+    row_from: int,
+    row_to: int,
+) -> list[int] | None:
+    masked_rows: list[int] = []
+    for start in range(row_from, row_to + 1, 512):
+        stop = min(start + 511, row_to)
+        script = (
+            'string rdmask$=""; '
+            f'for(rdmi={start};rdmi<={stop};rdmi++) {{ '
+            f'if(ismasked(rdmi,{dataset})) {{ rdmask$=rdmask$+"1"; }} '
+            'else { rdmask$=rdmask$+"0"; } };'
+        )
+        try:
+            read = operations.run_labtalk(script)
+            if not getattr(read, "ok", False):
+                return None
+            bits = operations.get_labtalk_variable("rdmask$").payload.get("value")
+        except (AttributeError, TypeError, ValueError, OverflowError):
+            return None
+        if not isinstance(bits, str) or len(bits) != stop - start + 1 or set(bits) - {"0", "1"}:
+            return None
+        masked_rows.extend(start + offset for offset, bit in enumerate(bits) if bit == "1")
+    return masked_rows
+
+
+def _read_mask_rows_individually(
+    operations: object,
+    dataset: str,
+    *,
+    row_from: int,
+    row_to: int,
+) -> list[int] | None:
+    variable = "__rdop_mask_state"
     masked_rows: list[int] = []
     for row in range(int(row_from), int(row_to) + 1):
         try:
@@ -2516,7 +2595,7 @@ def _read_dataset_mask_rows(
                 f"{variable}=ismasked({row},{dataset});"
             )
             if not getattr(read, "ok", False):
-                return {"status": "unavailable", "masked_rows": []}
+                return None
             raw_state = getattr(
                 operations.get_labtalk_variable(variable),
                 "payload",
@@ -2524,14 +2603,10 @@ def _read_dataset_mask_rows(
             ).get("value")
             state = int(round(float(raw_state)))
         except (AttributeError, TypeError, ValueError, OverflowError):
-            return {"status": "unavailable", "masked_rows": []}
+            return None
         if state:
             masked_rows.append(row)
-    return {
-        "status": "ready",
-        "masked_rows": masked_rows,
-        "dataset_mask_count": count,
-    }
+    return masked_rows
 
 
 def _read_explicit_plot_mappings(
@@ -2812,36 +2887,52 @@ def _read_plot_style_properties(
 ) -> dict[str, float]:
     if not hasattr(operations, "run_labtalk") or not hasattr(operations, "get_labtalk_variable"):
         return {}
-    style: dict[str, float] = {}
-    variable = "__rdop_plot_style_value"
-    for key, option in PLOT_STYLE_READBACK_OPTIONS.items():
+    # Legacy snapshot fields alias the same Origin property. Query each option
+    # once and retain every original output key for schema compatibility.
+    options = list(dict.fromkeys(PLOT_STYLE_READBACK_OPTIONS.values()))
+    if prefer_custom_rgb:
+        options.append("-cse")
+    values: dict[str, float] = {}
+    # LabTalk silently fails to expose long/underscore-heavy variable names to
+    # LTVar even when Execute reports success. Keep these temporary names short
+    # so a successful grouped query cannot be mistaken for an all-zero style.
+    variable = "rdopps"
+    variables = [f"{variable}{index}" for index in range(len(options))]
+    # Initialize the entire group first: an unsupported property must never
+    # reuse a value from the preceding curve, even if Origin continues execution.
+    script = " ".join(f"{name}=nan;" for name in variables)
+    script += " " + " ".join(
+        f"get {dataset} {option} {name};"
+        for option, name in zip(options, variables)
+    )
+    try:
+        result = operations.run_labtalk(script)
+        batch_ok = bool(getattr(result, "ok", False))
+    except Exception:
+        batch_ok = False
+    for option, name in zip(options, variables):
         try:
-            operations.run_labtalk(f"{variable}=nan;")
-            result = operations.run_labtalk(f"get {dataset} {option} {variable};")
-            if not getattr(result, "ok", False):
-                continue
-            read = operations.get_labtalk_variable(variable)
-            value = getattr(read, "payload", {}).get("value")
+            if not batch_ok:
+                # Some bridges stop a command group at an unsupported property.
+                # Retain the established per-property readback in that case.
+                name = variable
+                result = operations.run_labtalk(f"{name}=nan; get {dataset} {option} {name};")
+                if not getattr(result, "ok", False):
+                    continue
+            read = operations.get_labtalk_variable(name)
+            safe = _json_safe_value(getattr(read, "payload", {}).get("value"))
         except Exception:
             continue
-        safe = _json_safe_value(value)
         if isinstance(safe, float):
-            style[key] = safe
-    if prefer_custom_rgb:
-        try:
-            operations.run_labtalk(f"{variable}=nan;")
-            result = operations.run_labtalk(f"get {dataset} -cse {variable};")
-            read = operations.get_labtalk_variable(variable) if getattr(result, "ok", False) else None
-            symbol_edge = _json_safe_value(
-                getattr(read, "payload", {}).get("value") if read is not None else None
-            )
-        except Exception:
-            symbol_edge = None
-        if (
-            isinstance(symbol_edge, float)
-            and 0x01000000 <= int(round(symbol_edge)) <= 0x01FFFFFF
-        ):
-            style["color"] = symbol_edge
+            values[option] = safe
+    style = {
+        key: values[option]
+        for key, option in PLOT_STYLE_READBACK_OPTIONS.items()
+        if option in values
+    }
+    symbol_edge = values.get("-cse")
+    if symbol_edge is not None and 0x01000000 <= int(round(symbol_edge)) <= 0x01FFFFFF:
+        style["color"] = symbol_edge
     return style
 
 

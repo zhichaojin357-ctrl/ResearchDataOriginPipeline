@@ -31,6 +31,7 @@ from src.core.template_product_common import (
     _csv_header,
     _csv_x_bounds,
     _forbidden_claims,
+    _load_pairing_items,
     _manual_items,
     _reference_policy_notes,
     _relative_to_run,
@@ -49,11 +50,18 @@ from src.core.epr_overlay import DEFAULT_EPR_GROUPS
 from src.core.remaining_template_products import (
     _build_remaining_processed_plot_table,
     _coerced_xy_rows,
-    _data_points_rows,
     load_remaining_pairings,
 )
 from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
+from src.core.template_product_tables import interpolate_sorted_grid
+from src.core.template_product_previews import (
+    _make_template_preview_side_by_side,
+    _resize_template_preview_to_height,
+    _resize_template_preview_to_width,
+    _template_preview_difference_metrics,
+    make_template_preview_comparison,
+)
 from src.core.xrd_no_card_overlay import xrd_no_card_offset_for_index
 from src.core.xps_heterojunction import (
     XpsFitRecord,
@@ -71,8 +79,10 @@ from src.origin.embedded_template_snapshots import (
 from src.origin.operations import connect_origin, quote_labtalk
 from src.origin.style_registry import (
     load_origin_style_manifest,
+    origin_style_asset_read_scope,
     origin_style_asset_runtime_validated,
     origin_style_manifest_path,
+    read_origin_style_json,
     resolve_origin_style_asset,
     resolve_origin_runtime_style_asset,
 )
@@ -82,6 +92,7 @@ from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overri
 from src.processors.base import safe_name
 from src.processors.calculations import bet_processed_table, mott_schottky_numeric, uvvis_processed_table
 from src.processors.eis import (
+    EisCleaningResult,
     EisPoint,
     clean_eis_file,
 )
@@ -105,6 +116,8 @@ TEMPLATE_TARGET_TYPES = (
 
 TEMPLATE_ACCEPTED_TYPES = TEMPLATE_TARGET_TYPES
 TEMPLATE_EXEMPLAR_DRIVEN_TARGET_TYPES = TEMPLATE_TARGET_TYPES
+
+UvvisProcessedTable = tuple[list[str], list[list[float | str | None]]]
 
 TEMPLATE_TYPE_DIRS = {
     "BET": "BET",
@@ -394,7 +407,11 @@ def classify_template_f_drive_xps_reference_candidates(paths: list[Path], *, f_d
     return candidates
 
 
-def classify_template_project_style_asset_candidates(project_root: Path) -> list[TemplateCandidate]:
+def classify_template_project_style_asset_candidates(
+    project_root: Path,
+    *,
+    target_types: tuple[str, ...] = TEMPLATE_TARGET_TYPES,
+) -> list[TemplateCandidate]:
     manifest_path = origin_style_manifest_path(project_root)
     manifest = load_origin_style_manifest(project_root, manifest_path)
     candidates: list[TemplateCandidate] = []
@@ -402,7 +419,7 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
         if not isinstance(raw, dict):
             continue
         product_key = str(raw.get("product_key") or raw.get("data_type") or "")
-        if product_key not in TEMPLATE_TARGET_TYPES:
+        if product_key not in target_types:
             continue
         asset = resolve_origin_runtime_style_asset(
             project_root,
@@ -451,7 +468,7 @@ def classify_template_project_style_asset_candidates(project_root: Path) -> list
 def _style_asset_snapshot_counts(path: Path | None) -> tuple[int, int]:
     if path is None:
         return 1, 1
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = read_origin_style_json(path)
     if not isinstance(payload, dict):
         raise ValueError(f"Origin style snapshot must be a JSON object: {path}")
     layer_count = _manifest_positive_int(payload, ("layer_count",), default=1)
@@ -752,6 +769,7 @@ def template_xps_component_fill_pairs(headers: list[str]) -> list[tuple[int, int
     return pairs
 
 
+@origin_style_asset_read_scope()
 def run_template_product_builder_all_types(
     project_root: Path,
     options: TemplateProductBuilderOptions,
@@ -782,8 +800,9 @@ def run_template_product_builder_all_types(
         style_replay_evidence.update(
             _require_asset_only_style_integrity(project_root, target_types)
         )
-    first_pairings = {item.product_key: item for item in load_target_pairings(options.pairing_path, roots)}
-    remaining_pairings = {item.product_key: item for item in load_remaining_pairings(options.pairing_path, roots)}
+    pairing_items = _load_pairing_items(options.pairing_path)
+    first_pairings = {item.product_key: item for item in load_target_pairings(options.pairing_path, roots, items=pairing_items)}
+    remaining_pairings = {item.product_key: item for item in load_remaining_pairings(options.pairing_path, roots, items=pairing_items)}
     remaining_pairings = _repair_mott_pairings(remaining_pairings, roots)
     if options.exemplar_driven:
         first_pairings, remaining_pairings = _repair_exemplar_driven_pairings(first_pairings, remaining_pairings, roots)
@@ -893,7 +912,7 @@ def run_template_product_builder_all_types(
         )
     )
     if (options.project_style_asset_fallback or options.asset_only) and not options.exemplar_driven:
-        project_style_candidates = classify_template_project_style_asset_candidates(project_root)
+        project_style_candidates = classify_template_project_style_asset_candidates(project_root, target_types=target_types)
         if options.prefer_project_style_assets and project_style_candidates:
             validated = project_style_candidates
         else:
@@ -923,6 +942,7 @@ def run_template_product_builder_all_types(
     exporter = origin_exporter or (lambda product, style: export_template_product_with_origin(product, style))
     products: list[dict[str, object]] = []
     failures: list[dict[str, str]] = []
+    uvvis_cache: dict[Path, UvvisProcessedTable] = {}
 
     for product_key in target_types:
         selection = selections[product_key]
@@ -958,6 +978,7 @@ def run_template_product_builder_all_types(
                 xps_smooth_gradient_fill=options.xps_smooth_gradient_fill,
                 compact_output=options.compact_output,
                 origin_style_mode=origin_style_mode,
+                uvvis_cache=uvvis_cache,
             )
             active_template = _select_template_xps_template_for_product(product, selection)
             if active_template.path != selection.selected.path:
@@ -1421,6 +1442,7 @@ def prepare_template_product(
     xps_smooth_gradient_fill: bool = False,
     compact_output: bool = False,
     origin_style_mode: str = "auto",
+    uvvis_cache: dict[Path, UvvisProcessedTable] | None = None,
 ) -> tuple[ProductContext, dict[str, object]]:
     origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
     product_key = pairing.product_key
@@ -1440,6 +1462,11 @@ def prepare_template_product(
         "origin_style_mode_requested": origin_style_mode,
     }
     product_pairing = pairing
+    xps_records = (
+        _select_template_xps_records_for_origin_processing(pairing)
+        if product_key.startswith("XPS")
+        else None
+    )
     if product_key == "EIS":
         headers, rows, labels, eis_extra = _build_template_eis_table(
             pairing,
@@ -1476,6 +1503,7 @@ def prepare_template_product(
             template,
             xps_component_fill_mode="template_line_fill" if xps_smooth_gradient_fill else "plain",
             origin_style_mode=origin_style_mode,
+            xps_records=xps_records,
         )
         headers, rows, labels = enriched["headers"], enriched["rows"], enriched["labels"]
         extra["template_data_alignment"] = enriched["alignment"]
@@ -1484,6 +1512,7 @@ def prepare_template_product(
             pairing,
             template,
             origin_style_mode=origin_style_mode,
+            uvvis_cache=uvvis_cache,
         )
         headers, rows, labels = enriched["headers"], enriched["rows"], enriched["labels"]
         extra["template_data_alignment"] = enriched["alignment"]
@@ -1498,6 +1527,7 @@ def prepare_template_product(
             compact_output=compact_output,
             origin_style_mode=origin_style_mode,
             alignment=extra.get("template_data_alignment") if isinstance(extra.get("template_data_alignment"), dict) else None,
+            xps_records=xps_records,
         )
     processed_data = type_root / f"{slug}.csv" if compact_output else type_root / "processed_data" / f"{slug}.csv"
     _write_csv(processed_data, headers, rows)
@@ -1532,6 +1562,7 @@ def _build_template_aligned_first_batch_table(
     *,
     xps_component_fill_mode: str,
     origin_style_mode: str = "auto",
+    xps_records: list[XpsFitRecord] | None = None,
 ) -> dict[str, object]:
     if pairing.product_key == "BET":
         aligned = _build_template_bet_multisource_table(
@@ -1548,6 +1579,7 @@ def _build_template_aligned_first_batch_table(
     headers, rows, labels = _build_processed_plot_table(
         pairing,
         xps_component_fill_mode=xps_component_fill_mode,
+        xps_records=xps_records,
     )
     plotted_series_count = (
         sum(
@@ -1571,9 +1603,10 @@ def _build_template_aligned_remaining_table(
     template: TemplateCandidate,
     *,
     origin_style_mode: str = "otpu",
+    uvvis_cache: dict[Path, UvvisProcessedTable] | None = None,
 ) -> dict[str, object]:
     if pairing.product_key in {"UV-vis DRS", "Tauc"}:
-        return _build_template_uvvis_table(pairing, template, origin_style_mode=origin_style_mode)
+        return _build_template_uvvis_table(pairing, template, origin_style_mode=origin_style_mode, processed_cache=uvvis_cache)
     if pairing.product_key in {"Raman", "PL", "photocurrent", "FTIR", "Mott-Schottky"}:
         aligned = _build_template_xy_multisource_table(
             pairing,
@@ -1690,6 +1723,7 @@ def _build_template_uvvis_table(
     template: TemplateCandidate,
     *,
     origin_style_mode: str,
+    processed_cache: dict[Path, UvvisProcessedTable] | None = None,
 ) -> dict[str, object]:
     """Build DRS or Tauc plot pairs from the same explicit UV-vis sources.
 
@@ -1708,11 +1742,17 @@ def _build_template_uvvis_table(
     for path in paths:
         if not path.is_file() or path.suffix.casefold() not in {".txt", ".csv", ".xlsx", ".xls"}:
             raise ValueError(f"UV-vis explicit pairing contains an invalid source file: {path}")
-        source_rows = read_table(path)
-        numeric = coerce_numeric_rows(source_rows)
-        if len(numeric) < 2:
-            raise ValueError(f"UV-vis source contains fewer than two numeric rows: {path}")
-        processed_headers, processed_rows = uvvis_processed_table(numeric, source_rows)
+        cache_key = path.resolve()
+        cached = processed_cache.get(cache_key) if processed_cache is not None else None
+        if cached is None:
+            source_rows = read_table(path)
+            numeric = coerce_numeric_rows(source_rows)
+            if len(numeric) < 2:
+                raise ValueError(f"UV-vis source contains fewer than two numeric rows: {path}")
+            cached = uvvis_processed_table(numeric, source_rows)
+            if processed_cache is not None:
+                processed_cache[cache_key] = cached
+        processed_headers, processed_rows = cached
         index = {str(header): position for position, header in enumerate(processed_headers)}
         if pairing.product_key == "UV-vis DRS":
             signal_header = "absorbance" if "absorbance" in index else "reflectance"
@@ -2153,15 +2193,6 @@ def _build_template_xy_multisource_table(
             origin_style_mode=origin_style_mode,
         )
     target_series = max(int(template.plot_count or 0), 1)
-    suffixes = _template_xy_suffixes(pairing.product_key)
-    prefer_template_parent = pairing.product_key in {"FTIR", "Mott-Schottky"} or bool(pairing.raw.get("exemplar_driven_repair"))
-    candidates = _template_candidate_files(
-        pairing,
-        template,
-        suffixes=suffixes,
-        prefer_template_parent=prefer_template_parent,
-        limit=max(target_series * 4, 12),
-    )
     if pairing.product_key == "Raman":
         # Raman products must contain exactly the files selected for the
         # current product.  Scanning adjacent folders can silently mix a
@@ -2170,25 +2201,31 @@ def _build_template_xy_multisource_table(
         # OTPU and adaptive OTH+JSON therefore share this explicit-only,
         # independent-pair source table.
         candidates = _template_explicit_raman_files(pairing)
-    if pairing.product_key == "photocurrent":
+    elif pairing.product_key == "photocurrent":
         if origin_style_mode == "otpu":
             candidates = _template_photocurrent_candidate_files(pairing, template, target_series)
         else:
             candidates = _template_explicit_photocurrent_files(pairing)
             if origin_style_mode == "auto" and len(candidates) == target_series:
                 candidates.sort(key=_template_photocurrent_series_sort_key)
-    if pairing.product_key == "PL":
+    elif pairing.product_key == "PL":
         candidates = (
             _template_pl_candidate_files(pairing, template, target_series)
             if origin_style_mode == "otpu"
             else _template_explicit_pl_files(pairing)
         )
-    if pairing.product_key == "Mott-Schottky":
-        candidates = _template_mott_candidate_files(
+    else:
+        # Only compatibility routes that consume these candidates should scan.
+        # Raman, PL and photocurrent select their sources above independently.
+        candidates = _template_candidate_files(
             pairing,
-            candidates,
-            target_series,
+            template,
+            suffixes=_template_xy_suffixes(pairing.product_key),
+            prefer_template_parent=pairing.product_key == "Mott-Schottky" or bool(pairing.raw.get("exemplar_driven_repair")),
+            limit=max(target_series * 4, 12),
         )
+        if pairing.product_key == "Mott-Schottky":
+            candidates = _template_mott_candidate_files(pairing, candidates, target_series)
     series: list[tuple[str, list[list[float | str | None]]]] = []
     used_files: list[Path] = []
     for path in candidates:
@@ -2298,7 +2335,7 @@ def _load_ftir_verified_binding_contract() -> dict[str, object]:
 
     contract_path = _project_ftir_binding_contract_path()
     try:
-        raw = json.loads(contract_path.read_text(encoding="utf-8"))
+        raw = read_origin_style_json(contract_path)
     except FileNotFoundError as exc:
         raise ValueError(f"Reviewed FTIR binding contract is unavailable: {contract_path}") from exc
     except (OSError, json.JSONDecodeError) as exc:
@@ -2511,12 +2548,10 @@ def _template_same_x_overlay_table(
     numeric_series = [_numeric_xy_points(rows) for _label, rows in series]
     grid = sorted({x_value for points in numeric_series for x_value, _y_value in points})
     if grid and all(points for points in numeric_series):
-        output: list[list[float | str | None]] = []
-        for x_value in grid:
-            row: list[float | str | None] = [x_value]
-            for points in numeric_series:
-                row.append(_interpolated_series_y(points, x_value))
-            output.append(row)
+        output: list[list[float | str | None]] = [[x_value] for x_value in grid]
+        for points in numeric_series:
+            for row, y_value in zip(output, interpolate_sorted_grid(points, grid)):
+                row.append(y_value)
         return headers, output
     point_count = min(len(rows) for _label, rows in series)
     output: list[list[float | str | None]] = []
@@ -3005,16 +3040,17 @@ def _write_template_origin_processing_plan(
     compact_output: bool = False,
     origin_style_mode: str = "auto",
     alignment: dict[str, object] | None = None,
+    xps_records: list[XpsFitRecord] | None = None,
 ) -> dict[str, object]:
     origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
     if pairing.product_key.startswith("XPS"):
-        plan = _write_template_xps_origin_processing_plan(pairing, type_root, slug, xps_component_fill_mode=xps_component_fill_mode, compact_output=compact_output)
+        plan = _write_template_xps_origin_processing_plan(pairing, type_root, slug, xps_component_fill_mode=xps_component_fill_mode, compact_output=compact_output, selected_records=xps_records, write_plan=False)
     elif pairing.product_key == "XRD":
-        plan = _write_template_xrd_origin_processing_plan(type_root, slug, headers, rows, compact_output=compact_output)
+        plan = _write_template_xrd_origin_processing_plan(type_root, slug, headers, rows, compact_output=compact_output, write_plan=False)
     elif pairing.product_key == "FTIR":
-        plan = _write_template_ftir_origin_processing_plan(type_root, slug, headers, rows, compact_output=compact_output)
+        plan = _write_template_ftir_origin_processing_plan(type_root, slug, headers, rows, compact_output=compact_output, write_plan=False)
     else:
-        plan = _write_template_identity_origin_processing_plan(pairing.product_key, type_root, slug, headers, rows, compact_output=compact_output)
+        plan = _write_template_identity_origin_processing_plan(pairing.product_key, type_root, slug, headers, rows, compact_output=compact_output, write_plan=False)
     shape = dict(alignment or {})
     current_series_count = int(
         shape.get("current_series_count")
@@ -3063,6 +3099,7 @@ def _write_template_identity_origin_processing_plan(
     rows: list[list[float | str | None]],
     *,
     compact_output: bool = False,
+    write_plan: bool = True,
 ) -> dict[str, object]:
     raw_headers = [headers[0], *[f"{header}_raw" for header in headers[1:]]]
     raw_csv = type_root / "processed_data" / f"{slug}_origin_raw_input.csv"
@@ -3086,7 +3123,7 @@ def _write_template_identity_origin_processing_plan(
         "transforms": transforms,
         "review_policy": "Origin copies imported raw plotting columns to final graph columns; no additional scientific analysis is claimed.",
     }
-    if not compact_output:
+    if not compact_output and write_plan:
         plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     return plan
@@ -3099,6 +3136,7 @@ def _write_template_ftir_origin_processing_plan(
     rows: list[list[float | str | None]],
     *,
     compact_output: bool = False,
+    write_plan: bool = True,
 ) -> dict[str, object]:
     """Record the already-applied FTIR reference offsets in product metadata.
 
@@ -3115,6 +3153,7 @@ def _write_template_ftir_origin_processing_plan(
         headers,
         rows,
         compact_output=compact_output,
+        write_plan=False,
     )
     plan.update(
         {
@@ -3133,8 +3172,9 @@ def _write_template_ftir_origin_processing_plan(
             ),
         }
     )
-    if not compact_output:
+    if not compact_output and write_plan:
         plan_path = type_root / "metadata" / "origin_processing_plan.json"
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     return plan
 
@@ -3146,6 +3186,7 @@ def _write_template_xrd_origin_processing_plan(
     rows: list[list[float | str | None]],
     *,
     compact_output: bool = False,
+    write_plan: bool = True,
 ) -> dict[str, object]:
     raw_headers = [headers[0], *[f"{header}_raw" for header in headers[1:]]]
     raw_csv = type_root / "processed_data" / f"{slug}_origin_raw_input.csv"
@@ -3188,7 +3229,7 @@ def _write_template_xrd_origin_processing_plan(
             "Reference-card sticks are plotted from real PDF/JCPDS text data for manual review only; no phase conclusion is emitted."
         ),
     }
-    if not compact_output:
+    if not compact_output and write_plan:
         plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     return plan
@@ -3201,8 +3242,10 @@ def _write_template_xps_origin_processing_plan(
     *,
     xps_component_fill_mode: str,
     compact_output: bool = False,
+    selected_records: list[XpsFitRecord] | None = None,
+    write_plan: bool = True,
 ) -> dict[str, object]:
-    records = _select_template_xps_records_for_origin_processing(pairing)
+    records = _select_template_xps_records_for_origin_processing(pairing) if selected_records is None else selected_records
     point_count = min(len(record.data) for record in records)
     if pairing.product_key == "XPS_in_situ":
         raw_headers: list[str] = []
@@ -3346,14 +3389,14 @@ def _write_template_xps_origin_processing_plan(
                     )
                 )
             transforms.extend((measured_transform, background_transform, envelope_transform))
-    raw_rows = [
-        [column[row_index] for column in raw_columns]
-        for row_index in range(point_count)
-    ]
     raw_csv = type_root / "processed_data" / f"{slug}_origin_raw_input.csv"
     plan_path = type_root / "metadata" / "origin_processing_plan.json"
     final_csv = type_root / f"{slug}.csv" if compact_output else type_root / "processed_data" / f"{slug}.csv"
     if not compact_output:
+        raw_rows = [
+            [column[row_index] for column in raw_columns]
+            for row_index in range(point_count)
+        ]
         _write_csv(raw_csv, raw_headers, raw_rows)
     plan = {
         "product_key": pairing.product_key,
@@ -3370,7 +3413,7 @@ def _write_template_xps_origin_processing_plan(
         "sheets": [record.sheet_name for record in records],
         "review_policy": "Origin computes XPS normalization, vertical offsets, and component fill helper columns from imported fitted-source curves.",
     }
-    if not compact_output:
+    if not compact_output and write_plan:
         plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     return plan
@@ -4258,15 +4301,17 @@ def _build_template_eis_overlay_table(
     source_files_override: list[Path] | None = None,
     explicit_adaptive: bool = False,
 ) -> tuple[list[str], list[list[float | None]], dict[str, str], dict[str, object]]:
+    parsed_sources: dict[Path, EisCleaningResult] = {}
     source_files = (
         list(source_files_override)
         if source_files_override is not None
-        else _discover_template_eis_overlay_sources(pairing, expected_plot_count)
+        else _discover_template_eis_overlay_sources(pairing, expected_plot_count, parsed_sources=parsed_sources)
     )
     cleanings = []
     for path in source_files:
         try:
-            cleanings.append((path, clean_eis_file(path)))
+            cleaning = parsed_sources[path] if path in parsed_sources else clean_eis_file(path)
+            cleanings.append((path, cleaning))
         except Exception as exc:
             raise ValueError(f"EIS overlay contains an unreadable source file: {path}: {exc}") from exc
     if any(len(cleaning.raw_points) < 2 for _path, cleaning in cleanings):
@@ -4464,13 +4509,19 @@ def _build_template_eis_explicit_overlay_table(
     )
 
 
-def _discover_template_eis_overlay_sources(pairing: TargetPairing, expected_plot_count: int) -> list[Path]:
+def _discover_template_eis_overlay_sources(
+    pairing: TargetPairing,
+    expected_plot_count: int,
+    *,
+    parsed_sources: dict[Path, EisCleaningResult] | None = None,
+) -> list[Path]:
     if expected_plot_count < 1:
         raise ValueError("EIS template plot count must be positive")
     roots = [pairing.reference_opju.parent, pairing.reference_opju.parent.parent]
     roots.extend(path.parent for path in pairing.data_paths)
     roots.extend(path.parent.parent for path in pairing.data_paths)
     grouped: dict[Path, list[Path]] = {}
+    cleanings: dict[Path, EisCleaningResult] = {}
     seen_files: set[str] = set()
     suffixes = {".txt", ".csv", ".xls", ".xlsx", ".xlsm"}
     for root in _template_unique_paths(roots):
@@ -4493,6 +4544,7 @@ def _discover_template_eis_overlay_sources(pairing: TargetPairing, expected_plot
             if len(cleaning.raw_points) < 10:
                 continue
             grouped.setdefault(path.parent, []).append(path)
+            cleanings[path] = cleaning
 
     eligible = [(parent, paths) for parent, paths in grouped.items() if len(paths) >= expected_plot_count]
     if not eligible:
@@ -4523,6 +4575,8 @@ def _discover_template_eis_overlay_sources(pairing: TargetPairing, expected_plot
     )[:expected_plot_count]
     if len(ordered) != expected_plot_count:
         raise ValueError(f"EIS source selection returned {len(ordered)} curves; expected {expected_plot_count}")
+    if parsed_sources is not None:
+        parsed_sources.update((path, cleanings[path]) for path in ordered)
     return ordered
 
 
@@ -6175,6 +6229,7 @@ def _template_product_summary(
         "external_reference_graph": product.external_reference_graph,
         "external_reference_source": product.external_reference_source,
         "template_format_mode": str(template_format_plan.get("mode") or ""),
+        "origin_style_decision": export_status.get("origin_style_decision", {}),
         "origin_processing_method": str(origin_processing.get("method") or ""),
         "status": acceptance.status,
         "origin_file": _relative_to_run(run_root, product.origin_file),
@@ -6314,12 +6369,14 @@ def _write_template_preview_comparison(
     comparisons.mkdir(parents=True, exist_ok=True)
     items: list[dict[str, object]] = []
     completeness_rows: list[dict[str, object]] = []
+    metadata_payloads: list[dict[str, object]] = []
     for product in products:
         product_type = str(product.get("type") or product.get("product_key") or "unknown")
         reference = _resolve_run_relative_artifact(run_root, product.get("reference_preview_png"))
         generated = _resolve_run_relative_artifact(run_root, product.get("preview_png"))
         side_by_side = comparisons / f"{safe_name(product_type)}_template_vs_generated.png"
         metadata = _read_template_product_metadata(product, run_root)
+        metadata_payloads.append(metadata)
         origin_status = metadata.get("origin_status") if isinstance(metadata.get("origin_status"), dict) else {}
         adaptive_detached_validation = _adaptive_oth_json_detached_acceptance(origin_status)
         adaptive_detached_asset = bool(adaptive_detached_validation.get("ok"))
@@ -6330,8 +6387,7 @@ def _write_template_preview_comparison(
         image_metrics: dict[str, object] = {}
         if reference_ok and generated_ok:
             try:
-                _make_template_preview_side_by_side(reference, generated, side_by_side)
-                image_metrics = _template_preview_difference_metrics(reference, generated)
+                image_metrics = make_template_preview_comparison(reference, generated, side_by_side)
                 ready = side_by_side.exists() and side_by_side.stat().st_size > 0
             except Exception as exc:
                 message = str(exc)
@@ -6612,6 +6668,7 @@ def _write_template_preview_comparison(
         products,
         audit,
         label_audit=label_audit,
+        metadata_payloads=metadata_payloads,
     )
     (reports / "template_preview_comparison.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     _write_template_data_completeness(reports / "template_data_completeness.md", run_root, completeness_rows)
@@ -6657,10 +6714,11 @@ def _synchronize_template_product_acceptance_artifacts(
     audit: dict[str, object],
     *,
     label_audit: dict[str, object] | None,
+    metadata_payloads: list[dict[str, object]] | None = None,
 ) -> None:
     items = audit.get("items") if isinstance(audit.get("items"), list) else []
     label_pass = None if label_audit is None else _label_audit_passes(label_audit)
-    for product, raw_item in zip(products, items):
+    for index, (product, raw_item) in enumerate(zip(products, items)):
         item = raw_item if isinstance(raw_item, dict) else {}
         evidence = {
             "evidence_schema_version": 2,
@@ -6697,7 +6755,11 @@ def _synchronize_template_product_acceptance_artifacts(
 
         metadata_path = _resolve_run_relative_artifact(run_root, product.get("metadata"))
         if metadata_path.is_file():
-            metadata_payload = _read_template_product_metadata(product, run_root)
+            metadata_payload = (
+                metadata_payloads[index]
+                if metadata_payloads is not None
+                else _read_template_product_metadata(product, run_root)
+            )
             if metadata_payload:
                 metadata_payload["status"] = str(product.get("status") or "blocked")
                 metadata_payload["visual_acceptance"] = bool(product.get("visual_acceptance"))
@@ -7276,35 +7338,6 @@ def _template_style_match_ratio(conformance: dict[str, object]) -> float | None:
     return max(0.0, min(1.0, matched / compared))
 
 
-def _template_preview_difference_metrics(reference: Path, generated: Path) -> dict[str, object]:
-    from PIL import Image, ImageChops, ImageStat
-
-    with Image.open(reference) as reference_image, Image.open(generated) as generated_image:
-        reference_size = f"{reference_image.width}x{reference_image.height}"
-        generated_size = f"{generated_image.width}x{generated_image.height}"
-        target_width = 1200
-        left = _resize_template_preview_to_width(reference_image.convert("RGB"), target_width)
-        right = _resize_template_preview_to_width(generated_image.convert("RGB"), target_width)
-        height = min(left.height, right.height)
-        left = left.crop((0, 0, target_width, height))
-        right = right.crop((0, 0, target_width, height))
-        stat = ImageStat.Stat(ImageChops.difference(left, right))
-        rms = math.sqrt(sum(value * value for value in stat.rms) / max(len(stat.rms), 1))
-    return {
-        "reference_size": reference_size,
-        "generated_size": generated_size,
-        "preview_rms": rms,
-    }
-
-
-def _resize_template_preview_to_width(image: object, target_width: int) -> object:
-    if getattr(image, "width") == target_width:
-        return image
-    ratio = target_width / float(getattr(image, "width"))
-    height = max(1, int(round(getattr(image, "height") * ratio)))
-    return image.resize((target_width, height))
-
-
 def _template_strict_visual_reasons(
     *,
     ready: bool,
@@ -7491,40 +7524,6 @@ def _write_template_data_completeness(path: Path, run_root: Path, rows: list[dic
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _make_template_preview_side_by_side(reference: Path, generated: Path, output: Path) -> None:
-    from PIL import Image, ImageDraw, ImageFont
-
-    left = Image.open(reference).convert("RGB")
-    right = Image.open(generated).convert("RGB")
-    target_height = max(left.height, right.height)
-    left = _resize_template_preview_to_height(left, target_height)
-    right = _resize_template_preview_to_height(right, target_height)
-    label_height = 46
-    gap = 24
-    width = left.width + gap + right.width
-    height = target_height + label_height
-    canvas = Image.new("RGB", (width, height), "white")
-    draw = ImageDraw.Draw(canvas)
-    try:
-        font = ImageFont.truetype("arial.ttf", 24)
-    except Exception:
-        font = ImageFont.load_default()
-    draw.text((12, 10), "Reference format preview", fill="black", font=font)
-    draw.text((left.width + gap + 12, 10), "Regenerated product", fill="black", font=font)
-    canvas.paste(left, (0, label_height))
-    canvas.paste(right, (left.width + gap, label_height))
-    output.parent.mkdir(parents=True, exist_ok=True)
-    canvas.save(output)
-
-
-def _resize_template_preview_to_height(image: object, target_height: int) -> object:
-    if getattr(image, "height") == target_height:
-        return image
-    ratio = target_height / float(getattr(image, "height"))
-    width = max(1, int(round(getattr(image, "width") * ratio)))
-    return image.resize((width, target_height))
-
-
 def _write_template_run_reports(
     run_root: Path,
     products: list[dict[str, object]],
@@ -7642,7 +7641,7 @@ def _write_template_manual_review(path: Path, run_root: Path, products: list[dic
         [
             "",
             "## Priority",
-            "- EIS first, because the main change is measured-range Randles-CPE visual segment behavior.",
+            "- For EIS, confirm all measured points, current sample labels, and reviewed curve visibility; the formal product does not run circuit fitting.",
             "- Then XPS subtype template availability, because in-situ and non-in-situ templates must not be mixed.",
             "- Then XRD/BET/EPR and spectroscopy overlays for visual similarity.",
         ]
@@ -7779,8 +7778,8 @@ def _write_template_visual_contract(path: Path) -> None:
         "",
         "- Allowed statuses: accepted, blocked, skipped, failed.",
         "- accepted requires OPJU, TIF, PNG, processed data, metadata, and report to exist.",
-        "- accepted requires no-label audit pass, Origin readback, non-default 3 pt curve width, bold axis titles, and template path/graph recorded.",
-        "- EIS accepted requires cleaned points, ignored-point reporting, Model A Rs + (Rct || CPE), and a measured-range main fit curve that does not distort the axis range.",
+        "- accepted requires no-label audit pass, Origin readback, the selected route's reviewed line widths and axis-title style, and the template path/graph recorded.",
+        "- Formal EIS products retain measured points in source order, record fit.status=not_run, and do not generate automatic fit curves or fit sidecars.",
         "- Files merely existing are insufficient for accepted status.",
     ]
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
@@ -7793,7 +7792,7 @@ def _write_template_root_cause_fix_summary(path: Path) -> None:
         "- User style overrides now activate the named graph for every LabTalk style command.",
         "- Template-format export saves, reopens, reads back the final graph object, then exports TIF/PNG.",
         "- Template-format status no longer uses success/review; products are accepted only after strict gates, otherwise blocked/failed/skipped.",
-        "- Template-format EIS recomputes cleaning and Randles-CPE fitting, then uses a measured-range main-plot segment and stores the full fit in debug.",
+        "- Template-format EIS plots measured data only; parsing diagnostics do not remove points or run Randles-CPE fitting.",
         "- F-drive OPJU/OPJ template candidates are scanned and selected per data type; missing subtype-matched XPS templates are blocked rather than substituted.",
     ]
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
