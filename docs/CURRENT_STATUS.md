@@ -1,11 +1,10 @@
 # Current Status
 
-Latest optimization progress: [OPTIMIZATION_SECOND_REVIEW.md](OPTIMIZATION_SECOND_REVIEW.md).
-The second review adds cross-platform report-path fixes and targeted runtime
-regressions, restores asset snapshot bytes against the existing manifest
-hashes, and includes checks from a complete Windows checkout. Current test
-results are maintained in that report; native Origin visual acceptance remains
-pending.
+Latest integration evidence: [OPTIMIZATION_WORKSTATION_ACCEPTANCE.md](OPTIMIZATION_WORKSTATION_ACCEPTANCE.md).
+This records native Origin comparisons on the workstation, the LabTalk
+readback fix found during those checks, and the exact limits of the review.
+The earlier [second review](OPTIMIZATION_SECOND_REVIEW.md) records the incoming
+branch and snapshot-byte restoration, not the current visual acceptance.
 
 This repository is the maintained runtime pipeline. The active path is
 `run.py -> src/cli.py -> src/core / src/processors / src/origin`. Historical
@@ -17,15 +16,16 @@ An earlier broad code audit is
 the newer runtime state after the Origin style-route work and XRD data-module
 merge.
 
-## Optimization branch awaiting workstation acceptance
+## Optimization integration
 
 `codex/optimize-pipeline-preserve-plots` implements input / asset reuse,
-algorithmic search improvements, Origin readback batching, a single generic
-export session, and impact-based validation. See
+algorithmic search improvements, Origin readback batching, and impact-based
+validation. The proposed single generic export session was not retained:
+workstation checks found a PNG non-regression failure. See
 [OPTIMIZATION_HANDOFF.md](OPTIMIZATION_HANDOFF.md) for the implementation map,
-copyable workstation tests, and the initial test record. See the second-review
-report above for the current results. Native Origin output comparisons are
-still pending. The earlier
+copyable workstation tests, and the initial test record. See the workstation
+report above for actual same-input comparisons and known pre-existing limits.
+The earlier
 asset and full-regression results below are historical evidence and do not
 establish visual acceptance of this branch.
 

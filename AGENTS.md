@@ -72,7 +72,7 @@ run.py -> src/cli.py -> src/core / src/processors / src/origin
 2. 使用所选 reader 做最小必要的本地签名检查，包括扩展名、表头、列结构、仪器魔数或厂商格式；这是输入校验，不是重新做全局类型识别。
 3. 普通表格数据直接将当前注册表条目作为 classification 传给 `process_table_dataset`，逐个处理用户指定文件；不得手写 processor 名称来绕过注册表。
 4. 有现成 dedicated core/CLI 的原始格式或专用产品，直接调用该模块；不得先送入通用 scanner 再转回专用模块。
-5. 如果当前 `run.py process` 仍会先扫描输入目录，则它不属于该任务的单类型直达路径；应调用现有 processor API。以后若正式 CLI 提供不触发 scanner 的 direct 模式，可改用该正式模式。
+5. 普通表格优先使用 `python run.py process --source <文件> --only-type <注册表类型> --no-origin`，多个同类型文件可重复 `--source`；此模式不扫描输入目录。专用格式仍使用对应 dedicated API/CLI。
 6. 用户声明的类型与 reader 签名不一致时，停止该文件并报告具体结构问题；不得静默改类型、扫描无关目录或临时拼一个解析器交付结果。
 
 不得为了调用既有模块而新建一次性 `.py`、`.ps1`、`.bat`、notebook 或包装 CLI。直接调用现有函数、现有正式子命令或现有批处理 API；多个同类型文件使用模块已有批量能力或逐个调用同一 API。只有用户明确要求修复项目能力时，才修改正式模块并补测试。
@@ -257,6 +257,8 @@ python run.py readiness --no-desktop-review-xlsx
 ```
 
 `validate` 与 `readiness` 顺序执行，报告说明检查范围；历史运行包的状态不得冒充本次代码或产品状态。修复失败项后按影响范围重跑，只有修复再次涉及公共底层时才扩大全量回归。
+
+代码优化批次可对两个命令均使用 `--scope runtime`，检查当前软件、配置和模板资产；只有审查完整既有运行环境时才使用默认 `full` 范围。`runtime` 不要求历史结果包、旧队列或用户 PPT，其 `release_ready` 始终为 false，也不能代替本次 Origin 图形验收。
 
 与本次修改无关的既有问题只记录，不自动扩展任务去修；本次引入或直接影响本次结果的问题应在本次解决。优先复用现有测试，不为可逆的小修改增加大量假想场景、源码排版断言或新验收框架。
 

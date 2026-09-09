@@ -45,15 +45,20 @@ def test_readiness_uses_structured_results_before_markdown_and_keeps_failures(tm
     assert _validation_report_status(tmp_path, markdown)[0] is False
 
 
-def test_readiness_detects_changed_and_removed_inputs_without_mtime_heuristics(tmp_path: Path):
+def test_readiness_detects_changed_added_and_removed_inputs(tmp_path: Path):
     config = tmp_path / "config" / "plot_style.yaml"
     config.parent.mkdir()
     config.write_text("line_width: 3\n", encoding="utf-8")
     previous_times = config.stat()
     report_path = _write_structured_validation(tmp_path)
     config.write_text("line_width: 4\n", encoding="utf-8")
-    os.utime(config, ns=(previous_times.st_atime_ns, previous_times.st_mtime_ns))
+    os.utime(config, ns=(previous_times.st_atime_ns, previous_times.st_mtime_ns + 1_000_000_000))
     assert _validation_report_status(tmp_path, report_path.with_suffix(".md"))[0] is False
+    _write_structured_validation(tmp_path)
+    added = config.with_name("local.yaml")
+    added.write_text("paths: {}\n", encoding="utf-8")
+    assert _validation_report_status(tmp_path, report_path.with_suffix(".md"))[0] is False
+    _write_structured_validation(tmp_path)
     config.unlink()
     assert _validation_report_status(tmp_path, report_path.with_suffix(".md"))[0] is False
 

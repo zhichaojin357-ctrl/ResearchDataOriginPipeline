@@ -2893,8 +2893,11 @@ def _read_plot_style_properties(
     if prefer_custom_rgb:
         options.append("-cse")
     values: dict[str, float] = {}
-    variable = "__rdop_plot_style_value"
-    variables = [f"{variable}_{index}" for index in range(len(options))]
+    # LabTalk silently fails to expose long/underscore-heavy variable names to
+    # LTVar even when Execute reports success. Keep these temporary names short
+    # so a successful grouped query cannot be mistaken for an all-zero style.
+    variable = "rdopps"
+    variables = [f"{variable}{index}" for index in range(len(options))]
     # Initialize the entire group first: an unsupported property must never
     # reuse a value from the preceding curve, even if Origin continues execution.
     script = " ".join(f"{name}=nan;" for name in variables)

@@ -1284,16 +1284,22 @@ def build_origin_invocation_script(job: OriginPlotJob) -> str:
         [
         f"& {_ps_quote(job.helper_script)} {reference_args}-ReferenceGraph {_ps_quote(job.reference_graph)} "
         f"-OutputOpju {_ps_quote(job.origin_file)} -ExportDir {_ps_quote(preview_dir)} "
-        f"-TifExportDir {_ps_quote(job.figure_tif.parent)} "
         f"-AllowedOutputRoot {_ps_quote(job.origin_file.parents[1])} "
         "-Groups $groups -Headless -CloseOrigin",
         "$originCloseDeadline = (Get-Date).AddSeconds(30)",
         "do {",
-        "  $runningOrigin = Get-Process -Name Origin* -ErrorAction SilentlyContinue",
+        "  $runningOrigin = @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | Where-Object {",
+        "    try {",
+        "      $threads = $_.Threads",
+        "      if ($null -eq $threads) { $true } else { @($threads).Count -gt 0 }",
+        "    } catch {",
+        "      $true",
+        "    }",
+        "  })",
         "  if (-not $runningOrigin) { break }",
         "  Start-Sleep -Milliseconds 500",
         "} while ((Get-Date) -lt $originCloseDeadline)",
-        "if ($runningOrigin) { throw 'Origin remained running after OPJU/TIFF/PNG export. Close it before retrying.' }",
+        "if ($runningOrigin) { throw 'Origin remained running after OPJU/PNG export. Close it before retrying.' }",
         f"if (-not (Test-Path -LiteralPath {_ps_quote(job.preview_png)})) {{ throw 'PNG preview was not exported.' }}",
         f"if ((Get-Item -LiteralPath {_ps_quote(job.preview_png)}).Length -le 0) {{ throw 'PNG preview was empty.' }}",
         ]
@@ -1327,27 +1333,6 @@ def _wait_for_no_origin_process(timeout_seconds: float = 5.0) -> bool:
         if time.monotonic() >= deadline:
             return False
         time.sleep(0.5)
-
-
-def _validate_helper_tif_export(job: OriginPlotJob, stdout: str) -> TifResolutionEvidence:
-    """Validate TIFF against dimensions read after reopening in the owned session."""
-
-    prefix = "ORIGIN_TIF_EXPORT="
-    records = [json.loads(line[len(prefix):]) for line in stdout.splitlines() if line.startswith(prefix)]
-    matches = [record for record in records if record.get("graph_page") == job.page_name]
-    if len(matches) != 1:
-        raise RuntimeError("Origin helper did not return one reopened-OPJU TIF export record for the target graph.")
-    record = matches[0]
-    if record.get("reopened_opju") is not True or record.get("project_identity_cleared") is not True:
-        raise RuntimeError("Origin helper TIF evidence is missing reopened-project or identity verification.")
-    if record.get("dpi") != 600 or record.get("tif_file") != job.figure_tif.name:
-        raise RuntimeError("Origin helper TIF evidence does not match the requested output and 600 dpi.")
-    return validate_tif_physical_resolution(
-        job.figure_tif,
-        page_width_origin_units=float(record["page_width_origin_units"]),
-        page_height_origin_units=float(record["page_height_origin_units"]),
-        dpi=600,
-    )
 
 
 def _helper_stage_timings(stdout: str) -> dict[str, float]:
@@ -1544,13 +1529,18 @@ def export_plot(
             message = "PNG preview was empty; visual verification evidence is missing."
             write_origin_error(project_root, f"{dataset_id}: {message}", output_root=output_root)
             return OriginResult(False, None, None, None, message)
-        validation_started = time.perf_counter()
-        tif_resolution_evidence = _validate_helper_tif_export(job, completed.stdout)
+        tif_export_started = time.perf_counter()
+        tif_resolution_evidence = reexport_tif_from_reopened_opju(
+            job.origin_file,
+            job.page_name,
+            job.figure_tif,
+            dpi=600,
+        )
         stage_timings = _helper_stage_timings(completed.stdout)
         stage_timings.update({
             "python_prepare": helper_started - prepare_started,
             "helper_process": helper_finished - helper_started,
-            "tif_validation": time.perf_counter() - validation_started,
+            "tif_reopen_export": time.perf_counter() - tif_export_started,
         })
         _record_material_color_assignments(project_root, job.color_assignments, output_root=output_root)
         return OriginResult(

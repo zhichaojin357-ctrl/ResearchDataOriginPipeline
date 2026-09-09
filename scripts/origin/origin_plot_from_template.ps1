@@ -11,8 +11,6 @@
   [Parameter(Mandatory=$true)]
   [string]$ExportDir,
 
-  [string]$TifExportDir = '',
-
   [Parameter(Mandatory=$true)]
   [string]$AllowedOutputRoot,
 
@@ -896,86 +894,15 @@ function Assert-GraphPageValid($app, [string]$PageName, [int]$ExpectedPlots, [ar
   }
 }
 
-function Export-SavedOriginGraphs($app, [array]$Groups, [array]$PlotChecks, [string]$OutputOpju, [string]$ExportDir, [string]$TifExportDir, $StageSeconds) {
-  $exportNativeTif = -not [string]::IsNullOrWhiteSpace($TifExportDir)
-  $phaseClock = [System.Diagnostics.Stopwatch]::StartNew()
-  if ($exportNativeTif) {
-    $phaseClock.Restart()
-    # Keep the task-owned COM instance; reopen the saved project read-only.
-    $app.NewProject() | Out-Null
-    if (-not $app.Load($OutputOpju, $true)) {
-      throw 'Failed to reopen the final OPJU before native TIFF export.'
-    }
-    foreach ($check in $plotChecks) {
-      Assert-GraphPageValid $app $check.PageName $check.ExpectedPlots $check.Labels $check.Group
-    }
-    $stageSeconds.reopen = $phaseClock.Elapsed.TotalSeconds
-  }
-
-  $phaseClock.Restart()
-  foreach ($group in $Groups) {
-    $pageName = [string](Get-GroupValue $group 'PageName')
-    $app.Execute('win -a ' + $pageName + '; expGraph type:=png path:="' + (To-OriginPath $ExportDir) + '" filename:="' + $pageName + '" overwrite:=replace;') | Out-Null
-    Assert-PngOutput $ExportDir $pageName
-  }
-
-  if ($exportNativeTif) {
-    # Clear only the in-memory identity; never resave over the final OPJU.
-    if (-not $app.Execute('doc -rn; doc -s;')) {
-      throw 'Origin project identity reset failed before TIFF export.'
-    }
-    $projectPath = ([string]$app.LTStr('%X')).Trim()
-    $projectName = ([string]$app.LTStr('%G')).Trim()
-    if ($projectPath -or $projectName -ine 'untitled') {
-      throw 'Origin project identity verification failed before TIFF export.'
-    }
-    foreach ($check in $plotChecks) {
-      $pageName = [string]$check.PageName
-      $app.Execute('win -a ' + $pageName + ';') | Out-Null
-      $pageWidth = [double]$app.Evaluate('page.width')
-      $pageHeight = [double]$app.Evaluate('page.height')
-      if ([double]::IsNaN($pageWidth) -or [double]::IsInfinity($pageWidth) -or $pageWidth -le 0 -or
-          [double]::IsNaN($pageHeight) -or [double]::IsInfinity($pageHeight) -or $pageHeight -le 0) {
-        throw "Invalid reopened graph physical dimensions on $pageName."
-      }
-      $expectedWidth = [Math]::Max(1, [int][Math]::Round($pageWidth * 600.0 / 1000.0))
-      $app.Execute('expGraph type:=tif path:="' + (To-OriginPath $TifExportDir) + '" filename:="' + $pageName + '" overwrite:=replace sysopts:=0 tr.Margin:=2 tr1.Unit:=2 tr1.Width:=' + $expectedWidth + ' tr2.TIF.dotsperinch:=600;') | Out-Null
-      $tifTarget = Join-Path $TifExportDir ($pageName + '.tif')
-      Require-File $tifTarget
-      if ((Get-Item -LiteralPath $tifTarget).Length -le 0) { throw 'Origin exported an empty TIFF.' }
-      $evidence = [ordered]@{
-        graph_page = $pageName
-        tif_file = $pageName + '.tif'
-        reopened_opju = $true
-        project_identity_cleared = $true
-        page_width_origin_units = $pageWidth
-        page_height_origin_units = $pageHeight
-        dpi = 600
-      }
-      Write-Output ('ORIGIN_TIF_EXPORT=' + ($evidence | ConvertTo-Json -Compress))
-    }
-  }
-
-  $stageSeconds.image_export = $phaseClock.Elapsed.TotalSeconds
-}
-
 $app = $null
 $runClock = [System.Diagnostics.Stopwatch]::StartNew()
 $phaseClock = [System.Diagnostics.Stopwatch]::StartNew()
-$stageSeconds = [ordered]@{ startup = 0.0; data_import = 0.0; graph_style = 0.0; save = 0.0; reopen = 0.0; image_export = 0.0; shutdown = 0.0; total = 0.0 }
+$stageSeconds = [ordered]@{ startup = 0.0; data_import = 0.0; graph_style = 0.0; save = 0.0; image_export = 0.0; shutdown = 0.0; total = 0.0 }
 
 try {
   $AllowedOutputRoot = Get-FullPath $AllowedOutputRoot
   $OutputOpju = Get-FullPath $OutputOpju
   $ExportDir = Get-FullPath $ExportDir
-  $exportNativeTif = -not [string]::IsNullOrWhiteSpace($TifExportDir)
-  if ($exportNativeTif) {
-    $TifExportDir = Get-FullPath $TifExportDir
-    Assert-NoReparsePointInPath $TifExportDir 'TifExportDir'
-    if (Test-Path -LiteralPath $TifExportDir -PathType Leaf) {
-      throw "TifExportDir must be a directory, not a file: $TifExportDir"
-    }
-  }
   Assert-NoReparsePointInPath $AllowedOutputRoot 'AllowedOutputRoot'
   Assert-NoReparsePointInPath $ExportDir 'ExportDir'
   if (Test-Path -LiteralPath $ExportDir -PathType Leaf) {
@@ -1003,16 +930,6 @@ try {
     }
     $plannedKeys[$key] = "PNG output for $pageName"
     $plannedOutputs.Add($pngTarget) | Out-Null
-    if ($exportNativeTif) {
-      $tifTarget = Get-FullPath (Join-Path $TifExportDir ($pageName + '.tif'))
-      Assert-SafeOutputPath $tifTarget $AllowedOutputRoot ("TIFF output for " + $pageName)
-      $tifKey = $tifTarget.ToLowerInvariant()
-      if ($plannedKeys.ContainsKey($tifKey)) {
-        throw "Planned output collision: $($plannedKeys[$tifKey]) and TIFF output for $pageName"
-      }
-      $plannedKeys[$tifKey] = "TIFF output for $pageName"
-      $plannedOutputs.Add($tifTarget) | Out-Null
-    }
     $dataFull = Get-FullPath $dataFile
     if ($plannedKeys.ContainsKey($dataFull.ToLowerInvariant())) {
       throw "A planned output aliases its DataFile: $dataFile"
@@ -1031,7 +948,14 @@ try {
     }
   }
   if (-not $AllowRunningOrigin) {
-    $runningOrigin = Get-Process -Name Origin* -ErrorAction SilentlyContinue
+    $runningOrigin = @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | Where-Object {
+      try {
+        $threads = $_.Threads
+        if ($null -eq $threads) { $true } else { @($threads).Count -gt 0 }
+      } catch {
+        $true
+      }
+    })
     if ($runningOrigin) {
       throw "Origin is already running. Close it or rerun with -AllowRunningOrigin after confirming no unsaved work will be affected."
     }
@@ -1043,7 +967,6 @@ try {
   }
 
   New-Item -ItemType Directory -Path $ExportDir -Force | Out-Null
-  if ($exportNativeTif) { New-Item -ItemType Directory -Path $TifExportDir -Force | Out-Null }
   $workDir = Split-Path -Parent $OutputOpju
   New-Item -ItemType Directory -Path $workDir -Force | Out-Null
   $templateRoot = Join-Path $workDir 'origin_templates'
@@ -1093,7 +1016,6 @@ try {
 
   $app.NewProject() | Out-Null
 
-  $plotChecks = New-Object System.Collections.Generic.List[object]
   foreach ($group in $Groups) {
     Require-File (Get-GroupValue $group 'DataFile')
     $dataFile = [string](Get-GroupValue $group 'DataFile')
@@ -1158,7 +1080,6 @@ try {
     Apply-ReferenceStyle $app $pageName $currentLabels $referenceStyle $group
     Apply-PlotPolicy $app $pageName $group
     Assert-GraphPageValid $app $pageName $expectedPlotCount $currentLabels $group
-    $plotChecks.Add(@{ PageName = $pageName; ExpectedPlots = $expectedPlotCount; Labels = $currentLabels; Group = $group }) | Out-Null
     $stageSeconds.graph_style += $phaseClock.Elapsed.TotalSeconds
   }
 
@@ -1177,7 +1098,13 @@ try {
   Assert-ValidOutput $OutputOpju
   $stageSeconds.save = $phaseClock.Elapsed.TotalSeconds
 
-  Export-SavedOriginGraphs $app $Groups ($plotChecks.ToArray()) $OutputOpju $ExportDir $TifExportDir $stageSeconds
+  $phaseClock.Restart()
+  foreach ($group in $Groups) {
+    $pageName = [string](Get-GroupValue $group 'PageName')
+    $app.Execute('win -a ' + $pageName + '; expGraph type:=png path:="' + (To-OriginPath $ExportDir) + '" filename:="' + $pageName + '" overwrite:=replace;') | Out-Null
+    Assert-PngOutput $ExportDir $pageName
+  }
+  $stageSeconds.image_export = $phaseClock.Elapsed.TotalSeconds
 
   Write-Output ("SAVED=" + (Split-Path -Leaf $OutputOpju))
   Write-Output ("EXPORT_DIR=" + (Split-Path -Leaf $ExportDir))

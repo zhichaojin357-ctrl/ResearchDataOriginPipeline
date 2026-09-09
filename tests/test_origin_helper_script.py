@@ -81,6 +81,7 @@ def _run_helper_functions(tmp_path: Path, body: str) -> dict:
     helper_literal = str(HELPER_PATH).replace("'", "''")
     script.write_text(
         "$ErrorActionPreference = 'Stop'\n"
+        "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)\n"
         "$tokens = $null; $parseErrors = $null\n"
         f"$ast = [System.Management.Automation.Language.Parser]::ParseFile('{helper_literal}', [ref]$tokens, [ref]$parseErrors)\n"
         "if ($parseErrors.Count) { throw ($parseErrors | Out-String) }\n"
@@ -90,7 +91,7 @@ def _run_helper_functions(tmp_path: Path, body: str) -> dict:
         encoding="utf-8-sig",
     )
     completed = subprocess.run([shell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
-                               text=True, capture_output=True, timeout=30, cwd=tmp_path)
+                               text=True, encoding="utf-8", capture_output=True, timeout=30, cwd=tmp_path)
     assert completed.returncode == 0, completed.stdout + completed.stderr
     prefix = "TEST_RESULT="
     return json.loads(next(line[len(prefix):] for line in completed.stdout.splitlines() if line.startswith(prefix)))
@@ -138,41 +139,3 @@ Write-Output ('TEST_RESULT=' + (@{Commands=@($app.Commands.ToArray()); Puts=@($a
     assert 'wks.col1.lname$="波长"; wks.col1.comment$="";' in result["Commands"]
     assert 'wks.col2.lname$="强度"; wks.col2.comment$="";' in result["Commands"]
     assert not any(command.startswith("wcol(") for command in result["Commands"])
-
-
-@pytest.mark.parametrize("load_ok", [False, True])
-def test_helper_reopens_saved_project_and_exports_in_same_session(tmp_path, load_ok):
-    result = _run_helper_functions(tmp_path, r'''
-$app = [pscustomobject]@{ Events=(New-Object 'System.Collections.Generic.List[string]'); LoadOk=LOAD_OK }
-$app | Add-Member ScriptMethod NewProject { $this.Events.Add('new'); return $true }
-$app | Add-Member ScriptMethod Load { param($path, $readonly) $this.Events.Add(('load:' + $readonly)); return $this.LoadOk }
-$app | Add-Member ScriptMethod Execute {
-  param($command)
-  $this.Events.Add($command)
-  if ($command -match 'expGraph type:=(png|tif) ') { [IO.File]::WriteAllBytes((Join-Path $pwd ('Figure.' + $Matches[1])), (New-Object byte[] 10001)) }
-  return $true
-}
-$app | Add-Member ScriptMethod LTStr { param($name) if ($name -eq '%X') { return '' }; return 'untitled' }
-$app | Add-Member ScriptMethod Evaluate { param($expression) return 100.0 }
-function Assert-GraphPageValid($app, $PageName, $ExpectedPlots, $CurrentLabels, $Group) { $app.Events.Add('verify:' + $PageName) }
-$groups = @(@{ PageName='Figure' })
-$checks = @(@{ PageName='Figure'; ExpectedPlots=1; Labels=@('Signal'); Group=$groups[0] })
-$stages = [ordered]@{reopen=0.0; image_export=0.0}
-$errorText = ''
-try { Export-SavedOriginGraphs $app $groups $checks (Join-Path $pwd 'saved.opju') $pwd $pwd $stages } catch { $errorText=$_.Exception.Message }
-Write-Output ('TEST_RESULT=' + (@{Events=@($app.Events.ToArray()); Error=$errorText; TifExists=(Test-Path 'Figure.tif')} | ConvertTo-Json -Depth 6 -Compress))
-'''.replace("LOAD_OK", "$true" if load_ok else "$false"))
-    events = result["Events"]
-    assert events[:2] == ["new", "load:True"]
-    if not load_ok:
-        assert "Failed to reopen" in result["Error"]
-        assert not result["TifExists"]
-        return
-    assert result["Error"] == ""
-    assert events[2] == "verify:Figure"
-    assert result["TifExists"]
-    png_command = next(event for event in events if "expGraph type:=png" in event)
-    tif_command = next(event for event in events if "expGraph type:=tif" in event)
-    assert png_command.endswith('filename:="Figure" overwrite:=replace;')
-    assert 'sysopts:=0 tr.Margin:=2 tr1.Unit:=2 tr1.Width:=60 tr2.TIF.dotsperinch:=600;' in tif_command
-    assert events.index("doc -rn; doc -s;") < events.index(tif_command)

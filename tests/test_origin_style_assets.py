@@ -1361,7 +1361,7 @@ def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
 
     class FakeOriginOps:
         def __init__(self) -> None:
-            self.variables = {"__rdop_plot_style_value": float("nan")}
+            self.variables = {"rdopps": float("nan")}
             self.layer_names = {
                 1: ["Book2_B", "Book2_D", "Book2_F"],
                 2: ["Book2_H"],
@@ -1414,13 +1414,13 @@ def test_graph_data_snapshot_records_multilayer_xrd_template_data() -> None:
 
         def run_labtalk(self, script: str) -> OperationResult:
             stripped = script.strip()
-            if stripped.startswith("__rdop_plot_style_value=nan;"):
-                self.variables["__rdop_plot_style_value"] = float("nan")
+            if stripped.startswith("rdopps=nan;"):
+                self.variables["rdopps"] = float("nan")
                 stripped = stripped.split(";", 1)[1].strip()
             parts = stripped.rstrip(";").split()
-            if len(parts) == 4 and parts[0] == "get" and parts[3] == "__rdop_plot_style_value":
+            if len(parts) == 4 and parts[0] == "get" and parts[3] == "rdopps":
                 value = self.styles.get((parts[1], parts[2]), float("nan"))
-                self.variables["__rdop_plot_style_value"] = value
+                self.variables["rdopps"] = value
                 return OperationResult(True, "ok")
             return OperationResult(False, "unsupported")
 
@@ -2848,10 +2848,13 @@ def test_plot_style_readback_reuses_aliases_and_clears_missing_properties(
             for command in script.rstrip(";").split(";"):
                 command = command.strip()
                 if command.endswith("=nan"):
-                    self.variables[command[:-4]] = math.nan
+                    variable = command[:-4]
+                    assert variable.isalnum() and len(variable) <= 23
+                    self.variables[variable] = math.nan
                     continue
                 _get, dataset, option, variable = command.split()
                 assert dataset == "Book1_B"
+                assert variable.isalnum() and len(variable) <= 23
                 self.queries.append(option)
                 if option != "-z":
                     self.variables[variable] = 30847682.0 if option == "-cse" else float(len(option))
@@ -2863,7 +2866,7 @@ def test_plot_style_readback_reuses_aliases_and_clears_missing_properties(
 
     operations = StyleOps()
     # Simulate values left by a preceding curve. Missing -z must still disappear.
-    operations.variables = {f"__rdop_plot_style_value_{index}": 999.0 for index in range(19)}
+    operations.variables = {f"rdopps{index}": 999.0 for index in range(19)}
     style = _read_plot_style_properties(operations, "Book1_B", prefer_custom_rgb=prefer_custom_rgb)
     expected = {
         key: float(len(option))

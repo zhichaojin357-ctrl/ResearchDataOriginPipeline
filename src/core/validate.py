@@ -8,7 +8,6 @@ from pathlib import Path
 from datetime import datetime
 from typing import Iterator
 
-from src.core.file_utils import file_sha256
 from src.core.file_utils import is_under_or_equal as _is_under_or_equal
 from src.core.output_sanitizer import render_output_path
 from src.core.origin_governance import REQUIRED_JOURNAL_INDEX_COLUMNS
@@ -208,8 +207,8 @@ def _validation_markdown(report: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _validation_input_fingerprints(project_root: Path) -> dict[str, str]:
-    """Snapshot code/config inputs, including added or removed files, once per check."""
+def _validation_input_fingerprints(project_root: Path) -> dict[str, dict[str, int]]:
+    """Track ordinary file changes; asset integrity is verified separately."""
     candidates = []
     for directory in ("src", "config", "scripts"):
         root = project_root / directory
@@ -219,7 +218,13 @@ def _validation_input_fingerprints(project_root: Path) -> dict[str, str]:
     style_manifest = project_root / "templates" / "origin_styles" / "manifest.json"
     if style_manifest.is_file():
         candidates.append(style_manifest)
-    return {path.relative_to(project_root).as_posix(): file_sha256(path) for path in sorted(candidates)}
+    inputs = {}
+    for path in sorted(candidates):
+        info = path.stat()
+        inputs[path.relative_to(project_root).as_posix()] = {
+            "mtime_ns": info.st_mtime_ns, "size_bytes": info.st_size,
+        }
+    return inputs
 
 
 def _iter_files_without_link_descent(root: Path) -> Iterator[Path]:
