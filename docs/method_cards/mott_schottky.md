@@ -51,3 +51,43 @@
 
 ## Risk Level
 - High. Flat-band candidates are allowed; band-position interpretation is manual.
+
+## Explicit CHI660E raw-impedance batch branch
+
+`run.py chi-electrochem --help` is the dedicated branch for a user-selected
+directory containing CHI EIS and impedance-potential exports. It does not alter
+the generic capacitance / precomputed inverse-square processor.
+
+- Read the instrument header, potential in V/mV, impedance in ohm and actual
+  frequency; reject unsupported columns/units or frequency disagreement.
+- Cs is explicit: `Cs=-1/(2*pi*f*Zimag)` and `1/Cs²=1/(Cs*Cs)` (F and F^-2).
+  A supplied historical workbook is inspected directly for its Cs formulas.
+- Keep every observation and acquisition order. Nonnegative Zimag is flagged,
+  with blank Cs/inverse-square; repeated potentials or reversals withhold plots.
+- Copy every raw file and compare its bytes without hashing. BIN is opaque,
+  including `.txt.bin` / `.csv.bin`; sibling formats count as one acquisition.
+- Preserve filename repeat collisions as separate records, never fill missing
+  frequencies from a different repeat. EIS duration is a filename condition.
+- Initial EIS intake performs classification/checks; `--replot --with-eis`
+  plots every independent measured EIS record. MT uses available 2000–5000 Hz;
+  1000 Hz and other frequencies remain in complete data, without plotting.
+- Plotting delegates to the established `scripts/origin/origin_plot_from_template.ps1`
+  through the existing Origin adapter. The cached Graph4 page/layer geometry,
+  Arial bold 36 pt titles, 28/36 pt ticks, 26 pt legend, 3 pt axes/curves and
+  native linked legends are preserved.
+  Current X/Y values are checked after save/reopen before native 600 dpi
+  PNG/TIFF and SVG/PDF export. No fitting guides are introduced.
+- XLSX exports use the existing bundled artifact-tool runtime; complete data
+  include editable Cs/inverse-square formulas and traceable source line numbers.
+
+Inputs: `--input-dir`, `--output-root`, `--package-name`, `--workbook-node`,
+`--node-modules`, optional `--historical-workbook` and `--with-origin`.
+`--resume` requires an incomplete matching result and validates existing raw
+copies/CSV values before continuation. Completed visual acceptance is protected.
+For an explicitly authorized redraw of an existing package use `--replot --force`.
+`--with-eis` adds every independent EIS Nyquist record through the same helper.
+This path reuses existing MT calculation data, stages native products, then
+replaces final figures only after actual preview review. It does not recompute
+the input datasets or create a ZIP.
+Code: `src/core/chi_electrochem.py`, `src/origin/chi_mott.py`,
+`scripts/data_types/electrochem/build_chi_workbooks.mjs`.

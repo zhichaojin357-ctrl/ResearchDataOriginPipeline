@@ -1,5 +1,13 @@
 # Project Index
 
+CHI660E mixed electrochemistry: `run.py chi-electrochem --help` calls
+`src/core/chi_electrochem.py` and shared Origin operations through
+`src/origin/chi_mott.py`. See the explicit raw-impedance batch section in
+`docs/method_cards/mott_schottky.md`. MT uses Cs, retains all raw frequencies
+and plots available 2000–5000 Hz without fitting. An existing package can be
+redrawn with `--replot --with-eis --force`, reusing the established Graph4
+PowerShell helper for all MT groups and each measured EIS record.
+
 ## Entrypoints
 
 - `run.py`: thin launcher for the CLI.

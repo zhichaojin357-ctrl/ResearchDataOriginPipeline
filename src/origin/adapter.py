@@ -88,6 +88,8 @@ class OriginPlotJob:
     show_legend: bool
     x_title: str
     y_title: str
+    y_tick_divisor: float | None = None
+    force: bool = False
 
 
 @dataclass(frozen=True)
@@ -1266,8 +1268,8 @@ def build_origin_plot_job(
     )
 
 
-def build_origin_invocation_script(job: OriginPlotJob) -> str:
-    group = (
+def _origin_group_definition(job: OriginPlotJob) -> str:
+    return (
         "@{\n"
         f"  DataFile = {_ps_quote(job.plot_csv)}\n"
         f"  PageName = {_ps_quote(job.page_name)}\n"
@@ -1286,8 +1288,24 @@ def build_origin_invocation_script(job: OriginPlotJob) -> str:
         f"  ShowLegend = ${str(job.show_legend).lower()}\n"
         f"  XTitle = {_ps_quote(job.x_title)}\n"
         f"  YTitle = {_ps_quote(job.y_title)}\n"
+        + (f"  YTickDivisor = {job.y_tick_divisor:.17g}\n" if job.y_tick_divisor is not None else "")
+        +
         "}"
     )
+
+
+def build_origin_invocation_script(
+    job: OriginPlotJob, *, additional_jobs: tuple[OriginPlotJob, ...] = (),
+) -> str:
+    jobs = (job, *additional_jobs)
+    if len({item.page_name.casefold() for item in jobs}) != len(jobs):
+        raise ValueError("Origin grouped jobs require unique graph page names")
+    for item in additional_jobs:
+        if (item.origin_file != job.origin_file or item.preview_png.parent != job.preview_png.parent
+                or item.helper_script != job.helper_script or item.fixed_style != job.fixed_style
+                or item.reference_opju != job.reference_opju):
+            raise ValueError("Origin grouped jobs must share output project, preview directory and style source")
+    group = ",\n".join(_origin_group_definition(item) for item in jobs)
     preview_dir = job.preview_png.parent
     reference_args = f"-ReferenceOpju {_ps_quote(job.reference_opju)} " if job.reference_opju else ""
     lines = [
@@ -1299,7 +1317,7 @@ def build_origin_invocation_script(job: OriginPlotJob) -> str:
         f"& {_ps_quote(job.helper_script)} {reference_args}-ReferenceGraph {_ps_quote(job.reference_graph)} "
         f"-OutputOpju {_ps_quote(job.origin_file)} -ExportDir {_ps_quote(preview_dir)} "
         f"-AllowedOutputRoot {_ps_quote(job.origin_file.parents[1])} "
-        "-Groups $groups -Headless -CloseOrigin",
+        "-Groups $groups -Headless -CloseOrigin" + (" -Force" if job.force else ""),
         "$originCloseDeadline = (Get-Date).AddSeconds(30)",
         "do {",
         "  $runningOrigin = @(Get-Process -Name Origin* -ErrorAction SilentlyContinue | Where-Object {",
@@ -1324,13 +1342,17 @@ def build_origin_invocation_script(job: OriginPlotJob) -> str:
     return script
 
 
-def _run_origin_job(job: OriginPlotJob) -> subprocess.CompletedProcess[str]:
+def _run_origin_job(
+    job: OriginPlotJob, *, additional_jobs: tuple[OriginPlotJob, ...] = (),
+) -> subprocess.CompletedProcess[str]:
     if not job.helper_script.exists():
         raise FileNotFoundError(f"Origin helper script not found: {job.helper_script}")
-    job.job_script.write_text(build_origin_invocation_script(job), encoding="utf-8-sig")
+    job.job_script.write_text(build_origin_invocation_script(job, additional_jobs=additional_jobs), encoding="utf-8-sig")
     return subprocess.run(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(job.job_script)],
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         timeout=600,
     )

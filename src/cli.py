@@ -21,6 +21,19 @@ DEFAULT_XRD_REFERENCE_OPJU = Path("templates") / "origin_styles" / "reference_op
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="run.py")
     subparsers = parser.add_subparsers(dest="command", required=True)
+    chi = subparsers.add_parser("chi-electrochem", help="copy/classify CHI EIS and calculate explicit Cs Mott-Schottky batches")
+    chi.add_argument("--input-dir", type=Path, required=True)
+    chi.add_argument("--output-root", type=Path)
+    chi.add_argument("--package-name", default="electrochem_organized")
+    chi.add_argument("--with-origin", action="store_true")
+    chi.add_argument("--resume", action="store_true", help="resume an incomplete matching package; raw copies and CSV values must match")
+    chi.add_argument("--replot", action="store_true", help="replot existing verified data with the established Origin helper")
+    chi.add_argument("--with-eis", action="store_true", help="include all independent EIS Nyquist records")
+    chi.add_argument("--force", action="store_true", help="authorize replacing this package's graph products")
+    chi.add_argument("--zip", action="store_true", help="explicitly request an additional ZIP archive")
+    chi.add_argument("--workbook-node", type=Path, help="Node runtime for the existing artifact-tool workbook exporter")
+    chi.add_argument("--node-modules", type=Path, help="bundled Node packages; read only")
+    chi.add_argument("--historical-workbook", type=Path, help="read-only provenance for the verified Cs model")
     scan = subparsers.add_parser("scan")
     scan.add_argument("--input")
     scan.add_argument("--config", type=Path, help="explicit project config; defaults to optional config/default.yaml")
@@ -411,6 +424,23 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     project_root = Path.cwd()
+
+    if args.command == "chi-electrochem":
+        from src.core.chi_electrochem import run_chi_electrochem, replot_chi_electrochem
+        if args.replot:
+            replot_chi_electrochem(project_root, _resolve_cli_output_root(project_root, args) / args.package_name,
+                                  with_eis=args.with_eis, force=args.force)
+            return 0
+        if not args.workbook_node or not args.node_modules:
+            raise ValueError("Initial CHI processing requires --workbook-node and --node-modules")
+        result = run_chi_electrochem(project_root, input_dir=args.input_dir,
+                           output_root=_resolve_cli_output_root(project_root, args),
+                           package_name=args.package_name, with_origin=args.with_origin,
+                           resume=args.resume,
+                           make_zip=args.zip,
+                           workbook_node=args.workbook_node, node_modules=args.node_modules,
+                           historical_workbook=args.historical_workbook)
+        return 1 if result.get("origin_status") == "failed" else 0
 
     if args.command == "scan":
         from src.scanner.scanner import scan_raw_data
