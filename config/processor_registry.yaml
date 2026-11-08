@@ -28,8 +28,9 @@
     "deferred_reason",
     "special_handling"
   ],
-  "pipeline_supported_count": 15,
+  "pipeline_supported_count": 16,
   "pipeline_supported": [
+    "GC calibration exported data",
     "photocurrent",
     "BET",
     "EPR",
@@ -47,6 +48,23 @@
     "EIS"
   ],
   "entries": [
+    {
+      "id": "gc_calibration_exported",
+      "folder_name": "GC calibration",
+      "folder_keywords": ["GC calibration", "GC标曲"],
+      "filename_keywords": ["GC", "标曲"],
+      "extensions": [".xlsx", ".xlsm"],
+      "header_keywords": ["浓度 (mM)", "实测峰面积"],
+      "column_keywords": ["Concentration (mM)", "Peak area"],
+      "numeric_range_hints": {},
+      "inferred_data_type": "GC calibration exported data",
+      "supported_in_pipeline": true,
+      "selected_processor": "gc_calibration_processor",
+      "confidence_rules": {"high": "explicit selected GC standard worksheet with numeric concentration/area blocks", "medium": "GC standard workbook requiring explicit sheet selection", "low": "ambiguous GC export"},
+      "special_handling": "dedicated_gc_calibration_command",
+      "deferred_reason": null,
+      "method_card": "docs/method_cards/gc_calibration.md"
+    },
     {
       "id": "photocurrent_20260109",
       "folder_name": "20260109 \u5149\u7535\u6d41",

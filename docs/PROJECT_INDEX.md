@@ -1,5 +1,13 @@
 # Project Index
 
+CHI660E mixed electrochemistry: `run.py chi-electrochem --help` calls
+`src/core/chi_electrochem.py` and shared Origin operations through
+`src/origin/chi_mott.py`. See the explicit raw-impedance batch section in
+`docs/method_cards/mott_schottky.md`. MT uses Cs, retains all raw frequencies
+and plots available 2000–5000 Hz without fitting. An existing package can be
+redrawn with `--replot --with-eis --force`, reusing the established Graph4
+PowerShell helper for all MT groups and each measured EIS record.
+
 ## Entrypoints
 
 - `run.py`: thin launcher for the CLI.
@@ -31,6 +39,17 @@
 - `src/core/validate.py`: configuration, dependency, output, safety, and Origin contract validation.
 
 ## Data Processing
+
+- UV-vis DRS: `template-format-products --only-type "UV-vis DRS" --asset-only`
+  processes explicitly paired spectra; `--with-origin` adds the adaptive
+  reference-style OPJU/TIF/PNG product. See `examples/ll_drs_pairing.json` and
+  `docs/method_cards/uvvis_drs.md` for the Hitachi U-3900 multi-sample workflow.
+  `--uvvis-bundle` with the two-type alias combines the DRS/Tauc pages in one
+  OPJU; `src/core/uvvis_bundle.py` fits explicitly configured current-data
+  intervals and preserves the two complete datasets during project append.
+
+- `run.py gc-calibration`: explicit selected GC standard worksheet, data-only by default; `--with-origin` writes one OPJU containing one graph per analyte.
+- `src/core/gc_calibration.py`: horizontal exported GC standard blocks, shared regression candidates, provenance and isolated Origin export.
 
 - `src/processors/`: supported data processors and shared table readers.
 - `src/adapters/`: optional package adapters used only when reliable and available.

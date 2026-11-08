@@ -174,6 +174,35 @@ def _temp_project(tmpdir: str) -> Path:
     return project_root
 
 
+def test_grouped_origin_jobs_share_helper_and_keep_axis_multiplier(tmp_path):
+    from dataclasses import replace
+    project = _temp_project(str(tmp_path))
+    data = project / "mott.csv"
+    data.write_text("potential,one_over_c_squared\n0,1e9\n1,2e9\n", encoding="utf-8")
+    job = build_origin_plot_job(project, "first", data, "Potential (V)", "1/C2", "Mott-Schottky")
+    job = replace(job, y_tick_divisor=1e9)
+    other = replace(job, dataset_id="second", page_name="Second")
+    script = build_origin_invocation_script(job, additional_jobs=(other,))
+    assert script.count("DataFile =") == 2
+    assert script.count("YTickDivisor = 1000000000") == 2
+    assert script.count("-Groups $groups -Headless -CloseOrigin") == 1
+    assert job.fixed_style == GRAPH4_FIXED_STYLE
+
+
+def test_grouped_origin_jobs_reject_different_output_or_duplicate_pages(tmp_path):
+    from dataclasses import replace
+    import pytest
+    project = _temp_project(str(tmp_path))
+    data = project / "mott.csv"
+    data.write_text("potential,one_over_c_squared\n0,1e9\n1,2e9\n", encoding="utf-8")
+    job = build_origin_plot_job(project, "first", data, "Potential (V)", "1/C2", "Mott-Schottky")
+    with pytest.raises(ValueError, match="unique"):
+        build_origin_invocation_script(job, additional_jobs=(job,))
+    other = replace(job, page_name="Second", origin_file=job.origin_file.with_name("other.opju"))
+    with pytest.raises(ValueError, match="share"):
+        build_origin_invocation_script(job, additional_jobs=(other,))
+
+
 class OriginSmokeTestUnavailableDependencies(unittest.TestCase):
     def test_dataset_id_must_be_one_safe_windows_filename_component(self) -> None:
         self.assertEqual(validate_origin_dataset_id("XRD_sample-01"), "XRD_sample-01")

@@ -4,7 +4,7 @@ import re
 from bisect import bisect_left
 from collections.abc import Callable
 from functools import lru_cache
-from math import isfinite
+from math import isfinite, log10
 from math import sqrt
 from typing import TypeVar, cast
 
@@ -471,6 +471,29 @@ def uvvis_processed_table(
                 tauc_y = (kubelka_munk * photon_energy) ** 2
         output.append([wavelength_nm, reflectance, reflectance_fraction, kubelka_munk, photon_energy, tauc_y])
     return ["wavelength_nm", "reflectance", "reflectance_fraction", "kubelka_munk", "photon_energy_eV", "tauc_y_direct_candidate"], output
+
+
+def uvvis_transmittance_percent_processed_table(
+    numeric: list[tuple[float, float]],
+    rows: list[dict[str, str]],
+) -> tuple[list[str], list[list[float | str | None]]]:
+    """Explicit percent-T conversion; keep T>100 and its negative absorbance.
+
+    This is an opt-in calculation for confirmed transmission data. The normal
+    UV-vis processor still refuses to reinterpret transmittance automatically.
+    """
+    key = matching_key(rows[0], ["transmittance", "%t"]) if rows else None
+    if key is None or not any(marker in key.casefold() for marker in ("%", "percent")):
+        raise ValueError("Explicit percent-transmittance headers are required")
+    output = []
+    for wavelength, percent in numeric:
+        if not isfinite(wavelength) or wavelength <= 0 or not isfinite(percent) or percent <= 0:
+            raise ValueError("Transmittance conversion requires positive finite wavelength and %T")
+        fraction = percent / 100.0
+        absorbance = -log10(fraction)
+        energy = 1239.7 / wavelength
+        output.append([wavelength, percent, fraction, absorbance, energy, (absorbance * energy) ** 2])
+    return ["wavelength_nm", "transmittance_percent", "transmittance_fraction", "absorbance", "photon_energy_eV", "tauc_y_absorbance_direct_candidate"], output
 
 
 def uvvis_signal_type(rows: list[dict[str, str]]) -> str:

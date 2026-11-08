@@ -7565,6 +7565,26 @@ def test_adaptive_photocurrent_supports_arbitrary_current_series_count_and_label
     assert captured == {}
 
 
+def test_uvvis_bolds_generated_native_legend_without_replacing_links(monkeypatch) -> None:
+    from src.core import template_format_executor as executor
+
+    legend = SimpleNamespace(Text="")
+    layer = object()
+    operations = SimpleNamespace(app=SimpleNamespace(FindGraphLayer=lambda name: layer))
+    monkeypatch.setattr(executor, "_find_origin_graph_object", lambda current, name: legend)
+    generated = SimpleNamespace(ok=True, payload={"text": "\\l(1) %(1)\r\n\\l(2) %(2)"})
+    result = executor._bold_native_linked_legend(operations, "DRS", generated)
+    assert result["applied"] is True
+    assert legend.Text == "\\b(\\l(1) %(1))\r\n\\b(\\l(2) %(2))"
+    assert "%(1)" in legend.Text and "%(2)" in legend.Text
+
+
+def test_uvvis_native_legend_bold_requires_generated_expression() -> None:
+    from src.core.template_format_executor import _bold_native_linked_legend
+
+    assert not _bold_native_linked_legend(object(), "DRS", SimpleNamespace(ok=True, payload={}))["applied"]
+
+
 def test_oth_json_asset_only_never_loads_reference_opju() -> None:
     asset = SimpleNamespace(
         template_opju_path=Path("reference.opju"),

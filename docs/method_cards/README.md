@@ -6,6 +6,7 @@ Current Origin plotting skill SHA256: `75b75fba5f796ed81e64e3f39fd3e64017d884f1c
 
 | Data type | Method card |
 | --- | --- |
+| gc_calibration_exported | [gc_calibration.md](gc_calibration.md) |
 | bet | [bet.md](bet.md) |
 | eis | [eis.md](eis.md) |
 | epr | [epr.md](epr.md) |

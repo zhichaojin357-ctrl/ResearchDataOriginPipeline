@@ -1,0 +1,38 @@
+[
+  {
+    "data_type": "UV-vis DRS",
+    "selected_data_root_label": "project_data",
+    "selected_data_relative_paths": [
+      "26.11.3/ll-drs/ll/bob.TXT",
+      "26.11.3/ll-drs/ll/bvo.TXT",
+      "26.11.3/ll-drs/ll/bv7.5%.TXT"
+    ],
+    "legend_entries": ["BOB", "BVO", "BV-7.5%"],
+    "selected_opju_root_label": "origin_manual_save",
+    "selected_opju_relative_path": "UV_vis_DRS_Tauc.opju"
+  },
+  {
+    "data_type": "Tauc",
+    "selected_data_root_label": "project_data",
+    "selected_data_relative_paths": [
+      "26.11.3/ll-drs/ll/bob.TXT",
+      "26.11.3/ll-drs/ll/bvo.TXT"
+    ],
+    "legend_entries": ["BOB", "BVO"],
+    "selected_opju_root_label": "origin_manual_save",
+    "selected_opju_relative_path": "UV_vis_DRS_Tauc.opju",
+    "tauc_fit_intervals_eV": {"BOB": [3.02, 3.18], "BVO": [2.50, 2.65]},
+    "tauc_fit_note": "Main absorption-edge linear segments selected from the current spectra, avoiding the low-energy tail and high-energy saturation. The existing squared (A*hnu)^2 transform is retained as a direct-transition candidate, with hnu=1239.7/lambda. Original negative absorbance values are not clipped, sign-flipped or baseline-corrected. The sign/baseline and transition model require review; the x-intercepts are fit candidates, not validated final optical gaps or band-edge positions.",
+    "selection_provenance": {
+      "user_correction": "The two repeated measurements are the 7.5% sample, not BVO.",
+      "selected_7_5_percent_file": "bv7.5%.TXT",
+      "excluded_repeat_file": "7.5%-2.TXT",
+      "points_each": 1201,
+      "wavelength_range_nm": [200, 800],
+      "diagnostic_only": "Noise SD from residuals against a 21-point order-2 Savitzky-Golay diagnostic; plotted data are not smoothed.",
+      "selected_noise_sd": {"600_750_nm": 0.00141035, "450_530_nm": 0.00123654, "250_350_nm": 0.00735924},
+      "repeat_noise_sd": {"600_750_nm": 0.00144316, "450_530_nm": 0.00147545, "250_350_nm": 0.00893536},
+      "reason": "Both scans are complete. The first measurement has lower diagnostic noise at the absorption edge and in the UV region. The repeat has a slightly flatter visible baseline, but the first is selected for its lower noise; no gap value was used to select the repeat."
+    }
+  }
+]

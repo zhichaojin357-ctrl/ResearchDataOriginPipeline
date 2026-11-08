@@ -66,6 +66,36 @@ static bool rdop_cache_legend_curves(GraphPage& page,
         {
             if (!plot.IsShow()) continue;
             int type = plot.GetPlotType();
+            // The adaptive XRD executor explicitly declares its unstacked,
+            // zero-baseline reference column plot. Conservatively exclude the
+            // entire layer width over its occupied vertical range, including
+            // the filled interior; never approximate bars by their tips.
+            double zero_column=0;
+            LT_get_var("__rdop_zero_column", &zero_column);
+            if (type==IDM_PLOT_COLUMN && layer_index==0 && plot.GetIndex()+1==zero_column)
+            {
+                vector bx, by, bounds;
+                if (!rdop_legend_layer_box(layer,bounds) ||
+                    plot.GetDataPoints(0,-1,bx,by,NULL,NULL,GETDATAPTS_SCREEN_POSITION)<0 ||
+                    bx.GetSize()!=by.GetSize()) return false;
+                int px, py;
+                bool any=false;
+                double top=0, bottom=0;
+                for (int item=0; item<bx.GetSize(); item++)
+                {
+                    if (bx[item]==NANUM || by[item]==NANUM) continue;
+                    if (!layer.WorldToPage(px,py,bx[item],by[item])) return false;
+                    if (!any) { top=py; bottom=py; any=true; }
+                    top=min(top,py); bottom=max(bottom,py);
+                    if (!layer.WorldToPage(px,py,bx[item],0)) return false;
+                    top=min(top,py); bottom=max(bottom,py);
+                }
+                if (!any) return false;
+                cx0.Add(bounds[0]); cy0.Add(top);
+                cx1.Add(bounds[2]); cy1.Add(bottom);
+                clayer.Add(-layer_index-1);
+                continue;
+            }
             if (type != IDM_PLOT_LINE && type != IDM_PLOT_SCATTER && type != IDM_PLOT_LINESYMB) return false;
             string command;
             command.Format("range __rdop_curve=[%s]%d!%d; __rdop_width=nan; __rdop_size=nan; get __rdop_curve -wp __rdop_width;",
@@ -155,9 +185,14 @@ static int rdop_legend_box_clear(GraphPage& page, GraphLayer& owner,
         if (clipped[0] > clipped[2] || clipped[1] > clipped[3]) continue;
         int layer_index=layer.GetIndex();
         for (int index=0; index<cx0.GetSize(); index++)
+        {
+            if (clayer[index]==-layer_index-1 &&
+                cx0[index]<=clipped[2] && cx1[index]>=clipped[0] &&
+                cy0[index]<=clipped[3] && cy1[index]>=clipped[1]) return 0;
             if (clayer[index]==layer_index &&
                 rdop_legend_segment_hit(cx0[index],cy0[index],cx1[index],cy1[index],clipped))
                 return 0;
+        }
     }
     return 1;
 }

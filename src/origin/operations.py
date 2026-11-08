@@ -542,6 +542,13 @@ class OriginOperations:
         self.app.Load(str(path))
         return OperationResult(True, "Project loaded", {"file_path": str(path)})
 
+    def append_project(self, file_path: str | Path) -> OperationResult:
+        """Append an explicitly selected project without running AfterOpenDoc."""
+        path = Path(file_path).resolve()
+        if not path.is_file() or path.suffix.casefold() not in {".opj", ".opju"}:
+            return OperationResult(False, f"Origin project file not found or unsupported: {path}")
+        return self.run_labtalk(f'doc -a "{quote_labtalk(str(path))}";')
+
     def create_worksheet(self, book_name: str, sheet_name: str = "Sheet1") -> OperationResult:
         visible_book = visible_origin_label(book_name, "Book")
         visible_sheet = visible_origin_label(sheet_name, "Data")
@@ -2735,7 +2742,7 @@ def update_native_legend(
     })
 
 
-def avoid_native_legend_overlap(operations: object, graph_name: str) -> OperationResult:
+def avoid_native_legend_overlap(operations: object, graph_name: str, *, zero_based_column_plot: int = 0) -> OperationResult:
     """Ask Origin to retain or reposition linked legends without changing style.
 
     The native operation checks every visible layer and linked legend on this
@@ -2763,6 +2770,7 @@ def avoid_native_legend_overlap(operations: object, graph_name: str) -> Operatio
         return OperationResult(False, "Origin native legend layout operation did not compile")
     executed = operations.run_labtalk(
         "__rdop_legend_layout=-1; __rdop_legends_checked=0; __rdop_legends_moved=0; "
+        f"__rdop_zero_column={int(zero_based_column_plot)}; "
         "run -oc {__rdop_legend_layout=rdop_place_legends();};"
     )
     try:

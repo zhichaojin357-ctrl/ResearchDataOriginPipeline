@@ -52,6 +52,7 @@ from src.core.remaining_template_products import (
     _coerced_xy_rows,
     load_remaining_pairings,
 )
+from src.core.project import ensure_output_path_separate_from_inputs
 from src.core.runtime_paths import create_run_output_layout, resolve_output_root
 from src.core.table_reader import coerce_numeric_rows, read_table
 from src.core.template_product_tables import interpolate_sorted_grid
@@ -63,6 +64,7 @@ from src.core.template_product_previews import (
     make_template_preview_comparison,
 )
 from src.core.xrd_no_card_overlay import xrd_no_card_offset_for_index
+from src.core.xrd_jade import DEFAULT_DATABASE_STEM, JadeIndex
 from src.core.xps_heterojunction import (
     XpsFitRecord,
     XpsHeterojunctionOptions,
@@ -90,7 +92,7 @@ from src.origin.style_mimic import OpjuStyleSnapshot, apply_style_snapshot, extr
 from src.origin.text_format import origin_bold_text
 from src.origin.user_style import ResolvedPlotStyle, apply_resolved_style_overrides, load_user_plot_style, resolve_user_plot_style
 from src.processors.base import safe_name
-from src.processors.calculations import bet_processed_table, mott_schottky_numeric, uvvis_processed_table
+from src.processors.calculations import bet_processed_table, mott_schottky_numeric, uvvis_processed_table, uvvis_transmittance_percent_processed_table
 from src.processors.eis import (
     EisCleaningResult,
     EisPoint,
@@ -118,6 +120,7 @@ TEMPLATE_ACCEPTED_TYPES = TEMPLATE_TARGET_TYPES
 TEMPLATE_EXEMPLAR_DRIVEN_TARGET_TYPES = TEMPLATE_TARGET_TYPES
 
 UvvisProcessedTable = tuple[list[str], list[list[float | str | None]]]
+UvvisProcessedCache = dict[tuple[Path, str], UvvisProcessedTable]
 
 TEMPLATE_TYPE_DIRS = {
     "BET": "BET",
@@ -807,6 +810,16 @@ def run_template_product_builder_all_types(
     if options.exemplar_driven:
         first_pairings, remaining_pairings = _repair_exemplar_driven_pairings(first_pairings, remaining_pairings, roots)
     pairings_by_key = {**remaining_pairings, **first_pairings}
+    explicit_jade_database_dirs = _template_xrd_explicit_jade_database_dirs(pairings_by_key.values())
+    # A local Jade card database is an explicit read-only input.  Keep a
+    # configured output root from being selected inside (or around) it before
+    # creating the run layout, just as for the reviewed experimental inputs.
+    if explicit_jade_database_dirs:
+        ensure_output_path_separate_from_inputs(
+            project_root,
+            output_root,
+            explicit_jade_database_dirs,
+        )
     use_project_style_assets_only = options.asset_only or ((not options.exemplar_driven) and options.project_style_asset_fallback and (
         options.prefer_project_style_assets
         or (
@@ -877,6 +890,7 @@ def run_template_product_builder_all_types(
             if options.asset_only
             else [options.pairing_path, template_source_root, xps_reference_root]
         )
+        + explicit_jade_database_dirs
         + ([options.style_replay_report] if options.style_replay_report else []),
         timestamp=timestamp,
         no_origin=not options.with_origin,
@@ -942,7 +956,7 @@ def run_template_product_builder_all_types(
     exporter = origin_exporter or (lambda product, style: export_template_product_with_origin(product, style))
     products: list[dict[str, object]] = []
     failures: list[dict[str, str]] = []
-    uvvis_cache: dict[Path, UvvisProcessedTable] = {}
+    uvvis_cache: UvvisProcessedCache = {}
 
     for product_key in target_types:
         selection = selections[product_key]
@@ -1442,13 +1456,15 @@ def prepare_template_product(
     xps_smooth_gradient_fill: bool = False,
     compact_output: bool = False,
     origin_style_mode: str = "auto",
-    uvvis_cache: dict[Path, UvvisProcessedTable] | None = None,
+    uvvis_cache: UvvisProcessedCache | None = None,
 ) -> tuple[ProductContext, dict[str, object]]:
     origin_style_mode = _normalized_origin_style_mode(origin_style_mode)
     product_key = pairing.product_key
     type_root = _template_type_root(run_root, product_key, compact=compact_output)
     _ensure_template_type_dirs(type_root, compact=compact_output)
     slug = _versioned_template_slug(product_key, slug_version)
+    if product_key == "XRD" and pairing.raw.get("xrd_reference_card") is not None and len(pairing.data_paths) == 1:
+        slug = f"XRD_{safe_name(pairing.data_paths[0].stem)}_with_card"
     input_copies = [] if (compact_output or product_key == "EPR") else _copy_inputs(pairing.data_paths, type_root / "input_copies")
     if template.source == "embedded_template_snapshot":
         reference_copy = template.path
@@ -1603,7 +1619,7 @@ def _build_template_aligned_remaining_table(
     template: TemplateCandidate,
     *,
     origin_style_mode: str = "otpu",
-    uvvis_cache: dict[Path, UvvisProcessedTable] | None = None,
+    uvvis_cache: UvvisProcessedCache | None = None,
 ) -> dict[str, object]:
     if pairing.product_key in {"UV-vis DRS", "Tauc"}:
         return _build_template_uvvis_table(pairing, template, origin_style_mode=origin_style_mode, processed_cache=uvvis_cache)
@@ -1723,7 +1739,7 @@ def _build_template_uvvis_table(
     template: TemplateCandidate,
     *,
     origin_style_mode: str,
-    processed_cache: dict[Path, UvvisProcessedTable] | None = None,
+    processed_cache: UvvisProcessedCache | None = None,
 ) -> dict[str, object]:
     """Build DRS or Tauc plot pairs from the same explicit UV-vis sources.
 
@@ -1736,33 +1752,55 @@ def _build_template_uvvis_table(
     paths = _template_unique_paths(list(pairing.data_paths))
     if not paths:
         raise ValueError(f"{pairing.product_key} requires at least one explicitly paired UV-vis source file.")
+    display_labels = pairing.raw.get("legend_entries")
+    if display_labels is not None and (
+        not isinstance(display_labels, list)
+        or len(display_labels) != len(paths)
+        or any(not isinstance(label, str) or not label.strip() for label in display_labels)
+    ):
+        raise ValueError("UV-vis legend_entries must contain one nonempty sample name per explicit source.")
     series: list[tuple[str, list[list[float | str | None]]]] = []
     signal_headers: set[str] = set()
     used_files: list[Path] = []
-    for path in paths:
+    conversion = pairing.raw.get("transmittance_conversion", "none")
+    if conversion not in {"none", "percent_to_absorbance_log10"}:
+        raise ValueError("Unsupported explicit UV-vis transmittance_conversion")
+    transmission_audit = []
+    for source_index, path in enumerate(paths):
         if not path.is_file() or path.suffix.casefold() not in {".txt", ".csv", ".xlsx", ".xls"}:
             raise ValueError(f"UV-vis explicit pairing contains an invalid source file: {path}")
-        cache_key = path.resolve()
+        cache_key = (path.resolve(), conversion)
         cached = processed_cache.get(cache_key) if processed_cache is not None else None
         if cached is None:
             source_rows = read_table(path)
             numeric = coerce_numeric_rows(source_rows)
             if len(numeric) < 2:
                 raise ValueError(f"UV-vis source contains fewer than two numeric rows: {path}")
-            cached = uvvis_processed_table(numeric, source_rows)
+            cached = (
+                uvvis_transmittance_percent_processed_table(numeric, source_rows)
+                if conversion == "percent_to_absorbance_log10"
+                else uvvis_processed_table(numeric, source_rows)
+            )
             if processed_cache is not None:
                 processed_cache[cache_key] = cached
         processed_headers, processed_rows = cached
         index = {str(header): position for position, header in enumerate(processed_headers)}
+        is_transmission = "transmittance_percent" in index
+        if is_transmission:
+            transmission_audit.append({
+                "source": str(path), "point_count": len(processed_rows),
+                "above_100_percent": sum(row[index["transmittance_percent"]] > 100 for row in processed_rows),
+                "negative_absorbance_points": sum(row[index["absorbance"]] < 0 for row in processed_rows),
+            })
         if pairing.product_key == "UV-vis DRS":
-            signal_header = "absorbance" if "absorbance" in index else "reflectance"
+            signal_header = "transmittance_percent" if is_transmission else "absorbance" if "absorbance" in index else "reflectance"
             signal_headers.add(signal_header)
             x_index = index["wavelength_nm"]
             y_index = index[signal_header]
         else:
             x_index = index["photon_energy_eV"]
             if "tauc_y_absorbance_direct_candidate" in index:
-                signal_headers.add("absorbance")
+                signal_headers.add("transmittance_to_absorbance" if is_transmission else "absorbance")
                 y_header = "tauc_y_absorbance_direct_candidate"
             else:
                 signal_headers.add("reflectance")
@@ -1775,16 +1813,17 @@ def _build_template_uvvis_table(
         ]
         if len(values) < 2:
             raise ValueError(f"UV-vis processing produced fewer than two finite {pairing.product_key} points: {path}")
-        series.append((_template_xy_series_label(pairing.product_key, path), values))
+        label = display_labels[source_index].strip() if display_labels is not None else _template_xy_series_label(pairing.product_key, path)
+        series.append((label, values))
         used_files.append(path)
     if len(signal_headers) != 1:
         raise ValueError(
-            f"One {pairing.product_key} product cannot mix absorbance and reflectance "
+            f"One {pairing.product_key} product cannot mix absorbance and reflectance or transmittance "
             "sources under a single Y-axis title."
         )
     if pairing.product_key == "UV-vis DRS":
         x_suffix, y_suffix = "wavelength_nm", "drs_signal"
-        y_label = "Absorbance (a.u.)" if signal_headers == {"absorbance"} else "Reflectance (a.u.)"
+        y_label = "Transmittance (%)" if signal_headers == {"transmittance_percent"} else "Absorbance (a.u.)" if signal_headers == {"absorbance"} else "Reflectance (a.u.)"
         labels = {
             "x_label": "Wavelength (nm)",
             "y_label": y_label,
@@ -1796,7 +1835,7 @@ def _build_template_uvvis_table(
         x_suffix, y_suffix = "photon_energy_eV", "tauc_y_direct_candidate"
         y_label = (
             "(αhν)^2"
-            if signal_headers == {"absorbance"}
+            if signal_headers in ({"absorbance"}, {"transmittance_to_absorbance"})
             else "(F(R)hν)^2"
         )
         labels = {
@@ -1834,6 +1873,10 @@ def _build_template_uvvis_table(
                 else "existing_uvvis_processor_drs_signal"
             ),
             "source_signal_mode": next(iter(signal_headers)),
+            "transmittance_conversion": conversion,
+            "transmission_audit": transmission_audit,
+            "conversion_formula": "A=-log10(T_percent/100); Tauc=(A*1239.7/wavelength_nm)^2" if transmission_audit else "none",
+            "clipping": "not_applied",
         }
     )
     return {"headers": headers, "rows": rows, "labels": labels, "alignment": alignment}
@@ -2001,7 +2044,8 @@ def _build_template_xrd_multisource_table(pairing: TargetPairing, template: Temp
         used_files.append(path)
     if len(series) < 1:
         return None
-    reference_card = _template_xrd_reference_stick_series(pairing, template, series[0][1])
+    reference_card_evidence: dict[str, object] = {}
+    reference_card = _template_xrd_reference_stick_series(pairing, template, series[0][1], evidence=reference_card_evidence)
     if reference_card is not None:
         series.append(reference_card[0])
         used_files.append(reference_card[1])
@@ -2025,6 +2069,8 @@ def _build_template_xrd_multisource_table(pairing: TargetPairing, template: Temp
     alignment = _template_alignment_payload(pairing, template, used_files, len(headers) - 1, "template_aligned_xrd_stacked_patterns_with_reference_sticks")
     alignment["visual_template_plot_count"] = max(visual_plot_count, int(template.plot_count or 0))
     alignment["reference_stick_included"] = reference_card is not None
+    if reference_card_evidence:
+        alignment["reference_card"] = reference_card_evidence
     alignment["normalization"] = "XRD sample traces are min-max normalized and vertically offset using the reviewed no-card overlay spacing."
     alignment["offset_step"] = 1.15
     return {
@@ -2037,7 +2083,7 @@ def _build_template_xrd_multisource_table(pairing: TargetPairing, template: Temp
 
 def _template_xrd_target_sample_series_count(pairing: TargetPairing, template: TemplateCandidate) -> int:
     target = max(int(template.plot_count or 0), 1)
-    if pairing.product_key == "XRD" and _template_xrd_reference_card_files(pairing, template):
+    if pairing.product_key == "XRD" and _template_xrd_has_reference_card(pairing, template):
         # The reviewed standard-card XRD template has extra plot/layer entries for
         # the card, so page plot_count is not the sample count.
         target = 4
@@ -2095,7 +2141,12 @@ def _template_xrd_reference_stick_series(
     pairing: TargetPairing,
     template: TemplateCandidate,
     sample_rows: list[list[float | str | None]],
+    *,
+    evidence: dict[str, object] | None = None,
 ) -> tuple[tuple[str, list[list[float | str | None]]], Path] | None:
+    explicit_card = _template_xrd_explicit_jade_card_config(pairing)
+    if explicit_card is not None:
+        return _template_xrd_explicit_jade_reference_stick_series(explicit_card, sample_rows, evidence=evidence)
     cards = _template_xrd_reference_card_files(pairing, template)
     if not cards:
         return None
@@ -2112,6 +2163,126 @@ def _template_xrd_reference_stick_series(
             rows = [[x_value, y_value] for x_value, y_value in zip(grid, y_values)]
             return ((f"{_template_series_label_from_path(card)}_JCPDS_card_sticks", rows), card)
     return None
+
+
+def _template_xrd_has_reference_card(pairing: TargetPairing, template: TemplateCandidate) -> bool:
+    """Recognize an explicit Jade card without probing sibling directories."""
+    return (
+        _template_xrd_explicit_jade_card_config(pairing) is not None
+        or bool(_template_xrd_reference_card_files(pairing, template))
+    )
+
+
+def _template_xrd_explicit_jade_card_config(pairing: TargetPairing) -> dict[str, object] | None:
+    """Validate the optional reviewed Jade card declaration on an XRD pairing."""
+    raw_card = pairing.raw.get("xrd_reference_card")
+    if raw_card is None:
+        return None
+    if not isinstance(raw_card, dict):
+        raise ValueError("xrd_reference_card must be a dictionary")
+
+    database_dir_value = raw_card.get("database_dir")
+    database_dir_text = str(database_dir_value or "").strip()
+    if not database_dir_text:
+        raise ValueError("xrd_reference_card.database_dir is required")
+    database_dir = Path(database_dir_text).expanduser()
+    if not database_dir.is_absolute():
+        raise ValueError("xrd_reference_card.database_dir must be an absolute path")
+
+    card_id_value = raw_card.get("card_id")
+    card_id = str(card_id_value or "").strip()
+    if not card_id:
+        raise ValueError("xrd_reference_card.card_id is required")
+    if isinstance(card_id_value, bool):
+        raise ValueError("xrd_reference_card.card_id must be a Jade/PDF card identifier")
+
+    database_stem = str(raw_card.get("database_stem") or DEFAULT_DATABASE_STEM).strip()
+    if not database_stem:
+        raise ValueError("xrd_reference_card.database_stem must not be empty")
+    wavelength = _to_float(raw_card.get("wavelength_angstrom", 1.5406))
+    if wavelength is None or not math.isfinite(wavelength) or wavelength <= 0:
+        raise ValueError("xrd_reference_card.wavelength_angstrom must be a positive number")
+    label = str(raw_card.get("label") or "").strip()
+    return {
+        "database_dir": database_dir.resolve(strict=False),
+        "database_stem": database_stem,
+        "card_id": card_id,
+        "wavelength_angstrom": wavelength,
+        "label": label,
+    }
+
+
+def _template_xrd_explicit_jade_database_dirs(pairings: object) -> list[Path]:
+    """Return unique configured Jade input directories for output isolation."""
+    if not hasattr(pairings, "__iter__"):
+        return []
+    directories: list[Path] = []
+    seen: set[str] = set()
+    for pairing in pairings:  # type: ignore[union-attr]
+        if not isinstance(pairing, TargetPairing) or pairing.product_key != "XRD":
+            continue
+        config = _template_xrd_explicit_jade_card_config(pairing)
+        if config is None:
+            continue
+        directory = config["database_dir"]
+        assert isinstance(directory, Path)
+        key = str(directory).casefold()
+        if key not in seen:
+            seen.add(key)
+            directories.append(directory)
+    return directories
+
+
+def _template_xrd_explicit_jade_reference_stick_series(
+    card: dict[str, object],
+    sample_rows: list[list[float | str | None]],
+    *,
+    evidence: dict[str, object] | None = None,
+) -> tuple[tuple[str, list[list[float | str | None]]], Path] | None:
+    x_values = [_to_float(row[0]) for row in sample_rows if row]
+    grid = [value for value in x_values if value is not None and math.isfinite(value)]
+    if len(grid) < 2:
+        raise ValueError("Explicit Jade reference card requires at least two finite sample angles")
+    database_dir = card["database_dir"]
+    database_stem = card["database_stem"]
+    card_id = card["card_id"]
+    wavelength = card["wavelength_angstrom"]
+    assert isinstance(database_dir, Path)
+    assert isinstance(database_stem, str)
+    assert isinstance(card_id, str)
+    assert isinstance(wavelength, float)
+    with JadeIndex(database_dir, database_stem) as database:
+        index = database.index_for_pdf(card_id)
+        metadata = database.metadata(index)
+        jade_peaks = database.peaks(
+            index,
+            wavelength_angstrom=wavelength,
+            x_min=min(grid),
+            x_max=max(grid),
+        )
+        peaks = [
+            (float(peak["two_theta_deg"]), float(peak["relative_intensity"]))
+            for peak in jade_peaks
+        ]
+        trace_path = database.xid_path
+    y_values = _template_xrd_reference_stick_values(grid, peaks)
+    if not any(value > 0 for value in y_values):
+        raise ValueError("Explicit Jade reference card has no positive peaks in the sample scan range")
+    if evidence is not None:
+        evidence.update({
+            "database_stem": database_stem,
+            "card": metadata,
+            "wavelength_angstrom": wavelength,
+            "reference_peaks": jade_peaks,
+            "stick_mapping": "nearest measured angle; sample scan grid retained",
+            "manual_check_required": True,
+            "status": "candidate_reference_not_confirmed_phase",
+        })
+    card_label = str(card["label"] or metadata.get("formula") or metadata.get("database_name") or "XRD reference card").strip()
+    actual_card_id = str(metadata.get("card_id") or card_id).strip()
+    label = f"{card_label} PDF {actual_card_id} candidate_JCPDS_card_sticks"
+    rows = [[x_value, y_value] for x_value, y_value in zip(grid, y_values)]
+    return ((label, rows), trace_path)
 
 
 def _template_xrd_reference_card_files(pairing: TargetPairing, template: TemplateCandidate) -> list[Path]:
@@ -2848,6 +3019,11 @@ def _template_numbered_series_sort_key(path: Path) -> tuple[int, str]:
 
 
 def _template_xy_series_label(product_key: str, path: Path) -> str:
+    if product_key in {"UV-vis DRS", "Tauc"}:
+        # Display names are sample identities, not filesystem identifiers.
+        # Keep concentrations (%) and Unicode; table headers are sanitized
+        # separately by _template_independent_xy_table.
+        return path.stem.strip() or "series"
     if product_key == "PL":
         match = re.match(r"^\s*(\d+)", path.stem)
         cohort = [part.strip() for part in path.parent.name.split("+") if part.strip()]
@@ -5003,7 +5179,10 @@ def _legend_bold_readback(numeric: dict[str, object], strings: dict[str, object]
     if _number_matches(numeric.get("legend.show"), 0):
         return True
     legend_text = str(strings.get("legend.text$", ""))
-    return _number_matches(numeric.get("legend.bold"), 1) or "\\b(" in legend_text
+    rows = [row for row in legend_text.splitlines() if row.strip()]
+    return _number_matches(numeric.get("legend.bold"), 1) or bool(rows) and all(
+        "\\b(" in row or "/b(" in row for row in rows
+    )
 
 
 def _apply_template_axis_range(operations: object, graph_name: str, product: ProductContext) -> None:
@@ -7136,6 +7315,24 @@ def _validate_manifest_bound_graph_template_evidence(
     save_reopen = (
         item.get("save_reopen") if isinstance(item.get("save_reopen"), dict) else {}
     )
+    # Schema-v1 DRS/Tauc evidence stores these checks together. Read its
+    # explicit checks without treating missing/failed evidence as a pass, or
+    # allowing the legacy record to override present modern sections.
+    replay = item.get("same_data_asset_replay")
+    if item.get("schema_version") == 1 and isinstance(replay, dict):
+        if "same_data" not in item:
+            same_data = replay
+        if "style" not in item:
+            counts = re.fullmatch(r"(\d+)/(\d+)", str(replay.get("style_conformance") or ""))
+            style_passed = bool(counts and int(counts[1]) > 0 and counts[1] == counts[2])
+            style = {
+                "status": "pass" if style_passed else "fail",
+                "axis_title_hard_gate": replay.get("axis_title_hard_gate"),
+            }
+        if "pixels" not in item:
+            pixels = replay
+        if "save_reopen" not in item:
+            save_reopen = {"saved_reopened": replay.get("saved_reopened")}
     tif = item.get("tif_600dpi") if isinstance(item.get("tif_600dpi"), dict) else {}
     if str(item.get("status") or "") != "accepted":
         reasons.append("validation evidence status is not accepted")

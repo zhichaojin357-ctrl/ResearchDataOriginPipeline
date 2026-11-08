@@ -21,6 +21,27 @@ DEFAULT_XRD_REFERENCE_OPJU = Path("templates") / "origin_styles" / "reference_op
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="run.py")
     subparsers = parser.add_subparsers(dest="command", required=True)
+    chi = subparsers.add_parser("chi-electrochem", help="copy/classify CHI EIS and calculate explicit Cs Mott-Schottky batches")
+    chi.add_argument("--input-dir", type=Path, required=True)
+    chi.add_argument("--output-root", type=Path)
+    chi.add_argument("--package-name", default="electrochem_organized")
+    chi.add_argument("--with-origin", action="store_true")
+    chi.add_argument("--resume", action="store_true", help="resume an incomplete matching package; raw copies and CSV values must match")
+    chi.add_argument("--replot", action="store_true", help="replot existing verified data with the established Origin helper")
+    chi.add_argument("--with-eis", action="store_true", help="include all independent EIS Nyquist records")
+    chi.add_argument("--force", action="store_true", help="authorize replacing this package's graph products")
+    chi.add_argument("--zip", action="store_true", help="explicitly request an additional ZIP archive")
+    chi.add_argument("--workbook-node", type=Path, help="Node runtime for the existing artifact-tool workbook exporter")
+    chi.add_argument("--node-modules", type=Path, help="bundled Node packages; read only")
+    chi.add_argument("--historical-workbook", type=Path, help="read-only provenance for the verified Cs model")
+    gc = subparsers.add_parser("gc-calibration", help="process explicitly selected GC standard blocks; optional single OPJU with one graph per analyte")
+    gc.add_argument("--source", type=Path, required=True)
+    gc.add_argument("--sheet", required=True, help="explicit selected concentration/peak-area worksheet")
+    gc.add_argument("--selection-note", required=True, help="provenance and limitations of the already selected points")
+    gc.add_argument("--area-unit", default="a.u.", help="verified GC detector area unit; a.u. when unspecified")
+    gc.add_argument("--output-root", type=Path)
+    gc.add_argument("--with-origin", action="store_true")
+    gc.add_argument("--plot-only", action="store_true", help="plot the existing selected worksheet directly; skip processed CSV exports; implies Origin")
     scan = subparsers.add_parser("scan")
     scan.add_argument("--input")
     scan.add_argument("--config", type=Path, help="explicit project config; defaults to optional config/default.yaml")
@@ -101,6 +122,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     template_format.add_argument("--compact-output", action="store_true", help="write deliverables under products/<type> with minimal top-level output folders")
+    template_format.add_argument("--uvvis-bundle", action="store_true", help="combine DRS and Tauc in one OPJU, using explicit current-data Tauc fit intervals in the pairing plan; requires --with-origin")
     template_format.add_argument("--only-type", help="run template-format generation for one product type first, for example XRD")
     template_format.add_argument(
         "--origin-style-mode",
@@ -412,6 +434,32 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     project_root = Path.cwd()
 
+    if args.command == "chi-electrochem":
+        from src.core.chi_electrochem import run_chi_electrochem, replot_chi_electrochem
+        if args.replot:
+            replot_chi_electrochem(project_root, _resolve_cli_output_root(project_root, args) / args.package_name,
+                                  with_eis=args.with_eis, force=args.force)
+            return 0
+        if not args.workbook_node or not args.node_modules:
+            raise ValueError("Initial CHI processing requires --workbook-node and --node-modules")
+        result = run_chi_electrochem(project_root, input_dir=args.input_dir,
+                           output_root=_resolve_cli_output_root(project_root, args),
+                           package_name=args.package_name, with_origin=args.with_origin,
+                           resume=args.resume,
+                           make_zip=args.zip,
+                           workbook_node=args.workbook_node, node_modules=args.node_modules,
+                           historical_workbook=args.historical_workbook)
+        return 1 if result.get("origin_status") == "failed" else 0
+
+    if args.command == "gc-calibration":
+        from src.core.gc_calibration import run_gc_calibration
+
+        run_gc_calibration(project_root, source=args.source, sheet_name=args.sheet,
+                           output_root=_resolve_cli_output_root(project_root, args),
+                           with_origin=args.with_origin, selection_note=args.selection_note,
+                           area_unit=args.area_unit, plot_only=args.plot_only)
+        return 0
+
     if args.command == "scan":
         from src.scanner.scanner import scan_raw_data
 
@@ -504,6 +552,7 @@ def main(argv: list[str] | None = None) -> int:
                 only_type=args.only_type,
                 style_replay_report=args.style_replay_report,
                 origin_style_mode=args.origin_style_mode,
+                uvvis_bundle=bool(args.uvvis_bundle),
             ),
         )
         print(f"run_root={result['run_root']}")
@@ -511,6 +560,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"success_count={result['summary'].get('success_count', result['summary'].get('accepted_count', 0))}")
         print(f"blocked_count={result['summary']['blocked_count']}")
         print(f"failed_count={result['summary']['failed_count']}")
+        if args.uvvis_bundle:
+            print(f"uvvis_bundle={result['uvvis_bundle']['origin_file']}")
         summary = result["summary"]
         accepted_count = int(summary.get("accepted_count", summary.get("success_count", 0)) or 0)
         required_count = int(summary.get("required_product_count", 11) or 11)

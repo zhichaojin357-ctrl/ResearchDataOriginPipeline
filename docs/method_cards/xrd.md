@@ -61,6 +61,13 @@
 - Planned processor: `xrd_processor`.
 - Data-only direct command: `python run.py xrd-analyze --source <export> --database-dir <jade-dir> --card-query <formula> --output-root <external-output>`.
 - Binary vendor `.raw` files are detected but remain unsupported; use instrument-exported TXT/CSV/XY/XLSX.
+- Text `.dql` files with a `[Data]` section can be passed directly to
+  `xrd-analyze` and `xrd-no-card-overlay`; the binary RAW companion is not
+  interpreted as a second measurement.
+- The local J7 RID reader validates counted card frames and reads float32
+  d-spacings and uint16 intensities. Invalid frames fail explicitly; zero
+  intensity entries are retained by the format reader but omitted from the
+  positive reference peaks.
 - J7 XID/SID/RID decoding currently has strict synthetic regression coverage;
   until the user's licensed local database is compared with a trusted exported
   card, decoder intensities and all rankings remain explicitly candidate-only.

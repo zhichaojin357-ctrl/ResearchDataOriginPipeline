@@ -1285,6 +1285,38 @@ def test_eis_formal_acceptance_requires_all_measured_points_and_no_fit_outputs(t
     assert any("fit sidecars" in note for note in fit_sidecar_blocked.notes)
 
 
+@pytest.mark.parametrize("product_key,slug", [("UV-vis DRS", "UV_vis_DRS"), ("Tauc", "Tauc")])
+def test_packaged_uvvis_replay_evidence_schema_is_supported(product_key: str, slug: str) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    path = project_root / "templates" / "origin_styles" / "validation_evidence" / f"{slug}_verified_20260824.json"
+    item = {**json.loads(path.read_text(encoding="utf-8")), "_evidence_file": str(path)}
+    result = _validate_independent_style_replay_item(project_root, product_key, item)
+    assert result["ok"], result["reason"]
+
+
+@pytest.mark.parametrize("field,value", [
+    ("verified", False), ("saved_reopened", False), ("axis_title_hard_gate", False),
+    ("exact_pixel_match", False), ("same_size", False), ("changed_pixels", 1),
+    ("rms", 0.1), ("style_conformance", "73/74"), ("style_conformance", "0/0"),
+])
+def test_legacy_uvvis_replay_still_rejects_failed_checks(field: str, value: object) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    path = project_root / "templates" / "origin_styles" / "validation_evidence" / "UV_vis_DRS_verified_20260824.json"
+    item = {**json.loads(path.read_text(encoding="utf-8")), "_evidence_file": str(path)}
+    item["same_data_asset_replay"][field] = value
+    result = _validate_independent_style_replay_item(project_root, "UV-vis DRS", item)
+    assert not result["ok"]
+
+
+def test_legacy_uvvis_replay_does_not_override_failed_modern_section() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    path = project_root / "templates" / "origin_styles" / "validation_evidence" / "UV_vis_DRS_verified_20260824.json"
+    item = {**json.loads(path.read_text(encoding="utf-8")), "_evidence_file": str(path), "style": {"status": "fail"}}
+    result = _validate_independent_style_replay_item(project_root, "UV-vis DRS", item)
+    assert not result["ok"]
+    assert "style conformance did not pass" in result["reason"]
+
+
 def test_label_audit_failure_is_persisted_after_successful_preview_comparison(tmp_path: Path) -> None:
     product_root = tmp_path / "BET"
     reference = product_root / "reference.png"
@@ -2534,6 +2566,21 @@ def test_template_style_readback_requires_legend_bold_and_full_no_frame() -> Non
     assert passed["legend_bold"] is True
     assert failed["legend_no_frame"] is False
     assert failed["legend_bold"] is False
+
+
+@pytest.mark.parametrize("marker", ["\\b(", "/b("])
+def test_native_linked_legend_bold_readback_accepts_origin_escape_forms(marker: str) -> None:
+    from src.core.template_product_builder import _legend_bold_readback
+
+    assert _legend_bold_readback({"legend.bold": 0}, {"legend.text$": marker + "\\l(1) %(1))"})
+    assert not _legend_bold_readback({"legend.bold": 0}, {"legend.text$": "\\l(1) %(1)"})
+    assert _legend_bold_readback(
+        {"legend.bold": 0},
+        {"legend.text$": marker + "\\l(1) %(1))\r\n" + marker + "\\l(2) %(2))"},
+    )
+    assert not _legend_bold_readback(
+        {"legend.bold": 0}, {"legend.text$": marker + "\\l(1) %(1))\r\n\\l(2) %(2)"},
+    )
 
 
 def test_template_base_readback_ignores_optional_font_size_and_legend_frame_requirements() -> None:

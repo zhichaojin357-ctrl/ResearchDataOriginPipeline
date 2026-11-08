@@ -584,6 +584,14 @@ function Apply-ReferenceStyle($app, [string]$PageName, [array]$Labels, $Style, $
   $app.Execute('layer.x.label.pt=' + $Style.XLabelSize + '; layer.y.label.pt=' + $Style.YLabelSize + ';') | Out-Null
   $app.Execute('layer.x.ticks=' + $Style.XTicks + '; layer.y.ticks=' + $Style.YTicks + ';') | Out-Null
 
+  $yTickDivisor = Get-GroupValue $Group 'YTickDivisor' $null
+  if ($null -ne $yTickDivisor) {
+    $divisor = [double]$yTickDivisor
+    if ($divisor -le 0 -or [double]::IsNaN($divisor) -or [double]::IsInfinity($divisor)) {
+      throw 'YTickDivisor must be finite and positive.'
+    }
+    $app.Execute('layer.y.label.divideBy=' + $divisor.ToString('R', [Globalization.CultureInfo]::InvariantCulture) + ';') | Out-Null
+  }
   $axisMode = [string](Get-GroupValue $Group 'AxisMode' 'auto')
   if ($axisMode -eq 'template') {
     $app.Execute('layer.x.from=' + $Style.XFrom + '; layer.x.to=' + $Style.XTo + '; layer.x.inc=' + $Style.XStep + ';') | Out-Null
@@ -1064,6 +1072,9 @@ try {
     $dataBookName = Convert-ToSafeOriginName ([System.IO.Path]::GetFileNameWithoutExtension($dataFile)) 'Data'
     Initialize-OriginDataWorkbook $app $dataBookName $dataFileName $table.Headers $table.Rows $cols
     Set-OriginSeriesLabels $app $currentLabels $xyPairs
+    # Keep an explicit worksheet reference after the first graph becomes active.
+    # Later independent X/Y plots must not resolve columns against that graph.
+    $worksheetReference = '[' + [string]$app.LTStr('%H') + ']1!'
     $stageSeconds.data_import += $phaseClock.Elapsed.TotalSeconds
     $phaseClock.Restart()
     if ($xyPairs.Count -gt 0) {
@@ -1075,13 +1086,13 @@ try {
     if ($xyPairs.Count -gt 0) {
       $first = $xyPairs[0]
       if ($template) {
-        $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(' + [int]$first.X + ',' + [int]$first.Y + ') plot:=' + $plotType + ' ogl:=[<new template:="' + (To-OriginPath $template) + '" name:="' + $pageName + '">];') | Out-Null
+        $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=' + $worksheetReference + '(' + [int]$first.X + ',' + [int]$first.Y + ') plot:=' + $plotType + ' ogl:=[<new template:="' + (To-OriginPath $template) + '" name:="' + $pageName + '">];') | Out-Null
       } else {
-        $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(' + [int]$first.X + ',' + [int]$first.Y + ') plot:=' + $plotType + ' ogl:=[<new name:="' + $pageName + '">];') | Out-Null
+        $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=' + $worksheetReference + '(' + [int]$first.X + ',' + [int]$first.Y + ') plot:=' + $plotType + ' ogl:=[<new name:="' + $pageName + '">];') | Out-Null
       }
       for ($pairIndex = 1; $pairIndex -lt $xyPairs.Count; $pairIndex++) {
         $pair = $xyPairs[$pairIndex]
-        $app.Execute('plotxy iy:=(' + [int]$pair.X + ',' + [int]$pair.Y + ') plot:=' + $plotType + ' ogl:=[' + $pageName + ']Layer1;') | Out-Null
+        $app.Execute('plotxy iy:=' + $worksheetReference + '(' + [int]$pair.X + ',' + [int]$pair.Y + ') plot:=' + $plotType + ' ogl:=[' + $pageName + ']Layer1;') | Out-Null
       }
     } elseif ($template) {
       $app.Execute('worksheet -s 1 ' + $cols + '; plotxy iy:=(1,2:' + $cols + ') plot:=' + $plotType + ' ogl:=[<new template:="' + (To-OriginPath $template) + '" name:="' + $pageName + '">];') | Out-Null

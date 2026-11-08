@@ -1,0 +1,14 @@
+[
+  {
+    "data_type": "UV-vis DRS",
+    "selected_data_root_label": "project_data",
+    "selected_data_relative_paths": [
+      "26.11.3/ll-drs/ll/bob.TXT",
+      "26.11.3/ll-drs/ll/bvo.TXT",
+      "26.11.3/ll-drs/ll/bv7.5%.TXT",
+      "26.11.3/ll-drs/ll/7.5%-2.TXT"
+    ],
+    "selected_opju_root_label": "origin_manual_save",
+    "selected_opju_relative_path": "UV_vis_DRS_Tauc.opju"
+  }
+]

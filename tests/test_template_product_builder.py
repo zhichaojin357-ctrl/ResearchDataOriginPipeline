@@ -204,6 +204,33 @@ def test_uvvis_drs_and_tauc_preserve_each_explicit_source_grid(tmp_path: Path, m
     assert read_paths == [first, second]
 
 
+@pytest.mark.parametrize("product_key", ["UV-vis DRS", "Tauc"])
+def test_uvvis_hitachi_preserves_sample_names_and_raw_scan(tmp_path: Path, product_key: str) -> None:
+    source = tmp_path / "样品7.5%-2.TXT"
+    source.write_text(
+        "Model:\tU-3900 Spectrophotometer\n"
+        "Measurement Type:\tWavelength Scan\n"
+        "Data Mode:\tAbs\n"
+        "Peaks\nPeak #\tStart (nm)\tHeight (Abs)\n1\t800\t99\n"
+        "Data Points\nnm\tAbs\n800\t0.037\n799.5\t-0.657\n799\t0.045\n",
+        encoding="utf-8",
+    )
+    pairing = TargetPairing(product_key, product_key, "", "test", [source], "test", tmp_path / "uv.opju")
+    result = _build_template_uvvis_table(
+        pairing,
+        TemplateCandidate(product_key, pairing.reference_opju, "unit", plot_count=6),
+        origin_style_mode="auto",
+    )
+    assert result["labels"]["legend_entries"] == ["样品7.5%-2"]
+    assert result["alignment"]["source_signal_mode"] == "absorbance"
+    assert len(result["rows"]) == 3
+    if product_key == "UV-vis DRS":
+        assert result["rows"] == [[800.0, 0.037], [799.5, -0.657], [799.0, 0.045]]
+        assert result["labels"]["y_label"] == "Absorbance (a.u.)"
+    else:
+        assert result["rows"][1] == pytest.approx([1239.7 / 799.5, (-0.657 * 1239.7 / 799.5) ** 2])
+
+
 def test_uvvis_drs_rejects_mixed_absorbance_and_reflectance(tmp_path: Path) -> None:
     absorbance = tmp_path / "abs.csv"
     reflectance = tmp_path / "refl.csv"

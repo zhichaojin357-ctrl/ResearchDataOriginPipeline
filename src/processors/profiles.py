@@ -21,6 +21,12 @@ def _profile(
 
 SUPPORTED_PROCESSOR_PROFILES = MappingProxyType(
     {
+        "GC calibration exported data": _profile(
+            "GC calibration exported data", "gc_calibration_processor",
+            ("confirm selected standard points and exclusion rationale", "confirm GC detector area units and standard/peak mapping", "inspect low-concentration residuals and independently repeat calibration before quantification"),
+            ("do not claim validated analytical linearity from selected R-squared alone", "do not infer identity, conversion, selectivity or yield from a selected calibration"),
+            ("calibration scatter with equation and R-squared",),
+        ),
         "photocurrent": _profile(
             "photocurrent",
             "photocurrent_processor",

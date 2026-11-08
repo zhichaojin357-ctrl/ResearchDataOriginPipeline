@@ -217,6 +217,7 @@ class TemplateFormatExecutorOptions:
     only_type: str | None = None
     style_replay_report: Path | None = None
     origin_style_mode: str = "auto"
+    uvvis_bundle: bool = False
 
 
 def build_template_product_builder_options(options: TemplateFormatExecutorOptions) -> TemplateProductBuilderOptions:
@@ -251,6 +252,8 @@ def build_template_product_builder_options(options: TemplateFormatExecutorOption
 
 
 def run_template_format_executor(project_root: Path, options: TemplateFormatExecutorOptions) -> dict[str, object]:
+    if options.uvvis_bundle and not options.with_origin:
+        raise ValueError("--uvvis-bundle requires --with-origin")
     if options.asset_only and options.exemplar_driven:
         raise ValueError("--asset-only and --exemplar-driven are mutually exclusive")
     _normalize_origin_style_mode(options.origin_style_mode)
@@ -273,6 +276,10 @@ def run_template_format_executor(project_root: Path, options: TemplateFormatExec
     summary = dict(result.get("summary", {}))
     summary["success_count"] = int(summary.get("accepted_count", 0))
     result["summary"] = summary
+    if options.uvvis_bundle:
+        from src.core.uvvis_bundle import export_uvvis_bundle
+
+        result["uvvis_bundle"] = export_uvvis_bundle(project_root, result, options.pairing_path)
     return result
 
 
@@ -1513,6 +1520,10 @@ def _export_template_base_product_with_origin_impl(
                         asset_only=asset_only,
                     )
                 )
+                if product.product_key == "XRD" and str(style_decision.get("selected_mode")) == "oth-json":
+                    project_reference_opju = getattr(style_asset, "template_opju_path", None)
+                    project_reference_graph = str(getattr(style_asset, "graph_page", "") or "")
+                    require_project_reference = bool(asset_only)
                 result = _export_saved_format_theme_product_with_origin(
                     operations,
                     product,
@@ -8183,7 +8194,11 @@ def _export_saved_format_theme_product_with_origin(
             )
         )
         render_refresh = _refresh_graph_for_export(operations, graph_name)
-        legend_layout = avoid_native_legend_overlap(operations, graph_name)
+        legend_layout = (
+            avoid_native_legend_overlap(operations, graph_name, zero_based_column_plot=len(plot_pairs))
+            if adaptive_xrd
+            else avoid_native_legend_overlap(operations, graph_name)
+        )
         if not getattr(legend_layout, "ok", False):
             return {
                 "ok": False,
@@ -10628,10 +10643,15 @@ def _apply_adaptive_dynamic_legend_policy(
                 "plot_index": index,
             }
         visibility_commands.append(command)
-    written = update_native_legend(
+    native_legend = update_native_legend(
         operations, graph_name, entries,
         plot_indices=range(1, len(entries) + 1),
-    ).ok
+    )
+    written = native_legend.ok
+    native_bold = {"applied": False, "reason": "not_required"}
+    if product.product_key in {"UV-vis DRS", "Tauc"}:
+        native_bold = _bold_native_linked_legend(operations, graph_name, native_legend)
+        written = written and bool(native_bold.get("applied"))
     font_size = _reviewed_template_legend_font_size(snapshot, style)
     preserved = _format_preserved_line_sample_legend(
         operations,
@@ -10656,8 +10676,36 @@ def _apply_adaptive_dynamic_legend_policy(
         "font_size": font_size,
         "anchor_policy": anchor_policy,
         "preserved_line_sample_policy": preserved,
+        "native_linked_bold_policy": native_bold,
         "axis_titles_restored_from_style_snapshot": bool(snapshot),
     }
+
+
+def _bold_native_linked_legend(
+    operations: object,
+    graph_name: str,
+    native_legend: object,
+) -> dict[str, object]:
+    """Bold the Origin-generated link expression, preserving every native link.
+
+    Bold long names render correctly but do not set legend.bold; wrapping the
+    generated expression also makes saved/reopened typography auditable.
+    """
+    native_text = str(getattr(native_legend, "payload", {}).get("text") or "")
+    if not getattr(native_legend, "ok", False) or not native_text.strip():
+        return {"applied": False, "reason": "native_legend_expression_unavailable"}
+    app = getattr(operations, "app", None)
+    try:
+        layer = app.FindGraphLayer(f"[{graph_name}]Layer1") or app.FindGraphLayer(graph_name)
+        legend = _find_origin_graph_object(layer, "Legend") if layer else None
+        if legend is None:
+            return {"applied": False, "reason": "native_legend_object_unavailable"}
+        # Origin closes rich-text scopes at each line break. A multiline
+        # wrapper leaves a visible trailing ')' on the final legend row.
+        legend.Text = "\r\n".join(origin_bold_text(row) for row in native_text.splitlines())
+    except Exception as exc:
+        return {"applied": False, "reason": f"native_legend_bold_failed: {exc}"}
+    return {"applied": True, "method": "bold_wrapper_preserving_origin_generated_links"}
 
 
 def _apply_adaptive_bet_oth_json_text_policy(
@@ -12708,11 +12756,13 @@ def _apply_xrd_standard_card_legend_and_label(
     native_legend = update_native_legend(
         operations, graph_name, labels, plot_indices=sample_plot_indices,
     )
+    linked_text = str(getattr(native_legend, "payload", {}).get("text") or "")
     commands = [
         f'win -a "{graph}"; legend.show=1;',
+        *([f'legend.text$="{_quote_origin_rich_text(origin_bold_text(linked_text))}";'] if linked_text else []),
         f"legend.x={legend_x:g}; legend.y={legend_y:g};",
         f'legend.font$="{quote_labtalk(style.font_family or "Arial")}"; legend.fsize={int(style.legend_font_size or 26)}; legend.bold=1;',
-        "legend.background=0; legend.border=0; legend.fill=0;",
+        "legend.background=0; legend.border=0; legend.frame=0; legend.fill=0; legend.fillColor=-4; legend.borderColor=1; legend.lineWidth=0;",
     ]
     results = [operations.run_labtalk(f'win -a "{graph}"; {command}' if not command.startswith("win -a") else command) for command in commands]
     legend_com_applied = _style_graph_object(
@@ -13030,6 +13080,8 @@ def _xrd_card_label_from_header(header: str) -> str:
         material = r"CuWO\-(4)"
     match = re.search(r"(\d{2}-\d{3}-\d{4})", text)
     if match:
+        if "candidate" in text.casefold():
+            return rf"\b({material} reference {match.group(1)} (candidate))"
         return rf"\b({material} JCPDS card No.{match.group(1)})"
     return rf"\b({material} JCPDS card)"
 

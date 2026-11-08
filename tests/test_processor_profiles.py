@@ -15,8 +15,8 @@ from src.core.validate import _processor_registry_summary_failures, validate
 
 
 class ProcessorProfilesTest(unittest.TestCase):
-    def test_supported_profiles_cover_exactly_fifteen_pipeline_data_types(self):
-        self.assertEqual(len(SUPPORTED_PROCESSOR_PROFILES), 15)
+    def test_supported_profiles_cover_exactly_sixteen_pipeline_data_types(self):
+        self.assertEqual(len(SUPPORTED_PROCESSOR_PROFILES), 16)
 
     def test_profiles_match_supported_registry_entries_exactly(self):
         registry = json.loads((ROOT / "config" / "processor_registry.yaml").read_text(encoding="utf-8"))
@@ -34,7 +34,7 @@ class ProcessorProfilesTest(unittest.TestCase):
         registry = json.loads((ROOT / "config" / "processor_registry.yaml").read_text(encoding="utf-8"))
 
         self.assertEqual(_processor_registry_summary_failures(registry), [])
-        self.assertEqual(registry["pipeline_supported_count"], 15)
+        self.assertEqual(registry["pipeline_supported_count"], 16)
         self.assertIn("HPLC/LC OpenLab raw data", registry["pipeline_supported"])
 
     def test_registry_supported_summary_diagnostics_identify_count_and_list_drift(self):
@@ -113,7 +113,7 @@ class ProcessorProfilesTest(unittest.TestCase):
         self.assertEqual(exit_code, 1)
         self.assertIn("- Processor registry supported summary: fail", report)
         self.assertIn(
-            "pipeline_supported_count=14 but entries declare 15 supported types",
+            "pipeline_supported_count=14 but entries declare 16 supported types",
             report,
         )
         self.assertIn(

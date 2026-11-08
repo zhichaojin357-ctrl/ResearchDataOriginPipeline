@@ -44,6 +44,7 @@ screening, not an automatic phase-identification result.
 
 ## Documentation
 
+- Another Windows computer: [docs/ANOTHER_COMPUTER.md](docs/ANOTHER_COMPUTER.md)
 - Current status: `docs/CURRENT_STATUS.md`
 - Command/module map: `docs/PROJECT_INDEX.md`
 - Real data intake: `docs/REAL_DATA_INTAKE_GUIDE.md`

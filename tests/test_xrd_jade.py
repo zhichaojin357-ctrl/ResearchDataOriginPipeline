@@ -18,15 +18,19 @@ def _write_jade_database(database_dir: Path) -> None:
     rid = bytearray(b"J7" + b"\x00" * 5)
     records: list[tuple[int, int, int, int]] = []
     cards = [
-        (970000001, "Cu W O4", "Copper tungstate", [(4.438, 100), (2.260, 80), (1.541, 60)]),
-        (970000002, "Bi O Br", "Bismuth oxybromide", [(3.92, 100), (2.78, 50), (1.96, 25)]),
+        (970000001, "Cu W O4", "Copper tungstate", [(4.438, 10000), (2.260, 8000), (1.541, 6000)]),
+        (970000002, "Bi O Br", "Bismuth oxybromide", [(3.92, 10000), (2.78, 5000), (1.96, 2500)]),
     ]
     for number, formula, name, peaks in cards:
         sid_offset = len(sid)
         sid.extend(b"\x01" + formula.encode("ascii") + b"\x01" + name.encode("ascii") + b"\x01\x00")
         rid_offset = len(rid)
+        # Invented peaks in the observed counted J7 frame; no licensed card bytes.
+        rid.extend(b"\x27" + struct.pack("<H", len(peaks)))
         for d_spacing, intensity in peaks:
-            rid.extend(b"\x00\x00\x00" + struct.pack("<f", d_spacing) + bytes([intensity, 0]))
+            rid.extend(struct.pack("<fHbbb", d_spacing, intensity, -1, 2, 3))
+        if number != cards[-1][0]:
+            rid.extend(b"\x10")
         records.append((number, sid_offset, rid_offset, number - 970000000))
 
     xid = bytearray(b"J7" + b"\x00" * 6)
@@ -70,6 +74,10 @@ def test_jade_reader_searches_metadata_and_reads_final_record(tmp_path: Path) ->
         assert final["formula"] == "Bi O Br"
         final_peaks = database.peaks(1, wavelength_angstrom=1.5406, x_min=5, x_max=80)
         assert len(final_peaks) == 3
+        assert [peak["d_spacing_angstrom"] for peak in final_peaks] == pytest.approx([3.92, 2.78, 1.96])
+        assert [peak["intensity_raw"] for peak in final_peaks] == [10000, 5000, 2500]
+        assert [peak["relative_intensity"] for peak in final_peaks] == pytest.approx([100, 50, 25])
+        assert all("hkl" not in peak for peak in final_peaks)
 
 
 def test_card_relative_intensity_is_invariant_to_scan_window(tmp_path: Path) -> None:
@@ -153,6 +161,73 @@ def test_corrupt_sid_rid_offsets_and_rid_record_size_are_rejected(tmp_path: Path
             rid_path.write_bytes(rid_path.read_bytes() + b"\x00")
         with pytest.raises(ValueError):
             JadeIndex(database_dir)
+
+
+@pytest.mark.parametrize("mode", ["marker", "count", "zero_count", "separator", "truncated", "headerless"])
+def test_corrupt_counted_rid_frames_are_rejected(tmp_path: Path, mode: str) -> None:
+    database_dir = tmp_path / "database"
+    _write_jade_database(database_dir)
+    rid_path = database_dir / "ICSD-ALL.rid"
+    rid = bytearray(rid_path.read_bytes())
+    if mode == "marker":
+        rid[7] = 0
+    elif mode in {"count", "zero_count"}:
+        struct.pack_into("<H", rid, 8, 4 if mode == "count" else 0)
+    elif mode == "separator":
+        rid[7 + 3 + 3 * 9] = 0
+    elif mode == "truncated":
+        rid.pop()
+    else:
+        rid[7:10] = b"\x00\x00\x00"
+    rid_path.write_bytes(rid)
+    with pytest.raises(ValueError, match="Jade RID"):
+        JadeIndex(database_dir)
+    # Failed mmap validation releases the files (also required on Windows).
+    rid_path.write_bytes(rid)
+
+
+@pytest.mark.parametrize("d_spacing", [float("nan"), float("inf"), -1.0, 0.0])
+def test_invalid_rid_d_spacing_is_rejected_even_outside_window(tmp_path: Path, d_spacing: float) -> None:
+    database_dir = tmp_path / "database"
+    _write_jade_database(database_dir)
+    rid_path = database_dir / "ICSD-ALL.rid"
+    rid = bytearray(rid_path.read_bytes())
+    struct.pack_into("<f", rid, 10, d_spacing)
+    rid_path.write_bytes(rid)
+    with JadeIndex(database_dir) as database:
+        with pytest.raises(ValueError, match="Invalid Jade RID d spacing"):
+            database.peaks(0, wavelength_angstrom=1.5406, x_min=30, x_max=70)
+
+
+def test_large_d_spacing_and_zero_intensity_are_valid(tmp_path: Path) -> None:
+    database_dir = tmp_path / "database"
+    _write_jade_database(database_dir)
+    rid_path = database_dir / "ICSD-ALL.rid"
+    rid = bytearray(rid_path.read_bytes())
+    struct.pack_into("<f", rid, 10, 150.0)
+    struct.pack_into("<H", rid, 10 + 9 + 4, 0)
+    rid_path.write_bytes(rid)
+    with JadeIndex(database_dir) as database:
+        peaks = database.peaks(0, wavelength_angstrom=1.5406, x_min=0, x_max=180)
+    assert [peak["d_spacing_angstrom"] for peak in peaks] == pytest.approx([150, 1.541])
+    assert [peak["relative_intensity"] for peak in peaks] == pytest.approx([100, 60])
+
+
+def test_rid_peak_count_uses_both_bytes(tmp_path: Path) -> None:
+    database_dir = tmp_path / "database"
+    _write_jade_database(database_dir)
+    xid = (database_dir / "ICSD-ALL.xid").read_bytes()
+    final_start = struct.unpack_from("<I", xid, 28 + 8)[0]
+    rid_path = database_dir / "ICSD-ALL.rid"
+    rid = rid_path.read_bytes()[:final_start]
+    count = 300
+    rid += b"\x27" + struct.pack("<H", count)
+    rid += b"".join(struct.pack("<fHbbb", 2.0 + i / 1000, 10000 - i, 0, 0, 0) for i in range(count))
+    rid_path.write_bytes(rid)
+    with JadeIndex(database_dir) as database:
+        peaks = database.peaks(1, wavelength_angstrom=1.5406, x_min=5, x_max=80)
+    assert len(peaks) == count
+    assert {peak["intensity_raw"] for peak in peaks} == set(range(9701, 10001))
 
 
 def test_selected_and_full_library_matching_return_candidates(tmp_path: Path) -> None:

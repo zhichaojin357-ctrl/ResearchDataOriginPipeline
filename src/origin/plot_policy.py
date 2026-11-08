@@ -425,6 +425,13 @@ _POLICIES: dict[str, PlotPolicy] = {
         ("no calibration claim without raw standard points",),
         "calibration uses raw standard points and quantitative axes",
     ),
+    "GC calibration exported data": PlotPolicy(
+        "GC calibration exported data", "calibration_scatter", "201", "markers_required",
+        True, True, True, True, True,
+        "fit explicitly selected standards in Origin; fitted line hidden unless requested",
+        ("no validated linearity claim from selected R-squared alone",),
+        "GC selected standards use measured scatter points and quantitative concentration/area axes",
+    ),
     "HPLC/LC exported data": PlotPolicy(
         "HPLC/LC exported data",
         "chromatogram",

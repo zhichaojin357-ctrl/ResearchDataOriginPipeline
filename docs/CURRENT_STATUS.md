@@ -35,8 +35,10 @@ establish visual acceptance of this branch.
 
 ## Runtime scope
 
-`config/processor_registry.yaml` currently declares 15 supported pipeline
+`config/processor_registry.yaml` currently declares 16 supported pipeline
 entries:
+
+- GC calibration exported data (dedicated `gc-calibration`; explicit selected worksheet required)
 
 - photocurrent
 - BET
