@@ -2,7 +2,7 @@
 
 2026-11-08 同步的最新工作版本位于 `codex/drs-origin-batch-20261103`。该分支整合本地 CHI 电化学提交，以及 GC 标定、DRS/Tauc、XRD 和图例维护改动。`master` 不代表这些新增改动均已完成正式产品验收。
 
-仓库为私有仓库，先在另一台电脑登录具有访问权限的 GitHub 账号，再运行：
+仓库已设为公开，另一台电脑无需登录 GitHub 即可运行：
 
 ```powershell
 git clone --branch codex/drs-origin-batch-20261103 https://github.com/zhichaojin357-ctrl/ResearchDataOriginPipeline.git
