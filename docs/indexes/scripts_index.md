@@ -4,6 +4,7 @@
 |---|---:|---|---|---:|
 | `scripts/README.md` | False | script_layout_index | keep | False |
 | `scripts/data_types/README.md` | False | script_layout_index | keep | False |
+| `scripts/data_types/electrochem/build_chi_workbooks.mjs` | True | chi_electrochem_workbook_builder | keep | False |
 | `scripts/data_types/hplc_lc/README.md` | False | script_layout_index | keep | False |
 | `scripts/data_types/hplc_lc/build_openlab_workbook.mjs` | True | hplc_lc_openlab_workbook_builder | keep | False |
 | `scripts/data_types/hplc_lc/openlab_vendor_bridge/README.md` | False | hplc_lc_openlab_vendor_bridge_documentation | keep | False |
