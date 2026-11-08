@@ -1,11 +1,11 @@
 # 在另一台 Windows 电脑使用
 
-2026-11-08 同步的最新工作版本位于 `codex/drs-origin-batch-20261103`。该分支整合本地 CHI 电化学提交，以及 GC 标定、DRS/Tauc、XRD 和图例维护改动。`master` 不代表这些新增改动均已完成正式产品验收。
+2026-11-08，`codex/drs-origin-batch-20261103` 的全部改动已整合到默认分支 `master`，包括 CHI 电化学、GC 标定、DRS/Tauc、XRD 和图例维护改动。直接克隆默认分支即可取得完整代码；代码合并不代表这些新增改动均已完成正式产品验收。
 
 仓库已设为公开，另一台电脑无需登录 GitHub 即可运行：
 
 ```powershell
-git clone --branch codex/drs-origin-batch-20261103 https://github.com/zhichaojin357-ctrl/ResearchDataOriginPipeline.git
+git clone https://github.com/zhichaojin357-ctrl/ResearchDataOriginPipeline.git
 cd ResearchDataOriginPipeline
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -14,12 +14,12 @@ py -3 -m venv .venv
 
 Python 需为 3.10 或以上。安装依赖会产生网络下载；先检查新电脑已有环境和缓存，再决定是否安装。若新电脑使用 Codex，建议将项目放入独立的项目父目录，使默认的 `../输出` 也处于允许写入的工作区内。
 
-已有本仓库时，先保存本机改动，再获取更新并切换到最新工作分支：
+已有本仓库时，先保存本机改动，再获取更新并切换到默认分支：
 
 ```powershell
 git fetch origin
-git switch codex/drs-origin-batch-20261103
-git pull --ff-only origin codex/drs-origin-batch-20261103
+git switch master
+git pull --ff-only origin master
 ```
 
 ## 需要在新电脑配置的内容
